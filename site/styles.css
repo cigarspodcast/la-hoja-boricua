@@ -233,9 +233,6 @@ details.edit .form{padding:6px 0 14px}
 @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-3px)}}
 @keyframes look{0%,40%,100%{transform:translateX(0)}50%,85%{transform:translateX(-3px)}}
 .hero{padding-bottom:18px;min-height:178px}
-.hero-art{position:absolute;right:-4px;bottom:6px;width:46%;max-width:210px;height:120px;pointer-events:none}
-.hero-art .hero-volky{position:absolute;left:-8px;bottom:0;width:168px;animation:park 1.1s cubic-bezier(.2,.9,.3,1.2) both .2s}
-@keyframes park{from{transform:translateX(120%)}to{transform:translateX(0)}}
 .hero h1{max-width:60%}
 .hero p{max-width:56%}
 .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:4px}
@@ -277,7 +274,9 @@ h1,.brand-name,.splash-name,.section-title h2,.profile-hero h1{font-family:var(-
 h1 em,h2 em,.brand-name em,.splash-name em{font-style:normal;font-weight:400;color:var(--gold)}
 .eyebrow{color:var(--celeste)}
 .hero{background:linear-gradient(160deg,#1f5a36 0%,#123a24 55%,#0b1d12 100%)}
-.hero::before{content:"";position:absolute;left:-14px;bottom:-70px;width:80px;height:280px;background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 440%22%3E%3Cpath d=%22M60 436 L60 30%22 stroke=%22%23a7d46f%22 stroke-width=%225%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408 C34 370 18 320 14 250 C10 160 24 70 60 22Z%22 fill=%22%233f9150%22/%3E%3Cpath d=%22M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408Z%22 fill=%22%232c7a3e%22/%3E%3Cg stroke=%22%231e5a2d%22 stroke-width=%222.4%22 opacity=%22.75%22%3E%3Cpath d=%22M60 70 L27 56 M60 70 L93 56%22/%3E%3Cpath d=%22M60 92 L25 78 M60 92 L95 78%22/%3E%3Cpath d=%22M60 114 L24 100 M60 114 L96 100%22/%3E%3Cpath d=%22M60 136 L22 122 M60 136 L98 122%22/%3E%3Cpath d=%22M60 158 L21 144 M60 158 L99 144%22/%3E%3Cpath d=%22M60 180 L19 166 M60 180 L101 166%22/%3E%3Cpath d=%22M60 202 L18 188 M60 202 L102 188%22/%3E%3Cpath d=%22M60 224 L16 210 M60 224 L104 210%22/%3E%3Cpath d=%22M60 246 L17 232 M60 246 L103 232%22/%3E%3Cpath d=%22M60 268 L18 254 M60 268 L102 254%22/%3E%3Cpath d=%22M60 290 L20 276 M60 290 L100 276%22/%3E%3Cpath d=%22M60 312 L21 298 M60 312 L99 298%22/%3E%3Cpath d=%22M60 334 L23 320 M60 334 L97 320%22/%3E%3Cpath d=%22M60 356 L25 342 M60 356 L95 342%22/%3E%3Cpath d=%22M60 378 L26 364 M60 378 L94 364%22/%3E%3C/g%3E%3Cg stroke=%22%230e2417%22 stroke-width=%224.5%22 stroke-linecap=%22round%22%3E%3Cpath d=%22M14 196 L40 186 M107 262 L80 252 M20 318 L44 306 M104 150 L82 141%22/%3E%3C/g%3E%3C/svg%3E") no-repeat center/contain;transform:rotate(-28deg);opacity:.35;pointer-events:none}
+.hero::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(7,24,14,.94) 0%,rgba(7,24,14,.84) 40%,rgba(7,24,14,.42) 66%,rgba(7,24,14,.05) 100%),linear-gradient(0deg,rgba(7,24,14,.8) 0%,rgba(7,24,14,0) 60%)}
+.hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 30%;z-index:0}
+.hero>.facades,.hero>.eyebrow,.hero>h1,.hero>p{position:relative;z-index:2}
 .hero>.eyebrow,.hero>h1,.hero>p{position:relative}
 .sec-head{position:relative}
 .card{background:var(--card);padding:7px 7px 0}
@@ -540,9 +539,7 @@ body.sheet-on{overflow:hidden}
 .foto-th span{display:block;background:var(--card2);color:#f3f1e2;font-size:11.5px;padding:3px 0;text-align:center}
 .foto-th[aria-pressed="true"]{border-color:var(--gold)}
 
-/* v8 · splash: la guagua B cruza el campo de tabaco y desaparece */
-.hero-art .guagua{filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
-.hero-art .hero-volky.guagua{width:140px;left:2px;bottom:2px}
+/* v8 · splash: la guagua B cruza el campo de tabaco y desaparece (v15: ya no sale en el banner del catálogo) */
 
 /* v9 · splash: campo por capas con paralaje, guagua anclada al camino */
 .campo{position:relative;width:100%;max-width:600px;aspect-ratio:5/4;margin:10px auto 2px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 90%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 90%,transparent 100%)}
@@ -582,8 +579,6 @@ body.sheet-on{overflow:hidden}
 @keyframes shd{0%,100%{transform:scaleX(1);opacity:1}35%{transform:scaleX(.95);opacity:.82}}
 .puff{position:absolute;left:0;top:0;border-radius:50%;background:radial-gradient(closest-side,rgba(246,230,198,.85),rgba(228,206,166,.45) 55%,rgba(228,206,166,0));will-change:transform,opacity;opacity:0}
 .wleaf{position:absolute;left:0;top:0;will-change:transform,opacity;opacity:0}
-.hero-art .hero-volky.guagua{animation:park 1.1s cubic-bezier(.2,.9,.3,1.2) both .2s,idle 1.5s ease-in-out 1.35s infinite}
-@keyframes idle{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-2.2px) rotate(-.8deg)}60%{transform:translateY(-.6px) rotate(.3deg)}}
 
 .lbtn.spotify{grid-column:1/-1;background:#1DB954;border:0;color:#0e2417;font-weight:800;font-size:16px;padding:14px 10px;box-shadow:0 4px 14px rgba(29,185,84,.35)}
 .lbtn.spotify svg{width:22px;height:22px}
