@@ -158,7 +158,7 @@ function placeCard(p){const ig=igHandle(p.instagram);return `<div class="pop"><d
 function filteredPlaces(){return D.places.filter(p=>(!state.lugCat||p.categoria===state.lugCat)&&(!state.lugTown||p.pueblo===state.lugTown))}
 function vLugares(){const towns=[...new Set(D.places.map(p=>p.pueblo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));const ps=filteredPlaces();
  const nL=D.places.filter(p=>p.categoria==='lounge').length,nV=D.places.filter(p=>p.categoria==='venta').length;
- view.innerHTML=`${head('Lugares','Dónde <em>disfrutar</em> y comprar',`${nL} lounges y ${nV} puntos de venta en la isla.`,VBArt.garita())}
+ view.innerHTML=`${head('Lugares','Dónde <em>disfrutar</em> y comprar',`${nL} lounges y ${nV} puntos de venta en la isla.`,VBArt.flor())}
  <div class="toggle" role="group" aria-label="Vista"><button data-mode="mapa" aria-pressed="${state.lugMode==='mapa'}">Mapa</button><button data-mode="lista" aria-pressed="${state.lugMode==='lista'}">Lista</button></div>
  <div class="chips"><button class="chip" data-cat="" aria-pressed="${!state.lugCat}">Todos</button><button class="chip" data-cat="lounge" aria-pressed="${state.lugCat==='lounge'}">Lounges</button><button class="chip" data-cat="venta" aria-pressed="${state.lugCat==='venta'}">Puntos de venta</button></div>
  <div class="filter-row"><select id="fTown" aria-label="Pueblo"><option value="">Pueblo: todos</option>${towns.map(t=>`<option ${state.lugTown===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>

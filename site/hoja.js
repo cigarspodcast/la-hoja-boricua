@@ -321,7 +321,7 @@ function vPodcast(){view.innerHTML=`${A.head('Podcast','Escucha en <em>Cigars Po
 const qs={q:'',reg:'',mun:'',fort:''};
 const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function vBuscar(){const d=D();const munis=[...new Set([...d.artesanos.map(a=>a.pueblo),...d.places.map(p=>p.pueblo),...d.cigarros.map(c=>c.pueblo),...(d.events.actividades||[]).map(e=>e.pueblo)].map(municipio).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
- view.innerHTML=`${A.head('Buscar','Busca en <em>todo</em>','Cigarros, artesanos, lugares y eventos, con filtros por región, municipio y Fortaleza.',VBArt.garita())}
+ view.innerHTML=`${A.head('Buscar','Busca en <em>todo</em>','Cigarros, artesanos, lugares y eventos, con filtros por región, municipio y Fortaleza.',VBArt.flor())}
  <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr">Buscar</span><input id="gq" type="search" placeholder="Buscar en toda la app…" value="${esc(qs.q)}" autocomplete="off"></label>
  <div class="filter-row"><select id="gReg" aria-label="Región"><option value="">Región: todas</option>${Object.keys(REG).map(r=>`<option ${qs.reg===r?'selected':''}>${r}</option>`).join('')}</select>
  <select id="gMun" aria-label="Municipio"><option value="">Municipio: todos</option>${munis.filter(m=>!qs.reg||region(m)===qs.reg).map(m=>`<option ${qs.mun===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
