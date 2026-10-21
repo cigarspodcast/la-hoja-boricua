@@ -63,7 +63,7 @@ const MUNIS=Object.values(REG).flat();
 function municipio(p){const s=String(p||'');let best=null,pos=1e9;for(const m of MUNIS){const i=s.indexOf(m);if(i>=0&&(i<pos||(i===pos&&m.length>best.length))){best=m;pos=i}}return best}
 const region=m=>Object.keys(REG).find(r=>REG[r].includes(m))||'';
 /* ---------- rueda de sabores ---------- */
-const WHEEL=[{id:'madera',n:'Madera',c:'#e6c48f'},{id:'tierra',n:'Tierra',c:'#cbbd9f'},{id:'especias',n:'Especias',c:'#f0927e'},{id:'dulce',n:'Dulce',c:'#efc56f'},{id:'cacao',n:'Cacao / café',l:['Cacao','café'],c:'#dcb6a6'},{id:'frutos',n:'Frutos',c:'#e2a39a'},{id:'floral',n:'Floral',c:'#c3a2cf'},{id:'cuero',n:'Cuero',c:'#9fcdea'},{id:'nuez',n:'Nuez',c:'#a9c487'}];
+const WHEEL=[{id:'madera',n:'Madera',c:'#e6c48f'},{id:'tierra',n:'Tierra',c:'#cbbd9f'},{id:'especias',n:'Especias',c:'#ff8a80'},{id:'dulce',n:'Dulce',c:'#ffd27a'},{id:'cacao',n:'Cacao / café',l:['Cacao','café'],c:'#e8c0c0'},{id:'frutos',n:'Frutos',c:'#ff9a9a'},{id:'floral',n:'Floral',c:'#c5cdf5'},{id:'cuero',n:'Cuero',c:'#8fb8ff'},{id:'nuez',n:'Nuez',c:'#a9c487'}];
 const WN=id=>(WHEEL.find(w=>w.id===id)||{}).n||id;
 const KW={madera:/madera|cedro|roble|ahumad/i,tierra:/tierra|terros|mineral/i,especias:/especia|pimient|canela|picant|clavo/i,dulce:/dulce|miel|caramel|azúcar|azucar|vainilla|melaza|sugar/i,cacao:/cacao|chocolate|café|cafe|espresso|moca/i,frutos:/fruta|frut|cítric|citric|pasas|cereza/i,floral:/flor/i,cuero:/cuero/i,nuez:/nuez|nueces|almendr|maní|avellan/i};
 const cigarTags=c=>Object.keys(KW).filter(k=>KW[k].test([c.notas,c.nombre].join(' ')));
@@ -72,7 +72,7 @@ function wheel(sel,key){const N=WHEEL.length,R=150,r0=48,cx=160,cy=160;const pt=
   return `<g class="wseg${on?' on':''}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${w.n}" data-w="${w.id}" data-wk="${key}" style="--wc:${w.c}"><path d="M${x0.toFixed(1)} ${y0.toFixed(1)}A${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}A${r0} ${r0} 0 0 0 ${x3.toFixed(1)} ${y3.toFixed(1)}Z"/>${ls.map((t,j)=>`<text x="${tx.toFixed(1)}" y="${(ty+(j-(ls.length-1)/2)*15+5).toFixed(1)}" text-anchor="middle">${t}</text>`).join('')}</g>`}).join('');
  return `<div class="wheel-wrap"><svg class="wheel" viewBox="0 0 320 320" role="group" aria-label="Rueda de sabores: toca los que sientas">${segs}<circle cx="160" cy="160" r="42" class="whub"/><text x="160" y="157" text-anchor="middle" class="whub-n">${sel.length}</text><text x="160" y="176" text-anchor="middle" class="whub-t">sabor${sel.length===1?'':'es'}</text></svg></div>`}
 function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{const k=g.dataset.wk,id=g.dataset.w;const cur=get(k);set(k,cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);rerender(k,id)};g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})})}
-const tagChips=ts=>ts.length?`<div class="tagchips">${ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'#cfdcc2'}">${esc(WN(t))}</span>`).join('')}</div>`:'';
+const tagChips=ts=>ts.length?`<div class="tagchips">${ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'#dde3dc'}">${esc(WN(t))}</span>`).join('')}</div>`:'';
 /* ---------- hoja de acciones (sheet) ---------- */
 let lastFocus=null;
 function sheet(html,label){let el=$('#sheet');if(!el){el=document.createElement('div');el.id='sheet';el.className='sheet';document.body.appendChild(el)}
@@ -89,8 +89,8 @@ function openSheet(kind,arg){
  if(kind==='menu'){sheet(`<h2 class="sheet-h">Menú</h2><nav class="menu-list" aria-label="Menú">${MENU.map(([h,t,s])=>`<a href="${h}" class="row"><div><div class="t">${t}</div><div class="s">${s}</div></div><span class="go">›</span></a>`).join('')}</nav>`,'Menú');return}
  if(kind==='plus'){sheet(`<h2 class="sheet-h">¿Qué quieres hacer?</h2><div class="menu-list">
   <a href="#/cata" class="row big"><span class="ico">${VBArt.leaf('#8fd162')}</span><div><div class="t">Empezar una cata guiada</div><div class="s">Paso a paso; se guarda en tu diario</div></div></a>
-  <button type="button" class="row big" data-sheet="humidor"><span class="ico">${VBArt.leaf('#efc56f')}</span><div><div class="t">Añadir al humidor</div><div class="s">Del catálogo o uno tuyo, con cantidad y fecha</div></div></button>
-  <a href="#/subir" class="row big"><span class="ico">${VBArt.leaf('#e2a39a')}</span><div><div class="t">Subir una vitola</div><div class="s">Con foto, a tu catálogo personal</div></div></a></div>`,'Acciones');return}
+  <button type="button" class="row big" data-sheet="humidor"><span class="ico">${VBArt.leaf('#ffd27a')}</span><div><div class="t">Añadir al humidor</div><div class="s">Del catálogo o uno tuyo, con cantidad y fecha</div></div></button>
+  <a href="#/subir" class="row big"><span class="ico">${VBArt.leaf('#ff9a9a')}</span><div><div class="t">Subir una vitola</div><div class="s">Con foto, a tu catálogo personal</div></div></a></div>`,'Acciones');return}
  if(kind==='humidor')return humidorForm(arg);
  if(kind==='share')return shareCard(arg)}
 /* ---------- humidor ---------- */
@@ -171,12 +171,12 @@ function vDiario(){const s=S();
  $$('[data-ddel]').forEach(b=>b.onclick=()=>{if(confirm('¿Borrar esta entrada del diario?')){save(s=>{s.diario=s.diario.filter(x=>x.id!==b.dataset.ddel)});vDiario();bindBackup()}})}
 /* pasaporte */
 const BADGES=[{id:'primer',n:'Primer sello',d:'Tu primer sello',k:'total',m:1,c:'#8fd162'},
- {id:'catador',n:'Catador',d:'5 cigarros catados',k:'cigarros',m:5,c:'#efc56f'},
- {id:'artesanos5',n:'Amigo artesano',d:'5 artesanos probados',k:'artesanos',m:5,c:'#e2a39a'},
- {id:'lugares5',n:'De jangueo',d:'5 lugares visitados',k:'lugares',m:5,c:'#86c0c6'},
- {id:'catador15',n:'Paladar boricua',d:'15 cigarros catados',k:'cigarros',m:15,c:'#f0927e'},
- {id:'lugares15',n:'Isla recorrida',d:'15 lugares visitados',k:'lugares',m:15,c:'#9fcdea'},
- {id:'mitad',n:'Medio pasaporte',d:'La mitad de todos los sellos',k:'total',m:'half',c:'#c3a2cf'},
+ {id:'catador',n:'Catador',d:'5 cigarros catados',k:'cigarros',m:5,c:'#ffd27a'},
+ {id:'artesanos5',n:'Amigo artesano',d:'5 artesanos probados',k:'artesanos',m:5,c:'#ff9a9a'},
+ {id:'lugares5',n:'De jangueo',d:'5 lugares visitados',k:'lugares',m:5,c:'#7fb0ff'},
+ {id:'catador15',n:'Paladar boricua',d:'15 cigarros catados',k:'cigarros',m:15,c:'#ff8a80'},
+ {id:'lugares15',n:'Isla recorrida',d:'15 lugares visitados',k:'lugares',m:15,c:'#8fb8ff'},
+ {id:'mitad',n:'Medio pasaporte',d:'La mitad de todos los sellos',k:'total',m:'half',c:'#c5cdf5'},
  {id:'artesanosAll',n:'Todos los artesanos',d:'Probaste a todos los artesanos',k:'artesanos',m:'all',c:'#a9c487'}];
 function passCounts(){const s=S(),d=D();const valid={artesanos:new Set(d.artesanos.map(x=>x.id)),cigarros:new Set(d.cigarros.map(x=>x.id)),lugares:new Set(d.places.map(x=>x.id))};
  const c={};for(const k of ['artesanos','cigarros','lugares'])c[k]=Object.keys(s.pasaporte[k]).filter(id=>valid[k].has(id)).length;c.total=c.artesanos+c.cigarros+c.lugares;
@@ -201,7 +201,7 @@ function vFavoritos(){const s=S(),d=D();const cs=s.favs.cigarros.map(A.cigarById
  <div class="section-title"><h2>Lugares</h2><span class="count">${ps.length}</span></div>${ps.length?`<div class="list">${ps.map(placeRow).join('')}</div>`:'<div class="empty">Toca ♡ en un lugar de la lista o del mapa.</div>'}
  ${backupPanel()}`;A.hydrate()}
 const artRow=a=>`<div class="row"><a href="#/a/${encodeURIComponent(a.id)}" class="rowlink">${A.mono(a.nombre,42)}<div><div class="t">${esc(a.nombre)}</div><div class="s">${esc(a.pueblo||'')}${municipio(a.pueblo)?' · '+region(municipio(a.pueblo)):''}</div></div></a>${favBtn('artesanos',a.id,'icon')}</div>`;
-const placeRow=p=>`<div class="row"><a class="rowlink" href="${esc(A.goLink(p))}" target="_blank" rel="noopener"><span class="list-leaf">${VBArt.leaf(p.categoria==='venta'?'#efc56f':'#8fd162')}</span><div><div class="t">${esc(p.nombre)}</div><div class="s">${esc(p.tipo||'')} · ${esc(p.pueblo||'')} · Cómo llegar</div></div></a>${favBtn('lugares',p.id,'icon')}</div>`;
+const placeRow=p=>`<div class="row"><a class="rowlink" href="${esc(A.goLink(p))}" target="_blank" rel="noopener"><span class="list-leaf">${VBArt.leaf(p.categoria==='venta'?'#ffd27a':'#8fd162')}</span><div><div class="t">${esc(p.nombre)}</div><div class="s">${esc(p.tipo||'')} · ${esc(p.pueblo||'')} · Cómo llegar</div></div></a>${favBtn('lugares',p.id,'icon')}</div>`;
 /* ---------- cata guiada ---------- */
 const FORT5=['Suave','Suave a media','Media','Media a fuerte','Fuerte'];const CUER5=['Ligero','Ligero a medio','Medio','Medio a completo','Completo'];
 const PASOS=[
@@ -418,21 +418,21 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
  try{await Promise.all(['64px Shrikhand','600 36px Figtree','700 30px Figtree'].map(f=>document.fonts.load(f)))}catch(e){}
  const g=x.createLinearGradient(0,0,W*.4,H);g.addColorStop(0,'#1f5a36');g.addColorStop(.55,'#123a24');g.addColorStop(1,'#0b1d12');x.fillStyle=g;x.fillRect(0,0,W,H);
  drawLeaf(x,70,250,1.25,.5,.4);drawLeaf(x,1010,1120,1.35,-2.6,.33);
- const fb=[['#1d3f7a',.18],['#b5162b',.27],['#f3f1e2',.1],['#b5162b',.27],['#f3f1e2',.04],['#b5162b',.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});
- x.textBaseline='alphabetic';x.font='64px Shrikhand';x.fillStyle='#f3f1e2';const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,120);x.fillStyle='#8fd162';x.fillText('Boricua',sx+w1,120);
- x.font='600 24px Figtree';x.fillStyle='#9fcdea';x.textAlign='center';x.fillText('HECHO EN PUERTO RICO',W/2,162);x.textAlign='left';
+ const fb=[['#0050f0',.18],['#ed0000',.27],['#f8f8f4',.1],['#ed0000',.27],['#f8f8f4',.04],['#ed0000',.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});
+ x.textBaseline='alphabetic';x.font='64px Shrikhand';x.fillStyle='#f8f8f4';const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,120);x.fillStyle='#8fd162';x.fillText('Boricua',sx+w1,120);
+ x.font='600 24px Figtree';x.fillStyle='#8fb8ff';x.textAlign='center';x.fillText('HECHO EN PUERTO RICO',W/2,162);x.textAlign='left';
  const foto=(!c.yours&&window.LHB_FOTOS)?window.LHB_FOTOS[c.id]:null;let fimg=null;
  if(foto){fimg=new Image();fimg.src=foto.img;await new Promise(r=>{fimg.onload=r;fimg.onerror=()=>{fimg=null;r()}})}
  const img=new Image();if(!fimg){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(A.cigarSVG(c));await new Promise(r=>{img.onload=r;img.onerror=r})}
- x.save();x.translate(W/2,520);x.rotate(-.025);x.shadowColor='rgba(0,0,0,.45)';x.shadowBlur=30;x.shadowOffsetY=12;x.fillStyle='#f7f2e3';x.fillRect(-410,-300,820,640);x.shadowColor='transparent';
+ x.save();x.translate(W/2,520);x.rotate(-.025);x.shadowColor='rgba(0,0,0,.45)';x.shadowBlur=30;x.shadowOffsetY=12;x.fillStyle='#fbfbf8';x.fillRect(-410,-300,820,640);x.shadowColor='transparent';
  if(fimg){x.fillStyle='#ffffff';x.fillRect(-380,-270,760,570);try{x.drawImage(fimg,-380,-205,760,380)}catch(e){}x.fillStyle='#5b5b5b';x.font='600 20px Figtree';x.textAlign='center';x.fillText(foto.credito+(foto.match==='linea'?' · Foto de la línea':''),0,282);x.textAlign='left'}
- else{try{x.drawImage(img,-380,-270,760,570)}catch(e){x.fillStyle='#86c0c6';x.fillRect(-380,-270,760,570)}}x.restore();
- x.fillStyle='#f3f1e2';x.font='68px Shrikhand';x.textAlign='center';let y=960;const nl=wrap(x,c.nombre,W-140).slice(0,2);if(nl.length>1){x.font='56px Shrikhand';y=930}nl.forEach((l,i)=>x.fillText(l,W/2,y+i*68));y+= (nl.length-1)*68;
- x.font='600 34px Figtree';x.fillStyle='#cfdcc2';x.fillText([A.artisanName(c),c.pueblo].filter(Boolean).join(' · '),W/2,y+56);x.textAlign='left';
+ else{try{x.drawImage(img,-380,-270,760,570)}catch(e){x.fillStyle='#7fb0ff';x.fillRect(-380,-270,760,570)}}x.restore();
+ x.fillStyle='#f8f8f4';x.font='68px Shrikhand';x.textAlign='center';let y=960;const nl=wrap(x,c.nombre,W-140).slice(0,2);if(nl.length>1){x.font='56px Shrikhand';y=930}nl.forEach((l,i)=>x.fillText(l,W/2,y+i*68));y+= (nl.length-1)*68;
+ x.font='600 34px Figtree';x.fillStyle='#dde3dc';x.fillText([A.artisanName(c),c.pueblo].filter(Boolean).join(' · '),W/2,y+56);x.textAlign='left';
  const vs=c.vitolas||[];const specs=[['CAPA',(c.capa||'No publicada').replace(/\s*\(.*?\)/g,'')],['FORTALEZA',c.fortaleza?A.fortLabel(c.fortaleza):'No publicada'],['VITOLA',vs.length?vs[0]+(vs.length>1?' +'+(vs.length-1):''):'En verificación']];
  const bw=300,gap=24,bx=(W-bw*3-gap*2)/2,by=y+96;specs.forEach(([k,v],i)=>{const X=bx+i*(bw+gap);x.fillStyle='rgba(23,58,38,.92)';rr(x,X,by,bw,110,18);x.fill();x.strokeStyle='#2c5a3d';x.lineWidth=2;x.stroke();
-  x.fillStyle='#9fcdea';x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle='#f3f1e2';x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
- x.textAlign='center';x.fillStyle='#8fd162';x.font='700 30px Figtree';x.fillText('lahojaboricua.sites.tab.bot',W/2,H-62);x.fillStyle='#a2b99d';x.font='600 20px Figtree';x.fillText('Prototipo — información pública, sujeta a verificación',W/2,H-28);
+  x.fillStyle='#8fb8ff';x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle='#f8f8f4';x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
+ x.textAlign='center';x.fillStyle='#8fd162';x.font='700 30px Figtree';x.fillText('lahojaboricua.sites.tab.bot',W/2,H-62);x.fillStyle='#b3c0b5';x.font='600 20px Figtree';x.fillText('Prototipo — información pública, sujeta a verificación',W/2,H-28);
  return new Promise(r=>cv.toBlob(b=>r(b),'image/png'))}
 async function shareCard(id){const c=A.cigarById(id);if(!c)return;
  const el=sheet(`<h2 class="sheet-h">Compartir ficha</h2><div class="share-prev" id="shPrev"><p class="hint">Preparando la imagen…</p></div><div class="links" id="shBtns" hidden><button class="btn" type="button" id="shGo">Compartir</button><button class="btn secondary" type="button" id="shDl">Descargar PNG</button></div>`,'Compartir ficha');
@@ -453,7 +453,7 @@ function artisanExtras(a){const p=pideloLink(a);
  return `${p?`<a class="pidelo" href="${esc(p.u)}" target="_blank" rel="noopener"><span class="pidelo-t">Pídelo directo</span><span class="pidelo-s">Escríbele ${p.l} ›</span></a>`:''}
  <div class="act-row">${favBtn('artesanos',a.id)}${stampBtn('artesanos',a.id)}</div>${podBlock('a',a.id)}`}
 function cigarExtras(c){const pr=pairing(c);const real=!c.yours;
- return `<div class="act-grid"><a class="act" href="#/cata/${encodeURIComponent(c.id)}">${VBArt.leaf('#8fd162')}<span>Catar</span></a><button type="button" class="act" data-sheet="humidor" data-arg="${esc(c.id)}">${VBArt.leaf('#efc56f')}<span>Al humidor</span></button><button type="button" class="act" data-sheet="share" data-arg="${esc(c.id)}">${VBArt.leaf('#9fcdea')}<span>Compartir</span></button>${real?stampBtn('cigarros',c.id,'act'):''}</div>
+ return `<div class="act-grid"><a class="act" href="#/cata/${encodeURIComponent(c.id)}">${VBArt.leaf('#8fd162')}<span>Catar</span></a><button type="button" class="act" data-sheet="humidor" data-arg="${esc(c.id)}">${VBArt.leaf('#ffd27a')}<span>Al humidor</span></button><button type="button" class="act" data-sheet="share" data-arg="${esc(c.id)}">${VBArt.leaf('#8fb8ff')}<span>Compartir</span></button>${real?stampBtn('cigarros',c.id,'act'):''}</div>
  <section class="pairbox"><div class="eyebrow">Maridaje sugerido</div><div class="pair-res"><div class="pr"><small>Ron</small><b>${pr.ron.n}</b></div><div class="pr"><small>Café</small><b>${pr.cafe.n}</b></div></div><p class="hint">Por su Fortaleza${pr.tags.length?' y sus notas de '+pr.tags.slice(0,3).map(t=>WN(t).toLowerCase()).join(', '):''}. <a href="#/maridajes">Ver la guía</a></p></section>
  ${podBlock('c',c.id)}`}
 const placeActions=p=>`<div class="pl-act">${favBtn('lugares',p.id,'sm')}${stampBtn('lugares',p.id,'sm')}</div>`;

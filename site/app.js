@@ -24,7 +24,7 @@ const artisanName=c=>{const a=artisanById(c.artesano_id);return a?a.nombre:(c.ar
 /* ---------- art ---------- */
 const CAPA_COLORS={claro:['#d8b47c','#b68a52'],connecticut:['#dcbd88','#b99256'],natural:['#b07a45','#8a5a30'],colorado:['#9b5a32','#74401f'],habano:['#a3683a','#7a4b25'],corojo:['#94532d','#6d3a1c'],sumatra:['#8a5634','#653c21'],criollo:['#9a6136','#704324'],maduro:['#5e3820','#3f2414'],oscuro:['#3e2416','#26150c'],'broadleaf':['#4a2b19','#2d190e']};
 const capaKey=c=>{const s=(c||'').toLowerCase();for(const k of Object.keys(CAPA_COLORS))if(s.includes(k))return k;if(s.includes('ecuador'))return'habano';return'colorado'};
-const BG=['#86c0c6','#efc56f','#e2a39a','#a9c487','#c3a2cf','#9fb7d6'];
+const BG=['#7fb0ff','#ffd27a','#ff9a9a','#a9c487','#c5cdf5','#8fb8ff'];
 function hash(s){let h=0;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))|0;return Math.abs(h)}
 function starPath(cx,cy,R){const r=R*.382;let p='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r:R;p+=(i?'L':'M')+(cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1)}return p+'Z'}
 function cigarSVG(c){const [w1,w2]=CAPA_COLORS[capaKey(c.capa)];const ix=allCigars().findIndex(x=>x.id===c.id);const bg=BG[(ix<0?hash(c.id):ix)%BG.length];const h=hash(c.nombre);const tilt=-8+(h%7);
@@ -36,9 +36,9 @@ function cigarSVG(c){const [w1,w2]=CAPA_COLORS[capaKey(c.capa)];const ix=allCiga
  <rect x="40" y="128" width="320" height="46" rx="23" fill="url(#w${c.id})"/>
  <path d="M60 140 C 140 134 260 146 345 138 M70 160 C 160 166 250 154 340 162" stroke="#000" stroke-opacity=".14" stroke-width="2" fill="none"/>
  <circle cx="352" cy="151" r="20" fill="${w2}"/><circle cx="356" cy="151" r="15" fill="#3a2214" opacity=".35"/>
- <rect x="248" y="124" width="46" height="54" rx="5" fill="#b5162b"/><rect x="248" y="141" width="46" height="20" fill="#f4e9d6"/>
- <path d="${starPath(271,151,9)}" fill="#1d3f7a"/></g></svg>`}
-const FACADE=['#e2a39a','#efc56f','#86c0c6','#a9c487','#c3a2cf','#e8b48a'];
+ <rect x="248" y="124" width="46" height="54" rx="5" fill="#ed0000"/><rect x="248" y="141" width="46" height="20" fill="#f4e9d6"/>
+ <path d="${starPath(271,151,9)}" fill="#0050f0"/></g></svg>`}
+const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0'];
 function initials(n){const ov=(D.artesanos||[]).find(x=>x.nombre===n&&x.iniciales);if(ov)return ov.iniciales;const f=String(n).trim().split(/\s+/)[0].replace(/[^A-Z]/g,'');if(f.length>=2&&f.length<=4&&f===String(n).trim().split(/\s+/)[0].replace(/[.,]/g,''))return f;return String(n).replace(/[^\p{L}\p{N} ]/gu,' ').split(/\s+/).filter(w=>w&&!/^(de|del|la|las|los|el|y|cigar|cigars|cigarros|tabacalera|corp)$/i.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'VB'}
 function mono(name,size){const bg=FACADE[hash(name)%FACADE.length];return `<span class="mono" style="width:${size}px;height:${size}px;background:${bg};font-size:${Math.round(size*.38)}px"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8 C 72 22 78 46 70 66 C 64 80 56 88 50 90 C 44 88 36 80 30 66 C 22 46 28 22 50 8Z" fill="#fff" opacity=".22"/></svg><b>${esc(initials(name))}</b></span>`}
 const FACADES_BAR=`<div class="facades" aria-hidden="true">${FACADE.map(c=>`<i style="background:${c}"></i>`).join('')}</div>`;
@@ -73,7 +73,7 @@ const state={q:'',capa:'',fort:'',art:'',lugMode:'mapa',lugCat:'',lugTown:''};
 function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.capa).filter(Boolean))].sort();
  const q=state.q.toLowerCase();const list=cs.filter(c=>(!q||[c.nombre,artisanName(c),c.pueblo,c.capa,c.notas].join(' ').toLowerCase().includes(q))&&(!state.capa||c.capa===state.capa)&&(!state.fort||c.fortaleza===state.fort)&&(!state.art||c.artesano_id===state.art));
  view.innerHTML=`<section class="hero">${FACADES_BAR}<img class="hero-bg" src="img/hero/banner.webp" alt="" width="760" height="422" decoding="async"><div class="eyebrow">Catálogo</div><h1>Cigarros <em>hechos</em> en Puerto Rico</h1><p>Las vitolas de nuestros artesanos, de Mayagüez a Caguas.</p></section>
- <nav class="tiles" aria-label="Explora"><a href="#/cata">${VBArt.leaf('#8fd162')}<b>Cata guiada</b><small>Paso a paso</small></a><a href="#/maridajes">${VBArt.leaf('#efc56f')}<b>Maridajes</b><small>Ron y café</small></a><a href="#/eventos">${VBArt.leaf('#f0927e')}<b>Eventos</b><small>Humo y Tambor</small></a><a href="#/podcast">${VBArt.leaf('#9fcdea')}<b>Podcast</b><small>Cigars Podcast</small></a></nav>
+ <nav class="tiles" aria-label="Explora"><a href="#/cata">${VBArt.leaf('#8fd162')}<b>Cata guiada</b><small>Paso a paso</small></a><a href="#/maridajes">${VBArt.leaf('#ffd27a')}<b>Maridajes</b><small>Ron y café</small></a><a href="#/eventos">${VBArt.leaf('#ff8a80')}<b>Eventos</b><small>Humo y Tambor</small></a><a href="#/podcast">${VBArt.leaf('#8fb8ff')}<b>Podcast</b><small>Cigars Podcast</small></a></nav>
  <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr">Buscar</span><input id="q" type="search" placeholder="Buscar vitola, artesano, pueblo…" value="${esc(state.q)}" autocomplete="off"></label>
  <div class="chips" role="group" aria-label="Fortaleza"><button class="chip" data-fort="" aria-pressed="${!state.fort}">Toda fortaleza</button>${FORT.map(f=>`<button class="chip" data-fort="${f}" aria-pressed="${state.fort===f}">${fortLabel(f)}</button>`).join('')}</div>
  <div class="filter-row"><select id="fCapa" aria-label="Capa"><option value="">Capa: todas</option>${capas.map(x=>`<option ${state.capa===x?'selected':''}>${esc(x)}</option>`).join('')}</select>
@@ -145,7 +145,7 @@ function vSubir(){pendingPhoto=null;let fort='';
   const artSel=$('#uArt').value;const item={id,nombre:name,artesano_id:artSel&&artSel!=='__otro'?artSel:'',artesano_texto:artSel==='__otro'?$('#uArtTxt').value.trim():'',capa:$('#uCapa').value.trim(),fortaleza:fort||null,pueblo:$('#uPueblo').value.trim(),vitolas:$('#uVit').value.trim()?[$('#uVit').value.trim()]:[],notas:$('#uNotes').value.trim(),foto,creado:new Date().toISOString()};
   LS.set('uploads',[item,...uploads()]);toast('¡Vitola guardada!');location.hash='#/c/'+id}}
 /* ---------- lugares ---------- */
-let leafletMap=null;const LEAFC={lounge:'#e0472c',venta:'#7fae55'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let leafletMap=null;const LEAFC={lounge:'#ed2a2a',venta:'#7fae55'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function leafBurst(host,x,y,color){if(REDUCED||!host)return;const box=document.createElement('div');box.className='leaf-burst';box.style.left=x+'px';box.style.top=y+'px';
  const cols=[color||'#d9a75a','#d9a75a','#b9864a','#7fae55'];for(let i=0;i<9;i++){const s=document.createElement('span');const ang=(-160+i*(140/8))*Math.PI/180;const dist=38+Math.random()*34;
   s.style.setProperty('--dx',(Math.cos(ang)*dist).toFixed(0)+'px');s.style.setProperty('--dy',(Math.sin(ang)*dist).toFixed(0)+'px');s.style.setProperty('--fall',(46+Math.random()*40).toFixed(0)+'px');s.style.setProperty('--rot',((Math.random()*2-1)*540).toFixed(0)+'deg');s.style.animationDelay=(i*25)+'ms';

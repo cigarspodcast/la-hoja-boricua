@@ -1,0 +1,37 @@
+
+import pw from '/home/user/node_modules/playwright-core/index.js'; const {chromium}=pw;
+const base='https://lahojaboricua.sites.tab.bot/'; const out=process.argv[2];
+const b=await chromium.launch({executablePath:'/home/user/.cache/ms-playwright/chromium-1248/chrome-linux64/chrome',args:['--no-sandbox']});
+const ctx=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push('pageerror '+e.message)); p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+p.on('requestfailed',r=>errs.push('reqfail '+r.url()+' '+(r.failure()?.errorText||'')));
+await p.goto(base+'?v11='+Date.now(),{waitUntil:'load'});
+const sp1=await p.evaluate(()=>!!document.querySelector('#splash'));
+await p.waitForTimeout(1500);
+const mid=await p.evaluate(()=>({go:document.querySelector('#splash')?.classList.contains('go'),anims:document.getAnimations().length,puffs:document.querySelectorAll('.puff').length,car:document.querySelector('#splashCar')?.getBoundingClientRect().x}));
+await p.waitForTimeout(3500);
+const sp2=await p.evaluate(()=>!!document.querySelector('#splash'));
+await p.evaluate(async()=>{await navigator.serviceWorker.ready}); await p.waitForTimeout(2500);
+const info=await p.evaluate(async()=>{const ks=await caches.keys();const c=await caches.open('lhb-v9');const reqs=(await c.keys()).map(r=>new URL(r.url).pathname);
+ const sw=await (await fetch('sw.js',{cache:'no-store'})).text();const counts={};for(const k of ['artesanos','cigarros','places']){counts[k]=(await (await fetch('data/'+k+'.json',{cache:'no-store'})).json()).length}
+ return {ks,precached:reqs.length,guagua:reqs.filter(u=>u.includes('guagua')).length,mm:reqs.filter(u=>u.includes('monte-mistica')),fotosKeys:Object.keys(window.LHB_FOTOS).length,ver:sw.match(/VERSION='([^']+)'/)[1],counts,controlled:!!navigator.serviceWorker.controller}});
+await p.evaluate(()=>{location.hash='#/catalogo'}); await p.waitForTimeout(1500);
+const cat=async()=>p.evaluate(()=>{const cards=[...document.querySelectorAll('.grid .card')];const f=cards.filter(c=>c.querySelector('.ph.has-foto img'));const v=document.querySelector('.hero-art .guagua');
+ return {cards:cards.length,foto:f.length,loaded:f.filter(c=>c.querySelector('img').naturalWidth>0).length,headerVan:!!v&&v.naturalWidth>0,garita:!!document.querySelector('.hero-art .garita'),idle:v?getComputedStyle(v).animationName:null}});
+const c1=await cat();
+const mmCards=await p.evaluate(()=>[...document.querySelectorAll('.grid .card')].filter(c=>c.getAttribute('href').includes('monte-mistica')).map(c=>({h:c.getAttribute('href'),foto:!!c.querySelector('.ph.has-foto img'),nw:c.querySelector('.ph.has-foto img')?.naturalWidth||0})));
+await p.evaluate(()=>{const e=[...document.querySelectorAll('.grid .card')].find(c=>c.getAttribute('href').includes('monte-mistica'));const y=e.getBoundingClientRect().top+scrollY-120;scrollTo(0,y)});await p.waitForTimeout(900);
+await p.evaluate(()=>{location.hash='#/c/monte-mistica-connecticut';scrollTo(0,0)}); await p.waitForTimeout(1800);
+const ficha=await p.evaluate(()=>{const i=document.querySelector('figure img, .foto img');return {img:i?.getAttribute('src'),nw:i?.naturalWidth,cred:document.querySelector('.foto-cred')?.textContent}});
+
+await p.evaluate(()=>{location.hash='#/c/monte-mistica-corojo'}); await p.waitForTimeout(1500);
+const ficha2=await p.evaluate(()=>({nw:document.querySelector('figure img, .foto img')?.naturalWidth,cred:document.querySelector('.foto-cred')?.textContent}));
+await p.evaluate(()=>{location.hash='#/c/monte-mistica-maduro';scrollTo(0,0)}); await p.waitForTimeout(1800);
+const ficha3=await p.evaluate(()=>{const i=document.querySelector('figure img, .foto img');return {img:i?.getAttribute('src'),nw:i?.naturalWidth,complete:i?.complete,cred:document.querySelector('.foto-cred')?.textContent||null}});
+await p.screenshot({path:out+'/v11_ficha_mm_maduro.jpg',type:'jpeg',quality:85});
+const allF=await p.evaluate(async()=>{const F=window.LHB_FOTOS;const bad=[];let n=0;for(const k in F){for(const u of [F[k].img,F[k].thumb]){const r=await fetch(u,{cache:'no-store'});if(!r.ok)bad.push(u);else{const bm=await createImageBitmap(await r.blob());if(!bm.width)bad.push(u)}}n++}return {n,bad}});
+await p.evaluate(()=>{location.hash='#/catalogo'}); await p.waitForTimeout(800);
+await ctx.setOffline(true); await p.reload({waitUntil:'load'}); await p.waitForTimeout(1500); await p.evaluate(()=>{location.hash='#/catalogo'}); await p.waitForTimeout(1500);
+const off=await cat();
+const offMM=await p.evaluate(()=>[...document.querySelectorAll('.grid .card')].filter(c=>c.getAttribute('href').includes('monte-mistica')).map(c=>c.querySelector('.ph.has-foto img')?.naturalWidth||0));
+console.log(JSON.stringify({allF,mmCards,ficha,ficha2,ficha3,offMM,sp1,mid,splashGone:!sp2,info,cat:c1,offline:off,errs},null,1)); await b.close();
