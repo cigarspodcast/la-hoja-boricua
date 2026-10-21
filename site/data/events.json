@@ -1,0 +1,180 @@
+{
+ "actualizado": "2026-10-20T19:24:03Z",
+ "nota": "Lista mantenida a mano en el prototipo; un trabajo programado puede reescribir este archivo.",
+ "actividades": [
+  {
+   "id": "humo-y-tambor-2",
+   "titulo": "Humo y Tambor 2",
+   "fecha": "2026-10-24",
+   "hora": "5:00 PM cata guiada ($25) · 7:00 PM gratis con DJ Gury + Fat Mazakot",
+   "lugar": "Vaca Brava (The Yard at Bairoa)",
+   "pueblo": "Caguas",
+   "precio": "Cata $25; desde las 7 PM gratis",
+   "enlace": "https://humoytambor.com",
+   "fuente": "@humoytambor",
+   "fuente_url": "https://www.instagram.com/humoytambor/reel/DemqwwwxAuM/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Vaca%20Brava%20190%20Ave.%20Bairoa%20Caguas%20Puerto%20Rico",
+   "detalle": "190 Ave. Bairoa, Caguas. 5 PM: degustación de Blackbird con café de Hacienda La Tradición + bolsa con cortador ($25, ATH Móvil /humoytambor). Concurso de la ceniza más larga. 7 PM: DJ Gury + plena con Fat Mazakot, gratis. Registro: https://forms.gle/4iL5cgzun3LqdXBRA. Solo mayores de 21."
+  },
+  {
+   "id": "entre-humos-barrilito-2026-10-23",
+   "titulo": "El Arte del Maridaje: Ron del Barrilito + cigarros",
+   "fecha": "2026-10-23",
+   "hora": "1:00–3:00 PM",
+   "lugar": "Entre Humos San Patricio",
+   "pueblo": "Guaynabo",
+   "precio": "$100 + IVU por persona",
+   "enlace": "https://www.instagram.com/entrehumos/p/DergBVptYPJ/",
+   "fuente": "@entrehumos",
+   "fuente_url": "https://www.instagram.com/entrehumos/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Entre%20Humos%20San%20Patricio%20Town%20Center%20Guaynabo%20Puerto%20Rico",
+   "detalle": "Ron del Barrilito 3, 4 y 5 Estrellas maridado con OpusX The Lost City y Sencillo Platinum by Prometheus. Reserva por Eventbrite (link en su perfil). Cupos limitados."
+  },
+  {
+   "id": "don-rey-mockingbird-2026-10-25",
+   "titulo": "Blackbird Mockingbird con Jonas Santana",
+   "fecha": "2026-10-25",
+   "lugar": "Don Rey Cigar (el post no dice cuál localidad)",
+   "enlace": "https://www.instagram.com/donreycigar/p/DeriaopxlTa/",
+   "fuente": "@donreycigar",
+   "fuente_url": "https://www.instagram.com/donreycigar/",
+   "detalle": "Compartir con Jonas Santana para probar el nuevo Mockingbird; cócteles Old Fashioned y DJ en vivo. Hora y localidad no publicadas en el post."
+  },
+  {
+   "id": "la-altura-taller-2026-11-07",
+   "titulo": "Taller: confección de cigarro artesanal",
+   "fecha": "2026-11-07",
+   "hora": "9:00 AM – 1:00 PM",
+   "lugar": "Centro Cultural 23 de Septiembre Inc.",
+   "pueblo": "Lares",
+   "precio": "Costo por teléfono: 787-503-5099 (Juan Irizarry)",
+   "enlace": "https://www.instagram.com/tabacolaaltura/p/DerJuvXxcJT/",
+   "fuente": "@tabacolaaltura",
+   "fuente_url": "https://www.instagram.com/tabacolaaltura/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Centro%20Cultural%2023%20de%20Septiembre%20Lares%20Puerto%20Rico",
+   "detalle": "Aprende a hacer tu propio cigarro a mano con Tabaco La Altura. Espacios limitados."
+  },
+  {
+   "id": "612-halloween-2026-10-31",
+   "titulo": "Noche de disfraces (opcional) en 612",
+   "fecha": "2026-10-31",
+   "lugar": "612 C. Lounge",
+   "pueblo": "Arecibo",
+   "enlace": "https://www.instagram.com/612clounge/p/DepOZ6oJfR5/",
+   "fuente": "@612clounge",
+   "fuente_url": "https://www.instagram.com/612clounge/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=612%20C.%20Lounge%20Arecibo%20Puerto%20Rico",
+   "detalle": "“Sábado 31 de octubre vamos a pasarla bien a un estilo diferente. Disfrazado o no.” Hora no publicada."
+  },
+  {
+   "id": "turro-libertad-jayuya-2026-10-30",
+   "titulo": "Lanzamiento de LIBERTAD (El Club del Turro) + Riestra y Los Bohíques",
+   "fecha": "2026-10-30",
+   "lugar": "Naturola La Barra",
+   "pueblo": "Jayuya",
+   "enlace": "https://www.instagram.com/laturreria/p/DemIkUwxaMf/",
+   "fuente": "@laturreria / @elclubdelturro",
+   "fuente_url": "https://www.instagram.com/laturreria/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Naturola%20La%20Barra%20Jayuya%20Puerto%20Rico",
+   "detalle": "Primera presentación de LIBERTAD, cigarro inspirado en Blanca Canales y la Revolución Nacionalista de Jayuya de 1950, con conversación sobre su confección y música en vivo. Hora y precio no publicados. Naturola abre vie 3–9 PM (horario regular)."
+  }
+ ],
+ "fuentes": [
+  {
+   "handle": "@humoytambor",
+   "url": "https://www.instagram.com/humoytambor/"
+  },
+  {
+   "handle": "@donreycigar",
+   "url": "https://www.instagram.com/donreycigar/"
+  },
+  {
+   "handle": "@entrehumos",
+   "url": "https://www.instagram.com/entrehumos/"
+  },
+  {
+   "handle": "@dragonfly_cigarlounge",
+   "url": "https://www.instagram.com/dragonfly_cigarlounge/"
+  },
+  {
+   "handle": "@pegadizocigar",
+   "url": "https://www.instagram.com/pegadizocigar/"
+  },
+  {
+   "handle": "@casademontecristopr",
+   "url": "https://www.instagram.com/casademontecristopr/"
+  },
+  {
+   "handle": "@doncollinspr",
+   "url": "https://www.instagram.com/doncollinspr/"
+  },
+  {
+   "handle": "@fincaneojibairo",
+   "url": "https://www.instagram.com/fincaneojibairo/"
+  },
+  {
+   "handle": "@elclubdelturro",
+   "url": "https://www.instagram.com/elclubdelturro/"
+  },
+  {
+   "handle": "@laturreria",
+   "url": "https://www.instagram.com/laturreria/"
+  },
+  {
+   "handle": "@tabacolaaltura",
+   "url": "https://www.instagram.com/tabacolaaltura/"
+  },
+  {
+   "handle": "@tabacalera_falto",
+   "url": "https://www.instagram.com/tabacalera_falto/"
+  },
+  {
+   "handle": "@willyscigars",
+   "url": "https://www.instagram.com/willyscigars/"
+  },
+  {
+   "handle": "@juanadiazcigars",
+   "url": "https://www.instagram.com/juanadiazcigars/"
+  },
+  {
+   "handle": "@ciudadsenorialcigar",
+   "url": "https://www.instagram.com/ciudadsenorialcigar/"
+  },
+  {
+   "handle": "@612clounge",
+   "url": "https://www.instagram.com/612clounge/"
+  },
+  {
+   "handle": "@jjcigarlounge",
+   "url": "https://www.instagram.com/jjcigarlounge/"
+  },
+  {
+   "handle": "@motherearthcigars",
+   "url": "https://www.instagram.com/motherearthcigars/"
+  },
+  {
+   "handle": "@condadocigarlounge",
+   "url": "https://www.instagram.com/condadocigarlounge/"
+  },
+  {
+   "handle": "@greenzone_smokeshop",
+   "url": "https://www.instagram.com/greenzone_smokeshop/"
+  },
+  {
+   "handle": "@barlaunidad",
+   "url": "https://www.instagram.com/barlaunidad/"
+  },
+  {
+   "handle": "@vacabravapr",
+   "url": "https://www.instagram.com/vacabravapr/"
+  },
+  {
+   "handle": "@lasibarita_condado",
+   "url": "https://www.instagram.com/lasibarita_condado/"
+  },
+  {
+   "handle": "@naturolalabarra",
+   "url": "https://www.instagram.com/naturolalabarra/"
+  }
+ ]
+}
