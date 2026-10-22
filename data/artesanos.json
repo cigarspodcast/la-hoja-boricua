@@ -344,5 +344,115 @@
    "https://www.instagram.com/tabacaleralatrascendencia/"
   ],
   "iniciales": "LT"
+ },
+ {
+  "id": "la-hoja-del-chan",
+  "nombre": "La Hoja del Chan",
+  "pueblo": "Caguas",
+  "tipo": "Taller artesanal · marca El Chan Cigars",
+  "historia": "Empresa familiar cagüeña que elabora y distribuye cigarros hechos a mano en su taller de Caguas, con hoja criolla del país y de Nicaragua. Abanderó el movimiento “Somos la resistencia” por el tabaco boricua y su marca es El Chan Cigars.",
+  "instagram": "https://www.instagram.com/chanlegacy_lhc/",
+  "facebook": "https://www.facebook.com/lahojadelchan/",
+  "donde_comprar": "En su taller en el casco de Caguas o por sus redes.",
+  "fuentes": [
+   "https://www.elnuevodia.com/negocios/empresas-comercios/notas/la-hoja-del-chan-cigarro-artesanal-con-aroma-de-resiliencia/",
+   "https://www.callejeandopr.com/callejea/la-hoja-del-chan-caguas",
+   "https://www.facebook.com/lahojadelchan/"
+  ],
+  "hecho_en_pr": true,
+  "iniciales": "HC"
+ },
+ {
+  "id": "cigarros-j-velez",
+  "nombre": "Cigarros J. Vélez",
+  "pueblo": "Cidra",
+  "tipo": "Marca de cigarros premium",
+  "historia": "Fundada en 1998 en Cidra para honrar al abuelo y al bisabuelo de su dueño, con las marcas Papa Chan (capa camerún) y Don Sotero (capa madura), además de Robusto Cognac, Vélez Cigars y Cohaba. Hechos a mano, con mezclas que incluyen tabaco de Puerto Rico.",
+  "web": "https://www.cigarrosjvelez.com/",
+  "instagram": "https://www.instagram.com/cigarrosjvelez/",
+  "facebook": "https://www.facebook.com/cigarrosjvelez/",
+  "donde_comprar": "En su tienda en línea o por sus redes.",
+  "fuentes": [
+   "https://www.cigarrosjvelez.com/inicio",
+   "https://www.instagram.com/cigarrosjvelez/"
+  ],
+  "hecho_en_pr": true,
+  "iniciales": "JV"
+ },
+ {
+  "id": "tabacos-el-roble",
+  "nombre": "Tabacos El Roble",
+  "pueblo": "Isabela",
+  "tipo": "Marca artesanal",
+  "historia": "Marca artesanal de Isabela, “el tabaco del pueblo”. Sus cigarros son 100% hechos a mano en Isabela y pasan por su propio sistema solera: las hojas se añejan con un extra pilón y se bautizan con rones añejos.",
+  "instagram": "https://www.instagram.com/tabacoselroble/",
+  "donde_comprar": "Por sus redes y en eventos del área oeste.",
+  "fuentes": [
+   "https://www.instagram.com/p/DAq145tySuu/",
+   "https://m.facebook.com/Palaciolasarenas/photos/-a-la-venta-selecci%C3%B3n-de-cigarros-hechos-por-tabacos-el-roble-100-hecho-a-mano-e/5350573"
+  ],
+  "hecho_en_pr": true,
+  "iniciales": "ER"
+ },
+ {
+  "id": "el-escondite-adjuntas",
+  "nombre": "El Escondite Cigar",
+  "pueblo": "Adjuntas",
+  "tipo": "Marca de cigarros + barra en la montaña",
+  "historia": "Línea de cigarros 100% puertorriqueños de El Escondite de Don Julio, un rincón de montaña en Adjuntas con coctelería de autor donde se fuman sus cigarros premium El Escondite.",
+  "instagram": "https://www.instagram.com/elesconditecigar/",
+  "donde_comprar": "En El Escondite de Don Julio, Adjuntas.",
+  "fuentes": [
+   "https://www.youtube.com/watch?v=CeDwLqWzcHI",
+   "https://www.instagram.com/elesconditededonjulio/"
+  ],
+  "hecho_en_pr": true,
+  "iniciales": "EE"
+ },
+ {
+  "id": "hr-handmade-cigars",
+  "nombre": "H.R. Handmade Cigars",
+  "pueblo": "Toa Baja (Levittown)",
+  "tipo": "Torcedor certificado · eventos",
+  "historia": "Compañía 100% puertorriqueña de confección artesanal de cigarros. Su torcedor, Harold, es artesano certificado y discípulo de un maestro torcedor boricua; tuerce en vivo en bodas y eventos privados.",
+  "facebook": "https://www.facebook.com/hrhandmadecigars/",
+  "donde_comprar": "Por Facebook, para eventos y pedidos.",
+  "fuentes": [
+   "https://www.facebook.com/hrhandmadecigars/",
+   "https://www.weddingwire.com/biz/hr-handmade-cigars-toa-baja/3fbcf56fa0e7bc0a.html"
+  ],
+  "hecho_en_pr": true,
+  "iniciales": "HR"
+ },
+ {
+  "id": "fumita-pr",
+  "nombre": "Fumita PR",
+  "tipo": "Torcedora · marca artesanal",
+  "historia": "Marca local de cigarros hechos a mano, con sabores caribeños, de Mylanne, torcedora y artesana boricua que se destaca como mujer en el tabaco. Se ve en mercados agrícolas de la isla.",
+  "instagram": "https://www.instagram.com/fumita.pr/",
+  "donde_comprar": "Por Instagram y en mercados agrícolas.",
+  "nota": "Pueblo: en verificación.",
+  "fuentes": [
+   "https://www.facebook.com/AguadillaFarmersMarket/videos/hola-a-fumita-pr-una-marca-local-de-cigarros-hechos-a-mano-llenos-de-sabores-car/4706",
+   "https://www.instagram.com/reel/DZu8jQjR-yM/"
+  ],
+  "hecho_en_pr": true,
+  "iniciales": "FP"
+ },
+ {
+  "id": "monte-mistica",
+  "nombre": "Monte & Mística",
+  "tipo": "Marca de la casa Entre Humos",
+  "historia": "Cigarros elaborados a mano en Puerto Rico en tres capas: Connecticut, Corojo y Maduro. Los vende Entre Humos, que los presenta con el sello oficial Hecho en Puerto Rico.",
+  "web": "https://entrehumos.com/products/monte-mistica-sampler-3-pack",
+  "donde_comprar": "En Entre Humos, en sus lounges o en línea.",
+  "nota": "Pueblo de elaboración: en verificación.",
+  "fuentes": [
+   "https://entrehumos.com/products/monte-mistica-sampler-3-pack",
+   "https://cigarsisland.com/products/monte-mistica-sampler-3-pack",
+   "https://zigarrelinz.com/product/monte-mistica-sampler-3-pack/"
+  ],
+  "hecho_en_pr": true,
+  "iniciales": "MM"
  }
 ]
