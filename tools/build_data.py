@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Build Vitola Boricua data files from a research JSON.
-Usage: python3 build_data.py research.json site/data
-Writes artesanos.json, cigarros.json, places.json, events.json and bundle.js (offline fallback).
-A future scheduled job can rewrite events.json / places.json and rerun this; the app fetches them network-first."""
+Usage: python3 build_data.py research.json [data] [site/data]
+Writes artesanos.json, cigarros.json, places.json, events.json into data/ (source, NOT published)
+and bundle.js into site/data/ (the only data file the app loads; v18: the JSONs no longer live in site/)."""
 import json,sys,os,datetime
-src,out=sys.argv[1],sys.argv[2]
+src=sys.argv[1];out=sys.argv[2] if len(sys.argv)>2 else 'data';bout=sys.argv[3] if len(sys.argv)>3 else 'site/data'
 R=json.load(open(src))
-os.makedirs(out,exist_ok=True)
+os.makedirs(out,exist_ok=True);os.makedirs(bout,exist_ok=True)
 FORT={'suave':'suave','media':'media','medio':'media','mediana':'media','fuerte':'fuerte','suave-media':'media','media-fuerte':'fuerte'}
 arts=[]
 for a in R.get('artesanos',[]):
@@ -44,5 +44,5 @@ events={'actualizado':R.get('generated_at') or datetime.datetime.utcnow().isofor
 def w(name,obj): json.dump(obj,open(os.path.join(out,name),'w'),ensure_ascii=False,indent=1)
 w('artesanos.json',arts); w('cigarros.json',cigs); w('places.json',places); w('events.json',events)
 bundle={'artesanos':arts,'cigarros':cigs,'places':places,'events':events}
-open(os.path.join(out,'bundle.js'),'w').write('/* generado por build_data.py: copia offline de los JSON */\nwindow.VB_DATA='+json.dumps(bundle,ensure_ascii=False,separators=(',',':'))+';\n')
+open(os.path.join(bout,'bundle.js'),'w').write('/* generado por build_data.py: copia offline de los JSON */\nwindow.VB_DATA='+json.dumps(bundle,ensure_ascii=False,separators=(',',':'))+';\n')
 print(len(arts),'artesanos',len(cigs),'cigarros',len(places),'lugares',len(evs),'actividades',len(fuentes),'fuentes')

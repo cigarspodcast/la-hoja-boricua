@@ -45,10 +45,11 @@ const stampBtn=(k,id,cls='')=>{const on=isStamp(k,id);return `<button type="butt
 document.addEventListener('click',e=>{
  const f=e.target.closest('[data-fav]');if(f){e.preventDefault();e.stopPropagation();const [k,id]=f.dataset.fav.split(/:(.*)/s);const on=toggleFav(k,id);
   $$(`[data-fav="${CSS.escape(f.dataset.fav)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',(on?'Quitar de':'Guardar en')+' favoritos');b.firstChild.textContent=on?'♥':'♡'});toast(on?'Guardado en favoritos':'Quitado de favoritos');return}
- const st=e.target.closest('[data-stamp]');if(st){e.preventDefault();e.stopPropagation();const [k,id]=st.dataset.stamp.split(/:(.*)/s);const before=badgeIds();const on=toggleStamp(k,id);
+ const tw=e.target.closest('[data-town]');if(tw){townSheet(tw.dataset.town);return}
+ const st=e.target.closest('[data-stamp]');if(st){e.preventDefault();e.stopPropagation();const [k,id]=st.dataset.stamp.split(/:(.*)/s);const before=badgeIds(),r0=ruta();const on=toggleStamp(k,id),r1=ruta(),nz=r1.ok.find(x=>!r0.ok.includes(x));RLIT=r1.lit.find(x=>!r0.lit.includes(x));if(RLIT&&st.closest('.rl'))closeSheet();if(nz)setTimeout(()=>zonaSheet(nz),1500);
   $$(`[data-stamp="${CSS.escape(st.dataset.stamp)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);const sp=b.querySelector(':scope>span:last-child');if(sp)sp.textContent=b.classList.contains('stamp')?(on?'Sellado '+fmtF(hoy()):'Sin sello'):(on?'Sellado':'Sellar pasaporte')});
   const nb=badgeIds().filter(x=>!before.includes(x));if(nb.length){const b=BADGES.find(x=>x.id===nb[0]);toast('🏅 Nueva insignia: '+b.n)}else toast(on?'Sello puesto en tu pasaporte':'Sello quitado');
-  if(location.hash.startsWith('#/mihoja/pasaporte'))setTimeout(()=>{const y=scrollY;A.route();scrollTo(0,y)},350);return}
+  if(/^#\/(mihoja\/pasaporte|lugares\/ruta)/.test(location.hash))setTimeout(()=>{const y=scrollY;A.route();scrollTo(0,y)},350);return}
  const cp=e.target.closest('[data-copy]');if(cp){const t=cp.dataset.copy;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copiado: '+t),()=>toast('ATH Móvil: '+t));return}
  const ic=e.target.closest('[data-ics]');if(ic){const ev=(D().events.actividades||[]).find(x=>x.id===ic.dataset.ics);if(ev)addToCal(ev);return}
  const sh=e.target.closest('[data-sheet]');if(sh){e.preventDefault();openSheet(sh.dataset.sheet,sh.dataset.arg)}});
@@ -183,13 +184,32 @@ function passCounts(){const s=S(),d=D();const valid={artesanos:new Set(d.artesan
  const all={artesanos:valid.artesanos.size,cigarros:valid.cigarros.size,lugares:valid.lugares.size};all.total=all.artesanos+all.cigarros+all.lugares;return{c,all}}
 const badgeTarget=(b,all)=>b.m==='all'?all[b.k]:b.m==='half'?Math.ceil(all.total/2):b.m;
 function badgeIds(){const {c,all}=passCounts();return BADGES.filter(b=>badgeTarget(b,all)>0&&c[b.k]>=badgeTarget(b,all)).map(b=>b.id)}
-function vPasaporte(){const {c,all}=passCounts();const d=D();const got=badgeIds();const pct=all.total?Math.round(c.total*100/all.total):0;
+/* ruta del tabaco (v18): vive en Lugares → Ruta; el pasaporte comparte los sellos */
+const ZN={M:'Metro',N:'Norte',E:'Este',C:'Centro',S:'Sur',O:'Oeste'};
+const TW='San Juan,M,18.47,-66.11|Guaynabo,M,18.36,-66.11|Bayamón,M,18.4,-66.16|Trujillo Alto,M,18.35,-66.01|Toa Baja,M,18.44,-66.25|Toa Alta,M,18.39,-66.25|Arecibo,N,18.47,-66.72|Isabela,N,18.5,-67.02|Río Grande,E,18.38,-65.83|Luquillo,E,18.37,-65.72|Fajardo,E,18.33,-65.65|Humacao,E,18.15,-65.83|Caguas,C,18.23,-66.05|Aguas Buenas,C,18.26,-66.1|Cidra,C,18.18,-66.16|Villalba,C,18.13,-66.49|Coamo,S,18.08,-66.36|Ponce,S,18.01,-66.61|Juana Díaz,S,18.05,-66.51|Santa Isabel,S,17.97,-66.4|Mayagüez,O,18.2,-67.14|Rincón,O,18.34,-67.25|Aguadilla,O,18.43,-67.15|Lares,O,18.29,-66.88'.split('|').map(s=>{const [n,z,la,lo]=s.split(',');return{n,z,la:+la,lo:+lo}});
+const townOf=p=>{let b,bi=1e3;for(const t of TW){const i=String(p||'').indexOf(t.n);if(i>=0&&i<bi){bi=i;b=t.n}}return b};
+function ruta(){const d=D(),s=S().pasaporte,m={},z={};
+ const add=(k,x,p)=>{const t=townOf(p);if(t)(m[t]=m[t]||[]).push({k,x,on:!!s[k][x.id]})};
+ d.artesanos.forEach(x=>add('artesanos',x,x.pueblo));d.cigarros.forEach(x=>{const a=A.artisanById(x.artesano_id);add('cigarros',x,x.pueblo||a&&a.pueblo)});d.places.forEach(x=>add('lugares',x,x.pueblo));
+ const ts=TW.filter(t=>m[t.n]).map(t=>({...t,it:m[t.n],on:m[t.n].some(i=>i.on)}));ts.forEach(t=>(z[t.z]=z[t.z]||[]).push(t));
+ return{ts,z,lit:ts.filter(t=>t.on).map(t=>t.n),ok:Object.keys(z).filter(k=>z[k].every(t=>t.on))}}
+let RLIT;const HJ='<path d="M0-5C4-3 4 2 0 5C-4 2-4-3 0-5Z"/>';
+const zSello=(k,ok,sub)=>`<div class="zs${ok?' ok':''}"><svg viewBox="-6-6 12 12" aria-hidden="true">${HJ}</svg><b>${ZN[k]}</b><small>${sub}</small></div>`;
+function vRuta(){const {ts,z,lit}=ruta();return `<section class="ruta"><div class="ruta-h"><h2>La Ruta <em>del Tabaco</em></h2><p><b>${lit.length}</b> de ${ts.length} pueblos</p></div><p class="rhint">Sella artesanos, cigarros o lugares y su pueblo se enciende. Toca un pueblo para ver qué te falta.</p>
+ <div class="map-wrap rmw"><div id="map" role="region" aria-label="Mapa de la Ruta del Tabaco: ${lit.length} de ${ts.length} pueblos encendidos"></div></div>
+ <div class="zonas">${Object.keys(ZN).map(k=>{const l=z[k]||[],c=l.filter(t=>t.on).length;return `<div class="zona">${zSello(k,c==l.length,c==l.length?'¡Completa!':c+' de '+l.length)}<div class="zts">${l.map(t=>`<button type="button" class="zt${t.on?' on':''}" data-town="${t.n}">${t.n}</button>`).join('')}</div></div>`}).join('')}</div></section>`}
+function rutaCard(){const {ts,lit}=ruta();return `<a class="ruta-card" href="#/lugares/ruta"><span class="bico">${VBArt.leaf(lit.length?'#8fd162':'#2c5a3d')}</span><div><b>La Ruta del Tabaco</b><small>${lit.length} de ${ts.length} pueblos encendidos</small><span>Ver mi Ruta del Tabaco →</span></div></a>`}
+function townSheet(n){const t=ruta().ts.find(x=>x.n==n);if(!t)return;const it=[...t.it].sort((a,b)=>b.on-a.on),c=it.filter(i=>i.on).length,L={artesanos:'Artesano',cigarros:'Cigarro',lugares:'Lugar'};
+ sheet(`<h2 class="sheet-h">${t.on?'🌿 ':''}${esc(n)}</h2><p class="rsub">Zona ${ZN[t.z]} · ${c} de ${it.length} sellados${c<it.length?` · te faltan ${it.length-c}`:''}</p><div class="rl">${it.map(i=>`<div class="ri"><div><b>${esc(i.x.nombre)}</b><small>${L[i.k]}${i.on?' · sellado '+fmtF(S().pasaporte[i.k][i.x.id]):' · te falta'}</small></div>${stampBtn(i.k,i.x.id)}</div>`).join('')}</div>`,n)}
+function zonaSheet(k){const l=ruta().z[k];sheet(`<div class="zcel">${zSello(k,1,'Zona completa')}<h2 class="sheet-h">¡Zona ${ZN[k]} completa!</h2><p>Sellaste los ${l.length} pueblos: ${l.map(t=>t.n).join(', ')}. Este sello especial ya está en tus insignias.</p><button type="button" class="btn" data-close>¡Wepa!</button></div>`,'Zona completa')}
+function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got=badgeIds();const pct=all.total?Math.round(c.total*100/all.total):0;
  const sec=(k,title,items,name,sub)=>`<div class="section-title"><h2>${title}</h2><span class="count">${c[k]} de ${all[k]}</span></div><div class="pbar" role="progressbar" aria-label="${title}: ${c[k]} de ${all[k]}" aria-valuemin="0" aria-valuemax="${all[k]}" aria-valuenow="${c[k]}"><i style="width:${all[k]?c[k]*100/all[k]:0}%"></i></div>
   <div class="stamps">${items.map(x=>{const on=isStamp(k,x.id);return `<button type="button" class="stamp" data-stamp="${k}:${esc(x.id)}" aria-pressed="${on}">${A.mono(name(x),44)}<b>${esc(name(x))}</b><small>${esc(sub(x)||'')}</small><span>${on?'Sellado '+fmtF(S().pasaporte[k][x.id]):'Sin sello'}</span></button>`}).join('')}</div>`;
  view.innerHTML=`${subnav('pasaporte')}
  <section class="pass-hero"><div class="pass-ring" style="--p:${pct}" role="img" aria-label="${pct}% del pasaporte"><b>${pct}%</b><span>${c.total} de ${all.total}</span></div><div><h2>Pasaporte <em>Boricua</em></h2><p>Marca los artesanos que has probado, los cigarros que has catado y los lugares que has visitado. Toca para sellar.</p></div></section>
- <div class="section-title"><h2>Insignias</h2><span class="count">${got.length} de ${BADGES.length}</span></div>
- <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'#2c5a3d')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?'¡Lograda!':`${Math.min(c[b.k],t)} de ${t}`}</span></div>`}).join('')}</div>
+ ${rutaCard()}
+ <div class="section-title"><h2>Insignias</h2><span class="count">${got.length+ru.ok.length} de ${BADGES.length+6}</span></div>
+ <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'#2c5a3d')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?'¡Lograda!':`${Math.min(c[b.k],t)} de ${t}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:#ED0000"><div class="bico">${VBArt.leaf(on?'#ED0000':'#2c5a3d')}</div><b>Zona ${ZN[k]}</b><small>Ruta del Tabaco: todos sus pueblos</small><span>${on?'¡Lograda!':`${n} de ${l.length}`}</span></div>`}).join('')}</div>
  ${sec('artesanos','Artesanos',d.artesanos,x=>x.nombre,x=>x.pueblo)}
  ${sec('cigarros','Cigarros',d.cigarros,x=>x.nombre,x=>A.artisanName(x))}
  ${sec('lugares','Lugares',d.places,x=>x.nombre,x=>x.pueblo)}
@@ -458,7 +478,7 @@ function cigarExtras(c){const pr=pairing(c);const real=!c.yours;
  ${podBlock('c',c.id)}`}
 const placeActions=p=>`<div class="pl-act">${favBtn('lugares',p.id,'sm')}${stampBtn('lugares',p.id,'sm')}</div>`;
 function setRating(id,n){save(s=>{if(!n||s.ratings[id]===n)delete s.ratings[id];else s.ratings[id]=n})}
-return {S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
+return {ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
  routes:{mihoja:vMiHoja,cata:vCata,maridajes:vMaridajes,podcast:vPodcast,buscar:vBuscar,eventos:vEventos,actividades:vEventos},
  _test:{icsFor,parseHora,pairing,pideloLink,cardBlob,badgeIds,passCounts,load,KEY}};
 };

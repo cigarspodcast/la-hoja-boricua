@@ -13,9 +13,7 @@ async function photoURL(key){if(urlCache[key])return urlCache[key];const b=await
 let D={artesanos:[],cigarros:[],places:[],events:{actividades:[],fuentes:[]}};
 function setData(src){if(!src)return;D={artesanos:src.artesanos||D.artesanos,cigarros:src.cigarros||D.cigarros,places:src.places||D.places,events:src.events||D.events}}
 setData(window.VB_DATA);
-async function refreshData(){const files={artesanos:'data/artesanos.json',cigarros:'data/cigarros.json',places:'data/places.json',events:'data/events.json'};let changed=false;
- await Promise.all(Object.entries(files).map(async([k,u])=>{try{const r=await fetch(u,{cache:'no-cache'});if(!r.ok)return;const j=await r.json();const v=k==='events'?j:(j.items||j);if(JSON.stringify(v)!==JSON.stringify(D[k])){D[k]=v;changed=true}}catch(e){}}));
- if(changed)route()}
+async function refreshData(){try{const r=await fetch('data/bundle.js',{cache:'no-cache'});if(!r.ok)return;const t=await r.text(),j=JSON.parse(t.slice(t.indexOf('{'),t.lastIndexOf('}')+1));let changed=false;for(const k of ['artesanos','cigarros','places','events'])if(j[k]&&JSON.stringify(j[k])!==JSON.stringify(D[k])){D[k]=j[k];changed=true}if(changed)route()}catch(e){}}
 const uploads=()=>LS.get('uploads',[]);
 const allCigars=()=>[...D.cigarros,...uploads().map(u=>({...u,yours:true}))];
 const artisanById=id=>D.artesanos.find(a=>a.id===id);
@@ -156,19 +154,31 @@ function proj(lat,lng){const sx=PROJ.W/(PROJ.lon1-PROJ.lon0);return[(lng-PROJ.lo
 function placeCard(p){const ig=igHandle(p.instagram);return `<div class="pop"><div class="t">${esc(p.nombre)}</div><div class="s">${esc(p.tipo||'')}${p.pueblo?' · '+esc(p.pueblo):''}${p.direccion?'<br>'+esc(p.direccion):''}${p.horario?'<br>'+esc(p.horario):''}</div>
  <div class="links">${linkBtn('ig',p.instagram,ig||'Instagram')}<a class="lbtn go-map" href="${esc(goLink(p))}" target="_blank" rel="noopener">${ICON.map}Cómo llegar</a>${p.web?linkBtn('web',p.web,'Sitio web'):''}</div>${EXT.placeActions(p)}</div>`}
 function filteredPlaces(){return D.places.filter(p=>(!state.lugCat||p.categoria===state.lugCat)&&(!state.lugTown||p.pueblo===state.lugTown))}
-function vLugares(){const towns=[...new Set(D.places.map(p=>p.pueblo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));const ps=filteredPlaces();
+function vLugares(arg){if(arg==='ruta')state.lugMode='ruta';else if(state.lugMode==='ruta')state.lugMode='mapa';const ru=state.lugMode==='ruta';const towns=[...new Set(D.places.map(p=>p.pueblo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));const ps=filteredPlaces();
  const nL=D.places.filter(p=>p.categoria==='lounge').length,nV=D.places.filter(p=>p.categoria==='venta').length;
  view.innerHTML=`${head('Lugares','Dónde <em>disfrutar</em> y comprar',`${nL} lounges y ${nV} puntos de venta en la isla.`,VBArt.flor())}
- <div class="toggle" role="group" aria-label="Vista"><button data-mode="mapa" aria-pressed="${state.lugMode==='mapa'}">Mapa</button><button data-mode="lista" aria-pressed="${state.lugMode==='lista'}">Lista</button></div>
- <div class="chips"><button class="chip" data-cat="" aria-pressed="${!state.lugCat}">Todos</button><button class="chip" data-cat="lounge" aria-pressed="${state.lugCat==='lounge'}">Lounges</button><button class="chip" data-cat="venta" aria-pressed="${state.lugCat==='venta'}">Puntos de venta</button></div>
+ <div class="toggle t3" role="group" aria-label="Vista"><button data-mode="mapa" aria-pressed="${state.lugMode==='mapa'}">Mapa</button><button data-mode="lista" aria-pressed="${state.lugMode==='lista'}">Lista</button><button data-mode="ruta" aria-pressed="${ru}">🌿 Ruta del Tabaco</button></div>
+ ${ru?EXT.vRuta()+PROTO_NOTE:`<div class="chips"><button class="chip" data-cat="" aria-pressed="${!state.lugCat}">Todos</button><button class="chip" data-cat="lounge" aria-pressed="${state.lugCat==='lounge'}">Lounges</button><button class="chip" data-cat="venta" aria-pressed="${state.lugCat==='venta'}">Puntos de venta</button></div>
  <div class="filter-row"><select id="fTown" aria-label="Pueblo"><option value="">Pueblo: todos</option>${towns.map(t=>`<option ${state.lugTown===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
  ${state.lugMode==='mapa'?`<div class="map-wrap"><div id="map"></div></div><div class="legend"><span class="lg">${VBArt.leaf(LEAFC.lounge)}Lounge</span><span class="lg">${VBArt.leaf(LEAFC.venta)}Punto de venta</span><button class="near" id="near" type="button">📍 Cerca de mí</button></div><div id="placeCard" class="place-card"></div>`:''}
  <div class="list" style="margin-top:12px">${ps.map(p=>`<div class="row" style="align-items:flex-start;flex-direction:column;gap:6px"><div style="display:flex;gap:10px;align-items:center;width:100%"><span class="list-leaf">${VBArt.leaf(LEAFC[p.categoria]||LEAFC.lounge)}</span><div><div class="t">${esc(p.nombre)}</div><div class="s">${esc(p.tipo||'')} · ${esc(p.pueblo||'')}${p.lat_lng_aprox?' · ubicación aprox.':''}${p.horario?'<br>'+esc(p.horario):''}</div></div></div>
- <div class="links" style="width:100%;margin:2px 0 0">${linkBtn('ig',p.instagram,igHandle(p.instagram)||'Instagram')}<a class="lbtn go-map" href="${esc(goLink(p))}" target="_blank" rel="noopener">${ICON.map}Cómo llegar</a></div>${EXT.placeActions(p)}</div>`).join('')||'<div class="empty">No hay lugares con ese filtro.</div>'}</div>${PROTO_NOTE}`;
- $$('[data-mode]').forEach(b=>b.onclick=()=>{state.lugMode=b.dataset.mode;vLugares()});
+ <div class="links" style="width:100%;margin:2px 0 0">${linkBtn('ig',p.instagram,igHandle(p.instagram)||'Instagram')}<a class="lbtn go-map" href="${esc(goLink(p))}" target="_blank" rel="noopener">${ICON.map}Cómo llegar</a></div>${EXT.placeActions(p)}</div>`).join('')||'<div class="empty">No hay lugares con ese filtro.</div>'}</div>${PROTO_NOTE}`}`;
+ $$('[data-mode]').forEach(b=>b.onclick=()=>{const m=b.dataset.mode;history.replaceState(null,'',m==='ruta'?'#/lugares/ruta':'#/lugares');vLugares(m==='ruta'?'ruta':(state.lugMode=m,0))});
+ if(ru){drawRuta();return}
  $$('[data-cat]').forEach(b=>b.onclick=()=>{state.lugCat=b.dataset.cat;vLugares()});
  $('#fTown').onchange=e=>{state.lugTown=e.target.value;vLugares()};
  if(state.lugMode==='mapa')drawMap(ps)}
+let rutaView=null;
+function drawRuta(){if(leafletMap){leafletMap.remove();leafletMap=null}const {ts}=EXT.ruta(),nu=EXT.rlit(),el=$('#map');if(!el)return;
+ const off=why=>{el.innerHTML=`<div class="map-offline"><svg viewBox="0 -20 1000 370" role="img" aria-label="Mapa de Puerto Rico"><path class="isl" d="${ISLAND}"/>${ts.map(t=>{const[x,y]=proj(t.la,t.lo);return `<g class="rpt${t.on?' on':''}" data-town="${t.n}" transform="translate(${x.toFixed(0)} ${y.toFixed(0)})"><circle r="22" fill="transparent"/><circle r="${t.on?13:7}" class="${t.on?'gl':'dot'}"/></g>`}).join('')}</svg><span class="cap">${esc(why)}</span></div>`};
+ if(!navigator.onLine||!window.L){off('Sin conexión: mapa simplificado. Toca un pueblo.');return}
+ const map=L.map('map',{zoomControl:true,attributionControl:true,scrollWheelZoom:false});leafletMap=map;
+ if(rutaView)map.setView(rutaView[0],rutaView[1]);else map.fitBounds([[17.95,-67.27],[18.52,-65.6]],{padding:[8,8]});
+ map.on('moveend',()=>{rutaView=[map.getCenter(),map.getZoom()]});
+ let errs=0,ok=0;const tl=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
+ tl.on('tileload',()=>ok++);tl.on('tileerror',()=>{errs++;if(errs>6&&ok===0){map.remove();leafletMap=null;off('El mapa no cargó: vista simplificada. Toca un pueblo.')}});
+ ts.forEach(t=>{const icon=L.divIcon({className:'rpin'+(t.on?' on':'')+(t.n==nu?' nuevo':''),html:t.on?'<i></i>'+VBArt.leaf('#8fd162'):'<b></b>',iconSize:[26,26],iconAnchor:[13,13]});
+  L.marker([t.la,t.lo],{icon,title:t.n+(t.on?' · encendido':''),keyboard:true,zIndexOffset:t.on?500:0}).addTo(map).on('click',()=>EXT.townSheet(t.n))})}
 function drawOffline(ps,why){const el=$('#map');if(!el)return;
  el.innerHTML=`<div class="map-offline"><svg viewBox="0 -20 1000 370" role="img" aria-label="Mapa de Puerto Rico"><path class="isl" d="${ISLAND}"/>${ps.filter(p=>p.lat&&p.lng).map((p,i)=>{const[x,y]=proj(p.lat,p.lng);return `<g class="offline-pin" data-i="${D.places.indexOf(p)}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="18" fill="transparent"/><path transform="translate(-15 -38) scale(.75)" d="M20 2 C 34 12 38 28 32 40 C 28 47 23 50 20 51 C 17 50 12 47 8 40 C 2 28 6 12 20 2Z" fill="${LEAFC[p.categoria]||LEAFC.lounge}" stroke="#2a1a12" stroke-width="5"/></g>`}).join('')}</svg><span class="cap">${esc(why)}</span></div>`;
  $$('.offline-pin',el).forEach(g=>g.onclick=()=>{const r=g.getBoundingClientRect(),hr=el.parentNode.getBoundingClientRect();leafBurst(el.parentNode,r.left-hr.left+r.width/2,r.top-hr.top,LEAFC[D.places[+g.dataset.i].categoria]);setTimeout(()=>{$('#placeCard').innerHTML=`<div class="row" style="display:block">${placeCard(D.places[+g.dataset.i])}</div>`},REDUCED?0:700)})}
@@ -218,7 +228,7 @@ function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,
  const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});
  if(leafletMap&&r!=='lugares'){leafletMap.remove();leafletMap=null}
  const R=EXT.routes;
- ({catalogo:vCatalogo,c:()=>vCigar(id),artesanos:vArtesanos,a:()=>vArtesano(id),subir:vSubir,lugares:vLugares,actividades:()=>R.eventos(id),eventos:()=>R.eventos(id),perfil:()=>R.mihoja('perfil'),mihoja:()=>R.mihoja(id),cata:()=>R.cata(id),maridajes:R.maridajes,podcast:R.podcast,buscar:R.buscar}[r]||vCatalogo)();
+ ({catalogo:vCatalogo,c:()=>vCigar(id),artesanos:vArtesanos,a:()=>vArtesano(id),subir:vSubir,lugares:()=>vLugares(id),actividades:()=>R.eventos(id),eventos:()=>R.eventos(id),perfil:()=>R.mihoja('perfil'),mihoja:()=>R.mihoja(id),cata:()=>R.cata(id),maridajes:R.maridajes,podcast:R.podcast,buscar:R.buscar}[r]||vCatalogo)();
  if(r!==route._last){window.scrollTo(0,0)}route._last=h}
 window.addEventListener('hashchange',route);
 window.addEventListener('online',()=>{if(location.hash.includes('lugares'))route()});window.addEventListener('offline',()=>{if(location.hash.includes('lugares'))route()});
