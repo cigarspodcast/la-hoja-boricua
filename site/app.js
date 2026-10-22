@@ -244,7 +244,7 @@ document.addEventListener('click',async e=>{if(!e.target.closest('#btnAdd'))retu
  if(deferred){const d=deferred;deferred=null;d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted'){window.__lhbInstalled=true;syncInstall();toast('¡Instalada!')}return}
  EXT.openSheet('instalar',isIOS?(/ipad/i.test(navigator.userAgent)||navigator.platform==='MacIntel'?'ipad':'ios'):'')});
 if('serviceWorker' in navigator){const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.update&&r.update()).catch(()=>{}))}
-(function splash(){const sp=$('#splash');if(!sp)return;const seen=sessionStorage.getItem('vb_splash');
+(function splash(){const sp=$('#splash');if(!sp)return;const fl=$('#splashFlor');if(fl&&window.VBArt)fl.innerHTML=VBArt.flor('sf');const seen=sessionStorage.getItem('vb_splash');
  let gone=false;const done=()=>{if(gone)return;gone=true;sp.classList.add('out');setTimeout(()=>sp.remove(),450)};if(seen){done();return}sessionStorage.setItem('vb_splash','1');
  sp.addEventListener('click',done);sp.addEventListener('touchstart',done,{passive:true});
  /* v9: guagua por capas (sombra, ruedas que giran, carrocería que rebota, luz del campo) */
