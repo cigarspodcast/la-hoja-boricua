@@ -199,10 +199,10 @@ const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','di
 function evDate(f){const d=new Date(f+'T12:00:00');return isNaN(d)?null:d}
 function evItem(e,pending){const d=evDate(e.fecha);const m={nombre:e.lugar||e.titulo,direccion:e.direccion||'',pueblo:e.pueblo,maps:e.maps,lat:e.lat,lng:e.lng};
  return `<article class="ev ${pending?'pending':''}"><div class="date">${d?`<small>${MES[d.getMonth()]}</small><b>${d.getDate()}</b>`:'<b>?</b>'}</div><div style="min-width:0;flex:1">
- <div class="t">${esc(e.titulo)}</div><div class="s">${e.hora?esc(e.hora)+' · ':''}${esc(e.lugar||'')}${e.pueblo?', '+esc(e.pueblo):''}${e.precio?' · '+esc(e.precio):''}</div>
+ <div class="t">${esc(e.titulo)}</div>${(()=>{const ok=v=>v&&!/no definid|por confirmar|no publicad|sin confirmar/i.test(v)?v:'';const m=[ok(e.hora),[ok(e.lugar),ok(e.pueblo)].filter(Boolean).join(', '),ok(e.precio)].filter(Boolean).map(esc).join(' · ');return m?`<div class="s">${m}</div>`:''})()}
  ${e.detalle?`<div class="s">${esc(e.detalle)}</div>`:''}
  <div class="src">${pending?'Sugerida por ti · pendiente de verificar':(e.fuente?`vía ${e.fuente_url?`<a href="${esc(e.fuente_url)}" target="_blank" rel="noopener" style="color:inherit">${esc(e.fuente)}</a>`:esc(e.fuente)}`:'')}</div>
- <div class="links">${e.enlace?linkBtn('web',e.enlace,'Ver más'):''}${(e.pueblo||e.maps)?`<a class="lbtn go-map" href="${esc(goLink(m))}" target="_blank" rel="noopener">${ICON.map}Cómo llegar</a>`:''}</div></div></article>`}
+ <div class="links">${e.enlace?linkBtn('web',e.enlace,'Ver más'):''}${(e.lugar||e.maps)?`<a class="lbtn go-map" href="${esc(goLink(m))}" target="_blank" rel="noopener">${ICON.map}Cómo llegar</a>`:''}</div></div></article>`}
 /* ---------- perfil ---------- */
 async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ups=uploads();const favs=EXT.S().favs.cigarros;const rat=EXT.S().ratings;
  const favC=favs.map(cigarById).filter(Boolean);const ratC=Object.keys(rat).map(cigarById).filter(Boolean);

@@ -352,13 +352,13 @@ function vBuscar(){const d=D();const munis=[...new Set([...d.artesanos.map(a=>a.
   const cs=A.allCigars().filter(c=>hit([c.nombre,A.artisanName(c),c.pueblo,c.capa,c.notas,(c.vitolas||[]).join(' ')])&&geo(c.pueblo)&&(!qs.fort||c.fortaleza===qs.fort));
   const as=d.artesanos.filter(a=>hit([a.nombre,a.pueblo,a.tipo,a.historia])&&geo(a.pueblo)&&(!qs.fort||A.allCigars().some(c=>c.artesano_id===a.id&&c.fortaleza===qs.fort)));
   const ps=qs.fort?[]:d.places.filter(p=>hit([p.nombre,p.tipo,p.pueblo,p.direccion])&&geo(p.pueblo));
-  const today=new Date();today.setHours(0,0,0,0);const es=qs.fort?[]:(d.events.actividades||[]).filter(e=>{const x=A.evDate(e.fecha);return(!x||x>=today)&&hit([e.titulo,e.lugar,e.pueblo,e.detalle])&&((!qs.mun&&!qs.reg)||(e.pueblo&&geo(e.pueblo)))});
+  const today=new Date();today.setHours(0,0,0,0);const es=qs.fort?[]:(d.events.actividades||[]).filter(e=>{const x=A.evDate(e.fecha);return x&&x>=today&&hit([e.titulo,e.lugar,e.pueblo,e.detalle])&&((!qs.mun&&!qs.reg)||(e.pueblo&&geo(e.pueblo)))});
   const n=cs.length+as.length+ps.length+es.length;
   $('#gres').innerHTML=`<p class="count-line">${n} resultado${n===1?'':'s'}${qs.fort?' · la Fortaleza filtra cigarros y artesanos':''}</p>
   ${cs.length?`<div class="section-title"><h2>Cigarros</h2><span class="count">${cs.length}</span></div><div class="grid">${cs.map(A.cigarCard).join('')}</div>`:''}
   ${as.length?`<div class="section-title"><h2>Artesanos</h2><span class="count">${as.length}</span></div><div class="list">${as.map(artRow).join('')}</div>`:''}
   ${ps.length?`<div class="section-title"><h2>Lugares</h2><span class="count">${ps.length}</span></div><div class="list">${ps.map(placeRow).join('')}</div>`:''}
-  ${es.length?`<div class="section-title"><h2>Eventos</h2><span class="count">${es.length}</span></div><div class="list">${es.map(e=>`<a class="row" href="#/eventos/${encodeURIComponent(e.id)}"><div><div class="t">${esc(e.titulo)}</div><div class="s">${fmtF(e.fecha)} · ${esc(e.pueblo||e.lugar||'')}</div></div><span class="go">›</span></a>`).join('')}</div>`:''}
+  ${es.length?`<div class="section-title"><h2>Eventos</h2><span class="count">${es.length}</span></div><div class="list">${es.map(e=>`<a class="row" href="#/eventos/${encodeURIComponent(e.id)}"><div><div class="t">${esc(e.titulo)}</div><div class="s">${[fmtF(e.fecha),esc(okv(e.pueblo)||okv(e.lugar))].filter(Boolean).join(' · ')}</div></div><span class="go">›</span></a>`).join('')}</div>`:''}
   ${n?'':'<div class="empty">Nada con esa búsqueda.</div>'}`;A.hydrate($('#gres'))};
  $('#gq').addEventListener('input',e=>{qs.q=e.target.value;run()});
  $('#gReg').onchange=e=>{qs.reg=e.target.value;if(qs.mun&&region(qs.mun)!==qs.reg)qs.mun='';vBuscar()};$('#gMun').onchange=e=>{qs.mun=e.target.value;run()};
@@ -379,26 +379,30 @@ function icsFor(e){const [Y,M,Dd]=e.fecha.split('-').map(Number);const t=parseHo
  const utc=(h,mi)=>icsT(new Date(Date.UTC(Y,M-1,Dd,h+4,mi)));const nd=new Date(Date.UTC(Y,M-1,Dd+1));
  const dt=t?[`DTSTART:${utc(t.s[0],t.s[1])}`,`DTEND:${utc(t.e[0],t.e[1])}`]:[`DTSTART;VALUE=DATE:${Y}${pad(M)}${pad(Dd)}`,`DTEND;VALUE=DATE:${nd.getUTCFullYear()}${pad(nd.getUTCMonth()+1)}${pad(nd.getUTCDate())}`];
  const url=e.enlace||e.fuente_url||'';
- const desc=[e.hora&&('Hora: '+e.hora),e.precio&&scrub(e.precio),scrub(e.detalle||''),isAnchor(e)?`RSVP: ${ANCHOR.registro} · ATH Móvil ${ANCHOR.ath}`:'',url,'La Hoja Boricua · '+APP_URL].filter(Boolean).join('\n');
- const loc=[e.lugar,e.pueblo,'Puerto Rico'].filter(Boolean).join(', ');
+ const desc=[okv(e.hora)&&('Hora: '+e.hora),e.precio&&scrub(e.precio),scrub(e.detalle||''),isAnchor(e)?`RSVP: ${ANCHOR.registro} · ATH Móvil ${ANCHOR.ath}`:'',url,'La Hoja Boricua · '+APP_URL].filter(Boolean).join('\n');
+ const loc=[okv(e.lugar),okv(e.pueblo),'Puerto Rico'].filter(Boolean).join(', ');
  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//La Hoja Boricua//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',`UID:${e.id||uid('e')}@lahojaboricua.sites.tab.bot`,`DTSTAMP:${icsT(new Date())}`,...dt,`SUMMARY:${icsEsc(e.titulo)}`,`LOCATION:${icsEsc(loc)}`,`DESCRIPTION:${icsEsc(desc)}`,url?`URL:${url}`:'','END:VEVENT','END:VCALENDAR'].filter(Boolean).map(fold).join('\r\n')+'\r\n'}
 function addToCal(e){download(new Blob([icsFor(e)],{type:'text/calendar;charset=utf-8'}),(e.id||'evento')+'.ics');toast('Abre el archivo .ics para añadirlo a tu calendario')}
 const evst={mode:'lista',day:''};
 const CAL_ICO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M4 8h16M5 5h14v15H5z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M9 14h6" stroke="currentColor" stroke-width="2"/></svg>';
 const DIAS=['dom','lun','mar','mié','jue','vie','sáb'];
+/* v29: campo vacío o marcador ("no definido", "por confirmar"…) = no se muestra */
+const NOPH=/no definid|por confirmar|no publicad|sin confirmar|^\s*\?+\s*$/i;const okv=v=>v&&!NOPH.test(String(v))?String(v):'';
+function evMeta(e,p){return [okv(e.hora),[okv(e.lugar),okv(e.pueblo)].filter(Boolean).join(', '),p===false?'':okv(e.precio&&scrub(e.precio))].filter(Boolean).map(esc).join(' · ')}
+const evLine=(e,p)=>{const m=evMeta(e,p);return m?`<div class="s">${m}</div>`:''};
 function evCard(e,pending){const d=A.evDate(e.fecha);const m={nombre:e.lugar||e.titulo,direccion:e.direccion||'',pueblo:e.pueblo,maps:e.maps,lat:e.lat,lng:e.lng};const src=e.enlace||e.fuente_url;
  return `<article class="ev ${pending?'pending':''}" id="ev-${esc(e.id)}"><div class="date">${d?`<small>${MES[d.getMonth()]}</small><b>${d.getDate()}</b><small>${DIAS[d.getDay()]}</small>`:'<b>?</b>'}</div><div style="min-width:0;flex:1">
- <div class="t">${esc(e.titulo)}</div><div class="s">${e.hora?esc(e.hora)+' · ':''}${esc(e.lugar||'')}${e.pueblo?', '+esc(e.pueblo):''}${e.precio?' · '+esc(scrub(e.precio)):''}</div>
- ${e.detalle?`<div class="s">${esc(scrub(e.detalle))}</div>`:''}
+ <div class="t">${esc(e.titulo)}</div>${evLine(e)}
+ ${okv(e.detalle)?`<div class="s">${esc(scrub(e.detalle))}</div>`:''}
  <div class="src">${pending?'Sugerida por ti · pendiente de verificar':(e.fuente?`vía ${e.fuente_url?`<a href="${esc(e.fuente_url)}" target="_blank" rel="noopener">${esc(e.fuente)}</a>`:esc(e.fuente)}`:'')}</div>
- <div class="links">${src?A.linkBtn('web',src,pending?'Ver enlace':'Ver fuente'):''}${pending?'':`<button type="button" class="lbtn" data-ics="${esc(e.id)}">${CAL_ICO}Añadir a calendario</button>`}${(e.pueblo||e.maps)?`<a class="lbtn go-map" href="${esc(A.goLink(m))}" target="_blank" rel="noopener">${A.ICON.map}Cómo llegar</a>`:''}</div></div></article>`}
+ <div class="links">${src?A.linkBtn('web',src,pending?'Ver enlace':'Ver fuente'):''}${pending?'':`<button type="button" class="lbtn" data-ics="${esc(e.id)}">${CAL_ICO}Añadir a calendario</button>`}${(okv(e.lugar)||e.maps)?`<a class="lbtn go-map" href="${esc(A.goLink(m))}" target="_blank" rel="noopener">${A.ICON.map}Cómo llegar</a>`:''}</div></div></article>`}
 function anchorCard(e){const d=A.evDate(e.fecha);const m={nombre:e.lugar,pueblo:e.pueblo,maps:e.maps};
  return `<section class="anchor" id="ev-${esc(e.id)}"><div class="anchor-tag">El evento ancla</div><div class="anchor-top">${d?`<div class="date big"><small>${MES[d.getMonth()]}</small><b>${d.getDate()}</b><small>${DIAS[d.getDay()]}</small></div>`:''}
- <div><h2>${esc(e.titulo)}</h2><div class="s">${esc(e.lugar||'')}${e.pueblo?', '+esc(e.pueblo):''}</div>${e.hora?`<div class="s">${esc(e.hora)}</div>`:''}</div></div>
- ${e.detalle?`<p class="anchor-d">${esc(scrub(e.detalle))}</p>`:''}
+ <div><h2>${esc(e.titulo)}</h2>${evLine({lugar:e.lugar,pueblo:e.pueblo})}${evLine({hora:e.hora})}</div></div>
+ ${okv(e.detalle)?`<p class="anchor-d">${esc(scrub(e.detalle))}</p>`:''}
  <div class="rsvp"><a class="btn" href="${ANCHOR.registro}" target="_blank" rel="noopener">Confirma tu asistencia (RSVP)</a>
  <div class="ath"><div><small>Cata de las 5 PM: paga con ATH Móvil</small><b>${ANCHOR.ath}</b></div><button type="button" class="lbtn" data-copy="${ANCHOR.ath}">Copiar</button></div></div>
- <div class="links"><button type="button" class="lbtn" data-ics="${esc(e.id)}">${CAL_ICO}Añadir a calendario</button><a class="lbtn go-map" href="${esc(A.goLink(m))}" target="_blank" rel="noopener">${A.ICON.map}Cómo llegar</a>${e.enlace?A.linkBtn('web',e.enlace,e.enlace.replace(/^https?:\/\/(www\.)?/,'').replace(/\/$/,'')):''}${e.fuente_url?A.linkBtn('ig',e.fuente_url,e.fuente||'Instagram'):''}</div></section>`}
+ <div class="links"><button type="button" class="lbtn" data-ics="${esc(e.id)}">${CAL_ICO}Añadir a calendario</button>${(okv(e.lugar)||e.maps)?`<a class="lbtn go-map" href="${esc(A.goLink(m))}" target="_blank" rel="noopener">${A.ICON.map}Cómo llegar</a>`:''}${e.enlace?A.linkBtn('web',e.enlace,e.enlace.replace(/^https?:\/\/(www\.)?/,'').replace(/\/$/,'')):''}${e.fuente_url?A.linkBtn('ig',e.fuente_url,e.fuente||'Instagram'):''}</div></section>`}
 function calGrid(evs){if(!evs.length)return '<div class="empty">No hay eventos próximos.</div>';const by={};evs.forEach(e=>{(by[e.fecha]=by[e.fecha]||[]).push(e)});
  const first=A.evDate(evs[0].fecha),last=A.evDate(evs[evs.length-1].fecha);const td=hoy();let html='';
  for(let y=first.getFullYear(),mo=first.getMonth();y<last.getFullYear()||(y===last.getFullYear()&&mo<=last.getMonth());){const start=new Date(y,mo,1).getDay(),days=new Date(y,mo+1,0).getDate();
@@ -409,7 +413,7 @@ function calGrid(evs){if(!evs.length)return '<div class="empty">No hay eventos p
   if(mo===11){mo=0;y++}else mo++}
  const sel=evst.day?by[evst.day]||[]:[];
  return html+`<div class="cal-legend"><span><i class="lg-anc"></i>Humo y Tambor</span><span><i class="lg-ev"></i>Otros eventos</span></div><div id="calSel">${sel.length?sel.map(e=>isAnchor(e)?anchorCard(e):evCard(e)).join(''):'<p class="hint">Toca un día marcado para ver sus eventos.</p>'}</div>`}
-function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0,0,0);const evs=(D().events.actividades||[]).filter(e=>{const d=A.evDate(e.fecha);return !d||d>=today}).sort((a,b)=>a.fecha.localeCompare(b.fecha));const mine=LS.get('sugeridas',[]);
+function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0,0,0);const evs=(D().events.actividades||[]).filter(e=>{const d=A.evDate(e.fecha);return d&&d>=today}).sort((a,b)=>a.fecha.localeCompare(b.fecha));const mine=LS.get('sugeridas',[]);
  const anc=evs.find(isAnchor);const rest=evs.filter(e=>e!==anc);const upd=D().events.actualizado?new Date(D().events.actualizado):null;
  view.innerHTML=`${A.head('Actividades','Eventos y <em>catas</em>','Lo que viene en la escena del cigarro en PR. Añádelo a tu calendario.',VBArt.coqui())}
  ${upd&&!isNaN(upd)?`<p class="updated">Lista actualizada el ${upd.getDate()} ${MES[upd.getMonth()]} ${upd.getFullYear()}${navigator.onLine?'':' <span class="offline-badge">sin conexión</span>'}</p>`:''}

@@ -1,21 +1,7 @@
 {
- "actualizado": "2026-10-20T19:24:03Z",
+ "actualizado": "2026-10-22T02:35:55Z",
  "nota": "Lista mantenida a mano en el prototipo; un trabajo programado puede reescribir este archivo.",
  "actividades": [
-  {
-   "id": "humo-y-tambor-2",
-   "titulo": "Humo y Tambor 2",
-   "fecha": "2026-10-24",
-   "hora": "5:00 PM cata guiada ($25) · 7:00 PM gratis con DJ Gury + Fat Mazakot",
-   "lugar": "Vaca Brava (The Yard at Bairoa)",
-   "pueblo": "Caguas",
-   "precio": "Cata $25; desde las 7 PM gratis",
-   "enlace": "https://humoytambor.com",
-   "fuente": "@humoytambor",
-   "fuente_url": "https://www.instagram.com/humoytambor/reel/DemqwwwxAuM/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Vaca%20Brava%20190%20Ave.%20Bairoa%20Caguas%20Puerto%20Rico",
-   "detalle": "190 Ave. Bairoa, Caguas. 5 PM: degustación de Blackbird con café de Hacienda La Tradición + bolsa con cortador ($25, ATH Móvil /humoytambor). Concurso de la ceniza más larga. 7 PM: DJ Gury + plena con Fat Mazakot, gratis. Registro: https://forms.gle/4iL5cgzun3LqdXBRA. Solo mayores de 21."
-  },
   {
    "id": "entre-humos-barrilito-2026-10-23",
    "titulo": "El Arte del Maridaje: Ron del Barrilito + cigarros",
@@ -28,43 +14,30 @@
    "fuente": "@entrehumos",
    "fuente_url": "https://www.instagram.com/entrehumos/",
    "maps": "https://www.google.com/maps/search/?api=1&query=Entre%20Humos%20San%20Patricio%20Town%20Center%20Guaynabo%20Puerto%20Rico",
-   "detalle": "Ron del Barrilito 3, 4 y 5 Estrellas maridado con OpusX The Lost City y Sencillo Platinum by Prometheus. Reserva por Eventbrite (link en su perfil). Cupos limitados."
+   "detalle": "Entre Humos presenta una cata maridada de Ron del Barrilito 3, 4 y 5 Estrellas con los cigarros OpusX The Lost City y Sencillo Platinum by Prometheus. $100 + IVU por persona, reservas por Eventbrite (enlace en su perfil); cupos limitados."
+  },
+  {
+   "id": "humo-y-tambor-2",
+   "titulo": "Humo y Tambor 2",
+   "fecha": "2026-10-24",
+   "hora": "5:00 PM cata y concurso ($25) · 7:00 PM plena gratis",
+   "lugar": "Vaca Brava (The Yard at Bairoa)",
+   "pueblo": "Caguas",
+   "precio": "Cata $25; desde las 7 PM gratis",
+   "enlace": "https://humoytambor.com",
+   "fuente": "@humoytambor",
+   "fuente_url": "https://www.instagram.com/humoytambor/reel/DemqwwwxAuM/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Vaca%20Brava%20190%20Ave.%20Bairoa%20Caguas%20Puerto%20Rico",
+   "detalle": "Humo & Tambor presenta su segunda edición en 190 Ave. Bairoa, Caguas. 5 PM: cata guiada de Blackbird con café de Hacienda La Tradición, bolsa con cortador y concurso de la ceniza más larga ($25, ATH Móvil /humoytambor). 7 PM: DJ Gury y plena con Fat Mazakot, gratis. Solo mayores de 21."
   },
   {
    "id": "don-rey-mockingbird-2026-10-25",
-   "titulo": "Blackbird Mockingbird con Jonas Santana",
+   "titulo": "Blackbird Mockingbird en Don Rey Cigar",
    "fecha": "2026-10-25",
-   "lugar": "Don Rey Cigar (el post no dice cuál localidad)",
    "enlace": "https://www.instagram.com/donreycigar/p/DeriaopxlTa/",
    "fuente": "@donreycigar",
    "fuente_url": "https://www.instagram.com/donreycigar/",
-   "detalle": "Compartir con Jonas Santana para probar el nuevo Mockingbird; cócteles Old Fashioned y DJ en vivo. Hora y localidad no publicadas en el post."
-  },
-  {
-   "id": "la-altura-taller-2026-11-07",
-   "titulo": "Taller: confección de cigarro artesanal",
-   "fecha": "2026-11-07",
-   "hora": "9:00 AM – 1:00 PM",
-   "lugar": "Centro Cultural 23 de Septiembre Inc.",
-   "pueblo": "Lares",
-   "precio": "Costo por teléfono: 787-503-5099 (Juan Irizarry)",
-   "enlace": "https://www.instagram.com/tabacolaaltura/p/DerJuvXxcJT/",
-   "fuente": "@tabacolaaltura",
-   "fuente_url": "https://www.instagram.com/tabacolaaltura/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Centro%20Cultural%2023%20de%20Septiembre%20Lares%20Puerto%20Rico",
-   "detalle": "Aprende a hacer tu propio cigarro a mano con Tabaco La Altura. Espacios limitados."
-  },
-  {
-   "id": "612-halloween-2026-10-31",
-   "titulo": "Noche de disfraces (opcional) en 612",
-   "fecha": "2026-10-31",
-   "lugar": "612 C. Lounge",
-   "pueblo": "Arecibo",
-   "enlace": "https://www.instagram.com/612clounge/p/DepOZ6oJfR5/",
-   "fuente": "@612clounge",
-   "fuente_url": "https://www.instagram.com/612clounge/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=612%20C.%20Lounge%20Arecibo%20Puerto%20Rico",
-   "detalle": "“Sábado 31 de octubre vamos a pasarla bien a un estilo diferente. Disfrazado o no.” Hora no publicada."
+   "detalle": "Don Rey Cigar celebra con Blackbird Cigar Co. la llegada del nuevo Mockingbird, con Jonas Santana de la marca. Habrá cócteles Old Fashioned y DJ en vivo."
   },
   {
    "id": "turro-libertad-jayuya-2026-10-30",
@@ -76,7 +49,68 @@
    "fuente": "@laturreria / @elclubdelturro",
    "fuente_url": "https://www.instagram.com/laturreria/",
    "maps": "https://www.google.com/maps/search/?api=1&query=Naturola%20La%20Barra%20Jayuya%20Puerto%20Rico",
-   "detalle": "Primera presentación de LIBERTAD, cigarro inspirado en Blanca Canales y la Revolución Nacionalista de Jayuya de 1950, con conversación sobre su confección y música en vivo. Hora y precio no publicados. Naturola abre vie 3–9 PM (horario regular)."
+   "detalle": "La Turrería presenta por primera vez LIBERTAD, cigarro inspirado en Blanca Canales y la Revolución Nacionalista de Jayuya de 1950, con una conversación sobre su confección. Cierra con música en vivo de Riestra y Los Bohíques en Naturola La Barra."
+  },
+  {
+   "id": "612-halloween-2026-10-31",
+   "titulo": "Noche de Halloween en 612 C. Lounge",
+   "fecha": "2026-10-31",
+   "lugar": "612 C. Lounge",
+   "pueblo": "Arecibo",
+   "enlace": "https://www.instagram.com/612clounge/p/DepOZ6oJfR5/",
+   "fuente": "@612clounge",
+   "fuente_url": "https://www.instagram.com/612clounge/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=612%20C.%20Lounge%20Arecibo%20Puerto%20Rico",
+   "detalle": "612 C. Lounge celebra Halloween con una noche especial en su lounge de Arecibo; el disfraz es opcional."
+  },
+  {
+   "id": "kuros-halloween-2026-10-31",
+   "titulo": "Halloween con karaoke en Kuros",
+   "fecha": "2026-10-31",
+   "lugar": "Kuros Smoke Lounge, 1056 Ave. Ashford (Condado)",
+   "pueblo": "San Juan",
+   "enlace": "https://www.instagram.com/p/DeVDb9mCShm/",
+   "fuente": "@kurossmokeloungepr",
+   "fuente_url": "https://www.instagram.com/kurossmokeloungepr/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Kuros%20Smoke%20Lounge%201056%20Ave.%20Ashford%20San%20Juan%20Puerto%20Rico",
+   "detalle": "Kuros Smoke Lounge hace su noche de Halloween con karaoke toda la noche y un shot de la casa gratis para quien llegue disfrazado (mientras duren). Solo mayores de 21."
+  },
+  {
+   "id": "la-altura-taller-2026-11-07",
+   "titulo": "Taller: confección de cigarro artesanal",
+   "fecha": "2026-11-07",
+   "hora": "9:00 AM – 1:00 PM",
+   "lugar": "Centro Cultural 23 de Septiembre Inc.",
+   "pueblo": "Lares",
+   "enlace": "https://www.instagram.com/tabacolaaltura/p/DerJuvXxcJT/",
+   "fuente": "@tabacolaaltura",
+   "fuente_url": "https://www.instagram.com/tabacolaaltura/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Centro%20Cultural%2023%20de%20Septiembre%20Lares%20Puerto%20Rico",
+   "detalle": "Tabaco La Altura ofrece un taller práctico para aprender a confeccionar tu propio cigarro a mano, de la hoja al cigarro terminado. Espacios limitados; costo e inscripción por sus redes."
+  },
+  {
+   "id": "pegadizo-bolero-jazz-2026-11-24",
+   "titulo": "Cigarros a Tiempo de Bolero & Jazz",
+   "fecha": "2026-11-24",
+   "lugar": "Pegadizo Cigar Lounge, Carr. 987 km 4.8 (Las Croabas)",
+   "pueblo": "Fajardo",
+   "enlace": "https://www.instagram.com/p/DZu6Q4HRnyp/",
+   "fuente": "@pegadizocigar",
+   "fuente_url": "https://www.instagram.com/pegadizocigar/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Pegadizo%20Cigar%20Lounge%20Carr.%20987%20km%204.8%20Fajardo%20Puerto%20Rico",
+   "detalle": "Martes de bolero y jazz en vivo en Pegadizo Cigar Lounge: una noche de música, cigarros, gastronomía y conversación. Es parte de una serie que sigue el martes 1 de diciembre."
+  },
+  {
+   "id": "pegadizo-bolero-jazz-2026-12-01",
+   "titulo": "Cigarros a Tiempo de Bolero & Jazz",
+   "fecha": "2026-12-01",
+   "lugar": "Pegadizo Cigar Lounge, Carr. 987 km 4.8 (Las Croabas)",
+   "pueblo": "Fajardo",
+   "enlace": "https://www.instagram.com/p/DZu6Q4HRnyp/",
+   "fuente": "@pegadizocigar",
+   "fuente_url": "https://www.instagram.com/pegadizocigar/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Pegadizo%20Cigar%20Lounge%20Carr.%20987%20km%204.8%20Fajardo%20Puerto%20Rico",
+   "detalle": "Cierre de la serie de bolero y jazz en vivo en Pegadizo Cigar Lounge: música, cigarros, gastronomía y conversación en un martes de noche."
   }
  ],
  "fuentes": [
@@ -175,6 +209,10 @@
   {
    "handle": "@naturolalabarra",
    "url": "https://www.instagram.com/naturolalabarra/"
+  },
+  {
+   "handle": "@kurossmokeloungepr",
+   "url": "https://www.instagram.com/kurossmokeloungepr/"
   }
  ]
 }
