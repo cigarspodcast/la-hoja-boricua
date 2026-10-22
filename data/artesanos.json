@@ -1,521 +1,521 @@
 [
- {
-  "id": "jfc-hoja-boricua",
-  "nombre": "JFC Tobacco Corp. / Tabacalera Hoja Boricua",
-  "pueblo": "Mayagüez",
-  "tipo": "Tabacalera",
-  "historia": "Fábrica mayagüezana que nació de Good Times Smoke Shop (1986), una de las primeras smoke shops de la isla. Su línea Hoja Boricua lleva tripa de tabaco puertorriqueño y el sol de Jayuya en la anilla, en honor a los taínos.",
-  "web": "http://www.jfctobacco.com/",
-  "facebook": "https://www.facebook.com/JfcTobaccoCorporation/",
-  "donde_comprar": "https://shopjfctobacco.com/products/hoja-boricua · Good Times Smoke Shop, 74 Calle McKinley Oeste, Mayagüez",
-  "fuentes": [
-   "http://www.jfctobacco.com/premiumcigars",
-   "http://www.jfctobacco.com/locations",
-   "https://shopjfctobacco.com/products/hoja-boricua"
-  ]
- },
- {
-  "id": "don-rey-cigar",
-  "nombre": "Don Rey Cigar",
-  "pueblo": "Caguas",
-  "tipo": "Fábrica y cadena de tabaquerías",
-  "historia": "Se presentan como el fabricante y tienda de cigarros más grande de Puerto Rico, con cigarros hechos a mano en la isla en unos 22 estilos. Tienen dos récords Guinness por el cigarro más grande del mundo y siete tiendas/lounges en la isla.",
-  "instagram": "https://www.instagram.com/donreycigar/",
-  "web": "https://www.donreycigar.com/",
-  "donde_comprar": "Sus 7 tiendas (Viejo San Juan, Santurce, Guaynabo, Bayamón, Caguas, Humacao, Luquillo) — https://www.donreycigar.com/locations",
-  "fuentes": [
-   "https://www.instagram.com/donreycigar/",
-   "https://www.visitacaguas.com/don-rey-cigars-en",
-   "https://www.donreycigar.com/locations"
-  ]
- },
- {
-  "id": "molina-lopez",
-  "nombre": "Molina & López Tabacalera",
-  "pueblo": "Caguas",
-  "tipo": "Tabacalera",
-  "historia": "Tabacalera nueva (lanzada el 14 de octubre de 2026 en Entre Humos) de Liz y Pedro; sus cigarros se tuercen a mano en Caguas. Liz viene de La Hoja del Chan y del movimiento “Somos la resistencia” por el tabaco boricua.",
-  "donde_comprar": "Entre Humos (distribuidor exclusivo): lounges y https://entrehumos.com",
-  "fuentes": [
-   "https://cigardojo.com/2026/10/liz-lopez-returns-with-molina-lopez-tabacalera/",
-   "https://global.humolatino.com/tabacalera-molina-y-lopez-between-roots-and-new-harvests/",
-   "https://www.instagram.com/entrehumos/p/DefenLAnWOj/"
-  ]
- },
- {
-  "id": "el-club-del-turro",
-  "nombre": "El Club del Turro",
-  "pueblo": "Río Grande",
-  "tipo": "Tabacalera (cultiva, cura, liga y tuerce)",
-  "historia": "Tres panas, Francisco, Antonio y Tito, fundaron El Club del Turro en 2018 en la Finca Neo Jibairo de Río Grande. Siembran, añejan y tuercen hoja boricua para revivir la tradición tabacalera de la isla, “de la semilla al humo”.",
-  "instagram": "https://www.instagram.com/elclubdelturro/",
-  "web": "https://shop.fincaneojibairo.com/cigars/",
-  "facebook": "https://www.facebook.com/elclubdelturro/",
-  "donde_comprar": "Bar y tienda en Finca Neo Jibairo (Carr. 187 Km 28.6, Río Grande; sin reservación) · tienda en línea shop.fincaneojibairo.com · La Turrería (76 Calle Dr. Santiago Veve, Bayamón)",
-  "fuentes": [
-   "https://shop.fincaneojibairo.com/shop/el-club-del-turro-el-turrito/",
-   "https://shop.fincaneojibairo.com/cigars/",
-   "https://es.mercadoguayabas.org/market/el-club-del-turro",
-   "https://www.facebook.com/elclubdelturro/"
-  ],
-  "hecho_en_pr": true
- },
- {
-  "id": "tabaco-la-altura",
-  "nombre": "Tabaco La Altura",
-  "pueblo": "Lares",
-  "tipo": "Tabaquero artesanal (cultiva y tuerce)",
-  "historia": "Juan buscaba un cigarro hecho de principio a fin con hoja de Puerto Rico y, como no lo encontró, se puso a sembrarlo él mismo en las montañas de Lares. El nombre La Altura es por los pueblos de montaña: quiere que su cigarro “resalte el nombre de mi pueblo”.",
-  "instagram": "https://www.instagram.com/tabacolaaltura/",
-  "donde_comprar": "Directo con el artesano por su FB o su canal de YouTube (Tabaco La Altura). También da talleres de confección de cigarro.",
-  "fuentes": [
-   "https://www.facebook.com/tabaco.la.altura/",
-   "https://www.youtube.com/@tabacolaaltura",
-   "https://www.instagram.com/reel/DKKTzf8NKyb/"
-  ],
-  "facebook": "https://www.facebook.com/tabaco.la.altura/",
-  "youtube": "https://www.youtube.com/@tabacolaaltura",
-  "hecho_en_pr": true
- },
- {
-  "id": "don-collins",
-  "nombre": "Don Collins Cigars",
-  "pueblo": "San Juan (Viejo San Juan)",
-  "tipo": "Tabacalera y tienda",
-  "historia": "Cultivan tabaco puertorriqueño sin pesticidas en las montañas de la isla, cosechado por agricultores locales, y lo curan, añejan y tuercen a mano. Su tienda y lounge queda en la Calle del Cristo, en un edificio que ellos presentan como la fábrica de cigarros más antigua del Caribe.",
-  "instagram": "https://www.instagram.com/doncollinspr/",
-  "web": "https://www.don-collins.com/",
-  "facebook": "https://www.facebook.com/DonCollinsPR",
-  "donde_comprar": "Tienda en 59 Calle del Cristo, Viejo San Juan · tienda online en don-collins.com",
-  "fuentes": [
-   "https://www.don-collins.com/",
-   "https://www.don-collins.com/history",
-   "https://www.frommers.com/destinations/san-juan/shopping/don-collins-cigars/",
-   "https://www.instagram.com/doncollinspr/"
-  ]
- },
- {
-  "id": "finca-neo-jibairo",
-  "nombre": "Finca Neo Jibairo",
-  "pueblo": "Río Grande",
-  "tipo": "Finca de tabaco + bar y tabaquería (cultivo; el torcido lo hace El Club del Turro)",
-  "historia": "Finca agroecológica certificada en Río Grande que siembra tabaco junto a más de 26 cultivos. Tiene bar y tienda de cigarros boricuas, recorrido por la finca y taller para torcer tu propio cigarro, y es la casa de El Club del Turro.",
-  "instagram": "https://www.instagram.com/fincaneojibairo/",
-  "web": "https://fincaneojibairo.com/",
-  "facebook": "https://www.facebook.com/fincaneojibairo",
-  "donde_comprar": "En la finca (bar y cigar shop, sin reservación) · https://shop.fincaneojibairo.com/cigars/ · 787-598-0240, info@fincaneojibairo.com",
-  "fuentes": [
-   "https://fincaneojibairo.com/",
-   "https://shop.fincaneojibairo.com/",
-   "https://es.mercadoguayabas.org/market/el-club-del-turro"
-  ],
-  "hecho_en_pr": true
- },
- {
-  "id": "willys-cigars",
-  "nombre": "Willys Cigars",
-  "pueblo": "Área metro (San Juan / Guaynabo)",
-  "tipo": "Torcedor / marca boutique",
-  "historia": "Fundada en 2016 por William “Willy” como homenaje a los torcedores y ligadores de Puerto Rico y el Caribe. Torce a mano en tiradas pequeñas, “hechos a mano, no en masa”, y en 2026 lo presentaron como “maestro torcedor de Puerto Rico” en un podcast.",
-  "instagram": "https://www.instagram.com/willyscigars/",
-  "web": "https://www.willys-cigars.com/",
-  "donde_comprar": "Ventas directas por WhatsApp · ha torcido en lounges como Pegadizo Cigar Lounge y lo ha vendido JJ Cigar Lounge (Isabela)",
-  "fuentes": [
-   "https://www.willys-cigars.com/",
-   "https://www.instagram.com/willyscigars/",
-   "https://www.instagram.com/reel/DV0qXVFDbSU/",
-   "https://www.instagram.com/reel/DV1SSyYEeFb/",
-   "https://www.facebook.com/JJCigarLounge/videos/new-and-now-available-willyscigars-from-guaynabo-come-try-this-full-flavored-cig/697701272606098/"
-  ],
-  "whatsapp": "https://wa.me/17874866320",
-  "nota": "Lo de Pegadizo viene de un resultado de búsqueda; sin verificar en la fuente."
- },
- {
-  "id": "pitirre-cigars",
-  "nombre": "Pitirre Cigars",
-  "pueblo": "Trujillo Alto",
-  "tipo": "Torcedor / marca artesanal",
-  "historia": "Jesús, artesano certificado, tuerce a mano Pitirre Cigars desde Trujillo Alto. Su lema: “La magia del tabaco transforma tu vida”, y se le ve en juntes tabaqueros como los del Club del Turro y la Finca Neo Jibairo.",
-  "instagram": "https://www.instagram.com/pitirrecigarspr/",
-  "facebook": "https://www.facebook.com/Pitirre-Cigars-PR-106871004816371",
-  "donde_comprar": "Por texto (número en su bio de IG) · en eventos como Finca Neo Jibairo, Otra Cosa Bar y el Mercado Agrícola",
-  "fuentes": [
-   "https://www.instagram.com/pitirrecigarspr/",
-   "https://www.instagram.com/p/ChvYBXduHMp/",
-   "https://www.facebook.com/elclubdelturro/posts/en-nuestro-pr%C3%B3ximo-junte-tabaquero-nos-honra-contar-con-las-manos-de-jes%C3%BAs-ramos/613478160402350/"
-  ],
-  "nota": "Sin líneas con especificaciones públicas todavía."
- },
- {
-  "id": "mr-jony-cigars",
-  "nombre": "Mr. Jony Cigars",
-  "pueblo": "Caguas",
-  "tipo": "Torcedor / marca artesanal (taller de La Hoja del Chan)",
-  "historia": "“Mr. Jony” aprendió al lado de su primo El Chan en La Hoja del Chan y se certificó como torcedor en 2022. Es torcedor de capa, colabora con el Museo del Tabaco de Caguas, y su sueño es que cada fumador tenga un Mr. Jony en casa, hecho en Puerto Rico.",
-  "instagram": "https://www.instagram.com/mrjonycigars/",
-  "donde_comprar": "Por DM en IG o email (en su bio) · envíos a PR y EE.UU.",
-  "fuentes": [
-   "https://www.instagram.com/mrjonycigars/",
-   "https://humolatino.com/mr-jony-cigars-respeto-por-el-tabaco/",
-   "https://global.humolatino.com/los-hijos-de-la-hoja-del-chan-tobaccos-new-era-in-puerto-rico/"
-  ]
- },
- {
-  "id": "san-pedrito-cigars",
-  "nombre": "San Pedrito Cigars",
-  "pueblo": "Humacao",
-  "tipo": "Torcedor / marca artesanal",
-  "historia": "Héctor aprendió a torcer con El Chan en La Hoja del Chan y lanzó San Pedrito Cigars en diciembre de 2022. El nombre honra al San Pedrito, ave endémica de la isla: quiere que sus cigarros “hablen por Puerto Rico”.",
-  "instagram": "https://www.instagram.com/sanpedritocigars/",
-  "facebook": "https://www.facebook.com/122095044080011258",
-  "donde_comprar": "Ventas directas, ferias, festivales y eventos con torcido en vivo · envíos a PR y EE.UU.",
-  "fuentes": [
-   "https://www.instagram.com/sanpedritocigars/",
-   "https://global.humolatino.com/san-pedrito-cigars-let-our-cigars-speak-for-puerto-rico/",
-   "https://caribbeanwed.com/experiencias/san-pedrito-cigars/"
-  ]
- },
- {
-  "id": "villareno-cigars",
-  "nombre": "Villareño Cigars (Delvis)",
-  "pueblo": "Santa Isabel (Jauca)",
-  "tipo": "Maestro torcedor / marca",
-  "historia": "Delvis es un maestro torcedor cubano radicado en Jauca, Santa Isabel, donde hace a mano los Villareño Cigars. También es ligador: cocreó Acosta Cigars (La Lujuria) y ha hecho cigarros para otras marcas.",
-  "instagram": "https://www.instagram.com/villareno.cigars.pr/",
-  "facebook": "https://www.facebook.com/villarenocigarspr/",
-  "donde_comprar": "Directo por sus redes · presentaciones en tiendas como El Chapu PR",
-  "fuentes": [
-   "https://www.instagram.com/villareno.cigars.pr/",
-   "https://www.youtube.com/watch?v=-vqL-BF2VMA",
-   "https://www.facebook.com/villarenocigarspr/posts/496970201013135/",
-   "https://distinguishedruffian.com/tag/acosta-cigar-co/",
-   "https://www.instagram.com/p/DQFXX-2kTOI/"
-  ],
-  "nota": "Algunos datos vienen de resultados de búsqueda; sin verificar en la fuente."
- },
- {
-  "id": "yambo-cigars",
-  "nombre": "Yambó Cigars",
-  "tipo": "Marca artesanal",
-  "historia": "Yambó Cigars hace cigarros 100% a mano en Puerto Rico, con toros y robustos box press. Su creador, Robert, se mueve en ferias y bike nights de la isla.",
-  "instagram": "https://www.instagram.com/yambocigars/",
-  "facebook": "https://www.facebook.com/yambocigars/",
-  "donde_comprar": "Por DM en IG o Facebook · en eventos y ferias",
-  "fuentes": [
-   "https://www.instagram.com/yambocigars/",
-   "https://www.facebook.com/yambocigars/",
-   "https://www.instagram.com/p/CGO47lzHSFa/",
-   "https://www.facebook.com/elchancigars/posts/aqu%C3%AD-estamos-en-la-bodega-de-m%C3%A9ndez-en-el-bourbon-beer-and-bites-fest-con-hector/3188821384714111/"
-  ],
-  "nota": "Pueblo no publicado. Algunos datos vienen de resultados de búsqueda; sin verificar en la fuente."
- },
- {
-  "id": "el-chapu-pr",
-  "nombre": "El Chapu PR",
-  "pueblo": "Toa Alta",
-  "tipo": "Marca de cigarro artesanal + tienda/taller",
-  "historia": "El Chapu PR es una marca de cigarro artesanal boricua (El Chapu, La Bruja) con tienda y taller en Toa Alta, con licores boricuas, envíos y delivery. Allí se hacen noches de cigarros y presentaciones de torcedores.",
-  "instagram": "https://www.instagram.com/elchapupr/",
-  "donde_comprar": "Tienda y taller El Chapu PR (@el.chapu.pr_la.tienda), Carr. 829, Toa Alta · envíos a PR y EE.UU. y delivery",
-  "fuentes": [
-   "https://www.instagram.com/elchapupr/",
-   "https://www.instagram.com/el.chapu.pr_la.tienda/",
-   "https://www.facebook.com/rafytw/posts/el-chapu-pr-la-tienda-carr-829-toa-alta/10242280313201422/",
-   "https://www.instagram.com/p/DdRpNvWgXoC/"
-  ],
-  "nota": "La dirección viene de un resultado de búsqueda; sin verificar en la fuente."
- },
- {
-  "id": "el-buho-ricamontes",
-  "nombre": "Ricamontes Cigars · El Búho",
-  "pueblo": "Aguas Buenas",
-  "tipo": "Marca / tabacalera artesanal",
-  "historia": "Ricamontes Cigars hace cigarros artesanales torcidos a mano en las montañas de Aguas Buenas desde 2014. Su cigarro más conocido es El Búho (“¿Ya quemaste el Búho?”).",
-  "instagram": "https://www.instagram.com/ricamontescigars/",
-  "facebook": "https://www.facebook.com/ricamontescigars/",
-  "donde_comprar": "Órdenes por su IG · Carr. 156, Aguas Buenas · envíos a PR y EE.UU.",
-  "fuentes": [
-   "https://www.instagram.com/ricamontescigars/",
-   "https://www.facebook.com/ricamontescigars/?locale=es_LA",
-   "https://www.facebook.com/ricamontescigars/videos/ya-quemaste-el-b%C3%BAho-puedes-hacer-tu-orden-a-trav%C3%A9s-de-httpswwwricamontescigarsco/573700853119647/"
-  ],
-  "nota": "Parte de los datos viene de resultados de búsqueda; sin verificar en la fuente."
- },
- {
-  "id": "cohoba-cigars",
-  "nombre": "Cohoba Cigars",
-  "pueblo": "Santa Isabel (Vegas Los Molinos)",
-  "tipo": "Marca boutique con finca de tabaco propia y torcedor",
-  "historia": "Cohoba Cigars trabaja desde Vegas Los Molinos en Santa Isabel, la capital del tabaco en Puerto Rico, y presenta sus cigarros como hechos a mano en PR con hoja criolla, su “Hoja Taína”. Su lema: “Tradición que se fuma, experiencia que se vive”, y lleva torcedor en vivo a ferias y eventos por toda la isla.",
-  "instagram": "https://www.instagram.com/cohobacigarspr/",
-  "web": "https://cohobacigars.shop/",
-  "donde_comprar": "Órdenes por DM en Instagram · ferias y eventos (torcedor en vivo) · tienda en línea cohobacigars.shop “muy pronto”",
-  "fuentes": [
-   "https://www.instagram.com/cohobacigarspr/",
-   "https://www.instagram.com/cohobacigarspr/p/DZkgvamxw2y/",
-   "https://www.instagram.com/cohobacigarspr/reel/DZC_VaixsoE/",
-   "https://www.instagram.com/cohobacigarspr/p/Dep6klQjQhc/",
-   "https://www.instagram.com/p/DcmJaeihATE/",
-   "https://cohobacigars.shop/"
-  ]
- },
- {
-  "id": "kikes-cigars-villalba",
-  "nombre": "Don Kike Cigars (Kike's Cigars)",
-  "pueblo": "Villalba",
-  "tipo": "Marca artesanal · torcido en PR",
-  "historia": "Cigarros artesanales de Villalba que se presentan como “Don Kike Cigars”. Se mueven por festivales y chinchorros del área, como el Festival del Ñame y la Carne Frita de Villalba.",
-  "facebook": "https://www.facebook.com/p/Kikes-Cigars-100057504367418/",
-  "donde_comprar": "Por su página de FB y en eventos del área, como el Festival del Ñame y la Carne Frita de Villalba. Punto fijo: info en verificación.",
-  "nota": "Vitolas: info en verificación. Hecho en PR: confirmado por Sergio (Cigars Podcast).",
-  "hecho_en_pr": true,
-  "hecho_en_pr_fuente": "confirmado por Sergio (Cigars Podcast)",
-  "fuentes": [
-   "https://www.facebook.com/p/Kikes-Cigars-100057504367418/",
-   "https://www.facebook.com/100057504367418/posts/don-kike-cigars-les-invita-al-festival-del-%C3%B1ame-y-la-carne-frita-en-villalba-des/598174078776066/",
-   "https://www.facebook.com/100057504367418/posts/estamos-ubicados-en-el-negocio-de-la-rito-y-v%C3%ADctor-el-chipi-llega-buena-m%C3%BAsica-y/1321737659753034/",
-   "https://www.facebook.com/elclubdelturro/posts/directamente-desde-villalba-don-kike-cigars-siempreturreros/416680256748809/",
-   "https://www.facebook.com/cigarspodcast/videos/el-s%C3%BAper-econ%C3%B3mico-trae-un-unboxing-de-kikes-cigars-directamente-desde-puerto-ri/273693727744667/"
-  ]
- },
- {
-  "id": "papiros-cigars-cidra",
-  "nombre": "Papiro's Cigars",
-  "pueblo": "Cidra",
-  "tipo": "Torcedor / taller artesanal (marca propia)",
-  "historia": "Taller familiar de Cidra donde el torcedor Papiro, cuarta generación de tabaqueros, tuerce a mano con hoja del país que le siembra un agricultor cidreño. Hace desde cigarros de picadura hasta puros de tripa larga, y ofrecía una experiencia de la semilla al taller (pregunta si sigue disponible).",
-  "instagram": "https://www.instagram.com/papiro_otero/",
-  "facebook": "https://www.facebook.com/papiroscigars/",
-  "youtube": "https://www.youtube.com/watch?v=oBGU4MuyHdE",
-  "donde_comprar": "Directo con el artesano por FB/IG. Punto fijo: info en verificación.",
-  "nota": "Activo — confirmado por Sergio (Cigars Podcast). Vitolas: info en verificación.",
-  "hecho_en_pr": true,
-  "fuentes": [
-   "https://www.youtube.com/watch?v=oBGU4MuyHdE",
-   "https://www.facebook.com/papiroscigars/",
-   "https://www.discoverpuertorico.com/profile/papiros-cigars/18402"
-  ],
-  "instagram_label": "Instagram"
- },
- {
-  "id": "jl-cigars-coamo",
-  "nombre": "JL Cigars Artesanos",
-  "pueblo": "Coamo",
-  "tipo": "Torcedor artesanal · lounge propio",
-  "historia": "Torcedor artesanal de Coamo que confecciona, vende y distribuye sus propios cigarros hechos a mano. Tiene su propio lounge en el pueblo, cerca de la plaza, donde se fuma y se compran sus puros.",
-  "instagram": "https://www.instagram.com/jl_cigars_artesanos/",
-  "facebook": "https://www.facebook.com/jlcigarrospuertorrico/",
-  "donde_comprar": "En su lounge de Coamo, cerca de la plaza (dirección exacta en verificación), o directo por sus redes.",
-  "nota": "Vitolas y origen de la hoja: info en verificación.",
-  "fuentes": [
-   "https://www.facebook.com/jlcigarrospuertorrico/",
-   "https://www.instagram.com/jl_cigars_artesanos/"
-  ],
-  "iniciales": "JL"
- },
- {
-  "id": "cigarros-caimito",
-  "nombre": "Cigarros Caimito",
-  "pueblo": "Aguas Buenas",
-  "tipo": "Marca familiar de tabaqueros",
-  "historia": "Marca nacida en Puerto Rico y creada en honor al abuelo de su torcedor, que viene de una familia de tabaqueros de las montañas de Aguas Buenas. Sus cigarros se tuercen a mano en tiradas pequeñas.",
-  "web": "https://www.cigarroscaimito.com/",
-  "instagram": "https://www.instagram.com/cigarros.caimitopr/",
-  "facebook": "https://www.facebook.com/CigarrosCaimito/",
-  "donde_comprar": "Tienda en línea: https://www.cigarroscaimito.com/shop · también por sus redes.",
-  "nota": "Dónde se tuercen hoy y el origen de la hoja: info en verificación.",
-  "fuentes": [
-   "https://www.cigarroscaimito.com/about-1",
-   "https://www.facebook.com/CigarrosCaimito/",
-   "https://www.instagram.com/cigarros.caimitopr/"
-  ],
-  "iniciales": "CC"
- },
- {
-  "id": "tabacalera-la-trascendencia",
-  "nombre": "Tabacalera La Trascendencia",
-  "tipo": "Tabacalera",
-  "historia": "Casa tabacalera con trayectoria desde 2012. Su línea Los Reyes del Caribe se elabora en Puerto Rico, según la tienda Entre Humos, que vende sus robustos Connecticut y Maduro.",
-  "instagram": "https://www.instagram.com/tabacaleralatrascendencia/",
-  "donde_comprar": "En Entre Humos: https://entrehumos.com/collections/tabacalera-la-trascendencia · o por su IG.",
-  "nota": "Pueblo y vitolas: info en verificación.",
-  "fuentes": [
-   "https://entrehumos.com/collections/tabacalera-la-trascendencia",
-   "https://www.instagram.com/tabacaleralatrascendencia/"
-  ],
-  "iniciales": "LT"
- },
- {
-  "id": "la-hoja-del-chan",
-  "nombre": "La Hoja del Chan",
-  "pueblo": "Caguas",
-  "tipo": "Taller artesanal · marca El Chan Cigars",
-  "historia": "Empresa familiar cagüeña que elabora y distribuye cigarros hechos a mano en su taller de Caguas, con hoja criolla del país y de Nicaragua. Abanderó el movimiento “Somos la resistencia” por el tabaco boricua y su marca es El Chan Cigars.",
-  "instagram": "https://www.instagram.com/chanlegacy_lhc/",
-  "facebook": "https://www.facebook.com/lahojadelchan/",
-  "donde_comprar": "En su taller en el casco de Caguas o por sus redes.",
-  "fuentes": [
-   "https://www.elnuevodia.com/negocios/empresas-comercios/notas/la-hoja-del-chan-cigarro-artesanal-con-aroma-de-resiliencia/",
-   "https://www.callejeandopr.com/callejea/la-hoja-del-chan-caguas",
-   "https://www.facebook.com/lahojadelchan/"
-  ],
-  "hecho_en_pr": true,
-  "iniciales": "HC"
- },
- {
-  "id": "cigarros-j-velez",
-  "nombre": "Cigarros J. Vélez",
-  "pueblo": "Cidra",
-  "tipo": "Marca de cigarros premium",
-  "historia": "Fundada en 1998 en Cidra para honrar al abuelo y al bisabuelo de su dueño, con las marcas Papa Chan (capa camerún) y Don Sotero (capa madura), además de Robusto Cognac, Vélez Cigars y Cohaba. Hechos a mano, con mezclas que incluyen tabaco de Puerto Rico.",
-  "web": "https://www.cigarrosjvelez.com/",
-  "instagram": "https://www.instagram.com/cigarrosjvelez/",
-  "facebook": "https://www.facebook.com/cigarrosjvelez/",
-  "donde_comprar": "En su tienda en línea o por sus redes.",
-  "fuentes": [
-   "https://www.cigarrosjvelez.com/inicio",
-   "https://www.instagram.com/cigarrosjvelez/"
-  ],
-  "hecho_en_pr": true,
-  "iniciales": "JV"
- },
- {
-  "id": "tabacos-el-roble",
-  "nombre": "Tabacos El Roble",
-  "pueblo": "Isabela",
-  "tipo": "Marca artesanal",
-  "historia": "Marca artesanal de Isabela, “el tabaco del pueblo”. Sus cigarros son 100% hechos a mano en Isabela y pasan por su propio sistema solera: las hojas se añejan con un extra pilón y se bautizan con rones añejos.",
-  "instagram": "https://www.instagram.com/tabacoselroble/",
-  "donde_comprar": "Por sus redes y en eventos del área oeste.",
-  "fuentes": [
-   "https://www.instagram.com/p/DAq145tySuu/",
-   "https://m.facebook.com/Palaciolasarenas/photos/-a-la-venta-selecci%C3%B3n-de-cigarros-hechos-por-tabacos-el-roble-100-hecho-a-mano-e/5350573"
-  ],
-  "hecho_en_pr": true,
-  "iniciales": "ER"
- },
- {
-  "id": "el-escondite-adjuntas",
-  "nombre": "El Escondite Cigar",
-  "pueblo": "Adjuntas",
-  "tipo": "Marca de cigarros + barra en la montaña",
-  "historia": "Línea de cigarros 100% puertorriqueños de El Escondite de Don Julio, un rincón de montaña en Adjuntas con coctelería de autor donde se fuman sus cigarros premium El Escondite.",
-  "instagram": "https://www.instagram.com/elesconditecigar/",
-  "donde_comprar": "En El Escondite de Don Julio, Adjuntas.",
-  "fuentes": [
-   "https://www.youtube.com/watch?v=CeDwLqWzcHI",
-   "https://www.instagram.com/elesconditededonjulio/"
-  ],
-  "hecho_en_pr": true,
-  "iniciales": "EE"
- },
- {
-  "id": "hr-handmade-cigars",
-  "nombre": "H.R. Handmade Cigars",
-  "pueblo": "Toa Baja (Levittown)",
-  "tipo": "Torcedor certificado · eventos",
-  "historia": "Compañía 100% puertorriqueña de confección artesanal de cigarros. Su torcedor, Harold, es artesano certificado y discípulo de un maestro torcedor boricua; tuerce en vivo en bodas y eventos privados.",
-  "facebook": "https://www.facebook.com/hrhandmadecigars/",
-  "donde_comprar": "Por Facebook, para eventos y pedidos.",
-  "fuentes": [
-   "https://www.facebook.com/hrhandmadecigars/",
-   "https://www.weddingwire.com/biz/hr-handmade-cigars-toa-baja/3fbcf56fa0e7bc0a.html"
-  ],
-  "hecho_en_pr": true,
-  "iniciales": "HR"
- },
- {
-  "id": "fumita-pr",
-  "nombre": "Fumita PR",
-  "tipo": "Torcedora · marca artesanal",
-  "historia": "Marca local de cigarros hechos a mano, con sabores caribeños, de Mylanne, torcedora y artesana boricua que se destaca como mujer en el tabaco. Se ve en mercados agrícolas de la isla.",
-  "instagram": "https://www.instagram.com/fumita.pr/",
-  "donde_comprar": "Por Instagram y en mercados agrícolas.",
-  "nota": "Pueblo: en verificación.",
-  "fuentes": [
-   "https://www.facebook.com/AguadillaFarmersMarket/videos/hola-a-fumita-pr-una-marca-local-de-cigarros-hechos-a-mano-llenos-de-sabores-car/4706",
-   "https://www.instagram.com/reel/DZu8jQjR-yM/"
-  ],
-  "hecho_en_pr": true,
-  "iniciales": "FP"
- },
- {
-  "id": "monte-mistica",
-  "nombre": "Monte & Mística",
-  "tipo": "Marca de la casa Entre Humos",
-  "historia": "Cigarros elaborados a mano en Puerto Rico en tres capas: Connecticut, Corojo y Maduro. Los vende Entre Humos, que los presenta con el sello oficial Hecho en Puerto Rico.",
-  "web": "https://entrehumos.com/products/monte-mistica-sampler-3-pack",
-  "donde_comprar": "En Entre Humos, en sus lounges o en línea.",
-  "nota": "Pueblo de elaboración: en verificación.",
-  "fuentes": [
-   "https://entrehumos.com/products/monte-mistica-sampler-3-pack",
-   "https://cigarsisland.com/products/monte-mistica-sampler-3-pack",
-   "https://zigarrelinz.com/product/monte-mistica-sampler-3-pack/"
-  ],
-  "hecho_en_pr": true,
-  "iniciales": "MM"
- },
- {
-  "id": "casa-robles-cigars",
-  "nombre": "Casa Robles Cigars",
-  "tipo": "Marca de cigarros",
-  "historia": "Marca con líneas como Nosferatu y «Regresa a Mí» Reserva Añeja (tripa de Puerto Rico, capa Connecticut). En su tienda en línea vende un «Tabaco Boricua Sampler».",
-  "web": "https://casa-robles-cigars.company.site/",
-  "facebook": "https://www.facebook.com/casaroblescigars/",
-  "instagram": "https://www.instagram.com/casa_robles_cigars/",
-  "donde_comprar": "En su tienda en línea o por sus redes.",
-  "nota": "Lugar de elaboración: en verificación.",
-  "fuentes": [
-   "https://www.facebook.com/casaroblescigars/",
-   "https://casa-robles-cigars.company.site/Tabaco-Boricua-Sampler-p291851302",
-   "https://www.facebook.com/elclubdelturro/videos/llegan-a-la-finca-los-nuevos-cigarros-de-casa-robles-cigars-reg"
-  ],
-  "hecho_en_pr": false,
-  "iniciales": "CR"
- },
- {
-  "id": "juana-diaz-cigars",
-  "nombre": "Juana Díaz Cigars",
-  "pueblo": "Juana Díaz",
-  "tipo": "Marca propia · lounge",
-  "historia": "Marca propia y lounge en Juana Díaz, de un dueño que fue torcedor. Además de su marca, venden cigarros de otras casas.",
-  "web": "https://juanadiazcigars.company.site/",
-  "facebook": "https://www.facebook.com/juanadiazcigars/",
-  "instagram": "https://www.instagram.com/juanadiazcigars/",
-  "donde_comprar": "En su lounge en Juana Díaz o por sus redes.",
-  "nota": "Dónde se tuerce su marca: en verificación.",
-  "fuentes": [
-   "https://humolatino.com/juana-diaz-cigars-puerto-rico-florece/",
-   "https://juanadiazcigars.company.site/"
-  ],
-  "hecho_en_pr": false,
-  "iniciales": "JD"
- },
- {
-  "id": "el-bastion-cigars",
-  "nombre": "El Bastión Cigars",
-  "tipo": "Marca de cigarros",
-  "historia": "Cigarros con tripa de hoja puertorriqueña (corojo) y capa dominicana.",
-  "donde_comprar": "En tiendas de cigarros.",
-  "nota": "Lugar de elaboración: en verificación.",
-  "fuentes": [
-   "https://www.facebook.com/100068357630996/videos/el-bastion-cigars-we-just-opened-the-first-three-boxes-ever-so"
-  ],
-  "hecho_en_pr": false,
-  "iniciales": "EB"
- },
- {
-  "id": "don-chamorro-ponce",
-  "nombre": "Don Chamorro",
-  "pueblo": "Ponce",
-  "tipo": "Torcedor · smoke shop",
-  "historia": "Torcedor de Ponce que mantiene la tradición del tabaco a mano, con su smoke shop en la Plaza Juan Ponce de León.",
-  "donde_comprar": "En su smoke shop en la plaza de Ponce.",
-  "fuentes": [
-   "https://www.facebook.com/PonceMunicipio/posts/conoce-a-don-chamorro-y-su-smoke-shop-manteniendo-la-tradici%C3%B3n"
-  ],
-  "hecho_en_pr": true,
-  "hecho_en_pr_fuente": "https://www.facebook.com/PonceMunicipio/posts/conoce-a-don-chamorro-y-su-smoke-shop-manteniendo-la-tradici%C3%B3n",
-  "iniciales": "DC"
- }
+  {
+    "id": "jfc-hoja-boricua",
+    "nombre": "JFC Tobacco Corp. / Tabacalera Hoja Boricua",
+    "pueblo": "Mayagüez",
+    "tipo": "Tabacalera",
+    "historia": "Fábrica mayagüezana que nació de Good Times Smoke Shop (1986), una de las primeras smoke shops de la isla. Su línea Hoja Boricua lleva tripa de tabaco puertorriqueño y el sol de Jayuya en la anilla, en honor a los taínos.",
+    "web": "http://www.jfctobacco.com/",
+    "facebook": "https://www.facebook.com/JfcTobaccoCorporation/",
+    "donde_comprar": "https://shopjfctobacco.com/products/hoja-boricua · Good Times Smoke Shop, 74 Calle McKinley Oeste, Mayagüez",
+    "fuentes": [
+      "http://www.jfctobacco.com/premiumcigars",
+      "http://www.jfctobacco.com/locations",
+      "https://shopjfctobacco.com/products/hoja-boricua"
+    ]
+  },
+  {
+    "id": "don-rey-cigar",
+    "nombre": "Don Rey Cigar",
+    "pueblo": "Caguas",
+    "tipo": "Fábrica y cadena de tabaquerías",
+    "historia": "Se presentan como el fabricante y tienda de cigarros más grande de Puerto Rico, con cigarros hechos a mano en la isla en unos 22 estilos. Tienen dos récords Guinness por el cigarro más grande del mundo y siete tiendas/lounges en la isla.",
+    "instagram": "https://www.instagram.com/donreycigar/",
+    "web": "https://www.donreycigar.com/",
+    "donde_comprar": "Sus 7 tiendas (Viejo San Juan, Santurce, Guaynabo, Bayamón, Caguas, Humacao, Luquillo) — https://www.donreycigar.com/locations",
+    "fuentes": [
+      "https://www.instagram.com/donreycigar/",
+      "https://www.visitacaguas.com/don-rey-cigars-en",
+      "https://www.donreycigar.com/locations"
+    ]
+  },
+  {
+    "id": "molina-lopez",
+    "nombre": "Molina & López Tabacalera",
+    "pueblo": "Caguas",
+    "tipo": "Tabacalera",
+    "historia": "Tabacalera nueva (lanzada el 14 de octubre de 2026 en Entre Humos) de Liz y Pedro; sus cigarros se tuercen a mano en Caguas. Liz viene de La Hoja del Chan y del movimiento “Somos la resistencia” por el tabaco boricua.",
+    "donde_comprar": "Entre Humos (distribuidor exclusivo): lounges y https://entrehumos.com",
+    "fuentes": [
+      "https://cigardojo.com/2026/10/liz-lopez-returns-with-molina-lopez-tabacalera/",
+      "https://global.humolatino.com/tabacalera-molina-y-lopez-between-roots-and-new-harvests/",
+      "https://www.instagram.com/entrehumos/p/DefenLAnWOj/"
+    ]
+  },
+  {
+    "id": "el-club-del-turro",
+    "nombre": "El Club del Turro",
+    "pueblo": "Río Grande",
+    "tipo": "Tabacalera (cultiva, cura, liga y tuerce)",
+    "historia": "Tres panas, Francisco, Antonio y Tito, fundaron El Club del Turro en 2018 en la Finca Neo Jibairo de Río Grande. Siembran, añejan y tuercen hoja boricua para revivir la tradición tabacalera de la isla, “de la semilla al humo”.",
+    "instagram": "https://www.instagram.com/elclubdelturro/",
+    "web": "https://shop.fincaneojibairo.com/cigars/",
+    "facebook": "https://www.facebook.com/elclubdelturro/",
+    "donde_comprar": "Bar y tienda en Finca Neo Jibairo (Carr. 187 Km 28.6, Río Grande; sin reservación) · tienda en línea shop.fincaneojibairo.com · La Turrería (76 Calle Dr. Santiago Veve, Bayamón)",
+    "fuentes": [
+      "https://shop.fincaneojibairo.com/shop/el-club-del-turro-el-turrito/",
+      "https://shop.fincaneojibairo.com/cigars/",
+      "https://es.mercadoguayabas.org/market/el-club-del-turro",
+      "https://www.facebook.com/elclubdelturro/"
+    ],
+    "hecho_en_pr": true
+  },
+  {
+    "id": "tabaco-la-altura",
+    "nombre": "Tabaco La Altura",
+    "pueblo": "Lares",
+    "tipo": "Tabaquero artesanal (cultiva y tuerce)",
+    "historia": "Juan buscaba un cigarro hecho de principio a fin con hoja de Puerto Rico y, como no lo encontró, se puso a sembrarlo él mismo en las montañas de Lares. El nombre La Altura es por los pueblos de montaña: quiere que su cigarro “resalte el nombre de mi pueblo”.",
+    "instagram": "https://www.instagram.com/tabacolaaltura/",
+    "donde_comprar": "Directo con el artesano por su FB o su canal de YouTube (Tabaco La Altura). También da talleres de confección de cigarro.",
+    "fuentes": [
+      "https://www.facebook.com/tabaco.la.altura/",
+      "https://www.youtube.com/@tabacolaaltura",
+      "https://www.instagram.com/reel/DKKTzf8NKyb/"
+    ],
+    "facebook": "https://www.facebook.com/tabaco.la.altura/",
+    "youtube": "https://www.youtube.com/@tabacolaaltura",
+    "hecho_en_pr": true
+  },
+  {
+    "id": "don-collins",
+    "nombre": "Don Collins Cigars",
+    "pueblo": "San Juan (Viejo San Juan)",
+    "tipo": "Tabacalera y tienda",
+    "historia": "Cultivan tabaco puertorriqueño sin pesticidas en las montañas de la isla, cosechado por agricultores locales, y lo curan, añejan y tuercen a mano. Su tienda y lounge queda en la Calle del Cristo, en un edificio que ellos presentan como la fábrica de cigarros más antigua del Caribe.",
+    "instagram": "https://www.instagram.com/doncollinspr/",
+    "web": "https://www.don-collins.com/",
+    "facebook": "https://www.facebook.com/DonCollinsPR",
+    "donde_comprar": "Tienda en 59 Calle del Cristo, Viejo San Juan · tienda online en don-collins.com",
+    "fuentes": [
+      "https://www.don-collins.com/",
+      "https://www.don-collins.com/history",
+      "https://www.frommers.com/destinations/san-juan/shopping/don-collins-cigars/",
+      "https://www.instagram.com/doncollinspr/"
+    ]
+  },
+  {
+    "id": "finca-neo-jibairo",
+    "nombre": "Finca Neo Jibairo",
+    "pueblo": "Río Grande",
+    "tipo": "Finca de tabaco + bar y tabaquería (cultivo; el torcido lo hace El Club del Turro)",
+    "historia": "Finca agroecológica certificada en Río Grande que siembra tabaco junto a más de 26 cultivos. Tiene bar y tienda de cigarros boricuas, recorrido por la finca y taller para torcer tu propio cigarro, y es la casa de El Club del Turro.",
+    "instagram": "https://www.instagram.com/fincaneojibairo/",
+    "web": "https://fincaneojibairo.com/",
+    "facebook": "https://www.facebook.com/fincaneojibairo",
+    "donde_comprar": "En la finca (bar y cigar shop, sin reservación) · https://shop.fincaneojibairo.com/cigars/ · 787-598-0240, info@fincaneojibairo.com",
+    "fuentes": [
+      "https://fincaneojibairo.com/",
+      "https://shop.fincaneojibairo.com/",
+      "https://es.mercadoguayabas.org/market/el-club-del-turro"
+    ],
+    "hecho_en_pr": true
+  },
+  {
+    "id": "willys-cigars",
+    "nombre": "Willys Cigars",
+    "pueblo": "Área metro (San Juan / Guaynabo)",
+    "tipo": "Torcedor / marca boutique",
+    "historia": "Fundada en 2016 por William “Willy” como homenaje a los torcedores y ligadores de Puerto Rico y el Caribe. Torce a mano en tiradas pequeñas, “hechos a mano, no en masa”, y en 2026 lo presentaron como “maestro torcedor de Puerto Rico” en un podcast.",
+    "instagram": "https://www.instagram.com/willyscigars/",
+    "web": "https://www.willys-cigars.com/",
+    "donde_comprar": "Ventas directas por WhatsApp · ha torcido en lounges como Pegadizo Cigar Lounge y lo ha vendido JJ Cigar Lounge (Isabela)",
+    "fuentes": [
+      "https://www.willys-cigars.com/",
+      "https://www.instagram.com/willyscigars/",
+      "https://www.instagram.com/reel/DV0qXVFDbSU/",
+      "https://www.instagram.com/reel/DV1SSyYEeFb/",
+      "https://www.facebook.com/JJCigarLounge/videos/new-and-now-available-willyscigars-from-guaynabo-come-try-this-full-flavored-cig/697701272606098/"
+    ],
+    "whatsapp": "https://wa.me/17874866320",
+    "nota": "Lo de Pegadizo viene de un resultado de búsqueda; sin verificar en la fuente."
+  },
+  {
+    "id": "pitirre-cigars",
+    "nombre": "Pitirre Cigars",
+    "pueblo": "Trujillo Alto",
+    "tipo": "Torcedor / marca artesanal",
+    "historia": "Jesús, artesano certificado, tuerce a mano Pitirre Cigars desde Trujillo Alto. Su lema: “La magia del tabaco transforma tu vida”, y se le ve en juntes tabaqueros como los del Club del Turro y la Finca Neo Jibairo.",
+    "instagram": "https://www.instagram.com/pitirrecigarspr/",
+    "facebook": "https://www.facebook.com/Pitirre-Cigars-PR-106871004816371",
+    "donde_comprar": "Por texto (número en su bio de IG) · en eventos como Finca Neo Jibairo, Otra Cosa Bar y el Mercado Agrícola",
+    "fuentes": [
+      "https://www.instagram.com/pitirrecigarspr/",
+      "https://www.instagram.com/p/ChvYBXduHMp/",
+      "https://www.facebook.com/elclubdelturro/posts/en-nuestro-pr%C3%B3ximo-junte-tabaquero-nos-honra-contar-con-las-manos-de-jes%C3%BAs-ramos/613478160402350/"
+    ],
+    "nota": "Sin líneas con especificaciones públicas todavía."
+  },
+  {
+    "id": "mr-jony-cigars",
+    "nombre": "Mr. Jony Cigars",
+    "pueblo": "Caguas",
+    "tipo": "Torcedor / marca artesanal (taller de La Hoja del Chan)",
+    "historia": "“Mr. Jony” aprendió al lado de su primo El Chan en La Hoja del Chan y se certificó como torcedor en 2022. Es torcedor de capa, colabora con el Museo del Tabaco de Caguas, y su sueño es que cada fumador tenga un Mr. Jony en casa, hecho en Puerto Rico.",
+    "instagram": "https://www.instagram.com/mrjonycigars/",
+    "donde_comprar": "Por DM en IG o email (en su bio) · envíos a PR y EE.UU.",
+    "fuentes": [
+      "https://www.instagram.com/mrjonycigars/",
+      "https://humolatino.com/mr-jony-cigars-respeto-por-el-tabaco/",
+      "https://global.humolatino.com/los-hijos-de-la-hoja-del-chan-tobaccos-new-era-in-puerto-rico/"
+    ]
+  },
+  {
+    "id": "san-pedrito-cigars",
+    "nombre": "San Pedrito Cigars",
+    "pueblo": "Humacao",
+    "tipo": "Torcedor / marca artesanal",
+    "historia": "Héctor aprendió a torcer con El Chan en La Hoja del Chan y lanzó San Pedrito Cigars en diciembre de 2022. El nombre honra al San Pedrito, ave endémica de la isla: quiere que sus cigarros “hablen por Puerto Rico”.",
+    "instagram": "https://www.instagram.com/sanpedritocigars/",
+    "facebook": "https://www.facebook.com/122095044080011258",
+    "donde_comprar": "Ventas directas, ferias, festivales y eventos con torcido en vivo · envíos a PR y EE.UU.",
+    "fuentes": [
+      "https://www.instagram.com/sanpedritocigars/",
+      "https://global.humolatino.com/san-pedrito-cigars-let-our-cigars-speak-for-puerto-rico/",
+      "https://caribbeanwed.com/experiencias/san-pedrito-cigars/"
+    ]
+  },
+  {
+    "id": "villareno-cigars",
+    "nombre": "Villareño Cigars (Delvis)",
+    "pueblo": "Santa Isabel (Jauca)",
+    "tipo": "Maestro torcedor / marca",
+    "historia": "Delvis es un maestro torcedor cubano radicado en Jauca, Santa Isabel, donde hace a mano los Villareño Cigars. También es ligador: cocreó Acosta Cigars (La Lujuria) y ha hecho cigarros para otras marcas.",
+    "instagram": "https://www.instagram.com/villareno.cigars.pr/",
+    "facebook": "https://www.facebook.com/villarenocigarspr/",
+    "donde_comprar": "Directo por sus redes · presentaciones en tiendas como El Chapu PR",
+    "fuentes": [
+      "https://www.instagram.com/villareno.cigars.pr/",
+      "https://www.youtube.com/watch?v=-vqL-BF2VMA",
+      "https://www.facebook.com/villarenocigarspr/posts/496970201013135/",
+      "https://distinguishedruffian.com/tag/acosta-cigar-co/",
+      "https://www.instagram.com/p/DQFXX-2kTOI/"
+    ],
+    "nota": "Algunos datos vienen de resultados de búsqueda; sin verificar en la fuente."
+  },
+  {
+    "id": "yambo-cigars",
+    "nombre": "Yambó Cigars",
+    "tipo": "Marca artesanal",
+    "historia": "Yambó Cigars hace cigarros 100% a mano en Puerto Rico, con toros y robustos box press. Su creador, Robert, se mueve en ferias y bike nights de la isla.",
+    "instagram": "https://www.instagram.com/yambocigars/",
+    "facebook": "https://www.facebook.com/yambocigars/",
+    "donde_comprar": "Por DM en IG o Facebook · en eventos y ferias",
+    "fuentes": [
+      "https://www.instagram.com/yambocigars/",
+      "https://www.facebook.com/yambocigars/",
+      "https://www.instagram.com/p/CGO47lzHSFa/",
+      "https://www.facebook.com/elchancigars/posts/aqu%C3%AD-estamos-en-la-bodega-de-m%C3%A9ndez-en-el-bourbon-beer-and-bites-fest-con-hector/3188821384714111/"
+    ],
+    "nota": "Pueblo no publicado. Algunos datos vienen de resultados de búsqueda; sin verificar en la fuente."
+  },
+  {
+    "id": "el-chapu-pr",
+    "nombre": "El Chapu PR",
+    "pueblo": "Toa Alta",
+    "tipo": "Marca de cigarro artesanal + tienda/taller",
+    "historia": "El Chapu PR es una marca de cigarro artesanal boricua (El Chapu, La Bruja) con tienda y taller en Toa Alta, con licores boricuas, envíos y delivery. Allí se hacen noches de cigarros y presentaciones de torcedores.",
+    "instagram": "https://www.instagram.com/elchapupr/",
+    "donde_comprar": "Tienda y taller El Chapu PR (@el.chapu.pr_la.tienda), Carr. 829, Toa Alta · envíos a PR y EE.UU. y delivery",
+    "fuentes": [
+      "https://www.instagram.com/elchapupr/",
+      "https://www.instagram.com/el.chapu.pr_la.tienda/",
+      "https://www.facebook.com/rafytw/posts/el-chapu-pr-la-tienda-carr-829-toa-alta/10242280313201422/",
+      "https://www.instagram.com/p/DdRpNvWgXoC/"
+    ],
+    "nota": "La dirección viene de un resultado de búsqueda; sin verificar en la fuente."
+  },
+  {
+    "id": "el-buho-ricamontes",
+    "nombre": "Ricamontes Cigars · El Búho",
+    "pueblo": "Aguas Buenas",
+    "tipo": "Marca / tabacalera artesanal",
+    "historia": "Ricamontes Cigars hace cigarros artesanales torcidos a mano en las montañas de Aguas Buenas desde 2014. Su cigarro más conocido es El Búho (“¿Ya quemaste el Búho?”).",
+    "instagram": "https://www.instagram.com/ricamontescigars/",
+    "facebook": "https://www.facebook.com/ricamontescigars/",
+    "donde_comprar": "Órdenes por su IG · Carr. 156, Aguas Buenas · envíos a PR y EE.UU.",
+    "fuentes": [
+      "https://www.instagram.com/ricamontescigars/",
+      "https://www.facebook.com/ricamontescigars/?locale=es_LA",
+      "https://www.facebook.com/ricamontescigars/videos/ya-quemaste-el-b%C3%BAho-puedes-hacer-tu-orden-a-trav%C3%A9s-de-httpswwwricamontescigarsco/573700853119647/"
+    ],
+    "nota": "Parte de los datos viene de resultados de búsqueda; sin verificar en la fuente."
+  },
+  {
+    "id": "cohoba-cigars",
+    "nombre": "Cohoba Cigars",
+    "pueblo": "Santa Isabel (Vegas Los Molinos)",
+    "tipo": "Marca boutique con finca de tabaco propia y torcedor",
+    "historia": "Cohoba Cigars trabaja desde Vegas Los Molinos en Santa Isabel, la capital del tabaco en Puerto Rico, y presenta sus cigarros como hechos a mano en PR con hoja criolla, su “Hoja Taína”. Su lema: “Tradición que se fuma, experiencia que se vive”, y lleva torcedor en vivo a ferias y eventos por toda la isla.",
+    "instagram": "https://www.instagram.com/cohobacigarspr/",
+    "web": "https://cohobacigars.shop/",
+    "donde_comprar": "Órdenes por DM en Instagram · ferias y eventos (torcedor en vivo) · tienda en línea cohobacigars.shop “muy pronto”",
+    "fuentes": [
+      "https://www.instagram.com/cohobacigarspr/",
+      "https://www.instagram.com/cohobacigarspr/p/DZkgvamxw2y/",
+      "https://www.instagram.com/cohobacigarspr/reel/DZC_VaixsoE/",
+      "https://www.instagram.com/cohobacigarspr/p/Dep6klQjQhc/",
+      "https://www.instagram.com/p/DcmJaeihATE/",
+      "https://cohobacigars.shop/"
+    ]
+  },
+  {
+    "id": "kikes-cigars-villalba",
+    "nombre": "Don Kike Cigars (Kike's Cigars)",
+    "pueblo": "Villalba",
+    "tipo": "Marca artesanal · torcido en PR",
+    "historia": "Cigarros artesanales de Villalba que se presentan como “Don Kike Cigars”. Se mueven por festivales y chinchorros del área, como el Festival del Ñame y la Carne Frita de Villalba.",
+    "facebook": "https://www.facebook.com/p/Kikes-Cigars-100057504367418/",
+    "donde_comprar": "Por su página de FB y en eventos del área, como el Festival del Ñame y la Carne Frita de Villalba. Punto fijo: info en verificación.",
+    "nota": "Vitolas: info en verificación. Hecho en PR: confirmado por Sergio (Cigars Podcast).",
+    "hecho_en_pr": true,
+    "hecho_en_pr_fuente": "confirmado por Sergio (Cigars Podcast)",
+    "fuentes": [
+      "https://www.facebook.com/p/Kikes-Cigars-100057504367418/",
+      "https://www.facebook.com/100057504367418/posts/don-kike-cigars-les-invita-al-festival-del-%C3%B1ame-y-la-carne-frita-en-villalba-des/598174078776066/",
+      "https://www.facebook.com/100057504367418/posts/estamos-ubicados-en-el-negocio-de-la-rito-y-v%C3%ADctor-el-chipi-llega-buena-m%C3%BAsica-y/1321737659753034/",
+      "https://www.facebook.com/elclubdelturro/posts/directamente-desde-villalba-don-kike-cigars-siempreturreros/416680256748809/",
+      "https://www.facebook.com/cigarspodcast/videos/el-s%C3%BAper-econ%C3%B3mico-trae-un-unboxing-de-kikes-cigars-directamente-desde-puerto-ri/273693727744667/"
+    ]
+  },
+  {
+    "id": "papiros-cigars-cidra",
+    "nombre": "Papiro's Cigars",
+    "pueblo": "Cidra",
+    "tipo": "Torcedor / taller artesanal (marca propia)",
+    "historia": "Taller familiar de Cidra donde el torcedor Papiro, cuarta generación de tabaqueros, tuerce a mano con hoja del país que le siembra un agricultor cidreño. Hace desde cigarros de picadura hasta puros de tripa larga, y ofrecía una experiencia de la semilla al taller (pregunta si sigue disponible).",
+    "instagram": "https://www.instagram.com/papiro_otero/",
+    "facebook": "https://www.facebook.com/papiroscigars/",
+    "youtube": "https://www.youtube.com/watch?v=oBGU4MuyHdE",
+    "donde_comprar": "Directo con el artesano por FB/IG. Punto fijo: info en verificación.",
+    "nota": "Activo — confirmado por Sergio (Cigars Podcast). Vitolas: info en verificación.",
+    "hecho_en_pr": true,
+    "fuentes": [
+      "https://www.youtube.com/watch?v=oBGU4MuyHdE",
+      "https://www.facebook.com/papiroscigars/",
+      "https://www.discoverpuertorico.com/profile/papiros-cigars/18402"
+    ],
+    "instagram_label": "Instagram"
+  },
+  {
+    "id": "jl-cigars-coamo",
+    "nombre": "JL Cigars Artesanos",
+    "pueblo": "Coamo",
+    "tipo": "Torcedor artesanal · lounge propio",
+    "historia": "Torcedor artesanal de Coamo que confecciona, vende y distribuye sus propios cigarros hechos a mano. Tiene su propio lounge en el pueblo, cerca de la plaza, donde se fuma y se compran sus puros.",
+    "instagram": "https://www.instagram.com/jl_cigars_artesanos/",
+    "facebook": "https://www.facebook.com/jlcigarrospuertorrico/",
+    "donde_comprar": "En su lounge de Coamo, cerca de la plaza (dirección exacta en verificación), o directo por sus redes.",
+    "nota": "Vitolas y origen de la hoja: info en verificación.",
+    "fuentes": [
+      "https://www.facebook.com/jlcigarrospuertorrico/",
+      "https://www.instagram.com/jl_cigars_artesanos/"
+    ],
+    "iniciales": "JL"
+  },
+  {
+    "id": "cigarros-caimito",
+    "nombre": "Cigarros Caimito",
+    "pueblo": "Aguas Buenas",
+    "tipo": "Marca familiar de tabaqueros",
+    "historia": "Marca nacida en Puerto Rico y creada en honor al abuelo de su torcedor, que viene de una familia de tabaqueros de las montañas de Aguas Buenas. Sus cigarros se tuercen a mano en tiradas pequeñas.",
+    "web": "https://www.cigarroscaimito.com/",
+    "instagram": "https://www.instagram.com/cigarros.caimitopr/",
+    "facebook": "https://www.facebook.com/CigarrosCaimito/",
+    "donde_comprar": "Tienda en línea: https://www.cigarroscaimito.com/shop · también por sus redes.",
+    "nota": "Dónde se tuercen hoy y el origen de la hoja: info en verificación.",
+    "fuentes": [
+      "https://www.cigarroscaimito.com/about-1",
+      "https://www.facebook.com/CigarrosCaimito/",
+      "https://www.instagram.com/cigarros.caimitopr/"
+    ],
+    "iniciales": "CC"
+  },
+  {
+    "id": "tabacalera-la-trascendencia",
+    "nombre": "Tabacalera La Trascendencia",
+    "tipo": "Tabacalera",
+    "historia": "Casa tabacalera con trayectoria desde 2012. Su línea Los Reyes del Caribe se elabora en Puerto Rico, según la tienda Entre Humos, que vende sus robustos Connecticut y Maduro.",
+    "instagram": "https://www.instagram.com/tabacaleralatrascendencia/",
+    "donde_comprar": "En Entre Humos: https://entrehumos.com/collections/tabacalera-la-trascendencia · o por su IG.",
+    "nota": "Pueblo y vitolas: info en verificación.",
+    "fuentes": [
+      "https://entrehumos.com/collections/tabacalera-la-trascendencia",
+      "https://www.instagram.com/tabacaleralatrascendencia/"
+    ],
+    "iniciales": "LT"
+  },
+  {
+    "id": "la-hoja-del-chan",
+    "nombre": "La Hoja del Chan",
+    "pueblo": "Caguas",
+    "tipo": "Taller artesanal · marca El Chan Cigars",
+    "historia": "Empresa familiar cagüeña que elabora y distribuye cigarros hechos a mano en su taller de Caguas, con hoja criolla del país y de Nicaragua. Abanderó el movimiento “Somos la resistencia” por el tabaco boricua y su marca es El Chan Cigars.",
+    "instagram": "https://www.instagram.com/chanlegacy_lhc/",
+    "facebook": "https://www.facebook.com/lahojadelchan/",
+    "donde_comprar": "En su taller en el casco de Caguas o por sus redes.",
+    "fuentes": [
+      "https://www.elnuevodia.com/negocios/empresas-comercios/notas/la-hoja-del-chan-cigarro-artesanal-con-aroma-de-resiliencia/",
+      "https://www.callejeandopr.com/callejea/la-hoja-del-chan-caguas",
+      "https://www.facebook.com/lahojadelchan/"
+    ],
+    "hecho_en_pr": true,
+    "iniciales": "HC"
+  },
+  {
+    "id": "cigarros-j-velez",
+    "nombre": "Cigarros J. Vélez",
+    "pueblo": "Cidra",
+    "tipo": "Marca de cigarros premium",
+    "historia": "Fundada en 1998 en Cidra para honrar al abuelo y al bisabuelo de su dueño, con las marcas Papa Chan (capa camerún) y Don Sotero (capa madura), además de Robusto Cognac, Vélez Cigars y Cohaba. Hechos a mano, con mezclas que incluyen tabaco de Puerto Rico.",
+    "web": "https://www.cigarrosjvelez.com/",
+    "instagram": "https://www.instagram.com/cigarrosjvelez/",
+    "facebook": "https://www.facebook.com/cigarrosjvelez/",
+    "donde_comprar": "En su tienda en línea o por sus redes.",
+    "fuentes": [
+      "https://www.cigarrosjvelez.com/inicio",
+      "https://www.instagram.com/cigarrosjvelez/"
+    ],
+    "hecho_en_pr": true,
+    "iniciales": "JV"
+  },
+  {
+    "id": "tabacos-el-roble",
+    "nombre": "Tabacos El Roble",
+    "pueblo": "Isabela",
+    "tipo": "Marca artesanal",
+    "historia": "Marca artesanal de Isabela, “el tabaco del pueblo”. Sus cigarros son 100% hechos a mano en Isabela y pasan por su propio sistema solera: las hojas se añejan con un extra pilón y se bautizan con rones añejos.",
+    "instagram": "https://www.instagram.com/tabacoselroble/",
+    "donde_comprar": "Por sus redes, en eventos del área oeste y en Palacio Convenience Store (Isabela).",
+    "fuentes": [
+      "https://www.instagram.com/p/DAq145tySuu/",
+      "https://m.facebook.com/Palaciolasarenas/photos/-a-la-venta-selecci%C3%B3n-de-cigarros-hechos-por-tabacos-el-roble-100-hecho-a-mano-e/5350573"
+    ],
+    "hecho_en_pr": true,
+    "iniciales": "ER"
+  },
+  {
+    "id": "el-escondite-adjuntas",
+    "nombre": "El Escondite Cigar",
+    "pueblo": "Adjuntas",
+    "tipo": "Marca de cigarros + barra en la montaña",
+    "historia": "Línea de cigarros 100% puertorriqueños de El Escondite de Don Julio, un rincón de montaña en Adjuntas con coctelería de autor donde se fuman sus cigarros premium El Escondite.",
+    "instagram": "https://www.instagram.com/elesconditecigar/",
+    "donde_comprar": "En El Escondite de Don Julio, Adjuntas.",
+    "fuentes": [
+      "https://www.youtube.com/watch?v=CeDwLqWzcHI",
+      "https://www.instagram.com/elesconditededonjulio/"
+    ],
+    "hecho_en_pr": true,
+    "iniciales": "EE"
+  },
+  {
+    "id": "hr-handmade-cigars",
+    "nombre": "H.R. Handmade Cigars",
+    "pueblo": "Toa Baja (Levittown)",
+    "tipo": "Torcedor certificado · eventos",
+    "historia": "Compañía 100% puertorriqueña de confección artesanal de cigarros. Su torcedor, Harold, es artesano certificado y discípulo de un maestro torcedor boricua; tuerce en vivo en bodas y eventos privados.",
+    "facebook": "https://www.facebook.com/hrhandmadecigars/",
+    "donde_comprar": "Por Facebook, para eventos y pedidos.",
+    "fuentes": [
+      "https://www.facebook.com/hrhandmadecigars/",
+      "https://www.weddingwire.com/biz/hr-handmade-cigars-toa-baja/3fbcf56fa0e7bc0a.html"
+    ],
+    "hecho_en_pr": true,
+    "iniciales": "HR"
+  },
+  {
+    "id": "fumita-pr",
+    "nombre": "Fumita PR",
+    "tipo": "Torcedora · marca artesanal",
+    "historia": "Marca local de cigarros hechos a mano, con sabores caribeños, de Mylanne, torcedora y artesana boricua que se destaca como mujer en el tabaco. Se ve en mercados agrícolas de la isla.",
+    "instagram": "https://www.instagram.com/fumita.pr/",
+    "donde_comprar": "Por Instagram y en mercados agrícolas.",
+    "nota": "Pueblo: en verificación.",
+    "fuentes": [
+      "https://www.facebook.com/AguadillaFarmersMarket/videos/hola-a-fumita-pr-una-marca-local-de-cigarros-hechos-a-mano-llenos-de-sabores-car/4706",
+      "https://www.instagram.com/reel/DZu8jQjR-yM/"
+    ],
+    "hecho_en_pr": true,
+    "iniciales": "FP"
+  },
+  {
+    "id": "monte-mistica",
+    "nombre": "Monte & Mística",
+    "tipo": "Marca de la casa Entre Humos",
+    "historia": "Cigarros elaborados a mano en Puerto Rico en tres capas: Connecticut, Corojo y Maduro. Los vende Entre Humos, que los presenta con el sello oficial Hecho en Puerto Rico.",
+    "web": "https://entrehumos.com/products/monte-mistica-sampler-3-pack",
+    "donde_comprar": "En Entre Humos, en sus lounges o en línea.",
+    "nota": "Pueblo de elaboración: en verificación.",
+    "fuentes": [
+      "https://entrehumos.com/products/monte-mistica-sampler-3-pack",
+      "https://cigarsisland.com/products/monte-mistica-sampler-3-pack",
+      "https://zigarrelinz.com/product/monte-mistica-sampler-3-pack/"
+    ],
+    "hecho_en_pr": true,
+    "iniciales": "MM"
+  },
+  {
+    "id": "casa-robles-cigars",
+    "nombre": "Casa Robles Cigars",
+    "tipo": "Marca de cigarros",
+    "historia": "Marca con líneas como Nosferatu y «Regresa a Mí» Reserva Añeja (tripa de Puerto Rico, capa Connecticut). En su tienda en línea vende un «Tabaco Boricua Sampler».",
+    "web": "https://casa-robles-cigars.company.site/",
+    "facebook": "https://www.facebook.com/casaroblescigars/",
+    "instagram": "https://www.instagram.com/casa_robles_cigars/",
+    "donde_comprar": "En su tienda en línea o por sus redes.",
+    "nota": "Lugar de elaboración: en verificación.",
+    "fuentes": [
+      "https://www.facebook.com/casaroblescigars/",
+      "https://casa-robles-cigars.company.site/Tabaco-Boricua-Sampler-p291851302",
+      "https://www.facebook.com/elclubdelturro/videos/llegan-a-la-finca-los-nuevos-cigarros-de-casa-robles-cigars-reg"
+    ],
+    "hecho_en_pr": false,
+    "iniciales": "CR"
+  },
+  {
+    "id": "juana-diaz-cigars",
+    "nombre": "Juana Díaz Cigars",
+    "pueblo": "Juana Díaz",
+    "tipo": "Marca propia · lounge",
+    "historia": "Marca propia y lounge en Juana Díaz, de un dueño que fue torcedor. Además de su marca, venden cigarros de otras casas.",
+    "web": "https://juanadiazcigars.company.site/",
+    "facebook": "https://www.facebook.com/juanadiazcigars/",
+    "instagram": "https://www.instagram.com/juanadiazcigars/",
+    "donde_comprar": "En su lounge en Juana Díaz o por sus redes.",
+    "nota": "Dónde se tuerce su marca: en verificación.",
+    "fuentes": [
+      "https://humolatino.com/juana-diaz-cigars-puerto-rico-florece/",
+      "https://juanadiazcigars.company.site/"
+    ],
+    "hecho_en_pr": false,
+    "iniciales": "JD"
+  },
+  {
+    "id": "el-bastion-cigars",
+    "nombre": "El Bastión Cigars",
+    "tipo": "Marca de cigarros",
+    "historia": "Cigarros con tripa de hoja puertorriqueña (corojo) y capa dominicana.",
+    "donde_comprar": "En tiendas de cigarros.",
+    "nota": "Lugar de elaboración: en verificación.",
+    "fuentes": [
+      "https://www.facebook.com/100068357630996/videos/el-bastion-cigars-we-just-opened-the-first-three-boxes-ever-so"
+    ],
+    "hecho_en_pr": false,
+    "iniciales": "EB"
+  },
+  {
+    "id": "don-chamorro-ponce",
+    "nombre": "Don Chamorro",
+    "pueblo": "Ponce",
+    "tipo": "Torcedor · smoke shop",
+    "historia": "Torcedor de Ponce que mantiene la tradición del tabaco a mano, con su smoke shop en la Plaza Juan Ponce de León.",
+    "donde_comprar": "En su smoke shop en la plaza de Ponce.",
+    "fuentes": [
+      "https://www.facebook.com/PonceMunicipio/posts/conoce-a-don-chamorro-y-su-smoke-shop-manteniendo-la-tradici%C3%B3n"
+    ],
+    "hecho_en_pr": true,
+    "hecho_en_pr_fuente": "https://www.facebook.com/PonceMunicipio/posts/conoce-a-don-chamorro-y-su-smoke-shop-manteniendo-la-tradici%C3%B3n",
+    "iniciales": "DC"
+  }
 ]

@@ -609,5 +609,50 @@
       "https://www.instagram.com/p/DawGWbHtdgJ/",
       "https://www.instagram.com/p/DbtlLwNGh9s/"
     ]
+  },
+  {
+    "id": "el-roble-robusto-signature",
+    "nombre": "El Roble Robusto Signature",
+    "artesano_id": "tabacos-el-roble",
+    "pueblo": "Isabela",
+    "capa": "Natural",
+    "fortaleza": null,
+    "vitolas": [
+      "Robusto"
+    ],
+    "notas": "Capa natural con la liga Signature de la casa. 100% hecho a mano en Isabela.",
+    "fuentes": [
+      "https://www.instagram.com/p/CdOzviqugSb/",
+      "https://m.facebook.com/Palaciolasarenas/photos/-a-la-venta-selecci%C3%B3n-de-cigarros-hechos-por-tabacos-el-roble-100-hecho-a-mano-e/535057388627319/"
+    ]
+  },
+  {
+    "id": "el-roble-fumita",
+    "nombre": "El Roble Fumita",
+    "artesano_id": "tabacos-el-roble",
+    "pueblo": "Isabela",
+    "capa": "Dos tonos",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Capa de dos tonos y liga añeja, preservada con melaza y ron caña. Hecho a mano en Isabela.",
+    "fuentes": [
+      "https://www.instagram.com/p/CdOzviqugSb/",
+      "https://m.facebook.com/Palaciolasarenas/photos/-a-la-venta-selecci%C3%B3n-de-cigarros-hechos-por-tabacos-el-roble-100-hecho-a-mano-e/535057388627319/"
+    ]
+  },
+  {
+    "id": "el-roble-corona-gorda-small-batch",
+    "nombre": "El Roble Corona Gorda Small Batch",
+    "artesano_id": "tabacos-el-roble",
+    "pueblo": "Isabela",
+    "capa": "Madura",
+    "fortaleza": null,
+    "vitolas": [
+      "Corona Gorda"
+    ],
+    "notas": "Edición limitada de solo 200, en reposo hasta diciembre. Mezcla de Puerto Rico, República Dominicana, Nicaragua y Ecuador con capa madura.",
+    "fuentes": [
+      "https://www.instagram.com/p/Deb7WxZESIu/"
+    ]
   }
 ]
