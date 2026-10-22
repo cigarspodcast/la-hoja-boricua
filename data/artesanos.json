@@ -454,5 +454,68 @@
   ],
   "hecho_en_pr": true,
   "iniciales": "MM"
+ },
+ {
+  "id": "casa-robles-cigars",
+  "nombre": "Casa Robles Cigars",
+  "tipo": "Marca de cigarros",
+  "historia": "Marca con líneas como Nosferatu y «Regresa a Mí» Reserva Añeja (tripa de Puerto Rico, capa Connecticut). En su tienda en línea vende un «Tabaco Boricua Sampler».",
+  "web": "https://casa-robles-cigars.company.site/",
+  "facebook": "https://www.facebook.com/casaroblescigars/",
+  "instagram": "https://www.instagram.com/casa_robles_cigars/",
+  "donde_comprar": "En su tienda en línea o por sus redes.",
+  "nota": "Lugar de elaboración: en verificación.",
+  "fuentes": [
+   "https://www.facebook.com/casaroblescigars/",
+   "https://casa-robles-cigars.company.site/Tabaco-Boricua-Sampler-p291851302",
+   "https://www.facebook.com/elclubdelturro/videos/llegan-a-la-finca-los-nuevos-cigarros-de-casa-robles-cigars-reg"
+  ],
+  "hecho_en_pr": false,
+  "iniciales": "CR"
+ },
+ {
+  "id": "juana-diaz-cigars",
+  "nombre": "Juana Díaz Cigars",
+  "pueblo": "Juana Díaz",
+  "tipo": "Marca propia · lounge",
+  "historia": "Marca propia y lounge en Juana Díaz, de un dueño que fue torcedor. Además de su marca, venden cigarros de otras casas.",
+  "web": "https://juanadiazcigars.company.site/",
+  "facebook": "https://www.facebook.com/juanadiazcigars/",
+  "instagram": "https://www.instagram.com/juanadiazcigars/",
+  "donde_comprar": "En su lounge en Juana Díaz o por sus redes.",
+  "nota": "Dónde se tuerce su marca: en verificación.",
+  "fuentes": [
+   "https://humolatino.com/juana-diaz-cigars-puerto-rico-florece/",
+   "https://juanadiazcigars.company.site/"
+  ],
+  "hecho_en_pr": false,
+  "iniciales": "JD"
+ },
+ {
+  "id": "el-bastion-cigars",
+  "nombre": "El Bastión Cigars",
+  "tipo": "Marca de cigarros",
+  "historia": "Cigarros con tripa de hoja puertorriqueña (corojo) y capa dominicana.",
+  "donde_comprar": "En tiendas de cigarros.",
+  "nota": "Lugar de elaboración: en verificación.",
+  "fuentes": [
+   "https://www.facebook.com/100068357630996/videos/el-bastion-cigars-we-just-opened-the-first-three-boxes-ever-so"
+  ],
+  "hecho_en_pr": false,
+  "iniciales": "EB"
+ },
+ {
+  "id": "don-chamorro-ponce",
+  "nombre": "Don Chamorro",
+  "pueblo": "Ponce",
+  "tipo": "Torcedor · smoke shop",
+  "historia": "Torcedor de Ponce que mantiene la tradición del tabaco a mano, con su smoke shop en la Plaza Juan Ponce de León.",
+  "donde_comprar": "En su smoke shop en la plaza de Ponce.",
+  "fuentes": [
+   "https://www.facebook.com/PonceMunicipio/posts/conoce-a-don-chamorro-y-su-smoke-shop-manteniendo-la-tradici%C3%B3n"
+  ],
+  "hecho_en_pr": true,
+  "hecho_en_pr_fuente": "https://www.facebook.com/PonceMunicipio/posts/conoce-a-don-chamorro-y-su-smoke-shop-manteniendo-la-tradici%C3%B3n",
+  "iniciales": "DC"
  }
 ]
