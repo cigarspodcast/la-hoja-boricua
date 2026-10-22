@@ -72,7 +72,7 @@ function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" h
 const state={q:'',capa:'',fort:'',art:'',lugMode:'mapa',lugCat:'',lugTown:''};
 function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.capa).filter(Boolean))].sort();
  const q=state.q.toLowerCase();const list=cs.filter(c=>(!q||[c.nombre,artisanName(c),c.pueblo,c.capa,c.notas].join(' ').toLowerCase().includes(q))&&(!state.capa||c.capa===state.capa)&&(!state.fort||c.fortaleza===state.fort)&&(!state.art||c.artesano_id===state.art));
- view.innerHTML=`<section class="hero">${FACADES_BAR}<img class="hero-bg" src="img/hero/banner.webp" alt="" width="760" height="422" decoding="async"><div class="eyebrow">Catálogo</div><h1>Cigarros <em>hechos</em> en Puerto Rico</h1><p>Las vitolas de nuestros artesanos, de norte a sur y de este a oeste de nuestra isla.</p></section>
+ view.innerHTML=`<section class="hero">${FACADES_BAR}<img class="hero-bg" src="img/hero/banner.webp" alt="" width="760" height="422" decoding="async"><div class="eyebrow">Catálogo</div><h1>Cigarros <em>hechos</em> en Puerto Rico</h1><p>Las vitolas de nuestros artesanos, de norte a sur y de este a oeste de nuestra isla.</p></section><button type="button" class="btn-add" id="btnAdd"${installHidden(window)?' hidden':''}>📲 Añadir a mi pantalla</button>
  <nav class="tiles" aria-label="Explora"><a href="#/cata">${VBArt.leaf('#8fd162')}<b>Cata guiada</b><small>Paso a paso</small></a><a href="#/maridajes">${VBArt.leaf('#ffd27a')}<b>Maridajes</b><small>Ron y café</small></a><a href="#/eventos">${VBArt.leaf('#ff8a80')}<b>Eventos</b><small>Humo y Tambor</small></a><a href="#/podcast">${VBArt.leaf('#8fb8ff')}<b>Podcast</b><small>Cigars Podcast</small></a></nav>
  <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr">Buscar</span><input id="q" type="search" placeholder="Buscar vitola, artesano, pueblo…" value="${esc(state.q)}" autocomplete="off"></label>
  <div class="chips" role="group" aria-label="Fortaleza"><button class="chip" data-fort="" aria-pressed="${!state.fort}">Toda fortaleza</button>${FORT.map(f=>`<button class="chip" data-fort="${f}" aria-pressed="${state.fort===f}">${fortLabel(f)}</button>`).join('')}</div>
@@ -234,13 +234,15 @@ function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,
  if(r!==route._last){window.scrollTo(0,0)}route._last=h}
 window.addEventListener('hashchange',route);
 window.addEventListener('online',()=>{if(location.hash.includes('lugares'))route()});window.addEventListener('offline',()=>{if(location.hash.includes('lugares'))route()});
-/* ---------- install ---------- */
-let deferred=null;const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('#btnInstall').hidden=false;window.__vbInstallReady=true});
-$('#btnInstall').onclick=async()=>{if(!deferred)return;deferred.prompt();const r=await deferred.userChoice.catch(()=>null);deferred=null;$('#btnInstall').hidden=true;if(r&&r.outcome==='accepted')toast('¡Instalada!')};
-window.addEventListener('appinstalled',()=>{$('#btnInstall').hidden=true});
-if(isIOS&&!standalone&&!LS.get('iosTipClosed',false)){$('#iosTip').hidden=false}
-$('#iosTipClose').onclick=()=>{$('#iosTip').hidden=true;LS.set('iosTipClosed',true)};
+/* ---------- install (v21: botón en el home) ---------- */
+function installHidden(w){return !!(w.__lhbInstalled||(w.matchMedia&&w.matchMedia('(display-mode: standalone)').matches)||w.navigator.standalone===true)}
+let deferred=null;const syncInstall=()=>{const b=$('#btnAdd');if(b)b.hidden=installHidden(window)};
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;window.__vbInstallReady=true});
+window.addEventListener('appinstalled',()=>{window.__lhbInstalled=true;deferred=null;syncInstall()});
+matchMedia('(display-mode: standalone)').addEventListener?.('change',syncInstall);
+document.addEventListener('click',async e=>{if(!e.target.closest('#btnAdd'))return;
+ if(deferred){const d=deferred;deferred=null;d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted'){window.__lhbInstalled=true;syncInstall();toast('¡Instalada!')}return}
+ EXT.openSheet('instalar',isIOS?(/ipad/i.test(navigator.userAgent)||navigator.platform==='MacIntel'?'ipad':'ios'):'')});
 if('serviceWorker' in navigator){const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.update&&r.update()).catch(()=>{}))}
 (function splash(){const sp=$('#splash');if(!sp)return;const seen=sessionStorage.getItem('vb_splash');
  let gone=false;const done=()=>{if(gone)return;gone=true;sp.classList.add('out');setTimeout(()=>sp.remove(),450)};if(seen){done();return}sessionStorage.setItem('vb_splash','1');
