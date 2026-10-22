@@ -15,7 +15,7 @@ function setData(src){if(!src)return;D={artesanos:src.artesanos||D.artesanos,cig
 setData(window.VB_DATA);
 async function refreshData(){try{const r=await fetch('data/bundle.js',{cache:'no-cache'});if(!r.ok)return;const t=await r.text(),j=JSON.parse(t.slice(t.indexOf('{'),t.lastIndexOf('}')+1));let changed=false;for(const k of ['artesanos','cigarros','places','events'])if(j[k]&&JSON.stringify(j[k])!==JSON.stringify(D[k])){D[k]=j[k];changed=true}if(changed)route()}catch(e){}}
 const uploads=()=>LS.get('uploads',[]);
-const allCigars=()=>[...D.cigarros,...uploads().map(u=>({...u,yours:true}))];
+const allCigars=()=>[...D.cigarros,...uploads().map(u=>({...u,yours:true}))].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es',{sensitivity:'base'}));
 const artisanById=id=>D.artesanos.find(a=>a.id===id);
 const cigarById=id=>allCigars().find(c=>c.id===id);
 const artisanName=c=>{const a=artisanById(c.artesano_id);return a?a.nombre:(c.artesano_texto||'Artesano sin perfil')};
