@@ -631,5 +631,19 @@
     "lng": -67.1543,
     "lat_lng_aprox": true,
     "fuentes": []
+  },
+  {
+    "id": "scryer-rum",
+    "nombre": "Scryer Rum Barrelhouse & Rooftop",
+    "tipo": "Bar",
+    "categoria": "lounge",
+    "pueblo": "Viejo San Juan",
+    "direccion": "259 Calle Tetuán, Viejo San Juan",
+    "web": "https://scryerrum.com/",
+    "maps": "https://www.google.com/maps/search/?api=1&query=Scryer%20Rum%20Barrelhouse%20San%20Juan",
+    "lat": 18.4646,
+    "lng": -66.1163,
+    "lat_lng_aprox": true,
+    "fuentes": []
   }
 ]
