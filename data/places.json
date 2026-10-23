@@ -673,5 +673,19 @@
     "lng": -66.1171,
     "lat_lng_aprox": true,
     "fuentes": []
+  },
+  {
+    "id": "the-cave",
+    "nombre": "The Cave: Cuban Cuisine & Cocktails",
+    "tipo": "Bar",
+    "categoria": "lounge",
+    "pueblo": "Viejo San Juan",
+    "direccion": "Calle San Francisco esq., Plaza de Armas, Viejo San Juan",
+    "web": "https://www.instagram.com/thecaveoldsju/",
+    "maps": "https://www.google.com/maps/search/?api=1&query=The%20Cave%20Cuban%20Cuisine%20San%20Juan",
+    "lat": 18.4655,
+    "lng": -66.1166,
+    "lat_lng_aprox": true,
+    "fuentes": []
   }
 ]
