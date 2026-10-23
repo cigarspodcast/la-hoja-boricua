@@ -402,7 +402,6 @@ function anchorCard(e){const d=A.evDate(e.fecha);const m={nombre:e.lugar,pueblo:
  ${okv(e.detalle)?`<p class="anchor-d">${esc(scrub(e.detalle))}</p>`:''}
  <div class="rsvp"><a class="btn" href="${ANCHOR.registro}" target="_blank" rel="noopener">Confirma tu asistencia (RSVP)</a>
  <div class="ath"><div><small>Cata de las 5 PM: paga con ATH Móvil</small><b>${ANCHOR.ath}</b></div><button type="button" class="lbtn" data-copy="${ANCHOR.ath}">Copiar</button></div></div>
- ${e.reglas?`<a class="lbtn" href="${esc(e.reglas)}" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;margin:8px 0;padding:8px"><img src="img/qr_reglas.png" alt="QR reglas" width="72" height="72" style="background:#fff;border-radius:6px"><span>Reglas: concurso de la ceniza más larga</span></a>`:''}
  <div class="links"><button type="button" class="lbtn" data-ics="${esc(e.id)}">${CAL_ICO}Añadir a calendario</button>${(okv(e.lugar)||e.maps)?`<a class="lbtn go-map" href="${esc(A.goLink(m))}" target="_blank" rel="noopener">${A.ICON.map}Cómo llegar</a>`:''}${e.enlace?A.linkBtn('web',e.enlace,e.enlace.replace(/^https?:\/\/(www\.)?/,'').replace(/\/$/,'')):''}${e.fuente_url?A.linkBtn('ig',e.fuente_url,e.fuente||'Instagram'):''}</div></section>`}
 function calGrid(evs){if(!evs.length)return '<div class="empty">No hay eventos próximos.</div>';const by={};evs.forEach(e=>{(by[e.fecha]=by[e.fecha]||[]).push(e)});
  const first=A.evDate(evs[0].fecha),last=A.evDate(evs[evs.length-1].fecha);const td=hoy();let html='';
