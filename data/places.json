@@ -659,5 +659,19 @@
     "lng": -66.0681,
     "lat_lng_aprox": true,
     "fuentes": []
+  },
+  {
+    "id": "la-factoria",
+    "nombre": "La Factoría",
+    "tipo": "Bar",
+    "categoria": "lounge",
+    "pueblo": "Viejo San Juan",
+    "direccion": "148 Calle San Sebastián, Viejo San Juan",
+    "web": "https://lafactoriavsj.com/",
+    "maps": "https://www.google.com/maps/search/?api=1&query=La%20Factor%C3%ADa%20Viejo%20San%20Juan",
+    "lat": 18.4659,
+    "lng": -66.1171,
+    "lat_lng_aprox": true,
+    "fuentes": []
   }
 ]
