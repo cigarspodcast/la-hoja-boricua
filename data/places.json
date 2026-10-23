@@ -617,5 +617,19 @@
     "lng": -66.1137,
     "lat_lng_aprox": true,
     "fuentes": []
+  },
+  {
+    "id": "timber-blues",
+    "nombre": "Timber & Blues",
+    "tipo": "Bar",
+    "categoria": "lounge",
+    "pueblo": "Aguadilla",
+    "direccion": "Calle Ramón E. Betances 34, Aguadilla",
+    "web": "http://www.timberandblues.com",
+    "maps": "https://www.google.com/maps/search/?api=1&query=Timber%20%26%20Blues%20Aguadilla",
+    "lat": 18.4282,
+    "lng": -67.1543,
+    "lat_lng_aprox": true,
+    "fuentes": []
   }
 ]
