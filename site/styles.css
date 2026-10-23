@@ -602,3 +602,4 @@ body.sheet-on{overflow:hidden}
 .btn-add[hidden]{display:none}
 .inst-p{font-size:16px;line-height:1.5;color:var(--cream);margin:0 0 18px}
 .inst-ok{width:100%;font-size:16px}
+.seo-foot{text-align:center;font-size:14px;margin-top:calc(-1 * (var(--tab-h) + var(--sab) + 18px));padding:0 16px calc(var(--tab-h) + var(--sab) + 18px)}.seo-foot a{color:var(--cream2)}
