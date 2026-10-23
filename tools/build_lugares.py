@@ -120,11 +120,11 @@ def build():
                     ogt='Cigar lounges en Puerto Rico', ld=ld(items))
     h += f'<h1>Cigar lounges en Puerto Rico</h1>\n<p>{len(L)} lounges, bares y lugares donde fumar cigarros en Puerto Rico, por pueblo. Más abajo, {len(V)} tiendas donde comprar cigarros.</p>\n'
     h += '<h2>Lounges y lugares para fumar</h2>\n' + grupos(L) + '<h2>Tiendas de cigarros</h2>\n' + grupos(V)
+    h += '<p><a href="../artesanos/">Artesanos de cigarros en Puerto Rico</a></p>\n'
     open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(h + FOOT)
-    d = datetime.date.today().isoformat()
-    urls = [HOST + '/', url] + [f'{HOST}/lugares/{p["id"]}.html' for p in P]
-    sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(f'<url><loc>{u}</loc></url>\n' for u in urls) + '</urlset>\n'
-    open(os.path.join(SITE, 'sitemap.xml'), 'w').write(sm)
+    import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from build_artesanos import write_sitemap
+    write_sitemap()
     open(os.path.join(SITE, 'robots.txt'), 'w').write(f'User-agent: *\nAllow: /\n\nSitemap: {HOST}/sitemap.xml\n')
     print('páginas', len(P), 'lounges', len(L), 'venta', len(V))
 

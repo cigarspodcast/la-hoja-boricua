@@ -5,3 +5,5 @@ __MACOSX/
 *.tmp
 *.zip
 .env
+tools/*_interno.json
+__pycache__/
