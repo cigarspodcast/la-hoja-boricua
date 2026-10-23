@@ -645,5 +645,19 @@
     "lng": -66.1163,
     "lat_lng_aprox": true,
     "fuentes": []
+  },
+  {
+    "id": "vc-lounge",
+    "nombre": "VC Lounge (Condado Vanderbilt)",
+    "tipo": "Bar",
+    "categoria": "lounge",
+    "pueblo": "Condado (San Juan)",
+    "direccion": "1055 Ave. Ashford, Condado",
+    "web": "https://www.condadovanderbilt.com/dine/vc-lounge",
+    "maps": "https://www.google.com/maps/search/?api=1&query=VC%20Lounge%20Condado%20Vanderbilt",
+    "lat": 18.4573,
+    "lng": -66.0681,
+    "lat_lng_aprox": true,
+    "fuentes": []
   }
 ]
