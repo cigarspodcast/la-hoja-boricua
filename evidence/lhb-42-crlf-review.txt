@@ -1,0 +1,7 @@
+[Certain] BLOCKING findings: None. The change normalizes only CRLF pairs; all content assertions remain active and can still fail.
+
+[Certain] NON-BLOCKING notes:
+- Claim: tolerate Windows checkout line endings. Artifact: `.replace(/\r\n/g,'\n')` matches the existing `robots.txt` handling and preserves the asserted title, headings, links, uniqueness, formatting and prohibited-content checks.
+- Raw LF enforcement now depends on the separate CI check described in the prompt. That check and the reported 40/41 → 41/41 results are NOT VERIFIED independently: the execution tool failed to start. This review rests on the supplied diff and complete test.
+
+VERDICT: PASS
