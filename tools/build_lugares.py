@@ -8,6 +8,8 @@ SITE = os.path.join(ROOT, 'site'); OUT = os.path.join(SITE, 'lugares')
 HOST = 'https://lahojaboricua.com'
 P = json.load(open(os.path.join(ROOT, 'data', 'places.json'), encoding='utf-8'))
 e = lambda s: html.escape(str(s or ''), quote=True)
+import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from schema import ld, crumbs, same_as, INICIO, LUGARES, ARTESANOS, CIGARROS  # LHB-44
 SJ = {'Viejo San Juan', 'Santurce', 'Miramar', 'Condado', 'San Juan'}
 
 def municipio(p):
@@ -55,15 +57,12 @@ FOOT = """</main>
 </html>
 """
 
-def ld(obj):
-    return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/') + '</script>\n'
-
 def page(p, vecinos):
     pid = p['id']; url = f'{HOST}/lugares/{pid}'; nom = p['nombre']; pt = pueblo_txt(p); et = etiqueta(p)
     title = f'{nom} · {et} en {pt}, Puerto Rico | La Hoja Boricua'
     tipo = p['tipo']; dirc = (p.get('direccion') or '').strip()
     desc = f'{nom}: {tipo.lower()} en {pt}, Puerto Rico.' + (f' Dirección: {dirc.rstrip(".")}.' if dirc else '') + ' Mapa y enlaces en La Hoja Boricua.'
-    sameas = [u for u in (p.get('web'), p.get('instagram')) if u]
+    sameas = same_as(p)
     addr = {'@type': 'PostalAddress', 'addressLocality': municipio(p), 'addressRegion': 'PR'}
     if dirc:
         addr['streetAddress'] = dirc
@@ -73,7 +72,7 @@ def page(p, vecinos):
     if p.get('lat') is not None and not p.get('lat_lng_aprox'):
         obj['geo'] = {'@type': 'GeoCoordinates', 'latitude': p['lat'], 'longitude': p['lng']}
     if sameas: obj['sameAs'] = sameas
-    h = HEAD.format(title=e(title), desc=e(desc), url=url, ogt=e(f'{nom} · {pt}'), ld=ld(obj))
+    h = HEAD.format(title=e(title), desc=e(desc), url=url, ogt=e(f'{nom} · {pt}'), ld=ld(obj, crumbs(INICIO, LUGARES, (nom, url))))
     h += f'<h1>{e(nom)}</h1>\n<p class="tag">{e(et)} · {e(pt)}, Puerto Rico</p>\n'
     verbo = 'disfrutar un cigarro' if p['categoria'] == 'lounge' else 'comprar cigarros'
     blurb = f'{nom} es un lugar en {pt}, Puerto Rico, donde puedes {verbo}.'
@@ -117,7 +116,7 @@ def build():
     items = {'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'Cigar lounges en Puerto Rico',
              'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'url': f'{HOST}/lugares/{p["id"]}', 'name': p['nombre']} for i, p in enumerate(L)]}
     h = HEAD.format(title='Cigar lounges en Puerto Rico · Dónde fumar cigarros | La Hoja Boricua', desc=e(desc), url=url,
-                    ogt='Cigar lounges en Puerto Rico', ld=ld(items))
+                    ogt='Cigar lounges en Puerto Rico', ld=ld(items, crumbs(INICIO, LUGARES)))
     h += f'<h1>Cigar lounges en Puerto Rico</h1>\n<p>{len(L)} lounges, bares y lugares donde fumar cigarros en Puerto Rico, por pueblo. Más abajo, {len(V)} tiendas donde comprar cigarros.</p>\n'
     h += '<h2>Lounges y lugares para fumar</h2>\n' + grupos(L) + '<h2>Tiendas de cigarros</h2>\n' + grupos(V)
     h += '<p><a href="../artesanos/">Artesanos de cigarros en Puerto Rico</a></p>\n'

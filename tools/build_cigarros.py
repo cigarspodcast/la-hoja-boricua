@@ -9,6 +9,8 @@ SITE = os.path.join(ROOT, 'site'); OUT = os.path.join(SITE, 'cigarros')
 HOST = 'https://lahojaboricua.com'
 e = lambda s: html.escape(str(s or ''), quote=True)
 load = lambda n: json.load(open(os.path.join(ROOT, 'data', n), encoding='utf-8'))
+import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from schema import ld, crumbs, same_as, INICIO, LUGARES, ARTESANOS, CIGARROS  # LHB-44
 PRICE = re.compile(r'\$\s?\d|precio', re.I)
 FORT = {'suave': 'Suave', 'media': 'Media', 'fuerte': 'Fuerte'}
 
@@ -34,9 +36,6 @@ FOOT = """</main>
 </html>
 """
 
-def ld(obj):
-    return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/') + '</script>\n'
-
 def foto(cid):
     return f'img/cigarros/{cid}.webp' if os.path.exists(os.path.join(SITE, 'img', 'cigarros', cid + '.webp')) else None
 
@@ -60,7 +59,7 @@ def page(c, a):
     props = [{'@type': 'PropertyValue', 'name': k, 'value': v} for k, v in props if v]
     if props: obj['additionalProperty'] = props
     h = HEAD.format(title=e(title), desc=e(desc), url=url, ogt=e(f'{nom} · La Hoja Boricua'),
-                    img=f'{HOST}/{img}' if img else f'{HOST}/og.jpg', ld=ld(obj), app=f'../#/c/{e(cid)}')
+                    img=f'{HOST}/{img}' if img else f'{HOST}/og.jpg', ld=ld(obj, crumbs(INICIO, CIGARROS, (nom, url))), app=f'../#/c/{e(cid)}')
     if img: h += f'<img class="logo" src="../{e(img)}" width="160" height="160" alt="{e(nom)}">\n'
     h += f'<h1>{e(nom)}</h1>\n'
     if art: h += f'<p class="tag">De <a href="../artesanos/{e(a["id"])}.html">{e(art)}</a>{" · " + e(pu) if pu else ""}, Puerto Rico</p>\n'
@@ -84,7 +83,7 @@ def build():
     url = HOST + '/cigarros/'
     desc = f'{len(C)} cigarros hechos por artesanos boricuas: capa, fortaleza y vitolas de cada uno, con su artesano.'
     h = HEAD.format(title='Cigarros hechos por artesanos boricuas · Catálogo | La Hoja Boricua', desc=e(desc), url=url,
-                    ogt='Cigarros hechos por artesanos boricuas', img=f'{HOST}/og.jpg', ld='', app='../#/catalogo')
+                    ogt='Cigarros hechos por artesanos boricuas', img=f'{HOST}/og.jpg', ld=ld(crumbs(INICIO, CIGARROS)), app='../#/catalogo')
     h += f'<h1>Cigarros hechos por artesanos boricuas</h1>\n<p>{len(C)} cigarros en la guía, por artesano.</p>\n'
     by = {}
     for c in C: by.setdefault(c.get('artesano_id'), []).append(c)
