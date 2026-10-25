@@ -66,6 +66,8 @@ export async function verifyToken(token, { issuers, now = Date.now(), fetchJwks 
   if (bits.length !== 3) return { ok: false, why: 'format' };
   let head, body;
   try { head = part(bits[0]); body = part(bits[1]); } catch (e) { return { ok: false, why: 'format' }; }
+  const isObj = o => o !== null && typeof o === 'object' && !Array.isArray(o);
+  if (!isObj(head) || !isObj(body)) return { ok: false, why: 'format' };
   if (head.alg !== 'RS256' || typeof head.kid !== 'string') return { ok: false, why: 'alg' };
   const iss = typeof body.iss === 'string' ? body.iss.replace(/\/+$/, '') : '';
   if (!iss || !(issuers || []).includes(iss)) return { ok: false, why: 'iss' };
@@ -76,8 +78,9 @@ export async function verifyToken(token, { issuers, now = Date.now(), fetchJwks 
   try { good = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64u(bits[2]), new TextEncoder().encode(bits[0] + '.' + bits[1])); } catch (e) { good = false; }
   if (!good) return { ok: false, why: 'sig' };
   const t = Math.floor(now / 1000);
-  if (typeof body.exp !== 'number' || t > body.exp + LEEWAY) return { ok: false, why: 'exp' };
-  if (typeof body.nbf === 'number' && t + LEEWAY < body.nbf) return { ok: false, why: 'nbf' };
+  // exp obligatorio; nbf opcional, pero si viene tiene que ser un número finito (no texto, no 1e400)
+  if (!Number.isFinite(body.exp) || t > body.exp + LEEWAY) return { ok: false, why: 'exp' };
+  if (body.nbf !== undefined && (!Number.isFinite(body.nbf) || t + LEEWAY < body.nbf)) return { ok: false, why: 'nbf' };
   if (!originOk(body.azp)) return { ok: false, why: 'azp' };
   if (typeof body.sub !== 'string' || !body.sub) return { ok: false, why: 'sub' };
   return { ok: true, sub: body.sub, sid: body.sid || null, iss };

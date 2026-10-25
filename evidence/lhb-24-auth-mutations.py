@@ -14,8 +14,11 @@ def restore():
     for k, p in F.items(): open(p, 'w', encoding='utf-8', newline='').write(SNAP[k])
 MUTS = [
     ('A1 issuer allowlist removed', 'auth', "if (!iss || !(issuers || []).includes(iss)) return { ok: false, why: 'iss' };", ''),
-    ('A2 exp check removed', 'auth', "if (typeof body.exp !== 'number' || t > body.exp + LEEWAY) return { ok: false, why: 'exp' };", ''),
-    ('A3 nbf check removed', 'auth', "if (typeof body.nbf === 'number' && t + LEEWAY < body.nbf) return { ok: false, why: 'nbf' };", ''),
+    ('A2 exp check removed', 'auth', "if (!Number.isFinite(body.exp) || t > body.exp + LEEWAY) return { ok: false, why: 'exp' };", ''),
+    ('A3 nbf check removed', 'auth', "if (body.nbf !== undefined && (!Number.isFinite(body.nbf) || t + LEEWAY < body.nbf)) return { ok: false, why: 'nbf' };", ''),
+    ('A13 exp accepts any number (round-1 B1: Infinity)', 'auth', "if (!Number.isFinite(body.exp) || t > body.exp + LEEWAY)", "if (typeof body.exp !== 'number' || t > body.exp + LEEWAY)"),
+    ('A14 nbf only checked when numeric (round-1 B1)', 'auth', "if (body.nbf !== undefined && (!Number.isFinite(body.nbf) || t + LEEWAY < body.nbf))", "if (typeof body.nbf === 'number' && t + LEEWAY < body.nbf)"),
+    ('A15 header and payload object check removed (round-1 note)', 'auth', "if (!isObj(head) || !isObj(body)) return { ok: false, why: 'format' };", ''),
     ('A4 azp check removed', 'auth', "if (!originOk(body.azp)) return { ok: false, why: 'azp' };", ''),
     ('A5 signature result ignored', 'auth', "if (!good) return { ok: false, why: 'sig' };", ''),
     ('A6 alg check removed', 'auth', "if (head.alg !== 'RS256' || typeof head.kid !== 'string') return { ok: false, why: 'alg' };", ''),

@@ -1,0 +1,29 @@
+[Certain] **BLOCKING B1: A present, nonnumeric `nbf` bypasses validation.**
+
+Artifact, `functions/_lib/auth.js`:
+```js
+if (typeof body.nbf === 'number' && t + LEEWAY < body.nbf)
+  return { ok: false, why: 'nbf' };
+```
+
+[Certain] A signed payload containing `nbf: String(t + 30)` passes this condition and reaches success. The supplied tests cover a numeric future `nbf`, so mutation A3 does not detect this gap.
+
+Reproduction to add inside the existing JWT test, using its signing helper:
+```js
+assert.equal(
+  await why(H, {...P, nbf: String(t + 30)}),
+  'nbf'
+);
+```
+
+[Certain] Static reconstruction predicts this assertion fails: `why` returns `undefined` because verification succeeds. Reject present `nbf` values unless they are finite numbers, then enforce the time comparison. Apply finite-number validation to `exp` too: JSON `1e400` parses as `Infinity` and passes its current check.
+
+[Certain] This requires an issuer-signed malformed token. It does not establish signature forgery or an unsigned authentication bypass.
+
+**NON-BLOCKING**
+
+- [Certain] **Malformed JSON shapes throw instead of returning 401.** `part()` accepts JSON `null`, but `head.alg` and `body.iss` are accessed outside the parsing `try`. For example, `bnVsbA.e30.` throws on `head.alg`. Validate both decoded values as non-null objects and add endpoint rejection tests.
+- [Certain] **The supplied SQL uses appropriate boundaries.** `/api/me` binds `user.sub`, selects explicit profile columns, and returns `no-store`. Migration 0002 drops both referencing tables before `users`, consistent with the pinned empty-preview migration.
+- [Certain] **Execution limits:** Local process startup failed, preventing skill loading, repository inspection, and test reruns. The claim-check expressions were reconstructed and executed separately; that is corroboration, not repository proof. The reported 39 passing tests, mutation runs, and live D1 state remain independently **NOT VERIFIED**.
+
+VERDICT: BLOCK
