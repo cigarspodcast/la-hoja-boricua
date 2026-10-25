@@ -129,7 +129,7 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.ok(ap.includes("addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e")&&ap.includes('d.prompt()')&&ap.includes("addEventListener('appinstalled'"));
  assert.ok(hj.includes("kind==='instalar'")&&hj.includes('Toca el botón <b>Compartir</b> ⬆️')&&hj.includes('Añadir a pantalla de inicio')&&hj.includes('Instalar app'));
  assert.match(css,/\.btn-add\[hidden\]\{display:none\}/);
- const fn=new Function('return '+ap.match(/function installHidden\(w\)\{.*?\}\n/)[0])();
+ const fn=new Function('return '+ap.match(/function installHidden\(w\)\{.*?\}\r?\n/)[0])();
  const W=(sa,ns,inst)=>({__lhbInstalled:inst,matchMedia:q=>({matches:sa&&q==='(display-mode: standalone)'}),navigator:{standalone:ns}});
  assert.equal(fn(W(false,undefined,false)),false,'navegador: se ve');
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');

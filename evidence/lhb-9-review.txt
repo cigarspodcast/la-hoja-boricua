@@ -1,0 +1,32 @@
+LHB-9 Codex review of the v21 test regex fix (test/site.test.js, installHidden extraction)
+One round, prompt self-contained with the diff inline. Header fields from the run transcript.
+
+model: gpt-6-astra
+sandbox: read-only
+reasoning effort: high
+session id: 01a1746e-fc0f-7933-ac81-b800fef3510b
+exec attempts: 0
+codex exit 0
+--- prompt
+Do not load any skill, plugin or template. Do not run any command or tool. Everything you need is below. Your FIRST and ONLY message is the answer.
+
+Context: a Node test (node --test) reads site/app.js as text with fs.readFileSync(..., 'utf8') and extracts one function with a regex, then evaluates it with new Function. The repo stores files with LF; on a Windows checkout with core.autocrlf=true the working copy has CRLF. The function in app.js is one line:
+function installHidden(w){return !!(w.__lhbInstalled||(w.matchMedia&&w.matchMedia('(display-mode: standalone)').matches)||w.navigator.standalone===true)}
+
+FIX in test/site.test.js:
+- const fn=new Function('return '+ap.match(/function installHidden\(w\)\{.*?\}\n/)[0])();
++ const fn=new Function('return '+ap.match(/function installHidden\(w\)\{.*?\}\r?\n/)[0])();
+
+Measured: with LF the old regex matched and with CRLF it returned null (TypeError reading '0'), the only failing test of 30. After the fix: 30 of 30 pass on the CRLF checkout. With installHidden mutated (standalone===true changed to ===false) the test fails, so it still checks behaviour.
+
+Does the fix correctly extract the whole function on both LF and CRLF, and does evaluating the match (which may now end in \r\n) behave correctly? Report only real defects.
+
+Answer format, nothing else:
+FINDING n | BLOCKING or NONBLOCKING | file and symbol | what is wrong | evidence
+(write NO FINDINGS if there are none)
+Last line exactly: VERDICT: PASS  or  VERDICT: BLOCK
+--- answer (verbatim from codex exec -o)
+NO FINDINGS
+VERDICT: PASS
+--- disposition
+No findings. Cause measured before the fix: the stored blob is LF and the old regex matched it; the CRLF working copy (core.autocrlf=true) did not match. Suite before: tests 30, pass 29, fail 1 (v21 only). After: tests 30, pass 30, fail 0 (evidence/lhb-9-tests.txt). Mutation check: installHidden with standalone===false made v21 fail (pass 29, fail 1); restored with git checkout.
