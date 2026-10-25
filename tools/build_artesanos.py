@@ -6,7 +6,7 @@
 import json, os, html
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, 'site'); OUT = os.path.join(SITE, 'artesanos')
-HOST = 'https://lahojaboricua.sites.tab.bot'
+HOST = 'https://lahojaboricua.com'
 e = lambda s: html.escape(str(s or ''), quote=True)
 load = lambda n: json.load(open(os.path.join(ROOT, 'data', n), encoding='utf-8'))
 
@@ -52,7 +52,7 @@ def hecho_pr(a):
     return ''
 
 def page(a, cig):
-    aid = a['id']; url = f'{HOST}/artesanos/{aid}.html'; nom = a['nombre']; pu = (a.get('pueblo') or '').strip(); tipo = (a.get('tipo') or '').strip()
+    aid = a['id']; url = f'{HOST}/artesanos/{aid}'; nom = a['nombre']; pu = (a.get('pueblo') or '').strip(); tipo = (a.get('tipo') or '').strip()
     donde = f' en {pu}' if pu else ''
     title = f'{nom} · Cigarros artesanales{donde}, Puerto Rico | La Hoja Boricua'
     desc = f'{nom}: {tipo.lower() or "artesano de cigarros"}{donde}, Puerto Rico.'
@@ -83,8 +83,8 @@ def page(a, cig):
 
 def write_sitemap():
     P = load('places.json'); A = load('artesanos.json') if os.path.exists(os.path.join(ROOT, 'data', 'artesanos.json')) else []
-    urls = [HOST + '/', HOST + '/lugares/'] + [f'{HOST}/lugares/{p["id"]}.html' for p in P]
-    if A: urls += [HOST + '/artesanos/'] + [f'{HOST}/artesanos/{a["id"]}.html' for a in A]
+    urls = [HOST + '/', HOST + '/lugares/'] + [f'{HOST}/lugares/{p["id"]}' for p in P]
+    if A: urls += [HOST + '/artesanos/'] + [f'{HOST}/artesanos/{a["id"]}' for a in A]
     sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(f'<url><loc>{u}</loc></url>\n' for u in urls) + '</urlset>\n'
     open(os.path.join(SITE, 'sitemap.xml'), 'w').write(sm)
     return len(urls)

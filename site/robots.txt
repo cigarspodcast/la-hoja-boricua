@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://lahojaboricua.sites.tab.bot/sitemap.xml
+Sitemap: https://lahojaboricua.com/sitemap.xml

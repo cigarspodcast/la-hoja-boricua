@@ -1,5 +1,5 @@
 /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas; fotos grandes se cachean al verlas */
-const VERSION='lhb-v42';
+const VERSION='lhb-v43';
 const SHELL=['./','styles.css','app.js','art.js','hoja.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
  'data/bundle.js',
  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
@@ -14,6 +14,6 @@ self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')retu
  // data: network first (fresh events), fall back to cache
  if(url.pathname.includes('/data/')){e.respondWith(fetch(req).then(r=>{if(r.ok){const cp=r.clone();caches.open(VERSION).then(c=>c.put(req,cp))}return r}).catch(()=>caches.match(req,{ignoreSearch:true})));return}
  // navigations: app shell
- if(req.mode==='navigate'){e.respondWith(fetch(req).then(r=>{const cp=r.clone();if(r.ok&&!r.redirected&&!url.pathname.includes('/lugares/')&&!url.pathname.includes('/artesanos/'))caches.open(VERSION).then(c=>c.put('./',cp));return r}).catch(async()=>{const c=await caches.open(VERSION);const hit=(await c.match('./'))||(await c.match('index.html'));if(!hit)return Response.error();return hit.redirected?new Response(await hit.blob(),{headers:hit.headers}):hit}));return}
+ if(req.mode==='navigate'){e.respondWith(fetch(req).then(r=>{const cp=r.clone();if(r.ok&&!r.redirected&&!url.pathname.includes('/lugares/')&&!url.pathname.includes('/artesanos/')&&!/\/404(\.html)?$/.test(url.pathname))caches.open(VERSION).then(c=>c.put('./',cp));return r}).catch(async()=>{const c=await caches.open(VERSION);const hit=(await c.match('./'))||(await c.match('index.html'));if(!hit)return Response.error();return hit.redirected?new Response(await hit.blob(),{headers:hit.headers}):hit}));return}
  // static: cache first
  e.respondWith(caches.match(req,{ignoreSearch:true}).then(hit=>hit||fetch(req).then(r=>{if(r.ok){const cp=r.clone();caches.open(VERSION).then(c=>c.put(req,cp))}return r})))});
