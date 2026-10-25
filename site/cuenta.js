@@ -16,13 +16,14 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}})}
 async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;const show=(h,p,b)=>{if(!o.inPlace&&op===seq)D.ui.card(h,p,b)};
- const retry={label:'Intentar otra vez',on:()=>go(done,o)};
+ /* un error nunca se esconde: sobre la página (en sitio) o en la tarjeta de Mi Hoja, siempre con reintento que conserva la acción */
+ const fail=(h,p)=>{if(op!==seq)return;const b={label:'Intentar otra vez',on:()=>go(done,o)};if(o.inPlace)D.ui.notice(h,p,b);else D.ui.card(h,p,b)};
  show('Un momento…','Revisando tu cuenta.');
  let C;
  try{C=await D.clerk()}catch(e){
   if(op!==seq||D.here()!==from)return;
   if(D.store.get())return done();
-  show('Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.',retry);return}
+  fail('Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
  hook(C);
  if(!live(op,from,C))return;
  if(!C.user){D.store.clear();
@@ -36,10 +37,10 @@ async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;const sh
  if(!live(op,from,C,uid))return;
  if(r.status===200&&r.body.profile){D.store.set({sub:uid,handle:r.body.profile.handle});D.intent.clear();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,op,from,uid);
- if(r.status===401||r.status===403){D.store.clear();show('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.',retry);return}
+ if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
  const c=D.store.get();
  if(c&&c.sub===uid&&(r.status===0||r.status>=500))return done();
- show('No pudimos revisar tu cuenta','Intenta otra vez en un momento.',retry)}
+ fail('No pudimos revisar tu cuenta','Intenta otra vez en un momento.')}
 function onboard(C,done,o,op,from,uid){ob=true;
  D.ui.onboarding(async f=>{
   /* el formulario puede seguir en pantalla después de un cambio de cuenta: no se manda nada a nombre de otra persona */

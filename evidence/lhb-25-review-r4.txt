@@ -1,0 +1,44 @@
+[Certain] A failed account check after sign-in can silently strand the action the user started.
+
+**BLOCKING**
+
+1. **The in-place flow hides its error and retry control.** In `site/cuenta.js`:
+
+   ```js
+   const show=(h,p,b)=>{if(!o.inPlace&&op===seq)D.ui.card(h,p,b)};
+   ```
+
+   After sign-in, the listener consumes the pending action:
+
+   ```js
+   const p=pending;pending=null;
+   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
+   ```
+
+   If `/api/me` then fails without a cached profile, recovery goes through the suppressed renderer:
+
+   ```js
+   show('No pudimos revisar tu cuenta','Intenta otra vez en un momento.',retry)
+   ```
+
+   **Reproduction:** On `#/c/yambo-toro`, call `require(action,{inPlace:true,act:'humidor'})`, sign in, and return HTTP 503 from `/api/me` with no cached profile. The action never runs, no error or retry appears, and the pending callback has been consumed. The remaining sessionStorage intent is not automatically retried. The 401/403 branches have the same hidden-recovery problem.
+
+   Preserve the public page while displaying an actionable error and retaining the original callback for retry. Add coverage for failure followed by successful retry, asserting that the action runs exactly once.
+
+**NON-BLOCKING**
+
+- [Certain] **CONCUR with round 3 finding 1’s correction.** The `profile-exists` branch now performs its recheck inside the existing submission and returns:
+  ```js
+  return {error:'recheck'}
+  ```
+  It does not increment `seq`; the same form can retry. The subsequent `live(...)` check also rejects stale recheck results.
+
+- [Certain] **CONCUR with round 3 finding 2’s correction.** The public-page sign-out test now installs the listener before exercising it:
+  ```js
+  await g.A.require(g.go,{inPlace:true});
+  ```
+  It asserts `GO` before calling `g.C.signIn(null)`, so the sign-out assertion is no longer vacuous.
+
+- [Certain] **Verification limitation:** The shell failed to start with `helper_unknown_error: setup refresh had errors`. Checkout inspection and `node --test test/site.test.js` were **NOT VERIFIED** here. A reconstruction of the supplied failure branch produced only `openSignIn` and `GET 503`, with no action or retry UI. That corroborates the finding but is not execution of the repository or the real Clerk flow.
+
+VERDICT: BLOCK

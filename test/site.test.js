@@ -342,14 +342,14 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, 
 });
 function CUENTA_HARNESS(over){
  const vm=require('vm');const ctx={window:{}};vm.createContext(ctx);vm.runInContext(read('cuenta.js'),ctx);
- const log=[];let hash='#/mihoja',lis=null,store=null,intent=null;
+ const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;
  const C={user:null,addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
  const D={clerk:async()=>C,api:async()=>({status:0,body:{}}),here:()=>hash,reroute:()=>log.push('reroute'),
   store:{get:()=>store,set:v=>{store=v;log.push('store:'+v.sub+':'+v.handle)},clear:()=>{store=null;log.push('clear')}},
   intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
-  openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),onboarding:f=>log.push('onboarding'),toast:m=>log.push('toast')},...over};
+  openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},onboarding:f=>log.push('onboarding'),toast:m=>log.push('toast')},...over};
  const A=ctx.window.LHB_CUENTA(D);
- return {A,C,D,log,go:()=>log.push('GO'),nav:h=>{hash=h},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
+ return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{hash=h},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
 }
 const tick=async(n=8)=>{for(let i=0;i<n;i++)await new Promise(r=>setImmediate(r))};
 const defer=()=>{let ok;const p=new Promise(r=>ok=r);return {p,ok}};
@@ -436,6 +436,15 @@ test('LHB-25: si la revisión tras un perfil ya existente falla, el formulario s
  k.D.ui.onboarding=s=>{sub2=s};k.nav('#/c/yambo-toro');k.C.user={id:'user_a'};await k.A.require(k.go,{inPlace:true,act:'humidor'});await tick();
  const pend=sub2({handle:'ana'});await tick();k.C.signIn('user_b');d.ok({status:200,body:{profile:{handle:'ana'}}});assert.deepEqual(await pend,{stale:true},'la revisión llegó tarde: se ignora');assert.ok(!k.log.includes('GO')&&!k.log.some(x=>x.startsWith('store')),'no abre ni guarda nada a nombre de otra cuenta');
  assert.deepEqual(await submit({handle:'ana'}),{ok:true},'el mismo formulario puede reintentar');assert.equal(posts,2,'el reintento sí llega al servidor');assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'),['reroute','GO']);
+});
+test('LHB-25: entrar desde una página pública y fallar la revisión muestra el error sobre la página y el reintento conserva la acción',async()=>{
+ for(const [st,why] of [[503,'503 sin perfil guardado'],[401,'401'],[403,'403']]){let fails=1;const h=CUENTA_HARNESS({api:async()=>fails-->0?{status:st,body:{}}:{status:200,body:{profile:{handle:'ana'}}}});
+  h.nav('#/c/yambo-toro');await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();h.C.signIn('user_a');await tick();
+  assert.ok(h.log.includes('notice:No pudimos revisar tu cuenta'),'error visible: '+why);assert.ok(!h.log.some(x=>x.startsWith('card'))&&!h.log.includes('GO'),'la página no se reemplaza y la acción espera: '+why);
+  const retry=h.notice();assert.equal(retry.label,'Intentar otra vez');retry.on();await tick();assert.deepEqual(h.log.filter(x=>x==='GO'),['GO'],'el reintento hace la acción exactamente una vez: '+why);}
+ const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});k.nav('#/c/yambo-toro');await k.A.require(k.go,{inPlace:true});await tick();assert.ok(k.log.includes('notice:Necesitas conexión')&&!k.log.some(x=>x.startsWith('card')),'sin conexión también se avisa en sitio');
+ const m=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});m.nav('#/mihoja');m.C.user={id:'user_a'};await m.A.require(m.go);await tick();assert.ok(m.log.includes('card:No pudimos revisar tu cuenta')&&!m.log.some(x=>x.startsWith('notice')),'en Mi Hoja el error va en la tarjeta, no en una hoja');
+ assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast}'),'hoja.js pasa el aviso sobre la página');
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));
