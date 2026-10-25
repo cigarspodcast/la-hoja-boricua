@@ -1,0 +1,15 @@
+[Certain] Independent execution remains NOT VERIFIED: the sandbox failed to start the command.
+
+BLOCKING: None identified.
+
+[Certain] The exclusion `/\/privacidad(\.html)?$/` matches both required privacy paths and does not match `/`, preserving root shell caching.
+
+[Certain] The test checks both sides: privacy navigations must produce `[]`; `/` must produce `['./']`. Removing the exclusion would violate the privacy assertions. This is static corroboration; the before/after execution results are supplied evidence.
+
+[Certain] No factual contradiction was identified between the privacy page, supplied code and pinned decisions. Deferred features are excluded as instructed.
+
+NON-BLOCKING:
+
+- [Certain] Publication placeholders remain: `[FECHA DE PUBLICACIÓN]` and `[CORREO DE CONTACTO]`.
+
+VERDICT: PASS
