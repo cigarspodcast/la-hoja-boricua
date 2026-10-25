@@ -137,12 +137,14 @@ const backupBanner=()=>backupDue()?`<div class="remind" role="note"><p><b>¿Un r
 const backupPanel=()=>{const s=S();return `<section class="backup"><div class="section-title"><h2>Respaldo</h2></div><p class="lead" style="margin-top:-4px">Exporta un archivo con tu humidor, diario, pasaporte y favoritos. Para pasarlo a otro teléfono, impórtalo allá: importar suma, no borra.${s.respaldo?` Último respaldo: ${fmtF(s.respaldo)}.`:' Todavía no has hecho uno.'}</p>
  <div class="links"><button class="lbtn" data-exp type="button">⬇︎ Exportar respaldo</button><label class="lbtn" tabindex="0">⬆︎ Importar respaldo<input type="file" accept="application/json,.json" id="impF" class="sr"></label></div><p class="note" style="margin-top:6px">Las fotos de tus subidas se quedan en este teléfono.</p></section>`};
 function bindBackup(){$$('[data-exp]').forEach(b=>b.onclick=exportar);$$('[data-snooze]').forEach(b=>b.onclick=()=>{const s=S();s.recordarDespues=new Date(Date.now()+7*864e5).toISOString();write(s);b.closest('.remind').remove()});const f=$('#impF');if(f)f.onchange=e=>{const x=e.target.files&&e.target.files[0];if(x)importar(x);e.target.value=''}}
-/* ---------- cuenta (LHB-25): entrar con Clerk, perfil con @ y 21+ antes de abrir Mi Hoja ---------- */
+/* ---------- cuenta (LHB-25): la lógica vive en cuenta.js; aquí Clerk, las pantallas y el perfil ---------- */
 const CLERK=location.hostname==='lahojaboricua.com'?{pk:'pk_live_Y2xlcmsubGFob2phYm9yaWN1YS5jb20k',fapi:'clerk.lahojaboricua.com'}:{pk:'pk_test_ZGFyaW5nLWVhZ2xlLTgzOTQuY2xlcmsuYWNjb3VudHMuZGV2JA',fapi:'daring-eagle-8394.clerk.accounts.dev'};
 const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
 const acct={get:()=>A.LS.get('cuenta',null),set:v=>A.LS.set('cuenta',v),clear:()=>{try{localStorage.removeItem('vb_cuenta')}catch(e){}}};
-let clerkP=null,clerkHooked=false;
+/* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
+const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
+let clerkP=null;
 const script=(src,pk)=>new Promise((ok,no)=>{const s=document.createElement('script');s.async=true;s.crossOrigin='anonymous';if(pk)s.dataset.clerkPublishableKey=pk;s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)});
 /* clerk-js 6 trae la lógica; las pantallas de entrar vienen aparte en @clerk/ui y se le pasan al cargar */
 function clerk(){if(clerkP)return clerkP;
@@ -150,25 +152,9 @@ function clerk(){if(clerkP)return clerkP;
   .then(()=>window.Clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor}})).then(()=>window.Clerk).catch(e=>{clerkP=null;throw e});
  return clerkP}
 async function api(C,method,path,body){const t=await C.session.getToken();const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
-const here=()=>location.hash;
-function accountCard(h,p,btn){view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${btn||''}</div>`}
-/* abre Mi Hoja solo con sesión y perfil; si no, el cuadro para entrar o el onboarding. go() es la acción que el usuario empezó. */
-async function requireAccount(go){const from=here();const cached=acct.get();
- accountCard('Un momento…','Revisando tu cuenta.');
- let C;try{C=await clerk()}catch(e){if(here()!==from)return;if(cached)return go();accountCard('Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.','<button class="btn" type="button" id="acctRetry">Intentar otra vez</button>');$('#acctRetry').onclick=()=>requireAccount(go);return}
- if(!clerkHooked){clerkHooked=true;let was=!!C.user;C.addListener(({user})=>{const now=!!user;if(now===was)return;was=now;if(!now)acct.clear();if(/^#\/(mihoja|perfil)\b/.test(here()))A.route()})}
- if(here()!==from)return;
- if(!C.user){acct.clear();const open=()=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href});
-  accountCard('Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta. El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.','<button class="btn" type="button" id="acctIn">Entrar o crear cuenta</button>');
-  $('#acctIn').onclick=open;open();return}
- let r;try{r=await api(C,'GET','/api/me')}catch(e){r={status:0,body:{}}}
- if(here()!==from)return;
- if(r.status===200&&r.body.profile){acct.set({sub:C.user.id,handle:r.body.profile.handle});return go()}
- if(r.status===200&&r.body.needsProfile)return onboarding(C,go);
- if(cached&&cached.sub===C.user.id)return go();
- accountCard('No pudimos revisar tu cuenta','Intenta otra vez en un momento.','<button class="btn" type="button" id="acctRetry">Intentar otra vez</button>');$('#acctRetry').onclick=()=>requireAccount(go)}
-const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','age-required':'Tienes que confirmar que tienes 21 años o más.','bio-long':'La descripción puede tener hasta 160 caracteres.','display_name-long':'El nombre puede tener hasta 50 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.','profile-exists':'Ya tienes un perfil.'};
-function onboarding(C,go){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));
+function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
+const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','age-required':'Tienes que confirmar que tienes 21 años o más.','bio-long':'La descripción puede tener hasta 160 caracteres.','display_name-long':'El nombre puede tener hasta 50 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.'};
+function onboardingForm(submit){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));
  view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Tu <em>perfil</em></h1></header>
  <form class="form" id="obForm" novalidate>
  <div class="field"><label for="obH">Tu @ (nombre de usuario)</label><input id="obH" required minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="ej. tabaquero_pr"><p class="hint">De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.</p></div>
@@ -179,15 +165,19 @@ function onboarding(C,go){const marcas=[...new Set((D().artesanos||[]).map(a=>a.
  <p class="hint">Lee qué guardamos y qué ven los demás en <a href="/privacidad">Privacidad y cuenta</a>.</p>
  <p class="hint" id="obErr" role="alert" hidden></p>
  <button class="btn" type="submit" id="obGo">Crear mi perfil</button></form>`;
- const err=m=>{const e=$('#obErr');e.textContent=m||'';e.hidden=!m};
- $('#obB').oninput=e=>{$('#obBn').textContent=[...e.target.value].length};
- $('#obForm').onsubmit=async e=>{e.preventDefault();const h=$('#obH').value.trim().toLowerCase();
+ const form=$('#obForm');
+ const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m};
+ $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length};
+ form.onsubmit=async e=>{e.preventDefault();const h=$('#obH').value.trim().toLowerCase();
   if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid']);if(!$('#obAge').checked)return err(OB_ERR['age-required']);
   err('');$('#obGo').disabled=true;
-  let r;try{r=await api(C,'POST','/api/profile',{handle:h,display_name:$('#obN').value,bio:$('#obB').value,favorite_brand:$('#obM').value,age_ok:true})}catch(x){r={status:0,body:{}}}
-  $('#obGo').disabled=false;
-  if(r.status===201||r.body.error==='profile-exists'){acct.set({sub:C.user.id,handle:r.body.profile?r.body.profile.handle:h});toast('¡Bienvenido a Mi Hoja!');return go()}
-  err(OB_ERR[r.body.error]||'No pudimos crear tu perfil. Intenta otra vez.')}}
+  const r=await submit({handle:h,display_name:$('#obN').value,bio:$('#obB').value,favorite_brand:$('#obM').value});
+  if(!r||r.stale||$('#obForm')!==form)return;
+  $('#obGo').disabled=false;if(r.error)err(OB_ERR[r.error]||'No pudimos crear tu perfil. Intenta otra vez.')}}
+const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,onboarding:onboardingForm,toast}});
+/* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
+const requireAccount=(go,o)=>CUENTA.require(go,o);
+setTimeout(()=>CUENTA.resume(),0);
 /* ---------- Mi Hoja ---------- */
 const SUBS=[['humidor','Humidor'],['diario','Diario'],['pasaporte','Pasaporte'],['favoritos','Favoritos'],['perfil','Perfil']];
 const subnav=cur=>`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1></header><nav class="subnav" aria-label="Mi Hoja">${SUBS.map(([k,n])=>`<a href="#/mihoja/${k}" ${k===cur?'aria-current="page"':''}>${n}</a>`).join('')}</nav>${backupBanner()}`;
@@ -535,7 +525,7 @@ function cigarExtras(c){const pr=pairing(c);const real=!c.yours;
  ${podBlock('c',c.id)}`}
 const placeActions=p=>`<div class="pl-act">${favBtn('lugares',p.id,'sm')}${stampBtn('lugares',p.id,'sm')}</div>`;
 function setRating(id,n){save(s=>{if(!n||s.ratings[id]===n)delete s.ratings[id];else s.ratings[id]=n})}
-return {requireAccount,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
+return {requireAccount,registerAction:CUENTA.register,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
  routes:{mihoja:vMiHoja,cata:vCata,maridajes:vMaridajes,podcast:vPodcast,buscar:vBuscar,eventos:vEventos,actividades:vEventos},
  _test:{HANDLE_RE,CLERK,icsFor,parseHora,pairing,pideloLink,cardBlob,badgeIds,passCounts,load,KEY}};
 };

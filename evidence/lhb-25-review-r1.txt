@@ -1,0 +1,71 @@
+[Certain] Mi Hoja can open after `/api/me` rejects the session, so this change is blocked.
+
+**BLOCKING**
+
+1. **[Certain] Cached profiles override an explicit authentication rejection.**
+
+   `site/hoja.js`, `requireAccount`:
+   ```js
+   if(cached&&cached.sub===C.user.id)return go();
+   ```
+
+   This executes after any unhandled response status, including **401**. Reproduction: retain a cached profile and Clerk user object, then return `401 {error:'no-session'}` from `/api/me`. The isolated reproduction called `go()`.
+
+   Limit the offline fallback to eligible connectivity failures. An explicit authentication rejection must close the gate.
+
+2. **[Certain] Pending responses are not bound to the initiating account or view.**
+
+   `site/hoja.js`, `requireAccount`:
+   ```js
+   const now=!!user;if(now===was)return;
+   ```
+   ```js
+   if(r.status===200&&r.body.profile){
+     acct.set({sub:C.user.id,handle:r.body.profile.handle});return go()
+   }
+   ```
+
+   Reproduction: start `/api/me` as user A, switch Clerk to user B before resolving the request, then resolve A’s profile response. The listener ignores the switch because both users are truthy. The response handler caches **A’s handle under B’s ID and opens Mi Hoja**, even when B has no profile. The isolated reproduction confirmed both effects.
+
+   The onboarding completion has the same missing lifecycle protection:
+   ```js
+   $('#obGo').disabled=false;
+   if(r.status===201||r.body.error==='profile-exists'){
+     acct.set({sub:C.user.id,handle:r.body.profile?r.body.profile.handle:h});
+     toast('¡Bienvenido a Mi Hoja!');return go()
+   }
+   ```
+
+   Navigating away while the POST is pending also produces `TypeError: Cannot set properties of null (setting 'disabled')` when it resolves, confirmed in isolation.
+
+   Capture the initiating account/session and operation identity. Invalidate pending completions on account or view changes, and verify ownership before updating the cache, accessing form controls, or calling `go()`.
+
+3. **[Certain] Sign-in from a public page cannot resume the initiating action.**
+
+   `site/hoja.js`, `requireAccount`:
+   ```js
+   if(/^#\/(mihoja|perfil)\b/.test(here()))A.route()
+   ```
+   ```js
+   C.openSignIn({
+     forceRedirectUrl:location.href,
+     signUpForceRedirectUrl:location.href
+   })
+   ```
+
+   Reproduction: call `requireAccount(go)` on `#/catalogo` while signed out, then notify the listener of successful sign-in. The listener neither resumes `go` nor reroutes. The isolated reproduction opened sign-in but recorded zero action callbacks. If sign-in redirects, the URL alone does not preserve the callback or action payload either.
+
+   Preserve the originating page and pending action through sign-in and onboarding, then resume it once after verifying the profile. Opening the sheet must also preserve the underlying public page instead of replacing it with `accountCard`.
+
+**NON-BLOCKING**
+
+- **[Certain] The client wiring assertion does not test these transitions.**
+  ```js
+  assert.match(h,/function vMiHoja\(sub\)\{requireAccount\(\(\)=>vMiHojaIn\(sub\)\)\}/,
+    'Mi Hoja pasa por la cuenta');
+  ```
+  It verifies a source pattern. Add behavioral coverage for authentication rejection, account switching during requests, navigation during submission, and public-page action resumption.
+
+[Certain] Local commands failed to start because of an execution-helper setup error. Repository inspection and the reported 43-test/14-mutation runs are **NOT VERIFIED** independently. The reproductions above used supplied function bodies with mocks; they are corroboration, not browser or deployment proof.
+
+VERDICT: BLOCK

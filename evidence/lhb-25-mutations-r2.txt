@@ -1,0 +1,17 @@
+N1 a 401/403 no longer closes the gate: exit 1, fail 1  -> RED
+N2 saved profile opens on any failure status: exit 1, fail 1  -> RED
+N3 saved profile of another user opens: exit 1, fail 1  -> RED
+N4 late reply not tied to the user: exit 1, fail 1  -> RED
+N5 late reply not tied to the operation: exit 1, fail 1  -> RED
+N6 late reply not tied to the screen: exit 1, fail 2  -> RED
+N7 public page replaced by the card: exit 1, fail 1  -> RED
+N8 action not resumed after sign-in: exit 1, fail 1  -> RED
+N9 cancelled Google return reopens the sheet: exit 1, fail 1  -> RED
+N10 stale onboarding still opens Mi Hoja: exit 1, fail 1  -> RED
+N11 profile cached under any user: exit 1, fail 1  -> RED
+N12 profile-exists not rechecked: exit 1, fail 1  -> RED
+N13 inPlace page not repainted after onboarding: exit 1, fail 1  -> RED
+N14 account change does not invalidate pending work: exit 1, fail 1  -> RED
+N15 sign-out keeps the saved profile: exit 1, fail 1  -> RED
+N16 foreign intent not discarded: exit 1, fail 1  -> RED
+restored: exit 0, pass 47

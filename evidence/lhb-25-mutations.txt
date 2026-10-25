@@ -12,4 +12,4 @@ M11 content type not checked: exit 1, ℹ fail 1  -> RED
 M12 gate lets a user without profile through: exit 1, ℹ fail 1  -> RED
 M13 app handle rule drifts from server: exit 1, ℹ fail 1  -> RED
 M14 Mi Hoja opens without account: exit 1, ℹ fail 1  -> RED
-restored: exit 0, ℹ pass 43
+restored: exit 0, ℹ pass 47
