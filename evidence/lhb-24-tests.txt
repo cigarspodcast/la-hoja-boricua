@@ -1,0 +1,41 @@
+✔ index: title, viewport, PWA meta, local assets exist (2.8166ms)
+✔ manifest: standalone, icons 192/512/maskable exist (0.7211ms)
+✔ service worker precaches files that exist (6.3466ms)
+✔ Spanish UI, Fortaleza wording, prototype note, forbidden names absent (2.2342ms)
+✔ data layer: separate JSON files with real entries and sources (1.1642ms)
+✔ app wiring: upload uses camera capture and IndexedDB; offline fallback map; Volky art (0.468ms)
+✔ v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir (3.1185ms)
+✔ v6: data counts (2.4246ms)
+✔ v7: fotos reales de producto (6.4963ms)
+✔ v8: guagua B (recorte + campo de tabaco en el splash) (1.1516ms)
+✔ v9: splash por capas + garita fuera del header (0.8579ms)
+✔ v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11) (0.7587ms)
+✔ v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño (1.5493ms)
+✔ v13: icon files present with right sizes, new leaf-flag art; El Chalet in Lugares (2.4026ms)
+✔ v14: botón de Spotify en Podcast (0.4827ms)
+✔ v15: banner de Sergio en el catálogo, sin guagua (1.0597ms)
+✔ v16: paleta B Bandera (verdes intactos) (1.8424ms)
+✔ v17: flor de tabaco reemplaza la garita, flamboyán nuevo (1.8861ms)
+✔ v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla (2.7077ms)
+✔ v19: subtítulo del banner (0.2756ms)
+✔ artisan logos: every id in LOGOS maps to an existing webp and a real artisan (1.261ms)
+✔ v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone (1.3264ms)
+✔ v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta (1.4024ms)
+✔ v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta (0.9658ms)
+✔ v28: splash con La Ruta del Tabaco, eslogan y flor (0.5014ms)
+✔ v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan (2.2228ms)
+✔ v32: catálogo en orden alfabético (0.2487ms)
+✔ v39 SEO: páginas estáticas por lugar, índice, sitemap y robots (4.1569ms)
+✔ v40 SEO: páginas estáticas por artesano, índice y sitemap (4.8776ms)
+✔ dominio propio: lahojaboricua.com, sin tab.bot, 404 real (6.0631ms)
+✔ LHB-24: el service worker no responde /api/ (siempre red), sí lo demás (27.6267ms)
+✔ LHB-24: _routes.json manda solo /api/* a Functions (0.4053ms)
+✔ LHB-24: sesiones guardan solo el hash; cookie HttpOnly, Secure, SameSite=Lax, 90 días (21.5801ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 220.3467

@@ -7,3 +7,4 @@ __MACOSX/
 .env
 tools/*_interno.json
 __pycache__/
+.wrangler/

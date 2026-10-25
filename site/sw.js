@@ -1,5 +1,5 @@
 /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas; fotos grandes se cachean al verlas */
-const VERSION='lhb-v43';
+const VERSION='lhb-v44';
 const SHELL=['./','styles.css','app.js','art.js','hoja.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
  'data/bundle.js',
  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
@@ -11,6 +11,8 @@ self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')retu
  // map tiles: cache what was seen, cap size
  if(/(^|\.)tile\.openstreetmap\.org$/.test(url.hostname)){e.respondWith(caches.open('vb-tiles').then(async c=>{const hit=await c.match(req);if(hit)return hit;try{const r=await fetch(req);if(r.ok||r.type==='opaque'){c.put(req,r.clone());c.keys().then(ks=>{if(ks.length>300)c.delete(ks[0])})}return r}catch(err){return new Response('',{status:504})}}));return}
  if(url.origin!==location.origin)return;
+ // cuentas (LHB-24): /api/ siempre va a la red, nunca al caché
+ if(url.pathname.startsWith('/api/'))return;
  // data: network first (fresh events), fall back to cache
  if(url.pathname.includes('/data/')){e.respondWith(fetch(req).then(r=>{if(r.ok){const cp=r.clone();caches.open(VERSION).then(c=>c.put(req,cp))}return r}).catch(()=>caches.match(req,{ignoreSearch:true})));return}
  // navigations: app shell
