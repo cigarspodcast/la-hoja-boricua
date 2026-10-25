@@ -1,0 +1,91 @@
+[Certain] The revised gate still permits signed-out access through two paths, and the in-place onboarding path has two additional lifecycle defects.
+
+**BLOCKING**
+
+1. **[Certain] A pending profile-photo update reopens Mi Hoja after sign-out.**
+
+   The new gate in [hoja.js:184](/C:/Users/Owner/la-hoja-boricua/site/hoja.js:184) protects route entry:
+   ```js
+   function vMiHoja(sub){requireAccount(()=>vMiHojaIn(sub))}
+   ```
+   But the existing photo callback in [app.js:222](/C:/Users/Owner/la-hoja-boricua/site/app.js:222) directly redraws the protected view after asynchronous work:
+   ```js
+   await idb.put('perfil',b);
+   ```
+   ```js
+   toast(tt('pf.fotoOk'));vPerfil();topAvatar()
+   ```
+
+   **Reproduction:** Open `#/mihoja/perfil`, start a photo update, hold `resizeImage` pending, sign out, then resolve it. The account gate displays its sign-in card, but the photo callback subsequently replaces it with the profile. The isolated execution finished with `C.user === null` and the profile visible.
+
+   Invalidate this completion on account changes and route protected redraws through the gate.
+
+2. **[Certain] Supported hash aliases remain open after sign-out.**
+
+   [cuenta.js:10](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:10):
+   ```js
+   const onMiHoja=()=>/^#\/(mihoja|perfil)\b/.test(D.here());
+   ```
+   ```js
+   if(onMiHoja())D.reroute()
+   ```
+   The router in [app.js:229](/C:/Users/Owner/la-hoja-boricua/site/app.js:229) also accepts hashes without the slash:
+   ```js
+   location.hash.replace(/^#\/?/,'')
+   ```
+
+   **Reproduction:** Open `#mihoja` or `#perfil` with a valid profile, then notify Clerk’s listener of sign-out. Both reproductions cleared the cached account but never rerouted, leaving the protected view and its handlers active. `#/mihoja` correctly rerouted.
+
+   Use the router’s normalization when identifying protected routes.
+
+3. **[Certain] A stale in-place onboarding form submits under the replacement account.**
+
+   [cuenta.js:43](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:43):
+   ```js
+   D.ui.onboarding(async f=>{
+     let r;try{
+       r=await D.api(C,'POST','/api/profile',{...f,age_ok:true})
+     }catch(e){r={status:0,body:{}}}
+     const same=!!C.user&&C.user.id===uid;
+   ```
+   The account check occurs **after** the write. Meanwhile, the API adapter obtains the current session:
+   ```js
+   const t=await C.session.getToken();
+   ```
+
+   **Reproduction:** Start in-place onboarding on a public page as A, switch to B, then submit the still-visible form. The listener does not repaint that public route. The reproduction posted A’s form fields and `age_ok:true` under B, then returned `{stale:true}` after the request.
+
+   Check the captured account and operation before submitting, and invalidate the displayed onboarding form on account changes.
+
+4. **[Certain] Recovery from a lost creation response fails to restore the originating page.**
+
+   [cuenta.js:50](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:50):
+   ```js
+   if(r.body.error==='profile-exists'){go(done,o);return {ok:true}}
+   ```
+   The subsequent successful GET uses:
+   ```js
+   D.intent.clear();return done()
+   ```
+   Only the direct `201` path restores the public page:
+   ```js
+   if(o.inPlace)D.reroute();done();
+   ```
+
+   **Reproduction:** In-place onboarding successfully creates the profile, but its response is lost. Retry receives `409 profile-exists`; GET then returns the profile. The reproduction recorded `onboarding → store → GO`, with **no reroute**. The onboarding form remains underneath the resumed action instead of the originating page.
+
+   Share the page-restoration completion path between `201` and recovered existing-profile success.
+
+**NON-BLOCKING**
+
+- **[Certain] Full-suite verification encountered an environment restriction.** [site.test.js:273](/C:/Users/Owner/la-hoja-boricua/test/site.test.js:273) launches Python and then executes:
+  ```js
+  assert.equal(py.stdout.trim(), ...)
+  ```
+  Python returned `spawnSync python EPERM`, producing **46 passed, 1 failed**. This unchanged test failure is not evidence of an LHB-25 regression. All **6 focused LHB-25 tests passed**.
+
+- **[Certain] Verification scope:** The reproductions executed repository functions with mocked dependencies. Browser execution, real sign-up, and mutation reruns are **NOT VERIFIED**. Findings 3 and 4 concern the implemented in-place interface; no current feature calls it, as the review prompt states.
+
+[Certain] Previous round: **1 CONCUR**, explicit 401/403 handling is fixed; **2 MAINTAIN**, lifecycle protection remains incomplete as reproduced above; **3 MAINTAIN**, ordinary resumption works, but lost-response recovery does not restore the originating page.
+
+VERDICT: BLOCK

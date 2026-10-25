@@ -403,6 +403,35 @@ test('LHB-25: entrar desde una página pública no la reemplaza y retoma la acci
  const D2=n.D;D2.api=async(C,m)=>m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:'ana'}}};
  await n.A.require(n.go,{inPlace:true,act:'humidor'});await tick();const fin=sub({handle:'ana'});await fin;assert.deepEqual(n.log.filter(x=>x==='GO'||x==='reroute'),['reroute','GO'],'tras el perfil nuevo vuelve a pintar la página y hace la acción');
 });
+test('LHB-25: salir cierra Mi Hoja también por #mihoja y #perfil, igual que el router; el formulario de perfil de una cuenta anterior no queda',async()=>{
+ for(const hash of ['#/mihoja','#mihoja','#/mihoja/diario','#perfil','#/perfil/x']){
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});h.nav(hash);h.C.user={id:'user_a'};await h.A.require(h.go);await tick();
+  h.log.length=0;h.C.signIn(null);await tick();assert.ok(h.log.includes('reroute'),'salir repinta '+hash);assert.ok(h.log.includes('clear'));}
+ const g=CUENTA_HARNESS({});g.nav('#/catalogo');g.C.user={id:'user_a'};g.C.signIn(null);await tick();assert.ok(!g.log.includes('reroute'),'una página pública no se repinta al salir');
+ const app=read('app.js');assert.match(app,/const h=location\.hash\.replace\(\/\^#\\\/\?\/,''\)\|\|'catalogo';const \[r,arg\]=h\.split\('\/'\)/,'la lectura del hash del router no cambió');
+});
+test('LHB-25: un formulario de perfil que quedó en pantalla tras cambiar de cuenta no manda nada y se repinta',async()=>{
+ const calls=[];let submit;const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{calls.push(m+' '+p+' '+uid);return m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:'ana'}}}}});
+ h.D.ui.onboarding=s=>{submit=s;h.log.push('onboarding')};h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};
+ await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();assert.equal(typeof submit,'function');
+ h.log.length=0;h.C.signIn('user_b');await tick();assert.ok(h.log.includes('reroute'),'el cambio de cuenta repinta la página donde estaba el formulario');
+ calls.length=0;assert.deepEqual(await submit({handle:'ana'}),{stale:true});assert.deepEqual(calls,[],'no se mandó el perfil de A a nombre de B');assert.ok(!h.log.includes('GO'));
+ const ok=[];const g=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{ok.push(uid);return m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:'ana'}}}}});
+ let s2;g.D.ui.onboarding=s=>{s2=s};g.C.user={id:'user_a'};await g.A.require(g.go,{inPlace:true,act:'x'});await tick();await s2({handle:'ana'});assert.deepEqual(ok,['user_a','user_a'],'cada llamada de la cuenta lleva su usuario, para que el adaptador la ate a esa sesión');
+ const hj=read('hoja.js');assert.match(hj,/async function api\(C,method,path,body,uid\)\{const t=await C\.session\.getToken\(\);if\(uid&&\(!C\.user\|\|C\.user\.id!==uid\)\)throw new Error\('account-changed'\)/,'el adaptador se niega si la sesión ya es de otra cuenta');
+});
+test('LHB-25: si el perfil se creó pero se perdió la respuesta, el reintento termina igual que un 201 y repinta la página de origen',async()=>{
+ let gets=0,submit;const h=CUENTA_HARNESS({api:async(C,m)=>{if(m==='GET')return ++gets===1?{status:200,body:{needsProfile:true}}:{status:200,body:{profile:{handle:'ana'}}};return {status:409,body:{error:'profile-exists'}}}});
+ h.D.ui.onboarding=s=>{submit=s};h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();
+ assert.deepEqual(await submit({handle:'ana'}),{ok:true});await tick();
+ assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'),['reroute','GO'],'repinta la página y luego hace la acción');assert.ok(h.log.includes('store:user_a:ana'));
+ const g=CUENTA_HARNESS({api:async(C,m)=>m==='GET'?{status:200,body:{profile:{handle:'ana'}}}:{status:200,body:{}}});g.nav('#/c/yambo-toro');g.C.user={id:'user_a'};await g.A.require(g.go,{inPlace:true,act:'x'});await tick();
+ assert.deepEqual(g.log.filter(x=>x==='GO'||x==='reroute'),['GO'],'quien ya tenía perfil no repinta la página');
+});
+test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
+ const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));
+ assert.ok(seg.includes("await idb.put('perfil',b)")&&seg.includes("toast(tt('pf.fotoOk'));route();topAvatar()"),'tras guardar la foto se llama route()');assert.ok(!/fotoOk'\)\);vPerfil\(\)/.test(seg),'no se repinta el perfil sin pasar por la puerta');
+});
 test('LHB-42: llms.txt lista cada página del sitemap una vez; robots.txt deja pasar a todos los bots',()=>{
  const sm=[...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]);const tx=read('llms.txt').replace(/\r\n/g,'\n');
  assert.ok(tx.startsWith('# La Hoja Boricua\n\n> '),'título y resumen');

@@ -219,7 +219,7 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ups=
  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--gold);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
  <p class="note">${tt('pf.note')}</p>`;
  const u=await photoURL('perfil');if(u)$('#mePic').innerHTML=`<img src="${u}" alt="${tt('pf.fotoAlt')}">`;
- const onPic=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const b=await resizeImage(f,600,.82);await idb.put('perfil',b);if(urlCache.perfil){URL.revokeObjectURL(urlCache.perfil);delete urlCache.perfil}toast(tt('pf.fotoOk'));vPerfil();topAvatar()}catch(err){toast(tt('foto.err'))}};
+ const onPic=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const b=await resizeImage(f,600,.82);await idb.put('perfil',b);if(urlCache.perfil){URL.revokeObjectURL(urlCache.perfil);delete urlCache.perfil}toast(tt('pf.fotoOk'));route();topAvatar()}catch(err){toast(tt('foto.err'))}};
  $('#pCam').onchange=onPic;$('#pGal').onchange=onPic;
  $('#pForm').onsubmit=e=>{e.preventDefault();LS.set('perfil',{nombre:$('#pN').value.trim(),capa:$('#pC').value});toast(tt('pf.saved'));vPerfil();topAvatar()};hydratePhotos()}
 async function topAvatar(){const p=LS.get('perfil',{});const el=$('#topAvatar');const u=await photoURL('perfil');el.innerHTML=u?`<img src="${u}" alt="">`:`<span>${esc((p.nombre||'☆')[0].toUpperCase())}</span>`}

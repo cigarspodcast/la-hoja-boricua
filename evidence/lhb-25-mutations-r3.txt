@@ -1,0 +1,15 @@
+P1 hash aliases #mihoja/#perfil not protected on sign-out: exit 1, fail 1  -> RED
+P2 stale onboarding form still posts: exit 1, fail 1  -> RED
+P3 account change does not repaint the stale form: exit 1, fail 1  -> RED
+P4 api calls not bound to the account: exit 1, fail 1  -> RED
+P5 api adapter does not check the account: exit 1, fail 1  -> RED
+P6 recovered profile-exists does not repaint: exit 1, fail 1  -> RED
+P7 repaint flag ignored on success: exit 1, fail 1  -> RED
+P8 photo callback repaints profile directly: exit 1, fail 1  -> RED
+N1 a 401/403 no longer closes the gate: exit 1, fail 1  -> RED
+N2 saved profile opens on any failure status: exit 1, fail 1  -> RED
+N4 late reply not tied to the user: exit 1, fail 1  -> RED
+N5 late reply not tied to the operation: exit 1, fail 1  -> RED
+N14 account change does not invalidate pending work: exit 1, fail 1  -> RED
+N15 sign-out keeps the saved profile: exit 1, fail 2  -> RED
+restored: exit 0, pass 51
