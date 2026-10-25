@@ -1,0 +1,8 @@
+baseline ('0', [])
+M1 one cigar page removed -> ('1', ['LHB-41 SEO: página estática por cigarro, índice, sitemap y fuera del caché del shell'])
+M2 one cigar sitemap entry removed -> ('1', ['LHB-41 SEO: página estática por cigarro, índice, sitemap y fuera del caché del shell'])
+M3 sw navigation exclusion removed -> ('1', ['LHB-41 SEO: página estática por cigarro, índice, sitemap y fuera del caché del shell'])
+M4 artesano link back to the app hash -> ('1', ['v40 SEO: páginas estáticas por artesano, índice y sitemap'])
+M5 stray extra page in cigarros/ -> ('1', ['LHB-41 SEO: página estática por cigarro, índice, sitemap y fuera del caché del shell'])
+M6 price leaks into JSON-LD -> ('1', ['LHB-41 SEO: página estática por cigarro, índice, sitemap y fuera del caché del shell'])
+restored ('0', [])
