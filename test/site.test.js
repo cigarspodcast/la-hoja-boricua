@@ -279,6 +279,7 @@ test('LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propi
 test('LHB-42: llms.txt lista cada página del sitemap una vez; robots.txt deja pasar a todos los bots',()=>{
  const sm=[...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]);const tx=read('llms.txt');
  assert.ok(tx.startsWith('# La Hoja Boricua\n\n> '),'título y resumen');
+ assert.deepEqual([...tx.matchAll(/^## (.+)$/gm)].map(m=>m[1]),['Secciones','Lugares','Artesanos','Cigarros'],'secciones H2');
  const links=[...tx.matchAll(/^- \[[^\]\n]+\]\((https:\/\/lahojaboricua\.com\/[^)\s]*)\)/gm)].map(m=>m[1]);
  assert.deepEqual([...links].sort(),[...sm].sort(),'las mismas páginas que el sitemap');assert.equal(new Set(links).size,links.length,'sin repetidas');
  for(const l of tx.split('\n'))if(l.startsWith('- '))assert.match(l,/^- \[[^\]]+\]\([^)]+\)(: \S.*)?$/,l);
