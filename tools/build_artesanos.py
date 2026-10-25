@@ -9,6 +9,8 @@ SITE = os.path.join(ROOT, 'site'); OUT = os.path.join(SITE, 'artesanos')
 HOST = 'https://lahojaboricua.com'
 e = lambda s: html.escape(str(s or ''), quote=True)
 load = lambda n: json.load(open(os.path.join(ROOT, 'data', n), encoding='utf-8'))
+import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from schema import ld, crumbs, same_as, INICIO, LUGARES, ARTESANOS, CIGARROS  # LHB-44
 
 HEAD = """<!doctype html>
 <html lang="es-PR">
@@ -32,9 +34,6 @@ FOOT = """</main>
 </html>
 """
 FORT = {'suave': 'Suave', 'media': 'Media', 'fuerte': 'Fuerte'}
-
-def ld(obj):
-    return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/') + '</script>\n'
 
 def links_of(a):
     out = []
@@ -64,7 +63,7 @@ def page(a, cig):
     if ln: obj['sameAs'] = [u for _, u in ln]
     logo = os.path.exists(os.path.join(SITE, 'img', 'logos', aid + '.webp'))
     if logo: obj['logo'] = f'{HOST}/img/logos/{aid}.webp'
-    h = HEAD.format(title=e(title), desc=e(desc), url=url, ogt=e(f'{nom} · La Hoja Boricua'), ld=ld(obj), app=f'../#/a/{e(aid)}')
+    h = HEAD.format(title=e(title), desc=e(desc), url=url, ogt=e(f'{nom} · La Hoja Boricua'), ld=ld(obj, crumbs(INICIO, ARTESANOS, (nom, url))), app=f'../#/a/{e(aid)}')
     if logo: h += f'<img class="logo" src="../img/logos/{e(aid)}.webp" width="72" height="72" alt="Logo de {e(nom)}">\n'
     h += f'<h1>{e(nom)}</h1>\n<p class="tag">{e(tipo or "Artesano de cigarros")}{" · " + e(pu) if pu else ""}, Puerto Rico</p>\n'
     blurb = f'{nom} aparece en La Hoja Boricua, la guía de cigarros de artesanos boricuas'
@@ -103,14 +102,13 @@ def build():
     url = HOST + '/artesanos/'
     desc = f'{len(A)} artesanos, torcedores y tabacaleras de cigarros en Puerto Rico: Río Grande, Caguas, Mayagüez, Cidra, Santa Isabel y más. Sus cigarros, vitolas y enlaces.'
     h = HEAD.format(title='Artesanos de cigarros en Puerto Rico · Cigarros boricuas | La Hoja Boricua', desc=e(desc), url=url,
-                    ogt='Artesanos de cigarros en Puerto Rico', ld='', app='../#/artesanos')
+                    ogt='Artesanos de cigarros en Puerto Rico', ld=ld(crumbs(INICIO, ARTESANOS)), app='../#/artesanos')
     h += f'<h1>Artesanos de cigarros en Puerto Rico</h1>\n<p>{len(A)} artesanos, torcedores, marcas y tabacaleras boricuas en la guía, con sus cigarros.</p>\n<ul>'
     for a in sorted(A, key=lambda x: x['nombre'].lower()):
         pu = (a.get('pueblo') or '').strip()
         h += f'<li><a href="{a["id"]}.html">{e(a["nombre"])}</a>' + (f' <span>{e(pu)}</span>' if pu else '') + '</li>'
     h += '</ul>\n'
     open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(h + FOOT)
-    import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import build_cigarros; build_cigarros.build()
     n = write_sitemap()
     print('artesanos', len(A), 'sitemap urls', n)

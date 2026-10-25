@@ -1,0 +1,8 @@
+baseline ('0', [])
+M1 breadcrumbs removed from one lugar page -> ('1', ['LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propiedades, sameAs de los datos, WebSite en el inicio'])
+M2 one sameAs profile dropped on an artesano page -> ('1', ['LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propiedades, sameAs de los datos, WebSite en el inicio'])
+M3 last breadcrumb points elsewhere -> ('1', ['LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propiedades, sameAs de los datos, WebSite en el inicio'])
+M4 Product without brand -> ('2', ['LHB-41 SEO: página estática por cigarro, índice, sitemap y fuera del caché del shell', 'LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propiedades, sameAs de los datos, WebSite en el inicio'])
+M5 a build-clock date added -> ('1', ['LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propiedades, sameAs de los datos, WebSite en el inicio'])
+M6 home page JSON-LD removed -> ('1', ['LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propiedades, sameAs de los datos, WebSite en el inicio'])
+restored ('0', [])

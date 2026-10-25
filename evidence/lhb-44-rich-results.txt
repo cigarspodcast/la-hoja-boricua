@@ -1,0 +1,16 @@
+LHB-44 Google Rich Results Test, 2026-10-25 20:21Z to 20:25Z (Google's own crawl stamps 4:21:31 PM to 4:24:53 PM, UTC-4),
+run on the branch preview https://lhb-44-schema.la-hoja-boricua.pages.dev (commit 08b3601 or later; the JSON-LD is identical in 440eaa9).
+
+Every run says "URL is not available to Google / Crawl failed": Cloudflare Pages marks preview deployments noindex. The test still
+parsed each page's structured data, which is what this check is for.
+
+page                                   detected structured data
+/cigarros/yambo-toro                   Breadcrumbs: 1 valid. Product snippets: 1 invalid, critical issue
+                                       "Either offers, review, or aggregateRating should be specified" (expected: LHB-41 pinned no prices;
+                                       the Product markup parses, but a product rich result needs one of those fields)
+/artesanos/el-club-del-turro           Breadcrumbs: 1 valid. Organization: 1 valid (non-critical issues)
+/lugares/                              Breadcrumbs: 1 valid. Carousels (ItemList): 1 valid
+/lugares/casa-de-montecristo-vsj       Breadcrumbs: 1 valid. Local businesses: 1 valid (non-critical). Organization: 1 valid (non-critical)
+/ (home)                               no rich result type detected (WebSite and Organization graph present; not a rich result type here)
+
+A guessed id (/lugares/casa-cortes-chocobar) returned 404 and was retested with a real one; that run is not counted.

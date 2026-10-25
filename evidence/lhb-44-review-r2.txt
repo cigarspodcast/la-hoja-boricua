@@ -1,0 +1,26 @@
+[Certain] **BLOCKING: MAINTAIN the Round 1 finding.** The builder’s explanation supports changing the ticket, but does not satisfy its current pinned requirement.
+
+| Contract | Corrected artifact |
+|---|---|
+| “BreadcrumbList on every page” | `site/index.html` contains only `WebSite` and `Organization`; `test/site.test.js` explicitly asserts `!/BreadcrumbList/.test(read('index.html'))`. |
+
+[Certain] Google requires at least two breadcrumb items for its breadcrumb search feature. That supports the builder’s technical rationale, but does not authorize interpreting “every page” as “every page below the root.” It also does not establish that a one-item list is invalid JSON-LD. [Google breadcrumb documentation](https://developers.google.com/search/docs/appearance/structured-data/breadcrumb#structured-data-type-definitions)
+
+[Certain] This remains a **contract conflict**, not evidence that omitting home breadcrumbs breaks Google Search. The recommended resolution is an owner-approved amendment excluding the home page, retaining the current omission and test. Do not invent a second hierarchy level.
+
+Reproduction from the repository root, expected to throw against the supplied artifact:
+
+```powershell
+if ((Get-Content -Raw site/index.html) -notmatch 'BreadcrumbList') {
+    throw 'LHB-44: home page violates pinned BreadcrumbList on every page'
+}
+```
+
+**NON-BLOCKING notes**
+
+- [Certain] **CONCUR on the supplied changes:** the WhatsApp fixture exercises `tools/schema.py` with mixed-case hostnames and deduplication; the date guard now includes the home page.
+- [Certain] The supplied mutation reports show failing checks for the listed mutations. The repeat-build report claims unchanged generated files. Independent runtime confirmation of both is **NOT VERIFIED**.
+
+[Certain] Local execution failed twice before any command ran with `helper_unknown_error: setup refresh had errors`. This review therefore uses the supplied diff and evidence plus verified Google documentation; repository readback, test execution, and rebuild determinism were not independently verified.
+
+VERDICT: BLOCK
