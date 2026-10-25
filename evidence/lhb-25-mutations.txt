@@ -1,0 +1,15 @@
+M1 handle min length 3 -> 2: exit 1, ℹ fail 1  -> RED
+M2 handle max length 20 -> 21: exit 1, ℹ fail 1  -> RED
+M3 handle allows hyphen: exit 1, ℹ fail 1  -> RED
+M4 no lowercase: exit 1, ℹ fail 2  -> RED
+M5 reserved words ignored: exit 1, ℹ fail 2  -> RED
+M6 21+ not required: exit 1, ℹ fail 2  -> RED
+M7 bio limit 160 -> 161: exit 1, ℹ fail 1  -> RED
+M8 length in UTF-16 units: exit 1, ℹ fail 1  -> RED
+M9 duplicate handle not mapped to 409: exit 1, ℹ fail 1  -> RED
+M10 second POST overwrites: exit 1, ℹ fail 1  -> RED
+M11 content type not checked: exit 1, ℹ fail 1  -> RED
+M12 gate lets a user without profile through: exit 1, ℹ fail 1  -> RED
+M13 app handle rule drifts from server: exit 1, ℹ fail 1  -> RED
+M14 Mi Hoja opens without account: exit 1, ℹ fail 1  -> RED
+restored: exit 0, ℹ pass 43
