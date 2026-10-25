@@ -1,0 +1,27 @@
+LHB-37: Clerk production instance, DNS and CLERK_ISSUERS, read back 2026-10-25
+
+Clerk (owner created the application and the Production instance; the session's safety check blocked it changing Clerk settings):
+- Application app_3LCrSTHEoPOyI48K5lYEKoVHt4y "La Hoja Boricua".
+- Development instance ins_3LCrSW5ZaffeLsmtYZ1pvwC8sV8, issuer https://daring-eagle-8394.clerk.accounts.dev
+- Production instance ins_3LCslL9zvdlUml9ETOmq1RAjrED, domain lahojaboricua.com.
+- Phone sign-up and sign-in turned off by the owner, so no Pro plan features are on (the badge had listed SMS code (MFA) and Phone numbers).
+
+DNS (created by the session through the Cloudflare API, zone 25ebca85f3121058137e3ea8b5a65c43, all DNS only):
+CNAME accounts.lahojaboricua.com accounts.clerk.services
+CNAME clerk.lahojaboricua.com frontend-api.clerk.services
+CNAME clk2._domainkey.lahojaboricua.com dkim2.3oumwkq9qpys.clerk.services
+CNAME clk._domainkey.lahojaboricua.com dkim1.3oumwkq9qpys.clerk.services
+CNAME clkmail.lahojaboricua.com mail.3oumwkq9qpys.clerk.services
+All five resolve publicly through 1.1.1.1. Clerk Domains page after Verify Records: lahojaboricua.com Verified;
+Frontend API Verified; Account portal Verified; Email 3/3 Verified; SSL certificates issuing.
+
+Issuer:
+GET https://clerk.lahojaboricua.com/.well-known/openid-configuration -> issuer https://clerk.lahojaboricua.com
+GET https://clerk.lahojaboricua.com/.well-known/jwks.json -> 200, TLS verified
+
+Pages environment variables (set by the session through the Pages API, read back):
+production CLERK_ISSUERS = https://clerk.lahojaboricua.com            (D1 DB = 75adf6a7-512c-45f0-ae21-af87e32b8d28, lhb-prod)
+preview    CLERK_ISSUERS = https://daring-eagle-8394.clerk.accounts.dev (D1 DB = d7bfb4c7-41ee-4788-9571-ea20d378c515, lhb-preview)
+
+No secret key was handled. functions/_lib/auth.js verifies session tokens against the issuer's public JWKS and reads
+only CLERK_ISSUERS, so CLERK_SECRET_KEY is not needed by the code on main.
