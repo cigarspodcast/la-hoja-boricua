@@ -1,0 +1,43 @@
+LHB-4 cutover: lahojaboricua.com served from Cloudflare Pages project la-hoja-boricua
+All times UTC. Main at cutover: 7deabf7a51f944ad7992dba996bed677a9007c4c (merge of domain-switch).
+
+1. Production deploy
+   Pages API, latest production deployment 9f686fac-cb29-447a-9766-696fc6475e68,
+   commit 7deabf7a51f944ad7992dba996bed677a9007c4c, stage deploy success, ended 2026-10-25T17:23:58Z.
+
+2. DNS (zone lahojaboricua.com, id 25ebca85f3121058137e3ea8b5a65c43)
+   apex record 4729cfc791f878c9e53e2c07fef0520c and www record b58745a0c2268c695a281e30f6df06ab
+   point at la-hoja-boricua.pages.dev, proxied.
+
+3. Redirect rule 1dd6f6d87406478db67d3b7bb616f355 (ruleset 9f4180a5498a425097b872e19b926c3f)
+   Before: name "lahojaboricua.com -> lahojaboricua.sites.tab.bot",
+     filter (http.host eq "lahojaboricua.com") or (http.host eq "www.lahojaboricua.com"),
+     target concat("https://lahojaboricua.sites.tab.bot", http.request.uri.path), 301, query kept.
+   After (edited in the dashboard; the wrangler login cannot write rulesets):
+     name "www.lahojaboricua.com -> lahojaboricua.com",
+     filter (http.host eq "www.lahojaboricua.com" and not starts_with(http.request.uri.path, "/.well-known/acme-challenge/")),
+     target concat("https://lahojaboricua.com", http.request.uri.path), 301, query kept.
+   The challenge-path exclusion was added at about 18:52Z after measuring that
+   http://www.lahojaboricua.com/.well-known/acme-challenge/probe returned 301 to the apex,
+   which kept the www certificate validation pending. After the edit it returned 404 (reaches Pages).
+
+4. Edge responses (curl -sI)
+   https://lahojaboricua.com/                      200, no Location
+   https://www.lahojaboricua.com/lugares/?x=1      301 Location https://lahojaboricua.com/lugares/?x=1
+   https://lahojaboricua.com/no-existe             404
+
+5. Byte comparison, evidence/lhb-4-verify_live.py, output in evidence/lhb-4-verify_live.out
+   Basis: every file from git ls-files site at HEAD, fetched from https://lahojaboricua.com at its
+   served path (.html and index.html stripped, as Pages serves them), sha256 of the body against
+   sha256 of the HEAD blob.
+   Result: matched 177 of 177, mismatched 0.
+   Disclosed adjustment: Cloudflare Web Analytics injects one line
+   <script ... static.cloudflareinsights.com/beacon.min.js ...></script> before </body> in every
+   HTML response, including for a curl user agent. The script removes exactly that element and its
+   newline before hashing and counts them: 77 removed, one per HTML file.
+   The check was seen failing first: without the newline in the pattern it reported 100 of 177
+   matched and 77 mismatched, the first differing byte being the extra newline before </body>.
+
+6. Pages custom domains (Pages API)
+   18:48:20Z lahojaboricua.com active (verification active, certificate validation active)
+   18:48:20Z www.lahojaboricua.com pending (verification active, certificate validation pending)
