@@ -13,3 +13,7 @@ Production (lhb-prod, 75adf6a7-512c-45f0-ae21-af87e32b8d28) and the Production e
 4. Pages project la-hoja-boricua > Settings, environment selector = Preview > Bindings > Add > D1 database:
    variable DB, database lhb-preview. Read back from the bindings table: "D1 database DB lhb-preview".
    Takes effect from the next preview deployment.
+5. Read back through the Pages API (GET /accounts/.../pages/projects/la-hoja-boricua, deployment_configs), 2026-10-25 about 20:20Z:
+   preview: d1_databases {DB: d7bfb4c7-41ee-4788-9571-ea20d378c515}; production: d1_databases None. No env vars on either.
+6. Preview deployment of 0f03146: GET /api/me with no token -> 401 {"error":"no-session"};
+   with Cookie __session=abc.def.ghi -> 503 {"error":"no-auth-config"} (CLERK_ISSUERS not set yet; set after C1).

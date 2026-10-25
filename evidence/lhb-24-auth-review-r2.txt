@@ -1,0 +1,21 @@
+[Certain] **BLOCKING:** None identified in the supplied artifacts. Independent test execution and deployed D1 state remain **NOT VERIFIED**.
+
+| Round-1 finding | Disposition and corrected artifact |
+|---|---|
+| B1: non-numeric `nbf` and infinite `exp` | [Certain] **CONCUR with closure.** `!Number.isFinite(body.exp)` rejects `1e400`; `body.nbf !== undefined && (!Number.isFinite(body.nbf) …)` rejects strings and null. The supplied tests exercise those forms. |
+| Null header/payload exceptions | [Certain] **CONCUR with closure.** `!isObj(head) || !isObj(body)` returns `format` before property access. Tests cover null, arrays, primitives, and `/api/me` returning 401. |
+
+[Certain] The remaining supplied code preserves the required controls:
+
+- Issuer allowlisting precedes `keyFor`; JWT header URLs cannot select the JWKS destination.
+- RS256 verification must succeed before authentication returns success. Expiration, not-before, origin, and subject checks cannot be bypassed through the shown request path.
+- `/api/me` binds the verified subject through `?1`, selects five explicit profile fields, and uses `no-store`.
+- Migration 0002 drops referencing tables before `users`. No foreign-key ordering hazard is evident under the pinned empty-preview scope.
+- The tests contain meaningful positive and negative assertions. The supplied mutation log reports failures for A1–A15 and successful baseline/restored runs.
+
+[Certain] **NON-BLOCKING:**
+
+- JWKS refresh throttling is incomplete under concurrency or fetch failure: `jwksCache.set` happens only after successful retrieval/import. Concurrent misses can each fetch, and failed refreshes leave no retry timestamp. Consider an in-flight promise and failure backoff per issuer.
+- The local execution helper failed before PowerShell launched. Repository readback, skill loading, test reruns, and mutation reruns were unavailable. This review therefore relies on the supplied source and evidence, not independently reproduced runtime proof.
+
+VERDICT: PASS
