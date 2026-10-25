@@ -2,7 +2,7 @@
    Todo vive en este teléfono (localStorage). Sin cuentas. */
 window.LHB_EXT=function(A){'use strict';
 const {$,$$,esc,toast,view,VBArt}=A;const D=()=>A.D();
-const APP_URL='https://lahojaboricua.sites.tab.bot/';
+const APP_URL='https://lahojaboricua.com/';
 /* ---------- utilidades ---------- */
 const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const MESL=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -457,7 +457,7 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
  const vs=c.vitolas||[];const specs=[['CAPA',(c.capa||'No publicada').replace(/\s*\(.*?\)/g,'')],['FORTALEZA',c.fortaleza?A.fortLabel(c.fortaleza):'No publicada'],['VITOLA',vs.length?vs[0]+(vs.length>1?' +'+(vs.length-1):''):'En verificación']];
  const bw=300,gap=24,bx=(W-bw*3-gap*2)/2,by=y+96;specs.forEach(([k,v],i)=>{const X=bx+i*(bw+gap);x.fillStyle='rgba(23,58,38,.92)';rr(x,X,by,bw,110,18);x.fill();x.strokeStyle='#2c5a3d';x.lineWidth=2;x.stroke();
   x.fillStyle='#8fb8ff';x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle='#f8f8f4';x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
- x.textAlign='center';x.fillStyle='#8fd162';x.font='700 30px Figtree';x.fillText('lahojaboricua.sites.tab.bot',W/2,H-62);x.fillStyle='#b3c0b5';x.font='600 20px Figtree';x.fillText('Prototipo — información pública, sujeta a verificación',W/2,H-28);
+ x.textAlign='center';x.fillStyle='#8fd162';x.font='700 30px Figtree';x.fillText('lahojaboricua.com',W/2,H-62);x.fillStyle='#b3c0b5';x.font='600 20px Figtree';x.fillText('Prototipo — información pública, sujeta a verificación',W/2,H-28);
  return new Promise(r=>cv.toBlob(b=>r(b),'image/png'))}
 async function shareCard(id){const c=A.cigarById(id);if(!c)return;
  const el=sheet(`<h2 class="sheet-h">Compartir ficha</h2><div class="share-prev" id="shPrev"><p class="hint">Preparando la imagen…</p></div><div class="links" id="shBtns" hidden><button class="btn" type="button" id="shGo">Compartir</button><button class="btn secondary" type="button" id="shDl">Descargar PNG</button></div>`,'Compartir ficha');

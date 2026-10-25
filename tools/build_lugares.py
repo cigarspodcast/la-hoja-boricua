@@ -5,7 +5,7 @@
 import json, os, re, html, datetime
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, 'site'); OUT = os.path.join(SITE, 'lugares')
-HOST = 'https://lahojaboricua.sites.tab.bot'
+HOST = 'https://lahojaboricua.com'
 P = json.load(open(os.path.join(ROOT, 'data', 'places.json'), encoding='utf-8'))
 e = lambda s: html.escape(str(s or ''), quote=True)
 SJ = {'Viejo San Juan', 'Santurce', 'Miramar', 'Condado', 'San Juan'}
@@ -59,7 +59,7 @@ def ld(obj):
     return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/') + '</script>\n'
 
 def page(p, vecinos):
-    pid = p['id']; url = f'{HOST}/lugares/{pid}.html'; nom = p['nombre']; pt = pueblo_txt(p); et = etiqueta(p)
+    pid = p['id']; url = f'{HOST}/lugares/{pid}'; nom = p['nombre']; pt = pueblo_txt(p); et = etiqueta(p)
     title = f'{nom} · {et} en {pt}, Puerto Rico | La Hoja Boricua'
     tipo = p['tipo']; dirc = (p.get('direccion') or '').strip()
     desc = f'{nom}: {tipo.lower()} en {pt}, Puerto Rico.' + (f' Dirección: {dirc.rstrip(".")}.' if dirc else '') + ' Mapa y enlaces en La Hoja Boricua.'
@@ -115,7 +115,7 @@ def build():
     L = [p for p in P if p['categoria'] == 'lounge']; V = [p for p in P if p['categoria'] != 'lounge']
     desc = f'Guía de {len(L)} cigar lounges y lugares para fumar cigarros en Puerto Rico: San Juan, Condado, Viejo San Juan, Ponce, Caguas y más. Dirección, mapa y enlaces de cada uno.'
     items = {'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'Cigar lounges en Puerto Rico',
-             'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'url': f'{HOST}/lugares/{p["id"]}.html', 'name': p['nombre']} for i, p in enumerate(L)]}
+             'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'url': f'{HOST}/lugares/{p["id"]}', 'name': p['nombre']} for i, p in enumerate(L)]}
     h = HEAD.format(title='Cigar lounges en Puerto Rico · Dónde fumar cigarros | La Hoja Boricua', desc=e(desc), url=url,
                     ogt='Cigar lounges en Puerto Rico', ld=ld(items))
     h += f'<h1>Cigar lounges en Puerto Rico</h1>\n<p>{len(L)} lounges, bares y lugares donde fumar cigarros en Puerto Rico, por pueblo. Más abajo, {len(V)} tiendas donde comprar cigarros.</p>\n'
