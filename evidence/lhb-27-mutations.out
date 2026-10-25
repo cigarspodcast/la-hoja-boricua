@@ -1,0 +1,8 @@
+baseline ('0', [])
+M1 one key removed from the English table -> ('1', ['LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves'])
+M2 one key removed from the Spanish table -> ('1', ['LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves'])
+M3 a Spanish literal written back into a view -> ('2', ['LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves', 'LHB-27: ningún texto en español queda escrito en las vistas de app.js (antes: 161)'])
+M4 the switch flag turned on -> ('1', ['LHB-27: idioma por navigator.language, se recuerda, y se queda en español hasta E6'])
+M5 i18n.js dropped from the sw shell -> ('1', ['LHB-27: idioma por navigator.language, se recuerda, y se queda en español hasta E6'])
+M6 i18n.js loaded after app.js -> ('1', ['LHB-27: idioma por navigator.language, se recuerda, y se queda en español hasta E6'])
+restored ('0', [])

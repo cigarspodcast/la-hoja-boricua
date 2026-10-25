@@ -1,0 +1,163 @@
+# node test/i18n-scan.js <site/app.js at lhb-41-cigarros 45a36f0>, measured 2026-10-25
+text: Prototipo
+text: \u2014 información pública, sujeta a verificación.
+text: Tuyo
+text: Catálogo
+text: La Ruta
+text: del Tabaco
+text: en Puerto Rico
+text: Las vitolas de nuestros artesanos, de norte a sur y de este a oeste de nuestra isla.
+text: 📲 Instalar App
+text: Cata guiada
+text: Paso a paso
+text: Maridajes
+text: Ron y café
+text: Eventos
+text: Humo y Tambor
+text: Buscar
+text: Toda fortaleza
+text: Capa: todas
+text: Artesano: todos
+text: Sube la tuya
+text: No encontramos esa vitola.
+text: ‹ Volver
+text: Foto de la línea
+text: Capa
+text: Fortaleza
+text: Origen
+text: Vitola
+text: Tu calificación
+text: · Ver perfil y enlaces
+text: Artesano:
+text: Borrar mi subida
+text: boricuas
+text: Pronto.
+text: No encontramos ese artesano.
+text: ‹ Artesanos
+text: Dónde comprar:
+text: Sus vitolas
+text: vitola
+text: Sin foto todavía
+text: 📷 Cámara
+text: 🖼️ Galería
+text: Nombre de la vitola
+text: Artesano
+text: Selecciona…
+text: Otro (escribir)
+text: Nombre del artesano
+text: Capa
+text: Fortaleza
+text: Pueblo
+text: Vitola / medida
+text: Notas
+text: Guardar vitola
+text: Cómo llegar
+text: disfrutar
+text: Mapa
+text: Lista
+text: 🌿 Ruta del Tabaco
+text: Todos
+text: Lounges
+text: Puntos de venta
+text: Pueblo: todos
+text: Punto de venta
+text: 📍 Cerca de mí
+text: Cómo llegar
+text: No hay lugares con ese filtro.
+text: Cómo llegar
+text: Mi perfil
+text: Subidas
+text: Favoritos
+text: Calificadas
+text: Editar perfil
+text: Nombre
+text: Capa favorita
+text: Foto
+text: 📷 Cámara
+text: 🖼️ Galería
+text: Guardar perfil
+text: Mis subidas
+text: Mis favoritos
+text: Toca ♡ en una vitola para guardarla.
+text: Mis calificaciones
+text: Califica una vitola con estrellas.
+text: Prototipo
+text: \u2014 información pública, sujeta a verificación. Tus datos se guardan solo en este teléfono.
+attr: Ilustración de
+attr: Foto del cigarro
+attr: Favorito
+attr: Explora
+attr: Buscar vitola, artesano, pueblo…
+attr: Fortaleza
+attr: Capa
+attr: Artesano
+attr: Foto del cigarro
+attr: Más fotos
+attr: Ver foto:
+attr: Calificación
+attr: estrellas
+attr: Ej. Robusto de la casa
+attr: Ej. Habano, Maduro, Connecticut
+attr: Fortaleza
+attr: Ej. Cayey
+attr: Ej. Robusto 5 x 50
+attr: Sabores, maridaje, dónde lo conseguiste…
+attr: Foto seleccionada
+attr: Vista
+attr: Pueblo
+attr: Mapa de Puerto Rico
+attr: Mapa de Puerto Rico
+attr: ¿Cómo te llamas?
+attr: Tu foto
+call: ¿Borrar esta vitola?
+call: Borrada
+call: No pude leer esa foto
+call: Ponle nombre a la vitola
+call: ¡Vitola guardada!
+call: Tu cel no comparte ubicación
+call: No pude obtener tu ubicación
+call: Foto actualizada
+call: No pude leer esa foto
+call: Perfil guardado
+call: ¡Instalada!
+head: Artesanos
+head: Subir
+head: Lugares
+str: Artesano sin perfil
+html: No hay vitolas con esos filtros.
+str: Subido por ti
+str: Hecho en Puerto Rico
+str: ♥ Guardado
+str: ♡ Guardar en favoritos
+str: No publicada
+str: No publicada
+str: No publicada
+str: Guardado en favoritos
+str: Quitado de favoritos
+html: Manos
+str: Tabacaleras y torcedores de la isla, con su historia y dónde encontrarlos.
+str: Sitio web
+str: Dónde comprar
+html: Añade una
+str: Foto, artesano, capa y Fortaleza. Se guarda en tu cel.
+str: Sitio web
+html: Dónde
+html: y comprar
+str: · ubicación aprox.
+str: Sin conexión: mapa simplificado. Toca un pueblo.
+str: El mapa no cargó: vista simplificada. Toca un pueblo.
+str: · encendido
+str: Sin conexión: mapa simplificado. Toca un pin.
+str: El mapa no cargó: vista simplificada. Toca un pin.
+str: 📍 Cerca de mí
+str: Tú estás aquí
+str: Tú estás aquí
+str: 📍 Cerca de mí
+str: Sugerida por ti · pendiente de verificar
+str: Ver más
+str: Tu nombre
+str: Capa favorita:
+str: Escoge tu capa favorita
+str: Todavía no has subido vitolas.
+tpl: lounges y puntos de venta en la isla.
+TOTAL 161
