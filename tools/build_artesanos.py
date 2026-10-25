@@ -76,7 +76,7 @@ def page(a, cig):
             bits = []
             if c.get('vitolas'): bits.append('Vitolas: ' + ', '.join(c['vitolas']))
             if c.get('fortaleza'): bits.append('Fortaleza: ' + FORT.get(c['fortaleza'], c['fortaleza']))
-            h += f'<li><a href="../#/c/{e(c["id"])}">{e(c["nombre"])}</a>' + (f' <span>{e(" · ".join(bits))}</span>' if bits else '') + '</li>'
+            h += f'<li><a href="../cigarros/{e(c["id"])}.html">{e(c["nombre"])}</a>' + (f' <span>{e(" · ".join(bits))}</span>' if bits else '') + '</li>'
         h += '</ul>\n'
     if ln: h += '<p class="links">' + ' '.join(f'<a href="{e(u)}" rel="noopener">{lab}</a>' for lab, u in ln) + '</p>\n'
     return h + FOOT
@@ -85,6 +85,8 @@ def write_sitemap():
     P = load('places.json'); A = load('artesanos.json') if os.path.exists(os.path.join(ROOT, 'data', 'artesanos.json')) else []
     urls = [HOST + '/', HOST + '/lugares/'] + [f'{HOST}/lugares/{p["id"]}' for p in P]
     if A: urls += [HOST + '/artesanos/'] + [f'{HOST}/artesanos/{a["id"]}' for a in A]
+    C = load('cigarros.json') if os.path.exists(os.path.join(ROOT, 'data', 'cigarros.json')) else []
+    if C: urls += [HOST + '/cigarros/'] + [f'{HOST}/cigarros/{c["id"]}' for c in C]
     sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(f'<url><loc>{u}</loc></url>\n' for u in urls) + '</urlset>\n'
     open(os.path.join(SITE, 'sitemap.xml'), 'w').write(sm)
     return len(urls)
@@ -108,6 +110,8 @@ def build():
         h += f'<li><a href="{a["id"]}.html">{e(a["nombre"])}</a>' + (f' <span>{e(pu)}</span>' if pu else '') + '</li>'
     h += '</ul>\n'
     open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(h + FOOT)
+    import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import build_cigarros; build_cigarros.build()
     n = write_sitemap()
     print('artesanos', len(A), 'sitemap urls', n)
 

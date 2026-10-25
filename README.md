@@ -11,7 +11,7 @@ App web (PWA) sobre el tabaco artesanal puertorriqueño: artesanos, cigarros hec
 - `data/`: los datos fuente en JSON (`artesanos.json`, `cigarros.json`, `places.json`, `events.json`). No se publican; aquí es donde se editan.
 - `site/`: la app completa, lo que se publica (HTML, CSS y JavaScript sin dependencias de build).
   - `site/data/bundle.js`: el único archivo de datos que carga la app, generado desde `data/`.
-  - `site/lugares/` y `site/artesanos/`: páginas estáticas por lugar y por artesano, generadas desde `data/`, igual que `site/sitemap.xml` y `site/robots.txt`.
+  - `site/lugares/`, `site/artesanos/` y `site/cigarros/`: páginas estáticas por lugar, por artesano y por cigarro, generadas desde `data/`, igual que `site/sitemap.xml` y `site/robots.txt`.
   - `site/sw.js`: service worker (caché y modo offline).
   - `site/404.html`: página de "no encontrada".
   - `site/img/`, `site/icons/`, `site/fonts/`: imágenes, íconos y tipografías.
@@ -30,7 +30,7 @@ python3 tools/rebuild_bundle.py
 ```
 
 - `build_lugares.py`: `site/lugares/`, `site/sitemap.xml` y `site/robots.txt`.
-- `build_artesanos.py`: `site/artesanos/` y `site/sitemap.xml`.
+- `build_artesanos.py`: `site/artesanos/`, `site/cigarros/` (llama a `build_cigarros.py`) y `site/sitemap.xml`.
 - `rebuild_bundle.py`: `site/data/bundle.js`.
 
 `tools/build_data.py` es distinto: crea los JSON de `data/` y el bundle a partir de un archivo de investigación nuevo (`python3 tools/build_data.py investigacion.json`).
