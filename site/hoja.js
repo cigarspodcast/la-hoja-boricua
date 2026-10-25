@@ -143,8 +143,11 @@ const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
 const acct={get:()=>A.LS.get('cuenta',null),set:v=>A.LS.set('cuenta',v),clear:()=>{try{localStorage.removeItem('vb_cuenta')}catch(e){}}};
 let clerkP=null,clerkHooked=false;
+const script=(src,pk)=>new Promise((ok,no)=>{const s=document.createElement('script');s.async=true;s.crossOrigin='anonymous';if(pk)s.dataset.clerkPublishableKey=pk;s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)});
+/* clerk-js 6 trae la lógica; las pantallas de entrar vienen aparte en @clerk/ui y se le pasan al cargar */
 function clerk(){if(clerkP)return clerkP;
- clerkP=new Promise((ok,no)=>{const s=document.createElement('script');s.async=true;s.crossOrigin='anonymous';s.dataset.clerkPublishableKey=CLERK.pk;s.src=`https://${CLERK.fapi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`;s.onload=()=>window.Clerk.load().then(()=>ok(window.Clerk),no);s.onerror=no;document.head.appendChild(s)}).catch(e=>{clerkP=null;throw e});
+ clerkP=Promise.all([script(`https://${CLERK.fapi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`,CLERK.pk),script(`https://${CLERK.fapi}/npm/@clerk/ui@1/dist/ui.browser.js`)])
+  .then(()=>window.Clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor}})).then(()=>window.Clerk).catch(e=>{clerkP=null;throw e});
  return clerkP}
 async function api(C,method,path,body){const t=await C.session.getToken();const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
 const here=()=>location.hash;
