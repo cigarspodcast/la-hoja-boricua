@@ -446,6 +446,15 @@ test('LHB-25: entrar desde una página pública y fallar la revisión muestra el
  const m=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});m.nav('#/mihoja');m.C.user={id:'user_a'};await m.A.require(m.go);await tick();assert.ok(m.log.includes('card:No pudimos revisar tu cuenta')&&!m.log.some(x=>x.startsWith('notice')),'en Mi Hoja el error va en la tarjeta, no en una hoja');
  assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast}'),'hoja.js pasa el aviso sobre la página');
 });
+test('LHB-25: un reintento del usuario puede volver a abrir la hoja de entrar y la acción sigue viva',async()=>{
+ let status=401;const h=CUENTA_HARNESS({api:async()=>({status,body:status===200?{profile:{handle:'ana'}}:{}})});h.nav('#/c/yambo-toro');
+ await h.A.require(h.go,{inPlace:true,act:'humidor'});h.C.signIn('user_a');await tick();assert.ok(h.log.includes('notice:No pudimos revisar tu cuenta'));
+ h.C.signIn(null);await tick();h.notice().on();await tick();
+ assert.equal(h.log.filter(x=>x==='open').length,2,'tras salir, el reintento vuelve a abrir la hoja de entrar');
+ status=200;h.C.signIn('user_a');await tick();assert.deepEqual(h.log.filter(x=>x==='GO'),['GO'],'al volver a entrar, la acción original corre una vez');
+ const g=CUENTA_HARNESS({});g.nav('#/c/yambo-toro');g.A.register('humidor',g.go);g.setIntent({from:'#/c/yambo-toro',act:'humidor'});await g.A.resume();await tick();
+ assert.ok(!g.log.includes('open'),'la reanudación automática tras una redirección sigue callada si el usuario canceló');
+});
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));
  assert.ok(seg.includes("await idb.put('perfil',b)")&&seg.includes("toast(tt('pf.fotoOk'));route();topAvatar()"),'tras guardar la foto se llama route()');assert.ok(!/fotoOk'\)\);vPerfil\(\)/.test(seg),'no se repinta el perfil sin pasar por la puerta');

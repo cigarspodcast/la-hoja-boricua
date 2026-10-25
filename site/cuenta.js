@@ -17,7 +17,7 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
   if(onMiHoja()||ob){ob=false;D.reroute()}})}
 async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;const show=(h,p,b)=>{if(!o.inPlace&&op===seq)D.ui.card(h,p,b)};
  /* un error nunca se esconde: sobre la página (en sitio) o en la tarjeta de Mi Hoja, siempre con reintento que conserva la acción */
- const fail=(h,p)=>{if(op!==seq)return;const b={label:'Intentar otra vez',on:()=>go(done,o)};if(o.inPlace)D.ui.notice(h,p,b);else D.ui.card(h,p,b)};
+ const fail=(h,p)=>{if(op!==seq)return;const b={label:'Intentar otra vez',on:()=>go(done,{...o,resume:false})};if(o.inPlace)D.ui.notice(h,p,b);else D.ui.card(h,p,b)};
  show('Un momento…','Revisando tu cuenta.');
  let C;
  try{C=await D.clerk()}catch(e){

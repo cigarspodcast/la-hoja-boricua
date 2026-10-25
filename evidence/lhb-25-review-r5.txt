@@ -1,0 +1,58 @@
+**BLOCKING**
+
+1. [Certain] **An explicit retry can discard the action when reauthentication is needed.** In `site/cuenta.js`, signing in resumes with:
+
+   ```js
+   go(p.go,{...p.o,resume:true})
+   ```
+
+   The error button preserves that flag:
+
+   ```js
+   const b={label:'Intentar otra vez',on:()=>go(done,o)}
+   ```
+
+   If the user follows the 401/403 message, signs out, then clicks retry, this branch silently stops:
+
+   ```js
+   if(o.resume){D.intent.clear();return}
+   ```
+
+   No sign-in sheet opens and no pending callback is installed. Signing back in afterward also fails to run the original action.
+
+   Reproduction using the supplied harness:
+
+   ```js
+   let status = 401;
+   const h = CUENTA_HARNESS({
+     api: async () => ({
+       status,
+       body: status === 200 ? {profile:{handle:'ana'}} : {}
+     })
+   });
+   h.nav('#/c/yambo-toro');
+   await h.A.require(h.go, {inPlace:true, act:'humidor'});
+   h.C.signIn('user_a');
+   await tick();
+   h.C.signIn(null);
+   await h.notice().on();
+   await tick();
+
+   // Fails: actual open count remains 1.
+   assert.equal(h.log.filter(x => x === 'open').length, 2);
+
+   status = 200;
+   h.C.signIn('user_a');
+   await tick();
+   // Also fails: GO never occurs.
+   assert.ok(h.log.includes('GO'));
+   ```
+
+   Make an explicit retry eligible to open sign-in and reinstall the pending action. Keep the silent cancellation behavior limited to automatic redirect resumption.
+
+**NON-BLOCKING**
+
+- [Certain] **CONCUR on the previous hidden-error finding.** The corrected `fail()` uses `D.ui.notice(h,p,b)` in place and `D.ui.card(h,p,b)` otherwise; `hoja.js` wires `notice:accountNotice`. The separate reauthentication failure above remains.
+- [Certain] **Verification limitation:** shell initialization failed before repository reads or test execution. In-memory execution of the supplied `cuenta.js` reproduced the lost-action sequence, but this is corroboration, not repository/runtime proof. The reported 53/53 suite, mutation results, and real signup remain independently **NOT VERIFIED**.
+
+VERDICT: BLOCK

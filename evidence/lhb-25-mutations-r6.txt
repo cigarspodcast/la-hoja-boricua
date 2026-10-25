@@ -1,0 +1,23 @@
+P1 hash aliases #mihoja/#perfil not protected on sign-out: exit 1, fail 1  -> RED
+P2 stale onboarding form still posts: exit 1, fail 1  -> RED
+P3 account change does not repaint the stale form: exit 1, fail 1  -> RED
+P4 api calls not bound to the account: exit 1, fail 1  -> RED
+P5 api adapter does not check the account: exit 1, fail 1  -> RED
+P8 photo callback repaints profile directly: exit 1, fail 1  -> RED
+Q1 recovery announces success without the recheck: exit 1, fail 2  -> RED
+Q2 recovery does not repaint the origin page: exit 1, fail 2  -> RED
+Q3 late recheck not tied to user and screen: exit 1, fail 1  -> RED
+Q4 any account change repaints a public page: exit 1, fail 1  -> RED
+R1 in-place error hidden (no notice): exit 1, fail 2  -> RED
+R2 retry drops the original action: exit 1, fail 2  -> RED
+R3 Mi Hoja error shown as a sheet instead of the card: exit 1, fail 2  -> RED
+R4 hoja.js does not pass the notice: exit 1, fail 1  -> RED
+S1 retry keeps the silent redirect-resume flag: exit 1, fail 1  -> RED
+S2 automatic resume after redirect opens the sheet even if cancelled: exit 1, fail 2  -> RED
+N1 a 401/403 no longer closes the gate: exit 1, fail 1  -> RED
+N2 saved profile opens on any failure status: exit 1, fail 1  -> RED
+N4 late reply not tied to the user: exit 1, fail 1  -> RED
+N5 late reply not tied to the operation: exit 1, fail 1  -> RED
+N14 account change does not invalidate pending work: exit 1, fail 1  -> RED
+N15 sign-out keeps the saved profile: exit 1, fail 2  -> RED
+restored: exit 0, pass 54
