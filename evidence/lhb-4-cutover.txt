@@ -41,3 +41,12 @@ All times UTC. Main at cutover: 7deabf7a51f944ad7992dba996bed677a9007c4c (merge 
 6. Pages custom domains (Pages API)
    18:48:20Z lahojaboricua.com active (verification active, certificate validation active)
    18:48:20Z www.lahojaboricua.com pending (verification active, certificate validation pending)
+
+7. Close (appended 2026-10-25T19:13Z; sections 1 to 6 unchanged)
+   18:52Z onward the www certificate check still read pending. At 19:12:2xZ a PATCH to the Pages
+   domain endpoint for www.lahojaboricua.com asked it to retry validation.
+   19:12:37Z www.lahojaboricua.com active (certificate validation active)
+   Edge: https://www.lahojaboricua.com/ 301 to https://lahojaboricua.com/, apex 200, /no-existe 404.
+   www certificate: CN=www.lahojaboricua.com, issuer Google Trust Services WE1, notAfter 2027-01-23T19:12:24Z.
+   Main at close: f3778bf (LHB-9, LHB-12 and LHB-11 landed after 7deabf7; none changed site/ output, the
+   CI generator check passed on f3778bf).
