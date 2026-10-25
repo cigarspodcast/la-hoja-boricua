@@ -1,0 +1,34 @@
+LHB-12 Codex review of the tools/ archive move (11 scripts, git mv, 100% similarity)
+One round, prompt self-contained. Header fields from the run transcript.
+
+model: gpt-6-astra
+sandbox: read-only
+reasoning effort: high
+session id: 01a17470-87da-7900-b4ff-ff7fdb63504f
+exec attempts: 0
+codex exit 0
+--- prompt
+Do not load any skill, plugin or template. Do not run any command or tool. Everything you need is below. Your FIRST and ONLY message is the answer.
+
+Context: a static PWA repo with no build step besides three Python generators (tools/build_artesanos.py, tools/build_lugares.py, tools/rebuild_bundle.py) that a Cloudflare Pages build command runs; output folder site/. Tests: node --test test/site.test.js. No package.json, no CI config.
+
+CHANGE (git mv, content unchanged, every rename 100% similarity): tools/X.mjs -> tools/archive/X.mjs for X in verify, verify10, verify11, verify12, verify13, verify29, shot15, shot29, contrast15, pub_inline, size_check. The Python generators stay in tools/.
+
+Measured facts:
+- git grep -n -E "verify1?[0-9]*\.mjs|shot[0-9]+\.mjs|contrast15|pub_inline|size_check" -- . ':!tools/archive' prints nothing (no file references any of them).
+- Every moved script imports only absolute paths from the builder sandbox (/home/user/node_modules/playwright-core/index.js or /home/user/tab/publish-cli.mjs), so a relative move does not change what they import.
+- pub_inline.mjs and size_check.mjs call the Tab builder publisher with hardcoded titles "La Hoja Boricua v24" and "v16"; pub_inline was last changed at v24 on 2026-10-22, and the builder has published about twenty later versions without editing it.
+
+Could this move break the Pages build, the tests, the generators or the site? Report only real defects.
+
+Answer format, nothing else:
+FINDING n | BLOCKING or NONBLOCKING | file and symbol | what is wrong | evidence
+(write NO FINDINGS if there are none)
+Last line exactly: VERDICT: PASS  or  VERDICT: BLOCK
+--- answer (verbatim from codex exec -o)
+NO FINDINGS
+VERDICT: PASS
+--- proofs, run at execution time on the staged tree
+1. git grep -n -E "verify1?[0-9]*\.mjs|shot[0-9]+\.mjs|contrast15|pub_inline|size_check" -- . ':!tools/archive'  -> no output, exit 1.
+   This grep also printed nothing BEFORE the move (nothing references the scripts), so it cannot fail on its own; proof 2 is the one that changes.
+2. git ls-files tools | grep -v '^tools/archive/'  -> before: 15 files incl. 11 .mjs; after: tools/build_artesanos.py, tools/build_data.py, tools/build_lugares.py, tools/rebuild_bundle.py only.
