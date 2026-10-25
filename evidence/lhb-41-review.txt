@@ -1,0 +1,12 @@
+[Certain] BLOCKING: None identified in the supplied artifacts. The reported passing tests do not establish runtime cache behavior.
+
+NON-BLOCKING:
+
+- [Certain] The service-worker test checks source text: `sw.includes("!url.pathname.includes('/cigarros/')")`. M3 demonstrates that removing this expression fails the test, but does not prove shell preservation. A behavioral test should navigate to a cigar page and verify that cached `'./'` remains the app shell.
+- [Certain] The Fortaleza assertion checks only `p.name==='Fortaleza'`; an incorrect value would pass. Assert the expected mapped value as well.
+
+[Certain] The supplied implementation preserves the pinned decisions: `build_artesanos` invokes `build_cigarros`, the shared sitemap writer includes cigar URLs, artisan links target cigar pages, and visible notes retain the supplied wording with HTML escaping. No offers are added.
+
+[Certain] Independent repository inspection, regeneration parity, and test execution are NOT VERIFIED. Both shell attempts failed before execution with `helper_unknown_error: setup refresh had errors`. This verdict covers the supplied diff, samples, and reported test evidence.
+
+VERDICT: PASS

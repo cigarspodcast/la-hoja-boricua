@@ -1,0 +1,28 @@
+LHB-27 rendered-output comparison, measured 2026-10-25 between 19:56Z and 20:03Z (bounded by the preview deploy check and the Codex claim that followed) in the desktop app's built-in browser.
+
+Before: https://lahojaboricua.com/ (main ca46d2c, no i18n.js; window.LHB_I18N absent)
+After:  https://lhb-27-i18n.la-hoja-boricua.pages.dev/ (branch lhb-27-i18n bf850a3; window.LHB_I18N present)
+
+Method: the same script ran in both tabs. For each route it set location.hash, waited 900 ms, cloned #view,
+emptied #map (Leaflet tiles vary by load), and recorded innerHTML length and the first 8 bytes of its SHA-256.
+"lista" is #/lugares after clicking the Lista toggle.
+
+route                        before                     after                      same
+lang                         es-PR                      es-PR                      yes
+#/catalogo                   51995:0051bb39200348f7     51995:0051bb39200348f7     yes
+#/c/yambo-toro               6178:67347aa9ced43e36      6178:67347aa9ced43e36      yes
+#/c/monte-mistica-corojo     5438:373f79e9e91c42e5      5438:373f79e9e91c42e5      yes
+#/c/turro-lancero            4594:f8dc9b118ca6e90c      4594:f8dc9b118ca6e90c      yes
+#/artesanos                  23710:c2ea8aa318a12468     23710:c2ea8aa318a12468     yes
+#/a/yambo-cigars             3994:c54f59573fa3f67e      3994:c54f59573fa3f67e      yes
+#/a/el-club-del-turro        12290:4d7bf94a8ce2089f     12290:4d7bf94a8ce2089f     yes
+#/subir                      4676:2bfb32850f304313      4676:2bfb32850f304313      yes
+#/lugares (map emptied)      93595:9d75df45669e58cf     93595:9d75df45669e58cf     yes
+#/lugares/ruta               7283:1e4a9621c6b266bb      7283:1e4a9621c6b266bb      yes
+#/perfil                     3482:e11f347ecd1be29b      3482:e11f347ecd1be29b      yes
+#/eventos                    27714:eee90911ec722680     27714:eee90911ec722680     yes
+lista                        92380:16f74eacc8f49d8d     92380:16f74eacc8f49d8d     yes
+
+13 of 13 views identical (counting basis: the 13 rows above, html lang excluded). Console errors on the preview: none.
+Not covered by this comparison: toast, confirm and offline-map messages (not in #view); their keys are covered by
+the LHB-27 key test, and each Spanish value was checked against the original app.js when it was moved.

@@ -1,0 +1,13 @@
+[Certain] Independent execution remains NOT VERIFIED: the sandbox could not start repository commands or `node --test` because of `helper_unknown_error: setup refresh had errors`.
+
+**BLOCKING**
+
+[Likely] None found in the supplied change. Static review found no Spanish-output change, interpolation error, escaping regression, missing translation key, or load-order/service-worker regression.
+
+**NON-BLOCKING**
+
+- [Certain] The literal scanner is heuristic, not exhaustive: `^ ?[a-z-]+$` excludes lowercase single-word strings. The supplied mutation log nevertheless shows that the tested Spanish-literal restoration fails.
+- [Certain] The supplied evidence reports 35 passing tests, failing mutations M1–M6, and 13 identical view comparisons. These results were not independently rerun.
+- [Certain] `ENABLED=false` forcing Spanish matches the pinned decision. The `\u2014` escapes preserve the original rendered character.
+
+VERDICT: PASS
