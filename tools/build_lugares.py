@@ -125,6 +125,7 @@ def build():
     from build_artesanos import write_sitemap
     write_sitemap()
     open(os.path.join(SITE, 'robots.txt'), 'w').write(f'User-agent: *\nAllow: /\n\nSitemap: {HOST}/sitemap.xml\n')
+    import build_llms; build_llms.build()  # LHB-42: site/llms.txt con las mismas páginas del sitemap
     print('páginas', len(P), 'lounges', len(L), 'venta', len(V))
 
 if __name__ == '__main__':

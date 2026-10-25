@@ -1,0 +1,135 @@
+# La Hoja Boricua
+
+> Guía en español de cigarros hechos por artesanos boricuas, cigar lounges y tiendas de cigarros en Puerto Rico, hecha por Cigars Podcast. Cada página cita sus fuentes; la información es pública y está sujeta a verificación.
+
+## Secciones
+
+- [La Hoja Boricua](https://lahojaboricua.com/): la app, con catálogo, artesanos, lugares, eventos y Mi Hoja
+- [Cigar lounges en Puerto Rico](https://lahojaboricua.com/lugares/): 28 lounges y 13 tiendas, por pueblo
+- [Artesanos de cigarros en Puerto Rico](https://lahojaboricua.com/artesanos/): 32 artesanos, torcedores y tabacaleras
+- [Cigarros hechos por artesanos boricuas](https://lahojaboricua.com/cigarros/): 43 cigarros con capa, fortaleza y vitolas
+
+## Lugares
+
+- [612 C. Lounge](https://lahojaboricua.com/lugares/612-c-lounge-arecibo): lounge / bar en Arecibo
+- [Bar La Unidad](https://lahojaboricua.com/lugares/bar-la-unidad-miramar): bar (speakeasy) con cigar lounge en Miramar (San Juan)
+- [Casa de Montecristo](https://lahojaboricua.com/lugares/casa-de-montecristo-vsj): lounge / bar en Viejo San Juan
+- [Cigar Bar – El Conquistador Resort](https://lahojaboricua.com/lugares/conquistador-cigar-bar): bar de hotel en Fajardo
+- [Ciudad Señorial Cigar Lounge](https://lahojaboricua.com/lugares/ciudad-senorial-ponce): lounge / coctelería en Ponce
+- [Club Macanudo Puerto Rico](https://lahojaboricua.com/lugares/club-macanudo-palmas): lounge en Humacao
+- [Condado Cigar Lounge](https://lahojaboricua.com/lugares/condado-cigar-lounge): lounge en Condado (San Juan)
+- [Don Collins Cigars](https://lahojaboricua.com/lugares/don-collins-vsj): tabaquería / lounge en Viejo San Juan
+- [Don Paco 1932 Cigar Bar](https://lahojaboricua.com/lugares/don-paco-1932): lounge en Guayama
+- [Don Rey Cigar (Bayamón)](https://lahojaboricua.com/lugares/don-rey-bayamon): tabaquería / lounge en Bayamón
+- [Don Rey Cigar (Caguas)](https://lahojaboricua.com/lugares/don-rey-caguas): tabaquería / lounge en Caguas
+- [Don Rey Cigar (Guaynabo)](https://lahojaboricua.com/lugares/don-rey-guaynabo): tabaquería / lounge en Guaynabo
+- [Don Rey Cigar (Humacao)](https://lahojaboricua.com/lugares/don-rey-humacao): tabaquería / lounge en Humacao
+- [Don Rey Cigar (Luquillo)](https://lahojaboricua.com/lugares/don-rey-luquillo): tabaquería / lounge en Luquillo
+- [Don Rey Cigar (Santurce)](https://lahojaboricua.com/lugares/don-rey-santurce): tabaquería / lounge en Santurce (San Juan)
+- [Don Rey Cigar (Viejo San Juan)](https://lahojaboricua.com/lugares/don-rey-viejo-san-juan): tabaquería / lounge en Viejo San Juan
+- [DragonFly Cigar Lounge](https://lahojaboricua.com/lugares/dragonfly-levittown): lounge en Toa Baja (Levittown)
+- [El Chalet](https://lahojaboricua.com/lugares/el-chalet-aguadilla): cigar bar / lounge en Aguadilla
+- [El Chapu PR · La Tienda](https://lahojaboricua.com/lugares/el-chapu-tienda): punto de venta (tienda y taller) en Toa Alta
+- [Entre Humos San Patricio](https://lahojaboricua.com/lugares/entre-humos-san-patricio): lounge en Guaynabo
+- [Falto Cigars · La Garita Cigar Company](https://lahojaboricua.com/lugares/falto-mayaguez): tienda / punto de venta en Mayagüez
+- [Finca Neo Jibairo](https://lahojaboricua.com/lugares/finca-neo-jibairo): bar y tabaquería en finca en Río Grande
+- [Good Times Smoke Shop](https://lahojaboricua.com/lugares/good-times-mayaguez): tabaquería en Mayagüez
+- [Green Zone Smoke Shop](https://lahojaboricua.com/lugares/green-zone-rincon): tabaquería en Rincón
+- [Habanacuba Cigar, Wines & Spirits](https://lahojaboricua.com/lugares/habanacuba-san-juan): tabaquería en San Juan
+- [JJ Cigar Lounge](https://lahojaboricua.com/lugares/jj-cigar-lounge-isabela): lounge en Isabela
+- [JL Cigars Lounge](https://lahojaboricua.com/lugares/jl-cigars-lounge-coamo): lounge y tienda del artesano en Coamo
+- [Juana Díaz Cigars](https://lahojaboricua.com/lugares/juana-diaz-cigars): tabaquería / cigar bar en Juana Díaz
+- [Kuros Smoke Lounge](https://lahojaboricua.com/lugares/kuros-condado): lounge en Condado (San Juan)
+- [La Factoría](https://lahojaboricua.com/lugares/la-factoria): bar en Viejo San Juan
+- [La Sibarita Condado](https://lahojaboricua.com/lugares/la-sibarita-condado): cigar & cocktail lounge (speakeasy) en Condado (San Juan)
+- [La Turrería](https://lahojaboricua.com/lugares/la-turreria-bayamon): lounge y tabaquería (el club del turro) en Bayamón
+- [Mother Earth Cigars](https://lahojaboricua.com/lugares/mother-earth-cigars): lounge en San Juan
+- [Pegadizo Cigar Lounge](https://lahojaboricua.com/lugares/pegadizo-fajardo): lounge en Fajardo
+- [Scryer Rum Barrelhouse & Rooftop](https://lahojaboricua.com/lugares/scryer-rum): bar en Viejo San Juan
+- [Tabaco & Puros Cigar Lounge (Juana Díaz Cigars en Ponce)](https://lahojaboricua.com/lugares/tabaco-y-puros-ponce): lounge en Ponce
+- [The Cave: Cuban Cuisine & Cocktails](https://lahojaboricua.com/lugares/the-cave): bar en Viejo San Juan
+- [The Cigar House](https://lahojaboricua.com/lugares/the-cigar-house-vsj): tabaquería / lounge en Viejo San Juan
+- [Timber & Blues](https://lahojaboricua.com/lugares/timber-blues): bar en Aguadilla
+- [Vaca Brava Caguas](https://lahojaboricua.com/lugares/vaca-brava-caguas): restaurante en Caguas
+- [VC Lounge (Condado Vanderbilt)](https://lahojaboricua.com/lugares/vc-lounge): bar en Condado (San Juan)
+
+## Artesanos
+
+- [Casa Robles Cigars](https://lahojaboricua.com/artesanos/casa-robles-cigars): Marca de cigarros
+- [Cigarros Caimito](https://lahojaboricua.com/artesanos/cigarros-caimito): Marca familiar de tabaqueros, Aguas Buenas
+- [Cigarros J. Vélez](https://lahojaboricua.com/artesanos/cigarros-j-velez): Marca de cigarros premium, Cidra
+- [Cohoba Cigars](https://lahojaboricua.com/artesanos/cohoba-cigars): Marca boutique con finca de tabaco propia y torcedor, Santa Isabel (Vegas Los Molinos)
+- [Don Chamorro](https://lahojaboricua.com/artesanos/don-chamorro-ponce): Torcedor · smoke shop, Ponce
+- [Don Collins Cigars](https://lahojaboricua.com/artesanos/don-collins): Tabacalera y tienda, San Juan (Viejo San Juan)
+- [Don Kike Cigars (Kike's Cigars)](https://lahojaboricua.com/artesanos/kikes-cigars-villalba): Marca artesanal · torcido en PR, Villalba
+- [Don Rey Cigar](https://lahojaboricua.com/artesanos/don-rey-cigar): Fábrica y cadena de tabaquerías, Caguas
+- [El Bastión Cigars](https://lahojaboricua.com/artesanos/el-bastion-cigars): Marca de cigarros
+- [El Chapu PR](https://lahojaboricua.com/artesanos/el-chapu-pr): Marca de cigarro artesanal + tienda/taller, Toa Alta
+- [El Club del Turro](https://lahojaboricua.com/artesanos/el-club-del-turro): Tabacalera (cultiva, cura, liga y tuerce), Río Grande
+- [El Escondite Cigar](https://lahojaboricua.com/artesanos/el-escondite-adjuntas): Marca de cigarros + barra en la montaña, Adjuntas
+- [Finca Neo Jibairo](https://lahojaboricua.com/artesanos/finca-neo-jibairo): Finca de tabaco + bar y tabaquería (cultivo; el torcido lo hace El Club del Turro), Río Grande
+- [Fumita PR](https://lahojaboricua.com/artesanos/fumita-pr): Torcedora · marca artesanal
+- [H.R. Handmade Cigars](https://lahojaboricua.com/artesanos/hr-handmade-cigars): Torcedor certificado · eventos, Toa Baja (Levittown)
+- [JFC Tobacco Corp. / Tabacalera Hoja Boricua](https://lahojaboricua.com/artesanos/jfc-hoja-boricua): Tabacalera, Mayagüez
+- [JL Cigars Artesanos](https://lahojaboricua.com/artesanos/jl-cigars-coamo): Torcedor artesanal · lounge propio, Coamo
+- [Juana Díaz Cigars](https://lahojaboricua.com/artesanos/juana-diaz-cigars): Marca propia · lounge, Juana Díaz
+- [La Hoja del Chan](https://lahojaboricua.com/artesanos/la-hoja-del-chan): Taller artesanal · marca El Chan Cigars, Caguas
+- [Molina & López Tabacalera](https://lahojaboricua.com/artesanos/molina-lopez): Tabacalera, Caguas
+- [Monte & Mística](https://lahojaboricua.com/artesanos/monte-mistica): Marca de la casa Entre Humos
+- [Mr. Jony Cigars](https://lahojaboricua.com/artesanos/mr-jony-cigars): Torcedor / marca artesanal (taller de La Hoja del Chan), Caguas
+- [Papiro's Cigars](https://lahojaboricua.com/artesanos/papiros-cigars-cidra): Torcedor / taller artesanal (marca propia), Cidra
+- [Pitirre Cigars](https://lahojaboricua.com/artesanos/pitirre-cigars): Torcedor / marca artesanal, Trujillo Alto
+- [Ricamontes Cigars · El Búho](https://lahojaboricua.com/artesanos/el-buho-ricamontes): Marca / tabacalera artesanal, Aguas Buenas
+- [San Pedrito Cigars](https://lahojaboricua.com/artesanos/san-pedrito-cigars): Torcedor / marca artesanal, Humacao
+- [Tabacalera La Trascendencia](https://lahojaboricua.com/artesanos/tabacalera-la-trascendencia): Tabacalera
+- [Tabaco La Altura](https://lahojaboricua.com/artesanos/tabaco-la-altura): Tabaquero artesanal (cultiva y tuerce), Lares
+- [Tabacos El Roble](https://lahojaboricua.com/artesanos/tabacos-el-roble): Marca artesanal, Isabela
+- [Villareño Cigars (Delvis)](https://lahojaboricua.com/artesanos/villareno-cigars): Maestro torcedor / marca, Santa Isabel (Jauca)
+- [Willys Cigars](https://lahojaboricua.com/artesanos/willys-cigars): Torcedor / marca boutique, Área metro (San Juan / Guaynabo)
+- [Yambó Cigars](https://lahojaboricua.com/artesanos/yambo-cigars): Marca artesanal
+
+## Cigarros
+
+- [Angel David](https://lahojaboricua.com/cigarros/turro-angel-david): de El Club del Turro, capa Connecticut, fortaleza suave
+- [Cartucho](https://lahojaboricua.com/cigarros/turro-cartucho): de El Club del Turro, capa Habano 2000, fortaleza fuerte
+- [Cohoba El Señor de los Cielos](https://lahojaboricua.com/cigarros/cohoba-senor-de-los-cielos): de Cohoba Cigars, capa San Andrés
+- [Cohoba Maduro Torpedo](https://lahojaboricua.com/cigarros/cohoba-maduro-torpedo): de Cohoba Cigars, capa Habano
+- [Cohoba Nano Double Wrapper](https://lahojaboricua.com/cigarros/cohoba-nano-double-wrapper): de Cohoba Cigars, capa San Andrés y Connecticut
+- [Cohoba Robusto Maduro](https://lahojaboricua.com/cigarros/cohoba-robusto-maduro): de Cohoba Cigars, capa San Andrés
+- [Cohoba Toro](https://lahojaboricua.com/cigarros/cohoba-toro-cameroon): de Cohoba Cigars, capa Cameroon
+- [Deja el Drama](https://lahojaboricua.com/cigarros/turro-deja-el-drama): de El Club del Turro, capa Nicaragua (capote Habano), fortaleza suave
+- [Don Collins (Quilambo, Corona, Churchill, Lonsdale, Pirámide)](https://lahojaboricua.com/cigarros/don-collins-linea): de Don Collins Cigars
+- [Don Pepe](https://lahojaboricua.com/cigarros/turro-don-pepe): de El Club del Turro, capa Sumatra, fortaleza media
+- [Don Rey (línea de la casa)](https://lahojaboricua.com/cigarros/don-rey-linea): de Don Rey Cigar
+- [Dylan's Barber Pole](https://lahojaboricua.com/cigarros/turro-barber-pole): de El Club del Turro, capa Barber Pole: Habano Ecuador y Connecticut, fortaleza fuerte
+- [El Búho](https://lahojaboricua.com/cigarros/el-buho): de Ricamontes Cigars · El Búho
+- [El Chapu](https://lahojaboricua.com/cigarros/el-chapu): de El Chapu PR
+- [El Puro Corona Grande](https://lahojaboricua.com/cigarros/don-collins-corona-grande): de Don Collins Cigars, fortaleza suave
+- [El Roble Corona Gorda Small Batch](https://lahojaboricua.com/cigarros/el-roble-corona-gorda-small-batch): de Tabacos El Roble, capa Madura
+- [El Roble Fumita](https://lahojaboricua.com/cigarros/el-roble-fumita): de Tabacos El Roble, capa Dos tonos
+- [El Roble Robusto Signature](https://lahojaboricua.com/cigarros/el-roble-robusto-signature): de Tabacos El Roble, capa Natural
+- [El Turrito](https://lahojaboricua.com/cigarros/turro-el-turrito): de El Club del Turro, capa HVA (Habana Vuelta Abajo), fortaleza suave
+- [Escopeta](https://lahojaboricua.com/cigarros/turro-escopeta): de El Club del Turro, capa Habano Vuelta Abajo (HVA), fortaleza fuerte
+- [Galiz Spirit (Brown Sugar, Whisky, Ron Añejo)](https://lahojaboricua.com/cigarros/galiz-spirit): de Molina & López Tabacalera
+- [Gallo Pinto](https://lahojaboricua.com/cigarros/turro-gallo-pinto): de El Club del Turro, capa Sumatra, fortaleza suave
+- [Hoja Boricua](https://lahojaboricua.com/cigarros/hoja-boricua): de JFC Tobacco Corp. / Tabacalera Hoja Boricua, capa Sumatra (Indonesia), fortaleza media
+- [Hoja Boricua Gran Reserva](https://lahojaboricua.com/cigarros/hoja-boricua-gran-reserva): de JFC Tobacco Corp. / Tabacalera Hoja Boricua, capa Corojo (Nicaragua), fortaleza fuerte
+- [HVA](https://lahojaboricua.com/cigarros/turro-hva-robusto): de El Club del Turro, capa Habano Vuelta Abajo (HVA), fortaleza suave
+- [La Altura (Robusto y Corona)](https://lahojaboricua.com/cigarros/la-altura): de Tabaco La Altura, capa Hoja de Lares
+- [Lancero](https://lahojaboricua.com/cigarros/turro-lancero): de El Club del Turro, capa HVA, fortaleza media
+- [LIBERTAD](https://lahojaboricua.com/cigarros/turro-libertad): de El Club del Turro
+- [Mamposteao'](https://lahojaboricua.com/cigarros/turro-mamposteao): de El Club del Turro, capa Picadura puertorriqueña, fortaleza media
+- [Monte & Mística Connecticut](https://lahojaboricua.com/cigarros/monte-mistica-connecticut): de Molina & López Tabacalera, capa Connecticut (Ecuador), fortaleza media
+- [Monte & Mística Corojo](https://lahojaboricua.com/cigarros/monte-mistica-corojo): de Molina & López Tabacalera, capa Corojo, fortaleza media
+- [Monte & Mística Maduro](https://lahojaboricua.com/cigarros/monte-mistica-maduro): de Molina & López Tabacalera, capa San Andrés (maduro), fortaleza media
+- [Mr. Jony Torpedo](https://lahojaboricua.com/cigarros/mr-jony-torpedo): de Mr. Jony Cigars, capa Varias (Habano, Maduro, Connecticut…)
+- [Naturola](https://lahojaboricua.com/cigarros/turro-naturola): de El Club del Turro, capa Habano 2000, fortaleza fuerte
+- [Pedro Albizu Campos](https://lahojaboricua.com/cigarros/turro-albizu-campos): de El Club del Turro, capa Connecticut, fortaleza suave
+- [Puerto Rico 965](https://lahojaboricua.com/cigarros/puerto-rico-965): de JFC Tobacco Corp. / Tabacalera Hoja Boricua, fortaleza suave
+- [San Pedrito (línea artesanal)](https://lahojaboricua.com/cigarros/san-pedrito-linea): de San Pedrito Cigars, capa Varias (7 capas)
+- [San Pedrito Barber Pole](https://lahojaboricua.com/cigarros/san-pedrito-barber-pole): de San Pedrito Cigars, capa Barber Pole
+- [Timber and Blues](https://lahojaboricua.com/cigarros/turro-timber-blues): de El Club del Turro, capa Habano Ecuador, fortaleza media
+- [Villareño (surtido)](https://lahojaboricua.com/cigarros/villareno-surtido): de Villareño Cigars (Delvis)
+- [Villareño Box Pressed San Andrés](https://lahojaboricua.com/cigarros/villareno-box-pressed-san-andres): de Villareño Cigars (Delvis), capa San Andrés (México)
+- [Willys Cigars (tripa corta y ligas de la casa)](https://lahojaboricua.com/cigarros/willys-tripa-corta): de Willys Cigars
+- [Yambó Toro Box Press](https://lahojaboricua.com/cigarros/yambo-toro): de Yambó Cigars, capa Habano
