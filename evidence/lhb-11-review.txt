@@ -1,0 +1,137 @@
+LHB-11 Codex review of .github/workflows/test.yml
+Two rounds, prompts self-contained with the file inline. Header fields from each run transcript.
+
+===== round one =====
+model: gpt-6-astra
+sandbox: read-only
+reasoning effort: high
+session id: 01a17474-150e-7202-9fd7-9ba7d8d6f0ea
+exec attempts: 0
+codex exit 0
+--- prompt
+Do not load any skill, plugin or template. Do not run any command or tool. Everything you need is below. Your FIRST and ONLY message is the answer.
+
+Context: a static PWA repo, output folder site/, data in data/. Three stdlib-only Python generators write site/lugares/*.html, site/artesanos/*.html, site/sitemap.xml, site/robots.txt and site/data/bundle.js from data/. Tests: node --test test/site.test.js (30 tests, all pass). No package.json. The builder (an external AI tool) pushes straight to main; main has no branch protection, so this check is a warning by decision.
+
+NEW FILE .github/workflows/test.yml:
+# LHB-11: tests and a generator check on every push and pull request.
+# Warning only: main has no branch protection (LHB-3). Cloudflare Pages runs the same
+# generators on every deploy (LHB-20), so the generator step guards the copies committed in git.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Tests
+        run: node --test test/site.test.js
+
+      - name: Run the generators
+        run: |
+          python3 tools/build_artesanos.py
+          python3 tools/build_lugares.py
+          python3 tools/rebuild_bundle.py
+
+      - name: Committed pages, sitemap, robots and bundle match the generators
+        run: git diff --exit-code
+
+Measured on GitHub Actions: run on this branch completed success. A throwaway branch with an HTML comment hand-added to one generated page: Tests success, generators success, the git diff step failure, showing exactly that line. An earlier throwaway edit to the page h1 was caught by the Tests step instead.
+
+Does the workflow correctly run the tests and detect generated files that differ from the generators? Any defect in triggers, versions, or the diff check (for example untracked new files that git diff would miss)? Report only real defects.
+
+Answer format, nothing else:
+FINDING n | BLOCKING or NONBLOCKING | file and symbol | what is wrong | evidence
+(write NO FINDINGS if there are none)
+Last line exactly: VERDICT: PASS  or  VERDICT: BLOCK
+--- answer (verbatim from codex exec -o)
+FINDING 1 | BLOCKING | .github/workflows/test.yml, final diff step | Newly generated untracked files are ignored, so an omitted generated HTML page can escape the check when tracked outputs already match. | `git diff --exit-code` compares tracked files only; it exits successfully if the only generator output change is an untracked file. The measured comment edit verifies detection of tracked modifications only.
+VERDICT: BLOCK
+
+===== round two =====
+model: gpt-6-astra
+sandbox: read-only
+reasoning effort: high
+session id: 01a17475-a32f-75d0-be74-dc93681096cf
+exec attempts: 0
+codex exit 0
+--- prompt
+Do not load any skill, plugin or template. Do not run any command or tool. Everything you need is below. Your FIRST and ONLY message is the answer.
+
+Context: a static PWA repo, output folder site/, data in data/. Three stdlib-only Python generators write site/lugares/*.html, site/artesanos/*.html, site/sitemap.xml, site/robots.txt and site/data/bundle.js from data/. Tests: node --test test/site.test.js (30 tests, all pass). No package.json. The builder (an external AI tool) pushes straight to main; main has no branch protection, so this check is a warning by decision.
+
+NEW FILE .github/workflows/test.yml:
+# LHB-11: tests and a generator check on every push and pull request.
+# Warning only: main has no branch protection (LHB-3). Cloudflare Pages runs the same
+# generators on every deploy (LHB-20), so the generator step guards the copies committed in git.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Tests
+        run: node --test test/site.test.js
+
+      - name: Run the generators
+        run: |
+          python3 tools/build_artesanos.py
+          python3 tools/build_lugares.py
+          python3 tools/rebuild_bundle.py
+
+      # intent-to-add makes a generated file that was never committed show up in the diff
+      - name: Committed pages, sitemap, robots and bundle match the generators
+        run: |
+          git add --intent-to-add --all
+          git diff --exit-code
+
+Measured on GitHub Actions: run on this branch completed success. A throwaway branch with an HTML comment hand-added to one generated page: Tests success, generators success, the git diff step failure, showing exactly that line. An earlier throwaway edit to the page h1 was caught by the Tests step instead.
+
+ROUND TWO. Your round-one BLOCKING finding: git diff --exit-code ignores untracked generated files. Fix: git add --intent-to-add --all before git diff --exit-code. Measured in a clone: with one generated page removed from git, after the generators the old step exited 0 and the new step exited 1 showing that page; the branch run with the fix completed success.
+
+Does the workflow correctly run the tests and detect generated files that differ from the generators? Any defect in triggers, versions, or the diff check (for example untracked new files that git diff would miss)? Report only real defects.
+
+Answer format, nothing else:
+FINDING n | BLOCKING or NONBLOCKING | file and symbol | what is wrong | evidence
+(write NO FINDINGS if there are none)
+Last line exactly: VERDICT: PASS  or  VERDICT: BLOCK
+--- answer (verbatim from codex exec -o)
+NO FINDINGS
+VERDICT: PASS
+
+--- disposition
+Round one BLOCKING (untracked generated files escape git diff): accepted, fixed in 2565be9 with git add --intent-to-add --all. Shown in a scratch clone: one generated page removed from git, generators rerun; old step exit 0, new step exit 1 listing site/lugares/the-cave.html. Round two: PASS.
+
+--- CI runs (GitHub Actions)
+green, branch lhb-11-ci at 2e24578 (round-one workflow): https://github.com/cigarspodcast/la-hoja-boricua/actions/runs/40224179234
+green, branch lhb-11-ci at 2565be9 (final workflow): https://github.com/cigarspodcast/la-hoja-boricua/actions/runs/40224443810
+red, branch lhb-11-ci-red at fc454c5, h1 hand edit: caught by the Tests step (v39): https://github.com/cigarspodcast/la-hoja-boricua/actions/runs/40224219930
+red, branch lhb-11-ci-red at f6fe370, comment hand edit: Tests success, generator check failure: https://github.com/cigarspodcast/la-hoja-boricua/actions/runs/40224296825
+red, branch lhb-11-ci-red at 8adbacb, final workflow: https://github.com/cigarspodcast/la-hoja-boricua/actions/runs/40224523476

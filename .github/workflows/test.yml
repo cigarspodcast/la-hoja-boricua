@@ -1,0 +1,37 @@
+# LHB-11: tests and a generator check on every push and pull request.
+# Warning only: main has no branch protection (LHB-3). Cloudflare Pages runs the same
+# generators on every deploy (LHB-20), so the generator step guards the copies committed in git.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Tests
+        run: node --test test/site.test.js
+
+      - name: Run the generators
+        run: |
+          python3 tools/build_artesanos.py
+          python3 tools/build_lugares.py
+          python3 tools/rebuild_bundle.py
+
+      # intent-to-add makes a generated file that was never committed show up in the diff
+      - name: Committed pages, sitemap, robots and bundle match the generators
+        run: |
+          git add --intent-to-add --all
+          git diff --exit-code
