@@ -1,0 +1,11 @@
+LHB-42 mutations, 2026-10-25, each on site/ outputs, restored after each (counting: node --test fail line):
+before llms.txt existed: LHB-42 test fails (1 of 41)
+M1 one cigar line dropped from llms.txt: fail 1
+M2 a page listed twice in llms.txt: fail 1
+M3 robots.txt with a GPTBot Disallow block: fail 1
+restored: fail 0
+
+Live, before this change (https://lahojaboricua.com/cigarros/yambo-toro, curl -A 'Mozilla/5.0 (compatible; <bot>/1.0)'):
+GPTBot 200, ClaudeBot 200, CCBot 200, Google-Extended 200, OAI-SearchBot 200, PerplexityBot 200, Bingbot 200, Googlebot 200.
+Live robots.txt equals the generated file (no Cloudflare-managed robots content), so AI Crawl Control is not blocking: it agrees with the allow decision.
+M4 every ## heading demoted to ###: fail 1 (added after Codex round one's note)
