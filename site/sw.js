@@ -1,6 +1,6 @@
 /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas; fotos grandes se cachean al verlas */
-const VERSION='lhb-v44';
-const SHELL=['./','styles.css','app.js','art.js','hoja.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+const VERSION='lhb-v45';
+const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
  'data/bundle.js',
  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
  'fonts/figtree.woff2','fonts/fraunces-normal-600.woff2','fonts/fraunces-italic-500.woff2','fonts/shrikhand.woff2',
