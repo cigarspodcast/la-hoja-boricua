@@ -1,5 +1,6 @@
 # Datos estructurados compartidos por los generadores de páginas (LHB-44): JSON-LD y migas de pan.
 import json
+from urllib.parse import urlparse
 HOST = 'https://lahojaboricua.com'
 INICIO = ('La Hoja Boricua', HOST + '/')
 LUGARES = ('Cigar lounges en Puerto Rico', HOST + '/lugares/')
@@ -20,5 +21,10 @@ def same_as(rec, keys=('web', 'instagram', 'facebook', 'youtube')):
     out = []
     for k in keys:
         u = (rec.get(k) or '').strip()
-        if u.startswith('http') and 'wa.me' not in u and 'whatsapp' not in u and u not in out: out.append(u)
+        if u.startswith('http') and not contacto(u) and u not in out: out.append(u)
     return out
+
+def contacto(u):
+    # WhatsApp es un enlace de contacto, no un perfil: nunca va en sameAs (sin importar mayúsculas)
+    host = urlparse(u).hostname or ''
+    return host == 'wa.me' or host.endswith('.wa.me') or 'whatsapp' in host or 'whatsapp' in u.lower()

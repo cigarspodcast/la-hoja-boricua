@@ -1,0 +1,15 @@
+[Certain] The home page misses the pinned “BreadcrumbList on every page” requirement, and the new test does not detect that omission.
+
+**BLOCKING**
+
+- [Certain] **Home-page breadcrumb missing.** `site/index.html:29` adds a graph containing only `"@type":"WebSite"` and `"@type":"Organization"`. The breadcrumb assertions in `test/site.test.js` run only over `lugares`, `artesanos`, and `cigarros`; the home assertions check only WebSite/Organization. Add the required home BreadcrumbList and an assertion that fails when it is removed. This is a pinned-contract violation, not a claim that the existing graph is invalid JSON-LD.
+
+**NON-BLOCKING**
+
+- [Certain] **WhatsApp exclusion is case-sensitive.** `tools/schema.py` checks `'wa.me' not in u and 'whatsapp' not in u`. Consequently, `same_as({'web': 'https://WA.ME/15555550100'})` retains that contact URL by static evaluation. The test’s `/wa\.me|whatsapp/` duplicates this gap. Normalize the parsed hostname and add an explicit contact-link fixture. Leakage from current data is **NOT VERIFIED**.
+- [Certain] **The date guard excludes home.** The absence assertions iterate only the three generated directories. A home-page `dateModified` would escape this guard.
+- [Certain] **The supplied mutation results demonstrate meaningful failures for M1–M6.** They do not establish home breadcrumb coverage or repeat-build determinism.
+
+[Certain] Independent repository inspection and test execution were unavailable because both shell attempts failed during process setup. This review uses the supplied diff, samples, and evidence; runtime behavior and repeat-build determinism remain **NOT VERIFIED**.
+
+VERDICT: BLOCK
