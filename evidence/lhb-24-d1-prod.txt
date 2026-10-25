@@ -1,0 +1,24 @@
+LHB-24: production D1 (lhb-prod, 75adf6a7-512c-45f0-ae21-af87e32b8d28) schema and binding, read back 2026-10-25
+
+Before (read in the dashboard D1 console, about 21:40Z):
+> SELECT name FROM sqlite_master WHERE type='table';
+_cf_KV
+
+Applied in the dashboard D1 console:
+- 0001 statements, executed by the session (text checked equal to migrations/0001 before Execute, 640 characters).
+- 0002 statements plus the d1_migrations table and its two rows, pasted and executed by the owner
+  (the session's safety check blocked it typing DROP TABLE on production).
+
+After (read back by the session in the same console):
+> SELECT id, name, applied_at FROM d1_migrations ORDER BY id;
+1 0001_init.sql 2026-10-25 22:32:15
+2 0002_clerk_profiles.sql 2026-10-25 22:32:15
+
+> SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE '_cf_%' AND name NOT LIKE 'sqlite_%' ORDER BY name;
+table d1_migrations CREATE TABLE d1_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)
+table mihoja CREATE TABLE mihoja ( user_id TEXT PRIMARY KEY, doc TEXT NOT NULL, schema INTEGER NOT NULL, rev INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL )
+table profiles CREATE TABLE profiles ( user_id TEXT PRIMARY KEY, handle TEXT UNIQUE NOT NULL, display_name TEXT, bio TEXT, favorite_brand TEXT, avatar_key TEXT, age_ok_at TEXT NOT NULL, hidden INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL )
+
+Binding (owner saved it in Pages > Settings > Production > Bindings; read back by the session from the Pages API):
+production d1 {'DB': {'id': '75adf6a7-512c-45f0-ae21-af87e32b8d28'}}
+preview d1 {'DB': {'id': 'd7bfb4c7-41ee-4788-9571-ea20d378c515'}}
