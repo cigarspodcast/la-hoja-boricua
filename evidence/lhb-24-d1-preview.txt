@@ -1,0 +1,19 @@
+LHB-24 preview database and binding, 2026-10-25, done in the Cloudflare dashboard (account 6d879ff6cad305c83960196389906883).
+Production (lhb-prod, 75adf6a7-512c-45f0-ae21-af87e32b8d28) and the Production environment's bindings were not touched.
+
+1. lhb-preview (d7bfb4c7-41ee-4788-9571-ea20d378c515), D1 console, read before the change:
+   SELECT counts -> users 0, sessions 0, login_tokens 0, mihoja 0; d1_migrations: 0001_init.sql
+2. Applied migrations/0002_clerk_profiles.sql (its statements, comments removed) plus
+   INSERT INTO d1_migrations (name) VALUES ('0002_clerk_profiles.sql');  -> "This query successfully executed."
+3. Read back:
+   tables: d1_migrations, mihoja (user_id TEXT PRIMARY KEY, doc, schema, rev DEFAULT 1, updated_at),
+           profiles (user_id PK, handle UNIQUE NOT NULL, display_name, bio, favorite_brand, avatar_key,
+           age_ok_at NOT NULL, hidden NOT NULL DEFAULT 0, created_at NOT NULL, updated_at NOT NULL)
+   d1_migrations: 0001_init.sql 2026-10-25 19:34:09 ; 0002_clerk_profiles.sql 2026-10-25 20:09:37 (D1 CURRENT_TIMESTAMP, UTC)
+4. Pages project la-hoja-boricua > Settings, environment selector = Preview > Bindings > Add > D1 database:
+   variable DB, database lhb-preview. Read back from the bindings table: "D1 database DB lhb-preview".
+   Takes effect from the next preview deployment.
+5. Read back through the Pages API (GET /accounts/.../pages/projects/la-hoja-boricua, deployment_configs), 2026-10-25 about 20:20Z:
+   preview: d1_databases {DB: d7bfb4c7-41ee-4788-9571-ea20d378c515}; production: d1_databases None. No env vars on either.
+6. Preview deployment of 0f03146: GET /api/me with no token -> 401 {"error":"no-session"};
+   with Cookie __session=abc.def.ghi -> 503 {"error":"no-auth-config"} (CLERK_ISSUERS not set yet; set after C1).

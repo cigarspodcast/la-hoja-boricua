@@ -1,0 +1,140 @@
+LHB-24 Codex review of the backend foundation (functions/, migrations/0001_init.sql, site/_routes.json, sw.js /api/ bypass)
+TIER 2. One round, prompt self-contained with the code inline. Header fields from the run transcript.
+
+model: gpt-6-astra
+sandbox: read-only
+reasoning effort: high
+session id: 01a1748b-5cde-74b3-bc91-fb26f3c94395
+exec attempts: 0
+codex exit 0
+--- prompt
+Do not load any skill, plugin or template. Do not run any command or tool. Everything you need is below. Your FIRST and ONLY message is the answer.
+
+Context: a static PWA on Cloudflare Pages (output folder site/) gains Pages Functions for optional-then-required user accounts. This change is only the foundation: session helpers, GET /api/me, the D1 schema, a _routes.json, and a service-worker bypass. Sign-in endpoints come later and will call createSession. D1 will be bound as env.DB (separate production and preview databases). Runtime: Cloudflare Workers (WebCrypto, btoa available).
+
+=== functions/_lib/session.js ===
+/* LHB-24: sesiones de Mi Hoja. La cookie lleva un id aleatorio; D1 guarda solo su SHA-256. */
+export const COOKIE = 'lhb_s';
+export const SESSION_DAYS = 90;
+
+export async function sha256hex(s) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+// 32 bytes aleatorios en base64url (43 caracteres, sin relleno)
+export function newId() {
+  const a = new Uint8Array(32);
+  crypto.getRandomValues(a);
+  return btoa(String.fromCharCode(...a)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export function readCookie(header, name) {
+  for (const part of (header || '').split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
+  }
+  return null;
+}
+
+export const sessionCookie = (id, maxAge) => `${COOKIE}=${id}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+export const clearCookie = () => `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+
+export async function createSession(DB, userId, now = Date.now()) {
+  const id = newId();
+  const expires = new Date(now + SESSION_DAYS * 864e5).toISOString();
+  await DB.prepare('INSERT INTO sessions (id_hash, user_id, expires_at) VALUES (?1, ?2, ?3)')
+    .bind(await sha256hex(id), userId, expires).run();
+  return sessionCookie(id, SESSION_DAYS * 86400);
+}
+
+export async function getUser(request, DB, now = Date.now()) {
+  const id = readCookie(request.headers.get('Cookie'), COOKIE);
+  if (!id) return null;
+  const row = await DB.prepare(
+    'SELECT u.id, u.email FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = ?1 AND s.expires_at > ?2'
+  ).bind(await sha256hex(id), new Date(now).toISOString()).first();
+  return row || null;
+}
+
+export const json = (obj, status = 200, headers = {}) => new Response(JSON.stringify(obj), {
+  status,
+  headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers },
+});
+
+=== functions/api/me.js ===
+/* LHB-24: GET /api/me devuelve {email} con sesión válida, 401 sin ella. */
+import { getUser, json } from '../_lib/session.js';
+
+export async function onRequestGet({ request, env }) {
+  if (!env.DB) return json({ error: 'no-db' }, 503);
+  const user = await getUser(request, env.DB);
+  return user ? json({ email: user.email }) : json({ error: 'no-session' }, 401);
+}
+
+=== migrations/0001_init.sql ===
+CREATE TABLE users (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  google_sub TEXT UNIQUE,
+  age_ok_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE sessions (
+  id_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL
+);
+CREATE INDEX sessions_user ON sessions(user_id);
+CREATE TABLE login_tokens (
+  hash TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at TEXT
+);
+CREATE TABLE mihoja (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  doc TEXT NOT NULL,
+  schema INTEGER NOT NULL,
+  rev INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL
+);
+
+=== site/_routes.json ===
+{
+  "version": 1,
+  "include": ["/api/*"],
+  "exclude": []
+}
+=== site/sw.js fetch handler, start (the added line is marked +) ===
+self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const url=new URL(req.url);
+ (map tile handling for openstreetmap hosts, returns)
+ if(url.origin!==location.origin)return;
++if(url.pathname.startsWith('/api/'))return;
+ (then: /data/ network-first; navigations network-first caching './'; everything else cache-first)
+
+Measured: node tests run the real migration on SQLite (node:sqlite) and check hash-only storage, 90-day expiry, expired and unknown cookies rejected, the stored hash not usable as a cookie, cookie flags; a vm test fires fetch events at sw.js and checks /api/* gets no respondWith while /, /styles.css and /apiario still do. Each guard was removed once and its test failed. Branch preview: /api/me returns 503 no-db (no binding yet), / unchanged.
+
+Review for real defects in security (session fixation, timing, cookie scope, SQL), correctness, and anything the later sign-in work will trip on. Report only real defects.
+
+Answer format, nothing else:
+FINDING n | BLOCKING or NONBLOCKING | file and symbol | what is wrong | evidence
+(write NO FINDINGS if there are none)
+Last line exactly: VERDICT: PASS  or  VERDICT: BLOCK
+--- answer (verbatim from codex exec -o)
+NO FINDINGS
+VERDICT: PASS
+--- disposition
+No findings; TIER 2 loop ends at round one.
+
+--- guard mutations (each removed once, suite rerun, file restored from a copy)
+M1 sw.js /api/ bypass line deleted: fail 1
+M2 createSession stores the raw id: fail 1
+M3 getUser SQL without 'AND s.expires_at > ?2': fail 1 (with a fake DB this passed; the test was moved to real SQLite running the migration)
+M4 cookie without Secure: fail 1
+M5 getUser looks up the raw id: fail 1
+restored: fail 0 (evidence/lhb-24-tests.txt: tests 33, pass 33)
+
+--- runtime
+local wrangler pages dev (local D1, no tables): /api/me 401 no-session, / 200, /api/nope 404; with a cookie: D1_ERROR no such table (expected, no migration applied locally).
+preview a27d78d https://lhb-24-backend.la-hoja-boricua.pages.dev: /api/me 503 no-db (no binding yet), / 200, /api/nope 404. CI green: https://github.com/cigarspodcast/la-hoja-boricua/actions/runs/40226329291
