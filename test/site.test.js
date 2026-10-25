@@ -387,7 +387,7 @@ test('LHB-25: el perfil nuevo: se guarda una vez, abre Mi Hoja, y un envío pend
  assert.deepEqual(r.res,{stale:true});assert.ok(!r.h.log.includes('GO')&&!r.h.log.includes('toast'),'otro usuario: no abre ni felicita');assert.ok(!r.h.log.some(x=>x.startsWith('store')),'cambió la cuenta: no se guarda ningún perfil');
  r=await mk(()=>({status:201,body:{profile:{handle:'ana'}}}),h=>h.nav('#/catalogo'));
  assert.deepEqual(r.res,{stale:true});assert.ok(!r.h.log.includes('GO'),'el usuario se fue de la pantalla: no se abre Mi Hoja encima');assert.ok(r.h.log.includes('store:user_a:ana'),'pero su perfil, ya creado, sí queda guardado para su cuenta');
- r=await mk(()=>({status:409,body:{error:'profile-exists'}}));assert.deepEqual(r.res,{ok:true});
+ r=await mk(()=>({status:409,body:{error:'profile-exists'}}));assert.deepEqual(r.res,{error:'recheck'},'409 y la revisión no trae el perfil: error, no éxito');assert.ok(!r.h.log.includes('GO'));
 });
 test('LHB-25: entrar desde una página pública no la reemplaza y retoma la acción; al volver de Google también',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});h.nav('#/c/yambo-toro');
@@ -407,7 +407,7 @@ test('LHB-25: salir cierra Mi Hoja también por #mihoja y #perfil, igual que el 
  for(const hash of ['#/mihoja','#mihoja','#/mihoja/diario','#perfil','#/perfil/x']){
   const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});h.nav(hash);h.C.user={id:'user_a'};await h.A.require(h.go);await tick();
   h.log.length=0;h.C.signIn(null);await tick();assert.ok(h.log.includes('reroute'),'salir repinta '+hash);assert.ok(h.log.includes('clear'));}
- const g=CUENTA_HARNESS({});g.nav('#/catalogo');g.C.user={id:'user_a'};g.C.signIn(null);await tick();assert.ok(!g.log.includes('reroute'),'una página pública no se repinta al salir');
+ const g=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});g.nav('#/catalogo');g.C.user={id:'user_a'};await g.A.require(g.go,{inPlace:true});await tick();assert.ok(g.log.includes('GO'),'el control de cuenta quedó instalado');g.log.length=0;g.C.signIn(null);await tick();assert.ok(g.log.includes('clear')&&!g.log.includes('reroute'),'una página pública no se repinta al salir');
  const app=read('app.js');assert.match(app,/const h=location\.hash\.replace\(\/\^#\\\/\?\/,''\)\|\|'catalogo';const \[r,arg\]=h\.split\('\/'\)/,'la lectura del hash del router no cambió');
 });
 test('LHB-25: un formulario de perfil que quedó en pantalla tras cambiar de cuenta no manda nada y se repinta',async()=>{
@@ -427,6 +427,15 @@ test('LHB-25: si el perfil se creó pero se perdió la respuesta, el reintento t
  assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'),['reroute','GO'],'repinta la página y luego hace la acción');assert.ok(h.log.includes('store:user_a:ana'));
  const g=CUENTA_HARNESS({api:async(C,m)=>m==='GET'?{status:200,body:{profile:{handle:'ana'}}}:{status:200,body:{}}});g.nav('#/c/yambo-toro');g.C.user={id:'user_a'};await g.A.require(g.go,{inPlace:true,act:'x'});await tick();
  assert.deepEqual(g.log.filter(x=>x==='GO'||x==='reroute'),['GO'],'quien ya tenía perfil no repinta la página');
+});
+test('LHB-25: si la revisión tras un perfil ya existente falla, el formulario sigue usable y no se anuncia éxito',async()=>{
+ let gets=0,posts=0,submit;const h=CUENTA_HARNESS({api:async(C,m)=>{if(m==='GET'){gets++;return gets===1?{status:200,body:{needsProfile:true}}:gets===2?{status:503,body:{}}:{status:200,body:{profile:{handle:'ana'}}}}posts++;return {status:409,body:{error:'profile-exists'}}}});
+ h.D.ui.onboarding=s=>{submit=s};h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();
+ assert.deepEqual(await submit({handle:'ana'}),{error:'recheck'});assert.ok(!h.log.includes('GO')&&!h.log.includes('toast'),'sin éxito anunciado');
+ const d=defer();let n=0,sub2;const k=CUENTA_HARNESS({api:async(C,m)=>{if(m==='POST')return {status:409,body:{error:'profile-exists'}};return ++n===1?{status:200,body:{needsProfile:true}}:d.p}});
+ k.D.ui.onboarding=s=>{sub2=s};k.nav('#/c/yambo-toro');k.C.user={id:'user_a'};await k.A.require(k.go,{inPlace:true,act:'humidor'});await tick();
+ const pend=sub2({handle:'ana'});await tick();k.C.signIn('user_b');d.ok({status:200,body:{profile:{handle:'ana'}}});assert.deepEqual(await pend,{stale:true},'la revisión llegó tarde: se ignora');assert.ok(!k.log.includes('GO')&&!k.log.some(x=>x.startsWith('store')),'no abre ni guarda nada a nombre de otra cuenta');
+ assert.deepEqual(await submit({handle:'ana'}),{ok:true},'el mismo formulario puede reintentar');assert.equal(posts,2,'el reintento sí llega al servidor');assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'),['reroute','GO']);
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));

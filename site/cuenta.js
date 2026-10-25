@@ -34,7 +34,7 @@ async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;const sh
  const uid=C.user.id;let r;
  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
  if(!live(op,from,C,uid))return;
- if(r.status===200&&r.body.profile){D.store.set({sub:uid,handle:r.body.profile.handle});D.intent.clear();if(o.repaint)D.reroute();return done()}
+ if(r.status===200&&r.body.profile){D.store.set({sub:uid,handle:r.body.profile.handle});D.intent.clear();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,op,from,uid);
  if(r.status===401||r.status===403){D.store.clear();show('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.',retry);return}
  const c=D.store.get();
@@ -50,8 +50,13 @@ function onboard(C,done,o,op,from,uid){ob=true;
    if(!live(op,from,C,uid))return {stale:true};
    ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
   if(!live(op,from,C,uid))return {stale:true};
-  /* la respuesta se perdió pero el perfil sí se creó: se revisa de nuevo y se termina igual que con un 201 */
-  if(r.body.error==='profile-exists'){go(done,{...o,repaint:!!o.inPlace});return {ok:true}}
+  /* la respuesta se perdió pero el perfil sí se creó: se revisa de nuevo dentro de este mismo envío y, si sale bien, se termina igual que con un 201.
+     Si la revisión falla, el formulario sigue vivo para reintentar; no se anuncia éxito antes de tiempo. */
+  if(r.body.error==='profile-exists'){
+   let m;try{m=await D.api(C,'GET','/api/me',null,uid)}catch(e){m={status:0,body:{}}}
+   if(!live(op,from,C,uid))return {stale:true};
+   if(m.status===200&&m.body.profile){D.store.set({sub:uid,handle:m.body.profile.handle});ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
+   return {error:'recheck'}}
   return {error:r.body.error||'generic'}})}
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
 function resume(){const it=D.intent.get();

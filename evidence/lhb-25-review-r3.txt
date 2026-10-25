@@ -1,0 +1,69 @@
+[Certain] Two BLOCKING findings remain: failed recovery strands the user’s action, and the public-page sign-out assertion never exercises the listener.
+
+**BLOCKING**
+
+1. **[Certain] Failed `profile-exists` recovery leaves an unusable onboarding form.**
+
+   Exact code in `site/cuenta.js`:
+
+   ```js
+   const show=(h,p,b)=>{if(!o.inPlace&&op===seq)D.ui.card(h,p,b)};
+   ```
+
+   ```js
+   if(r.body.error==='profile-exists'){go(done,{...o,repaint:!!o.inPlace});return {ok:true}}
+   ```
+
+   Reproduction: initiate an in-place action, return `GET needsProfile`, then `POST 409 profile-exists`, then `GET 503`, with no cached profile.
+
+   The recovery increments `seq`, invalidating the displayed form’s callback. Its error card is suppressed by `inPlace`, while submission reports `{ok:true}`. Submitting again returns `{stale:true}` without another request. In `site/hoja.js`, this also leaves the button disabled:
+
+   ```js
+   err('');$('#obGo').disabled=true;
+   const r=await submit(/* ... */);
+   if(!r||r.stale||$('#obForm')!==form)return;
+   ```
+
+   Observed isolated-controller trace: `GET → onboarding → POST → GET`, with no action, reroute, or error card.
+
+   Preserve a usable retry path and the originating action when recovery fails. Do not report successful completion before the recheck succeeds.
+
+2. **[Certain] The public-page sign-out assertion cannot detect incorrect rerouting.**
+
+   Exact code in `test/site.test.js`:
+
+   ```js
+   const g=CUENTA_HARNESS({});
+   g.nav('#/catalogo');
+   g.C.user={id:'user_a'};
+   g.C.signIn(null);
+   await tick();
+   assert.ok(!g.log.includes('reroute'),'una página pública no se repinta al salir');
+   ```
+
+   Nothing calls `g.A.require(...)`, so `hook(C)` never installs the listener. Consequently, `signIn(null)` invokes no account-controller code.
+
+   I changed the supplied controller’s:
+
+   ```js
+   if(onMiHoja()||ob)
+   ```
+
+   to:
+
+   ```js
+   if(true)
+   ```
+
+   The submitted negative assertion still passed. After installing the listener through `require(...)`, the same assertion correctly failed. This meets your explicit blocking criterion for a test that cannot fail against the behavior it claims to check.
+
+**NON-BLOCKING notes**
+
+- **[Certain] CONCUR, previous finding 1:** the photo callback now uses `toast(tt('pf.fotoOk'));route();topAvatar()`, removing its direct `vPerfil()` redraw.
+- **[Certain] CONCUR, previous finding 2:** `D.here().replace(/^#\/?/,'').split('/')[0]` covers the reported hash aliases.
+- **[Certain] CONCUR, previous finding 3:** `if(!live(op,from,C,uid))return {stale:true};` guards stale submissions, and the adapter checks the captured `uid` after `getToken()`.
+- **[Certain] CONCUR, previous finding 4’s successful-recovery path:** `repaint:!!o.inPlace` reaches `if(o.repaint)D.reroute();return done()`. Finding 1 above concerns the failed recheck.
+
+[Certain] Repository inspection and the 51-test run are **NOT VERIFIED** here: shell startup failed with `helper_unknown_error: setup refresh had errors`. The reproductions above executed the supplied controller in isolated JavaScript, not the repository suite or browser. Real Clerk sign-up remains unverified as stated in the prompt.
+
+VERDICT: BLOCK
