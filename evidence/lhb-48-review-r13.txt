@@ -1,0 +1,58 @@
+[Certain] The shared onboarding flow still has two blocking defects.
+
+**BLOCKING**
+
+1. **A successful profile submission can leave both waiting operations unfinished.**
+
+   Exact code in `site/cuenta.js`:
+
+   ```js
+   obForm=form;
+   const alive=()=>obForm===form&&form.subs.some(x=>x.lv(C,uid));
+   ```
+
+   The successful POST then checks:
+
+   ```js
+   if(!alive())return {stale:true};
+   finish();return {ok:true}
+   ```
+
+   **How reached:** A new user signs in with Mi Hoja and humidor waiting. Let the first `/api/me` return `needsProfile`, submit that form, then let the second `/api/me` return `needsProfile` before the POST completes. The second response replaces `obForm`. When the POST returns 201, its callback returns stale instead of completing the live continuations.
+
+   **Reproduced:** `{stale:true}`, page runs **0**, action runs **0**, replacement form remains. Reversing the final responses also permits the delayed GET to reopen onboarding after profile creation.
+
+   Preserve the active form submission across arriving continuations and account for profile creation completed after a GET began.
+
+2. **Profile completion executes the gated page continuation twice.**
+
+   Exact code in `site/cuenta.js`:
+
+   ```js
+   if(subs.some(x=>x.o.inPlace))D.reroute();
+   subs.forEach(x=>safe(x.done))
+   ```
+
+   Actual wiring in `site/hoja.js`:
+
+   ```js
+   reroute:()=>A.route()
+   ```
+
+   **How reached:** Complete onboarding with both Mi Hoja and an in-place action waiting. `D.reroute()` starts another Mi Hoja account check. The saved page continuation executes immediately, then the new check executes the page continuation again.
+
+   **Reproduced:** page draws **2**, action runs **1**. The supplied harness misses this because its reroute only logs:
+
+   ```js
+   reroute:()=>log.push('reroute')
+   ```
+
+   Coordinate rerouting with the saved page continuation so only one renders the page.
+
+**NON-BLOCKING**
+
+[Certain] **CONCUR** with the prior separate-slot and visit-cancellation fixes. Focused reproductions produced page **1** plus action **1** after sign-in, and **0** abandoned actions after leaving and returning.
+
+[Certain] Verification limitation: PowerShell could not start. The repository’s 75-test run and real Clerk browser behavior remain **NOT VERIFIED** independently. The results above came from focused JavaScript reproductions of the supplied gate source.
+
+VERDICT: BLOCK

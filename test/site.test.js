@@ -641,27 +641,31 @@ test('LHB-48: con el perfil guardado, la acción en sitio no espera a la red per
  // los nombres heredados no son acciones
  assert.ok(/const ACT=Object\.create\(null\)/.test(read('cuenta.js')),'el registro de acciones no hereda nombres (constructor, toString...)');
 });
-test('LHB-48: sin sesión en Mi Hoja, tocar una acción en sitio no quita lo que espera la página: al entrar se hacen las dos',async()=>{
+test('LHB-48: en Mi Hoja y las páginas de la cuenta solo espera la puerta de la página; una acción en sitio corre al instante o solo abre la hoja de entrar; en una página pública espera y corre al entrar',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- const h=CUENTA_HARNESS({api:prof});h.nav('#/mihoja');let drawn=0;const ran=[];
- h.A.require(()=>{drawn++});await ticks(3);h.A.quick(()=>ran.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);
- h.C.signIn('user_a');await ticks(8);
- assert.equal(drawn,1,'Mi Hoja se dibuja una vez');assert.deepEqual(ran,['humidor'],'y la acción corre una vez');
- // al revés: primero la acción y luego la puerta de la página
- const g=CUENTA_HARNESS({api:prof});g.nav('#/mihoja');let d2=0;const r2=[];
- g.A.quick(()=>r2.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);g.A.require(()=>{d2++});await ticks(3);g.C.signIn('user_a');await ticks(8);
- assert.equal(d2,1);assert.deepEqual(r2,['humidor']);
- // en una página pública solo corre la acción y la página no se repinta
+ for(const page of ['#/mihoja','#/mihoja/favoritos','#/cata/yambo','#/subir']){
+  const h=CUENTA_HARNESS({api:prof});h.nav(page);let drawn=0;const ran=[];
+  h.A.require(()=>{drawn++});await ticks(3);const opens=h.log.filter(x=>x==='open').length;h.A.quick(()=>ran.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);
+  assert.equal(h.log.filter(x=>x==='open').length,opens+1,'sin sesión solo se abre la hoja de entrar ('+page+')');assert.equal(h.intent(),null,'y no se guarda la acción');
+  h.C.signIn('user_a');await ticks(8);assert.equal(drawn,1,'la página se dibuja una vez ('+page+')');assert.deepEqual(ran,[],'la acción no se guardó')}
+ // con sesión y el perfil de esa persona guardado corre al instante también ahí
+ const g=CUENTA_HARNESS({api:prof});g.nav('#/mihoja');g.C.user={id:'user_a'};g.cache({sub:'user_a',handle:'ana'});const rg=[];g.A.quick(()=>rg.push('x'),{inPlace:true,act:'fav'});await ticks(4);assert.deepEqual(rg,['x'],'con el perfil guardado corre al instante');
+ // con sesión pero sin perfil guardado no compite con la puerta de la página
+ let rel,n=0;const hold=new Promise(r=>{rel=r});const k0=CUENTA_HARNESS({api:async()=>{n++;if(n===1){await hold}return prof()}});k0.nav('#/mihoja');k0.C.user={id:'user_a'};let d0=0;const r0=[];
+ k0.A.require(()=>{d0++});await ticks(3);k0.A.quick(()=>r0.push('x'),{inPlace:true,act:'fav'});await ticks(3);rel();await ticks(8);assert.equal(d0,1,'la página se dibuja una vez');assert.deepEqual(r0,[],'la acción que no pudo ser instantánea no se guarda');
+ // en una página pública espera y corre al entrar, sin repintar
  const k=CUENTA_HARNESS({api:prof});k.nav('#/c/yambo-toro');const r3=[];k.A.quick(()=>r3.push('x'),{inPlace:true,act:'fav'});await ticks(3);k.C.signIn('user_a');await ticks(8);
  assert.deepEqual(r3,['x']);assert.ok(!k.log.includes('reroute'),'una página pública no se repinta');
+ // la puerta de una acción nunca reemplaza la página con la tarjeta, aunque quien llama no lo pida
+ const c0=CUENTA_HARNESS({api:prof});c0.nav('#/c/yambo-toro');c0.A.quick(()=>{},{act:'fav'});await ticks(3);assert.ok(!c0.log.some(x=>x.startsWith('card:')),'sin tarjeta sobre la página');assert.ok(c0.log.includes('open'),'pero sí se abre la hoja de entrar');
 });
-test('LHB-48: una persona nueva con Mi Hoja y una acción esperando ve un solo formulario de perfil y al crearlo se hacen las dos; irse y volver no revive nada',async()=>{
+test('LHB-48: una persona nueva en Mi Hoja con una acción tocada ve un solo formulario y la página se dibuja una vez; irse y volver no revive nada',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
  let n=0,submit;const h=CUENTA_HARNESS({api:async(C,m)=>m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:'ana'}}}});h.nav('#/mihoja');h.D.ui.onboarding=f=>{n++;submit=f};
  let drawn=0;const ran=[];h.A.require(()=>{drawn++});await ticks(3);h.A.quick(()=>ran.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);h.C.signIn('user_a');await ticks(8);
- assert.equal(typeof submit,'function','hay un formulario de perfil a la vista');
+ assert.equal(n,1,'un solo formulario de perfil');assert.equal(typeof submit,'function');
  const r=await submit({handle:'ana',display_name:'',bio:'',favorite_brand:''});await ticks(4);
- assert.deepEqual(r,{ok:true});assert.equal(drawn,1,'Mi Hoja se dibuja una vez');assert.deepEqual(ran,['humidor'],'y la acción corre una vez');
+ assert.deepEqual(r,{ok:true});assert.equal(drawn,1,'Mi Hoja se dibuja una vez');assert.deepEqual(ran,[],'la acción no compite con la página');assert.equal(h.log.filter(x=>x==='reroute').length,0,'y no se repinta dos veces');
  // irse de la página y volver antes de que llegue la revisión: no corre
  let rel;const hold=new Promise(x=>{rel=x});const a=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};const ra=[];
  a.A.quick(()=>ra.push('abandonada'),{inPlace:true,act:'fav'});await ticks(3);a.nav('#/artesanos');a.nav('#/c/yambo-toro');rel();await ticks(8);
@@ -683,35 +687,14 @@ test('LHB-48: irse y volver mientras carga Clerk descarta la acción (también s
  assert.equal(drawn,1,'Mi Hoja se dibuja una vez al entrar');
  assert.ok(/onNav:f=>window\.addEventListener\('hashchange',f\)/.test(read('hoja.js')),'la página le avisa a la puerta cuando cambia de página');
 });
-test('LHB-48: un solo formulario de perfil se queda con todo lo que espera (página, acción, lo que volvió de Google); cada acción conserva su cancelación; irse de la página borra lo guardado para volver',async()=>{
- const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};
- const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});const f0={handle:'ana',display_name:'',bio:'',favorite_brand:''};
- // volver de Google a Mi Hoja con una acción guardada, persona nueva: la página y la acción llegan a "falta el perfil" por separado
- let rel,calls=0;const hold=new Promise(r=>{rel=r});const forms=[];const ran=[];let drawn=0;
- const h=CUENTA_HARNESS({api:async(C,m)=>{if(m==='POST')return {status:201,body:{profile:{handle:'ana'}}};if(++calls===1)await hold;return {status:200,body:{needsProfile:true}}}});
+test('LHB-48: al volver de Google a Mi Hoja la acción guardada no compite con la puerta de la página; irse de la página borra lo guardado para volver',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});const f0={handle:'ana',display_name:'',bio:'',favorite_brand:''};
+ // persona nueva que vuelve de Google a Mi Hoja con una acción guardada: un formulario, la página una vez, la acción no corre y lo guardado se borra
+ const forms=[];const ran=[];let drawn=0;
+ const h=CUENTA_HARNESS({api:async(C,m)=>m==='POST'?{status:201,body:{profile:{handle:'ana'}}}:{status:200,body:{needsProfile:true}}});
  h.nav('#/mihoja');h.C.user={id:'user_a'};h.A.register('humidor',()=>ran.push('humidor'));h.setIntent({from:'#/mihoja',act:'humidor'});h.D.ui.onboarding=f=>forms.push(f);
- h.A.require(()=>drawn++);await tick();h.A.resume();await ticks(2);rel();await ticks(6);
- assert.ok(forms.length>=2,'la página y la acción abrieron cada una el suyo');const r0=await forms[0](f0);assert.equal(r0.stale,true,'el formulario anterior ya no sirve');
- assert.equal(drawn,0);assert.deepEqual(ran,[]);
- await forms[forms.length-1](f0);await ticks(4);assert.equal(drawn,1,'Mi Hoja se dibuja una vez');assert.deepEqual(ran,['humidor'],'y la acción corre una vez');
- // una acción más nueva sustituye a la anterior también dentro del formulario compartido
- let rel2,c2=0;const hold2=new Promise(r=>{rel2=r});const forms2=[];const ran2=[];let drawn2=0;
- const g=CUENTA_HARNESS({api:async(C,m)=>{if(m==='POST')return {status:201,body:{profile:{handle:'ana'}}};c2++;if(c2<=2)await hold2;return {status:200,body:{needsProfile:true}}}});
- g.nav('#/mihoja');g.D.ui.onboarding=f=>forms2.push(f);g.A.require(()=>drawn2++);await ticks(3);g.A.quick(()=>ran2.push('old'),{inPlace:true,act:'humidor'});await ticks(3);
- g.C.signIn('user_a');await ticks(4);g.A.quick(()=>ran2.push('new'),{inPlace:true,act:'humidor'});await ticks(2);rel2();await ticks(8);
- assert.ok(forms2.length>=1);await forms2[forms2.length-1](f0);await ticks(4);assert.deepEqual(ran2,['new'],'solo corre la acción más nueva');assert.equal(drawn2,1);
- // una acción que se vuelve vieja con el formulario ya a la vista tampoco corre al crear el perfil
- let c3=0,rel3;const hold3=new Promise(r=>{rel3=r});const forms4=[];const ran4=[];let drawn4=0;
- const w=CUENTA_HARNESS({api:async(C,m)=>{if(m==='POST')return {status:201,body:{profile:{handle:'ana'}}};c3++;if(c3===3)await hold3;return {status:200,body:{needsProfile:true}}}});
- w.nav('#/mihoja');w.D.ui.onboarding=f=>forms4.push(f);w.A.require(()=>drawn4++);await ticks(3);w.A.quick(()=>ran4.push('vieja'),{inPlace:true,act:'humidor'});await ticks(3);w.C.signIn('user_a');await ticks(8);
- assert.ok(forms4.length>=1);w.A.quick(()=>ran4.push('nueva'),{inPlace:true,act:'humidor'});await ticks(3);
- await forms4[forms4.length-1](f0);await ticks(4);assert.deepEqual(ran4,[],'la vieja ya no corre y la nueva todavía no llegó');assert.equal(drawn4,1);rel3();await ticks(4);
- // un fallo al dibujar la página no detiene la acción dentro del formulario compartido
- const forms3=[];const ran3=[];const err=console.error;console.error=()=>{};
- try{const k=CUENTA_HARNESS({api:async(C,m)=>m==='POST'?{status:201,body:{profile:{handle:'ana'}}}:{status:200,body:{needsProfile:true}}});k.nav('#/mihoja');k.D.ui.onboarding=f=>forms3.push(f);
-  k.A.require(()=>{throw new Error('pagina')}).catch(()=>{});await ticks(3);k.A.quick(()=>ran3.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);k.C.signIn('user_a');await ticks(8);
-  await forms3[forms3.length-1](f0);await ticks(4)}finally{console.error=err}
- assert.deepEqual(ran3,['humidor']);
+ h.A.require(()=>drawn++);await tick();h.A.resume();await ticks(8);
+ assert.equal(forms.length,1,'un solo formulario');assert.equal(h.intent(),null,'lo guardado de una página de la cuenta se borra');await forms[0](f0);await ticks(4);assert.equal(drawn,1,'Mi Hoja se dibuja una vez');assert.deepEqual(ran,[]);
  // irse de la página borra lo guardado para volver de Google (un reinicio no lo revive)
  const m=CUENTA_HARNESS({api:prof});m.nav('#/c/yambo-toro');m.A.quick(()=>{},{inPlace:true,act:'fav',arg:'cigarros:yambo-toro'});await ticks(3);
  assert.equal(m.intent().act,'fav','antes de irse, lo guardado está');m.nav('#/artesanos');assert.equal(m.intent(),null,'al irse de la página se borra');
@@ -728,13 +711,8 @@ test('LHB-48: un 401 y volver a entrar conserva la acción (la persona que entra
  const k2=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});k2.nav('#/c/yambo-toro');const rk2=[];k2.A.quick(()=>rk2.push('k'),{inPlace:true,act:'fav'});await ticks(4);
  assert.deepEqual(rk2,[],'Clerk no carga y no hay perfil guardado: no corre');assert.ok(k2.log.includes('notice:Necesitas conexión'),'y se avisa');
 });
-test('LHB-48: una acción en sitio no cancela la puerta de una página: al volver de Google en Mi Hoja la acción corre y la página se dibuja, aunque la revisión de la acción falle',async()=>{
+test('LHB-48: lo guardado para volver de Google solo se retoma si es una acción registrada de esta página pública',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- for(const second of [{status:503,body:{}},{status:200,body:{profile:{handle:'ana'}}}]){
-  let rel,n=0;const hold=new Promise(r=>{rel=r});const h=CUENTA_HARNESS({api:async()=>{n++;if(n===1){await hold;return prof()}return second}});h.nav('#/mihoja/favoritos');h.C.user={id:'user_a'};
-  const fav=[];h.A.register('fav',a=>fav.push(a));h.setIntent({from:'#/mihoja/favoritos',act:'fav',arg:'cigarros:x'});let drawn=0;
-  h.A.require(()=>{drawn++});await tick();h.A.resume();await ticks(4);rel();await ticks(8);
-  assert.equal(drawn,1,'Mi Hoja se dibuja (respuesta de la acción: '+second.status+')');assert.deepEqual(fav,second.status===200?['cigarros:x']:[],'la acción corre solo si su revisión salió bien')}
  // lo guardado solo se retoma si la acción está registrada y es de esta página
  const g=CUENTA_HARNESS({api:prof});g.nav('#/c/yambo-toro');g.C.user={id:'user_a'};g.cache({sub:'user_a',handle:'ana'});const rg=[];g.A.register('fav',x=>rg.push(x));
  for(const bad of [{from:'#/c/yambo-toro',act:'constructor',arg:'x'},{from:'#/c/yambo-toro',act:'__proto__'},{from:'#/otra',act:'fav',arg:'x'},{from:'#/c/yambo-toro',act:'nada'}]){g.setIntent(bad);g.A.resume();await ticks(2);assert.equal(g.intent(),null,'se borra lo que no es una acción registrada de esta página: '+bad.act)}

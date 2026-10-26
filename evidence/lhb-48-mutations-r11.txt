@@ -14,8 +14,8 @@ G15 fast path trusts another person cached profile: exit 1, fail 1  -> RED
 G16 fast path leaves the saved action behind: exit 1, fail 2  -> RED
 G21 actions not registered for the return from Google: exit 1, fail 3  -> RED
 G22 the gate drops the pressed button: exit 1, fail 1  -> RED
-H1 sign-out leaves the tasting editor open: exit 1, fail 1  -> RED
-H2 sign-out leaves the upload editor open: exit 1, fail 1  -> RED
+H1 sign-out leaves the tasting editor open: exit 1, fail 2  -> RED
+H2 sign-out leaves the upload editor open: exit 1, fail 2  -> RED
 H3 heart accepts inherited ids: exit 1, fail 1  -> RED
 H4 stamp accepts inherited ids: exit 1, fail 1  -> RED
 H5 rating accepts inherited ids: exit 1, fail 1  -> RED
@@ -26,31 +26,29 @@ G18 saved action stores a non-text argument: exit 1, fail 2  -> RED
 U3 a photo prepared for the previous person is kept: exit 1, fail 1  -> RED
 S2 an upload finishes for the next person: exit 1, fail 1  -> RED
 T7 inherited action names pass: exit 1, fail 1  -> RED
-T8 one failing action stops the rest: exit 1, fail 1  -> RED
-N1 an action in place shares the counter of the page gate: exit 1, fail 9  -> RED
+N1 an action in place shares the counter of the page gate: exit 1, fail 6  -> RED
 N2 an instant action depends on later taps: exit 1, fail 1  -> RED
 N3 an account change does not cancel the action in place: exit 1, fail 1  -> RED
 N4 an account change does not move the generation: exit 1, fail 1  -> RED
 N5 an instant action ignores an account change while Clerk loads: exit 1, fail 1  -> RED
 N7 a superseded action goes on after the fast path: exit 1, fail 1  -> RED
-N8 the gate for an action replaces the page with the card: exit 1, fail 2  -> RED
-N9 the gate for an action always waits for the server: exit 1, fail 1  -> RED
+N8 the gate for an action replaces the page with the card: exit 1, fail 1  -> RED
+N9 the gate for an action always waits for the server: exit 1, fail 2  -> RED
 N10 the saved action may be one that is not registered: exit 1, fail 1  -> RED
 N11 the saved action runs on another page: exit 1, fail 2  -> RED
 N12 the saved action passes a non-text argument: exit 1, fail 1  -> RED
 N13 the saved action loses its argument on return: exit 1, fail 2  -> RED
 N14 the saved action carries a list and an owner: exit 1, fail 3  -> RED
-N15 coming back from Google does nothing: exit 1, fail 5  -> RED
+N15 coming back from Google does nothing: exit 1, fail 4  -> RED
 N16 the action ignores the gate result: runs on a failed check: exit 1, fail 9  -> RED
 N17 a failed check on an action in place hides the error: exit 1, fail 4  -> RED
-N18 an action in place replaces what the page is waiting for: exit 1, fail 3  -> RED
-N19 an action in place waiting is not resumed on sign-in: exit 1, fail 9  -> RED
-N20 the page waiting is not resumed on sign-in: exit 1, fail 4  -> RED
+N20 the page waiting is not resumed on sign-in: exit 1, fail 9  -> RED
 N25 leaving a page keeps what it waited for: exit 1, fail 1  -> RED
-N28 each waiting thing opens its own profile form: exit 1, fail 2  -> RED
-N30 finishing the profile runs cancelled continuations: exit 1, fail 1  -> RED
-N31 one failing continuation stops the others: exit 1, fail 1  -> RED
-N32 an older profile form stays alive: exit 1, fail 1  -> RED
+R1 an action in place on a page of the account waits and competes with the page: exit 1, fail 2  -> RED
+R2 an action in place on a page of the account does not open the sign-in sheet: exit 1, fail 1  -> RED
+R3 the rule for pages of the account also applies to other in-place gates: exit 1, fail 1  -> RED
+R4 a saved action is resumed on a page of the account: exit 1, fail 1  -> RED
+R5 the actions are not marked as quick: exit 1, fail 2  -> RED
 N33 leaving a page keeps the saved Google return: exit 1, fail 1  -> RED
 N23 leaving a page does not end its pending check: exit 1, fail 1  -> RED
 N24 leaving a page does not end an instant action: exit 1, fail 1  -> RED
