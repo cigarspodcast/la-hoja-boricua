@@ -80,6 +80,14 @@ M29 formulario: el botón de foto sigue activo mientras algo corre -> ROJO (bien
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
 M30 formulario: el envío no toma el candado -> ROJO (bien) fail=1
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M31 formulario: una subida invalidada con el formulario en pantalla deja todo apagado -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M32 formulario: un envío invalidado con el formulario en pantalla deja todo apagado -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M33 formulario: terminada la subida los botones quedan apagados -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M34 formulario: terminado el envío con error los botones quedan apagados -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
 restaurado (0, [])
-mutaciones: 30 sobrevivieron o con error: 0
+mutaciones: 34 sobrevivieron o con error: 0
 exit 0

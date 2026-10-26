@@ -45,6 +45,10 @@ MUTS = [
     ('M28 formulario: se puede enviar mientras algo corre', 'site/hoja.js', "e.preventDefault();if(working)return;", "e.preventDefault();"),
     ('M29 formulario: el botón de foto sigue activo mientras algo corre', 'site/hoja.js', "$('#obGo').disabled=b;$('#obPb').disabled=b};", "$('#obGo').disabled=b};"),
     ('M30 formulario: el envío no toma el candado', 'site/hoja.js', "err('');busy(true);\n", "err('');$('#obGo').disabled=true;\n"),
+    ('M31 formulario: una subida invalidada con el formulario en pantalla deja todo apagado', 'site/hoja.js', "catch(x){r={error:'avatar-type'}}" + "\n" + "  if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}", "catch(x){r={error:'avatar-type'}}" + "\n" + "  if($('#obForm')!==form)return;if(!r||r.stale){return}"),
+    ('M32 formulario: un envío invalidado con el formulario en pantalla deja todo apagado', 'site/hoja.js', "catch(x){r={error:'generic'}}" + "\n" + "  if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}", "catch(x){r={error:'generic'}}" + "\n" + "  if($('#obForm')!==form)return;if(!r||r.stale){return}"),
+    ('M33 formulario: terminada la subida los botones quedan apagados', 'site/hoja.js', "busy(false);if(r.error)return err(", "if(r.error)return err("),
+    ('M34 formulario: terminado el envío con error los botones quedan apagados', 'site/hoja.js', "busy(false);if(r.error)err(OB_ERR[r.error]||'No pudimos", "if(r.error)err(OB_ERR[r.error]||'No pudimos"),
 ]
 
 def main():

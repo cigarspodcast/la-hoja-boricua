@@ -1,0 +1,13 @@
+1. [Likely] **BLOCKING** [site/hoja.js:183](/C:/Users/Owner/la-hoja-boricua/site/hoja.js:183): A stale upload can leave the visible form permanently disabled. Reproduction: open onboarding through “Al humidor” on a public cigar page, start uploading, then use **+ → Añadir al humidor** again and have that second `/api/me` request return 503. The second action increments `sip` in `cuenta.js:26`, invalidating the first form’s operation, but its failure only opens a notice. The form remains mounted. When the upload settles, `if(!r||r.stale||$('#obForm')!==form)return;` skips `busy(false)`. Dismissing the notice exposes two disabled buttons. Change cancellation handling to replace or explicitly recover a still-mounted invalidated form; apply the same treatment to the submit handler at line 192. Static reconstruction; browser reproduction **NOT VERIFIED**.
+
+2. [Certain] **NON-BLOCKING** [test/site.test.js:961](/C:/Users/Owner/la-hoja-boricua/test/site.test.js:961): The form tests cannot detect a missing upload unlock. The assertion searches for `busy(false);if(r.error)err(`, which matches the submit handler. Removing the upload handler’s `busy(false)` at `hoja.js:184` would therefore leave these checks passing while every completed upload locks the form. The account harness replaces `ui.onboarding`, so its behavioral tests do not execute either DOM handler. Add behavioral coverage for upload success, upload failure, and stale completion with the original form still mounted. Mutation outcome inferred by inspection, not executed.
+
+[Certain] Prior dispositions: **F1 CONCUR** with exclusion. No sentence in the quoted contract requires subsequent Perfil/header rendering; the specified return criterion is “the stored URL comes back on /api/me.” **F2 CONCUR**: missing or rejected reload retains the previous selection. **F3 CONCUR**: the shared queue serializes writes and reloads, skips superseded queued work, and catches rejection so subsequent jobs can run. **F4 CONCUR** for the original simultaneous-submit/upload interleaving; finding 1 identifies a separate cancellation path.
+
+[Certain] L1/L2 describe the implementation: the server checks the URL prefix, while `hasImage` is checked only in the browser. Their stronger claims of impossibility and mandatory secret-key use are **NOT VERIFIED**. L3 follows from retaining `pic` on failure. L4 is confirmed against `a34e48a`. L5’s unchanged-file claim is confirmed; owner escalation is **NOT VERIFIED**.
+
+[Certain] Authorized test result: **84 tests, 84 pass, 0 fail**; real Clerk integration was not exercised.
+
+[Likely] Both findings involve the same untested boundary: an invalidated account operation whose form remains mounted.
+
+VERDICT: BLOCK

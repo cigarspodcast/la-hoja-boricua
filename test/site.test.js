@@ -960,6 +960,11 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(form.includes("let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;$('#obPb').disabled=b};"),'una sola operación a la vez: el botón de foto y el de crear se apagan juntos');
  assert.ok(form.includes("e.preventDefault();if(working)return;")&&/err\(''\);busy\(true\);\s*let r;try\{r=await submit\(/.test(form)&&form.includes("busy(false);if(r.error)err("),'el envío toma y suelta el mismo candado');
  assert.ok(/if\(!f\|\|working\)return;/.test(form),'y una foto escogida mientras algo corre se ignora');
+ /* cada salida de cada manejador suelta el candado, también si la operación quedó invalidada con el formulario todavía en pantalla (ronda 2, hallazgo 1) */
+ const up=form.slice(form.indexOf("$('#obPf').onchange="),form.indexOf("$('#obB').oninput")),sb=form.slice(form.indexOf('form.onsubmit='));
+ for(const [nombre,src] of [['subir',up],['enviar',sb]])assert.ok(src.includes("if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}"),'una operación invalidada con el formulario aún en pantalla suelta el candado al enviar/subir: '+nombre);
+ assert.ok(/busy\(false\);if\(r\.error\)return err\(OB_ERR\[r\.error\]\|\|OB_ERR\['avatar-upload'\]\);\s*own=true;showPic\(\)/.test(up),'subir: éxito y error sueltan el candado');
+ assert.ok(/busy\(false\);if\(r\.error\)err\(OB_ERR\[r\.error\]\|\|'No pudimos crear tu perfil/.test(sb),'enviar: éxito y error sueltan el candado');
  assert.ok(cu.includes('let uq=Promise.resolve();')&&cu.includes('uq.then(async()=>{try{')&&cu.includes('uq=job.catch(()=>{})'),'las subidas van en cola, una a la vez');
  assert.ok(app.includes('vPerfil,resizeImage,hydrate:'),'app.js le pasa resizeImage a Mi Hoja');
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');

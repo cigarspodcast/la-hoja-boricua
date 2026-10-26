@@ -180,7 +180,7 @@ function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos|
   if(!/^image\//.test(f.type))return err(OB_ERR['avatar-type']);
   err('');busy(true);let r;
   try{const b=await A.resizeImage(f,512,.85);r=await picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))}catch(x){r={error:'avatar-type'}}
-  if(!r||r.stale||$('#obForm')!==form)return;
+  if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
   busy(false);if(r.error)return err(OB_ERR[r.error]||OB_ERR['avatar-upload']);
   own=true;showPic()};
  $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length};
@@ -189,7 +189,7 @@ function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos|
   if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid']);if(!$('#obAge').checked)return err(OB_ERR['age-required']);
   err('');busy(true);
   let r;try{r=await submit({handle:h,display_name:$('#obN').value,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
-  if(!r||r.stale||$('#obForm')!==form)return;
+  if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
   busy(false);if(r.error)err(OB_ERR[r.error]||'No pudimos crear tu perfil. Intenta otra vez.')}}
 const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast,closeAll:closeSheetNow}});
 /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
