@@ -1,0 +1,25 @@
+[Certain] **BLOCKING: the separate counters do not fully protect Mi Hoja’s page gate.**
+
+In [cuenta.js](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:43), an in-place action replaces the pending page continuation:
+
+```js
+pending={go:done,o,from};
+```
+
+On sign-in, [the listener](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:19) resumes that action and returns before rerouting the protected page:
+
+```js
+if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
+if(onMiHoja()||ob){ob=false;D.reroute()}
+```
+
+[Certain] **User reach:** while signed out, open Mi Hoja, dismiss Clerk’s sign-in sheet, select `+` → “Añadir al humidor,” then sign in with an existing profile. The humidor opens, but Mi Hoja remains on its “Entra para usar Mi Hoja” card.
+
+[Certain] Executing this sequence through the repository’s `CUENTA_HARNESS` produced one humidor callback and **zero page renders**. An assertion requiring one page render fails. Resume the protected page independently of the latest in-place action, and add this regression case.
+
+**NON-BLOCKING**
+
+- [Certain] **Round 9 resolutions: CONCUR.** The revised semantics address finding 1; the current tests pass for the specific overlapping-check and abandoned-pool scenarios in findings 2 and 3. The blocker above uses a different sign-in path.
+- [Certain] **Full green baseline remains NOT VERIFIED here.** Running `node --test test/site.test.js` produced **70 passed, 1 failed**. The unchanged JSON-LD test reaches `py.stdout.trim()` at [site.test.js:275](/C:/Users/Owner/la-hoja-boricua/test/site.test.js:275) after this sandbox rejects Python with `spawnSync python EPERM`. All LHB-48 tests passed. Browser sign-in was not independently verified.
+
+VERDICT: BLOCK

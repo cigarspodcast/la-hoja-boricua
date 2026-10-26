@@ -641,6 +641,20 @@ test('LHB-48: con el perfil guardado, la acción en sitio no espera a la red per
  // los nombres heredados no son acciones
  assert.ok(/const ACT=Object\.create\(null\)/.test(read('cuenta.js')),'el registro de acciones no hereda nombres (constructor, toString...)');
 });
+test('LHB-48: sin sesión en Mi Hoja, tocar una acción en sitio no quita lo que espera la página: al entrar se hacen las dos',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ const h=CUENTA_HARNESS({api:prof});h.nav('#/mihoja');let drawn=0;const ran=[];
+ h.A.require(()=>{drawn++});await ticks(3);h.A.quick(()=>ran.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);
+ h.C.signIn('user_a');await ticks(8);
+ assert.equal(drawn,1,'Mi Hoja se dibuja una vez');assert.deepEqual(ran,['humidor'],'y la acción corre una vez');
+ // al revés: primero la acción y luego la puerta de la página
+ const g=CUENTA_HARNESS({api:prof});g.nav('#/mihoja');let d2=0;const r2=[];
+ g.A.quick(()=>r2.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);g.A.require(()=>{d2++});await ticks(3);g.C.signIn('user_a');await ticks(8);
+ assert.equal(d2,1);assert.deepEqual(r2,['humidor']);
+ // en una página pública solo corre la acción y la página no se repinta
+ const k=CUENTA_HARNESS({api:prof});k.nav('#/c/yambo-toro');const r3=[];k.A.quick(()=>r3.push('x'),{inPlace:true,act:'fav'});await ticks(3);k.C.signIn('user_a');await ticks(8);
+ assert.deepEqual(r3,['x']);assert.ok(!k.log.includes('reroute'),'una página pública no se repinta');
+});
 test('LHB-48: un 401 y volver a entrar conserva la acción (la persona que entra en este equipo la continúa); un fallo de Clerk usa el perfil guardado solo del mismo momento',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
  const run=async who=>{let ok=false;const x=CUENTA_HARNESS({api:async()=>ok?await prof():{status:401,body:{}}});x.nav('#/c/yambo-toro');x.C.user={id:'user_a'};const ran=[];

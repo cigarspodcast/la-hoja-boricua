@@ -5,7 +5,7 @@
    - Cada respuesta pendiente se amarra al usuario, a la pantalla y a la operación que la pidió; si algo cambió, se ignora.
    - Entrar desde cualquier página deja la página como está, y al terminar se hace la acción que el usuario empezó. */
 window.LHB_CUENTA=function(D){'use strict';
-const ACT=Object.create(null);let seq=0,sip=0,gen=0,hooked=false,lastId=null,pending=null,ob=false,failure=null;
+const ACT=Object.create(null);let seq=0,sip=0,gen=0,hooked=false,lastId=null,pending=null,pendIp=null,ob=false,failure=null;
 /* lo guardado para volver de Google: la acción y su argumento de texto; solo acciones registradas */
 const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.arg=o.arg;return v};
 /* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil; también las páginas que escriben datos de la cuenta (#/cata y #/subir): al cambiar la cuenta se vuelven a pasar por la puerta */
@@ -15,7 +15,9 @@ const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r=
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
  C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;sip++;gen++;D.ui.closeAll();
   if(!id){D.store.clear();D.intent.clear()}
-  const p=pending;pending=null;const fl=failure;failure=null;
+  /* lo que espera una página (Mi Hoja) y lo que espera una acción en sitio se guardan por separado: las dos se retoman al entrar */
+  const p=pending,q=pendIp;pending=null;pendIp=null;const fl=failure;failure=null;
+  if(id&&q&&q.from===D.here())go(q.go,{...q.o,resume:true});
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}
   /* el aviso de error pedía salir y volver a entrar: al salir, la hoja se cierra con todo y su botón; se deja un botón nuevo para entrar y seguir con la acción */
@@ -40,7 +42,7 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,op=
  if(!lv(C))return;
  if(!C.user){D.store.clear();
   if(o.resume){D.intent.clear();return}
-  pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));
+  if(inp)pendIp={go:done,o,from};else pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));
   const open=()=>D.openSignIn(C);
   show('Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta. El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.',{label:'Entrar o crear cuenta',on:open});
   open();return}

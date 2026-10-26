@@ -26,7 +26,7 @@ G18 saved action stores a non-text argument: exit 1, fail 2  -> RED
 U3 a photo prepared for the previous person is kept: exit 1, fail 1  -> RED
 S2 an upload finishes for the next person: exit 1, fail 1  -> RED
 T7 inherited action names pass: exit 1, fail 1  -> RED
-N1 an action in place shares the counter of the page gate: exit 1, fail 6  -> RED
+N1 an action in place shares the counter of the page gate: exit 1, fail 7  -> RED
 N2 an instant action depends on later taps: exit 1, fail 1  -> RED
 N3 an account change does not cancel the action in place: exit 1, fail 1  -> RED
 N4 an account change does not move the generation: exit 1, fail 1  -> RED
@@ -43,4 +43,7 @@ N14 the saved action carries a list and an owner: exit 1, fail 3  -> RED
 N15 coming back from Google does nothing: exit 1, fail 4  -> RED
 N16 the action ignores the gate result: runs on a failed check: exit 1, fail 7  -> RED
 N17 a failed check on an action in place hides the error: exit 1, fail 4  -> RED
-restored: exit 0, pass 71
+N18 an action in place replaces what the page is waiting for: exit 1, fail 1  -> RED
+N19 an action in place waiting is not resumed on sign-in: exit 1, fail 7  -> RED
+N20 the page waiting is not resumed on sign-in: exit 1, fail 1  -> RED
+restored: exit 0, pass 72
