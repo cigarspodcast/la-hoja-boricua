@@ -153,10 +153,11 @@ async function api(C,method,path,body,uid){const t=await C.session.getToken();if
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}
-const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','age-required':'Tienes que confirmar que tienes 21 años o más.','bio-long':'La descripción puede tener hasta 160 caracteres.','display_name-long':'El nombre puede tener hasta 50 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.','recheck':'Tu perfil ya existe, pero no pudimos abrirlo. Intenta otra vez.'};
-function onboardingForm(submit){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));
+const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','age-required':'Tienes que confirmar que tienes 21 años o más.','bio-long':'La descripción puede tener hasta 160 caracteres.','display_name-long':'El nombre puede tener hasta 50 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.','recheck':'Tu perfil ya existe, pero no pudimos abrirlo. Intenta otra vez.','avatar-required':'Pon una foto para crear tu perfil.','avatar-invalid':'No pudimos usar esa foto. Escoge otra.','avatar-type':'Escoge un archivo de imagen, una foto.','avatar-upload':'No pudimos subir la foto. Intenta otra vez.'};
+function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));
  view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Tu <em>perfil</em></h1></header>
  <form class="form" id="obForm" novalidate>
+ <div class="ob-pic" role="group" aria-labelledby="obPt"><p class="ob-pic-t" id="obPt">Tu foto</p><div class="ob-pic-row"><span class="ob-pic-img" id="obPv"></span><button class="lbtn" type="button" id="obPb"></button></div><p class="hint" id="obPh" aria-live="polite"></p><input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1"></div>
  <div class="field"><label for="obH">Tu @ (nombre de usuario)</label><input id="obH" required minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="ej. tabaquero_pr"><p class="hint">De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.</p></div>
  <div class="field"><label for="obN">Tu nombre (opcional)</label><input id="obN" maxlength="50" autocomplete="name"></div>
  <div class="field"><label for="obB">Una descripción corta (opcional)</label><textarea id="obB" maxlength="160" rows="3"></textarea><p class="hint"><span id="obBn">0</span>/160</p></div>
@@ -167,8 +168,23 @@ function onboardingForm(submit){const marcas=[...new Set((D().artesanos||[]).map
  <button class="btn" type="submit" id="obGo">Crear mi perfil</button></form>`;
  const form=$('#obForm');
  const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m};
+ /* LHB-49: la foto es obligatoria. Viene la de la cuenta (Google, Apple) si la hay; la persona puede escoger otra, que se achica aquí antes de subirla a su cuenta */
+ let own=false;
+ const showPic=()=>{const u=picture.url(),v=$('#obPv');v.textContent='';if(u){const im=document.createElement('img');im.alt='Tu foto de perfil';im.src=u;v.appendChild(im)}else v.textContent='+';
+  $('#obPb').textContent=u?'Cambiar foto':'Elegir foto';$('#obPh').textContent=u?(own?'Listo, esta es tu foto.':'Usamos la foto de tu cuenta. Puedes escoger otra.'):'Para crear tu perfil necesitas una foto. Escoge una de tu teléfono.'};
+ const busy=b=>{$('#obGo').disabled=b;$('#obPb').disabled=b};
+ showPic();
+ $('#obPb').onclick=()=>$('#obPf').click();
+ $('#obPf').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+  if(!/^image\//.test(f.type))return err(OB_ERR['avatar-type']);
+  err('');busy(true);let r;
+  try{const b=await A.resizeImage(f,512,.85);r=await picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))}catch(x){r={error:'avatar-type'}}
+  if(!r||r.stale||$('#obForm')!==form)return;
+  busy(false);if(r.error)return err(OB_ERR[r.error]||OB_ERR['avatar-upload']);
+  own=true;showPic()};
  $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length};
  form.onsubmit=async e=>{e.preventDefault();const h=$('#obH').value.trim().toLowerCase();
+  if(!picture.url())return err(OB_ERR['avatar-required']);
   if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid']);if(!$('#obAge').checked)return err(OB_ERR['age-required']);
   err('');$('#obGo').disabled=true;
   let r;try{r=await submit({handle:h,display_name:$('#obN').value,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}

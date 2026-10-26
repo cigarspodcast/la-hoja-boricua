@@ -30,6 +30,17 @@ function text(v, field) {
   return { value: t || null };
 }
 
+// LHB-49: la foto de perfil la guarda Clerk; aquí solo se acepta su URL y se guarda en avatar_key (LHB-35 las pasa a R2).
+// Prefijo literal, solo ASCII visible (sin espacios, controles ni \), así el host nunca puede ser otro.
+export const AVATAR_PREFIX = 'https://img.clerk.com/';
+export const AVATAR_MAX = 1000;
+export function checkAvatar(v) {
+  if (v == null || v === '') return { error: 'avatar-required' };
+  if (typeof v !== 'string' || v.length > AVATAR_MAX || v.length <= AVATAR_PREFIX.length) return { error: 'avatar-invalid' };
+  if (!v.startsWith(AVATAR_PREFIX) || !/^[!-~]+$/.test(v) || v.includes('\\')) return { error: 'avatar-invalid' };
+  return { avatar_key: v };
+}
+
 export function checkProfile(b) {
   if (!b || typeof b !== 'object' || Array.isArray(b)) return { error: 'bad-body' };
   if (b.age_ok !== true) return { error: 'age-required' };
@@ -41,6 +52,9 @@ export function checkProfile(b) {
     if (r.error) return r;
     out[f] = r.value;
   }
+  const a = checkAvatar(b.avatar_url);
+  if (a.error) return a;
+  out.avatar_key = a.avatar_key;
   return out;
 }
 

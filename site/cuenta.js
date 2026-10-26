@@ -58,11 +58,28 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  const c=D.store.get();
  if(c&&c.sub===uid&&(r.status===0||r.status>=500)){D.intent.clear();return done()}
  fail('No pudimos revisar tu cuenta','Intenta otra vez en un momento.')}
+/* LHB-49: la foto de perfil es la de Clerk. Si la cuenta ya trae una (Google, Apple) viene puesta; si no, o si la persona quiere otra, la sube con setProfileImage.
+   Una foto de Clerk que no se subió ni se importó (la silueta de siempre) tiene hasImage en false y no cuenta. Sin foto no se manda el perfil. */
+const CLERK_IMG='https://img.clerk.com/';
+const picOf=U=>U&&U.hasImage===true&&typeof U.imageUrl==='string'&&U.imageUrl.startsWith(CLERK_IMG)?U.imageUrl:null;
 function onboard(C,done,o,lv,uid){ob=true;
+ const U=C.user;let pic=picOf(U),up=0;
+ /* url() es la foto puesta ahora; upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva) */
+ const picture={url:()=>pic,upload:async file=>{
+  if(!lv(C,uid))return {stale:true};
+  if(!file||typeof file.type!=='string'||!/^image\//.test(file.type))return {error:'avatar-type'};
+  const n=++up;
+  try{await U.setProfileImage({file})}catch(e){return lv(C,uid)&&n===up?{error:'avatar-upload'}:{stale:true}}
+  /* la subida ya quedó en Clerk: si recargar la cuenta falla, igual se lee lo que trae */
+  try{if(typeof U.reload==='function')await U.reload()}catch(e){}
+  if(!lv(C,uid)||n!==up)return {stale:true};
+  const p=picOf(U);if(!p)return {error:'avatar-upload'};
+  pic=p;return {url:p}}};
  D.ui.onboarding(async f=>{
   /* el formulario puede seguir en pantalla después de un cambio de cuenta: no se manda nada a nombre de otra persona */
   if(!lv(C,uid))return {stale:true};
-  let r;try{r=await D.api(C,'POST','/api/profile',{...f,age_ok:true},uid)}catch(e){r={status:0,body:{}}}
+  if(!pic)return {error:'avatar-required'};
+  let r;try{r=await D.api(C,'POST','/api/profile',{...f,age_ok:true,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
   const same=!!C.user&&C.user.id===uid;
   if(r.status===201){if(same)cache({sub:uid,handle:r.body.profile.handle});
    if(!lv(C,uid))return {stale:true};
@@ -75,7 +92,7 @@ function onboard(C,done,o,lv,uid){ob=true;
    if(!lv(C,uid))return {stale:true};
    if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
    return {error:'recheck'}}
-  return {error:r.body.error||'generic'}})}
+  return {error:r.body.error||'generic'}},picture)}
 /* acción en sitio: pasa por la misma puerta que Mi Hoja (con el perfil de ese usuario ya guardado no espera a la red). Si el usuario toca otra acción antes de que
    termine la revisión, vale la última: cada toque es una sola acción y corre una vez o ninguna. */
 const quick=(done,o)=>go(done,{...o,inPlace:true,fast:true,quick:true});

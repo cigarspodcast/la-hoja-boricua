@@ -1,5 +1,6 @@
-/* LHB-25: POST /api/profile crea el perfil del onboarding (@handle, nombre, bio, marca favorita y la
-   confirmación de 21+). Cambiar el perfil después es de LHB-34; aquí un segundo POST da 409. */
+/* LHB-25: POST /api/profile crea el perfil del onboarding (@handle, nombre, bio, marca favorita, la
+   confirmación de 21+ y, desde LHB-49, la foto: la URL de Clerk en avatar_url, que se guarda en avatar_key).
+   Cambiar el perfil después es de LHB-34; aquí un segundo POST da 409. */
 import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
 import { checkProfile } from '../_lib/profile.js';
 
@@ -18,14 +19,14 @@ export async function onRequestPost({ request, env }) {
   const now = new Date().toISOString();
   try {
     const r = await env.DB.prepare(
-      'INSERT INTO profiles (user_id, handle, display_name, bio, favorite_brand, age_ok_at, created_at, updated_at) ' +
-      'VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?6) ON CONFLICT(user_id) DO NOTHING'
-    ).bind(user.sub, p.handle, p.display_name, p.bio, p.favorite_brand, now).run();
+      'INSERT INTO profiles (user_id, handle, display_name, bio, favorite_brand, avatar_key, age_ok_at, created_at, updated_at) ' +
+      'VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, ?7) ON CONFLICT(user_id) DO NOTHING'
+    ).bind(user.sub, p.handle, p.display_name, p.bio, p.favorite_brand, p.avatar_key, now).run();
     if (!r.meta.changes) return json({ error: 'profile-exists' }, 409);
   } catch (e) {
     if (/UNIQUE/i.test(String(e && e.message))) return json({ error: 'handle-taken' }, 409);
     throw e;
   }
-  const { handle, display_name, bio, favorite_brand } = p;
-  return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key: null } }, 201);
+  const { handle, display_name, bio, favorite_brand, avatar_key } = p;
+  return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key } }, 201);
 }

@@ -1,0 +1,62 @@
+baseline (0, [])
+M1 servidor: se acepta cualquier avatar_url (sin revisión) -> ROJO (bien) fail=2
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+      LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.clerk.com/): falta, otro host, parecidos y caracteres raros
+M2 servidor: la foto ya no es obligatoria -> ROJO (bien) fail=2
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+      LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.clerk.com/): falta, otro host, parecidos y caracteres raros
+M3 servidor: el prefijo deja pasar img.clerk.com.evil -> ROJO (bien) fail=2
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+      LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.clerk.com/): falta, otro host, parecidos y caracteres raros
+M4 servidor: se permite la barra invertida -> ROJO (bien) fail=1
+      LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.clerk.com/): falta, otro host, parecidos y caracteres raros
+M5 servidor: se permiten espacios y no-ASCII -> ROJO (bien) fail=1
+      LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.clerk.com/): falta, otro host, parecidos y caracteres raros
+M6 servidor: sin límite de largo -> ROJO (bien) fail=1
+      LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.clerk.com/): falta, otro host, parecidos y caracteres raros
+M7 servidor: el INSERT no guarda avatar_key -> ROJO (bien) fail=2
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M8 servidor: la respuesta 201 no trae la foto -> ROJO (bien) fail=1
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+M9 gate: se manda el perfil aunque no haya foto -> ROJO (bien) fail=2
+      LHB-49: sin foto no se crea el perfil: no se manda nada al servidor, y el error del servidor también llega al formulario
+      LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
+M10 gate: la silueta de Clerk (hasImage false) cuenta como foto -> ROJO (bien) fail=4
+      LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan
+      LHB-49: sin foto no se crea el perfil: no se manda nada al servidor, y el error del servidor también llega al formulario
+      LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
+      LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
+M11 gate: cualquier URL cuenta como foto -> ROJO (bien) fail=2
+      LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan
+      LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
+M12 gate: se sube cualquier archivo, no solo imágenes -> ROJO (bien) fail=1
+      LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
+M13 gate: no se manda avatar_url -> ROJO (bien) fail=3
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan
+      LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
+M14 gate: una subida superada sí cambia la foto -> ROJO (bien) fail=1
+      LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
+M15 gate: una subida de otra cuenta sí cambia la foto -> ROJO (bien) fail=1
+      LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
+M16 gate: no se recarga la cuenta tras subir -> ROJO (bien) fail=2
+      LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
+      LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
+M17 gate: un error de subida de otra cuenta llega a esta pantalla -> ROJO (bien) fail=1
+      LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
+M18 formulario: la foto no se pide antes del @ -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M19 formulario: la imagen no se achica antes de subirla -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M20 formulario: el selector deja escoger cualquier archivo -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M21 app: resizeImage no llega al formulario -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M22 sw: la versión del caché no cambia -> ROJO (bien) fail=14
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      artisan logos: every id in LOGOS maps to an existing webp and a real artisan
+      v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)
+      v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño
+restaurado (0, [])
+mutaciones: 22 sobrevivieron o con error: 0

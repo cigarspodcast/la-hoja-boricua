@@ -224,7 +224,7 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ups=
  $('#pForm').onsubmit=e=>{e.preventDefault();LS.set('perfil',{nombre:$('#pN').value.trim(),capa:$('#pC').value});toast(tt('pf.saved'));vPerfil();topAvatar()};hydratePhotos()}
 async function topAvatar(){const p=LS.get('perfil',{});const el=$('#topAvatar');const u=await photoURL('perfil');el.innerHTML=u?`<img src="${u}" alt="">`:`<span>${esc((p.nombre||'☆')[0].toUpperCase())}</span>`}
 /* ---------- v6: Mi Hoja y demás (hoja.js) ---------- */
-const EXT=window.LHB_EXT({$,$$,esc,toast,view,VBArt,LS,D:()=>D,allCigars,artisanById,cigarById,artisanName,cigarSVG,mono,linkBtn,ICON,FORT,fortLabel,PROTO_NOTE,head,cigarCard,goLink,evDate,route:()=>route(),vPerfil,hydrate:r=>hydratePhotos(r||view)});
+const EXT=window.LHB_EXT({$,$$,esc,toast,view,VBArt,LS,D:()=>D,allCigars,artisanById,cigarById,artisanName,cigarSVG,mono,linkBtn,ICON,FORT,fortLabel,PROTO_NOTE,head,cigarCard,goLink,evDate,route:()=>route(),vPerfil,resizeImage,hydrate:r=>hydratePhotos(r||view)});
 /* ---------- router ---------- */
 function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');const id=arg?decodeURIComponent(arg):'';
  const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});

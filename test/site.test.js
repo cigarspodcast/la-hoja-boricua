@@ -1,5 +1,6 @@
 const test=require('node:test');const assert=require('node:assert');const fs=require('fs');const path=require('path');
 const S=path.join(__dirname,'..','site');const read=f=>fs.readFileSync(path.join(S,f),'utf8');const DD=path.join(__dirname,'..','data');const readD=f=>fs.readFileSync(path.join(DD,f),'utf8');
+const AV='https://img.clerk.com/eyJ0eXBlIjoicHJveHkiLCJzcmMiOiJodHRwczovL2V4YW1wbGUifQ';/* LHB-49: una URL de foto de Clerk */
 const I18N=()=>{const w={};require('vm').runInNewContext(read('i18n.js'),{window:w});return w.LHB_I18N};
 test('index: title, viewport, PWA meta, local assets exist',()=>{const h=read('index.html');
  assert.match(h,/<title>La Hoja Boricua/);assert.match(h,/name="viewport"[^>]*viewport-fit=cover/);assert.match(h,/lang="es-PR"/);
@@ -29,7 +30,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v50'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v51'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -49,25 +50,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
- assert.match(sw,/const VERSION='lhb-v50'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+ assert.match(sw,/const VERSION='lhb-v51'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
 
 test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v50'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v51'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v50'/);
+ assert.match(sw,/const VERSION='lhb-v51'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v50'/);
+ assert.match(sw,/const VERSION='lhb-v51'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
@@ -93,12 +94,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v50'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v51'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v50'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v51'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -106,7 +107,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v50'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v51'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -123,7 +124,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v50/);});
+ assert.match(read('sw.js'),/lhb-v51/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -136,17 +137,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v50'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v51'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v50'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v51'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v50'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v51'/);});
 
-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v50'/);});
+test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v51'/);});
 
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
@@ -284,8 +285,8 @@ test('LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscu
  for(const h of ['ab','x'.repeat(21),'ab-c','a b','ñandú','a.b','',null,undefined])assert.deepEqual(P.checkHandle(h),{error:'handle-invalid'},String(h));
  for(const h of ['admin','API','lahojaboricua','mihoja','cigarros','privacidad'])assert.deepEqual(P.checkHandle(h),{error:'handle-reserved'},h);
  assert.deepEqual(P.checkHandle('u'),{error:'handle-invalid'},'u es muy corto antes de ser reservado');assert.ok(P.RESERVED.has('u'));
- const ok={handle:'tabaquero',age_ok:true};
- assert.deepEqual(P.checkProfile(ok),{handle:'tabaquero',display_name:null,bio:null,favorite_brand:null});
+ const ok={handle:'tabaquero',age_ok:true,avatar_url:AV};
+ assert.deepEqual(P.checkProfile(ok),{handle:'tabaquero',display_name:null,bio:null,favorite_brand:null,avatar_key:AV});
  for(const a of [undefined,false,'true',1])assert.deepEqual(P.checkProfile({...ok,age_ok:a}),{error:'age-required'},'21+ '+a);
  for(const b of [null,'x',[],42])assert.deepEqual(P.checkProfile(b),{error:'bad-body'});
  assert.equal(P.checkProfile({...ok,bio:'🌿'.repeat(160)}).bio,'🌿'.repeat(160),'160 caracteres (no bytes)');
@@ -327,24 +328,33 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, 
   assert.deepEqual(await post(a,{handle:'admin',age_ok:true}),[400,{error:'handle-reserved'}]);
   assert.equal(db.prepare('SELECT COUNT(*) n FROM profiles').get().n,0,'nada guardado todavía');
   const before=new Date().toISOString();
-  assert.deepEqual(await post(a,{handle:'TabaQuero',display_name:' Ana ',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',age_ok:true}),
-   [201,{profile:{handle:'tabaquero',display_name:'Ana',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',avatar_key:null}}]);
+  assert.deepEqual(await post(a,{handle:'TabaQuero',display_name:' Ana ',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',age_ok:true,avatar_url:AV}),
+   [201,{profile:{handle:'tabaquero',display_name:'Ana',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',avatar_key:AV}}]);
   const row=db.prepare('SELECT * FROM profiles WHERE user_id=?1').get('user_a');assert.equal(row.handle,'tabaquero');assert.ok(row.age_ok_at>=before,'hora del 21+ guardada');assert.equal(row.hidden,0);
-  assert.deepEqual(await post(b,{handle:'tabaquero',age_ok:true}),[409,{error:'handle-taken'}],'@ único');
-  assert.deepEqual(await post(b,{handle:'TABAQUERO',age_ok:true}),[409,{error:'handle-taken'}],'único sin importar mayúsculas');
-  assert.deepEqual(await post(a,{handle:'otro_nombre',age_ok:true}),[409,{error:'profile-exists'}],'cambiar el perfil es de LHB-34');
+  assert.deepEqual(await post(b,{handle:'tabaquero',age_ok:true,avatar_url:AV}),[409,{error:'handle-taken'}],'@ único');
+  assert.deepEqual(await post(b,{handle:'TABAQUERO',age_ok:true,avatar_url:AV}),[409,{error:'handle-taken'}],'único sin importar mayúsculas');
+  assert.deepEqual(await post(a,{handle:'otro_nombre',age_ok:true,avatar_url:AV}),[409,{error:'profile-exists'}],'cambiar el perfil es de LHB-34');
   assert.equal(db.prepare('SELECT handle FROM profiles WHERE user_id=?1').get('user_a').handle,'tabaquero','el 409 no cambió nada');
   const gate=async token=>{const r=await P.requireProfile(req(token),env);return r instanceof Response?[r.status,await r.json()]:[200,r.profile.handle,r.user.sub]};
   assert.deepEqual(await gate(null),[401,{error:'no-session'}]);
   assert.deepEqual(await gate(c),[403,{error:'no-profile'}],'una API de Mi Hoja rechaza a quien no tiene perfil');
   assert.deepEqual(await gate(a),[200,'tabaquero','user_a']);
   const m=await me.onRequestGet({request:req(a),env});assert.equal((await m.json()).profile.handle,'tabaquero','/api/me ya ve el perfil');
+  /* LHB-49: la foto es obligatoria y solo vale una URL de Clerk; un rechazo no guarda nada ni gasta el @ */
+  assert.equal(db.prepare('SELECT avatar_key FROM profiles WHERE user_id=?1').get('user_a').avatar_key,AV,'la URL de Clerk quedó en avatar_key');
+  assert.equal((await (await me.onRequestGet({request:req(a),env})).json()).profile.avatar_key,AV,'/api/me devuelve la URL guardada');
+  assert.deepEqual(await post(c,{handle:'sinfoto',age_ok:true}),[400,{error:'avatar-required'}],'sin foto no hay perfil');
+  assert.deepEqual(await post(c,{handle:'sinfoto',age_ok:true,avatar_url:''}),[400,{error:'avatar-required'}]);
+  for(const bad of ['https://evil.example/x.png','http://img.clerk.com/x','https://img.clerk.com.evil.example/x',42])assert.deepEqual(await post(c,{handle:'sinfoto',age_ok:true,avatar_url:bad}),[400,{error:'avatar-invalid'}],String(bad));
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM profiles WHERE user_id=?1').get('user_c').n,0,'los rechazos no guardaron nada');
+  assert.equal((await post(c,{handle:'sinfoto',age_ok:true,avatar_url:AV}))[0],201,'y el @ no se gastó con los rechazos');
  }finally{globalThis.fetch=realFetch}
 });
 function CUENTA_HARNESS(over){
  const vm=require('vm');const ctx={window:{}};vm.createContext(ctx);vm.runInContext(read('cuenta.js'),ctx);
  const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;const navL=[];
- const C={user:null,addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
+ /* LHB-49: una cuenta de prueba sin hasImage explícito trae foto (la que Clerk importa de Google); las pruebas de la foto lo ponen en false */
+ let cu=null;const C={get user(){return cu},set user(v){cu=v&&v.hasImage===undefined?{hasImage:true,imageUrl:'https://img.clerk.com/test-'+v.id,...v}:v},addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
  const D={clerk:async()=>C,api:async()=>({status:0,body:{}}),here:()=>hash,onNav:f=>navL.push(f),reroute:()=>log.push('reroute'),
   store:{get:()=>store,set:v=>{store=v;log.push('store:'+v.sub+':'+v.handle)},clear:()=>{store=null;log.push('clear')}},
   intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
@@ -839,4 +849,83 @@ test('LHB-24: migraciones 0001 y 0002 en SQLite real; /api/me: 401, needsProfile
   const [st,body]=await call('__session='+await tok('user_2abc'),env);assert.equal(st,200);assert.equal(body.profile.handle,'sergio');assert.ok(!('user_id' in body.profile)&&!('age_ok_at' in body.profile));
   assert.deepEqual((await call('__session='+await tok('user_2abc'),{CLERK_ISSUERS:ISS}))[0],503,'sin DB');
  }finally{globalThis.fetch=realFetch}
+});
+
+test('LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.clerk.com/): falta, otro host, parecidos y caracteres raros',async()=>{
+ const {pathToFileURL}=require('url');const P=await import(pathToFileURL(path.join(__dirname,'..','functions','_lib','profile.js')).href);
+ assert.deepEqual(P.checkAvatar(AV),{avatar_key:AV});assert.deepEqual(P.checkAvatar(AV+'?width=160&height=160'),{avatar_key:AV+'?width=160&height=160'},'con query también');
+ const edge=P.AVATAR_PREFIX+'a'.repeat(P.AVATAR_MAX-P.AVATAR_PREFIX.length);assert.equal(edge.length,P.AVATAR_MAX);assert.deepEqual(P.checkAvatar(edge),{avatar_key:edge},'el largo máximo exacto pasa');
+ for(const v of [undefined,null,''])assert.deepEqual(P.checkAvatar(v),{error:'avatar-required'},'falta: '+String(v));
+ const bad=['http://img.clerk.com/x','https://img.clerk.com','https://img.clerk.com/','https://img.clerk.com.evil.example/x','https://img.clerk.com@evil.example/x','https://evil.example/https://img.clerk.com/x',
+  'https://IMG.clerk.com/x','HTTPS://img.clerk.com/x','https://img.clerk.com:444/x','https://images.clerk.dev/x','//img.clerk.com/x','javascript:https://img.clerk.com/x',' https://img.clerk.com/x','https://img.clerk.com/x ',
+  'https://img.clerk.com/x y','https://img.clerk.com/x\n','https://img.clerk.com/\u0000','https://img.clerk.com/\\@evil.example','https://img.clerk.com/ñ','https://img.clerk.com/ ',edge+'a',
+  42,true,{},['https://img.clerk.com/x'],{toString:()=>AV}];
+ for(const v of bad)assert.deepEqual(P.checkAvatar(v),{error:'avatar-invalid'},'rechazada: '+JSON.stringify(v));
+ assert.deepEqual(P.checkProfile({handle:'tabaquero',age_ok:true}),{error:'avatar-required'},'un perfil válido sin foto no se crea');
+ assert.deepEqual(P.checkProfile({handle:'tabaquero',age_ok:true,avatar_url:'https://evil.example/x.png'}),{error:'avatar-invalid'});
+ assert.deepEqual(P.checkProfile({handle:'ab',age_ok:true}),{error:'handle-invalid'},'los otros errores siguen primero');
+ assert.equal(P.checkProfile({handle:'tabaquero',age_ok:true,avatar_url:AV,avatar_key:'https://evil.example/x'}).avatar_key,AV,'avatar_key del cliente no cuenta, solo avatar_url');
+});
+async function ONB(user,apiFn){const posts=[],calls=[];let submit,picture;
+ const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{calls.push(m+' '+p);if(m==='GET')return {status:200,body:{needsProfile:true}};posts.push(b);return apiFn?apiFn(b):{status:201,body:{profile:{handle:b.handle}}}}});
+ h.D.ui.onboarding=(s,p)=>{submit=s;picture=p};h.C.user=user;await h.A.require(h.go);await tick();assert.equal(typeof submit,'function','muestra el onboarding');
+ return {h,posts,calls,picture,submit:f=>submit(f||{handle:'ana',display_name:'',bio:'',favorite_brand:''})}}
+const DEFAULT_IMG='https://img.clerk.com/eyJ0eXBlIjoiZGVmYXVsdCJ9';
+const IMG=name=>({type:'image/jpeg',name});
+test('LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan',async()=>{
+ let o=await ONB({id:'user_a',hasImage:true,imageUrl:AV});
+ assert.equal(o.picture.url(),AV,'la foto importada viene puesta');assert.deepEqual(await o.submit(),{ok:true});assert.equal(o.posts.length,1);assert.equal(o.posts[0].avatar_url,AV,'se manda la URL de Clerk');assert.equal(o.posts[0].age_ok,true);
+ o=await ONB({id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG});assert.equal(o.picture.url(),null,'la silueta (hasImage false) no es una foto');
+ o=await ONB({id:'user_a',hasImage:true,imageUrl:'https://lh3.googleusercontent.com/a/x'});assert.equal(o.picture.url(),null,'solo URLs de Clerk');
+ o=await ONB({id:'user_a',hasImage:true,imageUrl:'http://img.clerk.com/x'});assert.equal(o.picture.url(),null,'solo https');
+ o=await ONB({id:'user_a',hasImage:true});assert.equal(o.picture.url(),null,'sin imageUrl');
+ o=await ONB({id:'user_a',hasImage:'yes',imageUrl:AV});assert.equal(o.picture.url(),null,'hasImage tiene que ser true');
+});
+test('LHB-49: sin foto no se crea el perfil: no se manda nada al servidor, y el error del servidor también llega al formulario',async()=>{
+ let o=await ONB({id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG});
+ assert.deepEqual(await o.submit(),{error:'avatar-required'});assert.deepEqual(o.posts,[],'ningún POST sin foto');assert.ok(!o.h.log.includes('GO')&&!o.h.log.includes('toast'));
+ o=await ONB({id:'user_a',hasImage:true,imageUrl:AV},()=>({status:400,body:{error:'avatar-invalid'}}));assert.deepEqual(await o.submit(),{error:'avatar-invalid'});assert.ok(!o.h.log.includes('GO'));
+ o=await ONB({id:'user_a',hasImage:true,imageUrl:AV},()=>({status:400,body:{error:'avatar-required'}}));assert.deepEqual(await o.submit(),{error:'avatar-required'});
+});
+test('LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkIn0';
+ const mkUser=(extra={})=>{const u={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,sets:[],reloads:0,async setProfileImage(a){u.sets.push(a)},async reload(){u.reloads++;u.hasImage=true;u.imageUrl=AV2},...extra};return u};
+ let u=mkUser(),o=await ONB(u);const f=IMG('perfil.jpg');
+ assert.deepEqual(await o.picture.upload(f),{url:AV2});assert.equal(u.sets.length,1);assert.equal(u.sets[0].file,f,'Clerk recibe el archivo');assert.equal(u.reloads,1,'se recarga la cuenta para leer la URL nueva');
+ assert.equal(o.picture.url(),AV2);assert.deepEqual(await o.submit(),{ok:true});assert.equal(o.posts[0].avatar_url,AV2,'se manda la foto subida');
+ for(const bad of [null,undefined,{},{type:'text/plain'},{type:'application/pdf'},{type:'image'},{type:5}]){u=mkUser();o=await ONB(u);assert.deepEqual(await o.picture.upload(bad),{error:'avatar-type'},JSON.stringify(bad));assert.equal(u.sets.length,0,'no se sube lo que no es imagen');assert.equal(o.picture.url(),null)}
+ u=mkUser({async setProfileImage(){throw new Error('413')}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'});assert.equal(o.picture.url(),null);assert.deepEqual(await o.submit(),{error:'avatar-required'},'sin foto subida no hay perfil');assert.deepEqual(o.posts,[]);
+ u=mkUser({async reload(){}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'},'Clerk no dejó foto (hasImage sigue en false)');assert.equal(o.picture.url(),null);
+ u=mkUser({async reload(){throw new Error('red')},async setProfileImage(a){u.sets.push(a);u.hasImage=true;u.imageUrl=AV2}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{url:AV2},'si recargar falla pero la cuenta ya trae la foto, vale');
+ u=mkUser({async setProfileImage(a){u.sets.push(a);u.hasImage=true;u.imageUrl='https://evil.example/x.png'},async reload(){}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'},'una URL que no es de Clerk no se acepta');assert.equal(o.picture.url(),null);
+ u=mkUser({hasImage:true,imageUrl:AV});o=await ONB(u);assert.equal(o.picture.url(),AV);assert.deepEqual(await o.picture.upload(f),{url:AV2},'quien trae foto de su cuenta puede escoger otra');assert.deepEqual(await o.submit(),{ok:true});assert.equal(o.posts[0].avatar_url,AV2);
+ u=mkUser({async setProfileImage(){throw new Error('x')},hasImage:true,imageUrl:AV});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'});assert.equal(o.picture.url(),AV,'una subida que falla no quita la foto que ya tenía');
+});
+test('LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9',AV3='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMyJ9';
+ const gate=defer();let n=0;
+ const u={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){n++;if(n===1)await gate.p},async reload(){u.hasImage=true;u.imageUrl=n>=2?AV3:AV2}};
+ let o=await ONB(u);const p1=o.picture.upload(IMG('a.jpg'));await tick();const r2=await o.picture.upload(IMG('b.jpg'));
+ assert.deepEqual(r2,{url:AV3},'la segunda subida es la que vale');gate.ok();assert.deepEqual(await p1,{stale:true},'la primera, ya superada, se descarta');assert.equal(o.picture.url(),AV3);
+ const g2=defer();const u2={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){await g2.p},async reload(){u2.hasImage=true;u2.imageUrl=AV2}};
+ o=await ONB(u2);const q=o.picture.upload(IMG('a.jpg'));await tick();o.h.C.signIn('user_b');g2.ok();assert.deepEqual(await q,{stale:true},'cambió la cuenta durante la subida');assert.equal(o.picture.url(),null,'la foto de la otra cuenta no se adopta');
+ const g3=defer();const u3={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){await g3.p},async reload(){u3.hasImage=true;u3.imageUrl=AV2}};
+ o=await ONB(u3);const w=o.picture.upload(IMG('a.jpg'));await tick();o.h.nav('#/catalogo');g3.ok();assert.deepEqual(await w,{stale:true},'el usuario se fue de la pantalla');assert.equal(o.picture.url(),null);
+ const g4=defer();const u4={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){await g4.p;throw new Error('x')},async reload(){}};
+ o=await ONB(u4);const z=o.picture.upload(IMG('a.jpg'));await tick();o.h.C.signIn('user_b');g4.ok();assert.deepEqual(await z,{stale:true},'un error de otra cuenta tampoco se le muestra a esta pantalla');
+});
+test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL',()=>{
+ const h=read('hoja.js'),app=read('app.js'),css=read('styles.css'),cu=read('cuenta.js'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');
+ assert.ok(h.includes('function onboardingForm(submit,picture){'),'el formulario recibe la foto');
+ assert.ok(h.includes('<input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1">'),'solo imágenes');
+ const i=h.indexOf('function onboardingForm'),form=h.slice(i,h.indexOf('\nconst CUENTA=',i));
+ assert.ok(form.includes("A.resizeImage(f,512,.85)")&&form.includes("picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))"),'se achica antes de subir');
+ const a=form.indexOf("picture.url())return err(OB_ERR['avatar-required'])");assert.ok(a>0&&a<form.indexOf('HANDLE_RE.test(h)'),'la foto se pide primero al enviar');
+ assert.ok(/id="obPb"/.test(form)&&form.includes("'Cambiar foto':'Elegir foto'")&&form.includes('Usamos la foto de tu cuenta'),'la foto de la cuenta se anuncia y se puede cambiar');
+ for(const k of ['avatar-required','avatar-invalid','avatar-type','avatar-upload'])assert.ok(h.includes("'"+k+"':'"),'mensaje de '+k);
+ assert.ok(app.includes('vPerfil,resizeImage,hydrate:'),'app.js le pasa resizeImage a Mi Hoja');
+ assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+ assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+ assert.ok(pf.includes('avatar_key, age_ok_at')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+ assert.match(read('sw.js'),/const VERSION='lhb-v51'/,'el shell nuevo se publica con otra versión del caché');
 });
