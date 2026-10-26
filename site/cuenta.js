@@ -54,6 +54,8 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  const uid=C.user.id;let r;
  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
  if(!lv(C,uid))return;
+ /* LHB-52: un perfil de antes, sin nombre, apellido, género y fecha de nacimiento, completa su identidad antes de abrir nada; mientras tanto no se guarda para abrir sin conexión */
+ if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
  if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();retire();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
  if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
@@ -68,13 +70,17 @@ const picOf=U=>U&&U.hasImage===true&&typeof U.imageUrl==='string'&&U.imageUrl.st
 let uq=Promise.resolve();
 /* el último formulario de perfil abierto: uno que ya fue reemplazado por otro no vuelve a valer */
 let formSeq=0;
-function onboard(C,done,o,lv,uid){ob=true;
+/* lo que comparten el formulario del perfil nuevo y el de completar la identidad (LHB-52) */
+function guard(C,o,lv,uid){
  /* lv también se cae cuando otra acción tocó después y falló (un 503) sin abrir otro formulario: este formulario sigue en pantalla, con la misma cuenta y la misma página, y la persona
     debe poder terminar. Vale mientras sea el último formulario abierto; un cambio de cuenta, de página o de formulario lo sigue descartando */
  const mine=++formSeq,here0=D.here(),vis0=vis;
  const live=()=>lv(C,uid)||(mine===formSeq&&ob&&vis===vis0&&D.here()===here0&&!!C.user&&C.user.id===uid);
  /* si el perfil se crea con lv caído, una acción más nueva que sigue en vuelo se descarta y la que falló y quedó para volver también: la acción de este formulario corre una sola vez */
  const settle=()=>{failure=null;if(!lv(C,uid)){if(o.inPlace)sip++;else seq++}};
+ return {live,settle}}
+function onboard(C,done,o,lv,uid){ob=true;
+ const {live,settle}=guard(C,o,lv,uid);
  const U=C.user;let pic=picOf(U),up=0,pend=0,sending=false;
  /* url() es la foto puesta ahora; upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva) */
  const picture={url:()=>pic,upload:file=>{
@@ -95,7 +101,7 @@ function onboard(C,done,o,lv,uid){ob=true;
   /* el formulario puede seguir en pantalla después de un cambio de cuenta: no se manda nada a nombre de otra persona */
   if(!live())return {stale:true};
   if(!pic)return {error:'avatar-required'};
-  let r;try{r=await D.api(C,'POST','/api/profile',{...f,age_ok:true,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
+  let r;try{r=await D.api(C,'POST','/api/profile',{...f,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
   const same=!!C.user&&C.user.id===uid;
   if(r.status===201){if(same)cache({sub:uid,handle:r.body.profile.handle});
    if(!live())return {stale:true};
@@ -114,6 +120,29 @@ function onboard(C,done,o,lv,uid){ob=true;
   if(!live())return {stale:true};
   if(pend||sending)return {error:'avatar-busy'};
   sending=true;try{return await send(f)}finally{sending=false}},picture)}
+/* LHB-52: completar la identidad de un perfil que ya existía. Mismo cuidado que el formulario nuevo (cuenta, página y formulario vigentes; un envío a la vez; una sola salida),
+   pero sin foto ni @: el servidor (PUT /api/profile) solo toca un perfil al que le falta alguno de los cuatro datos. */
+function identify(C,done,o,lv,uid,prof){ob=true;
+ /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, se vuelve a revisar */
+ D.store.clear();
+ const {live,settle}=guard(C,o,lv,uid);let sending=false;
+ const finish=()=>{cache({sub:uid,handle:prof.handle});settle();ob=false;D.intent.clear();D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();return {ok:true}};
+ const send=async f=>{
+  if(!live())return {stale:true};
+  let r;try{r=await D.api(C,'PUT','/api/profile',{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date},uid)}catch(e){r={status:0,body:{}}}
+  if(!live())return {stale:true};
+  if(r.status===200)return finish();
+  /* ya estaba completo (otra pestaña o un envío cuya respuesta se perdió): se revisa dentro de este mismo envío y, si sale completo, termina igual que un 200 */
+  if(r.body.error==='identity-exists'){
+   let m;try{m=await D.api(C,'GET','/api/me',null,uid)}catch(e){m={status:0,body:{}}}
+   if(!live())return {stale:true};
+   if(m.status===200&&m.body.profile&&m.body.needsIdentity!==true)return finish();
+   return {error:'recheck'}}
+  return {error:r.body.error||'generic'}};
+ D.ui.identity(async f=>{
+  if(!live())return {stale:true};
+  if(sending)return {error:'busy'};
+  sending=true;try{return await send(f||{})}finally{sending=false}})}
 /* acción en sitio: pasa por la misma puerta que Mi Hoja (con el perfil de ese usuario ya guardado no espera a la red). Si el usuario toca otra acción antes de que
    termine la revisión, vale la última: cada toque es una sola acción y corre una vez o ninguna. */
 const quick=(done,o)=>go(done,{...o,inPlace:true,fast:true,quick:true});
