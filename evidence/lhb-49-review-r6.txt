@@ -1,0 +1,22 @@
+[Certain] The passing suite does not establish live Clerk behavior. No new findings; R5-1: CONCUR.
+
+[Certain] All six `done()` sites in `site/cuenta.js` are accounted for:
+
+- `37`: Clerk unavailable, saved profile: calls `retire()`.
+- `43`: cached fast path: calls `retire()`.
+- `57`: GET profile success: calls `retire()`.
+- `61`: offline/5xx cached fallback: calls `retire()`.
+- `102`: onboarding 201: calls `settle()`, clears `ob`, then completes.
+- `109`: profile-exists recheck success: uses the same settlement sequence.
+
+[Certain] `quick` (`119`), `resume` (`123`), and the listener’s pending-action resume (`23`) delegate to those paths. The listener’s other relevant exit (`24`) clears `ob` and reroutes. No additional success exit was found.
+
+[Likely] No remaining reachable interleaving lets the retired form execute a second action. The helper clears `ob` before rerouting; the form’s own success paths do not invoke it. Favorite/rating callbacks can independently reroute again, but that behavior predates this fix.
+
+[Certain] The new regression’s fast case has the cache populated before C starts; its offline case starts C before that cache exists and resolves its GET with 503. Those cases reach the claimed branches. The authorized command reports **89 tests, 89 pass, 0 fail**; M41–M44 were not independently executed.
+
+[Certain] L1/L2 describe real validation limits: the API establishes a required Clerk-domain URL, not ownership or photographic content. The claim that a secret key is the only remedy is NOT VERIFIED. L3 matches the code’s retained selection. L4 is confirmed against main. L5’s unchanged-file claim is confirmed; the claimed owner escalation is NOT VERIFIED.
+
+[Certain] No two findings share a cause because no findings remain.
+
+VERDICT: PASS
