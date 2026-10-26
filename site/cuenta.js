@@ -17,7 +17,7 @@ const live=(op,from,C,uid)=>op===seq&&D.here()===from&&(uid===undefined||(!!C.us
 const cache=v=>{try{D.store.set(v)}catch(e){}};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
- C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;gen++;D.ui.closeAll();
+ C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;if(lastId!==null)pool=pool.filter(i=>i.uid!==null);lastId=id;seq++;gen++;D.ui.closeAll();
   if(!id){D.store.clear();D.intent.clear()}
   const p=pending;pending=null;const fl=failure;failure=null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
@@ -81,9 +81,13 @@ function onboard(C,done,o,op,from,uid){ob=true;
    gen cuenta los cambios de cuenta y no lo mueven los toques: si cambia mientras se espera, esa acción se descarta; si la página cambia, también. Una acción
    restaurada trae su dueño (uid): si quien está es otra persona, se descarta y se borra lo guardado. Lo que lleva más de dos minutos esperando se descarta. */
 let gen=0,warming=null,pool=[];
-const bye=i=>{const k=pool.indexOf(i);if(k>=0)pool.splice(k,1)};
-const mineOf=(from,uid)=>pool.filter(i=>i.from===from&&(uid===null?i.uid===null:(i.uid===uid&&(i.owner===undefined||i.owner===uid))));
-const runPool=()=>{const mine=pool.filter(i=>i.from===D.here()&&(i.uid===null||(i.uid===lastId&&(i.owner===undefined||i.owner===lastId))));mine.forEach(i=>{bye(i);safe(i.done)})};
+/* bye devuelve true solo la primera vez: quien la recibe es el único que puede hacer la acción (así una acción no corre dos veces) */
+const bye=i=>{const k=pool.indexOf(i);if(k>=0)pool.splice(k,1);return k>=0};
+const weight=i=>1+(Array.isArray(i.more)?Math.min(i.more.length,9):0);
+/* sin persona todavía y sin dueño: sirve a quien entre después de salir (o sin haber entrado); al salir o cambiar de cuenta, las que seguían sin persona se descartan (listener) */
+const anon=i=>i.uid===null&&i.owner===undefined;
+const mineOf=(from,uid)=>pool.filter(i=>i.from===from&&(uid===null?anon(i):(i.uid===uid&&(i.owner===undefined||i.owner===uid))));
+const runPool=()=>{const here=D.here();pool.filter(i=>i.from===here&&(anon(i)||(i.uid!==null&&i.uid===lastId&&(i.owner===undefined||i.owner===lastId)))).forEach(i=>{if(bye(i))safe(i.done)})};
 /* las opciones de go() para esa lista: la última acción como principal y las anteriores en "more", en el orden en que llegaron */
 const withList=(o,items,uid)=>{const list=cleanList(items.flatMap(i=>[...(Array.isArray(i.more)?i.more:[]),{act:i.act,arg:i.arg}]),10),last=list[list.length-1];
  return last?{...o,act:last.act,arg:last.arg,more:list.slice(0,-1),uid}:{...o,uid}};
@@ -95,20 +99,28 @@ function warm(C,uid){
  const w={uid,p};warming=w;p.then(()=>{if(warming===w)warming=null});return w}
 async function quick(done,o){o=o||{};const from=D.here(),g0=gen,now=Date.now();
  pool=pool.filter(i=>!(i.uid===null&&i.shown)&&now-i.t<120000);
- if(pool.filter(i=>i.uid===null).length>=10)return;
- const item={done,from,uid:null,owner:typeof o.uid==='string'?o.uid:undefined,act:o.act,arg:o.arg,more:o.more,shown:false,t:now};pool.push(item);
+ const owner=typeof o.uid==='string'?o.uid:undefined;
+ if(pool.filter(i=>i.from===from).reduce((n,i)=>n+weight(i),0)+weight({more:o.more})>10)return;
+ const item={done,from,uid:null,owner,act:o.act,arg:o.arg,more:o.more,shown:false,t:now};pool.push(item);
  let C;
- try{C=await D.clerk()}catch(e){if(D.here()!==from||gen!==g0)return;bye(item);if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
- hook(C);if(D.here()!==from||gen!==g0)return;
+ try{C=await D.clerk()}catch(e){
+  if(D.here()!==from||gen!==g0){bye(item);return}
+  const c=D.store.get();
+  if(c&&(owner===undefined||c.sub===owner)){if(bye(item)){D.intent.clear();done()}return}
+  bye(item);if(c||owner!==undefined){D.intent.clear();return}
+  return go(done,o)}
+ hook(C);if(D.here()!==from||gen!==g0){bye(item);return}
  const uid=C.user?C.user.id:null;
  if(!uid){
+  if(owner!==undefined){bye(item);const cur=D.intent.get();if(cur&&cur.uid===owner)D.intent.clear();return}
   const mine=mineOf(from,null);await go(runPool,withList(o,mine));mine.forEach(i=>{i.shown=true});return}
- if(item.owner!==undefined&&item.owner!==uid){bye(item);D.intent.clear();return}
+ if(owner!==undefined&&owner!==uid){bye(item);D.intent.clear();return}
  item.uid=uid;
- const c=D.store.get();if(c&&c.sub===uid){bye(item);D.intent.clear();return done()}
+ const c=D.store.get();if(c&&c.sub===uid){if(bye(item)){D.intent.clear();done()}return}
  const w=warm(C,uid),r=await w.p;
- if(gen!==g0||D.here()!==from)return;
- if(r.ok){bye(item);D.intent.clear();return done()}
+ if(D.here()!==from){bye(item);return}
+ if(gen!==g0)return;
+ if(r.ok){if(bye(item)){D.intent.clear();done()}return}
  return go(runPool,withList(o,mineOf(from,uid),uid))}
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
 function resume(){const it=D.intent.get();

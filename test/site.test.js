@@ -754,6 +754,64 @@ test('LHB-48: lo restaurado conserva a su dueño y toda su lista en cada reinten
  c.A.quick(()=>rc.push('dos'),{inPlace:true,act:'fav'});for(let i=0;i<8;i++)await tick();rel();for(let i=0;i<6;i++)await tick();
  assert.deepEqual(rc.slice().sort(),['dos','uno'],'las dos acciones corren, una vez cada una');
 });
+test('LHB-48: cada acción en espera la hace una sola vez quien la reclama; las canceladas no vuelven; el dueño se respeta también sin Clerk y en el lote; el tope cuenta las aceptadas',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ // 1) un reintento hace las dos acciones y la revisión que seguía pendiente no repite la segunda
+ let n1=0,r2,r3;const h2=new Promise(r=>{r2=r}),h3=new Promise(r=>{r3=r});
+ const a=CUENTA_HARNESS({api:async()=>{n1++;if(n1===1)return {status:503,body:{}};if(n1===2){await h2;return prof()}await h3;return prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};
+ const ra=[];a.A.quick(()=>ra.push('uno'),{inPlace:true,act:'fav'});await ticks(6);a.A.quick(()=>ra.push('dos'),{inPlace:true,act:'fav'});await ticks(4);r2();await ticks(6);r3();await ticks(6);
+ assert.deepEqual(ra,['uno','dos'],'cada acción corre una sola vez');
+ // 2a) una acción que empezó A (sin dueño todavía) no se cuela en el reintento de B
+ let wait,rel;const hold=new Promise(r=>{rel=r});let nc=0;let calls=0;const b=CUENTA_HARNESS({api:async()=>{calls++;return calls===1?{status:503,body:{}}:prof()},clerk:async()=>{nc++;if(nc===2){await hold}return b.C}});
+ b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};b.cache({sub:'user_a',handle:'ana'});await b.A.quick(()=>{},{inPlace:true,act:'fav'});await ticks(4);
+ const rb=[];b.A.quick(()=>rb.push('de A'),{inPlace:true,act:'fav'});await ticks(2);b.C.signIn('user_b');
+ b.A.quick(()=>rb.push('de B'),{inPlace:true,act:'fav'});await ticks(10);rel();await ticks(6);
+ assert.deepEqual(rb,['de B'],'la acción de A no corre para B');
+ // 2b) irse de la página durante la revisión cancela la acción: al volver no se suma al reintento de otra
+ let rel4;const hold4=new Promise(r=>{rel4=r});let n4=0;const c=CUENTA_HARNESS({api:async()=>{n4++;if(n4===1){await hold4;return {status:503,body:{}}}if(n4===2)return {status:503,body:{}};return prof()}});
+ c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};const rc=[];c.A.quick(()=>rc.push('abandonada'),{inPlace:true,act:'fav'});await ticks(4);c.nav('#/artesanos');rel4();await ticks(6);c.nav('#/c/yambo-toro');
+ c.A.quick(()=>rc.push('nueva'),{inPlace:true,act:'fav'});await ticks(10);
+ assert.deepEqual(rc,['nueva'],'la abandonada no vuelve');
+ // 3) sin Clerk: una acción de A no corre con el perfil guardado de B
+ const rd=[];const d=CUENTA_HARNESS({clerk:async()=>{throw new Error('offline')}});d.nav('#/c/yambo-toro');d.A.register('fav',x=>rd.push(x));d.cache({sub:'user_b',handle:'bea'});d.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'de-A',uid:'user_a'});
+ await d.A.resume();await ticks(4);assert.deepEqual(rd,[],'sin Clerk, la acción de A no corre con el perfil de B');assert.equal(d.intent(),null);
+ const re=[];const e=CUENTA_HARNESS({clerk:async()=>{throw new Error('offline')}});e.nav('#/c/yambo-toro');e.A.register('fav',x=>re.push(x));e.cache({sub:'user_a',handle:'ana'});e.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'de-A',uid:'user_a'});
+ await e.A.resume();await ticks(4);assert.deepEqual(re,['de-A'],'sin Clerk, con el perfil de A, corre una vez');
+ // 4) una acción restaurada con dueño no se mezcla con el lote sin dueño
+ let rel5;const hold5=new Promise(r=>{rel5=r});const f=CUENTA_HARNESS({api:prof,clerk:async()=>{await hold5;return f.C}});f.nav('#/c/yambo-toro');const rf=[];f.A.register('fav',x=>rf.push('guardada:'+x));
+ f.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'de-A',uid:'user_a'});f.A.quick(()=>rf.push('nueva'),{inPlace:true,act:'fav',arg:'n'});f.A.resume();rel5();await ticks(6);
+ assert.equal(f.intent().uid,undefined,'lo guardado no lleva a la acción con dueño');assert.deepEqual((f.intent().more||[]).map(m=>m.arg),[],'ni como anterior');
+ f.C.signIn('user_b');await ticks(8);assert.deepEqual(rf,['nueva'],'al entrar B corre solo lo suyo');
+ // 5) once toques con la revisión pendiente: se aceptan diez
+ let rel6;const hold6=new Promise(r=>{rel6=r});const g=CUENTA_HARNESS({api:async()=>{await hold6;return prof()}});g.nav('#/c/yambo-toro');g.C.user={id:'user_a'};const rg=[];
+ for(let k=1;k<=11;k++){g.A.quick(()=>rg.push(k),{inPlace:true,act:'fav'});await ticks(3)}
+ rel6();await ticks(8);assert.deepEqual(rg,[1,2,3,4,5,6,7,8,9,10],'se aceptan diez, y las diez corren');
+ // 6) una acción restaurada con nueve anteriores ocupa diez: otro toque no cabe
+ let rel7;const hold7=new Promise(r=>{rel7=r});const h=CUENTA_HARNESS({api:async()=>{await hold7;return prof()}});h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};const rh=[];h.A.register('fav',x=>rh.push(x));
+ h.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'10',uid:'user_a',more:[1,2,3,4,5,6,7,8,9].map(n=>({act:'fav',arg:String(n)}))});
+ h.A.resume();await ticks(4);h.A.quick(()=>rh.push('extra'),{inPlace:true,act:'fav'});await ticks(2);rel7();await ticks(8);
+ assert.deepEqual(rh,['1','2','3','4','5','6','7','8','9','10'],'las diez de lo restaurado corren y el toque once no cabe');
+});
+test('LHB-48: un cambio de cuenta mientras Clerk carga cancela la acción; la acción con dueño sin sesión solo borra lo suyo',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};
+ // 1) Clerk carga despacio, entra B, y la acción que empezó sin sesión no corre para B aunque su perfil ya esté guardado
+ let rel;const hold=new Promise(r=>{rel=r});let nc=0;const a=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'bea'}}}),clerk:async()=>{nc++;if(nc===2){await hold}return a.C}});
+ a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};a.cache({sub:'user_a',handle:'ana'});await a.A.quick(()=>{},{inPlace:true,act:'fav'});a.C.signIn(null);a.cache({sub:'user_b',handle:'bea'});
+ const ra=[];a.A.quick(()=>ra.push('sin sesion'),{inPlace:true,act:'fav'});await ticks(2);a.C.signIn('user_b');rel();await ticks(8);
+ assert.deepEqual(ra,[],'la acción que empezó sin sesión no corre para quien entró mientras tanto');
+ // 2) lo mismo cuando Clerk termina fallando
+ let rel2;const hold2=new Promise(r=>{rel2=r});let nd=0;const b=CUENTA_HARNESS({clerk:async()=>{nd++;if(nd===2){await hold2;throw new Error('sin red')}return b.C}});
+ b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};b.cache({sub:'user_a',handle:'ana'});await b.A.quick(()=>{},{inPlace:true,act:'fav'});b.C.signIn(null);b.cache({sub:'user_b',handle:'bea'});
+ const rb=[];b.A.quick(()=>rb.push('sin sesion'),{inPlace:true,act:'fav'});await ticks(2);b.C.signIn('user_b');rel2();await ticks(8);
+ assert.deepEqual(rb,[],'si Clerk falla tras el cambio de cuenta, la acción tampoco corre');
+ // 3) una acción restaurada con dueño, sin sesión: no borra lo guardado por otro lote, y sí lo suyo
+ const c=CUENTA_HARNESS();c.nav('#/c/yambo-toro');c.A.register('fav',()=>{});
+ c.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'del-lote'});await c.A.quick(()=>{},{inPlace:true,act:'fav',uid:'user_a'});await ticks(4);
+ assert.equal(c.intent().arg,'del-lote','lo guardado por el lote sin dueño sigue ahí');
+ const d=CUENTA_HARNESS();d.nav('#/c/yambo-toro');d.A.register('fav',()=>{});
+ d.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'suya',uid:'user_a'});await d.A.quick(()=>{},{inPlace:true,act:'fav',uid:'user_a'});await ticks(4);
+ assert.equal(d.intent(),null,'lo guardado a nombre del mismo dueño se borra');
+});
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));
  assert.ok(seg.includes("await idb.put('perfil',b)")&&seg.includes("toast(tt('pf.fotoOk'));route();topAvatar()"),'tras guardar la foto se llama route()');assert.ok(!/fotoOk'\)\);vPerfil\(\)/.test(seg),'no se repinta el perfil sin pasar por la puerta');
