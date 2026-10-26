@@ -13,6 +13,8 @@ const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.
 /* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil; también las páginas que escriben datos de la cuenta (#/cata y #/subir): al cambiar la cuenta se vuelven a pasar por la puerta */
 /* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
 const cache=v=>{try{D.store.set(v)}catch(e){}};
+/* toda salida que da por buena la cuenta con perfil retira el formulario de perfil que siga abierto: quedó viejo y su respuesta tardía ya no corre su acción además de esta */
+const retire=()=>{if(ob){ob=false;D.reroute()}};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
  C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;sip++;gen++;D.ui.closeAll();
@@ -32,13 +34,13 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  let C;
  try{C=await D.clerk()}catch(e){
   if(op!==(inp?sip:seq)||vis!==v0||D.here()!==from)return;
-  if(D.store.get()){D.intent.clear();return done()}
+  if(D.store.get()){D.intent.clear();retire();return done()}
   fail('Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
  hook(C);
  /* con el perfil de ese usuario ya guardado la acción en sitio no espera a la red ni depende de otro toque: solo se descarta si cambió la cuenta o la página */
  if(inp?(gen!==g0||vis!==v0||D.here()!==from):!lv(C))return;
  /* una acción en sitio (corazón, sello, estrella) no espera a la red: con sesión abierta y el perfil de ese mismo usuario guardado, se hace al instante */
- if(o.fast&&C.user){const c0=D.store.get();if(c0&&c0.sub===C.user.id){D.intent.clear();return done()}}
+ if(o.fast&&C.user){const c0=D.store.get();if(c0&&c0.sub===C.user.id){D.intent.clear();retire();return done()}}
  if(!lv(C))return;
  /* en Mi Hoja y las páginas de la cuenta la puerta de la página es la única que espera: una acción en sitio que no puede hacerse al instante no se guarda ni compite con ella;
     sin sesión solo se abre la hoja de entrar */
@@ -52,14 +54,11 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  const uid=C.user.id;let r;
  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
  if(!lv(C,uid))return;
- if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();
-  /* el perfil ya existe: un formulario de perfil que siga abierto quedó viejo, se retira y su envío tardío ya no corre su acción además de esta */
-  if(ob){ob=false;D.reroute()}
-  return done()}
+ if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();retire();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
  if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
  const c=D.store.get();
- if(c&&c.sub===uid&&(r.status===0||r.status>=500)){D.intent.clear();return done()}
+ if(c&&c.sub===uid&&(r.status===0||r.status>=500)){D.intent.clear();retire();return done()}
  fail('No pudimos revisar tu cuenta','Intenta otra vez en un momento.')}
 /* LHB-49: la foto de perfil es la de Clerk. Si la cuenta ya trae una (Google, Apple) viene puesta; si no, o si la persona quiere otra, la sube con setProfileImage.
    Una foto de Clerk que no se subió ni se importó (la silueta de siempre) tiene hasImage en false y no cuenta. Sin foto no se manda el perfil. */

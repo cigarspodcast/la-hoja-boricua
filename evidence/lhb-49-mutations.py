@@ -57,7 +57,11 @@ MUTS = [
     ('M39 gate: el formulario vivo sobrevive a un cambio de cuenta', 'site/cuenta.js', "&&!!C.user&&C.user.id===uid);", "&&true);"),
     # ronda 4 de Codex: ganador único cuando otra acción gana primero, y la acción descartada no revive
     ('M40 gate: la acción descartada que falló vuelve a ofrecerse al salir', 'site/cuenta.js', "const settle=()=>{failure=null;", "const settle=()=>{"),
-    ('M41 gate: el perfil ya existe y el formulario viejo no se retira', 'site/cuenta.js', "  if(ob){ob=false;D.reroute()}\n  return done()}", "  return done()}"),
+    ('M41 gate: el perfil ya existe y el formulario viejo no se retira', 'site/cuenta.js', "handle:r.body.profile.handle});D.intent.clear();retire();return done()}", "handle:r.body.profile.handle});D.intent.clear();return done()}"),
+    # ronda 5 de Codex: toda salida que da por buena la cuenta con perfil retira el formulario abierto
+    ('M42 gate: el camino rápido no retira el formulario abierto', 'site/cuenta.js', "if(c0&&c0.sub===C.user.id){D.intent.clear();retire();return done()}}", "if(c0&&c0.sub===C.user.id){D.intent.clear();return done()}}"),
+    ('M43 gate: el camino sin conexión no retira el formulario abierto', 'site/cuenta.js', "(r.status===0||r.status>=500)){D.intent.clear();retire();return done()}", "(r.status===0||r.status>=500)){D.intent.clear();return done()}"),
+    ('M44 gate: retire no apaga ob', 'site/cuenta.js', "const retire=()=>{if(ob){ob=false;D.reroute()}};", "const retire=()=>{if(ob){D.reroute()}};"),
 ]
 
 def main():

@@ -1068,6 +1068,28 @@ test('LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y
   if(quien==='excepción')assert.ok(f.state().err.length>0,'se avisa');
  }
 });
+test('LHB-49: toda salida que da por buena la cuenta con perfil retira el formulario abierto: el camino rápido con el perfil guardado y el de sin conexión también',async()=>{
+ const F={handle:'ana',display_name:'',bio:'',favorite_brand:''};
+ for(const via of ['rapido','sin conexion']){
+  const dA=defer(),dB=defer(),dC=defer();let gets=0,posts=0;const ran=[],pics=[];
+  const h=CUENTA_HARNESS({api:async(C,m)=>{
+   if(m==='GET'){gets++;if(gets<=2)return {status:200,body:{needsProfile:true}};if(gets===3&&via==='sin conexion')return dC.p;return {status:200,body:{profile:{handle:'ana'}}}}
+   posts++;return posts===1?dA.p:dB.p}});
+  h.nav('#/c/yambo-toro');h.D.ui.onboarding=(s,p)=>pics.push({s,p});h.C.user={id:'user_a',hasImage:true,imageUrl:AV};
+  h.A.quick(()=>ran.push('A'),{inPlace:true,act:'a'});await tick();
+  const sa=pics[0].s(F);await tick();
+  h.A.quick(()=>ran.push('B'),{inPlace:true,act:'b'});await tick();
+  assert.equal(pics.length,2,via+': la acción B abrió otro formulario');
+  const sb=pics[1].s(F);await tick();
+  if(via==='sin conexion'){h.A.quick(()=>ran.push('C'),{inPlace:true,act:'c'});await tick()}
+  dA.ok({status:201,body:{profile:{handle:'ana'}}});assert.deepEqual(await sa,{stale:true},via+': A fue reemplazado');
+  if(via==='rapido'){h.A.quick(()=>ran.push('C'),{inPlace:true,act:'c'});await tick()}
+  else{dC.ok({status:503,body:{}});await tick()}
+  assert.deepEqual(ran,['C'],via+': la acción C corrió con el perfil guardado');
+  dB.ok({status:409,body:{error:'profile-exists'}});assert.deepEqual(await sb,{stale:true},via+': B ya no vale: C retiró el formulario');await tick();
+  assert.deepEqual(ran,['C'],via+': y la acción de B no corre además');assert.ok(!h.log.includes('toast'),via+': ni felicita');
+ }
+});
 test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL',()=>{
  const h=read('hoja.js'),app=read('app.js'),css=read('styles.css'),cu=read('cuenta.js'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');
  assert.ok(h.includes('function onboardingForm(submit,picture){'),'el formulario recibe la foto');

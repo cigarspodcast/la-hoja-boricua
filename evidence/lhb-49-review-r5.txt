@@ -1,0 +1,14 @@
+1. [Certain] BLOCKING, [site/cuenta.js:76](C:/Users/Owner/la-hoja-boricua/site/cuenta.js:76): **MAINTAIN R4-1 for cached-success paths.** The fallback `mine===formSeq&&ob&&...` keeps the current form alive, but the successful exits at lines 41 and 62 call `done()` without retiring it.
+
+   Static reproduction:
+   - Form A submits; another action opens replacement form B before A creates the profile. B also submits.
+   - A’s late 201 caches the profile at line 101, then returns stale because B replaced it.
+   - Action C takes the cached fast path and runs.
+   - B’s pending POST returns `profile-exists`; its recheck returns the profile. Because `ob` remains true, B also runs its action at line 110. If C opened a humidor editor, B can replace it and discard entered text.
+
+   The offline/5xx exit at line 62 has the same gap when C starts its GET before A populates the cache.
+
+   Share form retirement across every successful gate exit before calling `done()`, and cover both cached branches with this interleaving. Runtime reproduction is NOT VERIFIED; the authorized suite passed 88/88 but does not cover this sequence.
+
+There is only one finding, so no two findings share a cause.
+VERDICT: BLOCK
