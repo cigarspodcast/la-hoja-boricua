@@ -7,10 +7,10 @@
 window.LHB_CUENTA=function(D){'use strict';
 const ACT={};let seq=0,hooked=false,lastId=null,pending=null,ob=false,failure=null;
 const live=(op,from,C,uid)=>op===seq&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
-/* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil */
+/* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil; también las páginas que escriben datos de la cuenta (#/cata y #/subir): al cambiar la cuenta se vuelven a pasar por la puerta */
 /* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
 const cache=v=>{try{D.store.set(v)}catch(e){}};
-const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'};
+const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
  C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;D.ui.closeAll();
   if(!id){D.store.clear();D.intent.clear()}

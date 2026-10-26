@@ -184,19 +184,21 @@ const split2=v=>txt(v)?v.split(/:(.*)/s):[];
 const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const keepScroll=()=>{const y=scrollY;A.route();scrollTo(0,y)};
 const ACTIONS={
- fav(arg){const [k,id]=split2(arg);if(!id||!own(S().favs,k)||!Array.isArray(S().favs[k]))return;
+ fav(arg){const [k,id]=split2(arg);if(!id||id in Object.prototype||!own(S().favs,k)||!Array.isArray(S().favs[k]))return;
   const on=toggleFav(k,id);
   $$(`[data-fav="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',(on?'Quitar de':'Guardar en')+' favoritos');b.firstChild.textContent=on?'♥':'♡'});toast(on?window.LHB_I18N.t('fav.on'):window.LHB_I18N.t('fav.off'));if(/^#\/c\//.test(location.hash))keepScroll()},
- stamp(arg,st){const [k,id]=split2(arg);if(!id||!own(S().pasaporte,k)||typeof S().pasaporte[k]!=='object')return;st=st||$(`[data-stamp="${CSS.escape(arg)}"]`);
+ stamp(arg,st){const [k,id]=split2(arg);if(!id||id in Object.prototype||!own(S().pasaporte,k)||typeof S().pasaporte[k]!=='object')return;st=st||$(`[data-stamp="${CSS.escape(arg)}"]`);
   const before=badgeIds(),r0=ruta();const on=toggleStamp(k,id),r1=ruta(),nz=r1.ok.find(x=>!r0.ok.includes(x));RLIT=r1.lit.find(x=>!r0.lit.includes(x));if(RLIT&&(st&&st.closest('.rl')))closeSheet();if(nz)setTimeout(()=>zonaSheet(nz),1500);
   $$(`[data-stamp="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);const sp=b.querySelector(':scope>span:last-child');if(sp)sp.textContent=b.classList.contains('stamp')?(on?'Sellado '+fmtF(hoy()):'Sin sello'):(on?'Sellado':'Sellar pasaporte')});
   const nb=badgeIds().filter(x=>!before.includes(x));if(nb.length){const b=BADGES.find(x=>x.id===nb[0]);toast('🏅 Nueva insignia: '+b.n)}else toast(on?'Sello puesto en tu pasaporte':'Sello quitado');
   if(/^#\/(mihoja\/pasaporte|lugares\/ruta)/.test(location.hash))setTimeout(()=>{const y=scrollY;A.route();scrollTo(0,y)},350)},
- rate(arg){const [id,n]=split2(arg);const v=+n;if(!id||!Number.isInteger(v)||v<1||v>5)return;setRating(id,v);keepScroll()},
+ rate(arg){const [id,n]=split2(arg);const v=+n;if(!id||id in Object.prototype||!Number.isInteger(v)||v<1||v>5)return;setRating(id,v);keepScroll()},
  humidor(arg){openSheet('humidor',txt(arg)?arg:undefined)}
 };
 Object.keys(ACTIONS).forEach(k=>CUENTA.register(k,arg=>ACTIONS[k](arg)));
-const gate=(act,arg,el)=>requireAccount(()=>ACTIONS[act](arg,el),{inPlace:true,fast:true,act,arg});
+/* las acciones se revisan una tras otra: la puerta invalida lo pendiente en cada revisión, y dos toques seguidos no deben perder el primero; si una revisión se cuelga, la cola sigue a los ocho segundos */
+let gateChain=Promise.resolve();
+const gate=(act,arg,el)=>{const run=()=>Promise.race([requireAccount(()=>ACTIONS[act](arg,el),{inPlace:true,fast:true,act,arg}),new Promise(r=>setTimeout(r,8000))]);gateChain=gateChain.then(run).catch(()=>{});return gateChain};
 setTimeout(()=>CUENTA.resume(),0);
 /* ---------- Mi Hoja ---------- */
 const SUBS=[['humidor','Humidor'],['diario','Diario'],['pasaporte','Pasaporte'],['favoritos','Favoritos'],['perfil','Perfil']];

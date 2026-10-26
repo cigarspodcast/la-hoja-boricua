@@ -526,7 +526,7 @@ test('LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la pue
  assert.ok(/EXT\.gate\('rate',c\.id\+':'\+b\.dataset\.star\)/.test(ap),'la estrella usa la puerta');
  assert.ok(/subir:\(\)=>EXT\.requireAccount\(vSubir,\{fast:true\}\)/.test(ap),'subir una vitola pide cuenta');
  assert.ok(/cata:cid=>requireAccount\(\(\)=>vCata\(cid\),\{fast:true\}\)/.test(hj),'catar pide cuenta');
- assert.ok(/const gate=\(act,arg,el\)=>requireAccount\(\(\)=>ACTIONS\[act\]\(arg,el\),\{inPlace:true,fast:true,act,arg\}\)/.test(hj),'la puerta es en sitio y rápida');
+ assert.ok(/requireAccount\(\(\)=>ACTIONS\[act\]\(arg,el\),\{inPlace:true,fast:true,act,arg\}\)/.test(hj),'la puerta es en sitio y rápida');
  assert.ok(/Object\.keys\(ACTIONS\)\.forEach\(k=>CUENTA\.register\(k,arg=>ACTIONS\[k\]\(arg\)\)\)/.test(hj),'las acciones se registran para retomarlas al volver de Google');
  const outside=src=>src.replace(/function toggleFav\([\s\S]*?\n/,'').replace(/function toggleStamp\([\s\S]*?\n/,'').replace(/function setRating\([\s\S]*?\n/,'');
  const a=hj.indexOf('const ACTIONS={'),b=hj.indexOf('\nObject.keys(ACTIONS)');
@@ -563,6 +563,41 @@ test('LHB-48: al volver de Google la acción retoma con su argumento, una vez',a
  await g.A.resume();await tick();assert.deepEqual(got,['cigarros:yambo-toro'],'una segunda carga no la repite');
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});h.nav('#/c/yambo-toro');const got2=[];h.A.register('fav',a=>got2.push(a));h.setIntent({from:'#/c/yambo-toro',act:'fav',arg:{x:1}});h.C.user={id:'user_a'};
  await h.A.resume();await tick();assert.deepEqual(got2,[undefined],'un argumento que no es texto se descarta');
+});
+test('LHB-48: los argumentos con nombres heredados (constructor, __proto__, toString) no llegan a los datos',()=>{
+ const {ACTIONS,calls}=GATE_ACTIONS();
+ for(const id of ['constructor','__proto__','toString','hasOwnProperty','valueOf','isPrototypeOf']){ACTIONS.fav('cigarros:'+id);ACTIONS.stamp('lugares:'+id);ACTIONS.rate(id+':4')}
+ assert.deepEqual(calls.filter(x=>['toggleFav','toggleStamp','setRating'].includes(x[0])),[],'ningún nombre heredado llega a favoritos, sellos o estrellas');
+ ACTIONS.fav('cigarros:constructor-fino');ACTIONS.stamp('lugares:toString-bar');ACTIONS.rate('valueOf-x:3');
+ assert.equal(calls.filter(x=>['toggleFav','toggleStamp','setRating'].includes(x[0])).length,3,'un id normal que solo se parece sí pasa');
+});
+test('LHB-48: al cambiar la cuenta, #/cata y #/subir vuelven a pasar por la puerta (no quedan editores abiertos)',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));
+ for(const route of ['#/cata/yambo-toro','#/cata','#/subir']){
+  const g=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});g.nav(route);g.C.user={id:'user_a'};
+  await g.A.require(g.go,{fast:false});await tick();g.log.length=0;g.C.signIn(null);await tick();
+  assert.ok(g.log.includes('reroute'),route+': al salir de la cuenta se vuelve a revisar la página');
+  g.log.length=0;g.C.signIn('user_b');await tick();assert.ok(g.log.includes('reroute'),route+': al cambiar de cuenta también');
+ }
+ const p=CUENTA_HARNESS({});p.nav('#/podcast');p.C.user={id:'user_a'};await p.A.require(p.go,{inPlace:true,fast:true});await tick();p.log.length=0;p.C.signIn(null);await tick();
+ assert.ok(!p.log.includes('reroute'),'una página abierta no se repinta al salir de la cuenta');
+});
+test('LHB-48: dos acciones seguidas se revisan una tras otra y la primera no se pierde; una revisión colgada no traba la cola',async()=>{
+ const src=read('hoja.js');const i=src.indexOf('let gateChain=');const j=src.indexOf('\n',src.indexOf('const gate=',i));assert.ok(i>0&&j>i,'bloque de la cola');
+ const run=async(requireAccount,timers)=>{const ran=[];const ACTIONS={fav:(a)=>ran.push(a)};
+  const f=new Function('requireAccount','ACTIONS','setTimeout','Promise',src.slice(i,j)+'\nreturn gate');return {gate:f(requireAccount,ACTIONS,timers,Promise),ran}};
+ const tick=()=>new Promise(r=>setImmediate(r));
+ // 1) la segunda no empieza hasta que la primera termina, y las dos corren en orden
+ const gates=[];let started=[];const ra=(go,o)=>new Promise(res=>{started.push(o.arg);gates.push(()=>{go();res()})});
+ const a=await run(ra,()=>0);a.gate('fav','uno');a.gate('fav','dos');await tick();
+ assert.deepEqual(started,['uno'],'la segunda espera a la primera');gates[0]();await tick();assert.deepEqual(started,['uno','dos'],'luego empieza la segunda');gates[1]();await tick();assert.deepEqual(a.ran,['uno','dos'],'las dos corren, en orden');
+ // 2) una revisión que falla no traba la cola
+ started=[];const rb=(go,o)=>{started.push(o.arg);return o.arg==='malo'?Promise.reject(new Error('x')):Promise.resolve(go())};
+ const b=await run(rb,()=>0);b.gate('fav','malo');b.gate('fav','bueno');await tick();await tick();assert.deepEqual(b.ran,['bueno'],'después de un fallo la siguiente corre');
+ // 3) una revisión que nunca termina se suelta a los ocho segundos
+ const cbs=[];const timers=(fn,ms)=>{cbs.push([fn,ms]);return 0};started=[];const rc=(go,o)=>{started.push(o.arg);return o.arg==='colgada'?new Promise(()=>{}):Promise.resolve(go())};
+ const c=await run(rc,timers);c.gate('fav','colgada');c.gate('fav','sigue');await tick();assert.deepEqual(started,['colgada'],'mientras tanto espera');
+ assert.equal(cbs[0][1],8000,'el tope es de ocho segundos');cbs[0][0]();await tick();await tick();assert.deepEqual(c.ran,['sigue'],'pasado el tope la cola sigue');
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));

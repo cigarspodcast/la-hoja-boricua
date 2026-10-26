@@ -1,0 +1,15 @@
+[Certain] Three blocking defects remain despite the passing LHB-48 tests.
+
+**BLOCKING**
+
+| Finding | Exact code concerned |
+|---|---|
+| **1. Protected editors remain writable after sign-out.** Open `#/cata` or `#/subir` while authenticated, then sign out. The listener clears sheets and cache but never reroutes either page. Their existing handlers can still save drafts, diary entries and uploads without an account. The harness reproduced `closeAll, clear` with no `reroute` for both routes. Extend account-change invalidation to these newly protected editors. | `site/cuenta.js:19`: `if(onMiHoja()||ob){ob=false;D.reroute()}`. Newly protected routes: `subir:()=>EXT.requireAccount(vSubir,{fast:true})` and `cata:cid=>requireAccount(()=>vCata(cid),{fast:true})`. Remaining write handlers include `persistDraft()` and `LS.set('uploads',[item,...uploads()]);`. |
+| **2. Inherited IDs reach the data layer.** The repository action harness accepts `rate('constructor:4')`, `rate('__proto__:4')`, `stamp('lugares:constructor')` and `stamp('lugares:__proto__')`. These invoke `setRating` or `toggleStamp`. The category ownership check does not validate the ID used for nested property access. Reject inherited property names before invoking either data function, including during saved-intent resume, and add these cases to the tests. | `site/hoja.js:190`: `if(!id||!own(S().pasaporte,k)||typeof S().pasaporte[k]!=='object')return;`. `site/hoja.js:195`: `if(!id||!Number.isInteger(v)||v<1||v>5)return;setRating(id,v);`. The sink at line 547 assigns `s.ratings[id]=n`. |
+| **3. Independent actions cancel each other during account verification.** With a signed-in user, no cached profile and a deferred `/api/me` response, invoke two different favorite actions before resolving verification. Reproduction executes only the second callback. Both public-page controls remain usable while verification runs, so the first click is silently lost. Preserve independent actions while retaining route and user invalidation. | New wiring at `site/hoja.js:199`: `const gate=(act,arg,el)=>requireAccount(()=>ACTIONS[act](arg,el),{inPlace:true,fast:true,act,arg});`. Every call increments the shared operation counter through `const from=D.here(),op=++seq;`; `live()` requires `op===seq`, invalidating the earlier action. |
+
+**NON-BLOCKING**
+
+[Certain] Local verification returned **61/62**, with all four LHB-48 tests passing. LHB-44 failed at `test/site.test.js:275`, specifically `py.stdout.trim()`, because Python execution was denied with `spawn EPERM`. The author’s 62/62 result and real Clerk sign-in behavior remain **NOT VERIFIED** here. The reproductions above used repository code and harnesses, not a browser.
+
+VERDICT: BLOCK
