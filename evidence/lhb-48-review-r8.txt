@@ -1,0 +1,105 @@
+[Certain] The corrected pool still permits duplicate actions, actions for the wrong account, and actions lost across a redirect.
+
+**BLOCKING**
+
+1. **A pending shared check can execute an action already drained by a retry.**
+
+   Exact code in [site/cuenta.js](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js):
+
+   ```js
+   mine.forEach(i=>{bye(i);safe(i.done)})
+   ```
+
+   ```js
+   if(r.ok){bye(item);D.intent.clear();return done()}
+   ```
+
+   Reproduction: first tap’s shared check returns 503; hold its subsequent `go()` request. Start a second tap and hold its new shared check. Resolve the first retry successfully, then resolve the second shared check successfully.
+
+   Observed callbacks: `["one","two","two"]`. A heart toggle therefore reverses the second tap. Removing an already removed item does not prevent its callback. Every completion path must first claim an unconsumed item.
+
+2. **Cancelled actions remain eligible for a later pool drain, including under another account.**
+
+   Exact code:
+
+   ```js
+   hook(C);if(D.here()!==from||gen!==g0)return;
+   ```
+
+   ```js
+   if(gen!==g0||D.here()!==from)return;
+   ```
+
+   ```js
+   i.uid===null||(i.uid===lastId&&(i.owner===undefined||i.owner===lastId))
+   ```
+
+   Reproduction: install the listener as A; start A’s action with Clerk held; switch to B; release Clerk. The generation check returns without removing A’s still-anonymous item. Start B’s action, make its shared check fail and its `go()` retry succeed.
+
+   Observed callbacks under B: `["A-action","B-action"]`.
+
+   Also reproduced: navigate away during a failed shared check, return to the original page, then complete another action through a retry. Both the abandoned and new actions run. Remove cancelled items on these exits and prevent an earlier generation’s unbound items from being drained.
+
+3. **The Clerk-failure fallback bypasses a restored intent’s owner.**
+
+   Exact code:
+
+   ```js
+   catch(e){if(D.here()!==from||gen!==g0)return;bye(item);
+     if(D.store.get()){D.intent.clear();return done()}
+     return go(done,o)}
+   ```
+
+   Reproduction: restore `{act:'fav',arg:'owned-by-A',uid:'A'}` while the cached profile has `sub:'B'`; reject `D.clerk()`.
+
+   Observed: A’s registered action runs and the intent is cleared. This branch never checks `item.owner`. A restored owned action needs a matching identity in the fallback too.
+
+4. **An owned restored action can join an anonymous batch, lose its owner, and run for someone else.**
+
+   Exact code:
+
+   ```js
+   if(!uid){
+     const mine=mineOf(from,null);
+     await go(runPool,withList(o,mine));
+     mine.forEach(i=>{i.shown=true});return}
+   ```
+
+   ```js
+   return last?{...o,act:last.act,arg:last.arg,more:list.slice(0,-1),uid}
+   ```
+
+   The owner rejection occurs after the anonymous branch:
+
+   ```js
+   if(item.owner!==undefined&&item.owner!==uid){bye(item);D.intent.clear();return}
+   ```
+
+   Reproduction: signed out, concurrently resume an intent owned by A and start a fresh tap before Clerk finishes. The resulting saved intent includes A’s action in `more`, with no `uid`. Sign in as B.
+
+   Observed callbacks: `["A-saved","new"]`. Preserve ownership when batching and enforce it when draining anonymous items.
+
+5. **The ten-action persistence limit does not match the number of accepted signed-in actions.**
+
+   Exact code:
+
+   ```js
+   if(pool.filter(i=>i.uid===null).length>=10)return;
+   ```
+
+   ```js
+   cleanList(items.flatMap(i=>[
+     ...(Array.isArray(i.more)?i.more:[]),{act:i.act,arg:i.arg}
+   ]),10)
+   ```
+
+   Reproduction: as A without a cached profile, start eleven taps, allowing each to acquire its UID while one shared check remains pending. Return 401, sign out, and press the retry’s Entrar button.
+
+   Observed: all eleven entered the pool, but the saved intent contains only actions 1 through 10. Returning through Google loses action 11. Persistence must retain every accepted action, including flattened restored lists.
+
+**NON-BLOCKING notes**
+
+- [Certain] Round 6 item 1: **CONCUR** with excluding it from this verdict. Its reachability remains **NOT VERIFIED**; these findings do not depend on switching accounts before the first listener is installed.
+- [Certain] The reproductions ran against an executable transcription of the supplied `cuenta.js`, with comments omitted. Repository tests and browser behavior remain **NOT VERIFIED** here: shell process creation failed with `helper_unknown_error`.
+
+VERDICT: BLOCK
