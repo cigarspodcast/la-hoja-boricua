@@ -981,6 +981,92 @@ test('LHB-49: si otra acción toca después y falla, el formulario de perfil que
  assert.deepEqual(await x.pics[0].s(F),{stale:true},'otra página sin aviso de navegación');assert.deepEqual(await x.pics[0].p.upload(IMG('a.jpg')),{stale:true});assert.deepEqual(x.posts,[]);
  x=mk(()=>({status:503,body:{}}));x.A();await tick();x.B();await tick();x.h.C.user={id:'user_b'};
  assert.deepEqual(await x.pics[0].s(F),{stale:true},'otra cuenta sin aviso de cuenta');assert.deepEqual(x.posts,[]);
+ /* 6. la acción que falló y quedó para volver se descarta cuando el formulario termina: al salir no revive */
+ x=mk(()=>({status:503,body:{}}));x.A();await tick();x.B();await tick();
+ assert.deepEqual(await x.pics[0].s(F),{ok:true});assert.deepEqual(x.ran,['A']);x.h.log.length=0;x.h.C.signIn(null);await tick();
+ assert.ok(!x.h.log.some(l=>l.startsWith('notice:Entra otra vez')),'la acción descartada no se ofrece otra vez al salir');
+});
+test('LHB-49: si otra acción gana primero porque el perfil ya existe, el formulario viejo no corre su acción además: ni con la respuesta 201 ni con profile-exists',async()=>{
+ const F={handle:'ana',display_name:'',bio:'',favorite_brand:''};
+ for(const kind of ['201','exists']){
+  const dB=defer(),dP=defer();let gets=0;const ran=[],pics=[];
+  const h=CUENTA_HARNESS({api:async(C,m)=>{if(m==='GET'){gets++;if(gets===1)return {status:200,body:{needsProfile:true}};if(gets===2)return dB.p;return {status:200,body:{profile:{handle:'ana'}}}}return dP.p}});
+  h.nav('#/c/yambo-toro');h.D.ui.onboarding=(s,p)=>pics.push({s,p});h.C.user={id:'user_a',hasImage:true,imageUrl:AV};
+  h.A.quick(()=>ran.push('A'),{inPlace:true,act:'a'});await tick();
+  h.A.quick(()=>ran.push('B'),{inPlace:true,act:'b'});await tick();
+  const sub=pics[0].s(F);await tick();
+  dB.ok({status:200,body:{profile:{handle:'ana'}}});await tick();
+  assert.deepEqual(ran,['B'],kind+': la acción más nueva corrió porque el perfil ya existía');assert.equal(h.log.filter(l=>l==='reroute').length,1,kind+': y el formulario viejo se retiró de la pantalla');
+  dP.ok(kind==='201'?{status:201,body:{profile:{handle:'ana'}}}:{status:409,body:{error:'profile-exists'}});
+  assert.deepEqual(await sub,{stale:true},kind+': la respuesta tardía del formulario viejo se ignora');await tick();
+  assert.deepEqual(ran,['B'],kind+': su acción no corre además de la otra');assert.ok(!h.log.includes('toast'),kind+': ni felicita dos veces');
+ }
+});
+/* el formulario de perfil de hoja.js corre tal cual sobre un DOM de mentira (un mapa de selectores a elementos), sin dependencias nuevas */
+function FORM_HARNESS(picture,submit,resize){
+ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
+ const code=src.match(/const HANDLE_RE=.*\n/)[0]+src.match(/const OB_ERR=.*\n/)[0]+src.slice(src.indexOf('function onboardingForm'),src.indexOf('\nconst CUENTA='));
+ let els={};const mkEl=()=>{const e={disabled:false,hidden:false,value:'',checked:false,children:[],onclick:null,onchange:null,onsubmit:null,oninput:null,clicks:0,
+  appendChild(c){e.children.push(c)},click(){e.clicks++}};let tc='';Object.defineProperty(e,'textContent',{get:()=>tc,set:v=>{tc=v;e.children=[]}});return e};
+ const $=s=>s==='#obForm'?els.form:(els[s]||(els[s]=mkEl()));
+ const view={set innerHTML(h){els={form:mkEl()}}};
+ const uploads=[];class FakeFile{constructor(parts,name,o){this.parts=parts;this.name=name;this.type=o&&o.type}}
+ const ctx={view,$,A:{resizeImage:resize||(async f=>({blob:f.name}))},D:()=>({artesanos:[]}),esc:s=>s,document:{createElement:()=>({})},File:FakeFile};
+ vm.createContext(ctx);vm.runInContext(code+';this.onboardingForm=onboardingForm;this.OB_ERR=OB_ERR',ctx);
+ ctx.onboardingForm(submit,picture);
+ const pick=f=>ctx.$('#obPf').onchange({target:{files:[f],value:'x'}});
+ const send=(v={})=>{ctx.$('#obH').value=v.handle===undefined?'ana':v.handle;ctx.$('#obAge').checked=v.age!==false;return ctx.$('#obForm').onsubmit({preventDefault(){}})};
+ const state=()=>({go:ctx.$('#obGo').disabled,pb:ctx.$('#obPb').disabled,err:ctx.$('#obErr').hidden?'':ctx.$('#obErr').textContent,hint:ctx.$('#obPh').textContent,img:ctx.$('#obPv').children[0]&&ctx.$('#obPv').children[0].src});
+ return {ctx,$:ctx.$,pick,send,state,remount:()=>ctx.onboardingForm(submit,picture),OB:ctx.OB_ERR};
+}
+test('LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';
+ /* éxito */
+ let cur=null,calls=[],resized=[];
+ let f=FORM_HARNESS({url:()=>cur,upload:async file=>{calls.push(file);cur=AV2;return {url:AV2}}},async()=>({ok:true}),async(file,w,q)=>{resized.push([file.name,w,q]);return {blob:1}});
+ assert.equal(f.state().pb,false);assert.match(f.state().hint,/necesitas una foto/);
+ await f.pick({name:'a.png',type:'image/png'});
+ assert.deepEqual(resized,[['a.png',512,.85]],'se achica a 512 con calidad .85');assert.equal(calls.length,1);assert.equal(calls[0].name,'perfil.jpg');assert.equal(calls[0].type,'image/jpeg','a Clerk le llega el JPEG achicado');
+ assert.deepEqual([f.state().go,f.state().pb],[false,false],'terminada la subida los dos botones responden');assert.match(f.state().hint,/Listo/);assert.equal(f.state().img,AV2,'y se ve la foto nueva');
+ /* un archivo que no es imagen ni se achica ni se sube */
+ calls=[];resized=[];await f.pick({name:'x.txt',type:'text/plain'});assert.deepEqual([calls.length,resized.length],[0,0]);assert.equal(f.state().err,f.OB['avatar-type']);assert.deepEqual([f.state().go,f.state().pb],[false,false]);
+ /* error de subida, y que la subida se rechace con una excepción */
+ for(const upload of [async()=>({error:'avatar-upload'}),async()=>{throw new Error('red')}]){
+  f=FORM_HARNESS({url:()=>null,upload},async()=>({ok:true}));await f.pick({name:'a.png',type:'image/png'});
+  assert.deepEqual([f.state().go,f.state().pb],[false,false],'un error suelta los botones');assert.ok(f.state().err.length>0,'y se avisa');assert.ok(!/Listo/.test(f.state().hint),'sin decir que ya hay foto');
+ }
+ /* mientras se sube, nada más responde */
+ const g=defer();let ups=0,subs=0;f=FORM_HARNESS({url:()=>AV2,upload:async()=>{ups++;await g.p;return {url:AV2}}},async()=>{subs++;return {ok:true}});
+ const p1=f.pick({name:'a.png',type:'image/png'});await tick();
+ assert.deepEqual([f.state().go,f.state().pb],[true,true],'subiendo: los dos botones apagados');
+ f.pick({name:'b.png',type:'image/png'});f.send();await tick();assert.deepEqual([ups,subs],[1,0],'otra foto o un envío mientras se sube se ignoran');
+ g.ok();await p1;assert.deepEqual([f.state().go,f.state().pb],[false,false]);
+ /* una subida invalidada con el formulario todavía en pantalla suelta los botones; con otro formulario encima no toca nada */
+ const g2=defer();f=FORM_HARNESS({url:()=>null,upload:async()=>{await g2.p;return {stale:true}}},async()=>({ok:true}));
+ const p2=f.pick({name:'a.png',type:'image/png'});await tick();assert.equal(f.state().go,true);g2.ok();await p2;assert.deepEqual([f.state().go,f.state().pb],[false,false],'invalidada pero en pantalla: los botones responden');
+ const g3=defer();f=FORM_HARNESS({url:()=>null,upload:async()=>{await g3.p;return {url:AV2}}},async()=>({ok:true}));
+ const p3=f.pick({name:'a.png',type:'image/png'});await tick();f.remount();g3.ok();await p3;assert.deepEqual([f.state().go,f.state().pb,f.state().img],[false,false,undefined],'si otro formulario ocupó la pantalla, la subida vieja no le cambia la foto ni los botones');
+});
+test('LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';const FILL=(o)=>Object.assign({handle:'ana'},o);
+ let subs=[];let f=FORM_HARNESS({url:()=>null,upload:async()=>({url:AV2})},async v=>{subs.push(v);return {ok:true}});
+ await f.send();assert.equal(subs.length,0,'sin foto no se llama a submit');assert.equal(f.state().err,f.OB['avatar-required']);assert.deepEqual([f.state().go,f.state().pb],[false,false]);
+ await f.send({handle:'a',age:false});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['avatar-required'],'sin foto y con el @ mal: primero se pide la foto');
+ f=FORM_HARNESS({url:()=>AV2,upload:async()=>({url:AV2})},async v=>{subs.push(v);return {ok:true}});
+ await f.send({handle:'a'});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['handle-invalid'],'luego el @');
+ await f.send({age:false});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['age-required'],'luego los 21');
+ /* mientras se envía, la foto no cambia */
+ const g=defer();let ups=0;f=FORM_HARNESS({url:()=>AV2,upload:async()=>{ups++;return {url:AV2}}},async()=>{await g.p;return {ok:true}});
+ const s1=f.send();await tick();assert.deepEqual([f.state().go,f.state().pb],[true,true],'enviando: los dos botones apagados');
+ f.pick({name:'a.png',type:'image/png'});f.send();await tick();assert.equal(ups,0,'no se sube otra foto mientras se envía');
+ g.ok();await s1;assert.deepEqual([f.state().go,f.state().pb],[false,false],'un envío que termina bien suelta los botones');
+ /* error, excepción y envío invalidado con el formulario en pantalla */
+ for(const [submit,quien] of [[async()=>({error:'handle-taken'}),'error'],[async()=>{throw new Error('x')},'excepción'],[async()=>({stale:true}),'invalidado'],[async()=>null,'sin respuesta']]){
+  f=FORM_HARNESS({url:()=>AV2,upload:async()=>({url:AV2})},submit);await f.send();
+  assert.deepEqual([f.state().go,f.state().pb],[false,false],quien+': los botones responden');
+  if(quien==='error')assert.equal(f.state().err,f.OB['handle-taken']);
+  if(quien==='excepción')assert.ok(f.state().err.length>0,'se avisa');
+ }
 });
 test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL',()=>{
  const h=read('hoja.js'),app=read('app.js'),css=read('styles.css'),cu=read('cuenta.js'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');

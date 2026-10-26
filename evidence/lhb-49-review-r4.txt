@@ -1,0 +1,19 @@
+1. [Certain] **BLOCKING** · [site/cuenta.js:73](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:73): A newer successful action does not retire the older form. The fallback accepts `mine===formSeq&&ob`, while the GET success at line 55 simply calls `done()`.
+
+   Reproduction: A opens onboarding; B starts a slow account check; A submits; the POST commits, but its response waits. B receives the profile and runs its action. A’s 201 then passes `live()` and runs A too. `settle()` cannot cancel B retrospectively. The same ordering works with profile-exists recovery. Claim a single completion winner before competing continuations run, and retire the obsolete form. Test both response orders for both success paths.
+
+2. [Certain] **BLOCKING** · [site/cuenta.js:75](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:75): Successful recovery leaves the failed competing action available for resurrection. `settle()` advances a counter, but does not clear `failure`; the account listener later reads `const fl=failure` and offers its callback again.
+
+   Reproduction: A opens onboarding; B fails with 503; A successfully creates the profile and completes its action; sign out on the same page. The app displays “Tu acción quedó pendiente” for B. Signing in through that notice resumes the discarded action. Clear the superseded failure continuation when onboarding succeeds, consistently for 201 and profile-exists.
+
+3. [Certain] **NON-BLOCKING** · [test/site.test.js:985](/C:/Users/Owner/la-hoja-boricua/test/site.test.js:985): R2-2 remains a useful behavioral-test improvement. Assertions such as `form.includes(...)` never execute the actual DOM handlers. A selector-map test could catch upload rejection leaving either button disabled, a replacement form receiving an old preview, or the upload receiving the wrong blob despite matching source fragments. Add that test; its absence alone does not establish a missed ticket criterion. The reported owner browser check is **NOT VERIFIED** here.
+
+[Certain] **R3-1: CONCUR** for the original newer-action-fails-with-503 dead-form path. Findings 1 and 2 concern neighboring completion paths introduced by restoring that form’s liveness.
+
+[Certain] Limit assessment: L1’s missing ownership verification is confirmed; the assertion that a secret key is necessary is **NOT VERIFIED**. L2’s browser-only `hasImage` check is confirmed. Both fit the pinned URL-only server validation. L3’s previous-picture retention is confirmed; continued availability of that old image is **NOT VERIFIED**. L4’s two characters predate this diff. L5’s unchanged file is confirmed; referral to the owner is **NOT VERIFIED**.
+
+[Certain] The permitted command reports **85 tests, 85 pass, 0 fail**. Findings 1 and 2 are static reconstructions; their runtime reproductions were not executed.
+
+[Certain] Findings 1 and 2 share incomplete retirement of competing operation state when onboarding completes.
+
+VERDICT: BLOCK

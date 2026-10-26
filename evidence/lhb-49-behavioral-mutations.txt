@@ -1,0 +1,12 @@
+baseline (fail, pass): (0, 2)
+upload success keeps buttons off -> RED (1, 1)
+upload stale with form mounted keeps buttons off -> RED (1, 1)
+submit stale with form mounted keeps buttons off -> RED (1, 1)
+submit error keeps buttons off -> RED (1, 1)
+a file chosen while busy is not ignored -> RED (2, 0)
+submit while busy is not ignored -> RED (1, 1)
+the photo button stays on while busy -> RED (2, 0)
+not resized before upload -> RED (1, 1)
+photo asked after the handle -> RED (1, 1)
+restored (fail, pass): (0, 2) | survivors or errors: 0
+exit 0

@@ -52,7 +52,10 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  const uid=C.user.id;let r;
  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
  if(!lv(C,uid))return;
- if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();return done()}
+ if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();
+  /* el perfil ya existe: un formulario de perfil que siga abierto quedó viejo, se retira y su envío tardío ya no corre su acción además de esta */
+  if(ob){ob=false;D.reroute()}
+  return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
  if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
  const c=D.store.get();
@@ -71,8 +74,8 @@ function onboard(C,done,o,lv,uid){ob=true;
     debe poder terminar. Vale mientras sea el último formulario abierto; un cambio de cuenta, de página o de formulario lo sigue descartando */
  const mine=++formSeq,here0=D.here(),vis0=vis;
  const live=()=>lv(C,uid)||(mine===formSeq&&ob&&vis===vis0&&D.here()===here0&&!!C.user&&C.user.id===uid);
- /* si el perfil se crea con lv caído, una acción más nueva que sigue en vuelo se descarta: la acción de este formulario corre una sola vez */
- const settle=()=>{if(!lv(C,uid)){if(o.inPlace)sip++;else seq++}};
+ /* si el perfil se crea con lv caído, una acción más nueva que sigue en vuelo se descarta y la que falló y quedó para volver también: la acción de este formulario corre una sola vez */
+ const settle=()=>{failure=null;if(!lv(C,uid)){if(o.inPlace)sip++;else seq++}};
  const U=C.user;let pic=picOf(U),up=0,pend=0,sending=false;
  /* url() es la foto puesta ahora; upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva) */
  const picture={url:()=>pic,upload:file=>{

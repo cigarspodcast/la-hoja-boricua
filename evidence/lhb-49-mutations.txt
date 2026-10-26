@@ -50,10 +50,12 @@ M16 gate: no se recarga la cuenta tras subir -> ROJO (bien) fail=5
       LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
 M17 gate: un error de subida de otra cuenta llega a esta pantalla -> ROJO (bien) fail=1
       LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
-M18 formulario: la foto no se pide antes del @ -> ROJO (bien) fail=1
+M18 formulario: la foto no se pide antes del @ -> ROJO (bien) fail=2
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
-M19 formulario: la imagen no se achica antes de subirla -> ROJO (bien) fail=1
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+M19 formulario: la imagen no se achica antes de subirla -> ROJO (bien) fail=2
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones
 M20 formulario: el selector deja escoger cualquier archivo -> ROJO (bien) fail=1
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
 M21 app: resizeImage no llega al formulario -> ROJO (bien) fail=1
@@ -75,20 +77,28 @@ M26 gate: se puede enviar mientras se sube -> ROJO (bien) fail=1
       LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto
 M27 gate: una subida superada ya en cola igual escribe -> ROJO (bien) fail=1
       LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
-M28 formulario: se puede enviar mientras algo corre -> ROJO (bien) fail=1
+M28 formulario: se puede enviar mientras algo corre -> ROJO (bien) fail=2
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
-M29 formulario: el botón de foto sigue activo mientras algo corre -> ROJO (bien) fail=1
+      LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones
+M29 formulario: el botón de foto sigue activo mientras algo corre -> ROJO (bien) fail=3
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
-M30 formulario: el envío no toma el candado -> ROJO (bien) fail=1
+      LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+M30 formulario: el envío no toma el candado -> ROJO (bien) fail=2
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
-M31 formulario: una subida invalidada con el formulario en pantalla deja todo apagado -> ROJO (bien) fail=1
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+M31 formulario: una subida invalidada con el formulario en pantalla deja todo apagado -> ROJO (bien) fail=2
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
-M32 formulario: un envío invalidado con el formulario en pantalla deja todo apagado -> ROJO (bien) fail=1
+      LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones
+M32 formulario: un envío invalidado con el formulario en pantalla deja todo apagado -> ROJO (bien) fail=2
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
-M33 formulario: terminada la subida los botones quedan apagados -> ROJO (bien) fail=1
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+M33 formulario: terminada la subida los botones quedan apagados -> ROJO (bien) fail=2
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
-M34 formulario: terminado el envío con error los botones quedan apagados -> ROJO (bien) fail=1
+      LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones
+M34 formulario: terminado el envío con error los botones quedan apagados -> ROJO (bien) fail=2
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
 M35 gate: un formulario reemplazado por otro sigue valiendo -> ROJO (bien) fail=1
       LHB-49: si otra acción toca después y falla, el formulario de perfil que sigue en pantalla se puede terminar (subir foto y crear); uno reemplazado por
 M36 gate: una acción más nueva en vuelo no se descarta al crear el perfil -> ROJO (bien) fail=1
@@ -99,6 +109,10 @@ M38 gate: el formulario vivo sobrevive a un cambio de página -> ROJO (bien) fai
       LHB-49: si otra acción toca después y falla, el formulario de perfil que sigue en pantalla se puede terminar (subir foto y crear); uno reemplazado por
 M39 gate: el formulario vivo sobrevive a un cambio de cuenta -> ROJO (bien) fail=1
       LHB-49: si otra acción toca después y falla, el formulario de perfil que sigue en pantalla se puede terminar (subir foto y crear); uno reemplazado por
+M40 gate: la acción descartada que falló vuelve a ofrecerse al salir -> ROJO (bien) fail=1
+      LHB-49: si otra acción toca después y falla, el formulario de perfil que sigue en pantalla se puede terminar (subir foto y crear); uno reemplazado por
+M41 gate: el perfil ya existe y el formulario viejo no se retira -> ROJO (bien) fail=1
+      LHB-49: si otra acción gana primero porque el perfil ya existe, el formulario viejo no corre su acción además: ni con la respuesta 201 ni con profile-
 restaurado (0, [])
-mutaciones: 39 sobrevivieron o con error: 0
+mutaciones: 41 sobrevivieron o con error: 0
 exit 0

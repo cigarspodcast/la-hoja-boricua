@@ -7,7 +7,7 @@ R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.stdout.reconfigure(encoding='utf-8')
 
 def run():
-    p = subprocess.run(['node', '--test', 'test/site.test.js'], cwd=R, capture_output=True, text=True, encoding='utf-8')
+    p = subprocess.run(['node', '--test', '--test-timeout=60000', 'test/site.test.js'], cwd=R, capture_output=True, text=True, encoding='utf-8')
     fail = int(re.search(r'^ℹ fail (\d+)', p.stdout, re.M).group(1))
     names = sorted(set(re.findall(r'^✖ (.+?) \(\d', p.stdout, re.M)))
     return fail, names
@@ -55,6 +55,9 @@ MUTS = [
     ('M37 gate: un formulario invalidado por una acción que falló queda muerto', 'site/cuenta.js', "||(mine===formSeq&&ob&&vis===vis0&&D.here()===here0&&!!C.user&&C.user.id===uid);", ";"),
     ('M38 gate: el formulario vivo sobrevive a un cambio de página', 'site/cuenta.js', "&&D.here()===here0&&", "&&"),
     ('M39 gate: el formulario vivo sobrevive a un cambio de cuenta', 'site/cuenta.js', "&&!!C.user&&C.user.id===uid);", "&&true);"),
+    # ronda 4 de Codex: ganador único cuando otra acción gana primero, y la acción descartada no revive
+    ('M40 gate: la acción descartada que falló vuelve a ofrecerse al salir', 'site/cuenta.js', "const settle=()=>{failure=null;", "const settle=()=>{"),
+    ('M41 gate: el perfil ya existe y el formulario viejo no se retira', 'site/cuenta.js', "  if(ob){ob=false;D.reroute()}\n  return done()}", "  return done()}"),
 ]
 
 def main():
