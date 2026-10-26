@@ -112,6 +112,8 @@ function onboard(C,done,o,lv,uid){ob=true;
   if(r.body.error==='profile-exists'){
    let m;try{m=await D.api(C,'GET','/api/me',null,uid)}catch(e){m={status:0,body:{}}}
    if(!live())return {stale:true};
+   /* LHB-52: el perfil que apareció tras el 409 sigue sin identidad: se completa antes de guardar nada o abrir Mi Hoja; este formulario ya no vale */
+   if(m.status===200&&m.body.profile&&m.body.needsIdentity===true){identify(C,done,o,lv,uid,m.body.profile);return {stale:true}}
    if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}};

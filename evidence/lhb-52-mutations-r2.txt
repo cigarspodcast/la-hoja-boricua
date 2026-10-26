@@ -1,0 +1,161 @@
+baseline (0, [])
+S1 servidor: un nombre vacío se acepta -> ROJO (bien) fail=5
+      LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+S2 servidor: los caracteres de control en el nombre pasan -> ROJO (bien) fail=4
+      LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S3 servidor: el largo del nombre se mide en unidades UTF-16, no en caracteres -> ROJO (bien) fail=2
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S4 servidor: el nombre puede tener 51 caracteres -> ROJO (bien) fail=3
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S5 servidor: cualquier género pasa -> ROJO (bien) fail=3
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S6 servidor: el género no es obligatorio -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S7 servidor: la fecha no es obligatoria -> ROJO (bien) fail=3
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S8 servidor: el 30 de febrero pasa (la fecha no se verifica en el calendario) -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S9 servidor: un año anterior a 1900 pasa -> ROJO (bien) fail=2
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S10 servidor: una fecha futura no tiene su propio error -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S11 servidor: quien cumple 21 hoy se rechaza -> ROJO (bien) fail=3
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S12 servidor: la edad mínima es 20 -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S13 servidor: el corte de los 21 años ignora el mes y el día -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S14 servidor: el nombre público trae el apellido completo -> ROJO (bien) fail=6
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+      LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+S15 servidor: la lectura pública trae la fecha de nacimiento -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+S16 servidor: la lectura pública trae el género -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+S17 servidor: la lectura pública trae perfiles ocultos -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+S18 servidor: la puerta de Mi Hoja trae el nombre y el apellido -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+P1 POST: la fecha de nacimiento no se guarda -> ROJO (bien) fail=2
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+P2 POST: la respuesta 201 trae el género y la fecha -> ROJO (bien) fail=2
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+P3 PUT: se puede sobrescribir una identidad completa -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P4 PUT: el nombre público que ya existía se pisa -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P5 PUT: se toca el sello del 21+ original -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P6 PUT: sin validar la identidad -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P7 PUT: sin perfil también da 409 -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+E1 /api/me: un perfil sin fecha de nacimiento no pide completar -> ROJO (bien) fail=1
+      LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son
+E2 /api/me: no manda la marca needsIdentity -> ROJO (bien) fail=2
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+      LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son
+E3 /api/me: un perfil sin género no pide completar -> ROJO (bien) fail=1
+      LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son
+C1 gate: un perfil sin identidad abre Mi Hoja directo -> ROJO (bien) fail=2
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+      LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+C2 gate: el perfil guardado de antes no se borra -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C3 gate: el PUT lleva todo lo que mande el formulario -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C4 gate: un rechazo del servidor se da por completado -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C5 gate: la revisión que sigue diciendo que falta se da por buena -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C6 gate: se puede enviar dos veces a la vez -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C7 gate: se manda el PUT aunque la cuenta ya sea otra (se quitan las dos revisiones de antes del PUT) -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C8 gate: la respuesta tardía de otra cuenta completa esta -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C9 gate: tras completar en una página pública no se repinta -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C10 gate: tras completar no se guarda el perfil -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C11 gate: el perfil nuevo sigue mandando la casilla de 21 -> ROJO (bien) fail=2
+      LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+H1 formulario: la fecha de un menor se manda -> ROJO (bien) fail=3
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H2 formulario: no se revisa la identidad antes de mandar -> ROJO (bien) fail=2
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H3 formulario: una fecha futura pasa -> ROJO (bien) fail=2
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H4 formulario: el género no es obligatorio -> ROJO (bien) fail=2
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H5 formulario: el largo del nombre se mide en unidades UTF-16 -> ROJO (bien) fail=1
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H6 formulario: los separadores de línea pasan en el nombre -> ROJO (bien) fail=1
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H7 formulario: completar también manda el @ y la bio -> ROJO (bien) fail=2
+      LHB-25: un almacenamiento lleno no impide entrar ni crear el perfil; un cambio de cuenta cierra las hojas de Mi Hoja
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H8 formulario: el campo de fecha no tiene tope en hoy -> ROJO (bien) fail=1
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H9 formulario: aparece un tercer género -> ROJO (bien) fail=1
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H10 formulario: completar muestra la foto y el @ -> ROJO (bien) fail=1
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H11 hoja: el paso de completar no está en la interfaz -> ROJO (bien) fail=1
+      LHB-25: entrar desde una página pública y fallar la revisión muestra el error sobre la página y el reintento conserva la acción
+H12 formulario: la fecha y el género se guardan en el navegador -> ROJO (bien) fail=1
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+K1 hoja: el perfil guardado de antes (llave vieja) vuelve a valer -> ROJO (bien) fail=1
+      LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+K2 hoja: salir no borra la llave vieja -> ROJO (bien) fail=1
+      LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+W1 sw: la versión del caché no cambia -> ROJO (bien) fail=15
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+      artisan logos: every id in LOGOS maps to an existing webp and a real artisan
+      v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)
+restaurado (0, [])
+mutaciones: 54 sobrevivieron o con error: 0
+
+exit=0

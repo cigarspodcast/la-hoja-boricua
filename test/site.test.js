@@ -1387,3 +1387,13 @@ test('LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja 
  fast.A.quick(()=>fast.log.push('ACTION'),{inPlace:true,act:'humidor'});await tick();assert.deepEqual(calls,['GET /api/me'],'sin perfil guardado la acción rápida revisa en el servidor');assert.ok(fast.log.includes('identity')&&!fast.log.includes('ACTION'),'y pide la identidad antes de hacer la acción');
  assert.ok(src.includes("A.LS.get('cuenta2',null)")&&src.includes("A.LS.set('cuenta2',v)"),'la llave nueva');
 });
+test('LHB-52: si el perfil ya existía al crearlo (409) y sigue sin identidad, se pide completar antes de guardar o abrir',async()=>{
+ let gets=0;const h=CUENTA_HARNESS({api:async(C,m)=>m==='POST'?{status:409,body:{error:'profile-exists'}}:++gets===1?{status:200,body:{needsProfile:true}}:{status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}});
+ let onb,idn;h.D.ui.onboarding=s=>{onb=s};h.D.ui.identity=s=>{idn=s;h.log.push('identity')};h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};
+ await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();assert.equal(typeof onb,'function');
+ assert.deepEqual(await onb({handle:'sergio',first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-01-01'}),{stale:true},'el formulario de perfil nuevo queda reemplazado');
+ assert.equal(typeof idn,'function','aparece el paso de completar');assert.ok(!h.log.includes('GO')&&!h.log.some(x=>x.startsWith('store')),'no abre ni guarda el perfil sin identidad');
+ /* completarlo termina igual que siempre: guarda, felicita, repinta y hace la acción */
+ h.D.api=async(C,m)=>({status:200,body:{ok:true}});assert.deepEqual(await idn({first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-01-01'}),{ok:true});
+ assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'||x.startsWith('store')),['store:user_a:sergio','reroute','GO']);
+});

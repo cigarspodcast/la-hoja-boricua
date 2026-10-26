@@ -64,6 +64,7 @@ MUTS = [
     ('C9 gate: tras completar en una página pública no se repinta', CU, "D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();", "D.ui.toast('Listo, tu perfil está completo.');done();"),
     ('C10 gate: tras completar no se guarda el perfil', CU, "const finish=()=>{cache({sub:uid,handle:prof.handle});", "const finish=()=>{"),
     ('C11 gate: el perfil nuevo sigue mandando la casilla de 21', CU, "{...f,avatar_url:pic}", "{...f,age_ok:true,avatar_url:pic}"),
+    ('C12 gate: el perfil que aparece tras el 409 y sigue sin identidad se guarda y abre', CU, "   if(m.status===200&&m.body.profile&&m.body.needsIdentity===true){identify(C,done,o,lv,uid,m.body.profile);return {stale:true}}" + chr(10), ""),
     # hoja.js
     ('H1 formulario: la fecha de un menor se manda', HO, "if(v>String(+today.slice(0,4)-21).padStart(4,'0')+today.slice(4))return 'age-under-21';\n", ""),
     ('H2 formulario: no se revisa la identidad antes de mandar', HO, "const bad=idProblem(f,new Date().toISOString().slice(0,10));if(bad)return err(OB_ERR[bad]||OB_ERR['birth_date-invalid']);", ""),
