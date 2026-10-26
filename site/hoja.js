@@ -196,9 +196,7 @@ const ACTIONS={
  humidor(arg){openSheet('humidor',txt(arg)?arg:undefined)}
 };
 Object.keys(ACTIONS).forEach(k=>CUENTA.register(k,arg=>ACTIONS[k](arg)));
-/* las acciones se revisan una tras otra: la puerta invalida lo pendiente en cada revisión, y dos toques seguidos no deben perder el primero; si una revisión se cuelga, la cola sigue a los ocho segundos */
-let gateChain=Promise.resolve();
-const gate=(act,arg,el)=>{const run=()=>Promise.race([requireAccount(()=>ACTIONS[act](arg,el),{inPlace:true,fast:true,act,arg}),new Promise(r=>setTimeout(r,8000))]);gateChain=gateChain.then(run).catch(()=>{});return gateChain};
+const gate=(act,arg,el)=>CUENTA.quick(()=>ACTIONS[act](arg,el),{inPlace:true,act,arg});
 setTimeout(()=>CUENTA.resume(),0);
 /* ---------- Mi Hoja ---------- */
 const SUBS=[['humidor','Humidor'],['diario','Diario'],['pasaporte','Pasaporte'],['favoritos','Favoritos'],['perfil','Perfil']];

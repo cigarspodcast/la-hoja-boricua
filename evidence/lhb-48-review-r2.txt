@@ -1,0 +1,97 @@
+[Certain] Three blockers remain: the queue loses pending actions and can execute a tap under a different account.
+
+**BLOCKING**
+
+1. **[Certain] Two taps before sign-in still lose the first action.**
+
+   Exact code in `site/hoja.js`:
+
+   ```js
+   gateChain=gateChain.then(run).catch(()=>{});
+   ```
+
+   Paired with `site/cuenta.js`:
+
+   ```js
+   pending={go:done,o,from};
+   ```
+   ```js
+   open();return
+   ```
+
+   `requireAccount()` resolves when sign-in opens, before the action executes. The queue therefore advances, and the second check overwrites both `pending` and the saved intent. Signing in, including returning through the Google redirect, executes only the second action.
+
+   The new queue test misses this because its stub remains unresolved until it calls `go()`:
+
+   ```js
+   const ra=(go,o)=>new Promise(res=>{started.push(o.arg);gates.push(()=>{go();res()})});
+   ```
+
+   The queue must track action completion across sign-in, onboarding and retries.
+
+2. **[Certain] A queued action can run for the wrong person.**
+
+   Exact code in `site/hoja.js`:
+
+   ```js
+   requireAccount(()=>ACTIONS[act](arg,el),{inPlace:true,fast:true,act,arg})
+   ```
+
+   Context is captured only when that queued check starts, in `site/cuenta.js`:
+
+   ```js
+   const from=D.here(),op=++seq;
+   ```
+
+   Reproduction: user A starts an action whose `/api/me` request remains pending; A taps another action; switch to B; resolve A’s request. The first check is correctly discarded, but the queued second check starts under B and executes for B.
+
+   Bind queued actions to their originating account and page. An account change must invalidate actions already initiated by the previous user.
+
+3. **[Certain] The timeout silently discards valid slow actions.**
+
+   Exact code in `site/hoja.js`:
+
+   ```js
+   Promise.race([requireAccount(()=>ACTIONS[act](arg,el),{inPlace:true,fast:true,act,arg}),new Promise(r=>setTimeout(r,8000))])
+   ```
+
+   Paired with `site/cuenta.js`:
+
+   ```js
+   if(!live(op,from,C,uid))return;
+   ```
+
+   Reproduction: queue two actions with no cached profile; leave the first `/api/me` request pending past eight seconds. The second check increments `seq`. Even if the first request subsequently succeeds, its action is discarded. Only the second executes.
+
+   A timeout needs an explicit failure or retained retry state instead of silently treating the action as finished.
+
+   **Prior finding 3: MAINTAIN.** This regression test can be added beside the existing queue test:
+
+   ```js
+   test('LHB-48: queued signed-out taps both survive sign-in',async()=>{
+    const g=CUENTA_HARNESS({
+     api:async()=>({status:200,body:{profile:{handle:'ana'}}})
+    });
+    g.nav('#/c/yambo-toro');
+    const src=read('hoja.js'),i=src.indexOf('let gateChain=');
+    const j=src.indexOf('\n',src.indexOf('const gate=',i));
+    const ran=[];
+    const gate=new Function('requireAccount','ACTIONS','setTimeout',
+     src.slice(i,j)+'\nreturn gate')(
+      g.A.require,{fav:arg=>ran.push(arg)},()=>0);
+    gate('fav','cigarros:uno');
+    await gate('fav','cigarros:dos');
+    g.C.signIn('user_a');
+    await new Promise(r=>setImmediate(r));
+    assert.deepEqual(ran,['cigarros:uno','cigarros:dos']);
+   });
+   ```
+
+**NON-BLOCKING**
+
+- [Certain] **Prior finding 1: CONCUR.** The corrected `onMiHoja()` includes `r==='cata'||r==='subir'`.
+- [Certain] **Prior finding 2: CONCUR.** The corrected `fav`, `stamp` and `rate` checks reject `id in Object.prototype`.
+
+[Certain] Repository tests and preview behavior are **NOT VERIFIED** here: shell startup failed before executing commands. Executable reconstructions from the supplied source produced all three failure sequences above; they do not replace repository or browser execution.
+
+VERDICT: BLOCK

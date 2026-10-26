@@ -526,7 +526,7 @@ test('LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la pue
  assert.ok(/EXT\.gate\('rate',c\.id\+':'\+b\.dataset\.star\)/.test(ap),'la estrella usa la puerta');
  assert.ok(/subir:\(\)=>EXT\.requireAccount\(vSubir,\{fast:true\}\)/.test(ap),'subir una vitola pide cuenta');
  assert.ok(/cata:cid=>requireAccount\(\(\)=>vCata\(cid\),\{fast:true\}\)/.test(hj),'catar pide cuenta');
- assert.ok(/requireAccount\(\(\)=>ACTIONS\[act\]\(arg,el\),\{inPlace:true,fast:true,act,arg\}\)/.test(hj),'la puerta es en sitio y rápida');
+ assert.ok(/const gate=\(act,arg,el\)=>CUENTA\.quick\(\(\)=>ACTIONS\[act\]\(arg,el\),\{inPlace:true,act,arg\}\)/.test(hj),'la puerta es en sitio y no cancela otras acciones');
  assert.ok(/Object\.keys\(ACTIONS\)\.forEach\(k=>CUENTA\.register\(k,arg=>ACTIONS\[k\]\(arg\)\)\)/.test(hj),'las acciones se registran para retomarlas al volver de Google');
  const outside=src=>src.replace(/function toggleFav\([\s\S]*?\n/,'').replace(/function toggleStamp\([\s\S]*?\n/,'').replace(/function setRating\([\s\S]*?\n/,'');
  const a=hj.indexOf('const ACTIONS={'),b=hj.indexOf('\nObject.keys(ACTIONS)');
@@ -582,22 +582,45 @@ test('LHB-48: al cambiar la cuenta, #/cata y #/subir vuelven a pasar por la puer
  const p=CUENTA_HARNESS({});p.nav('#/podcast');p.C.user={id:'user_a'};await p.A.require(p.go,{inPlace:true,fast:true});await tick();p.log.length=0;p.C.signIn(null);await tick();
  assert.ok(!p.log.includes('reroute'),'una página abierta no se repinta al salir de la cuenta');
 });
-test('LHB-48: dos acciones seguidas se revisan una tras otra y la primera no se pierde; una revisión colgada no traba la cola',async()=>{
- const src=read('hoja.js');const i=src.indexOf('let gateChain=');const j=src.indexOf('\n',src.indexOf('const gate=',i));assert.ok(i>0&&j>i,'bloque de la cola');
- const run=async(requireAccount,timers)=>{const ran=[];const ACTIONS={fav:(a)=>ran.push(a)};
-  const f=new Function('requireAccount','ACTIONS','setTimeout','Promise',src.slice(i,j)+'\nreturn gate');return {gate:f(requireAccount,ACTIONS,timers,Promise),ran}};
- const tick=()=>new Promise(r=>setImmediate(r));
- // 1) la segunda no empieza hasta que la primera termina, y las dos corren en orden
- const gates=[];let started=[];const ra=(go,o)=>new Promise(res=>{started.push(o.arg);gates.push(()=>{go();res()})});
- const a=await run(ra,()=>0);a.gate('fav','uno');a.gate('fav','dos');await tick();
- assert.deepEqual(started,['uno'],'la segunda espera a la primera');gates[0]();await tick();assert.deepEqual(started,['uno','dos'],'luego empieza la segunda');gates[1]();await tick();assert.deepEqual(a.ran,['uno','dos'],'las dos corren, en orden');
- // 2) una revisión que falla no traba la cola
- started=[];const rb=(go,o)=>{started.push(o.arg);return o.arg==='malo'?Promise.reject(new Error('x')):Promise.resolve(go())};
- const b=await run(rb,()=>0);b.gate('fav','malo');b.gate('fav','bueno');await tick();await tick();assert.deepEqual(b.ran,['bueno'],'después de un fallo la siguiente corre');
- // 3) una revisión que nunca termina se suelta a los ocho segundos
- const cbs=[];const timers=(fn,ms)=>{cbs.push([fn,ms]);return 0};started=[];const rc=(go,o)=>{started.push(o.arg);return o.arg==='colgada'?new Promise(()=>{}):Promise.resolve(go())};
- const c=await run(rc,timers);c.gate('fav','colgada');c.gate('fav','sigue');await tick();assert.deepEqual(started,['colgada'],'mientras tanto espera');
- assert.equal(cbs[0][1],8000,'el tope es de ocho segundos');cbs[0][0]();await tick();await tick();assert.deepEqual(c.ran,['sigue'],'pasado el tope la cola sigue');
+test('LHB-48: varias acciones seguidas en sitio no se cancelan; una sola revisión compartida; se descartan si cambia la persona o la página',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ // con perfil guardado: al instante, sin red, todas
+ let n=0;const a=CUENTA_HARNESS({api:async()=>{n++;return prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};a.cache({sub:'user_a',handle:'ana'});a.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'x'});
+ a.A.quick(a.go,{inPlace:true,act:'fav',arg:'x'});a.A.quick(a.go,{inPlace:true,act:'fav',arg:'y'});await tick();assert.equal(a.intent(),null,'consume la acción guardada');
+ assert.deepEqual(a.log.filter(x=>x==='GO'),['GO','GO'],'dos toques, dos acciones');assert.equal(n,0,'sin pedir /api/me');
+ // sin perfil guardado: una sola revisión para todos, y todos corren
+ let m=0;let release;const gate=new Promise(r=>{release=r});const b=CUENTA_HARNESS({api:async()=>{m++;await gate;return prof()}});b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};
+ b.A.quick(b.go,{inPlace:true,act:'fav',arg:'x'});b.A.quick(b.go,{inPlace:true,act:'fav',arg:'y'});b.A.quick(b.go,{inPlace:true,act:'fav',arg:'z'});await tick();
+ assert.ok(!b.log.includes('GO'),'mientras se revisa no corre nada');release();await tick();await tick();
+ assert.deepEqual(b.log.filter(x=>x==='GO'),['GO','GO','GO'],'al terminar corren las tres');assert.equal(m,1,'con una sola revisión compartida');
+ // cambia la persona mientras se espera: se descarta, no corre para la otra
+ let rel2;const g2=new Promise(r=>{rel2=r});const c=CUENTA_HARNESS({api:async()=>{await g2;return prof()}});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};
+ c.A.quick(c.go,{inPlace:true,act:'fav',arg:'x'});await tick();c.C.signIn('user_b');rel2();await tick();await tick();
+ assert.ok(!c.log.includes('GO'),'una acción de la persona anterior no corre para la nueva');
+ // cambia la página mientras se espera: se descarta
+ let rel3;const g3=new Promise(r=>{rel3=r});const d=CUENTA_HARNESS({api:async()=>{await g3;return prof()}});d.nav('#/c/yambo-toro');d.C.user={id:'user_a'};
+ d.A.quick(d.go,{inPlace:true,act:'fav',arg:'x'});await tick();d.nav('#/artesanos');rel3();await tick();await tick();
+ assert.ok(!d.log.includes('GO'),'si la página cambió, la acción no corre');
+ // sin sesión: hoja de entrar y la acción guardada con su argumento
+ const e=CUENTA_HARNESS({});e.nav('#/c/yambo-toro');await e.A.quick(e.go,{inPlace:true,act:'fav',arg:'cigarros:yambo-toro'});await tick();
+ assert.ok(e.log.includes('open')&&!e.log.includes('GO'),'sin sesión abre la hoja de entrar y no hace nada todavía');assert.deepEqual(e.intent(),{from:'#/c/yambo-toro',act:'fav',arg:'cigarros:yambo-toro'});
+ // el servidor dice que no hay perfil: crea el perfil, no corre la acción
+ const f=CUENTA_HARNESS({api:async()=>({status:200,body:{needsProfile:true}})});f.nav('#/c/yambo-toro');f.C.user={id:'user_a'};await f.A.quick(f.go,{inPlace:true,act:'fav',arg:'x'});await tick();
+ assert.ok(f.log.includes('onboarding')&&!f.log.includes('GO'),'sin perfil se pide el perfil primero');
+ // 401: no corre, avisa
+ const h=CUENTA_HARNESS({api:async()=>({status:401,body:{}})});h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};await h.A.quick(h.go,{inPlace:true,act:'fav',arg:'x'});await tick();
+ assert.ok(!h.log.includes('GO')&&h.log.some(x=>x.startsWith('notice')),'un 401 no deja pasar y avisa');
+ // Clerk no carga: con perfil guardado corre una vez y consume la acción; sin perfil guardado avisa
+ const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('offline')}});k.nav('#/c/yambo-toro');k.cache({sub:'user_a',handle:'ana'});k.setIntent({from:'#/c/yambo-toro',act:'fav'});
+ await k.A.quick(k.go,{inPlace:true,act:'fav'});await tick();assert.deepEqual(k.log.filter(x=>x==='GO'),['GO']);assert.equal(k.intent(),null);
+ const l=CUENTA_HARNESS({clerk:async()=>{throw new Error('offline')}});l.nav('#/c/yambo-toro');await l.A.quick(l.go,{inPlace:true,act:'fav'});await tick();
+ assert.ok(!l.log.includes('GO')&&l.log.some(x=>x.startsWith('notice')),'sin Clerk y sin perfil guardado no pasa y avisa');
+ // el perfil guardado de otra persona no sirve: se revisa con el servidor
+ let q=0;const o=CUENTA_HARNESS({api:async()=>{q++;return prof()}});o.nav('#/c/yambo-toro');o.C.user={id:'user_b'};o.cache({sub:'user_a',handle:'ana'});
+ await o.A.quick(o.go,{inPlace:true,act:'fav'});await tick();assert.equal(q,1);assert.deepEqual(o.log.filter(x=>x==='GO'),['GO']);
+ // y si el servidor no responde, el perfil guardado de otra persona tampoco deja pasar
+ const w=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});w.nav('#/c/yambo-toro');w.C.user={id:'user_b'};w.cache({sub:'user_a',handle:'ana'});
+ await w.A.quick(w.go,{inPlace:true,act:'fav'});await tick();assert.ok(!w.log.includes('GO'),'otra persona con el servidor caído: no corre');
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));

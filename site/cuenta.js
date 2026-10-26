@@ -65,8 +65,24 @@ function onboard(C,done,o,op,from,uid){ob=true;
    if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}})}
+/* acción en sitio (corazón, sello, estrella, humidor): no usa la cuenta atrás de go(), así que varios toques seguidos no se cancelan entre sí.
+   Con sesión abierta y el perfil guardado de esa misma persona se hace al instante; sin perfil guardado, todos esperan una sola revisión compartida (warm);
+   sin sesión o sin perfil se pasa por go() (hoja de entrar, creación del perfil, errores). Si la persona o la página cambian mientras se espera, la acción se descarta. */
+let warming=null;
+function warm(C,uid){if(warming&&warming.uid===uid)return warming.p;
+ const p=(async()=>{let r;try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){return}
+  if(r.status===200&&r.body.profile&&C.user&&C.user.id===uid)cache({sub:uid,handle:r.body.profile.handle})})();
+ warming={uid,p};p.then(()=>{if(warming&&warming.p===p)warming=null});return p}
+async function quick(done,o){o=o||{};const from=D.here();let C;
+ try{C=await D.clerk()}catch(e){if(D.here()!==from)return;if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
+ hook(C);if(D.here()!==from)return;
+ const uid=C.user?C.user.id:null;if(!uid)return go(done,o);
+ let c=D.store.get();
+ if(!(c&&c.sub===uid)){await warm(C,uid);if(!C.user||C.user.id!==uid||D.here()!==from)return;c=D.store.get()}
+ if(c&&c.sub===uid){D.intent.clear();return done()}
+ return go(done,o)}
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
 function resume(){const it=D.intent.get();
  if(it&&it.from===D.here()&&ACT[it.act]){const arg=typeof it.arg==='string'?it.arg:undefined;return go(()=>ACT[it.act](arg),{inPlace:true,resume:true,act:it.act,arg,fast:true})}
  D.intent.clear()}
-return {require:go,resume,register:(name,fn)=>{ACT[name]=fn}}};
+return {require:go,quick,resume,register:(name,fn)=>{ACT[name]=fn}}};
