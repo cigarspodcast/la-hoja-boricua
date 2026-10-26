@@ -5,10 +5,12 @@
    - Cada respuesta pendiente se amarra al usuario, a la pantalla y a la operación que la pidió; si algo cambió, se ignora.
    - Entrar desde cualquier página deja la página como está, y al terminar se hace la acción que el usuario empezó. */
 window.LHB_CUENTA=function(D){'use strict';
-const ACT={};let seq=0,hooked=false,lastId=null,pending=null,ob=false,failure=null;
+const ACT=Object.create(null);let seq=0,hooked=false,lastId=null,pending=null,ob=false,failure=null;
 /* lo guardado para volver de Google: la acción y, si hubo varios toques mientras cargaba Clerk, las anteriores; solo acciones registradas y argumentos de texto */
-const cleanList=l=>(Array.isArray(l)?l:[]).filter(m=>m&&typeof m.act==='string'&&ACT[m.act]).slice(0,9).map(m=>typeof m.arg==='string'?{act:m.act,arg:m.arg}:{act:m.act});
-const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.arg=o.arg;const more=cleanList(o.more);if(more.length)v.more=more;return v};
+const cleanList=(l,n=9)=>(Array.isArray(l)?l:[]).filter(m=>m&&typeof m.act==='string'&&typeof ACT[m.act]==='function').slice(0,n).map(m=>typeof m.arg==='string'?{act:m.act,arg:m.arg}:{act:m.act});
+const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.arg=o.arg;if(typeof o.uid==='string')v.uid=o.uid;const more=cleanList(o.more);if(more.length)v.more=more;return v};
+/* una acción que falla no detiene a las demás */
+const safe=f=>{try{f()}catch(e){if(typeof console!=='undefined')console.error(e)}};
 const live=(op,from,C,uid)=>op===seq&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
 /* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil; también las páginas que escriben datos de la cuenta (#/cata y #/subir): al cambiar la cuenta se vuelven a pasar por la puerta */
 /* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
@@ -84,19 +86,21 @@ function warm(C,uid,item){
   const ok=r.status===200&&!!r.body.profile;if(ok&&gen===g&&C.user&&C.user.id===uid)cache({sub:uid,handle:r.body.profile.handle});return {ok}})();
  const w={uid,p,items};warming=w;p.then(()=>{if(warming===w)warming=null});return w}
 async function quick(done,o){o=o||{};const from=D.here(),g0=gen,item={done,from,uid:null,act:o.act,arg:o.arg};let C;
- try{C=await D.clerk()}catch(e){if(D.here()!==from)return;if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
+ try{C=await D.clerk()}catch(e){if(D.here()!==from||gen!==g0)return;if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
  hook(C);if(D.here()!==from||gen!==g0)return;
  const uid=C.user?C.user.id:null;
  if(!uid){if(!outBatch){outBatch=[];Promise.resolve().then(()=>{outBatch=null})}const b=outBatch;b.push(item);
-  return go(()=>b.forEach(i=>{if(i.from===D.here())i.done()}),{...o,more:b.slice(0,-1)})}
+  return go(()=>b.forEach(i=>{if(i.from===D.here())safe(i.done)}),{...o,more:b.slice(0,-1)})}
  const c=D.store.get();if(c&&c.sub===uid){D.intent.clear();return done()}
  item.uid=uid;const w=warm(C,uid,item),r=await w.p;
  if(gen!==g0||D.here()!==from)return;
  if(r.ok){D.intent.clear();return done()}
- return go(()=>w.items.forEach(i=>{if(i.from===D.here()&&i.uid===lastId)i.done()}),o)}
+ const mine=w.items.filter(i=>i.from===D.here()&&i.uid===lastId),last=mine[mine.length-1]||item;
+ return go(()=>w.items.forEach(i=>{if(i.from===D.here()&&i.uid===lastId)safe(i.done)}),{...o,act:last.act,arg:last.arg,more:mine.slice(0,-1),uid})}
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
 function resume(){const it=D.intent.get();
- const list=it&&it.from===D.here()?cleanList([...(Array.isArray(it.more)?it.more:[]),{act:it.act,arg:it.arg}]):[];
- if(list.length){const last=list[list.length-1];return go(()=>list.forEach(m=>ACT[m.act](m.arg)),{inPlace:true,resume:true,act:last.act,arg:last.arg,more:list.slice(0,-1),fast:true})}
+ const list=it&&it.from===D.here()?[...cleanList(it.more),...cleanList([{act:it.act,arg:it.arg}],1)]:[];
+ if(list.length){const last=list[list.length-1],uid=typeof it.uid==='string'?it.uid:undefined;
+  return go(()=>{if(uid!==undefined&&uid!==lastId)return;list.forEach(m=>safe(()=>ACT[m.act](m.arg)))},{inPlace:true,resume:true,act:last.act,arg:last.arg,more:list.slice(0,-1),uid,fast:true})}
  D.intent.clear()}
 return {require:go,quick,resume,gen:()=>gen,register:(name,fn)=>{ACT[name]=fn}}};

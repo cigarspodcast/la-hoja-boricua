@@ -1,0 +1,82 @@
+[Certain] The corrected code still loses actions and can run one person’s action for another.
+
+**BLOCKING**
+
+1. **`site/cuenta.js`: the rejected Clerk wait bypasses the account-generation check.**
+
+   Exact code:
+   ```js
+   try{C=await D.clerk()}catch(e){if(D.here()!==from)return;if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
+   hook(C);if(D.here()!==from||gen!==g0)return;
+   ```
+
+   Reproduction: install the listener as A, start another `quick()` with Clerk pending, switch to B, cache B’s profile, then reject the pending Clerk promise. The catch executes A’s callback using B’s cache. Isolated result: `ran: 1, current: "B"`.
+
+   Apply the generation guard to the rejection path before either fallback.
+
+2. **`site/cuenta.js`: a retry loses its batch and user binding across a Google redirect.**
+
+   Exact code:
+   ```js
+   return go(()=>w.items.forEach(i=>{if(i.from===D.here()&&i.uid===lastId)i.done()}),o)
+   ```
+   ```js
+   const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.arg=o.arg;const more=cleanList(o.more);if(more.length)v.more=more;return v};
+   ```
+   ```js
+   go(()=>list.forEach(m=>ACT[m.act](m.arg)),{inPlace:true,resume:true,act:last.act,arg:last.arg,more:list.slice(0,-1),fast:true})
+   ```
+
+   Reproduction: A starts two actions; `/api/me` returns 401; A signs out and presses the replacement **Entrar** notice. The saved intent contains only the last action:
+   ```json
+   {"from":"#/c/yambo-toro","act":"fav","arg":"cigarros:two"}
+   ```
+
+   Restore that intent in a fresh gate instance. Returning as A loses the first action. Returning as B executes A’s last action for B. The `uid===lastId` check exists only in the discarded closure.
+
+   Persist and validate the complete retry batch and its originating user. Initially anonymous actions must remain eligible for their first sign-in.
+
+3. **`site/cuenta.js`: ten saved actions restore only nine, dropping the latest action.**
+
+   Exact code:
+   ```js
+   .filter(m=>m&&typeof m.act==='string'&&ACT[m.act]).slice(0,9)
+   ```
+   ```js
+   cleanList([...(Array.isArray(it.more)?it.more:[]),{act:it.act,arg:it.arg}])
+   ```
+
+   Reproduction: save nine registered actions in `more`, with action `"10"` in the top-level intent. `resume()` executes `"1"` through `"9"`, drops `"10"`, and clears the intent. The nine-entry limit is applied again after appending the final action.
+
+4. **`site/cuenta.js`: inherited action names pass the saved-intent sanitizer and abort valid actions.**
+
+   Exact code:
+   ```js
+   const ACT={};
+   ```
+   ```js
+   .filter(m=>m&&typeof m.act==='string'&&ACT[m.act])
+   ```
+   ```js
+   list.forEach(m=>ACT[m.act](m.arg))
+   ```
+
+   Reproduction input:
+   ```js
+   {
+     from:'#/c/yambo-toro',
+     act:'fav', arg:'cigarros:valid',
+     more:[{act:'__proto__',arg:'x'}]
+   }
+   ```
+
+   `resume()` throws `TypeError: ACT[m.act] is not a function` before the valid favorite executes. The intent has already been cleared. Require an owned, callable registry entry.
+
+**NON-BLOCKING notes**
+
+- [Certain] Round 4 findings 1 and 2: **CONCUR** with the supplied corrections. `warm()` guards cache writes with generation and user identity; upload submission checks generation and form identity after the awaited photo write.
+- [Certain] Round 4 finding 3: **CONCUR** for the original two-action anonymous batch. Findings 3 and 4 above identify remaining restoration defects.
+- [Certain] Round 4 finding 4: **MAINTAIN** across redirect restoration. Finding 2 provides the reproduction; the inline retry’s user check does not survive serialization.
+- [Certain] Local execution failed twice with `helper_unknown_error`. Repository tests, mutation counts, and preview sign-in are **NOT VERIFIED**. The reported results came from isolated execution of the supplied `cuenta.js` logic transcribed without comments, which corroborates the review but does not replace repository execution.
+
+VERDICT: BLOCK
