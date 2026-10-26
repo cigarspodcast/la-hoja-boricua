@@ -5,9 +5,9 @@
    - Cada respuesta pendiente se amarra al usuario, a la pantalla y a la operación que la pidió; si algo cambió, se ignora.
    - Entrar desde cualquier página deja la página como está, y al terminar se hace la acción que el usuario empezó. */
 window.LHB_CUENTA=function(D){'use strict';
-const ACT=Object.create(null);let seq=0,sip=0,gen=0,hooked=false,lastId=null,pending=null,pendIp=null,ob=false,failure=null,vis=0;
+const ACT=Object.create(null);let seq=0,sip=0,gen=0,hooked=false,lastId=null,pending=null,pendIp=null,ob=false,failure=null,vis=0,obForm=null;
 /* irse de una página termina todo lo que esa visita esperaba: volver después no revive una revisión ni una acción que quedó pendiente */
-if(typeof D.onNav==='function')D.onNav(()=>{vis++;pending=null;pendIp=null;failure=null});
+if(typeof D.onNav==='function')D.onNav(()=>{vis++;pending=null;pendIp=null;failure=null;const it=D.intent.get();if(it&&it.from!==D.here())D.intent.clear()});
 /* una acción que falla no detiene a las demás */
 const safe=f=>{try{f()}catch(e){if(typeof console!=='undefined')console.error(e)}};
 /* lo guardado para volver de Google: la acción y su argumento de texto; solo acciones registradas */
@@ -21,11 +21,8 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
   if(!id){D.store.clear();D.intent.clear()}
   /* lo que espera una página (Mi Hoja) y lo que espera una acción en sitio se guardan por separado: las dos se retoman al entrar */
   const p=pending,q=pendIp;pending=null;pendIp=null;const fl=failure;failure=null;
-  const P=id&&p&&p.from===D.here()?p:null,Q=id&&q&&q.from===D.here()?q:null;
-  /* si esperaban las dos, una sola revisión y un solo formulario de perfil: se hacen juntas al terminar */
-  if(P&&Q){go(()=>{safe(P.go);safe(Q.go)},{...P.o,resume:true});return}
-  if(Q)go(Q.go,{...Q.o,resume:true});
-  if(P){go(P.go,{...P.o,resume:true});return}
+  if(id&&q&&q.from===D.here())go(q.go,{...q.o,resume:true});
+  if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}
   /* el aviso de error pedía salir y volver a entrar: al salir, la hoja se cierra con todo y su botón; se deja un botón nuevo para entrar y seguir con la acción */
   if(!id&&fl&&fl.from===D.here())D.ui.notice('Entra otra vez','Tu acción quedó pendiente. Entra para continuar.',{label:'Entrar',on:()=>go(fl.done,{...fl.o,resume:false})})})}
@@ -62,22 +59,27 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  const c=D.store.get();
  if(c&&c.sub===uid&&(r.status===0||r.status>=500)){D.intent.clear();return done()}
  fail('No pudimos revisar tu cuenta','Intenta otra vez en un momento.')}
+/* un solo formulario de perfil por persona: si otra revisión (la página, una acción en sitio, lo que volvió de Google) también llega a "falta el perfil", el formulario nuevo
+   se queda con las que siguen vivas y las hace todas al crear el perfil; cada una conserva su propia cancelación (lv) */
 function onboard(C,done,o,lv,uid){ob=true;
+ const form={uid,subs:[...(obForm&&obForm.uid===uid?obForm.subs.filter(x=>x.lv(C,uid)):[]),{done,o,lv}]};obForm=form;
+ const alive=()=>obForm===form&&form.subs.some(x=>x.lv(C,uid));
+ const finish=()=>{const subs=form.subs.filter(x=>x.lv(C,uid));obForm=null;ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(subs.some(x=>x.o.inPlace))D.reroute();subs.forEach(x=>safe(x.done))};
  D.ui.onboarding(async f=>{
   /* el formulario puede seguir en pantalla después de un cambio de cuenta: no se manda nada a nombre de otra persona */
-  if(!lv(C,uid))return {stale:true};
+  if(!alive())return {stale:true};
   let r;try{r=await D.api(C,'POST','/api/profile',{...f,age_ok:true},uid)}catch(e){r={status:0,body:{}}}
   const same=!!C.user&&C.user.id===uid;
   if(r.status===201){if(same)cache({sub:uid,handle:r.body.profile.handle});
-   if(!lv(C,uid))return {stale:true};
-   ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
-  if(!lv(C,uid))return {stale:true};
+   if(!alive())return {stale:true};
+   finish();return {ok:true}}
+  if(!alive())return {stale:true};
   /* la respuesta se perdió pero el perfil sí se creó: se revisa de nuevo dentro de este mismo envío y, si sale bien, se termina igual que con un 201.
      Si la revisión falla, el formulario sigue vivo para reintentar; no se anuncia éxito antes de tiempo. */
   if(r.body.error==='profile-exists'){
    let m;try{m=await D.api(C,'GET','/api/me',null,uid)}catch(e){m={status:0,body:{}}}
-   if(!lv(C,uid))return {stale:true};
-   if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(!alive())return {stale:true};
+   if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});finish();return {ok:true}}
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}})}
 /* acción en sitio: pasa por la misma puerta que Mi Hoja (con el perfil de ese usuario ya guardado no espera a la red). Si el usuario toca otra acción antes de que

@@ -1,0 +1,70 @@
+[Certain] Three blocking defects remain. The single-onboarding fix covers the sign-in listener, but misses redirect return and loses the action’s independent cancellation.
+
+**BLOCKING**
+
+1. **[Certain] MAINTAIN the prior onboarding finding for Google redirect return: the action is lost.**
+
+   | Claim | Exact code |
+   |---|---|
+   | Page loading and saved-action recovery start independent checks. | `function vMiHoja(sub){requireAccount(()=>vMiHojaIn(sub))}` and `setTimeout(()=>CUENTA.resume(),0)` |
+   | Each check can replace the onboarding form with its own continuation. | `if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);` |
+   | The combined continuation only covers the sign-in listener. | `if(P&&Q){go(()=>{safe(P.go);safe(Q.go)},{...P.o,resume:true});return}` |
+
+   **How reached:** Open Mi Hoja signed out, dismiss sign-in, choose “Añadir al humidor” through the plus menu, and create an account through Google. On return, the page gate and restored humidor action both receive `needsProfile`. If the page response arrives last, its onboarding form replaces the action’s form.
+
+   **Reproduced:** Two onboarding callbacks; submitting the visible form drew Mi Hoja once, ran no humidor action, and cleared the saved intent.
+
+   Runnable regression using the existing test helpers:
+
+   ```js
+   test('redirect onboarding preserves the action',async()=>{
+     const hold=defer(),forms=[],ran=[];
+     let calls=0,drawn=0;
+     const h=CUENTA_HARNESS({api:async(C,m)=>{
+       if(m==='POST')return {status:201,body:{profile:{handle:'ana'}}};
+       if(++calls===1)await hold.p;
+       return {status:200,body:{needsProfile:true}};
+     }});
+     h.C.user={id:'user_a'};
+     h.A.register('humidor',()=>ran.push('humidor'));
+     h.setIntent({from:'#/mihoja',act:'humidor'});
+     h.D.ui.onboarding=f=>forms.push(f);
+     h.A.require(()=>drawn++);await tick();
+     await h.A.resume();await tick();
+     hold.ok();await tick();
+     await forms.at(-1)({handle:'ana'});await tick();
+     assert.equal(forms.length,1);
+     assert.equal(drawn,1);
+     assert.deepEqual(ran,['humidor']);
+   });
+   ```
+
+2. **[Certain] A superseded action still runs after being bundled with the page gate.**
+
+   | Claim | Exact code |
+   |---|---|
+   | The older action becomes an unconditional callback inside the page operation. | `go(()=>{safe(P.go);safe(Q.go)},{...P.o,resume:true})` |
+   | Later in-place taps advance a counter that this page operation does not check. | `op=inp?++sip:++seq` |
+
+   **How reached:** With Mi Hoja and a humidor action waiting, sign in. While their combined `/api/me` check waits, use the persistent plus menu to tap “Añadir al humidor” again. Let the newer check complete, then the combined check.
+
+   **Reproduced:** Callbacks ran `['new','old']`; Mi Hoja drew once. The older action should have been dropped. In the UI, it can reopen the humidor form and discard text already entered into the newer form. Preserve the action’s `sip` cancellation when sharing onboarding with the page.
+
+3. **[Certain] Navigation abandons the in-memory action but preserves its replayable redirect intent.**
+
+   | Claim | Exact code |
+   |---|---|
+   | Navigation clears waiting slots without clearing sessionStorage intent. | `D.onNav(()=>{vis++;pending=null;pendIp=null;failure=null})` |
+   | Reload accepts that abandoned intent solely by matching page and registered action. | `if(it&&it.from===D.here()&&typeof it.act==='string'&&typeof ACT[it.act]==='function')` |
+
+   **How reached:** Tap a cigar heart signed out, dismiss sign-in, navigate to Artesanos and back, sign in through another tab, then reload the original cigar tab.
+
+   **Reproduced:** Navigation retained `{from:'#/c/yambo-toro',act:'fav',arg:'cigarros:yambo-toro'}`. Passing that retained intent into a fresh signed-in harness ran the abandoned favorite action. Clear the persisted intent when navigation abandons its visit.
+
+**NON-BLOCKING**
+
+- [Certain] **CONCUR** with the previous `vis` correction for checks that remain in flight across navigation. Finding 3 concerns persisted replay after reload.
+- [Certain] All **16 LHB-48 tests passed**. The full suite returned **73/74** because Python execution was rejected with `spawnSync python EPERM`, causing `py.stdout.trim()` to fail in `test/site.test.js:275`. This is an execution limitation, not an established app defect.
+- [Certain] The three reproductions used the current gate and repository harness. Real Clerk/browser behavior remains **NOT VERIFIED** in this review.
+
+VERDICT: BLOCK

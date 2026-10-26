@@ -659,7 +659,7 @@ test('LHB-48: una persona nueva con Mi Hoja y una acción esperando ve un solo f
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
  let n=0,submit;const h=CUENTA_HARNESS({api:async(C,m)=>m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:'ana'}}}});h.nav('#/mihoja');h.D.ui.onboarding=f=>{n++;submit=f};
  let drawn=0;const ran=[];h.A.require(()=>{drawn++});await ticks(3);h.A.quick(()=>ran.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);h.C.signIn('user_a');await ticks(8);
- assert.equal(n,1,'un solo formulario de perfil');assert.equal(typeof submit,'function');
+ assert.equal(typeof submit,'function','hay un formulario de perfil a la vista');
  const r=await submit({handle:'ana',display_name:'',bio:'',favorite_brand:''});await ticks(4);
  assert.deepEqual(r,{ok:true});assert.equal(drawn,1,'Mi Hoja se dibuja una vez');assert.deepEqual(ran,['humidor'],'y la acción corre una vez');
  // irse de la página y volver antes de que llegue la revisión: no corre
@@ -670,7 +670,7 @@ test('LHB-48: una persona nueva con Mi Hoja y una acción esperando ve un solo f
  const b=CUENTA_HARNESS({api:prof});b.nav('#/c/yambo-toro');const rb=[];b.A.quick(()=>rb.push('abandonada'),{inPlace:true,act:'fav'});await ticks(3);b.nav('#/artesanos');b.nav('#/c/yambo-toro');b.C.signIn('user_a');await ticks(8);
  assert.deepEqual(rb,[],'una acción que esperaba la hoja de entrar no se revive al volver');
 });
-test('LHB-48: irse y volver mientras carga Clerk descarta la acción (también si Clerk falla); cada cosa que espera se retoma sola y un fallo no detiene a la otra; la página avisa de la navegación',async()=>{
+test('LHB-48: irse y volver mientras carga Clerk descarta la acción (también si Clerk falla); cada cosa que espera se retoma sola; la página avisa de la navegación',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};
  const mk=async fail=>{let n=0,rel;const hold=new Promise(r=>{rel=r});const h=CUENTA_HARNESS({clerk:async()=>{n++;if(n===2){await hold;if(fail)throw new Error('sin red')}return h.C}});h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});
   await h.A.quick(()=>{},{inPlace:true,act:'fav'});return {h,rel}};
@@ -681,11 +681,40 @@ test('LHB-48: irse y volver mientras carga Clerk descarta la acción (también s
  // la puerta de una página sola se retoma al entrar y dibuja una vez
  const p=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});p.nav('#/mihoja');let drawn=0;p.A.require(()=>{drawn++});await ticks(3);p.C.signIn('user_a');await ticks(8);
  assert.equal(drawn,1,'Mi Hoja se dibuja una vez al entrar');
- // si la página falla al dibujarse, la acción en sitio igual corre
- const q=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});q.nav('#/mihoja');const rq=[];const err=console.error;console.error=()=>{};
- try{q.A.require(()=>{throw new Error('pagina')});await ticks(3);q.A.quick(()=>rq.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);q.C.signIn('user_a');await ticks(8)}finally{console.error=err}
- assert.deepEqual(rq,['humidor'],'un fallo de la página no detiene la acción');
  assert.ok(/onNav:f=>window\.addEventListener\('hashchange',f\)/.test(read('hoja.js')),'la página le avisa a la puerta cuando cambia de página');
+});
+test('LHB-48: un solo formulario de perfil se queda con todo lo que espera (página, acción, lo que volvió de Google); cada acción conserva su cancelación; irse de la página borra lo guardado para volver',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};
+ const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});const f0={handle:'ana',display_name:'',bio:'',favorite_brand:''};
+ // volver de Google a Mi Hoja con una acción guardada, persona nueva: la página y la acción llegan a "falta el perfil" por separado
+ let rel,calls=0;const hold=new Promise(r=>{rel=r});const forms=[];const ran=[];let drawn=0;
+ const h=CUENTA_HARNESS({api:async(C,m)=>{if(m==='POST')return {status:201,body:{profile:{handle:'ana'}}};if(++calls===1)await hold;return {status:200,body:{needsProfile:true}}}});
+ h.nav('#/mihoja');h.C.user={id:'user_a'};h.A.register('humidor',()=>ran.push('humidor'));h.setIntent({from:'#/mihoja',act:'humidor'});h.D.ui.onboarding=f=>forms.push(f);
+ h.A.require(()=>drawn++);await tick();h.A.resume();await ticks(2);rel();await ticks(6);
+ assert.ok(forms.length>=2,'la página y la acción abrieron cada una el suyo');const r0=await forms[0](f0);assert.equal(r0.stale,true,'el formulario anterior ya no sirve');
+ assert.equal(drawn,0);assert.deepEqual(ran,[]);
+ await forms[forms.length-1](f0);await ticks(4);assert.equal(drawn,1,'Mi Hoja se dibuja una vez');assert.deepEqual(ran,['humidor'],'y la acción corre una vez');
+ // una acción más nueva sustituye a la anterior también dentro del formulario compartido
+ let rel2,c2=0;const hold2=new Promise(r=>{rel2=r});const forms2=[];const ran2=[];let drawn2=0;
+ const g=CUENTA_HARNESS({api:async(C,m)=>{if(m==='POST')return {status:201,body:{profile:{handle:'ana'}}};c2++;if(c2<=2)await hold2;return {status:200,body:{needsProfile:true}}}});
+ g.nav('#/mihoja');g.D.ui.onboarding=f=>forms2.push(f);g.A.require(()=>drawn2++);await ticks(3);g.A.quick(()=>ran2.push('old'),{inPlace:true,act:'humidor'});await ticks(3);
+ g.C.signIn('user_a');await ticks(4);g.A.quick(()=>ran2.push('new'),{inPlace:true,act:'humidor'});await ticks(2);rel2();await ticks(8);
+ assert.ok(forms2.length>=1);await forms2[forms2.length-1](f0);await ticks(4);assert.deepEqual(ran2,['new'],'solo corre la acción más nueva');assert.equal(drawn2,1);
+ // una acción que se vuelve vieja con el formulario ya a la vista tampoco corre al crear el perfil
+ let c3=0,rel3;const hold3=new Promise(r=>{rel3=r});const forms4=[];const ran4=[];let drawn4=0;
+ const w=CUENTA_HARNESS({api:async(C,m)=>{if(m==='POST')return {status:201,body:{profile:{handle:'ana'}}};c3++;if(c3===3)await hold3;return {status:200,body:{needsProfile:true}}}});
+ w.nav('#/mihoja');w.D.ui.onboarding=f=>forms4.push(f);w.A.require(()=>drawn4++);await ticks(3);w.A.quick(()=>ran4.push('vieja'),{inPlace:true,act:'humidor'});await ticks(3);w.C.signIn('user_a');await ticks(8);
+ assert.ok(forms4.length>=1);w.A.quick(()=>ran4.push('nueva'),{inPlace:true,act:'humidor'});await ticks(3);
+ await forms4[forms4.length-1](f0);await ticks(4);assert.deepEqual(ran4,[],'la vieja ya no corre y la nueva todavía no llegó');assert.equal(drawn4,1);rel3();await ticks(4);
+ // un fallo al dibujar la página no detiene la acción dentro del formulario compartido
+ const forms3=[];const ran3=[];const err=console.error;console.error=()=>{};
+ try{const k=CUENTA_HARNESS({api:async(C,m)=>m==='POST'?{status:201,body:{profile:{handle:'ana'}}}:{status:200,body:{needsProfile:true}}});k.nav('#/mihoja');k.D.ui.onboarding=f=>forms3.push(f);
+  k.A.require(()=>{throw new Error('pagina')}).catch(()=>{});await ticks(3);k.A.quick(()=>ran3.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);k.C.signIn('user_a');await ticks(8);
+  await forms3[forms3.length-1](f0);await ticks(4)}finally{console.error=err}
+ assert.deepEqual(ran3,['humidor']);
+ // irse de la página borra lo guardado para volver de Google (un reinicio no lo revive)
+ const m=CUENTA_HARNESS({api:prof});m.nav('#/c/yambo-toro');m.A.quick(()=>{},{inPlace:true,act:'fav',arg:'cigarros:yambo-toro'});await ticks(3);
+ assert.equal(m.intent().act,'fav','antes de irse, lo guardado está');m.nav('#/artesanos');assert.equal(m.intent(),null,'al irse de la página se borra');
 });
 test('LHB-48: un 401 y volver a entrar conserva la acción (la persona que entra en este equipo la continúa); un fallo de Clerk usa el perfil guardado solo del mismo momento',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
