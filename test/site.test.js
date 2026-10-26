@@ -467,7 +467,7 @@ test('LHB-25: un almacenamiento lleno no impide entrar ni crear el perfil; un ca
  const hj=read('hoja.js');assert.ok(hj.includes('toast,closeAll:closeSheetNow}'),'hoja.js le da a la cuenta la forma de cerrar cualquier hoja abierta');
  for(const [hash,who] of [['#/mihoja','Mi Hoja'],['#/c/yambo-toro','una página pública']]){const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});h.nav(hash);h.C.user={id:'user_a'};await h.A.require(h.go,{inPlace:true});await tick();
   h.log.length=0;h.C.signIn(null);await tick();assert.ok(h.log.includes('closeAll'),'salir cierra el editor abierto en '+who);h.log.length=0;h.C.signIn('user_b');await tick();assert.ok(h.log.includes('closeAll'),'cambiar de cuenta también, en '+who)}
- assert.ok(/function closeSheetNow\(\)\{const el=\$\('#sheet'\);if\(!el\)return;el\.classList\.remove\('open'\);el\.hidden=true;el\.innerHTML='';/.test(hj),'cierra al instante y vacía la hoja, sin esperar el temporizador');
+ assert.ok(/function closeSheetNow\(\)\{clearTimeout\(closeT\);const el=\$\('#sheet'\);if\(!el\)return;el\.classList\.remove\('open'\);el\.hidden=true;el\.innerHTML='';/.test(hj),'cierra al instante y vacía la hoja, sin esperar el temporizador');
  assert.ok(hj.includes("let r;try{r=await submit({handle:h,")&&hj.includes("catch(x){r={error:'generic'}}"),'un error inesperado al enviar devuelve el botón en vez de dejarlo apagado');
 });
 test('LHB-25: el botón de entrar de nuevo solo aparece al salir de una acción que falló, no al cambiar de cuenta ni después de un éxito',async()=>{
@@ -475,6 +475,13 @@ test('LHB-25: el botón de entrar de nuevo solo aparece al salir de una acción 
  const a=mk();a.nav('#/c/yambo-toro');await a.A.require(a.go,{inPlace:true,act:'humidor'});a.C.signIn('user_a');await tick();a.C.signIn('user_b');await tick();assert.ok(!a.log.includes('notice:Entra otra vez'),'cambiar de cuenta no ofrece seguir la acción de la anterior');
  status=401;const b=mk();b.nav('#/c/yambo-toro');await b.A.require(b.go,{inPlace:true,act:'humidor'});b.C.signIn('user_a');await tick();status=200;b.notice().on();await tick();assert.deepEqual(b.log.filter(x=>x==='GO'),['GO']);b.log.length=0;b.C.signIn(null);await tick();assert.ok(!b.log.includes('notice:Entra otra vez'),'tras un éxito, salir no vuelve a ofrecer la acción');
  status=401;const c=mk();c.nav('#/c/yambo-toro');await c.A.require(c.go,{inPlace:true,act:'humidor'});c.C.signIn('user_a');await tick();c.nav('#/catalogo');c.C.signIn(null);await tick();assert.ok(!c.log.includes('notice:Entra otra vez'),'si el usuario ya se fue de la página, no se le muestra encima de otra');
+});
+test('LHB-25: una hoja nueva no la borra el temporizador de cierre de la anterior (Escape y luego salir)',()=>{
+ const hj=read('hoja.js');const fn=n=>{const i=hj.indexOf('function '+n+'(');return hj.slice(i,hj.indexOf('\nfunction ',i+10)>0?hj.indexOf('\nfunction ',i+10):i+900)};
+ assert.ok(/let lastFocus=null,closeT=null;/.test(hj),'un solo temporizador de cierre');
+ assert.ok(fn('sheet').startsWith('function sheet(html,label){clearTimeout(closeT);'),'abrir una hoja cancela el cierre pendiente');
+ assert.ok(fn('closeSheetNow').startsWith('function closeSheetNow(){clearTimeout(closeT);'),'cerrar al instante cancela el cierre pendiente');
+ assert.ok(fn('closeSheet').includes('clearTimeout(closeT);closeT=setTimeout('),'el cierre con animación guarda su temporizador');
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));

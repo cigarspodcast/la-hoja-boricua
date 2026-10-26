@@ -1,0 +1,43 @@
+[Certain] A pending sheet-close timer can still destroy the replacement sign-in button and lose the interrupted action.
+
+**BLOCKING**
+
+1. **The round 7 recovery remains vulnerable to an earlier close timer.**
+
+   Exact code in `site/hoja.js`:
+   ```js
+   setTimeout(()=>{el.hidden=true;el.innerHTML='';lastFocus&&lastFocus.focus&&lastFocus.focus({preventScroll:true})},200)
+   ```
+   The new synchronous closer does not cancel that timer:
+   ```js
+   function closeSheetNow(){const el=$('#sheet');if(!el)return;el.classList.remove('open');el.hidden=true;el.innerHTML='';document.body.classList.remove('sheet-on')}
+   ```
+
+   Exact affected recovery in `site/cuenta.js`:
+   ```js
+   const p=pending;pending=null;const fl=failure;failure=null;
+   ```
+   ```js
+   if(!id&&fl&&fl.from===D.here())D.ui.notice('Entra otra vez','Tu acción quedó pendiente. Entra para continuar.',{label:'Entrar',on:()=>go(fl.done,{...fl.o,resume:false})})
+   ```
+
+   [Certain] Reproduction sequence:
+   1. An in-place account check fails and displays its error notice.
+   2. Escape calls `closeSheet()`, scheduling its 200 ms cleanup.
+   3. Before cleanup runs, Clerk reports sign-out. The listener calls `closeSheetNow()` and displays the replacement “Entrar” notice.
+   4. The old timer empties that same `#sheet`, removing the replacement button. The listener has already cleared `failure`, `pending`, and the stored intent.
+
+   [Certain] Executing the supplied close functions with a controlled timer reproduced the replacement changing from visible/populated to hidden/empty. This corroborates the race; full browser reproduction is **NOT VERIFIED**.
+
+   Cancel outstanding close timers when closing synchronously or reopening a sheet, or invalidate callbacks from earlier sheet instances. Add a regression covering this sequence and confirming the original action remains recoverable.
+
+**NON-BLOCKING**
+
+- [Certain] **CONCUR** with the specific corrections for rounds 4, 5, 6a, and 6b: `fail(...)` supplies visible retries, explicit retries set `resume:false`, account changes invoke `D.ui.closeAll()`, and `cache(...)` catches storage-write failures. **MAINTAIN** round 7’s action-preservation concern for the timer sequence above.
+- [Certain] The actual sign-up and redirect integration remains **NOT VERIFIED**, including:
+  ```js
+  C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href})
+  ```
+  The prompt reports no completed real sign-up. Local execution also failed during helper setup, so I could not independently rerun the reported 56 tests or inspect additional repository files.
+
+VERDICT: BLOCK

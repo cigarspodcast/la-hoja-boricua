@@ -1,0 +1,38 @@
+P1 hash aliases #mihoja/#perfil not protected on sign-out: exit 1, fail 1  -> RED
+P2 stale onboarding form still posts: exit 1, fail 1  -> RED
+P3 account change does not repaint the stale form: exit 1, fail 1  -> RED
+P4 api calls not bound to the account: exit 1, fail 1  -> RED
+P5 api adapter does not check the account: exit 1, fail 1  -> RED
+P8 photo callback repaints profile directly: exit 1, fail 1  -> RED
+Q1 recovery announces success without the recheck: exit 1, fail 2  -> RED
+Q2 recovery does not repaint the origin page: exit 1, fail 2  -> RED
+Q3 late recheck not tied to user and screen: exit 1, fail 1  -> RED
+Q4 any account change repaints a public page: exit 1, fail 1  -> RED
+R1 in-place error hidden (no notice): exit 1, fail 3  -> RED
+R2 retry drops the original action: exit 1, fail 2  -> RED
+R3 Mi Hoja error shown as a sheet instead of the card: exit 1, fail 2  -> RED
+R4 hoja.js does not pass the notice: exit 1, fail 1  -> RED
+S1 retry keeps the silent redirect-resume flag: exit 1, fail 1  -> RED
+S2 automatic resume after redirect opens the sheet even if cancelled: exit 1, fail 2  -> RED
+T1 account change leaves open sheets (editor) alone: exit 1, fail 1  -> RED
+T2 hoja.js does not wire closeAll: exit 1, fail 2  -> RED
+T3 closeSheetNow waits for the timer: exit 1, fail 1  -> RED
+T4 cache write failure blocks sign-in (profile found): exit 1, fail 1  -> RED
+T5 cache write failure blocks a new profile: exit 1, fail 1  -> RED
+T6 cache write failure blocks recovery: exit 1, fail 1  -> RED
+T7 unexpected submit error leaves the button off: exit 1, fail 1  -> RED
+V1 opening a sheet does not cancel the pending close: exit 1, fail 1  -> RED
+V2 closing at once does not cancel the pending close: exit 1, fail 2  -> RED
+V3 animated close does not keep its timer: exit 1, fail 1  -> RED
+U1 no re-entry button after sign-out: exit 1, fail 1  -> RED
+U2 failure survives a new attempt: exit 1, fail 1  -> RED
+U3 re-entry button on any account change: exit 1, fail 1  -> RED
+U4 re-entry button over another page: exit 1, fail 1  -> RED
+U5 failed action not remembered: exit 1, fail 1  -> RED
+N1 a 401/403 no longer closes the gate: exit 1, fail 1  -> RED
+N2 saved profile opens on any failure status: exit 1, fail 1  -> RED
+N4 late reply not tied to the user: exit 1, fail 1  -> RED
+N5 late reply not tied to the operation: exit 1, fail 1  -> RED
+N14 account change does not invalidate pending work: exit 1, fail 1  -> RED
+N15 sign-out keeps the saved profile: exit 1, fail 2  -> RED
+restored: exit 0, pass 57

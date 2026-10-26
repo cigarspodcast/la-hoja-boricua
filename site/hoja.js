@@ -75,16 +75,16 @@ function wheel(sel,key){const N=WHEEL.length,R=150,r0=48,cx=160,cy=160;const pt=
 function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{const k=g.dataset.wk,id=g.dataset.w;const cur=get(k);set(k,cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);rerender(k,id)};g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})})}
 const tagChips=ts=>ts.length?`<div class="tagchips">${ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'#dde3dc'}">${esc(WN(t))}</span>`).join('')}</div>`:'';
 /* ---------- hoja de acciones (sheet) ---------- */
-let lastFocus=null;
-function sheet(html,label){let el=$('#sheet');if(!el){el=document.createElement('div');el.id='sheet';el.className='sheet';document.body.appendChild(el)}
+let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
+function sheet(html,label){clearTimeout(closeT);let el=$('#sheet');if(!el){el=document.createElement('div');el.id='sheet';el.className='sheet';document.body.appendChild(el)}
  lastFocus=document.activeElement;
  el.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet-panel" role="dialog" aria-modal="true" aria-label="${esc(label)}"><div class="sheet-grip" aria-hidden="true"></div><button class="sheet-x" type="button" data-close aria-label="Cerrar">×</button>${html}</div>`;
  el.hidden=false;document.body.classList.add('sheet-on');requestAnimationFrame(()=>el.classList.add('open'));$$('[data-close]',el).forEach(b=>b.onclick=closeSheet);
  el.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>closeSheet()));
  const f=el.querySelector('.sheet-panel select,.sheet-panel input,.sheet-panel a,.sheet-panel button:not([data-close])');setTimeout(()=>f&&f.focus({preventScroll:true}),80);return el}
 /* cierra la hoja sin esperar: la usan los cambios de cuenta, para que ningún editor de Mi Hoja quede abierto ni se pise un aviso nuevo */
-function closeSheetNow(){const el=$('#sheet');if(!el)return;el.classList.remove('open');el.hidden=true;el.innerHTML='';document.body.classList.remove('sheet-on')}
-function closeSheet(){const el=$('#sheet');if(!el||el.hidden)return;el.classList.remove('open');document.body.classList.remove('sheet-on');setTimeout(()=>{el.hidden=true;el.innerHTML='';lastFocus&&lastFocus.focus&&lastFocus.focus({preventScroll:true})},200)}
+function closeSheetNow(){clearTimeout(closeT);const el=$('#sheet');if(!el)return;el.classList.remove('open');el.hidden=true;el.innerHTML='';document.body.classList.remove('sheet-on')}
+function closeSheet(){const el=$('#sheet');if(!el||el.hidden)return;el.classList.remove('open');document.body.classList.remove('sheet-on');clearTimeout(closeT);closeT=setTimeout(()=>{el.hidden=true;el.innerHTML='';lastFocus&&lastFocus.focus&&lastFocus.focus({preventScroll:true})},200)}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 window.addEventListener('hashchange',closeSheet);
 const MENU=[['#/catalogo','Catálogo','Las vitolas hechas en PR'],['#/artesanos','Artesanos','Manos boricuas'],['#/lugares','Lugares','Lounges y puntos de venta'],['#/eventos','Eventos','Calendario, RSVP y Humo y Tambor'],['#/mihoja','Mi Hoja','Humidor, diario, pasaporte y favoritos'],['#/cata','Cata guiada','Paso a paso, con rueda de sabores'],['#/maridajes','Maridajes','Ron y café de Puerto Rico'],['#/podcast','Escucha en Cigars Podcast','Lanzamientos, reseñas y cultura'],['#/buscar','Buscar','En toda la app, con filtros']];
