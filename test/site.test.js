@@ -1373,3 +1373,17 @@ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca lo
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
 });
+test('LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)',async()=>{
+ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/const acct=\{.*\};\n/)[0];
+ const mem=new Map();const ls={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};
+ const ctx={A:{LS:{get(k,d){try{const v=ls.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){ls.setItem('vb_'+k,JSON.stringify(v))}}},localStorage:ls};vm.createContext(ctx);vm.runInContext(line+';this.acct=acct',ctx);
+ /* lo que guardó la versión anterior: otra llave, y ya no se lee */
+ ls.setItem('vb_cuenta',JSON.stringify({sub:'user_a',handle:'sergio'}));assert.equal(ctx.acct.get(),null,'el perfil guardado antes de LHB-52 no cuenta');
+ ctx.acct.set({sub:'user_a',handle:'sergio'});assert.deepEqual(ctx.acct.get(),{sub:'user_a',handle:'sergio'},'lo nuevo sí se guarda y se lee');assert.ok(mem.has('vb_cuenta2'));
+ ctx.acct.clear();assert.equal(ctx.acct.get(),null);assert.ok(!mem.has('vb_cuenta2')&&!mem.has('vb_cuenta'),'salir borra la llave nueva y la vieja');
+ /* y el gate, con ese almacén vacío: sin conexión no abre, y la acción rápida pasa por /api/me y por el paso de identidad */
+ const off=CUENTA_HARNESS({api:async()=>({status:0,body:{}})});off.C.user={id:'user_a'};await off.A.require(off.go);await tick();assert.ok(!off.log.includes('GO'),'sin perfil guardado y sin red no abre');
+ const calls=[];const fast=CUENTA_HARNESS({api:async(C,m,p)=>{calls.push(m+' '+p);return {status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}}});fast.D.ui.identity=()=>fast.log.push('identity');fast.nav('#/c/yambo-toro');fast.C.user={id:'user_a'};
+ fast.A.quick(()=>fast.log.push('ACTION'),{inPlace:true,act:'humidor'});await tick();assert.deepEqual(calls,['GET /api/me'],'sin perfil guardado la acción rápida revisa en el servidor');assert.ok(fast.log.includes('identity')&&!fast.log.includes('ACTION'),'y pide la identidad antes de hacer la acción');
+ assert.ok(src.includes("A.LS.get('cuenta2',null)")&&src.includes("A.LS.set('cuenta2',v)"),'la llave nueva');
+});

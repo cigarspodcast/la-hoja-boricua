@@ -139,7 +139,8 @@ function bindBackup(){$$('[data-exp]').forEach(b=>b.onclick=exportar);$$('[data-
 const CLERK=location.hostname==='lahojaboricua.com'?{pk:'pk_live_Y2xlcmsubGFob2phYm9yaWN1YS5jb20k',fapi:'clerk.lahojaboricua.com'}:{pk:'pk_test_ZGFyaW5nLWVhZ2xlLTgzOTQuY2xlcmsuYWNjb3VudHMuZGV2JA',fapi:'daring-eagle-8394.clerk.accounts.dev'};
 const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
-const acct={get:()=>A.LS.get('cuenta',null),set:v=>A.LS.set('cuenta',v),clear:()=>{try{localStorage.removeItem('vb_cuenta')}catch(e){}}};
+/* LHB-52: la llave nueva (cuenta2) deja sin valor lo guardado antes de pedir la identidad: un perfil guardado de antes ({sub,handle}) no abre Mi Hoja sin conexión ni por el camino rápido; clear() borra las dos */
+const acct={get:()=>A.LS.get('cuenta2',null),set:v=>A.LS.set('cuenta2',v),clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}}};
 /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
 const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
 let clerkP=null;
