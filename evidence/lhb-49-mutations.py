@@ -35,7 +35,7 @@ MUTS = [
     ('M19 formulario: la imagen no se achica antes de subirla', 'site/hoja.js', "await A.resizeImage(f,512,.85)", "f"),
     ('M20 formulario: el selector deja escoger cualquier archivo', 'site/hoja.js', 'type="file" accept="image/*" id="obPf"', 'type="file" id="obPf"'),
     ('M21 app: resizeImage no llega al formulario', 'site/app.js', "vPerfil,resizeImage,hydrate:", "vPerfil,hydrate:"),
-    ('M22 sw: la versión del caché no cambia', 'site/sw.js', "const VERSION='lhb-v51';", "const VERSION='lhb-v50';"),
+    ('M22 sw: la versión del caché no cambia', 'site/sw.js', "const VERSION='lhb-v52';", "const VERSION='lhb-v51';"),
     # ronda 1 de Codex: las subidas van en cola, la recarga es obligatoria, subir y enviar no se cruzan
     ('M23 gate: las subidas ya no van en cola', 'site/cuenta.js', "const job=uq.then(async()=>{try{", "const job=Promise.resolve().then(async()=>{try{"),
     ('M24 gate: una recarga que falla se da por buena', 'site/cuenta.js', "try{if(typeof U.reload!=='function')throw 0;await U.reload()}catch(e){return cur()?{error:'avatar-upload'}:{stale:true}}", "try{if(typeof U.reload==='function')await U.reload()}catch(e){}"),
