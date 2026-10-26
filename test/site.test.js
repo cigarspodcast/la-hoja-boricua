@@ -347,7 +347,7 @@ function CUENTA_HARNESS(over){
  const D={clerk:async()=>C,api:async()=>({status:0,body:{}}),here:()=>hash,reroute:()=>log.push('reroute'),
   store:{get:()=>store,set:v=>{store=v;log.push('store:'+v.sub+':'+v.handle)},clear:()=>{store=null;log.push('clear')}},
   intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
-  openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},onboarding:f=>log.push('onboarding'),toast:m=>log.push('toast')},...over};
+  openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>log.push('closeAll'),onboarding:f=>log.push('onboarding'),toast:m=>log.push('toast')},...over};
  const A=ctx.window.LHB_CUENTA(D);
  return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{hash=h},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
 }
@@ -444,7 +444,7 @@ test('LHB-25: entrar desde una página pública y fallar la revisión muestra el
   const retry=h.notice();assert.equal(retry.label,'Intentar otra vez');retry.on();await tick();assert.deepEqual(h.log.filter(x=>x==='GO'),['GO'],'el reintento hace la acción exactamente una vez: '+why);}
  const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});k.nav('#/c/yambo-toro');await k.A.require(k.go,{inPlace:true});await tick();assert.ok(k.log.includes('notice:Necesitas conexión')&&!k.log.some(x=>x.startsWith('card')),'sin conexión también se avisa en sitio');
  const m=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});m.nav('#/mihoja');m.C.user={id:'user_a'};await m.A.require(m.go);await tick();assert.ok(m.log.includes('card:No pudimos revisar tu cuenta')&&!m.log.some(x=>x.startsWith('notice')),'en Mi Hoja el error va en la tarjeta, no en una hoja');
- assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast}'),'hoja.js pasa el aviso sobre la página');
+ assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast,closeAll:closeSheetNow}'),'hoja.js pasa el aviso sobre la página');
 });
 test('LHB-25: un reintento del usuario puede volver a abrir la hoja de entrar y la acción sigue viva',async()=>{
  let status=401;const h=CUENTA_HARNESS({api:async()=>({status,body:status===200?{profile:{handle:'ana'}}:{}})});h.nav('#/c/yambo-toro');
@@ -454,6 +454,19 @@ test('LHB-25: un reintento del usuario puede volver a abrir la hoja de entrar y 
  status=200;h.C.signIn('user_a');await tick();assert.deepEqual(h.log.filter(x=>x==='GO'),['GO'],'al volver a entrar, la acción original corre una vez');
  const g=CUENTA_HARNESS({});g.nav('#/c/yambo-toro');g.A.register('humidor',g.go);g.setIntent({from:'#/c/yambo-toro',act:'humidor'});await g.A.resume();await tick();
  assert.ok(!g.log.includes('open'),'la reanudación automática tras una redirección sigue callada si el usuario canceló');
+});
+test('LHB-25: un almacenamiento lleno no impide entrar ni crear el perfil; un cambio de cuenta cierra las hojas de Mi Hoja',async()=>{
+ const full=()=>{throw new Error('QuotaExceededError')};
+ const a=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});a.D.store.set=full;a.C.user={id:'user_a'};await a.A.require(a.go);await tick();assert.deepEqual(a.log.filter(x=>x==='GO'),['GO'],'entra aunque no se pueda guardar el perfil');
+ let submit;const b=CUENTA_HARNESS({api:async(C,m)=>m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:'ana'}}}});b.D.store.set=full;b.D.ui.onboarding=s=>{submit=s};b.C.user={id:'user_a'};await b.A.require(b.go);await tick();
+ assert.deepEqual(await submit({handle:'ana'}),{ok:true});assert.deepEqual(b.log.filter(x=>x==='GO'),['GO'],'el perfil nuevo abre Mi Hoja aunque el cache falle');
+ let gets=0,sub2;const c=CUENTA_HARNESS({api:async(C,m)=>m==='POST'?{status:409,body:{error:'profile-exists'}}:++gets===1?{status:200,body:{needsProfile:true}}:{status:200,body:{profile:{handle:'ana'}}}});c.D.store.set=full;c.D.ui.onboarding=s=>{sub2=s};c.C.user={id:'user_a'};await c.A.require(c.go);await tick();
+ assert.deepEqual(await sub2({handle:'ana'}),{ok:true});assert.deepEqual(c.log.filter(x=>x==='GO'),['GO'],'la recuperación también');
+ const hj=read('hoja.js');assert.ok(hj.includes('toast,closeAll:closeSheetNow}'),'hoja.js le da a la cuenta la forma de cerrar cualquier hoja abierta');
+ for(const [hash,who] of [['#/mihoja','Mi Hoja'],['#/c/yambo-toro','una página pública']]){const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});h.nav(hash);h.C.user={id:'user_a'};await h.A.require(h.go,{inPlace:true});await tick();
+  h.log.length=0;h.C.signIn(null);await tick();assert.ok(h.log.includes('closeAll'),'salir cierra el editor abierto en '+who);h.log.length=0;h.C.signIn('user_b');await tick();assert.ok(h.log.includes('closeAll'),'cambiar de cuenta también, en '+who)}
+ assert.ok(/function closeSheetNow\(\)\{const el=\$\('#sheet'\);if\(!el\)return;el\.classList\.remove\('open'\);el\.hidden=true;el\.innerHTML='';/.test(hj),'cierra al instante y vacía la hoja, sin esperar el temporizador');
+ assert.ok(hj.includes("let r;try{r=await submit({handle:h,")&&hj.includes("catch(x){r={error:'generic'}}"),'un error inesperado al enviar devuelve el botón en vez de dejarlo apagado');
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));

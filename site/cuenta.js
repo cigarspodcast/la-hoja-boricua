@@ -8,9 +8,11 @@ window.LHB_CUENTA=function(D){'use strict';
 const ACT={};let seq=0,hooked=false,lastId=null,pending=null,ob=false;
 const live=(op,from,C,uid)=>op===seq&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
 /* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil */
+/* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
+const cache=v=>{try{D.store.set(v)}catch(e){}};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'};
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
- C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;
+ C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;D.ui.closeAll();
   if(!id){D.store.clear();D.intent.clear()}
   const p=pending;pending=null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
@@ -35,7 +37,7 @@ async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;const sh
  const uid=C.user.id;let r;
  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
  if(!live(op,from,C,uid))return;
- if(r.status===200&&r.body.profile){D.store.set({sub:uid,handle:r.body.profile.handle});D.intent.clear();return done()}
+ if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,op,from,uid);
  if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
  const c=D.store.get();
@@ -47,7 +49,7 @@ function onboard(C,done,o,op,from,uid){ob=true;
   if(!live(op,from,C,uid))return {stale:true};
   let r;try{r=await D.api(C,'POST','/api/profile',{...f,age_ok:true},uid)}catch(e){r={status:0,body:{}}}
   const same=!!C.user&&C.user.id===uid;
-  if(r.status===201){if(same)D.store.set({sub:uid,handle:r.body.profile.handle});
+  if(r.status===201){if(same)cache({sub:uid,handle:r.body.profile.handle});
    if(!live(op,from,C,uid))return {stale:true};
    ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
   if(!live(op,from,C,uid))return {stale:true};
@@ -56,7 +58,7 @@ function onboard(C,done,o,op,from,uid){ob=true;
   if(r.body.error==='profile-exists'){
    let m;try{m=await D.api(C,'GET','/api/me',null,uid)}catch(e){m={status:0,body:{}}}
    if(!live(op,from,C,uid))return {stale:true};
-   if(m.status===200&&m.body.profile){D.store.set({sub:uid,handle:m.body.profile.handle});ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}})}
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */

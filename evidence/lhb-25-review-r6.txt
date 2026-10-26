@@ -1,0 +1,76 @@
+[Certain] Two defects remain: sign-out leaves the humidor editor usable, and a failed cache write strands successful sign-in or onboarding.
+
+**BLOCKING**
+
+1. **[Certain] Sign-out does not close the protected humidor editor.**
+
+   [cuenta.js:17](C:/Users/Owner/la-hoja-boricua/site/cuenta.js:17):
+   ```js
+   if(onMiHoja()||ob){ob=false;D.reroute()}
+   ```
+
+   The adapter only reruns the router:
+   ```js
+   reroute:()=>A.route()
+   ```
+
+   But [hoja.js:79](C:/Users/Owner/la-hoja-boricua/site/hoja.js:79) mounts the editor outside `#view`:
+   ```js
+   document.body.appendChild(el)
+   ```
+   Its navigation cleanup is:
+   ```js
+   window.addEventListener('hashchange',closeSheet);
+   ```
+
+   **Reproduction:** Open Mi Hoja, edit an existing humidor entry, then trigger Clerk sign-out without changing the hash. The sign-in card replaces the underlying view, but the editor retains its private note and active submit handler:
+   ```js
+   save(s=>{if(it)s.humidor=s.humidor.map(x=>x.id===it.id?rec:x);
+   ```
+   Executing the repository functions with mocked DOM and Clerk dependencies confirmed that submitting afterward changes the stored entry while `C.user === null`.
+
+   Close and invalidate protected editors on account changes. Their submit handlers must reject stale account state.
+
+2. **[Certain] Failure to save the optional offline cache prevents successful online access and disables onboarding permanently.**
+
+   [cuenta.js:38](C:/Users/Owner/la-hoja-boricua/site/cuenta.js:38):
+   ```js
+   if(r.status===200&&r.body.profile){
+     D.store.set({sub:uid,handle:r.body.profile.handle});
+     D.intent.clear();return done()
+   }
+   ```
+   The creation path likewise writes before completing:
+   ```js
+   if(r.status===201){if(same)D.store.set({sub:uid,handle:r.body.profile.handle});
+   ```
+
+   [hoja.js:144](C:/Users/Owner/la-hoja-boricua/site/hoja.js:144) delegates this to the unguarded localStorage writer:
+   ```js
+   set:v=>A.LS.set('cuenta',v)
+   ```
+   The form then awaits submission without exception recovery:
+   ```js
+   err('');$('#obGo').disabled=true;
+   const r=await submit({...});
+   ```
+
+   **Reproduction:** Make the cache setter throw `QuotaExceededError`. With a successful `/api/me`, the gate remains on “Un momento…” without retry. With a successful profile POST, the profile is created, but the button remains disabled, no error appears, and the initiating action never runs. Both outcomes reproduced.
+
+   Handle cache-write failure independently of successful server authorization, and restore usable form controls on unexpected submission errors. Otherwise users with full storage cannot even enter Mi Hoja to export their existing data.
+
+**NON-BLOCKING**
+
+- **[Certain] CONCUR with the round 4 and round 5 fixes.** The corrected `fail()` selects `D.ui.notice` for in-place failures and preserves `done`; its explicit retry uses:
+  ```js
+  go(done,{...o,resume:false})
+  ```
+  The corresponding behavioral tests pass.
+
+- **[Certain] Verification:** All **13 LHB-25 tests passed**. The full suite produced **53 passed, 1 failed** because the unchanged LHB-44 test launches Python and then executes:
+  ```js
+  assert.equal(py.stdout.trim(), ...)
+  ```
+  Python returned `spawnSync python EPERM`. This is an environment limitation, not an LHB-25 regression. The new reproductions used repository code with mocked dependencies; browser execution, real sign-up, and mutation reruns are **NOT VERIFIED**.
+
+VERDICT: BLOCK
