@@ -1,0 +1,62 @@
+[Certain] Three failure paths remain unhandled in the supplied source.
+
+**BLOCKING**
+
+1. **Clerk loading failure loses all but the last tap.**
+
+   Exact code, `site/cuenta.js`, `quick()` catch:
+   ```js
+   bye(item);if(c||owner!==undefined){D.intent.clear();return}
+   return go(done,o)
+   ```
+
+   Reach: signed out with no cached profile, tap two hearts while Clerk loads, then let loading reject. Each action removes itself from the pool and calls `go()` separately. The second call supersedes the first through `seq`.
+
+   Restore connectivity, press the notice’s retry button, and sign in. The reproduction runs only the second action. The saved Google intent likewise contains only the second action.
+
+   Preserve the batch through this fallback instead of retrying individual callbacks.
+
+2. **A restored action’s failed shared check cancels Mi Hoja’s page render.**
+
+   Exact code, `site/cuenta.js`:
+   ```js
+   return go(runPool,withList(o,mineOf(from,uid),uid))
+   ```
+   Combined with `go()`:
+   ```js
+   const from=D.here(),op=++seq;
+   ```
+   and:
+   ```js
+   if(!live(op,from,C,uid))return;
+   ```
+
+   Reach: use the existing Google-return test at `#/mihoja/favoritos`. Hold the route’s `/api/me` request; return 503 from the restored action’s shared check, then 200 from its fallback check. Finally release the route request with 200.
+
+   The reproduction executes the favorite once but records **zero page renders**. The fallback increments `seq`, invalidating the route operation, then completes only `runPool`. Mi Hoja remains on its loading card.
+
+   The existing test covers successful overlapping checks; add this failure case.
+
+3. **Navigation during the fallback check leaves an abandoned action available for replay.**
+
+   Exact code, `site/cuenta.js`:
+   ```js
+   if(D.here()!==from){bye(item);return}
+   if(gen!==g0)return;
+   ```
+   followed later by:
+   ```js
+   return go(runPool,withList(o,mineOf(from,uid),uid))
+   ```
+
+   Reach: first tap gets 503 from `warm()`. Hold the fallback `go()` request, navigate away, then release it. Return to the original page and tap again; make its shared check fail and its fallback succeed.
+
+   The reproduction runs **both the abandoned and new actions**. The page check removes items only during the shared-check phase. Navigation during `go()` invalidates its response but leaves the item in the pool, where a later `runPool()` retrieves it. Two attempts on the same heart can consequently toggle twice.
+
+**NON-BLOCKING**
+
+- [Likely] **CONCUR** with the round 6 #1 rejection under the stated Clerk UI model. A reachable account switch before the first hook remains NOT VERIFIED; I am not maintaining that blocker.
+
+[Certain] These results came from an isolated reconstruction of the supplied `cuenta.js` statements, which corroborates the control flow. Repository execution, the Node suite, and browser sign-in remain NOT VERIFIED because shell process setup failed with `helper_unknown_error`.
+
+VERDICT: BLOCK
