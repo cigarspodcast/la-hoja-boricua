@@ -721,6 +721,22 @@ test('LHB-48: un reintento con varias acciones sobrevive a la redirección de Go
  await w.A.resume();for(let i=0;i<4;i++)await tick();
  assert.deepEqual(out,['cigarros:valida'],'la acción válida corre aunque haya nombres heredados o una acción que falla');
 });
+test('LHB-48: más de diez toques mientras carga Clerk: el lote acepta diez, los mismos diez que se guardan; volver de Google no cancela el dibujo de Mi Hoja; la foto elegida pertenece a quien la eligió',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ let release;const slow=new Promise(r=>{release=r});const g=CUENTA_HARNESS({api:prof,clerk:async()=>{await slow;return g.C}});g.nav('#/c/yambo-toro');g.A.register('fav',()=>{});
+ const ran=[];for(let n=1;n<=11;n++)g.A.quick(()=>ran.push(n),{inPlace:true,act:'fav',arg:String(n)});
+ release();for(let i=0;i<6;i++)await tick();const it=g.intent();assert.equal(it.arg,'10','lo guardado termina en la décima');assert.equal(it.more.length,9,'con nueve antes');
+ g.C.signIn('user_a');for(let i=0;i<8;i++)await tick();
+ assert.deepEqual(ran,[1,2,3,4,5,6,7,8,9,10],'el lote acepta diez');
+ // volver de Google en una página que pasa por la puerta (Mi Hoja): la acción corre y la página también se dibuja
+ let rel;const hold=new Promise(r=>{rel=r});const h=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});h.nav('#/mihoja/favoritos');h.C.user={id:'user_a'};
+ const fav=[];h.A.register('fav',a=>fav.push(a));h.setIntent({from:'#/mihoja/favoritos',act:'fav',arg:'cigarros:x'});let drawn=0;
+ h.A.require(()=>{drawn++});await tick();h.A.resume();await tick();rel();for(let i=0;i<8;i++)await tick();
+ assert.deepEqual(fav,['cigarros:x'],'la acción guardada corre');assert.equal(drawn,1,'y Mi Hoja se dibuja');
+ // la foto
+ const ap=read('app.js');
+ assert.ok(/const onFile=async e=>\{const f=e\.target\.files&&e\.target\.files\[0\];if\(!f\)return;const G=EXT\.accountGen\(\),form=\$\('#upForm'\);try\{const b=await resizeImage\(f\);if\(EXT\.accountGen\(\)!==G\|\|\$\('#upForm'\)!==form\)return;pendingPhoto=b;/.test(ap),'la foto elegida se descarta si cambió la cuenta o el formulario mientras se preparaba');
+});
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));
  assert.ok(seg.includes("await idb.put('perfil',b)")&&seg.includes("toast(tt('pf.fotoOk'));route();topAvatar()"),'tras guardar la foto se llama route()');assert.ok(!/fotoOk'\)\);vPerfil\(\)/.test(seg),'no se repinta el perfil sin pasar por la puerta');

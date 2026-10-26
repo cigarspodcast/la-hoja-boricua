@@ -136,7 +136,7 @@ function vSubir(){pendingPhoto=null;let fort='';
  <div class="field"><label for="uVit">${tt('up.vit')}</label><input id="uVit" maxlength="40" placeholder="${tt('up.vitPh')}"></div>
  <div class="field"><label for="uNotes">${tt('up.notes')}</label><textarea id="uNotes" maxlength="600" placeholder="${tt('up.notesPh')}"></textarea></div>
  <button class="btn" type="submit" id="uSave">${tt('up.save')}</button></form>`;
- const onFile=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{pendingPhoto=await resizeImage(f);$('#drop').innerHTML=`<img src="${URL.createObjectURL(pendingPhoto)}" alt="${tt('up.fotoAlt')}">`}catch(err){toast(tt('foto.err'))}};
+ const onFile=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const G=EXT.accountGen(),form=$('#upForm');try{const b=await resizeImage(f);if(EXT.accountGen()!==G||$('#upForm')!==form)return;pendingPhoto=b;$('#drop').innerHTML=`<img src="${URL.createObjectURL(b)}" alt="${tt('up.fotoAlt')}">`}catch(err){toast(tt('foto.err'))}};
  $('#fCam').onchange=onFile;$('#fGal').onchange=onFile;
  $('#uArt').onchange=e=>{$('#otroWrap').hidden=e.target.value!=='__otro'};
  $$('[data-f]').forEach(b=>b.onclick=()=>{fort=b.dataset.f;$$('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x===b))});

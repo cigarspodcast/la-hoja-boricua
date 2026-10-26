@@ -89,7 +89,7 @@ async function quick(done,o){o=o||{};const from=D.here(),g0=gen,item={done,from,
  try{C=await D.clerk()}catch(e){if(D.here()!==from||gen!==g0)return;if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
  hook(C);if(D.here()!==from||gen!==g0)return;
  const uid=C.user?C.user.id:null;
- if(!uid){if(!outBatch){outBatch=[];Promise.resolve().then(()=>{outBatch=null})}const b=outBatch;b.push(item);
+ if(!uid){if(!outBatch){outBatch=[];Promise.resolve().then(()=>{outBatch=null})}const b=outBatch;if(b.length>=10)return;b.push(item);
   return go(()=>b.forEach(i=>{if(i.from===D.here())safe(i.done)}),{...o,more:b.slice(0,-1)})}
  const c=D.store.get();if(c&&c.sub===uid){D.intent.clear();return done()}
  item.uid=uid;const w=warm(C,uid,item),r=await w.p;
@@ -101,6 +101,6 @@ async function quick(done,o){o=o||{};const from=D.here(),g0=gen,item={done,from,
 function resume(){const it=D.intent.get();
  const list=it&&it.from===D.here()?[...cleanList(it.more),...cleanList([{act:it.act,arg:it.arg}],1)]:[];
  if(list.length){const last=list[list.length-1],uid=typeof it.uid==='string'?it.uid:undefined;
-  return go(()=>{if(uid!==undefined&&uid!==lastId)return;list.forEach(m=>safe(()=>ACT[m.act](m.arg)))},{inPlace:true,resume:true,act:last.act,arg:last.arg,more:list.slice(0,-1),uid,fast:true})}
+  return quick(()=>{if(uid!==undefined&&uid!==lastId)return;list.forEach(m=>safe(()=>ACT[m.act](m.arg)))},{inPlace:true,resume:true,act:last.act,arg:last.arg,more:list.slice(0,-1),uid})}
  D.intent.clear()}
 return {require:go,quick,resume,gen:()=>gen,register:(name,fn)=>{ACT[name]=fn}}};

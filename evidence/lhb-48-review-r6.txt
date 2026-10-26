@@ -1,0 +1,86 @@
+[Certain] Four BLOCKING cases remain outside the reported passing scenarios.
+
+**BLOCKING**
+
+1. **An action can run for another account before the first listener is installed.**
+
+   [site/cuenta.js:88](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:88):
+
+   ```js
+   const from=D.here(),g0=gen
+   ```
+   ```js
+   C=await D.clerk()
+   ```
+   ```js
+   hook(C);if(D.here()!==from||gen!==g0)return;
+   ```
+
+   [Certain] Reproduction using the existing harness: start the first `quick()` as A with Clerk held pending; switch to B before releasing Clerk; provide B’s cached profile; release Clerk. A’s callback runs for B. Before `hook(C)`, no listener increments `gen`, so the generation check passes.
+
+   Establish account observation before actions queue, or preserve and verify the initiating identity across this wait.
+
+2. **A delayed photo selection can cross into the next account’s upload.**
+
+   [site/app.js:139](/C:/Users/Owner/la-hoja-boricua/site/app.js:139):
+
+   ```js
+   pendingPhoto=await resizeImage(f);$('#drop').innerHTML=
+   ```
+
+   The added guard captures identity later, at [site/app.js:144](/C:/Users/Owner/la-hoja-boricua/site/app.js:144):
+
+   ```js
+   const G=EXT.accountGen(),form=$('#upForm');
+   ```
+
+   [Certain] Executing the current `vSubir()` with deferred resizing reproduces this: A selects a photo; the account changes and B’s upload form opens; A’s resize finishes; B submits. IndexedDB receives A’s photo and B’s upload references it. The submit guard passes because it captures B’s generation after the transfer.
+
+   Capture generation and form identity at file selection, then verify both before assigning `pendingPhoto` or updating the preview.
+
+3. **Redirect recovery cancels the initial Mi Hoja render.**
+
+   [site/hoja.js:200](/C:/Users/Owner/la-hoja-boricua/site/hoja.js:200):
+
+   ```js
+   setTimeout(()=>CUENTA.resume(),0);
+   ```
+
+   [site/cuenta.js:104](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:104):
+
+   ```js
+   return go(
+   ```
+
+   Both recovery and route rendering enter `go()`, whose operation counter is shared:
+
+   ```js
+   const from=D.here(),op=++seq;
+   ```
+
+   [Certain] Reproduction: restore a favorite intent at `#/mihoja/favoritos`; start the normal route gate with `/api/me` held pending; run `resume()`; release `/api/me`. The favorite executes, but the render callback never runs. The harness retains only `card:Un momento…`. Favorite recovery does not repaint Mi Hoja.
+
+   Coordinate recovery with route rendering so both complete, preserving Mi Hoja’s mandatory `/api/me` check.
+
+4. **Redirect serialization silently drops actions beyond ten.**
+
+   [site/cuenta.js:10](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:10):
+
+   ```js
+   const cleanList=(l,n=9)=>
+   ```
+   ```js
+   .slice(0,n)
+   ```
+
+   [Certain] Eleven actions waiting on the same Clerk load run as a complete batch without a redirect, but their saved intent contains actions `1..9` and `11`. Restoring that intent executes those ten actions; action `10` is lost. The pinned contract contains no ten-action exception.
+
+   Preserve every accepted action across redirect recovery, or prevent additional actions from being accepted before truncation occurs.
+
+**NON-BLOCKING**
+
+- [Certain] **CONCUR** with the four round-5 corrections for their covered cases: rejected-Clerk generation checking, persisted owner/batch, restoration of exactly ten entries, and inherited-name/throw isolation. Finding 4 concerns batches exceeding that tested boundary.
+- [Certain] `node --test test/site.test.js` produced **70 passed, 1 failed** here. The existing [test/site.test.js:275](/C:/Users/Owner/la-hoja-boricua/test/site.test.js:275) calls `py.stdout.trim()` after Python spawning fails with `EPERM`. This is an execution restriction, not an LHB-48 defect.
+- [Certain] The reproductions above executed current functions in VM harnesses. Preview-browser behavior and real Google sign-in remain **NOT VERIFIED** by this review.
+
+VERDICT: BLOCK
