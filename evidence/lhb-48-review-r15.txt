@@ -1,0 +1,14 @@
+[Certain] The prior replay defect is resolved, but the claimed 76/76 result could not be reproduced under this sandbox’s execution restrictions.
+
+**BLOCKING**
+
+[Certain] None found in the corrected diff.
+
+**NON-BLOCKING**
+
+- [Certain] **CONCUR with the round 14 correction.** In `site/cuenta.js:26`, `if(!o.resume)D.intent.clear()` invalidates the older persisted action when a newer tap starts. **User path:** Return from Google with a heart waiting, tap a star, then reload. The superseded heart no longer survives for replay. The regression passes.
+- [Certain] **Full-suite verification limitation.** In `test/site.test.js:274–275`, `spawnSync('python',...)` encounters `EPERM`, then `py.stdout.trim()` throws. **How reached:** Run `node --test test/site.test.js` in this sandbox. Result: **75/76**, with every LHB-48 test passing. This test code is unchanged from `main`; it is not an established app regression.
+
+[Certain] The focused LHB-25/LHB-48 run passed **35/35**. Real Clerk sheet behavior and Google sign-in remain **NOT VERIFIED** independently in this review.
+
+VERDICT: PASS
