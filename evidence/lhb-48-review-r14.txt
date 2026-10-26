@@ -1,0 +1,29 @@
+[Certain] A superseded Google-return action can still execute after reload.
+
+**BLOCKING**
+
+1. **[Certain] A newer tap cancels the old check but leaves its saved intent replayable.**
+
+   | Claim | Exact code in [cuenta.js](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:26) |
+   |---|---|
+   | Supersession advances the counter without invalidating the saved action. | `op=inp?++sip:++seq;if(inp)failure=null;else ob=false;` |
+   | The replacement intent is saved only in the signed-out branch. | `pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));` |
+   | Reload resumes whichever intent remains. | `return quick(()=>ACT[act](arg),{resume:true,act,arg})` |
+
+   **How a user reaches it:**
+
+   1. Tap a cigar’s heart signed out and complete Google sign-in.
+   2. On return, with no cached profile yet, hold the restored heart’s `/api/me` check.
+   3. Tap a star. Let this newer check return 503, then let the older check return 200.
+   4. Reload and let `/api/me` succeed.
+
+   **Reproduced using the current source and repository harness:** Neither action initially ran, but sessionStorage retained the superseded `fav` intent. A fresh harness receiving that intent executed the old favorite action.
+
+   This violates latest-tap-wins. Invalidate or replace the persisted intent when a newer tap supersedes an action, including when already signed in. Add a regression that transfers the remaining intent into a fresh harness.
+
+**NON-BLOCKING**
+
+- **[Certain] CONCUR with both prior round 13 findings being resolved under the revised pinned policy.** For account-page taps, `if(o.quick&&onMiHoja()){if(!C.user)D.openSignIn(C);return}` prevents a second waiting continuation; `!onMiHoja()` in `resume()` excludes restored actions there. The current tests covering these paths pass.
+- **[Certain] Verification:** All 34 account-related tests passed. The full suite returned **74/75** because the sandbox rejected Python with `spawnSync python EPERM`, leaving `py.stdout.trim()` at [site.test.js:275](/C:/Users/Owner/la-hoja-boricua/test/site.test.js:275) unable to execute. This is an execution limitation, not an established app defect. Real Clerk/browser behavior remains **NOT VERIFIED** independently.
+
+VERDICT: BLOCK

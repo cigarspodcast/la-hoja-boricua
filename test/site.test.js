@@ -711,6 +711,18 @@ test('LHB-48: un 401 y volver a entrar conserva la acción (la persona que entra
  const k2=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});k2.nav('#/c/yambo-toro');const rk2=[];k2.A.quick(()=>rk2.push('k'),{inPlace:true,act:'fav'});await ticks(4);
  assert.deepEqual(rk2,[],'Clerk no carga y no hay perfil guardado: no corre');assert.ok(k2.log.includes('notice:Necesitas conexión'),'y se avisa');
 });
+test('LHB-48: un toque nuevo sustituye al anterior también en lo guardado para volver de Google',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};
+ // volver de Google en una página pública con una acción guardada, revisión lenta, y un toque nuevo: lo guardado de la anterior se borra
+ let rel,n=0;const hold=new Promise(r=>{rel=r});const h=CUENTA_HARNESS({api:async()=>{n++;if(n===1){await hold;return {status:200,body:{profile:{handle:'ana'}}}}return {status:503,body:{}}}});
+ h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};const ran=[];h.A.register('fav',x=>ran.push(x));h.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'cigarros:yambo-toro'});
+ h.A.resume();await ticks(3);assert.equal(h.intent().act,'fav','mientras la anterior espera, lo guardado sigue ahí');
+ h.A.quick(()=>ran.push('estrella'),{inPlace:true,act:'rate',arg:'yambo-toro:5'});await ticks(3);assert.equal(h.intent(),null,'el toque nuevo borra lo guardado de la anterior');
+ rel();await ticks(8);assert.deepEqual(ran,[],'ninguna corre: la anterior quedó sustituida y la nueva no pasó la revisión');assert.equal(h.intent(),null);
+ // sin sesión, el toque nuevo guarda lo suyo
+ const g=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});g.nav('#/c/yambo-toro');g.A.register('fav',()=>{});g.A.register('rate',()=>{});
+ g.A.quick(()=>{},{inPlace:true,act:'fav',arg:'a'});await ticks(3);g.A.quick(()=>{},{inPlace:true,act:'rate',arg:'b:1'});await ticks(3);assert.equal(g.intent().act,'rate');assert.equal(g.intent().arg,'b:1');
+});
 test('LHB-48: lo guardado para volver de Google solo se retoma si es una acción registrada de esta página pública',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
  // lo guardado solo se retoma si la acción está registrada y es de esta página
