@@ -1,0 +1,65 @@
+[Certain] Four BLOCKING defects remain despite the passing mutation record.
+
+**BLOCKING**
+
+1. **A late response restores account access after sign-out.** [cuenta.js:78](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:78):
+
+   ```js
+   if(ok)cache({sub:uid,handle:r.body.profile.handle});
+   ```
+
+   [Certain] `warm()` caches before `quick()` checks the account generation. Reproduced: start an action as A without a cached profile, hold `/api/me`, sign out, then release a successful response. The cache becomes A’s profile again while `C.user === null`. On an offline reload, `quick()` accepts that restored cache and executes the action.
+
+   Check the originating account and generation before caching. A discarded response must not restore authorization state.
+
+2. **An upload started by A can finish while B is signed in.** The new gate at [app.js:233](/C:/Users/Owner/la-hoja-boricua/site/app.js:233) protects entry:
+
+   ```js
+   subir:()=>EXT.requireAccount(vSubir,{fast:true})
+   ```
+
+   The submission then crosses an unchecked asynchronous boundary at [app.js:144](/C:/Users/Owner/la-hoja-boricua/site/app.js:144):
+
+   ```js
+   await idb.put(foto,pendingPhoto)
+   ```
+
+   and later writes:
+
+   ```js
+   LS.set('uploads',[item,...uploads()]);
+   ```
+
+   [Certain] Reproduced using the actual `vSubir()` and account gate: submit A’s photograph, hold the IndexedDB completion, switch to B and let B’s upload page render, then release IndexedDB. A’s upload is saved while B is current, using fields from B’s replacement form, and navigation changes to that cigar.
+
+   Bind the submission to its originating account, generation and form; check them after the await before committing or navigating.
+
+3. **MAINTAIN R2.1: actions are still lost before the sign-in sheet opens.** [cuenta.js:83](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:83):
+
+   ```js
+   const uid=C.user?C.user.id:null;if(!uid)return go(done,o);
+   ```
+
+   [Certain] Reproduction: hold Clerk loading while signed out, tap two different hearts, release Clerk, then sign in. Each callback enters `go()`, whose shared `seq` and single `pending` slot retain only the second action. Observed callbacks: `["second"]`; sessionStorage also contains only the second intent.
+
+   The author’s “latest tap wins” exception conflicts with this review’s explicit no-lost-actions gate and is absent from the owner-approved pinned decisions. Preserve both accepted taps through sign-in and redirect recovery.
+
+4. **MAINTAIN R3.1: signing in again after a 401 silently drops the waiting action.** [cuenta.js:88](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:88):
+
+   ```js
+   return go(()=>w.items.forEach(i=>{
+     if(i.from===D.here()&&i.g===gen)i.done()
+   }),o)
+   ```
+
+   [Certain] Reproduction with `CUENTA_HARNESS`: start `quick()` as A without a cached profile; return 401; sign out; click the resulting **Entrar** notice; change the API response to a valid profile; sign in as A again. The account listener advances `gen`, so every retained item fails `i.g===gen`. Observed: the profile is cached and the intent consumed, but no action runs.
+
+   Explicit same-account recovery needs to preserve the authorized action without allowing another account to inherit it.
+
+**NON-BLOCKING notes**
+
+- [Certain] Prior findings: **CONCUR** with the corrected original scenarios for R1.1, R1.2, R1.3, R2.2, R2.3 and R3.2. **MAINTAIN** R2.1 and R3.1 as reproduced above.
+- [Certain] Local execution: **65/66 tests passed**, including all eight LHB-48 tests. The unrelated failure concerns [site.test.js:275](/C:/Users/Owner/la-hoja-boricua/test/site.test.js:275), `py.stdout.trim()`: Python execution returns `spawnSync python EPERM` here.
+- [Certain] The additional reproductions executed repository functions with controlled Clerk, storage and DOM dependencies. Real browser and Google sign-in behavior remains **NOT VERIFIED** in this review.
+
+VERDICT: BLOCK

@@ -6,6 +6,9 @@
    - Entrar desde cualquier página deja la página como está, y al terminar se hace la acción que el usuario empezó. */
 window.LHB_CUENTA=function(D){'use strict';
 const ACT={};let seq=0,hooked=false,lastId=null,pending=null,ob=false,failure=null;
+/* lo guardado para volver de Google: la acción y, si hubo varios toques mientras cargaba Clerk, las anteriores; solo acciones registradas y argumentos de texto */
+const cleanList=l=>(Array.isArray(l)?l:[]).filter(m=>m&&typeof m.act==='string'&&ACT[m.act]).slice(0,9).map(m=>typeof m.arg==='string'?{act:m.act,arg:m.arg}:{act:m.act});
+const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.arg=o.arg;const more=cleanList(o.more);if(more.length)v.more=more;return v};
 const live=(op,from,C,uid)=>op===seq&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
 /* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil; también las páginas que escriben datos de la cuenta (#/cata y #/subir): al cambiar la cuenta se vuelven a pasar por la puerta */
 /* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
@@ -34,7 +37,7 @@ async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;failure=
  if(o.fast&&C.user){const c0=D.store.get();if(c0&&c0.sub===C.user.id){D.intent.clear();return done()}}
  if(!C.user){D.store.clear();
   if(o.resume){D.intent.clear();return}
-  pending={go:done,o,from};if(o.act)D.intent.set(typeof o.arg==='string'?{from,act:o.act,arg:o.arg}:{from,act:o.act});
+  pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));
   const open=()=>D.openSignIn(C);
   show('Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta. El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.',{label:'Entrar o crear cuenta',on:open});
   open();return}
@@ -67,27 +70,33 @@ function onboard(C,done,o,op,from,uid){ob=true;
   return {error:r.body.error||'generic'}})}
 /* acción en sitio (corazón, sello, estrella, humidor): no usa la cuenta atrás de go(), así que varios toques seguidos no se cancelan entre sí.
    Con sesión abierta y el perfil guardado de esa misma persona se hace al instante; sin perfil guardado, todos esperan una sola revisión compartida (warm) y,
-   si sale bien, todos se hacen (aunque el teléfono no deje guardar el perfil); si sale mal, cada acción en espera que sigue vigente pasa por go() con todas juntas
-   (la última sustituye a las anteriores, que traen la misma lista), para el aviso, la creación del perfil o el reintento. gen cuenta los cambios de cuenta y no lo mueven los toques: si cambia mientras se espera
-   (Clerk, la revisión), la acción se descarta y nunca corre para otra persona. Si la página cambia mientras se espera, también se descarta. */
-let gen=0,warming=null;
+   si sale bien, todos se hacen (aunque el teléfono no deje guardar el perfil); si sale mal, cada acción en espera pasa por go() con todas juntas
+   (la última sustituye a las anteriores, que traen la misma lista), para el aviso, la creación del perfil o el reintento. Sin sesión, los toques hechos mientras
+   Clerk carga forman un solo lote (outBatch): una sola hoja de entrar, y al entrar corren todos, también al volver de Google (el lote viaja en lo guardado).
+   gen cuenta los cambios de cuenta y no lo mueven los toques: si cambia mientras se espera (Clerk, la revisión), la acción se descarta y nunca corre para otra
+   persona; si la página cambia mientras se espera, también. Una acción que espera un reintento explícito (aviso con botón) sigue siendo de la misma persona
+   que la empezó (uid): si entra otra persona, no se hace. */
+let gen=0,warming=null,outBatch=null;
 function warm(C,uid,item){
  if(warming&&warming.uid===uid){warming.items.push(item);return warming}
- const items=[item];
+ const items=[item],g=gen;
  const p=(async()=>{let r;try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){return {ok:false}}
-  const ok=r.status===200&&!!r.body.profile;if(ok)cache({sub:uid,handle:r.body.profile.handle});return {ok}})();
+  const ok=r.status===200&&!!r.body.profile;if(ok&&gen===g&&C.user&&C.user.id===uid)cache({sub:uid,handle:r.body.profile.handle});return {ok}})();
  const w={uid,p,items};warming=w;p.then(()=>{if(warming===w)warming=null});return w}
-async function quick(done,o){o=o||{};const from=D.here(),g0=gen;let C;
+async function quick(done,o){o=o||{};const from=D.here(),g0=gen,item={done,from,uid:null,act:o.act,arg:o.arg};let C;
  try{C=await D.clerk()}catch(e){if(D.here()!==from)return;if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
  hook(C);if(D.here()!==from||gen!==g0)return;
- const uid=C.user?C.user.id:null;if(!uid)return go(done,o);
+ const uid=C.user?C.user.id:null;
+ if(!uid){if(!outBatch){outBatch=[];Promise.resolve().then(()=>{outBatch=null})}const b=outBatch;b.push(item);
+  return go(()=>b.forEach(i=>{if(i.from===D.here())i.done()}),{...o,more:b.slice(0,-1)})}
  const c=D.store.get();if(c&&c.sub===uid){D.intent.clear();return done()}
- const w=warm(C,uid,{done,from,g:g0}),r=await w.p;
+ item.uid=uid;const w=warm(C,uid,item),r=await w.p;
  if(gen!==g0||D.here()!==from)return;
  if(r.ok){D.intent.clear();return done()}
- return go(()=>w.items.forEach(i=>{if(i.from===D.here()&&i.g===gen)i.done()}),o)}
+ return go(()=>w.items.forEach(i=>{if(i.from===D.here()&&i.uid===lastId)i.done()}),o)}
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
 function resume(){const it=D.intent.get();
- if(it&&it.from===D.here()&&ACT[it.act]){const arg=typeof it.arg==='string'?it.arg:undefined;return go(()=>ACT[it.act](arg),{inPlace:true,resume:true,act:it.act,arg,fast:true})}
+ const list=it&&it.from===D.here()?cleanList([...(Array.isArray(it.more)?it.more:[]),{act:it.act,arg:it.arg}]):[];
+ if(list.length){const last=list[list.length-1];return go(()=>list.forEach(m=>ACT[m.act](m.arg)),{inPlace:true,resume:true,act:last.act,arg:last.arg,more:list.slice(0,-1),fast:true})}
  D.intent.clear()}
-return {require:go,quick,resume,register:(name,fn)=>{ACT[name]=fn}}};
+return {require:go,quick,resume,gen:()=>gen,register:(name,fn)=>{ACT[name]=fn}}};

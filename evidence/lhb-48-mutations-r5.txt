@@ -1,0 +1,50 @@
+G1 heart on cards bypasses the gate: exit 1, fail 1  -> RED
+G2 stamp bypasses the gate: exit 1, fail 1  -> RED
+G3 add-to-humidor bypasses the gate: exit 1, fail 1  -> RED
+G4 cigar page heart writes directly: exit 1, fail 1  -> RED
+G5 stars write directly: exit 1, fail 1  -> RED
+G6 upload page open without an account: exit 1, fail 1  -> RED
+G7 tasting page open without an account: exit 1, fail 1  -> RED
+G10 heart accepts an empty id: exit 1, fail 1  -> RED
+G11 stamp accepts inherited keys (__proto__): exit 1, fail 1  -> RED
+G12 rating accepts out-of-range numbers: exit 1, fail 1  -> RED
+G13 rating accepts fractions: exit 1, fail 1  -> RED
+G14 humidor passes any argument through: exit 1, fail 1  -> RED
+G15 fast path trusts another person cached profile: exit 1, fail 1  -> RED
+G16 fast path leaves the saved action behind: exit 1, fail 2  -> RED
+G21 actions not registered for the return from Google: exit 1, fail 3  -> RED
+G22 the gate drops the pressed button: exit 1, fail 1  -> RED
+H1 sign-out leaves the tasting editor open: exit 1, fail 1  -> RED
+H2 sign-out leaves the upload editor open: exit 1, fail 1  -> RED
+H3 heart accepts inherited ids: exit 1, fail 1  -> RED
+H4 stamp accepts inherited ids: exit 1, fail 1  -> RED
+H5 rating accepts inherited ids: exit 1, fail 1  -> RED
+G8 the gate waits for the server every time: exit 1, fail 1  -> RED
+G9 the gate replaces the page with the card: exit 1, fail 1  -> RED
+Q1 every tap makes its own check: exit 1, fail 2  -> RED
+Q4 runs on another page: exit 1, fail 1  -> RED
+Q5 Clerk offline keeps the saved action: exit 1, fail 1  -> RED
+Q7 signed out does nothing: exit 1, fail 2  -> RED
+Q8 another person cached profile is enough: exit 1, fail 1  -> RED
+Q9 instant action keeps the saved action: exit 1, fail 1  -> RED
+Q11 a missing profile is treated as found: exit 1, fail 1  -> RED
+R1 an account change while Clerk loads is ignored: exit 1, fail 1  -> RED
+R2 account changes do not move the generation: exit 1, fail 2  -> RED
+R3 a failed shared check keeps only one action: exit 1, fail 2  -> RED
+R4 the action needs the profile to be saved: exit 1, fail 1  -> RED
+R6 an account change during the shared check is ignored: exit 1, fail 2  -> RED
+R8 another person receives the waiting actions of the retry: exit 1, fail 1  -> RED
+S1 a late answer caches the profile after sign-out: exit 1, fail 1  -> RED
+S2 an upload finishes for the next person: exit 1, fail 1  -> RED
+S3 each signed-out tap is alone: exit 1, fail 1  -> RED
+S4 coming back from Google runs only the last action: exit 1, fail 1  -> RED
+S5 the saved intent forgets the earlier actions: exit 1, fail 1  -> RED
+S6 signing in runs only the last tap: exit 1, fail 1  -> RED
+S7 an abandoned attempt joins the next one: exit 1, fail 1  -> RED
+S8 the saved list accepts unregistered actions: exit 1, fail 1  -> RED
+S9 the saved list keeps no earlier action: exit 1, fail 1  -> RED
+G17 saved action loses its argument: exit 1, fail 3  -> RED
+G18 saved action stores a non-text argument: exit 1, fail 2  -> RED
+G19 resume drops the argument: exit 1, fail 2  -> RED
+G20 resume trusts a non-text argument: exit 1, fail 2  -> RED
+restored: exit 0, pass 69

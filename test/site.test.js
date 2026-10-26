@@ -643,11 +643,51 @@ test('LHB-48: si la revisión compartida falla todas las acciones en espera se c
  let rel;const hold=new Promise(r=>{rel=r});const d=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});d.nav('#/c/yambo-toro');d.C.user={id:'user_a'};
  const rd=[];d.A.quick(()=>rd.push('de A'),{inPlace:true,act:'fav'});await tick();d.C.signIn('user_b');rel();for(let i=0;i<6;i++)await tick();
  assert.deepEqual(rd,[],'la acción de A, esperando la revisión, no corre cuando ya es B');
- // salir y volver a entrar con la misma cuenta mientras se espera: la acción de antes no se cuela en la lista del reintento
+ // salir y volver a entrar con la misma cuenta mientras se espera: la misma persona conserva sus acciones en el reintento
  let rel4;const hold4=new Promise(r=>{rel4=r});let n4=0;const e=CUENTA_HARNESS({api:async()=>{n4++;if(n4===1){await hold4;return {status:503,body:{}}}return prof()}});e.nav('#/c/yambo-toro');e.C.user={id:'user_a'};
  const re=[];e.A.quick(()=>re.push('antes'),{inPlace:true,act:'fav'});await tick();e.C.signIn(null);e.C.signIn('user_a');await tick();
  e.A.quick(()=>re.push('despues'),{inPlace:true,act:'fav'});await tick();rel4();for(let i=0;i<8;i++)await tick();
- assert.deepEqual(re,['despues'],'solo corre la acción de la sesión vigente');
+ assert.deepEqual(re,['antes','despues'],'la misma persona que vuelve a entrar conserva sus acciones en espera');
+});
+test('LHB-48: sin sesión, los toques hechos mientras carga Clerk forman un lote: una hoja de entrar y al entrar corren todos, también al volver de Google',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ let release;const slow=new Promise(r=>{release=r});
+ const mk=()=>{let first=true;const g=CUENTA_HARNESS({api:prof,clerk:async()=>{await slow;return g.C}});return g};
+ const g=mk();g.nav('#/c/yambo-toro');g.A.register('fav',a=>ran.push(a));const ran=[];
+ g.A.quick(()=>ran.push('uno'),{inPlace:true,act:'fav',arg:'cigarros:uno'});g.A.quick(()=>ran.push('dos'),{inPlace:true,act:'fav',arg:'cigarros:dos'});
+ release();for(let i=0;i<6;i++)await tick();
+ assert.equal(g.log.filter(x=>x==='open').length,1,'una sola hoja de entrar');
+ assert.deepEqual(g.intent(),{from:'#/c/yambo-toro',act:'fav',arg:'cigarros:dos',more:[{act:'fav',arg:'cigarros:uno'}]},'lo guardado para volver de Google lleva las dos acciones');
+ g.C.signIn('user_a');for(let i=0;i<8;i++)await tick();
+ assert.deepEqual(ran,['uno','dos'],'al entrar corren las dos, en orden');
+ // al volver de Google: se retoman las dos, una vez
+ const back=[];const h=CUENTA_HARNESS({api:prof});h.nav('#/c/yambo-toro');h.A.register('fav',a=>back.push(a));h.A.register('stamp',a=>back.push('s:'+a));
+ h.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'cigarros:dos',more:[{act:'fav',arg:'cigarros:uno'},{act:'nope',arg:'x'},{act:'stamp',arg:'lugares:l1'},{act:'fav',arg:{x:1}}]});h.C.user={id:'user_a'};
+ await h.A.resume();await tick();
+ assert.deepEqual(back,['cigarros:uno','s:lugares:l1',undefined,'cigarros:dos'],'solo acciones registradas, en orden, con argumentos de texto');assert.equal(h.intent(),null);
+ // un intento abandonado no se mezcla con el siguiente
+ const k=CUENTA_HARNESS({api:prof});k.nav('#/c/yambo-toro');const rk=[];
+ await k.A.quick(()=>rk.push('abandonada'),{inPlace:true,act:'fav'});await tick();
+ await k.A.quick(()=>rk.push('nueva'),{inPlace:true,act:'fav'});await tick();k.C.signIn('user_a');for(let i=0;i<8;i++)await tick();
+ assert.deepEqual(rk,['nueva'],'la hoja que se cerró sin entrar no deja su acción para después');
+});
+test('LHB-48: una respuesta tardía no devuelve el acceso después de salir; un reintento explícito de la misma persona conserva la acción y otra persona no la recibe',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ // salir mientras se revisa: la respuesta tardía no guarda el perfil
+ let rel;const hold=new Promise(r=>{rel=r});const a=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};
+ a.A.quick(()=>{},{inPlace:true,act:'fav'});await tick();a.C.signIn(null);rel();for(let i=0;i<6;i++)await tick();
+ assert.ok(!a.log.some(x=>x.startsWith('store:')),'una respuesta de antes de salir no guarda el perfil');
+ // 401, salir, Entrar, volver como la misma persona: la acción corre una vez
+ const run=async who=>{let ok=false;const x=CUENTA_HARNESS({api:async()=>ok?await prof():{status:401,body:{}}});x.nav('#/c/yambo-toro');x.C.user={id:'user_a'};const ran=[];
+  x.A.quick(()=>ran.push('a'),{inPlace:true,act:'fav'});for(let i=0;i<6;i++)await tick();
+  x.C.signIn(null);await tick();ok=true;const n=x.notice();n.on();await tick();x.C.signIn(who);for(let i=0;i<8;i++)await tick();return ran};
+ assert.deepEqual(await run('user_a'),['a'],'la misma persona que vuelve a entrar conserva su acción');
+ assert.deepEqual(await run('user_b'),[],'otra persona no recibe la acción de la anterior');
+});
+test('LHB-48: una subida de fotos empezada por una persona no se guarda cuando ya es otra',()=>{
+ const ap=read('app.js');
+ assert.ok(/const G=EXT\.accountGen\(\),form=\$\('#upForm'\);if\(pendingPhoto\)\{foto='foto_'\+id;await idb\.put\(foto,pendingPhoto\);if\(EXT\.accountGen\(\)!==G\|\|\$\('#upForm'\)!==form\)\{idb\.del\(foto\)\.catch\(\(\)=>\{\}\);return\}\}/.test(ap),'tras esperar la foto se comprueba la cuenta y el formulario antes de guardar');
+ assert.ok(/accountGen:CUENTA\.gen/.test(read('hoja.js'))&&/gen:\(\)=>gen/.test(read('cuenta.js')),'la generación de la cuenta llega a app.js');
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));

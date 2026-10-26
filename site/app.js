@@ -141,7 +141,7 @@ function vSubir(){pendingPhoto=null;let fort='';
  $('#uArt').onchange=e=>{$('#otroWrap').hidden=e.target.value!=='__otro'};
  $$('[data-f]').forEach(b=>b.onclick=()=>{fort=b.dataset.f;$$('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
  $('#upForm').onsubmit=async e=>{e.preventDefault();const name=$('#uName').value.trim();if(!name){toast(tt('up.needName'));$('#uName').focus();return}
-  const id='u'+Date.now().toString(36);let foto=null;if(pendingPhoto){foto='foto_'+id;await idb.put(foto,pendingPhoto)}
+  const id='u'+Date.now().toString(36);let foto=null;const G=EXT.accountGen(),form=$('#upForm');if(pendingPhoto){foto='foto_'+id;await idb.put(foto,pendingPhoto);if(EXT.accountGen()!==G||$('#upForm')!==form){idb.del(foto).catch(()=>{});return}}
   const artSel=$('#uArt').value;const item={id,nombre:name,artesano_id:artSel&&artSel!=='__otro'?artSel:'',artesano_texto:artSel==='__otro'?$('#uArtTxt').value.trim():'',capa:$('#uCapa').value.trim(),fortaleza:fort||null,pueblo:$('#uPueblo').value.trim(),vitolas:$('#uVit').value.trim()?[$('#uVit').value.trim()]:[],notas:$('#uNotes').value.trim(),foto,creado:new Date().toISOString()};
   LS.set('uploads',[item,...uploads()]);toast(tt('up.saved'));location.hash='#/c/'+id}}
 /* ---------- lugares ---------- */
