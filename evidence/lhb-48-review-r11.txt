@@ -1,0 +1,30 @@
+**BLOCKING**
+
+1. **[Certain] New-user onboarding loses the pending in-place action.**
+
+   | Claim | Exact code |
+   |---|---|
+   | Sign-in starts two independent checks, each capable of replacing the onboarding form. | `if(id&&q&&q.from===D.here())go(q.go,{...q.o,resume:true});` followed by `if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}` |
+   | Each check owns only its own completion callback. | `if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);` |
+
+   **How reached:** Open Mi Hoja signed out, dismiss sign-in, choose “Añadir al humidor” through the plus menu, then create an account. Both `/api/me` checks return `needsProfile`. In [hoja.js](/C:/Users/Owner/la-hoja-boricua/site/hoja.js:158), `onboardingForm()` replaces `view.innerHTML`, so the second form removes the first callback’s submission path.
+
+   **Reproduced:** Two onboarding callbacks were created. Submitting the last returned `{ok:true}` and drew Mi Hoja once, but the humidor callback never ran and the saved intent was cleared. Coordinate the two continuations through one onboarding completion.
+
+2. **[Certain] Returning to a page revives an abandoned account check.**
+
+   | Claim | Exact code |
+   |---|---|
+   | The check tracks the current hash, without detecting intervening navigation. | `const lv=(C,uid)=>op===(inp?sip:seq)&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));` |
+   | Once that comparison becomes true again, the old action executes. | `if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();return done()}` |
+
+   **How reached:** On a cigar page, tap its heart signed out and complete sign-in. While `/api/me` remains pending, navigate to Artesanos and return to the cigar page before the response arrives. Public navigation does not advance `sip`; the original hash matches again.
+
+   **Reproduced:** Resolving the delayed response ran the abandoned heart callback once. The existing abandonment test resolves the request **while away**, missing this ordering. Track the page visit’s lifetime so leaving permanently invalidates its pending check.
+
+**NON-BLOCKING**
+
+- **[Certain] CONCUR with the round-10 separate-slot correction for existing-profile sign-in.** The new-user onboarding case above remains uncovered.
+- **[Certain] Verification limitation:** All 14 LHB-48 tests passed. The full suite returned 71/72 because running it reached `assert.equal(py.stdout.trim(),...)` in [site.test.js](/C:/Users/Owner/la-hoja-boricua/test/site.test.js:275), after the sandbox rejected Python with `spawnSync python EPERM`. This is an environment limitation. Both findings above were reproduced against the current gate using its test harness; real Clerk/browser behavior remains independently NOT VERIFIED.
+
+VERDICT: BLOCK

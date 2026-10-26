@@ -343,14 +343,14 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, 
 });
 function CUENTA_HARNESS(over){
  const vm=require('vm');const ctx={window:{}};vm.createContext(ctx);vm.runInContext(read('cuenta.js'),ctx);
- const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;
+ const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;const navL=[];
  const C={user:null,addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
- const D={clerk:async()=>C,api:async()=>({status:0,body:{}}),here:()=>hash,reroute:()=>log.push('reroute'),
+ const D={clerk:async()=>C,api:async()=>({status:0,body:{}}),here:()=>hash,onNav:f=>navL.push(f),reroute:()=>log.push('reroute'),
   store:{get:()=>store,set:v=>{store=v;log.push('store:'+v.sub+':'+v.handle)},clear:()=>{store=null;log.push('clear')}},
   intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
   openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>{lastNotice=null;log.push('closeAll')},onboarding:f=>log.push('onboarding'),toast:m=>log.push('toast')},...over};
  const A=ctx.window.LHB_CUENTA(D);
- return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{hash=h},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
+ return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{const ch=h!==hash;hash=h;if(ch)navL.forEach(f=>f())},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
 }
 const tick=async(n=8)=>{for(let i=0;i<n;i++)await new Promise(r=>setImmediate(r))};
 const defer=()=>{let ok;const p=new Promise(r=>ok=r);return {p,ok}};
@@ -654,6 +654,38 @@ test('LHB-48: sin sesión en Mi Hoja, tocar una acción en sitio no quita lo que
  // en una página pública solo corre la acción y la página no se repinta
  const k=CUENTA_HARNESS({api:prof});k.nav('#/c/yambo-toro');const r3=[];k.A.quick(()=>r3.push('x'),{inPlace:true,act:'fav'});await ticks(3);k.C.signIn('user_a');await ticks(8);
  assert.deepEqual(r3,['x']);assert.ok(!k.log.includes('reroute'),'una página pública no se repinta');
+});
+test('LHB-48: una persona nueva con Mi Hoja y una acción esperando ve un solo formulario de perfil y al crearlo se hacen las dos; irse y volver no revive nada',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ let n=0,submit;const h=CUENTA_HARNESS({api:async(C,m)=>m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:'ana'}}}});h.nav('#/mihoja');h.D.ui.onboarding=f=>{n++;submit=f};
+ let drawn=0;const ran=[];h.A.require(()=>{drawn++});await ticks(3);h.A.quick(()=>ran.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);h.C.signIn('user_a');await ticks(8);
+ assert.equal(n,1,'un solo formulario de perfil');assert.equal(typeof submit,'function');
+ const r=await submit({handle:'ana',display_name:'',bio:'',favorite_brand:''});await ticks(4);
+ assert.deepEqual(r,{ok:true});assert.equal(drawn,1,'Mi Hoja se dibuja una vez');assert.deepEqual(ran,['humidor'],'y la acción corre una vez');
+ // irse de la página y volver antes de que llegue la revisión: no corre
+ let rel;const hold=new Promise(x=>{rel=x});const a=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};const ra=[];
+ a.A.quick(()=>ra.push('abandonada'),{inPlace:true,act:'fav'});await ticks(3);a.nav('#/artesanos');a.nav('#/c/yambo-toro');rel();await ticks(8);
+ assert.deepEqual(ra,[],'una revisión abandonada no se revive al volver a la página');
+ // lo mismo con una acción que esperaba la hoja de entrar
+ const b=CUENTA_HARNESS({api:prof});b.nav('#/c/yambo-toro');const rb=[];b.A.quick(()=>rb.push('abandonada'),{inPlace:true,act:'fav'});await ticks(3);b.nav('#/artesanos');b.nav('#/c/yambo-toro');b.C.signIn('user_a');await ticks(8);
+ assert.deepEqual(rb,[],'una acción que esperaba la hoja de entrar no se revive al volver');
+});
+test('LHB-48: irse y volver mientras carga Clerk descarta la acción (también si Clerk falla); cada cosa que espera se retoma sola y un fallo no detiene a la otra; la página avisa de la navegación',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};
+ const mk=async fail=>{let n=0,rel;const hold=new Promise(r=>{rel=r});const h=CUENTA_HARNESS({clerk:async()=>{n++;if(n===2){await hold;if(fail)throw new Error('sin red')}return h.C}});h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});
+  await h.A.quick(()=>{},{inPlace:true,act:'fav'});return {h,rel}};
+ for(const fail of [false,true]){
+  let {h,rel}=await mk(fail);const r1=[];h.A.quick(()=>r1.push('x'),{inPlace:true,act:'fav'});await tick();h.nav('#/artesanos');h.nav('#/c/yambo-toro');rel();await ticks(6);
+  assert.deepEqual(r1,[],'irse y volver mientras carga Clerk descarta la acción (Clerk falla: '+fail+')');
+  ({h,rel}=await mk(fail));const r2=[];h.A.quick(()=>r2.push('x'),{inPlace:true,act:'fav'});await tick();rel();await ticks(6);assert.deepEqual(r2,['x'],'sin irse corre una vez (Clerk falla: '+fail+')')}
+ // la puerta de una página sola se retoma al entrar y dibuja una vez
+ const p=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});p.nav('#/mihoja');let drawn=0;p.A.require(()=>{drawn++});await ticks(3);p.C.signIn('user_a');await ticks(8);
+ assert.equal(drawn,1,'Mi Hoja se dibuja una vez al entrar');
+ // si la página falla al dibujarse, la acción en sitio igual corre
+ const q=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});q.nav('#/mihoja');const rq=[];const err=console.error;console.error=()=>{};
+ try{q.A.require(()=>{throw new Error('pagina')});await ticks(3);q.A.quick(()=>rq.push('humidor'),{inPlace:true,act:'humidor'});await ticks(3);q.C.signIn('user_a');await ticks(8)}finally{console.error=err}
+ assert.deepEqual(rq,['humidor'],'un fallo de la página no detiene la acción');
+ assert.ok(/onNav:f=>window\.addEventListener\('hashchange',f\)/.test(read('hoja.js')),'la página le avisa a la puerta cuando cambia de página');
 });
 test('LHB-48: un 401 y volver a entrar conserva la acción (la persona que entra en este equipo la continúa); un fallo de Clerk usa el perfil guardado solo del mismo momento',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});

@@ -26,12 +26,12 @@ G18 saved action stores a non-text argument: exit 1, fail 2  -> RED
 U3 a photo prepared for the previous person is kept: exit 1, fail 1  -> RED
 S2 an upload finishes for the next person: exit 1, fail 1  -> RED
 T7 inherited action names pass: exit 1, fail 1  -> RED
-N1 an action in place shares the counter of the page gate: exit 1, fail 7  -> RED
+T8 one failing action stops the rest: exit 1, fail 1  -> RED
+N1 an action in place shares the counter of the page gate: exit 1, fail 8  -> RED
 N2 an instant action depends on later taps: exit 1, fail 1  -> RED
 N3 an account change does not cancel the action in place: exit 1, fail 1  -> RED
 N4 an account change does not move the generation: exit 1, fail 1  -> RED
 N5 an instant action ignores an account change while Clerk loads: exit 1, fail 1  -> RED
-N6 an instant action runs on another page: exit 1, fail 1  -> RED
 N7 a superseded action goes on after the fast path: exit 1, fail 1  -> RED
 N8 the gate for an action replaces the page with the card: exit 1, fail 1  -> RED
 N9 the gate for an action always waits for the server: exit 1, fail 1  -> RED
@@ -41,9 +41,16 @@ N12 the saved action passes a non-text argument: exit 1, fail 1  -> RED
 N13 the saved action loses its argument on return: exit 1, fail 2  -> RED
 N14 the saved action carries a list and an owner: exit 1, fail 3  -> RED
 N15 coming back from Google does nothing: exit 1, fail 4  -> RED
-N16 the action ignores the gate result: runs on a failed check: exit 1, fail 7  -> RED
+N16 the action ignores the gate result: runs on a failed check: exit 1, fail 8  -> RED
 N17 a failed check on an action in place hides the error: exit 1, fail 4  -> RED
-N18 an action in place replaces what the page is waiting for: exit 1, fail 1  -> RED
+N18 an action in place replaces what the page is waiting for: exit 1, fail 2  -> RED
 N19 an action in place waiting is not resumed on sign-in: exit 1, fail 7  -> RED
 N20 the page waiting is not resumed on sign-in: exit 1, fail 1  -> RED
-restored: exit 0, pass 72
+N21 both waiting things start their own profile form: exit 1, fail 2  -> RED
+N22 a failure of the page action stops the in-place one: exit 1, fail 1  -> RED
+N23 leaving a page does not end its pending check: exit 1, fail 1  -> RED
+N24 leaving a page does not end an instant action: exit 1, fail 1  -> RED
+N25 leaving a page keeps what it waited for: exit 1, fail 1  -> RED
+N26 the page does not report navigation: exit 1, fail 1  -> RED
+N27 the catch path ignores leaving the page: exit 1, fail 1  -> RED
+restored: exit 0, pass 74

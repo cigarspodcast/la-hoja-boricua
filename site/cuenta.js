@@ -5,7 +5,11 @@
    - Cada respuesta pendiente se amarra al usuario, a la pantalla y a la operación que la pidió; si algo cambió, se ignora.
    - Entrar desde cualquier página deja la página como está, y al terminar se hace la acción que el usuario empezó. */
 window.LHB_CUENTA=function(D){'use strict';
-const ACT=Object.create(null);let seq=0,sip=0,gen=0,hooked=false,lastId=null,pending=null,pendIp=null,ob=false,failure=null;
+const ACT=Object.create(null);let seq=0,sip=0,gen=0,hooked=false,lastId=null,pending=null,pendIp=null,ob=false,failure=null,vis=0;
+/* irse de una página termina todo lo que esa visita esperaba: volver después no revive una revisión ni una acción que quedó pendiente */
+if(typeof D.onNav==='function')D.onNav(()=>{vis++;pending=null;pendIp=null;failure=null});
+/* una acción que falla no detiene a las demás */
+const safe=f=>{try{f()}catch(e){if(typeof console!=='undefined')console.error(e)}};
 /* lo guardado para volver de Google: la acción y su argumento de texto; solo acciones registradas */
 const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.arg=o.arg;return v};
 /* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil; también las páginas que escriben datos de la cuenta (#/cata y #/subir): al cambiar la cuenta se vuelven a pasar por la puerta */
@@ -17,26 +21,29 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
   if(!id){D.store.clear();D.intent.clear()}
   /* lo que espera una página (Mi Hoja) y lo que espera una acción en sitio se guardan por separado: las dos se retoman al entrar */
   const p=pending,q=pendIp;pending=null;pendIp=null;const fl=failure;failure=null;
-  if(id&&q&&q.from===D.here())go(q.go,{...q.o,resume:true});
-  if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
+  const P=id&&p&&p.from===D.here()?p:null,Q=id&&q&&q.from===D.here()?q:null;
+  /* si esperaban las dos, una sola revisión y un solo formulario de perfil: se hacen juntas al terminar */
+  if(P&&Q){go(()=>{safe(P.go);safe(Q.go)},{...P.o,resume:true});return}
+  if(Q)go(Q.go,{...Q.o,resume:true});
+  if(P){go(P.go,{...P.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}
   /* el aviso de error pedía salir y volver a entrar: al salir, la hoja se cierra con todo y su botón; se deja un botón nuevo para entrar y seguir con la acción */
   if(!id&&fl&&fl.from===D.here())D.ui.notice('Entra otra vez','Tu acción quedó pendiente. Entra para continuar.',{label:'Entrar',on:()=>go(fl.done,{...fl.o,resume:false})})})}
 /* una acción en sitio (corazón, sello, estrella, humidor) cuenta aparte de la puerta de una página: tocar un corazón no cancela el dibujo de Mi Hoja ni al revés; un cambio de cuenta cancela las dos */
-async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,op=inp?++sip:++seq;if(inp)failure=null;else ob=false;
- const lv=(C,uid)=>op===(inp?sip:seq)&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
+async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=vis,op=inp?++sip:++seq;if(inp)failure=null;else ob=false;
+ const lv=(C,uid)=>op===(inp?sip:seq)&&vis===v0&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
  const show=(h,p,b)=>{if(!inp&&op===seq)D.ui.card(h,p,b)};
  /* un error nunca se esconde: sobre la página (en sitio) o en la tarjeta de Mi Hoja, siempre con reintento que conserva la acción */
  const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:'Intentar otra vez',on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}else D.ui.card(h,p,b)};
  show('Un momento…','Revisando tu cuenta.');
  let C;
  try{C=await D.clerk()}catch(e){
-  if(op!==(inp?sip:seq)||D.here()!==from)return;
+  if(op!==(inp?sip:seq)||vis!==v0||D.here()!==from)return;
   if(D.store.get()){D.intent.clear();return done()}
   fail('Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
  hook(C);
  /* con el perfil de ese usuario ya guardado la acción en sitio no espera a la red ni depende de otro toque: solo se descarta si cambió la cuenta o la página */
- if(inp?(gen!==g0||D.here()!==from):!lv(C))return;
+ if(inp?(gen!==g0||vis!==v0||D.here()!==from):!lv(C))return;
  /* una acción en sitio (corazón, sello, estrella) no espera a la red: con sesión abierta y el perfil de ese mismo usuario guardado, se hace al instante */
  if(o.fast&&C.user){const c0=D.store.get();if(c0&&c0.sub===C.user.id){D.intent.clear();return done()}}
  if(!lv(C))return;
