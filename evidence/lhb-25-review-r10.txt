@@ -1,0 +1,18 @@
+[Certain] **BLOCKING:** None found in the reviewed diff. This does not establish end-to-end sign-up success.
+
+[Certain] **Prior findings:**
+
+- Round 4: **CONCUR.** `fail()` supplies an in-place notice and preserves `done`.
+- Round 5: **CONCUR.** Explicit retries use `{...o,resume:false}`.
+- Round 6a: **CONCUR.** Account changes call `D.ui.closeAll()`, wired to synchronous `closeSheetNow`.
+- Round 6b: **CONCUR.** Cache writes are best effort; unexpected submission errors restore the button.
+- Round 7: **CONCUR.** `failure={done,o,from}` preserves the failed action independently of the removed sheet.
+- Round 8: **CONCUR.** Opening or immediately closing a sheet cancels `closeT`.
+- Round 9: **CONCUR.** Both offline success branches execute `D.intent.clear()` before `done()`. Targeted execution of the matching branch’s `cuenta.js` confirmed one action invocation and cleared intent for all three reported fallback scenarios.
+
+**NON-BLOCKING:**
+
+- [Certain] The bio input and server count characters differently. [hoja.js](https://github.com/cigarspodcast/la-hoja-boricua/blob/lhb-25-signin/site/hoja.js) uses `<textarea id="obB" maxlength="160">`, while [profile.js](https://github.com/cigarspodcast/la-hoja-boricua/blob/lhb-25-signin/functions/_lib/profile.js) uses `[...t].length`. The input limit counts UTF-16 units, so it permits only 80 supplementary-plane emoji despite the server accepting 160. Align the input validation with the counter and server.
+- [Certain] Full-suite rerun and real Clerk sign-up remain **NOT VERIFIED** here. PowerShell failed before process creation. Matching GitHub file hashes supported source review; targeted JavaScript execution does not replace the reported 58-test suite or browser verification of `Clerk.load(...)` and `C.openSignIn(...)`.
+
+VERDICT: PASS
