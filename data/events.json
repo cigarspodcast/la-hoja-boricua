@@ -1,5 +1,5 @@
 {
- "actualizado": "2026-10-22T02:35:55Z",
+ "actualizado": "2026-10-26T21:04:51Z",
  "nota": "Lista mantenida a mano en el prototipo; un trabajo programado puede reescribir este archivo.",
  "actividades": [
   {
@@ -52,6 +52,20 @@
    "detalle": "La Turrería presenta por primera vez LIBERTAD, cigarro inspirado en Blanca Canales y la Revolución Nacionalista de Jayuya de 1950, con una conversación sobre su confección. Cierra con música en vivo de Riestra y Los Bohíques en Naturola La Barra."
   },
   {
+   "id": "entre-humos-smoke-shadows-2026-10-30",
+   "titulo": "Smoke & Shadows: Halloween en Entre Humos",
+   "fecha": "2026-10-30",
+   "hora": "Desde las 7:00 PM",
+   "lugar": "Entre Humos San Patricio",
+   "pueblo": "Guaynabo",
+   "precio": "Reserva tu espacio con Entre Humos",
+   "enlace": "https://www.instagram.com/entrehumos/p/De-KX5yhWnW/",
+   "fuente": "@entrehumos",
+   "fuente_url": "https://www.instagram.com/entrehumos/",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Entre%20Humos%20San%20Patricio%20Town%20Center%20Guaynabo%20Puerto%20Rico",
+   "detalle": "Entre Humos Cigar Emporium celebra Halloween con una noche de cigarros premium, cócteles especiales, descuentos en tragos con Chopin Vodka y Michter’s Bourbon y buena música. Dress code: All Black, máscaras opcionales; reserva tu espacio con el lounge."
+  },
+  {
    "id": "612-halloween-2026-10-31",
    "titulo": "Noche de Halloween en 612 C. Lounge",
    "fecha": "2026-10-31",
@@ -74,6 +88,20 @@
    "fuente_url": "https://www.instagram.com/kurossmokeloungepr/",
    "maps": "https://www.google.com/maps/search/?api=1&query=Kuros%20Smoke%20Lounge%201056%20Ave.%20Ashford%20San%20Juan%20Puerto%20Rico",
    "detalle": "Kuros Smoke Lounge hace su noche de Halloween con karaoke toda la noche y un shot de la casa gratis para quien llegue disfrazado (mientras duren). Solo mayores de 21."
+  },
+  {
+   "id": "musa-morada-tarde-2026-11-01",
+   "titulo": "Una tarde para disfrutar en Musa Morada",
+   "fecha": "2026-11-01",
+   "hora": "2:00–7:00 PM",
+   "lugar": "Musa Morada",
+   "pueblo": "Aguas Buenas",
+   "precio": "Cupos limitados; reserva en lareservavip.co",
+   "enlace": "https://lareservavip.co",
+   "fuente": "La Reserva VIP",
+   "fuente_url": "https://lareservavip.co",
+   "maps": "https://www.google.com/maps/search/?api=1&query=Musa%20Morada%20Aguas%20Buenas%20Puerto%20Rico",
+   "detalle": "Tarde en las montañas de Aguas Buenas con piano en vivo, paella de carnes hecha al momento, dos cigarros y barra abierta. Solo mayores de 21."
   },
   {
    "id": "la-altura-taller-2026-11-07",
