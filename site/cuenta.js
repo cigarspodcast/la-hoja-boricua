@@ -5,7 +5,7 @@
    - Cada respuesta pendiente se amarra al usuario, a la pantalla y a la operación que la pidió; si algo cambió, se ignora.
    - Entrar desde cualquier página deja la página como está, y al terminar se hace la acción que el usuario empezó. */
 window.LHB_CUENTA=function(D){'use strict';
-const ACT={};let seq=0,hooked=false,lastId=null,pending=null,ob=false;
+const ACT={};let seq=0,hooked=false,lastId=null,pending=null,ob=false,failure=null;
 const live=(op,from,C,uid)=>op===seq&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
 /* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil */
 /* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
@@ -14,12 +14,14 @@ const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r=
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
  C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;D.ui.closeAll();
   if(!id){D.store.clear();D.intent.clear()}
-  const p=pending;pending=null;
+  const p=pending;pending=null;const fl=failure;failure=null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
-  if(onMiHoja()||ob){ob=false;D.reroute()}})}
-async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;const show=(h,p,b)=>{if(!o.inPlace&&op===seq)D.ui.card(h,p,b)};
+  if(onMiHoja()||ob){ob=false;D.reroute()}
+  /* el aviso de error pedía salir y volver a entrar: al salir, la hoja se cierra con todo y su botón; se deja un botón nuevo para entrar y seguir con la acción */
+  if(!id&&fl&&fl.from===D.here())D.ui.notice('Entra otra vez','Tu acción quedó pendiente. Entra para continuar.',{label:'Entrar',on:()=>go(fl.done,{...fl.o,resume:false})})})}
+async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;failure=null;const show=(h,p,b)=>{if(!o.inPlace&&op===seq)D.ui.card(h,p,b)};
  /* un error nunca se esconde: sobre la página (en sitio) o en la tarjeta de Mi Hoja, siempre con reintento que conserva la acción */
- const fail=(h,p)=>{if(op!==seq)return;const b={label:'Intentar otra vez',on:()=>go(done,{...o,resume:false})};if(o.inPlace)D.ui.notice(h,p,b);else D.ui.card(h,p,b)};
+ const fail=(h,p)=>{if(op!==seq)return;const b={label:'Intentar otra vez',on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}else D.ui.card(h,p,b)};
  show('Un momento…','Revisando tu cuenta.');
  let C;
  try{C=await D.clerk()}catch(e){

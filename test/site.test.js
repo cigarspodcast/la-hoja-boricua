@@ -347,7 +347,7 @@ function CUENTA_HARNESS(over){
  const D={clerk:async()=>C,api:async()=>({status:0,body:{}}),here:()=>hash,reroute:()=>log.push('reroute'),
   store:{get:()=>store,set:v=>{store=v;log.push('store:'+v.sub+':'+v.handle)},clear:()=>{store=null;log.push('clear')}},
   intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
-  openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>log.push('closeAll'),onboarding:f=>log.push('onboarding'),toast:m=>log.push('toast')},...over};
+  openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>{lastNotice=null;log.push('closeAll')},onboarding:f=>log.push('onboarding'),toast:m=>log.push('toast')},...over};
  const A=ctx.window.LHB_CUENTA(D);
  return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{hash=h},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
 }
@@ -449,9 +449,11 @@ test('LHB-25: entrar desde una página pública y fallar la revisión muestra el
 test('LHB-25: un reintento del usuario puede volver a abrir la hoja de entrar y la acción sigue viva',async()=>{
  let status=401;const h=CUENTA_HARNESS({api:async()=>({status,body:status===200?{profile:{handle:'ana'}}:{}})});h.nav('#/c/yambo-toro');
  await h.A.require(h.go,{inPlace:true,act:'humidor'});h.C.signIn('user_a');await tick();assert.ok(h.log.includes('notice:No pudimos revisar tu cuenta'));
- h.C.signIn(null);await tick();h.notice().on();await tick();
- assert.equal(h.log.filter(x=>x==='open').length,2,'tras salir, el reintento vuelve a abrir la hoja de entrar');
+ h.C.signIn(null);await tick();assert.ok(h.log.includes('notice:Entra otra vez'),'al salir, la hoja del error se cierra y queda un botón nuevo para entrar');assert.equal(h.notice().label,'Entrar');h.notice().on();await tick();
+ assert.equal(h.log.filter(x=>x==='open').length,2,'tras salir, el botón vuelve a abrir la hoja de entrar');
  status=200;h.C.signIn('user_a');await tick();assert.deepEqual(h.log.filter(x=>x==='GO'),['GO'],'al volver a entrar, la acción original corre una vez');
+ const x=CUENTA_HARNESS({api:async()=>({status:401,body:{}})});x.nav('#/c/yambo-toro');await x.A.require(x.go,{inPlace:true,act:'humidor'});x.C.signIn('user_a');await tick();
+ x.C.user=null;x.notice().on();await tick();assert.equal(x.log.filter(x=>x==='open').length,2,'si la sesión desaparece sin que Clerk avise, el reintento del usuario igual abre la hoja de entrar');
  const g=CUENTA_HARNESS({});g.nav('#/c/yambo-toro');g.A.register('humidor',g.go);g.setIntent({from:'#/c/yambo-toro',act:'humidor'});await g.A.resume();await tick();
  assert.ok(!g.log.includes('open'),'la reanudación automática tras una redirección sigue callada si el usuario canceló');
 });
@@ -467,6 +469,12 @@ test('LHB-25: un almacenamiento lleno no impide entrar ni crear el perfil; un ca
   h.log.length=0;h.C.signIn(null);await tick();assert.ok(h.log.includes('closeAll'),'salir cierra el editor abierto en '+who);h.log.length=0;h.C.signIn('user_b');await tick();assert.ok(h.log.includes('closeAll'),'cambiar de cuenta también, en '+who)}
  assert.ok(/function closeSheetNow\(\)\{const el=\$\('#sheet'\);if\(!el\)return;el\.classList\.remove\('open'\);el\.hidden=true;el\.innerHTML='';/.test(hj),'cierra al instante y vacía la hoja, sin esperar el temporizador');
  assert.ok(hj.includes("let r;try{r=await submit({handle:h,")&&hj.includes("catch(x){r={error:'generic'}}"),'un error inesperado al enviar devuelve el botón en vez de dejarlo apagado');
+});
+test('LHB-25: el botón de entrar de nuevo solo aparece al salir de una acción que falló, no al cambiar de cuenta ni después de un éxito',async()=>{
+ let status=401;const mk=()=>CUENTA_HARNESS({api:async()=>({status,body:status===200?{profile:{handle:'ana'}}:{}})});
+ const a=mk();a.nav('#/c/yambo-toro');await a.A.require(a.go,{inPlace:true,act:'humidor'});a.C.signIn('user_a');await tick();a.C.signIn('user_b');await tick();assert.ok(!a.log.includes('notice:Entra otra vez'),'cambiar de cuenta no ofrece seguir la acción de la anterior');
+ status=401;const b=mk();b.nav('#/c/yambo-toro');await b.A.require(b.go,{inPlace:true,act:'humidor'});b.C.signIn('user_a');await tick();status=200;b.notice().on();await tick();assert.deepEqual(b.log.filter(x=>x==='GO'),['GO']);b.log.length=0;b.C.signIn(null);await tick();assert.ok(!b.log.includes('notice:Entra otra vez'),'tras un éxito, salir no vuelve a ofrecer la acción');
+ status=401;const c=mk();c.nav('#/c/yambo-toro');await c.A.require(c.go,{inPlace:true,act:'humidor'});c.C.signIn('user_a');await tick();c.nav('#/catalogo');c.C.signIn(null);await tick();assert.ok(!c.log.includes('notice:Entra otra vez'),'si el usuario ya se fue de la página, no se le muestra encima de otra');
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));

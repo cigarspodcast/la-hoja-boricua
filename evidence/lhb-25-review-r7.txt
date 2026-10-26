@@ -1,0 +1,59 @@
+[Certain] One BLOCKING regression remains: sign-out destroys the retry control and the pending action that round 5 intended to preserve.
+
+**BLOCKING**
+
+1. **The in-place error flow loses the user’s action on sign-out.**
+
+   Exact code in `site/cuenta.js`:
+   ```js
+   seq++;D.ui.closeAll();
+   if(!id){D.store.clear();D.intent.clear()}
+   const p=pending;pending=null;
+   ```
+   After sign-in, `pending` has already been consumed. If `/api/me` returns 401, the action survives only in the notice button’s closure:
+   ```js
+   const b={label:'Intentar otra vez',on:()=>go(done,{...o,resume:false})};
+   if(o.inPlace)D.ui.notice(h,p,b);
+   ```
+   Signing out then calls `closeSheetNow` in `site/hoja.js`, which removes that button:
+   ```js
+   el.hidden=true;el.innerHTML='';
+   ```
+   The intent is also cleared. On a public page, neither `onMiHoja()` nor `ob` triggers recovery. Signing in again therefore does not resume the action.
+
+   The existing test masks this regression:
+   ```js
+   h.C.signIn(null);await tick();h.notice().on();
+   ```
+   `h.notice()` retains a callback after the real DOM control would have been destroyed.
+
+   Reproduction using the supplied harness:
+   ```js
+   let retry;
+   const h=CUENTA_HARNESS({
+     api:async()=>({status:401,body:{}})
+   });
+   h.D.ui.notice=(title,message,b)=>{retry=b};
+   h.D.ui.closeAll=()=>{retry=null};
+   h.nav('#/c/yambo-toro');
+
+   await h.A.require(h.go,{inPlace:true,act:'humidor'});
+   h.C.signIn('user_a');
+   await tick();
+   assert.ok(retry);
+
+   h.C.signIn(null);
+   await tick();
+   assert.ok(retry,'the user still needs a reachable retry'); // fails
+   ```
+   Preserve the interrupted action independently of the sheet and provide a reachable recovery control after sign-out, while still closing protected editors.
+
+**NON-BLOCKING**
+
+- [Certain] Round 4: **CONCUR** with `fail()` exposing errors through `D.ui.notice`.
+- [Certain] Round 5: **MAINTAIN** the end-to-end rejection. `{...o,resume:false}` corrects the flag, but the reproduction above shows the retry is now removed.
+- [Certain] Round 6a: **CONCUR** that `D.ui.closeAll()` synchronously removes editors; its interaction with recovery causes the new finding.
+- [Certain] Round 6b: **CONCUR** with `cache=v=>{try{D.store.set(v)}catch(e){}}` and the onboarding submit exception handler.
+- [Certain] Independent execution is **NOT VERIFIED**: the shell failed to start. This review uses the supplied diff; the reproduction above was not executed here. The reported 55/55 tests and mutation results were not independently rerun.
+
+VERDICT: BLOCK
