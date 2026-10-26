@@ -100,8 +100,8 @@ function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="emp
  ${c.yours?'':PROTO_NOTE}`;
  $('[data-back]').onclick=()=>history.length>1?history.back():(location.hash='#/catalogo');
  $$('.foto-th').forEach(b=>b.onclick=()=>{const m=$('#fotoMain');if(m)m.src=b.dataset.full;$$('.foto-th').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))});
- $('#fav').onclick=()=>{const on=EXT.toggleFav('cigarros',c.id);toast(on?tt('fav.on'):tt('fav.off'));const y=scrollY;vCigar(id);scrollTo(0,y)};
- $$('[data-star]').forEach(b=>b.onclick=()=>{EXT.setRating(c.id,+b.dataset.star);const y=scrollY;vCigar(id);scrollTo(0,y)});
+ $('#fav').onclick=()=>EXT.gate('fav','cigarros:'+c.id);
+ $$('[data-star]').forEach(b=>b.onclick=()=>EXT.gate('rate',c.id+':'+b.dataset.star));
  const del=$('#del');if(del)del.onclick=async()=>{if(!confirm(tt('cig.confirmDel')))return;LS.set('uploads',uploads().filter(u=>u.id!==c.id));if(c.foto)await idb.del(c.foto).catch(()=>{});toast(tt('cig.deleted'));location.hash='#/perfil'};
  hydratePhotos()}
 function artTags(a){const t=[];if(a.etiqueta)t.push(`<span class="atag rd">${esc(a.etiqueta)}</span>`);if(a.por_confirmar)t.push(`<span class="atag pend">${esc(a.por_confirmar)}</span>`);return t.length?`<div class="atags">${t.join('')}</div>`:''}
@@ -230,7 +230,7 @@ function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,
  const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});
  if(leafletMap&&r!=='lugares'){leafletMap.remove();leafletMap=null}
  const R=EXT.routes;
- ({catalogo:vCatalogo,c:()=>vCigar(id),artesanos:vArtesanos,a:()=>vArtesano(id),subir:vSubir,lugares:()=>vLugares(id),actividades:()=>R.eventos(id),eventos:()=>R.eventos(id),perfil:()=>R.mihoja('perfil'),mihoja:()=>R.mihoja(id),cata:()=>R.cata(id),maridajes:R.maridajes,podcast:R.podcast,buscar:R.buscar}[r]||vCatalogo)();
+ ({catalogo:vCatalogo,c:()=>vCigar(id),artesanos:vArtesanos,a:()=>vArtesano(id),subir:()=>EXT.requireAccount(vSubir,{fast:true}),lugares:()=>vLugares(id),actividades:()=>R.eventos(id),eventos:()=>R.eventos(id),perfil:()=>R.mihoja('perfil'),mihoja:()=>R.mihoja(id),cata:()=>R.cata(id),maridajes:R.maridajes,podcast:R.podcast,buscar:R.buscar}[r]||vCatalogo)();
  if(r!==route._last){window.scrollTo(0,0)}route._last=h}
 window.addEventListener('hashchange',route);
 window.addEventListener('online',()=>{if(location.hash.includes('lugares'))route()});window.addEventListener('offline',()=>{if(location.hash.includes('lugares'))route()});

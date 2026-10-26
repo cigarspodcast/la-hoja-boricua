@@ -29,7 +29,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v49'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v50'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -49,25 +49,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
- assert.match(sw,/const VERSION='lhb-v49'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+ assert.match(sw,/const VERSION='lhb-v50'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
 
 test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v49'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v50'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v49'/);
+ assert.match(sw,/const VERSION='lhb-v50'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v49'/);
+ assert.match(sw,/const VERSION='lhb-v50'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
@@ -93,12 +93,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v49'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v50'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v49'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v50'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -106,7 +106,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v49'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v50'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -123,7 +123,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v49/);});
+ assert.match(read('sw.js'),/lhb-v50/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -136,17 +136,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v49'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v50'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v49'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v50'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v49'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v50'/);});
 
-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v49'/);});
+test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v50'/);});
 
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
@@ -224,6 +224,7 @@ test('LHB-41: el service worker no guarda una página de cigarro como el shell d
 test('LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves',()=>{
  const {T}=I18N();const es=Object.keys(T.es).sort(),en=Object.keys(T.en).sort();assert.deepEqual(en,es,'mismas claves');
  const used=new Set([...read('app.js').matchAll(/\btt\('([^']+)'/g)].map(m=>m[1]).filter(k=>k!=='fort.'));
+ for(const m of read('hoja.js').matchAll(/LHB_I18N\.t\('([^']+)'/g))used.add(m[1]);
  for(const f of ['suave','media','fuerte'])used.add('fort.'+f);for(const k of ['arts.nVitola','arts.nVitolas'])used.add(k);
  assert.ok(used.size>100,'claves usadas: '+used.size);
  for(const k of used){assert.ok(typeof T.es[k]==='string'&&T.es[k].length,'es '+k);assert.ok(typeof T.en[k]==='string'&&T.en[k].length,'en '+k);}
@@ -490,6 +491,78 @@ test('LHB-25: entrar con el perfil guardado (sin conexi\u00f3n) consume la acci\
  await run({api:async()=>({status:503,body:{}})},'servidor ca\u00eddo');
  await run({api:async()=>({status:0,body:{}})},'sin red');
  await run({clerk:async()=>{throw new Error('offline')}},'Clerk no carga');
+});
+function GATE_ACTIONS(over){
+ const src=read('hoja.js');const i=src.indexOf('const txt=v=>typeof v');const j=src.indexOf('\nObject.keys(ACTIONS)',i);assert.ok(i>0&&j>i,'bloque de acciones');
+ const calls=[];const rec=n=>(...a)=>{calls.push([n,...a]);return n==='toggleFav'||n==='toggleStamp'?true:undefined};
+ const S=()=>({favs:{cigarros:[],artesanos:[],lugares:[]},pasaporte:{cigarros:{},artesanos:{},lugares:{}}});
+ const deps={S,toggleFav:rec('toggleFav'),toggleStamp:rec('toggleStamp'),setRating:rec('setRating'),openSheet:rec('openSheet'),toast:rec('toast'),closeSheet:rec('closeSheet'),zonaSheet:rec('zonaSheet'),
+  badgeIds:()=>[],ruta:()=>({ok:[],lit:[]}),fmtF:x=>x,hoy:()=>'hoy',BADGES:[],$:()=>null,$$:()=>[],A:{route:rec('route')},scrollTo:()=>{},scrollY:0,CSS:{escape:x=>x},
+  location:{hash:'#/c/yambo-toro'},window:{LHB_I18N:{t:k=>k}},setTimeout:()=>0,...over};
+ const names=Object.keys(deps);
+ const f=new Function(...names,'var RLIT=0;'+src.slice(i,j)+'\nreturn ACTIONS');
+ return {ACTIONS:f(...names.map(n=>deps[n])),calls};
+}
+test('LHB-48: las acciones que piden cuenta validan su argumento antes de tocar los datos',()=>{
+ const {ACTIONS,calls}=GATE_ACTIONS();const names=c=>calls.filter(x=>x[0]===c);
+ ACTIONS.fav('cigarros:yambo-toro');assert.deepEqual(names('toggleFav'),[['toggleFav','cigarros','yambo-toro']],'un corazón válido se hace');
+ for(const bad of ['','cigarros','otro:x','constructor:x','__proto__:x','toString:x',undefined,null,7,{},'cigarros:'+'x'.repeat(250)])ACTIONS.fav(bad);
+ assert.equal(names('toggleFav').length,1,'ningún argumento inválido llega a los datos (favoritos)');
+ ACTIONS.stamp('lugares:mi-sitio');assert.deepEqual(names('toggleStamp'),[['toggleStamp','lugares','mi-sitio']],'un sello válido se hace');
+ for(const bad of ['','lugares','otro:x','__proto__:x','constructor:x',undefined,null,7,{}])ACTIONS.stamp(bad);
+ assert.equal(names('toggleStamp').length,1,'ningún argumento inválido llega a los datos (sellos)');
+ ACTIONS.rate('yambo-toro:4');assert.deepEqual(names('setRating'),[['setRating','yambo-toro',4]],'una estrella válida se pone');
+ for(const bad of ['yambo-toro:0','yambo-toro:6','yambo-toro:2.5','yambo-toro:abc','yambo-toro:','yambo-toro',':3','',undefined,null,{}])ACTIONS.rate(bad);
+ assert.equal(names('setRating').length,1,'ninguna estrella inválida llega a los datos');
+ ACTIONS.humidor('yambo-toro');ACTIONS.humidor(undefined);ACTIONS.humidor({});
+ assert.deepEqual(names('openSheet'),[['openSheet','humidor','yambo-toro'],['openSheet','humidor',undefined],['openSheet','humidor',undefined]],'el humidor abre con un texto o sin nada');
+});
+test('LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no',()=>{
+ const hj=read('hoja.js'),ap=read('app.js');
+ assert.ok(/gate\('fav',f\.dataset\.fav\)/.test(hj),'el corazón de las tarjetas usa la puerta');
+ assert.ok(/gate\('stamp',st\.dataset\.stamp,st\)/.test(hj),'el sello usa la puerta');
+ assert.ok(/if\(sh\.dataset\.sheet==='humidor'\)gate\('humidor',sh\.dataset\.arg\);else openSheet\(/.test(hj),'añadir al humidor usa la puerta; las demás hojas no');
+ assert.ok(/\$\('#fav'\)\.onclick=\(\)=>EXT\.gate\('fav','cigarros:'\+c\.id\)/.test(ap),'el favorito de la vitola usa la puerta');
+ assert.ok(/EXT\.gate\('rate',c\.id\+':'\+b\.dataset\.star\)/.test(ap),'la estrella usa la puerta');
+ assert.ok(/subir:\(\)=>EXT\.requireAccount\(vSubir,\{fast:true\}\)/.test(ap),'subir una vitola pide cuenta');
+ assert.ok(/cata:cid=>requireAccount\(\(\)=>vCata\(cid\),\{fast:true\}\)/.test(hj),'catar pide cuenta');
+ assert.ok(/const gate=\(act,arg,el\)=>requireAccount\(\(\)=>ACTIONS\[act\]\(arg,el\),\{inPlace:true,fast:true,act,arg\}\)/.test(hj),'la puerta es en sitio y rápida');
+ assert.ok(/Object\.keys\(ACTIONS\)\.forEach\(k=>CUENTA\.register\(k,arg=>ACTIONS\[k\]\(arg\)\)\)/.test(hj),'las acciones se registran para retomarlas al volver de Google');
+ const outside=src=>src.replace(/function toggleFav\([\s\S]*?\n/,'').replace(/function toggleStamp\([\s\S]*?\n/,'').replace(/function setRating\([\s\S]*?\n/,'');
+ const a=hj.indexOf('const ACTIONS={'),b=hj.indexOf('\nObject.keys(ACTIONS)');
+ const rest=outside(hj.slice(0,a)+hj.slice(b));
+ assert.ok(!/toggleFav\(|toggleStamp\(|setRating\(/.test(rest),'nadie más escribe corazones, sellos o estrellas fuera de las acciones');
+ assert.ok(!/EXT\.toggleFav|EXT\.setRating/.test(ap),'app.js ya no escribe corazones ni estrellas directamente');
+ assert.ok(!/openSheet\('humidor'/.test(rest),'el humidor no se abre sin pasar por la puerta');
+ for(const r of ['catalogo','artesanos','lugares','eventos','maridajes','podcast','buscar'])assert.ok(!new RegExp(r+':[^,]*requireAccount').test(hj+ap),'la página '+r+' sigue abierta sin cuenta');
+});
+test('LHB-48: una acción en sitio con sesión y perfil guardado no espera a la red; si no, pasa por la revisión completa',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));
+ let apis=0;const api=async()=>{apis++;return {status:200,body:{profile:{handle:'ana'}}}};
+ const a=CUENTA_HARNESS({api});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};a.cache({sub:'user_a',handle:'ana'});a.setIntent({from:'#/c/yambo-toro',act:'x'});
+ await a.A.require(a.go,{inPlace:true,fast:true,act:'fav'});await tick();
+ assert.deepEqual(a.log.filter(x=>x==='GO'),['GO'],'la acción corre una vez');assert.equal(apis,0,'sin pedir /api/me');assert.ok(!a.log.includes('open')&&!a.log.some(x=>x.startsWith('card')||x.startsWith('notice')),'sin hojas ni tarjetas');assert.equal(a.intent(),null,'consume la acción guardada');
+ const b=CUENTA_HARNESS({api});b.nav('#/c/yambo-toro');b.C.user={id:'user_b'};b.cache({sub:'user_a',handle:'ana'});
+ await b.A.require(b.go,{inPlace:true,fast:true,act:'fav'});await tick();
+ assert.equal(apis,1,'con el perfil guardado de otra persona se revisa con el servidor');assert.deepEqual(b.log.filter(x=>x==='GO'),['GO']);
+ const c=CUENTA_HARNESS({api});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};c.cache({sub:'user_a',handle:'ana'});
+ await c.A.require(c.go,{inPlace:true});await tick();
+ assert.equal(apis,2,'sin la opción rápida (Mi Hoja) siempre se revisa con el servidor');
+ const d=CUENTA_HARNESS({api});d.nav('#/c/yambo-toro');
+ await d.A.require(d.go,{inPlace:true,fast:true,act:'fav',arg:'cigarros:yambo-toro'});await tick();
+ assert.ok(d.log.includes('open'),'sin sesión abre la hoja de entrar');assert.ok(!d.log.includes('GO'),'y no hace la acción todavía');assert.deepEqual(d.intent(),{from:'#/c/yambo-toro',act:'fav',arg:'cigarros:yambo-toro'},'guarda la acción con su argumento');
+ const e=CUENTA_HARNESS({});e.nav('#/c/yambo-toro');
+ await e.A.require(e.go,{inPlace:true,fast:true,act:'fav',arg:{x:1}});await tick();
+ assert.deepEqual(e.intent(),{from:'#/c/yambo-toro',act:'fav'},'un argumento que no es texto no se guarda');
+});
+test('LHB-48: al volver de Google la acción retoma con su argumento, una vez',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));
+ const got=[];const g=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});
+ g.nav('#/c/yambo-toro');g.A.register('fav',a=>got.push(a));g.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'cigarros:yambo-toro'});g.C.user={id:'user_a'};
+ await g.A.resume();await tick();assert.deepEqual(got,['cigarros:yambo-toro'],'la acción recibe su argumento');assert.equal(g.intent(),null);
+ await g.A.resume();await tick();assert.deepEqual(got,['cigarros:yambo-toro'],'una segunda carga no la repite');
+ const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});h.nav('#/c/yambo-toro');const got2=[];h.A.register('fav',a=>got2.push(a));h.setIntent({from:'#/c/yambo-toro',act:'fav',arg:{x:1}});h.C.user={id:'user_a'};
+ await h.A.resume();await tick();assert.deepEqual(got2,[undefined],'un argumento que no es texto se descarta');
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));

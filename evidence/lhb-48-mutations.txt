@@ -1,0 +1,23 @@
+G1 heart on cards bypasses the gate: exit 1, fail 1  -> RED
+G2 stamp bypasses the gate: exit 1, fail 1  -> RED
+G3 add-to-humidor bypasses the gate: exit 1, fail 1  -> RED
+G4 cigar page heart writes directly: exit 1, fail 1  -> RED
+G5 stars write directly: exit 1, fail 1  -> RED
+G6 upload page open without an account: exit 1, fail 1  -> RED
+G7 tasting page open without an account: exit 1, fail 1  -> RED
+G8 gate waits for the server every time: exit 1, fail 1  -> RED
+G9 gate replaces the page with the card: exit 1, fail 1  -> RED
+G10 heart accepts an empty id: exit 1, fail 1  -> RED
+G11 stamp accepts inherited keys (__proto__): exit 1, fail 1  -> RED
+G12 rating accepts out-of-range numbers: exit 1, fail 1  -> RED
+G13 rating accepts fractions: exit 1, fail 1  -> RED
+G14 humidor passes any argument through: exit 1, fail 1  -> RED
+G15 fast path trusts another person cached profile: exit 1, fail 1  -> RED
+G16 fast path leaves the saved action behind: exit 1, fail 2  -> RED
+G17 saved action loses its argument: exit 1, fail 1  -> RED
+G18 saved action stores a non-text argument: exit 1, fail 2  -> RED
+G19 resume drops the argument: exit 1, fail 1  -> RED
+G20 resume trusts a non-text argument: exit 1, fail 1  -> RED
+G21 actions not registered for the return from Google: exit 1, fail 2  -> RED
+G22 the gate drops the pressed button: exit 1, fail 1  -> RED
+restored: exit 0, pass 62

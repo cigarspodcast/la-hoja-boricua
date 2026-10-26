@@ -43,16 +43,12 @@ const STAMP_ICO='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy=
 const favBtn=(k,id,cls='')=>{const on=isFav(k,id);return `<button type="button" class="heart ${cls}" data-fav="${k}:${esc(id)}" aria-pressed="${on}" aria-label="${on?'Quitar de':'Guardar en'} favoritos">${on?'♥':'♡'}<span>Favorito</span></button>`};
 const stampBtn=(k,id,cls='')=>{const on=isStamp(k,id);return `<button type="button" class="stampbtn ${cls}" data-stamp="${k}:${esc(id)}" aria-pressed="${on}">${STAMP_ICO}<span>${on?'Sellado':'Sellar pasaporte'}</span></button>`};
 document.addEventListener('click',e=>{
- const f=e.target.closest('[data-fav]');if(f){e.preventDefault();e.stopPropagation();const [k,id]=f.dataset.fav.split(/:(.*)/s);const on=toggleFav(k,id);
-  $$(`[data-fav="${CSS.escape(f.dataset.fav)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',(on?'Quitar de':'Guardar en')+' favoritos');b.firstChild.textContent=on?'♥':'♡'});toast(on?'Guardado en favoritos':'Quitado de favoritos');return}
+ const f=e.target.closest('[data-fav]');if(f){e.preventDefault();e.stopPropagation();gate('fav',f.dataset.fav);return}
  const tw=e.target.closest('[data-town]');if(tw){townSheet(tw.dataset.town);return}
- const st=e.target.closest('[data-stamp]');if(st){e.preventDefault();e.stopPropagation();const [k,id]=st.dataset.stamp.split(/:(.*)/s);const before=badgeIds(),r0=ruta();const on=toggleStamp(k,id),r1=ruta(),nz=r1.ok.find(x=>!r0.ok.includes(x));RLIT=r1.lit.find(x=>!r0.lit.includes(x));if(RLIT&&st.closest('.rl'))closeSheet();if(nz)setTimeout(()=>zonaSheet(nz),1500);
-  $$(`[data-stamp="${CSS.escape(st.dataset.stamp)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);const sp=b.querySelector(':scope>span:last-child');if(sp)sp.textContent=b.classList.contains('stamp')?(on?'Sellado '+fmtF(hoy()):'Sin sello'):(on?'Sellado':'Sellar pasaporte')});
-  const nb=badgeIds().filter(x=>!before.includes(x));if(nb.length){const b=BADGES.find(x=>x.id===nb[0]);toast('🏅 Nueva insignia: '+b.n)}else toast(on?'Sello puesto en tu pasaporte':'Sello quitado');
-  if(/^#\/(mihoja\/pasaporte|lugares\/ruta)/.test(location.hash))setTimeout(()=>{const y=scrollY;A.route();scrollTo(0,y)},350);return}
+ const st=e.target.closest('[data-stamp]');if(st){e.preventDefault();e.stopPropagation();gate('stamp',st.dataset.stamp,st);return}
  const cp=e.target.closest('[data-copy]');if(cp){const t=cp.dataset.copy;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copiado: '+t),()=>toast('ATH Móvil: '+t));return}
  const ic=e.target.closest('[data-ics]');if(ic){const ev=(D().events.actividades||[]).find(x=>x.id===ic.dataset.ics);if(ev)addToCal(ev);return}
- const sh=e.target.closest('[data-sheet]');if(sh){e.preventDefault();openSheet(sh.dataset.sheet,sh.dataset.arg)}});
+ const sh=e.target.closest('[data-sheet]');if(sh){e.preventDefault();if(sh.dataset.sheet==='humidor')gate('humidor',sh.dataset.arg);else openSheet(sh.dataset.sheet,sh.dataset.arg)}});
 /* ---------- regiones ---------- */
 const REG={Metro:['San Juan','Guaynabo','Bayamón','Carolina','Cataño','Trujillo Alto','Toa Baja','Toa Alta'],
  Norte:['Arecibo','Barceloneta','Manatí','Vega Baja','Vega Alta','Dorado','Hatillo','Camuy','Quebradillas','Florida'],
@@ -181,6 +177,26 @@ function onboardingForm(submit){const marcas=[...new Set((D().artesanos||[]).map
 const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast,closeAll:closeSheetNow}});
 /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
 const requireAccount=(go,o)=>CUENTA.require(go,o);
+/* ---------- acciones que piden cuenta (LHB-48) ----------
+   Corazón, sello, estrella y humidor se hacen solo con sesión y perfil; ver la página no pide nada. El argumento viaja como texto (también por sessionStorage al volver de Google) y se valida aquí. */
+const txt=v=>typeof v==='string'&&v.length<200;
+const split2=v=>txt(v)?v.split(/:(.*)/s):[];
+const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const keepScroll=()=>{const y=scrollY;A.route();scrollTo(0,y)};
+const ACTIONS={
+ fav(arg){const [k,id]=split2(arg);if(!id||!own(S().favs,k)||!Array.isArray(S().favs[k]))return;
+  const on=toggleFav(k,id);
+  $$(`[data-fav="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',(on?'Quitar de':'Guardar en')+' favoritos');b.firstChild.textContent=on?'♥':'♡'});toast(on?window.LHB_I18N.t('fav.on'):window.LHB_I18N.t('fav.off'));if(/^#\/c\//.test(location.hash))keepScroll()},
+ stamp(arg,st){const [k,id]=split2(arg);if(!id||!own(S().pasaporte,k)||typeof S().pasaporte[k]!=='object')return;st=st||$(`[data-stamp="${CSS.escape(arg)}"]`);
+  const before=badgeIds(),r0=ruta();const on=toggleStamp(k,id),r1=ruta(),nz=r1.ok.find(x=>!r0.ok.includes(x));RLIT=r1.lit.find(x=>!r0.lit.includes(x));if(RLIT&&(st&&st.closest('.rl')))closeSheet();if(nz)setTimeout(()=>zonaSheet(nz),1500);
+  $$(`[data-stamp="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);const sp=b.querySelector(':scope>span:last-child');if(sp)sp.textContent=b.classList.contains('stamp')?(on?'Sellado '+fmtF(hoy()):'Sin sello'):(on?'Sellado':'Sellar pasaporte')});
+  const nb=badgeIds().filter(x=>!before.includes(x));if(nb.length){const b=BADGES.find(x=>x.id===nb[0]);toast('🏅 Nueva insignia: '+b.n)}else toast(on?'Sello puesto en tu pasaporte':'Sello quitado');
+  if(/^#\/(mihoja\/pasaporte|lugares\/ruta)/.test(location.hash))setTimeout(()=>{const y=scrollY;A.route();scrollTo(0,y)},350)},
+ rate(arg){const [id,n]=split2(arg);const v=+n;if(!id||!Number.isInteger(v)||v<1||v>5)return;setRating(id,v);keepScroll()},
+ humidor(arg){openSheet('humidor',txt(arg)?arg:undefined)}
+};
+Object.keys(ACTIONS).forEach(k=>CUENTA.register(k,arg=>ACTIONS[k](arg)));
+const gate=(act,arg,el)=>requireAccount(()=>ACTIONS[act](arg,el),{inPlace:true,fast:true,act,arg});
 setTimeout(()=>CUENTA.resume(),0);
 /* ---------- Mi Hoja ---------- */
 const SUBS=[['humidor','Humidor'],['diario','Diario'],['pasaporte','Pasaporte'],['favoritos','Favoritos'],['perfil','Perfil']];
@@ -529,7 +545,7 @@ function cigarExtras(c){const pr=pairing(c);const real=!c.yours;
  ${podBlock('c',c.id)}`}
 const placeActions=p=>`<div class="pl-act">${favBtn('lugares',p.id,'sm')}${stampBtn('lugares',p.id,'sm')}</div>`;
 function setRating(id,n){save(s=>{if(!n||s.ratings[id]===n)delete s.ratings[id];else s.ratings[id]=n})}
-return {requireAccount,registerAction:CUENTA.register,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
- routes:{mihoja:vMiHoja,cata:vCata,maridajes:vMaridajes,podcast:vPodcast,buscar:vBuscar,eventos:vEventos,actividades:vEventos},
+return {requireAccount,gate,registerAction:CUENTA.register,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
+ routes:{mihoja:vMiHoja,cata:cid=>requireAccount(()=>vCata(cid),{fast:true}),maridajes:vMaridajes,podcast:vPodcast,buscar:vBuscar,eventos:vEventos,actividades:vEventos},
  _test:{HANDLE_RE,CLERK,icsFor,parseHora,pairing,pideloLink,cardBlob,badgeIds,passCounts,load,KEY}};
 };

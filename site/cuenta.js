@@ -30,9 +30,11 @@ async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;failure=
   fail('Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
  hook(C);
  if(!live(op,from,C))return;
+ /* una acción en sitio (corazón, sello, estrella) no espera a la red: con sesión abierta y el perfil de ese mismo usuario guardado, se hace al instante */
+ if(o.fast&&C.user){const c0=D.store.get();if(c0&&c0.sub===C.user.id){D.intent.clear();return done()}}
  if(!C.user){D.store.clear();
   if(o.resume){D.intent.clear();return}
-  pending={go:done,o,from};if(o.act)D.intent.set({from,act:o.act});
+  pending={go:done,o,from};if(o.act)D.intent.set(typeof o.arg==='string'?{from,act:o.act,arg:o.arg}:{from,act:o.act});
   const open=()=>D.openSignIn(C);
   show('Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta. El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.',{label:'Entrar o crear cuenta',on:open});
   open();return}
@@ -65,6 +67,6 @@ function onboard(C,done,o,op,from,uid){ob=true;
   return {error:r.body.error||'generic'}})}
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
 function resume(){const it=D.intent.get();
- if(it&&it.from===D.here()&&ACT[it.act])return go(ACT[it.act],{inPlace:true,resume:true,act:it.act});
+ if(it&&it.from===D.here()&&ACT[it.act]){const arg=typeof it.arg==='string'?it.arg:undefined;return go(()=>ACT[it.act](arg),{inPlace:true,resume:true,act:it.act,arg,fast:true})}
  D.intent.clear()}
 return {require:go,resume,register:(name,fn)=>{ACT[name]=fn}}};
