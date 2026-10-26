@@ -153,7 +153,7 @@ async function api(C,method,path,body,uid){const t=await C.session.getToken();if
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}
-const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','age-required':'Tienes que confirmar que tienes 21 años o más.','bio-long':'La descripción puede tener hasta 160 caracteres.','display_name-long':'El nombre puede tener hasta 50 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.','recheck':'Tu perfil ya existe, pero no pudimos abrirlo. Intenta otra vez.','avatar-required':'Pon una foto para crear tu perfil.','avatar-invalid':'No pudimos usar esa foto. Escoge otra.','avatar-type':'Escoge un archivo de imagen, una foto.','avatar-upload':'No pudimos subir la foto. Intenta otra vez.'};
+const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','age-required':'Tienes que confirmar que tienes 21 años o más.','bio-long':'La descripción puede tener hasta 160 caracteres.','display_name-long':'El nombre puede tener hasta 50 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.','recheck':'Tu perfil ya existe, pero no pudimos abrirlo. Intenta otra vez.','avatar-required':'Pon una foto para crear tu perfil.','avatar-invalid':'No pudimos usar esa foto. Escoge otra.','avatar-type':'Escoge un archivo de imagen, una foto.','avatar-upload':'No pudimos subir la foto. Intenta otra vez.','avatar-busy':'Espera a que termine lo que está en curso e intenta otra vez.'};
 function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));
  view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Tu <em>perfil</em></h1></header>
  <form class="form" id="obForm" novalidate>
@@ -172,10 +172,11 @@ function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos|
  let own=false;
  const showPic=()=>{const u=picture.url(),v=$('#obPv');v.textContent='';if(u){const im=document.createElement('img');im.alt='Tu foto de perfil';im.src=u;v.appendChild(im)}else v.textContent='+';
   $('#obPb').textContent=u?'Cambiar foto':'Elegir foto';$('#obPh').textContent=u?(own?'Listo, esta es tu foto.':'Usamos la foto de tu cuenta. Puedes escoger otra.'):'Para crear tu perfil necesitas una foto. Escoge una de tu teléfono.'};
- const busy=b=>{$('#obGo').disabled=b;$('#obPb').disabled=b};
+ /* una sola operación a la vez: mientras se sube la foto o se crea el perfil, ni el botón de foto ni el de crear responden */
+ let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;$('#obPb').disabled=b};
  showPic();
  $('#obPb').onclick=()=>$('#obPf').click();
- $('#obPf').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+ $('#obPf').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||working)return;
   if(!/^image\//.test(f.type))return err(OB_ERR['avatar-type']);
   err('');busy(true);let r;
   try{const b=await A.resizeImage(f,512,.85);r=await picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))}catch(x){r={error:'avatar-type'}}
@@ -183,13 +184,13 @@ function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos|
   busy(false);if(r.error)return err(OB_ERR[r.error]||OB_ERR['avatar-upload']);
   own=true;showPic()};
  $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length};
- form.onsubmit=async e=>{e.preventDefault();const h=$('#obH').value.trim().toLowerCase();
+ form.onsubmit=async e=>{e.preventDefault();if(working)return;const h=$('#obH').value.trim().toLowerCase();
   if(!picture.url())return err(OB_ERR['avatar-required']);
   if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid']);if(!$('#obAge').checked)return err(OB_ERR['age-required']);
-  err('');$('#obGo').disabled=true;
+  err('');busy(true);
   let r;try{r=await submit({handle:h,display_name:$('#obN').value,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
   if(!r||r.stale||$('#obForm')!==form)return;
-  $('#obGo').disabled=false;if(r.error)err(OB_ERR[r.error]||'No pudimos crear tu perfil. Intenta otra vez.')}}
+  busy(false);if(r.error)err(OB_ERR[r.error]||'No pudimos crear tu perfil. Intenta otra vez.')}}
 const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast,closeAll:closeSheetNow}});
 /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
 const requireAccount=(go,o)=>CUENTA.require(go,o);

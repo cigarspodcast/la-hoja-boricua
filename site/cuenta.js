@@ -62,20 +62,26 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
    Una foto de Clerk que no se subió ni se importó (la silueta de siempre) tiene hasImage en false y no cuenta. Sin foto no se manda el perfil. */
 const CLERK_IMG='https://img.clerk.com/';
 const picOf=U=>U&&U.hasImage===true&&typeof U.imageUrl==='string'&&U.imageUrl.startsWith(CLERK_IMG)?U.imageUrl:null;
+/* las subidas van de una en una aunque el formulario se cierre y se abra otro: la cuenta de Clerk es una sola, y si dos escrituras corrieran a la vez no se sabría cuál dejó la URL que se lee */
+let uq=Promise.resolve();
 function onboard(C,done,o,lv,uid){ob=true;
- const U=C.user;let pic=picOf(U),up=0;
+ const U=C.user;let pic=picOf(U),up=0,pend=0,sending=false;
  /* url() es la foto puesta ahora; upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva) */
- const picture={url:()=>pic,upload:async file=>{
-  if(!lv(C,uid))return {stale:true};
-  if(!file||typeof file.type!=='string'||!/^image\//.test(file.type))return {error:'avatar-type'};
-  const n=++up;
-  try{await U.setProfileImage({file})}catch(e){return lv(C,uid)&&n===up?{error:'avatar-upload'}:{stale:true}}
-  /* la subida ya quedó en Clerk: si recargar la cuenta falla, igual se lee lo que trae */
-  try{if(typeof U.reload==='function')await U.reload()}catch(e){}
-  if(!lv(C,uid)||n!==up)return {stale:true};
-  const p=picOf(U);if(!p)return {error:'avatar-upload'};
-  pic=p;return {url:p}}};
- D.ui.onboarding(async f=>{
+ const picture={url:()=>pic,upload:file=>{
+  if(!lv(C,uid))return Promise.resolve({stale:true});
+  if(sending)return Promise.resolve({error:'avatar-busy'});
+  if(!file||typeof file.type!=='string'||!/^image\//.test(file.type))return Promise.resolve({error:'avatar-type'});
+  const n=++up,cur=()=>lv(C,uid)&&n===up;pend++;
+  const job=uq.then(async()=>{try{
+   if(!cur())return {stale:true};
+   try{await U.setProfileImage({file})}catch(e){return cur()?{error:'avatar-upload'}:{stale:true}}
+   /* la URL nueva solo se lee de una cuenta recargada después de esta escritura; si no se pudo recargar no hay con qué confirmar y se queda la foto de antes */
+   try{if(typeof U.reload!=='function')throw 0;await U.reload()}catch(e){return cur()?{error:'avatar-upload'}:{stale:true}}
+   if(!cur())return {stale:true};
+   const p=picOf(U);if(!p)return {error:'avatar-upload'};
+   pic=p;return {url:p}}finally{pend--}});
+  uq=job.catch(()=>{});return job}};
+ const send=async f=>{
   /* el formulario puede seguir en pantalla después de un cambio de cuenta: no se manda nada a nombre de otra persona */
   if(!lv(C,uid))return {stale:true};
   if(!pic)return {error:'avatar-required'};
@@ -92,7 +98,12 @@ function onboard(C,done,o,lv,uid){ob=true;
    if(!lv(C,uid))return {stale:true};
    if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
    return {error:'recheck'}}
-  return {error:r.body.error||'generic'}},picture)}
+  return {error:r.body.error||'generic'}};
+ /* un envío y una subida nunca corren a la vez: lo que se manda es la foto que se ve, y la que se sube no llega tarde a un perfil ya enviado */
+ D.ui.onboarding(async f=>{
+  if(!lv(C,uid))return {stale:true};
+  if(pend||sending)return {error:'avatar-busy'};
+  sending=true;try{return await send(f)}finally{sending=false}},picture)}
 /* acción en sitio: pasa por la misma puerta que Mi Hoja (con el perfil de ese usuario ya guardado no espera a la red). Si el usuario toca otra acción antes de que
    termine la revisión, vale la última: cada toque es una sola acción y corre una vez o ninguna. */
 const quick=(done,o)=>go(done,{...o,inPlace:true,fast:true,quick:true});

@@ -896,23 +896,57 @@ test('LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la U
  for(const bad of [null,undefined,{},{type:'text/plain'},{type:'application/pdf'},{type:'image'},{type:5}]){u=mkUser();o=await ONB(u);assert.deepEqual(await o.picture.upload(bad),{error:'avatar-type'},JSON.stringify(bad));assert.equal(u.sets.length,0,'no se sube lo que no es imagen');assert.equal(o.picture.url(),null)}
  u=mkUser({async setProfileImage(){throw new Error('413')}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'});assert.equal(o.picture.url(),null);assert.deepEqual(await o.submit(),{error:'avatar-required'},'sin foto subida no hay perfil');assert.deepEqual(o.posts,[]);
  u=mkUser({async reload(){}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'},'Clerk no dejó foto (hasImage sigue en false)');assert.equal(o.picture.url(),null);
- u=mkUser({async reload(){throw new Error('red')},async setProfileImage(a){u.sets.push(a);u.hasImage=true;u.imageUrl=AV2}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{url:AV2},'si recargar falla pero la cuenta ya trae la foto, vale');
+ u=mkUser({async reload(){throw new Error('red')},async setProfileImage(a){u.sets.push(a);u.hasImage=true;u.imageUrl=AV2}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'},'si no se pudo recargar la cuenta no hay con qué confirmar la foto nueva');assert.equal(o.picture.url(),null);
+ u=mkUser({hasImage:true,imageUrl:AV,async reload(){throw new Error('red')}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'},'la recarga falla y el objeto sigue con la foto de antes: eso no confirma la nueva');assert.equal(o.picture.url(),AV,'se queda la foto de antes');assert.deepEqual(await o.submit(),{ok:true});assert.equal(o.posts[0].avatar_url,AV,'y esa es la que se manda');assert.equal(u.sets.length,1,'la prueba sí subió el archivo');
+ u=mkUser({reload:undefined});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'},'una cuenta sin reload tampoco confirma');
  u=mkUser({async setProfileImage(a){u.sets.push(a);u.hasImage=true;u.imageUrl='https://evil.example/x.png'},async reload(){}});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'},'una URL que no es de Clerk no se acepta');assert.equal(o.picture.url(),null);
  u=mkUser({hasImage:true,imageUrl:AV});o=await ONB(u);assert.equal(o.picture.url(),AV);assert.deepEqual(await o.picture.upload(f),{url:AV2},'quien trae foto de su cuenta puede escoger otra');assert.deepEqual(await o.submit(),{ok:true});assert.equal(o.posts[0].avatar_url,AV2);
  u=mkUser({async setProfileImage(){throw new Error('x')},hasImage:true,imageUrl:AV});o=await ONB(u);assert.deepEqual(await o.picture.upload(f),{error:'avatar-upload'});assert.equal(o.picture.url(),AV,'una subida que falla no quita la foto que ya tenía');
 });
 test('LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario',async()=>{
  const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9',AV3='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMyJ9';
- const gate=defer();let n=0;
- const u={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){n++;if(n===1)await gate.p},async reload(){u.hasImage=true;u.imageUrl=n>=2?AV3:AV2}};
- let o=await ONB(u);const p1=o.picture.upload(IMG('a.jpg'));await tick();const r2=await o.picture.upload(IMG('b.jpg'));
- assert.deepEqual(r2,{url:AV3},'la segunda subida es la que vale');gate.ok();assert.deepEqual(await p1,{stale:true},'la primera, ya superada, se descarta');assert.equal(o.picture.url(),AV3);
+ const gate=defer();let n=0,act=0,maxAct=0;
+ const u={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){n++;act++;maxAct=Math.max(maxAct,act);if(n===1)await gate.p;act--},async reload(){u.hasImage=true;u.imageUrl=n>=2?AV3:AV2}};
+ let o=await ONB(u);const p1=o.picture.upload(IMG('a.jpg'));await tick();const p2=o.picture.upload(IMG('b.jpg'));const p3=o.picture.upload(IMG('c.jpg'));await tick();
+ assert.equal(n,1,'las subidas nuevas esperan su turno: Clerk recibe una escritura a la vez');gate.ok();
+ assert.deepEqual(await p1,{stale:true},'la primera, ya superada, se descarta');assert.deepEqual(await p2,{stale:true},'la de en medio, superada antes de empezar, se descarta');assert.deepEqual(await p3,{url:AV3},'la última subida es la que vale');assert.equal(o.picture.url(),AV3);
+ assert.equal(maxAct,1,'nunca dos escrituras a la vez');assert.equal(n,2,'la de en medio ni siquiera se escribe en Clerk');
  const g2=defer();const u2={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){await g2.p},async reload(){u2.hasImage=true;u2.imageUrl=AV2}};
  o=await ONB(u2);const q=o.picture.upload(IMG('a.jpg'));await tick();o.h.C.signIn('user_b');g2.ok();assert.deepEqual(await q,{stale:true},'cambió la cuenta durante la subida');assert.equal(o.picture.url(),null,'la foto de la otra cuenta no se adopta');
  const g3=defer();const u3={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){await g3.p},async reload(){u3.hasImage=true;u3.imageUrl=AV2}};
  o=await ONB(u3);const w=o.picture.upload(IMG('a.jpg'));await tick();o.h.nav('#/catalogo');g3.ok();assert.deepEqual(await w,{stale:true},'el usuario se fue de la pantalla');assert.equal(o.picture.url(),null);
  const g4=defer();const u4={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){await g4.p;throw new Error('x')},async reload(){}};
  o=await ONB(u4);const z=o.picture.upload(IMG('a.jpg'));await tick();o.h.C.signIn('user_b');g4.ok();assert.deepEqual(await z,{stale:true},'un error de otra cuenta tampoco se le muestra a esta pantalla');
+});
+test('LHB-49: una subida que sigue en curso cuando se cierra el formulario no le pone su foto al formulario nuevo: las subidas van en orden aunque cambie la pantalla',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9',AV3='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMyJ9';
+ const gA=defer();let w=0,act=0,maxAct=0,last=null;const ord=[];
+ const u={id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage({file}){const k=++w;ord.push('start:'+file.name);act++;maxAct=Math.max(maxAct,act);if(k===1)await gA.p;last=file.name;ord.push('end:'+file.name);act--},async reload(){u.hasImage=true;u.imageUrl=last==='a.jpg'?AV2:AV3}};
+ const pics=[];const h=CUENTA_HARNESS({api:async(C,m,p,b)=>m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:b.handle}}}});
+ h.D.ui.onboarding=(s,p)=>pics.push({s,p});h.C.user=u;await h.A.require(h.go);await tick();
+ const a1=pics[0].p.upload(IMG('a.jpg'));await tick();
+ h.nav('#/catalogo');await tick();h.nav('#/mihoja');await h.A.require(h.go);await tick();
+ assert.equal(pics.length,2,'se abrió otro formulario mientras la primera subida seguía en curso');
+ const b2=pics[1].p.upload(IMG('b.jpg'));await tick();
+ assert.deepEqual(ord,['start:a.jpg'],'la subida del formulario nuevo espera a que termine la anterior');gA.ok();
+ assert.deepEqual(await a1,{stale:true},'la del formulario cerrado no cambia nada');assert.deepEqual(await b2,{url:AV3},'la URL que se lee es la de la subida nueva, no la que dejó la vieja');
+ assert.equal(pics[1].p.url(),AV3);assert.equal(pics[0].p.url(),null,'y el formulario cerrado no adopta nada');
+ assert.deepEqual(ord,['start:a.jpg','end:a.jpg','start:b.jpg','end:b.jpg']);assert.equal(maxAct,1);
+ assert.deepEqual(await pics[1].s({handle:'ana',display_name:'',bio:'',favorite_brand:''}),{ok:true});
+});
+test('LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';
+ const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV2}};
+ let o=await ONB(u);const up=o.picture.upload(IMG('a.jpg'));await tick();
+ assert.deepEqual(await o.submit(),{error:'avatar-busy'},'con una subida en curso no se envía');assert.deepEqual(o.posts,[]);
+ g.ok();assert.deepEqual(await up,{url:AV2});assert.deepEqual(await o.submit(),{ok:true});assert.equal(o.posts[0].avatar_url,AV2,'terminada la subida se manda la foto nueva');
+ const gp=defer();const u2={id:'user_a',hasImage:true,imageUrl:AV,sets:0,async setProfileImage(){u2.sets++},async reload(){u2.imageUrl=AV2}};
+ o=await ONB(u2,()=>gp.p);const s=o.submit();await tick();
+ assert.deepEqual(await o.picture.upload(IMG('b.jpg')),{error:'avatar-busy'},'con el envío en curso no se cambia la foto');assert.equal(u2.sets,0,'ni se toca la cuenta de Clerk');
+ gp.ok({status:201,body:{profile:{handle:'ana'}}});assert.deepEqual(await s,{ok:true});assert.equal(o.posts.length,1);assert.equal(o.posts[0].avatar_url,AV,'lo enviado es la foto que se veía');
+ const u3={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){},async reload(){u3.imageUrl=AV2}};
+ o=await ONB(u3,()=>({status:409,body:{error:'handle-taken'}}));assert.deepEqual(await o.submit(),{error:'handle-taken'});
+ assert.deepEqual(await o.picture.upload(IMG('c.jpg')),{url:AV2},'si el envío falla el formulario sigue vivo y la foto se puede cambiar');
 });
 test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL',()=>{
  const h=read('hoja.js'),app=read('app.js'),css=read('styles.css'),cu=read('cuenta.js'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');
@@ -922,7 +956,11 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(form.includes("A.resizeImage(f,512,.85)")&&form.includes("picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))"),'se achica antes de subir');
  const a=form.indexOf("picture.url())return err(OB_ERR['avatar-required'])");assert.ok(a>0&&a<form.indexOf('HANDLE_RE.test(h)'),'la foto se pide primero al enviar');
  assert.ok(/id="obPb"/.test(form)&&form.includes("'Cambiar foto':'Elegir foto'")&&form.includes('Usamos la foto de tu cuenta'),'la foto de la cuenta se anuncia y se puede cambiar');
- for(const k of ['avatar-required','avatar-invalid','avatar-type','avatar-upload'])assert.ok(h.includes("'"+k+"':'"),'mensaje de '+k);
+ for(const k of ['avatar-required','avatar-invalid','avatar-type','avatar-upload','avatar-busy'])assert.ok(h.includes("'"+k+"':'"),'mensaje de '+k);
+ assert.ok(form.includes("let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;$('#obPb').disabled=b};"),'una sola operación a la vez: el botón de foto y el de crear se apagan juntos');
+ assert.ok(form.includes("e.preventDefault();if(working)return;")&&/err\(''\);busy\(true\);\s*let r;try\{r=await submit\(/.test(form)&&form.includes("busy(false);if(r.error)err("),'el envío toma y suelta el mismo candado');
+ assert.ok(/if\(!f\|\|working\)return;/.test(form),'y una foto escogida mientras algo corre se ignora');
+ assert.ok(cu.includes('let uq=Promise.resolve();')&&cu.includes('uq.then(async()=>{try{')&&cu.includes('uq=job.catch(()=>{})'),'las subidas van en cola, una a la vez');
  assert.ok(app.includes('vPerfil,resizeImage,hydrate:'),'app.js le pasa resizeImage a Mi Hoja');
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');

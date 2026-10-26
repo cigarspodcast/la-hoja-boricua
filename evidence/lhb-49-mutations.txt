@@ -22,7 +22,7 @@ M8 servidor: la respuesta 201 no trae la foto -> ROJO (bien) fail=1
 M9 gate: se manda el perfil aunque no haya foto -> ROJO (bien) fail=2
       LHB-49: sin foto no se crea el perfil: no se manda nada al servidor, y el error del servidor también llega al formulario
       LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
-M10 gate: la silueta de Clerk (hasImage false) cuenta como foto -> ROJO (bien) fail=4
+M10 gate: la silueta de Clerk (hasImage false) cuenta como foto -> ROJO (bien) fail=5
       LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan
       LHB-49: sin foto no se crea el perfil: no se manda nada al servidor, y el error del servidor también llega al formulario
       LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
@@ -32,17 +32,21 @@ M11 gate: cualquier URL cuenta como foto -> ROJO (bien) fail=2
       LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
 M12 gate: se sube cualquier archivo, no solo imágenes -> ROJO (bien) fail=1
       LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
-M13 gate: no se manda avatar_url -> ROJO (bien) fail=3
+M13 gate: no se manda avatar_url -> ROJO (bien) fail=4
       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
       LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan
+      LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto
       LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
 M14 gate: una subida superada sí cambia la foto -> ROJO (bien) fail=1
       LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
-M15 gate: una subida de otra cuenta sí cambia la foto -> ROJO (bien) fail=1
+M15 gate: una subida de otra cuenta sí cambia la foto -> ROJO (bien) fail=2
       LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
-M16 gate: no se recarga la cuenta tras subir -> ROJO (bien) fail=2
+      LHB-49: una subida que sigue en curso cuando se cierra el formulario no le pone su foto al formulario nuevo: las subidas van en orden aunque cambie la
+M16 gate: no se recarga la cuenta tras subir -> ROJO (bien) fail=4
+      LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto
       LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
       LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
+      LHB-49: una subida que sigue en curso cuando se cierra el formulario no le pone su foto al formulario nuevo: las subidas van en orden aunque cambie la
 M17 gate: un error de subida de otra cuenta llega a esta pantalla -> ROJO (bien) fail=1
       LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
 M18 formulario: la foto no se pide antes del @ -> ROJO (bien) fail=1
@@ -58,5 +62,24 @@ M22 sw: la versión del caché no cambia -> ROJO (bien) fail=14
       artisan logos: every id in LOGOS maps to an existing webp and a real artisan
       v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)
       v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño
+M23 gate: las subidas ya no van en cola -> ROJO (bien) fail=3
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
+      LHB-49: una subida que sigue en curso cuando se cierra el formulario no le pone su foto al formulario nuevo: las subidas van en orden aunque cambie la
+M24 gate: una recarga que falla se da por buena -> ROJO (bien) fail=1
+      LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto
+M25 gate: se puede subir mientras se envía -> ROJO (bien) fail=1
+      LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto
+M26 gate: se puede enviar mientras se sube -> ROJO (bien) fail=1
+      LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto
+M27 gate: una subida superada ya en cola igual escribe -> ROJO (bien) fail=1
+      LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario
+M28 formulario: se puede enviar mientras algo corre -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M29 formulario: el botón de foto sigue activo mientras algo corre -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+M30 formulario: el envío no toma el candado -> ROJO (bien) fail=1
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
 restaurado (0, [])
-mutaciones: 22 sobrevivieron o con error: 0
+mutaciones: 30 sobrevivieron o con error: 0
+exit 0
