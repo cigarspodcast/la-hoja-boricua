@@ -1,0 +1,53 @@
+[Certain] Restored intents remain unsafe across a second sign-in attempt. Three BLOCKING defects are reproduced.
+
+**BLOCKING**
+
+1. **A saved action belonging to A can run for B.** In [cuenta.js:99](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:99), retry options overwrite the restored owner with the current account:
+
+   ```js
+   {...o,act:last.act,arg:last.arg,more:mine.slice(0,-1),uid}
+   ```
+
+   Reproduction: restore an intent with `uid:'user_a'` while B is signed in without a cached profile; return 401 from `/api/me`; sign out and press “Entrar.” The newly saved intent contains `uid:'user_b'`. Restore that intent as B with a successful account check: A’s action executes. The original owner must survive every retry, and a mismatched owner must be rejected before rebuilding the intent.
+
+2. **A second Google redirect loses earlier restored actions.** The same retry construction replaces the restored list:
+
+   ```js
+   more:mine.slice(0,-1)
+   ```
+
+   Reproduction: restore `{act:'fav',arg:'two',more:[{act:'fav',arg:'one'}],uid:'user_a'}` as A; return 401; sign out and press “Entrar.” The resulting saved intent contains only `two`, without `more`. A subsequent redirect permanently loses `one`. Preserve the complete restored batch through retry serialization.
+
+3. **A later tap cancels an earlier action during its automatic retry.** [cuenta.js:99](/C:/Users/Owner/la-hoja-boricua/site/cuenta.js:99) sends each failed warm batch into the shared operation counter:
+
+   ```js
+   return go(()=>w.items.forEach(/* ... */), /* ... */)
+   ```
+
+   `go()` starts with:
+
+   ```js
+   const from=D.here(),op=++seq;
+   ```
+
+   Reproduction on the same public page and account, without a cached profile:
+
+   - First tap’s warm check returns 503; hold its subsequent `go()` account check.
+   - Second tap’s warm check returns 503; let its subsequent account check succeed.
+   - Release the first tap’s account check successfully.
+
+   Observed callbacks: `['second']`. Expected: both actions once. The second retry increments `seq` and invalidates the first batch. Pending batches must remain represented until completed or explicitly abandoned.
+
+**NON-BLOCKING**
+
+- [Certain] Verification: the repository suite ran **71/72**, with every LHB-48 test passing. The remaining failure concerns [site.test.js:275](/C:/Users/Owner/la-hoja-boricua/test/site.test.js:275):
+
+  ```js
+  assert.equal(py.stdout.trim(), /* ... */)
+  ```
+
+  Python execution returned `spawnSync python EPERM`, leaving `stdout` undefined. This is an environment limitation, not a blocking finding against this change. The three reproductions above used the current `cuenta.js` and existing harness.
+
+- [Certain] **CONCUR** with the round 6 response to finding #1: I have no reachable reproduction through the app’s account UI supporting that earlier rejection.
+
+VERDICT: BLOCK

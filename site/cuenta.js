@@ -71,36 +71,49 @@ function onboard(C,done,o,op,from,uid){ob=true;
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}})}
 /* acción en sitio (corazón, sello, estrella, humidor): no usa la cuenta atrás de go(), así que varios toques seguidos no se cancelan entre sí.
-   Con sesión abierta y el perfil guardado de esa misma persona se hace al instante; sin perfil guardado, todos esperan una sola revisión compartida (warm) y,
-   si sale bien, todos se hacen (aunque el teléfono no deje guardar el perfil); si sale mal, cada acción en espera pasa por go() con todas juntas
-   (la última sustituye a las anteriores, que traen la misma lista), para el aviso, la creación del perfil o el reintento. Sin sesión, los toques hechos mientras
-   Clerk carga forman un solo lote (outBatch): una sola hoja de entrar, y al entrar corren todos, también al volver de Google (el lote viaja en lo guardado).
-   gen cuenta los cambios de cuenta y no lo mueven los toques: si cambia mientras se espera (Clerk, la revisión), la acción se descarta y nunca corre para otra
-   persona; si la página cambia mientras se espera, también. Una acción que espera un reintento explícito (aviso con botón) sigue siendo de la misma persona
-   que la empezó (uid): si entra otra persona, no se hace. */
-let gen=0,warming=null,outBatch=null;
-function warm(C,uid,item){
- if(warming&&warming.uid===uid){warming.items.push(item);return warming}
- const items=[item],g=gen;
+   Todas las acciones que esperan (la revisión compartida, la hoja de entrar, un reintento) viven en una sola lista (pool); cuando algo pasa por go(), lo que corre
+   al terminar es la lista entera de esa persona y esa página, así que da igual cuál go() sea el último. Cada una conserva a su dueño:
+   - con sesión y el perfil guardado de esa misma persona: al instante;
+   - sin perfil guardado: todas esperan una sola revisión compartida (warm); si sale bien corren todas (aunque el teléfono no deje guardar el perfil); si sale mal
+     pasan por go() juntas (aviso, creación del perfil, reintento);
+   - sin sesión: los toques hechos mientras Clerk carga forman un lote (hasta diez, los mismos diez que viajan en lo guardado): una sola hoja de entrar y al entrar corren
+     todos, también al volver de Google. Un lote al que ya se le mostró la hoja y se dejó sin entrar no se mezcla con el toque siguiente.
+   gen cuenta los cambios de cuenta y no lo mueven los toques: si cambia mientras se espera, esa acción se descarta; si la página cambia, también. Una acción
+   restaurada trae su dueño (uid): si quien está es otra persona, se descarta y se borra lo guardado. Lo que lleva más de dos minutos esperando se descarta. */
+let gen=0,warming=null,pool=[];
+const bye=i=>{const k=pool.indexOf(i);if(k>=0)pool.splice(k,1)};
+const mineOf=(from,uid)=>pool.filter(i=>i.from===from&&(uid===null?i.uid===null:(i.uid===uid&&(i.owner===undefined||i.owner===uid))));
+const runPool=()=>{const mine=pool.filter(i=>i.from===D.here()&&(i.uid===null||(i.uid===lastId&&(i.owner===undefined||i.owner===lastId))));mine.forEach(i=>{bye(i);safe(i.done)})};
+/* las opciones de go() para esa lista: la última acción como principal y las anteriores en "more", en el orden en que llegaron */
+const withList=(o,items,uid)=>{const list=cleanList(items.flatMap(i=>[...(Array.isArray(i.more)?i.more:[]),{act:i.act,arg:i.arg}]),10),last=list[list.length-1];
+ return last?{...o,act:last.act,arg:last.arg,more:list.slice(0,-1),uid}:{...o,uid}};
+function warm(C,uid){
+ if(warming&&warming.uid===uid)return warming;
+ const g=gen;
  const p=(async()=>{let r;try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){return {ok:false}}
   const ok=r.status===200&&!!r.body.profile;if(ok&&gen===g&&C.user&&C.user.id===uid)cache({sub:uid,handle:r.body.profile.handle});return {ok}})();
- const w={uid,p,items};warming=w;p.then(()=>{if(warming===w)warming=null});return w}
-async function quick(done,o){o=o||{};const from=D.here(),g0=gen,item={done,from,uid:null,act:o.act,arg:o.arg};let C;
- try{C=await D.clerk()}catch(e){if(D.here()!==from||gen!==g0)return;if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
+ const w={uid,p};warming=w;p.then(()=>{if(warming===w)warming=null});return w}
+async function quick(done,o){o=o||{};const from=D.here(),g0=gen,now=Date.now();
+ pool=pool.filter(i=>!(i.uid===null&&i.shown)&&now-i.t<120000);
+ if(pool.filter(i=>i.uid===null).length>=10)return;
+ const item={done,from,uid:null,owner:typeof o.uid==='string'?o.uid:undefined,act:o.act,arg:o.arg,more:o.more,shown:false,t:now};pool.push(item);
+ let C;
+ try{C=await D.clerk()}catch(e){if(D.here()!==from||gen!==g0)return;bye(item);if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
  hook(C);if(D.here()!==from||gen!==g0)return;
  const uid=C.user?C.user.id:null;
- if(!uid){if(!outBatch){outBatch=[];Promise.resolve().then(()=>{outBatch=null})}const b=outBatch;if(b.length>=10)return;b.push(item);
-  return go(()=>b.forEach(i=>{if(i.from===D.here())safe(i.done)}),{...o,more:b.slice(0,-1)})}
- const c=D.store.get();if(c&&c.sub===uid){D.intent.clear();return done()}
- item.uid=uid;const w=warm(C,uid,item),r=await w.p;
+ if(!uid){
+  const mine=mineOf(from,null);await go(runPool,withList(o,mine));mine.forEach(i=>{i.shown=true});return}
+ if(item.owner!==undefined&&item.owner!==uid){bye(item);D.intent.clear();return}
+ item.uid=uid;
+ const c=D.store.get();if(c&&c.sub===uid){bye(item);D.intent.clear();return done()}
+ const w=warm(C,uid),r=await w.p;
  if(gen!==g0||D.here()!==from)return;
- if(r.ok){D.intent.clear();return done()}
- const mine=w.items.filter(i=>i.from===D.here()&&i.uid===lastId),last=mine[mine.length-1]||item;
- return go(()=>w.items.forEach(i=>{if(i.from===D.here()&&i.uid===lastId)safe(i.done)}),{...o,act:last.act,arg:last.arg,more:mine.slice(0,-1),uid})}
+ if(r.ok){bye(item);D.intent.clear();return done()}
+ return go(runPool,withList(o,mineOf(from,uid),uid))}
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
 function resume(){const it=D.intent.get();
  const list=it&&it.from===D.here()?[...cleanList(it.more),...cleanList([{act:it.act,arg:it.arg}],1)]:[];
  if(list.length){const last=list[list.length-1],uid=typeof it.uid==='string'?it.uid:undefined;
-  return quick(()=>{if(uid!==undefined&&uid!==lastId)return;list.forEach(m=>safe(()=>ACT[m.act](m.arg)))},{inPlace:true,resume:true,act:last.act,arg:last.arg,more:list.slice(0,-1),uid})}
+  return quick(()=>{list.forEach(m=>safe(()=>ACT[m.act](m.arg)))},{inPlace:true,resume:true,act:last.act,arg:last.arg,more:list.slice(0,-1),uid})}
  D.intent.clear()}
 return {require:go,quick,resume,gen:()=>gen,register:(name,fn)=>{ACT[name]=fn}}};

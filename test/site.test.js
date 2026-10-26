@@ -737,6 +737,23 @@ test('LHB-48: más de diez toques mientras carga Clerk: el lote acepta diez, los
  const ap=read('app.js');
  assert.ok(/const onFile=async e=>\{const f=e\.target\.files&&e\.target\.files\[0\];if\(!f\)return;const G=EXT\.accountGen\(\),form=\$\('#upForm'\);try\{const b=await resizeImage\(f\);if\(EXT\.accountGen\(\)!==G\|\|\$\('#upForm'\)!==form\)return;pendingPhoto=b;/.test(ap),'la foto elegida se descarta si cambió la cuenta o el formulario mientras se preparaba');
 });
+test('LHB-48: lo restaurado conserva a su dueño y toda su lista en cada reintento; dos reintentos seguidos se conservan entre sí',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ // una acción de A restaurada cuando ya es B: no corre, no pide nada y se borra lo guardado
+ let calls=0;const a=CUENTA_HARNESS({api:async()=>{calls++;return prof()}});a.nav('#/c/yambo-toro');const ra=[];a.A.register('fav',x=>ra.push(x));
+ a.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'x',uid:'user_a'});a.C.user={id:'user_b'};await a.A.resume();for(let i=0;i<6;i++)await tick();
+ assert.deepEqual(ra,[],'la acción de A no corre para B');assert.equal(a.intent(),null,'y se borra lo guardado');assert.equal(calls,0,'sin tocar la red');
+ // restaurada como A y con 401: al pulsar Entrar se guarda de nuevo con las dos acciones y el mismo dueño
+ let ok=false;const b=CUENTA_HARNESS({api:async()=>ok?await prof():{status:401,body:{}}});b.nav('#/c/yambo-toro');b.A.register('fav',()=>{});
+ b.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'dos',more:[{act:'fav',arg:'uno'}],uid:'user_a'});b.C.user={id:'user_a'};await b.A.resume();for(let i=0;i<8;i++)await tick();
+ b.C.signIn(null);await tick();ok=true;b.notice().on();await tick();
+ assert.deepEqual(b.intent(),{from:'#/c/yambo-toro',act:'fav',arg:'dos',uid:'user_a',more:[{act:'fav',arg:'uno'}]},'el reintento conserva la lista completa y a su dueño');
+ // dos toques cuyas revisiones fallan una tras otra: el segundo reintento no borra al primero
+ let n=0,rel;const hold=new Promise(r=>{rel=r});const c=CUENTA_HARNESS({api:async()=>{n++;if(n===1||n===3)return {status:503,body:{}};if(n===2){await hold;return prof()}return prof()}});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};
+ const rc=[];c.A.quick(()=>rc.push('uno'),{inPlace:true,act:'fav'});for(let i=0;i<6;i++)await tick();
+ c.A.quick(()=>rc.push('dos'),{inPlace:true,act:'fav'});for(let i=0;i<8;i++)await tick();rel();for(let i=0;i<6;i++)await tick();
+ assert.deepEqual(rc.slice().sort(),['dos','uno'],'las dos acciones corren, una vez cada una');
+});
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));
  assert.ok(seg.includes("await idb.put('perfil',b)")&&seg.includes("toast(tt('pf.fotoOk'));route();topAvatar()"),'tras guardar la foto se llama route()');assert.ok(!/fotoOk'\)\);vPerfil\(\)/.test(seg),'no se repinta el perfil sin pasar por la puerta');
