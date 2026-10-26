@@ -1,0 +1,12 @@
+1. [Certain] **BLOCKING**: `site/hoja.js:183` and `site/hoja.js:192`. **R2-1: MAINTAIN.** The buttons unlock, but the mounted form remains unusable: `"busy(false);return"` retains callbacks whose `lv` is permanently false. `site/cuenta.js:27` requires the original operation number; lines 71 and 104 return `{stale:true}` on every subsequent attempt.
+
+   Reproduction: open onboarding through **Al humidor** on a public cigar page; start an upload; use **+ → Añadir al humidor** again and make that second `/api/me` request return 503. Finish the first upload and dismiss the error sheet. Choosing another image or submitting valid fields silently does nothing. The same defect follows a stale submit. The guards prevent an incorrect POST, but the enabled form cannot complete.
+
+   Change the still-mounted stale path to explicitly recheck the account and replace or recover the form with fresh callbacks. Preserve same-account input where appropriate; keep the `lv` guards. This reproduction is statically established, not browser-executed here.
+
+[Certain] **R2-2: CONCUR** on the separate unlock pins at `test/site.test.js:965`. They adequately detect removal of those unlocks, but do not establish recovery. A dependency-free behavioral test can evaluate the real `onboardingForm` with a selector-to-fake-element map, deferred operations, and the existing `CUENTA_HARNESS`; invoke both handlers through invalidation and retry. The permitted suite passed **84/84**. M31–M34 and the owner’s browser check are **NOT VERIFIED** here.
+
+[Certain] L1/L2 accurately describe the implemented trust boundary, not proof of ownership or a real picture; the claimed necessity of a secret key is **NOT VERIFIED**. L3 deliberately retains and submits the previous selection (`test/site.test.js:900`), without proving its continued availability. L4’s two characters exist in `a34e48a`. L5’s separate owner escalation is **NOT VERIFIED**.
+
+[Certain] There is only one finding, so no two findings share a cause.
+VERDICT: BLOCK

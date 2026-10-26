@@ -49,6 +49,12 @@ MUTS = [
     ('M32 formulario: un envío invalidado con el formulario en pantalla deja todo apagado', 'site/hoja.js', "catch(x){r={error:'generic'}}" + "\n" + "  if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}", "catch(x){r={error:'generic'}}" + "\n" + "  if($('#obForm')!==form)return;if(!r||r.stale){return}"),
     ('M33 formulario: terminada la subida los botones quedan apagados', 'site/hoja.js', "busy(false);if(r.error)return err(", "if(r.error)return err("),
     ('M34 formulario: terminado el envío con error los botones quedan apagados', 'site/hoja.js', "busy(false);if(r.error)err(OB_ERR[r.error]||'No pudimos", "if(r.error)err(OB_ERR[r.error]||'No pudimos"),
+    # ronda 3 de Codex: un formulario que sigue en pantalla después de que otra acción falló se puede terminar
+    ('M35 gate: un formulario reemplazado por otro sigue valiendo', 'site/cuenta.js', "(mine===formSeq&&ob&&", "(ob&&"),
+    ('M36 gate: una acción más nueva en vuelo no se descarta al crear el perfil', 'site/cuenta.js', "if(!lv(C,uid)){if(o.inPlace)sip++;else seq++}", "if(!lv(C,uid)){}"),
+    ('M37 gate: un formulario invalidado por una acción que falló queda muerto', 'site/cuenta.js', "||(mine===formSeq&&ob&&vis===vis0&&D.here()===here0&&!!C.user&&C.user.id===uid);", ";"),
+    ('M38 gate: el formulario vivo sobrevive a un cambio de página', 'site/cuenta.js', "&&D.here()===here0&&", "&&"),
+    ('M39 gate: el formulario vivo sobrevive a un cambio de cuenta', 'site/cuenta.js', "&&!!C.user&&C.user.id===uid);", "&&true);"),
 ]
 
 def main():

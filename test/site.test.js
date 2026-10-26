@@ -948,6 +948,40 @@ test('LHB-49: mientras se sube una foto no se envía el perfil, y mientras se en
  o=await ONB(u3,()=>({status:409,body:{error:'handle-taken'}}));assert.deepEqual(await o.submit(),{error:'handle-taken'});
  assert.deepEqual(await o.picture.upload(IMG('c.jpg')),{url:AV2},'si el envío falla el formulario sigue vivo y la foto se puede cambiar');
 });
+test('LHB-49: si otra acción toca después y falla, el formulario de perfil que sigue en pantalla se puede terminar (subir foto y crear); uno reemplazado por otro, no',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';
+ const mk=(second,over)=>{const pics=[],posts=[],ran=[];let gets=0;
+  const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){},async reload(){u.hasImage=true;u.imageUrl=AV2}};
+  const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{if(m==='GET'){gets++;return gets===1?{status:200,body:{needsProfile:true}}:second(gets)}posts.push(b);return {status:201,body:{profile:{handle:b.handle}}}},...over});
+  h.nav('#/c/yambo-toro');h.D.ui.onboarding=(s,p)=>pics.push({s,p});h.C.user=u;
+  return {h,pics,posts,ran,u,A:()=>h.A.quick(()=>ran.push('A'),{inPlace:true,act:'a'}),B:()=>h.A.quick(()=>ran.push('B'),{inPlace:true,act:'b'})}};
+ const F={handle:'ana',display_name:'',bio:'',favorite_brand:''};
+ /* 1. la acción nueva falla con un 503 y solo abre un aviso: el formulario viejo sigue vivo */
+ let x=mk(()=>({status:503,body:{}}));x.A();await tick();x.B();await tick();
+ assert.equal(x.pics.length,1,'un solo formulario');assert.ok(x.h.log.some(l=>l.startsWith('notice:')),'la acción nueva falló y avisó');
+ assert.deepEqual(await x.pics[0].p.upload(IMG('a.jpg')),{url:AV2},'el formulario que sigue en pantalla todavía puede subir la foto');
+ assert.deepEqual(await x.pics[0].s(F),{ok:true},'y crear el perfil');assert.equal(x.posts.length,1);assert.equal(x.posts[0].avatar_url,AV2);assert.deepEqual(x.ran,['A'],'la acción del formulario corrió una vez');
+ /* 2. la acción nueva sigue en vuelo cuando se crea el perfil: la del formulario corre una vez y la que estaba en vuelo se descarta */
+ const d=defer();x=mk(()=>d.p);x.A();await tick();x.B();await tick();
+ assert.deepEqual(await x.pics[0].s(F),{ok:true});assert.deepEqual(x.ran,['A']);d.ok({status:200,body:{profile:{handle:'ana'}}});await tick();
+ assert.deepEqual(x.ran,['A'],'la acción más nueva, que seguía en vuelo, no corre además de la del formulario');
+ /* 3. la acción nueva abre su propio formulario: el viejo ya no vale */
+ x=mk(()=>({status:200,body:{needsProfile:true}}));x.A();await tick();x.B();await tick();
+ assert.equal(x.pics.length,2,'la acción nueva abrió otro formulario');
+ assert.deepEqual(await x.pics[0].s(F),{stale:true},'el formulario reemplazado no manda nada');assert.deepEqual(x.posts,[]);
+ assert.deepEqual(await x.pics[0].p.upload(IMG('a.jpg')),{stale:true},'ni sube');
+ assert.deepEqual(await x.pics[1].s(F),{ok:true},'el último formulario sí vale');assert.equal(x.posts.length,1);
+ /* 4. aunque el formulario siga vivo, un cambio de cuenta o de página lo descarta */
+ x=mk(()=>({status:503,body:{}}));x.A();await tick();x.B();await tick();x.h.C.signIn('user_b');
+ assert.deepEqual(await x.pics[0].s(F),{stale:true},'otra cuenta');assert.deepEqual(x.posts,[]);
+ x=mk(()=>({status:503,body:{}}));x.A();await tick();x.B();await tick();x.h.nav('#/catalogo');
+ assert.deepEqual(await x.pics[0].s(F),{stale:true},'otra página');assert.deepEqual(x.posts,[]);
+ /* 5. la página y la cuenta se revisan por sí solas, aunque no llegue el aviso de navegación ni el de cuenta */
+ let hash='#/c/yambo-toro';x=mk(()=>({status:503,body:{}}),{here:()=>hash});x.A();await tick();x.B();await tick();hash='#/catalogo';
+ assert.deepEqual(await x.pics[0].s(F),{stale:true},'otra página sin aviso de navegación');assert.deepEqual(await x.pics[0].p.upload(IMG('a.jpg')),{stale:true});assert.deepEqual(x.posts,[]);
+ x=mk(()=>({status:503,body:{}}));x.A();await tick();x.B();await tick();x.h.C.user={id:'user_b'};
+ assert.deepEqual(await x.pics[0].s(F),{stale:true},'otra cuenta sin aviso de cuenta');assert.deepEqual(x.posts,[]);
+});
 test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL',()=>{
  const h=read('hoja.js'),app=read('app.js'),css=read('styles.css'),cu=read('cuenta.js'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');
  assert.ok(h.includes('function onboardingForm(submit,picture){'),'el formulario recibe la foto');
