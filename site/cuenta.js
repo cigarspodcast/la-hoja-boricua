@@ -26,7 +26,7 @@ async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;failure=
  let C;
  try{C=await D.clerk()}catch(e){
   if(op!==seq||D.here()!==from)return;
-  if(D.store.get())return done();
+  if(D.store.get()){D.intent.clear();return done()}
   fail('Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
  hook(C);
  if(!live(op,from,C))return;
@@ -43,7 +43,7 @@ async function go(done,o){o=o||{};const from=D.here(),op=++seq;ob=false;failure=
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,op,from,uid);
  if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
  const c=D.store.get();
- if(c&&c.sub===uid&&(r.status===0||r.status>=500))return done();
+ if(c&&c.sub===uid&&(r.status===0||r.status>=500)){D.intent.clear();return done()}
  fail('No pudimos revisar tu cuenta','Intenta otra vez en un momento.')}
 function onboard(C,done,o,op,from,uid){ob=true;
  D.ui.onboarding(async f=>{

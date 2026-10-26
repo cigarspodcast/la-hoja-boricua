@@ -483,6 +483,14 @@ test('LHB-25: una hoja nueva no la borra el temporizador de cierre de la anterio
  assert.ok(fn('closeSheetNow').startsWith('function closeSheetNow(){clearTimeout(closeT);'),'cerrar al instante cancela el cierre pendiente');
  assert.ok(fn('closeSheet').includes('clearTimeout(closeT);closeT=setTimeout('),'el cierre con animación guarda su temporizador');
 });
+test('LHB-25: entrar con el perfil guardado (sin conexi\u00f3n) consume la acci\u00f3n guardada; al recargar no se repite',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));
+ const run=async(over,label)=>{const g=CUENTA_HARNESS(over);g.nav('#/c/yambo-toro');g.cache({sub:'user_a',handle:'ana'});g.C.user={id:'user_a'};g.A.register('humidor',g.go);g.setIntent({from:'#/c/yambo-toro',act:'humidor'});
+  await g.A.resume();await tick();assert.deepEqual(g.log.filter(x=>x==='GO'),['GO'],label+': la acci\u00f3n corre una vez');assert.equal(g.intent(),null,label+': la acci\u00f3n guardada se consume')};
+ await run({api:async()=>({status:503,body:{}})},'servidor ca\u00eddo');
+ await run({api:async()=>({status:0,body:{}})},'sin red');
+ await run({clerk:async()=>{throw new Error('offline')}},'Clerk no carga');
+});
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));
  assert.ok(seg.includes("await idb.put('perfil',b)")&&seg.includes("toast(tt('pf.fotoOk'));route();topAvatar()"),'tras guardar la foto se llama route()');assert.ok(!/fotoOk'\)\);vPerfil\(\)/.test(seg),'no se repinta el perfil sin pasar por la puerta');

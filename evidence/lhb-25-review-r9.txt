@@ -1,0 +1,40 @@
+[Certain] The cached-profile fallback can replay an already completed action after a reload.
+
+**BLOCKING**
+
+1. **The offline success paths do not consume the saved action.** In `site/cuenta.js`:
+
+   ```js
+   if(D.store.get())return done();
+   ```
+
+   ```js
+   if(c&&c.sub===uid&&(r.status===0||r.status>=500))return done();
+   ```
+
+   Both execute `done()` without clearing the intent. On the next page load, this code executes the saved action again:
+
+   ```js
+   if(it&&it.from===D.here()&&ACT[it.act])
+     return go(ACT[it.act],{inPlace:true,resume:true,act:it.act});
+   ```
+
+   Reproduction: save a named intent and matching cached profile, register its callback, and resume with `/api/me` returning 503. Recreate the account controller with the same storage and resume again. The callback executes twice. Clerk-load failure has the same result. The normal 200 path executes once because it calls `D.intent.clear()`.
+
+   [Certain] Isolated execution of the supplied code confirmed those results. This affects the pinned in-place action contract, which the prompt identifies as currently unused by feature call sites.
+
+   Clear the intent before `done()` in both fallback paths. Add regression coverage asserting that successful fallback consumes the intent and a subsequent page load does not repeat the action.
+
+**NON-BLOCKING**
+
+- [Certain] **CONCUR with the supplied prior fixes**, based on the corrected code:
+  - Round 4: `if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}` exposes failures and preserves the callback.
+  - Round 5: `go(done,{...o,resume:false})` makes explicit retry interactive.
+  - Round 6a: `seq++;D.ui.closeAll()` closes editors on account changes.
+  - Round 6b: `try{D.store.set(v)}catch(e){}` protects successful entry from cache-write failure; the form catches unexpected submission errors.
+  - Round 7: `if(!id&&fl&&fl.from===D.here())D.ui.notice(...)` restores the interrupted action’s entry control.
+  - Round 8: `clearTimeout(closeT)` in `sheet()` and `closeSheetNow()`, together with `closeT=setTimeout(...)`, addresses the stale close timer.
+
+- [Certain] **Verification limitation:** the local command runner failed before reading repository files or executing tests. The reported 57/57 suite and mutation results were not independently rerun. Real sign-up through `C.openSignIn(...)`, complete router coverage, and use of `requireProfile()` by every applicable API remain **NOT VERIFIED**. The isolated reproduction above is corroboration, not repository or browser integration proof.
+
+VERDICT: BLOCK
