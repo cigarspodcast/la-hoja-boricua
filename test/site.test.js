@@ -622,6 +622,33 @@ test('LHB-48: varias acciones seguidas en sitio no se cancelan; una sola revisi�
  const w=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});w.nav('#/c/yambo-toro');w.C.user={id:'user_b'};w.cache({sub:'user_a',handle:'ana'});
  await w.A.quick(w.go,{inPlace:true,act:'fav'});await tick();assert.ok(!w.log.includes('GO'),'otra persona con el servidor caído: no corre');
 });
+test('LHB-48: si la revisión compartida falla todas las acciones en espera se conservan juntas; guardar el perfil no es requisito; otra persona no recibe la acción de la anterior',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ // la revisión compartida falla (503) y el reintento sale bien: las dos acciones corren, una vez cada una
+ let calls=0;const a=CUENTA_HARNESS({api:async()=>{calls++;return calls===1?{status:503,body:{}}:prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};
+ const ran=[];a.A.quick(()=>ran.push('uno'),{inPlace:true,act:'fav',arg:'x'});a.A.quick(()=>ran.push('dos'),{inPlace:true,act:'fav',arg:'y'});
+ for(let i=0;i<6;i++)await tick();
+ assert.deepEqual(ran.slice().sort(),['dos','uno'],'las dos acciones se conservan y corren una vez');assert.equal(calls,2,'una revisión compartida y una sola reintentada, no una por toque');
+ // el teléfono no deja guardar el perfil: la revisión salió bien, las dos corren igual
+ let nb=0;const b=CUENTA_HARNESS({api:async()=>{nb++;return prof()},store:{get:()=>null,set:()=>{throw new Error('quota')},clear:()=>{}}});b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};
+ const rb=[];b.A.quick(()=>rb.push(1),{inPlace:true,act:'fav'});b.A.quick(()=>rb.push(2),{inPlace:true,act:'fav'});for(let i=0;i<6;i++)await tick();
+ assert.deepEqual(rb.slice().sort(),[1,2],'sin poder guardar el perfil, las dos corren');assert.equal(nb,1,'con una sola revisión, sin reintentos');
+ // cambia la cuenta mientras se espera a Clerk: la acción de A no corre para B
+ let release;const waitClerk=new Promise(r=>{release=r});let first=true;
+ const c=CUENTA_HARNESS({api:prof,clerk:async()=>{if(first){first=false;return c.C}await waitClerk;return c.C}});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};
+ await c.A.quick(()=>{},{inPlace:true,act:'fav'});for(let i=0;i<4;i++)await tick();// instala el aviso de cambios de cuenta
+ const rc=[];c.A.quick(()=>rc.push('de A'),{inPlace:true,act:'fav'});await tick();c.C.signIn('user_b');c.cache({sub:'user_b',handle:'bea'});release();for(let i=0;i<6;i++)await tick();
+ assert.deepEqual(rc,[],'la acción que empezó A no corre cuando ya es B');
+ // cambia la cuenta mientras se espera la revisión compartida: la acción de A no corre
+ let rel;const hold=new Promise(r=>{rel=r});const d=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});d.nav('#/c/yambo-toro');d.C.user={id:'user_a'};
+ const rd=[];d.A.quick(()=>rd.push('de A'),{inPlace:true,act:'fav'});await tick();d.C.signIn('user_b');rel();for(let i=0;i<6;i++)await tick();
+ assert.deepEqual(rd,[],'la acción de A, esperando la revisión, no corre cuando ya es B');
+ // salir y volver a entrar con la misma cuenta mientras se espera: la acción de antes no se cuela en la lista del reintento
+ let rel4;const hold4=new Promise(r=>{rel4=r});let n4=0;const e=CUENTA_HARNESS({api:async()=>{n4++;if(n4===1){await hold4;return {status:503,body:{}}}return prof()}});e.nav('#/c/yambo-toro');e.C.user={id:'user_a'};
+ const re=[];e.A.quick(()=>re.push('antes'),{inPlace:true,act:'fav'});await tick();e.C.signIn(null);e.C.signIn('user_a');await tick();
+ e.A.quick(()=>re.push('despues'),{inPlace:true,act:'fav'});await tick();rel4();for(let i=0;i<8;i++)await tick();
+ assert.deepEqual(re,['despues'],'solo corre la acción de la sesión vigente');
+});
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));
  assert.ok(seg.includes("await idb.put('perfil',b)")&&seg.includes("toast(tt('pf.fotoOk'));route();topAvatar()"),'tras guardar la foto se llama route()');assert.ok(!/fotoOk'\)\);vPerfil\(\)/.test(seg),'no se repinta el perfil sin pasar por la puerta');

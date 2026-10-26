@@ -1,0 +1,55 @@
+[Certain] Two blocking defects remain in `quick()`.
+
+**BLOCKING**
+
+1. **Concurrent actions still cancel each other after the shared check fails.**
+
+   Exact code, `site/cuenta.js`:
+   ```js
+   if(!(c&&c.sub===uid)){await warm(C,uid);if(!C.user||C.user.id!==uid||D.here()!==from)return;c=D.store.get()}
+   if(c&&c.sub===uid){D.intent.clear();return done()}
+   return go(done,o)
+   ```
+   The fallback reintroduces the shared cancellation counter:
+   ```js
+   const from=D.here(),op=++seq;
+   ```
+
+   **Reproduction:** signed-in user, no cached profile; invoke two concurrent `quick()` calls for different actions. Make the shared `/api/me` return 503, then subsequent requests return a valid profile.
+
+   **Observed in isolated execution:** only the second action runs. Both calls enter `go()`, and the second invalidates the first. A successful shared check with a throwing cache setter also loses the first action.
+
+   Preserve each waiting action through fallback and retry without making successful cache persistence a requirement. **Prior tap-loss finding: MAINTAIN.**
+
+2. **An action can execute for another account if the account changes while Clerk is awaited.**
+
+   Exact code, `site/cuenta.js`:
+   ```js
+   async function quick(done,o){o=o||{};const from=D.here();let C;
+    try{C=await D.clerk()}catch(e){if(D.here()!==from)return;if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
+    hook(C);if(D.here()!==from)return;
+    const uid=C.user?C.user.id:null;if(!uid)return go(done,o);
+   ```
+
+   `uid` is captured **after** the wait. The account listener increments `seq`, but `quick()` never checks that invalidation.
+
+   **Reproduction:** initialize the gate as user A so its listener is installed. Defer the next `D.clerk()` resolution, start an action as A, switch to B, then resolve Clerk. Return B’s valid profile from `/api/me`.
+
+   **Observed in isolated execution:** A’s callback runs while B is current, and B’s profile is cached.
+
+   Capture an account-change generation before awaiting Clerk and verify it after asynchronous boundaries. Use a generation that concurrent taps do not invalidate. **Prior wrong-person finding: MAINTAIN.**
+
+**NON-BLOCKING**
+
+- [Certain] **CONCUR** with the editor and inherited-ID corrections:
+  ```js
+  r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'
+  ```
+  ```js
+  id in Object.prototype
+  ```
+  **CONCUR** with removal of the queue and eight-second timeout. Those mechanisms are absent from the supplied current gate.
+
+- [Certain] **Verification limitation:** shell startup failed with `helper_unknown_error: setup refresh had errors`. The reproductions above executed the supplied `cuenta.js` in an isolated harness. Working-tree identity, the 65-test result, mutation artifacts, and browser sign-in behaviour remain **NOT VERIFIED** independently.
+
+VERDICT: BLOCK

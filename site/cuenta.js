@@ -12,7 +12,7 @@ const live=(op,from,C,uid)=>op===seq&&D.here()===from&&(uid===undefined||(!!C.us
 const cache=v=>{try{D.store.set(v)}catch(e){}};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
- C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;D.ui.closeAll();
+ C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;gen++;D.ui.closeAll();
   if(!id){D.store.clear();D.intent.clear()}
   const p=pending;pending=null;const fl=failure;failure=null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
@@ -66,21 +66,26 @@ function onboard(C,done,o,op,from,uid){ob=true;
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}})}
 /* acción en sitio (corazón, sello, estrella, humidor): no usa la cuenta atrás de go(), así que varios toques seguidos no se cancelan entre sí.
-   Con sesión abierta y el perfil guardado de esa misma persona se hace al instante; sin perfil guardado, todos esperan una sola revisión compartida (warm);
-   sin sesión o sin perfil se pasa por go() (hoja de entrar, creación del perfil, errores). Si la persona o la página cambian mientras se espera, la acción se descarta. */
-let warming=null;
-function warm(C,uid){if(warming&&warming.uid===uid)return warming.p;
- const p=(async()=>{let r;try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){return}
-  if(r.status===200&&r.body.profile&&C.user&&C.user.id===uid)cache({sub:uid,handle:r.body.profile.handle})})();
- warming={uid,p};p.then(()=>{if(warming&&warming.p===p)warming=null});return p}
-async function quick(done,o){o=o||{};const from=D.here();let C;
+   Con sesión abierta y el perfil guardado de esa misma persona se hace al instante; sin perfil guardado, todos esperan una sola revisión compartida (warm) y,
+   si sale bien, todos se hacen (aunque el teléfono no deje guardar el perfil); si sale mal, cada acción en espera que sigue vigente pasa por go() con todas juntas
+   (la última sustituye a las anteriores, que traen la misma lista), para el aviso, la creación del perfil o el reintento. gen cuenta los cambios de cuenta y no lo mueven los toques: si cambia mientras se espera
+   (Clerk, la revisión), la acción se descarta y nunca corre para otra persona. Si la página cambia mientras se espera, también se descarta. */
+let gen=0,warming=null;
+function warm(C,uid,item){
+ if(warming&&warming.uid===uid){warming.items.push(item);return warming}
+ const items=[item];
+ const p=(async()=>{let r;try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){return {ok:false}}
+  const ok=r.status===200&&!!r.body.profile;if(ok)cache({sub:uid,handle:r.body.profile.handle});return {ok}})();
+ const w={uid,p,items};warming=w;p.then(()=>{if(warming===w)warming=null});return w}
+async function quick(done,o){o=o||{};const from=D.here(),g0=gen;let C;
  try{C=await D.clerk()}catch(e){if(D.here()!==from)return;if(D.store.get()){D.intent.clear();return done()}return go(done,o)}
- hook(C);if(D.here()!==from)return;
+ hook(C);if(D.here()!==from||gen!==g0)return;
  const uid=C.user?C.user.id:null;if(!uid)return go(done,o);
- let c=D.store.get();
- if(!(c&&c.sub===uid)){await warm(C,uid);if(!C.user||C.user.id!==uid||D.here()!==from)return;c=D.store.get()}
- if(c&&c.sub===uid){D.intent.clear();return done()}
- return go(done,o)}
+ const c=D.store.get();if(c&&c.sub===uid){D.intent.clear();return done()}
+ const w=warm(C,uid,{done,from,g:g0}),r=await w.p;
+ if(gen!==g0||D.here()!==from)return;
+ if(r.ok){D.intent.clear();return done()}
+ return go(()=>w.items.forEach(i=>{if(i.from===D.here()&&i.g===gen)i.done()}),o)}
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
 function resume(){const it=D.intent.get();
  if(it&&it.from===D.here()&&ACT[it.act]){const arg=typeof it.arg==='string'?it.arg:undefined;return go(()=>ACT[it.act](arg),{inPlace:true,resume:true,act:it.act,arg,fast:true})}
