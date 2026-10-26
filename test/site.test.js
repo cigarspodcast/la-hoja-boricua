@@ -582,115 +582,9 @@ test('LHB-48: al cambiar la cuenta, #/cata y #/subir vuelven a pasar por la puer
  const p=CUENTA_HARNESS({});p.nav('#/podcast');p.C.user={id:'user_a'};await p.A.require(p.go,{inPlace:true,fast:true});await tick();p.log.length=0;p.C.signIn(null);await tick();
  assert.ok(!p.log.includes('reroute'),'una página abierta no se repinta al salir de la cuenta');
 });
-test('LHB-48: varias acciones seguidas en sitio no se cancelan; una sola revisión compartida; se descartan si cambia la persona o la página',async()=>{
- const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- // con perfil guardado: al instante, sin red, todas
- let n=0;const a=CUENTA_HARNESS({api:async()=>{n++;return prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};a.cache({sub:'user_a',handle:'ana'});a.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'x'});
- a.A.quick(a.go,{inPlace:true,act:'fav',arg:'x'});a.A.quick(a.go,{inPlace:true,act:'fav',arg:'y'});await tick();assert.equal(a.intent(),null,'consume la acción guardada');
- assert.deepEqual(a.log.filter(x=>x==='GO'),['GO','GO'],'dos toques, dos acciones');assert.equal(n,0,'sin pedir /api/me');
- // sin perfil guardado: una sola revisión para todos, y todos corren
- let m=0;let release;const gate=new Promise(r=>{release=r});const b=CUENTA_HARNESS({api:async()=>{m++;await gate;return prof()}});b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};
- b.A.quick(b.go,{inPlace:true,act:'fav',arg:'x'});b.A.quick(b.go,{inPlace:true,act:'fav',arg:'y'});b.A.quick(b.go,{inPlace:true,act:'fav',arg:'z'});await tick();
- assert.ok(!b.log.includes('GO'),'mientras se revisa no corre nada');release();await tick();await tick();
- assert.deepEqual(b.log.filter(x=>x==='GO'),['GO','GO','GO'],'al terminar corren las tres');assert.equal(m,1,'con una sola revisión compartida');
- // cambia la persona mientras se espera: se descarta, no corre para la otra
- let rel2;const g2=new Promise(r=>{rel2=r});const c=CUENTA_HARNESS({api:async()=>{await g2;return prof()}});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};
- c.A.quick(c.go,{inPlace:true,act:'fav',arg:'x'});await tick();c.C.signIn('user_b');rel2();await tick();await tick();
- assert.ok(!c.log.includes('GO'),'una acción de la persona anterior no corre para la nueva');
- // cambia la página mientras se espera: se descarta
- let rel3;const g3=new Promise(r=>{rel3=r});const d=CUENTA_HARNESS({api:async()=>{await g3;return prof()}});d.nav('#/c/yambo-toro');d.C.user={id:'user_a'};
- d.A.quick(d.go,{inPlace:true,act:'fav',arg:'x'});await tick();d.nav('#/artesanos');rel3();await tick();await tick();
- assert.ok(!d.log.includes('GO'),'si la página cambió, la acción no corre');
- // sin sesión: hoja de entrar y la acción guardada con su argumento
- const e=CUENTA_HARNESS({});e.nav('#/c/yambo-toro');await e.A.quick(e.go,{inPlace:true,act:'fav',arg:'cigarros:yambo-toro'});await tick();
- assert.ok(e.log.includes('open')&&!e.log.includes('GO'),'sin sesión abre la hoja de entrar y no hace nada todavía');assert.deepEqual(e.intent(),{from:'#/c/yambo-toro',act:'fav',arg:'cigarros:yambo-toro'});
- // el servidor dice que no hay perfil: crea el perfil, no corre la acción
- const f=CUENTA_HARNESS({api:async()=>({status:200,body:{needsProfile:true}})});f.nav('#/c/yambo-toro');f.C.user={id:'user_a'};await f.A.quick(f.go,{inPlace:true,act:'fav',arg:'x'});await tick();
- assert.ok(f.log.includes('onboarding')&&!f.log.includes('GO'),'sin perfil se pide el perfil primero');
- // 401: no corre, avisa
- const h=CUENTA_HARNESS({api:async()=>({status:401,body:{}})});h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};await h.A.quick(h.go,{inPlace:true,act:'fav',arg:'x'});await tick();
- assert.ok(!h.log.includes('GO')&&h.log.some(x=>x.startsWith('notice')),'un 401 no deja pasar y avisa');
- // Clerk no carga: con perfil guardado corre una vez y consume la acción; sin perfil guardado avisa
- const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('offline')}});k.nav('#/c/yambo-toro');k.cache({sub:'user_a',handle:'ana'});k.setIntent({from:'#/c/yambo-toro',act:'fav'});
- await k.A.quick(k.go,{inPlace:true,act:'fav'});await tick();assert.deepEqual(k.log.filter(x=>x==='GO'),['GO']);assert.equal(k.intent(),null);
- const l=CUENTA_HARNESS({clerk:async()=>{throw new Error('offline')}});l.nav('#/c/yambo-toro');await l.A.quick(l.go,{inPlace:true,act:'fav'});await tick();
- assert.ok(!l.log.includes('GO')&&l.log.some(x=>x.startsWith('notice')),'sin Clerk y sin perfil guardado no pasa y avisa');
- // el perfil guardado de otra persona no sirve: se revisa con el servidor
- let q=0;const o=CUENTA_HARNESS({api:async()=>{q++;return prof()}});o.nav('#/c/yambo-toro');o.C.user={id:'user_b'};o.cache({sub:'user_a',handle:'ana'});
- await o.A.quick(o.go,{inPlace:true,act:'fav'});await tick();assert.equal(q,1);assert.deepEqual(o.log.filter(x=>x==='GO'),['GO']);
- // y si el servidor no responde, el perfil guardado de otra persona tampoco deja pasar
- const w=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});w.nav('#/c/yambo-toro');w.C.user={id:'user_b'};w.cache({sub:'user_a',handle:'ana'});
- await w.A.quick(w.go,{inPlace:true,act:'fav'});await tick();assert.ok(!w.log.includes('GO'),'otra persona con el servidor caído: no corre');
-});
-test('LHB-48: si la revisión compartida falla todas las acciones en espera se conservan juntas; guardar el perfil no es requisito; otra persona no recibe la acción de la anterior',async()=>{
- const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- // la revisión compartida falla (503) y el reintento sale bien: las dos acciones corren, una vez cada una
- let calls=0;const a=CUENTA_HARNESS({api:async()=>{calls++;return calls===1?{status:503,body:{}}:prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};
- const ran=[];a.A.quick(()=>ran.push('uno'),{inPlace:true,act:'fav',arg:'x'});a.A.quick(()=>ran.push('dos'),{inPlace:true,act:'fav',arg:'y'});
- for(let i=0;i<6;i++)await tick();
- assert.deepEqual(ran.slice().sort(),['dos','uno'],'las dos acciones se conservan y corren una vez');assert.equal(calls,2,'una revisión compartida y una sola reintentada, no una por toque');
- // el teléfono no deja guardar el perfil: la revisión salió bien, las dos corren igual
- let nb=0;const b=CUENTA_HARNESS({api:async()=>{nb++;return prof()},store:{get:()=>null,set:()=>{throw new Error('quota')},clear:()=>{}}});b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};
- const rb=[];b.A.quick(()=>rb.push(1),{inPlace:true,act:'fav'});b.A.quick(()=>rb.push(2),{inPlace:true,act:'fav'});for(let i=0;i<6;i++)await tick();
- assert.deepEqual(rb.slice().sort(),[1,2],'sin poder guardar el perfil, las dos corren');assert.equal(nb,1,'con una sola revisión, sin reintentos');
- // cambia la cuenta mientras se espera a Clerk: la acción de A no corre para B
- let release;const waitClerk=new Promise(r=>{release=r});let first=true;
- const c=CUENTA_HARNESS({api:prof,clerk:async()=>{if(first){first=false;return c.C}await waitClerk;return c.C}});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};
- await c.A.quick(()=>{},{inPlace:true,act:'fav'});for(let i=0;i<4;i++)await tick();// instala el aviso de cambios de cuenta
- const rc=[];c.A.quick(()=>rc.push('de A'),{inPlace:true,act:'fav'});await tick();c.C.signIn('user_b');c.cache({sub:'user_b',handle:'bea'});release();for(let i=0;i<6;i++)await tick();
- assert.deepEqual(rc,[],'la acción que empezó A no corre cuando ya es B');
- // cambia la cuenta mientras se espera la revisión compartida: la acción de A no corre
- let rel;const hold=new Promise(r=>{rel=r});const d=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});d.nav('#/c/yambo-toro');d.C.user={id:'user_a'};
- const rd=[];d.A.quick(()=>rd.push('de A'),{inPlace:true,act:'fav'});await tick();d.C.signIn('user_b');rel();for(let i=0;i<6;i++)await tick();
- assert.deepEqual(rd,[],'la acción de A, esperando la revisión, no corre cuando ya es B');
- // salir y volver a entrar con la misma cuenta mientras se espera: la misma persona conserva sus acciones en el reintento
- let rel4;const hold4=new Promise(r=>{rel4=r});let n4=0;const e=CUENTA_HARNESS({api:async()=>{n4++;if(n4===1){await hold4;return {status:503,body:{}}}return prof()}});e.nav('#/c/yambo-toro');e.C.user={id:'user_a'};
- const re=[];e.A.quick(()=>re.push('antes'),{inPlace:true,act:'fav'});await tick();e.C.signIn(null);e.C.signIn('user_a');await tick();
- e.A.quick(()=>re.push('despues'),{inPlace:true,act:'fav'});await tick();rel4();for(let i=0;i<8;i++)await tick();
- assert.deepEqual(re,['antes','despues'],'la misma persona que vuelve a entrar conserva sus acciones en espera');
-});
-test('LHB-48: sin sesión, los toques hechos mientras carga Clerk forman un lote: una hoja de entrar y al entrar corren todos, también al volver de Google',async()=>{
- const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- let release;const slow=new Promise(r=>{release=r});
- const mk=()=>{let first=true;const g=CUENTA_HARNESS({api:prof,clerk:async()=>{await slow;return g.C}});return g};
- const g=mk();g.nav('#/c/yambo-toro');g.A.register('fav',a=>ran.push(a));const ran=[];
- g.A.quick(()=>ran.push('uno'),{inPlace:true,act:'fav',arg:'cigarros:uno'});g.A.quick(()=>ran.push('dos'),{inPlace:true,act:'fav',arg:'cigarros:dos'});
- release();for(let i=0;i<6;i++)await tick();
- assert.equal(g.log.filter(x=>x==='open').length,1,'una sola hoja de entrar');
- assert.deepEqual(g.intent(),{from:'#/c/yambo-toro',act:'fav',arg:'cigarros:dos',more:[{act:'fav',arg:'cigarros:uno'}]},'lo guardado para volver de Google lleva las dos acciones');
- g.C.signIn('user_a');for(let i=0;i<8;i++)await tick();
- assert.deepEqual(ran,['uno','dos'],'al entrar corren las dos, en orden');
- // al volver de Google: se retoman las dos, una vez
- const back=[];const h=CUENTA_HARNESS({api:prof});h.nav('#/c/yambo-toro');h.A.register('fav',a=>back.push(a));h.A.register('stamp',a=>back.push('s:'+a));
- h.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'cigarros:dos',more:[{act:'fav',arg:'cigarros:uno'},{act:'nope',arg:'x'},{act:'stamp',arg:'lugares:l1'},{act:'fav',arg:{x:1}}]});h.C.user={id:'user_a'};
- await h.A.resume();await tick();
- assert.deepEqual(back,['cigarros:uno','s:lugares:l1',undefined,'cigarros:dos'],'solo acciones registradas, en orden, con argumentos de texto');assert.equal(h.intent(),null);
- // lo que se guarda para volver de Google solo lleva acciones registradas: ni desconocidas ni nombres heredados
- let rel2;const slow2=new Promise(r=>{rel2=r});const m=CUENTA_HARNESS({api:prof,clerk:async()=>{await slow2;return m.C}});m.nav('#/c/yambo-toro');m.A.register('fav',()=>{});
- m.A.quick(()=>{},{inPlace:true,act:'nope',arg:'x'});m.A.quick(()=>{},{inPlace:true,act:'constructor',arg:'x'});m.A.quick(()=>{},{inPlace:true,act:'__proto__',arg:'x'});m.A.quick(()=>{},{inPlace:true,act:'fav',arg:'a'});
- rel2();for(let i=0;i<6;i++)await tick();
- assert.deepEqual(m.intent(),{from:'#/c/yambo-toro',act:'fav',arg:'a'},'solo acciones registradas viajan en lo guardado');
- // un intento abandonado no se mezcla con el siguiente
- const k=CUENTA_HARNESS({api:prof});k.nav('#/c/yambo-toro');const rk=[];
- await k.A.quick(()=>rk.push('abandonada'),{inPlace:true,act:'fav'});await tick();
- await k.A.quick(()=>rk.push('nueva'),{inPlace:true,act:'fav'});await tick();k.C.signIn('user_a');for(let i=0;i<8;i++)await tick();
- assert.deepEqual(rk,['nueva'],'la hoja que se cerró sin entrar no deja su acción para después');
-});
-test('LHB-48: una respuesta tardía no devuelve el acceso después de salir; un reintento explícito de la misma persona conserva la acción y otra persona no la recibe',async()=>{
- const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- // salir mientras se revisa: la respuesta tardía no guarda el perfil
- let rel;const hold=new Promise(r=>{rel=r});const a=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};
- a.A.quick(()=>{},{inPlace:true,act:'fav'});await tick();a.C.signIn(null);rel();for(let i=0;i<6;i++)await tick();
- assert.ok(!a.log.some(x=>x.startsWith('store:')),'una respuesta de antes de salir no guarda el perfil');
- // 401, salir, Entrar, volver como la misma persona: la acción corre una vez
- const run=async who=>{let ok=false;const x=CUENTA_HARNESS({api:async()=>ok?await prof():{status:401,body:{}}});x.nav('#/c/yambo-toro');x.C.user={id:'user_a'};const ran=[];
-  x.A.quick(()=>ran.push('a'),{inPlace:true,act:'fav'});for(let i=0;i<6;i++)await tick();
-  x.C.signIn(null);await tick();ok=true;const n=x.notice();n.on();await tick();x.C.signIn(who);for(let i=0;i<8;i++)await tick();return ran};
- assert.deepEqual(await run('user_a'),['a'],'la misma persona que vuelve a entrar conserva su acción');
- assert.deepEqual(await run('user_b'),[],'otra persona no recibe la acción de la anterior');
-});
 test('LHB-48: una subida de fotos empezada por una persona no se guarda cuando ya es otra',()=>{
  const ap=read('app.js');
+ assert.ok(/const onFile=async e=>\{const f=e\.target\.files&&e\.target\.files\[0\];if\(!f\)return;const G=EXT\.accountGen\(\),form=\$\('#upForm'\);try\{const b=await resizeImage\(f\);if\(EXT\.accountGen\(\)!==G\|\|\$\('#upForm'\)!==form\)return;pendingPhoto=b;/.test(ap),'la foto elegida se descarta si cambió la cuenta o el formulario mientras se preparaba');
  assert.ok(/const G=EXT\.accountGen\(\),form=\$\('#upForm'\);if\(pendingPhoto\)\{foto='foto_'\+id;await idb\.put\(foto,pendingPhoto\);if\(EXT\.accountGen\(\)!==G\|\|\$\('#upForm'\)!==form\)\{idb\.del\(foto\)\.catch\(\(\)=>\{\}\);return\}\}/.test(ap),'tras esperar la foto se comprueba la cuenta y el formulario antes de guardar');
  assert.ok(/accountGen:CUENTA\.gen/.test(read('hoja.js'))&&/gen:\(\)=>gen/.test(read('cuenta.js')),'la generación de la cuenta llega a app.js');
 });
@@ -701,116 +595,75 @@ test('LHB-48: si Clerk falla después de cambiar la cuenta, la acción de la ant
  const r=[];g.A.quick(()=>r.push('de A'),{inPlace:true,act:'fav'});await tick();g.C.signIn('user_b');g.cache({sub:'user_b',handle:'bea'});rej(new Error('offline'));for(let i=0;i<6;i++)await tick();
  assert.deepEqual(r,[],'la acción que empezó A no corre con el perfil guardado de B');
 });
-test('LHB-48: un reintento con varias acciones sobrevive a la redirección de Google, con su dueño: la misma persona las recibe, otra no; la lista restaurada es completa y a prueba de nombres heredados',async()=>{
- const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- let ok=false;const x=CUENTA_HARNESS({api:async()=>ok?await prof():{status:401,body:{}}});x.nav('#/c/yambo-toro');x.C.user={id:'user_a'};x.A.register('fav',()=>{});
- x.A.quick(()=>{},{inPlace:true,act:'fav',arg:'cigarros:uno'});x.A.quick(()=>{},{inPlace:true,act:'fav',arg:'cigarros:dos'});for(let i=0;i<6;i++)await tick();
- x.C.signIn(null);await tick();ok=true;x.notice().on();await tick();
- const saved=x.intent();
- assert.deepEqual(saved,{from:'#/c/yambo-toro',act:'fav',arg:'cigarros:dos',uid:'user_a',more:[{act:'fav',arg:'cigarros:uno'}]},'lo guardado lleva las dos acciones y a su dueño');
- const back=async who=>{const out=[];const y=CUENTA_HARNESS({api:prof});y.nav('#/c/yambo-toro');y.A.register('fav',a=>out.push(a));y.setIntent(saved);y.C.user=who?{id:who}:null;await y.A.resume();for(let i=0;i<6;i++)await tick();return out};
- assert.deepEqual(await back('user_a'),['cigarros:uno','cigarros:dos'],'al volver la misma persona, corren las dos');
- assert.deepEqual(await back('user_b'),[],'al volver otra persona, no corre ninguna');
- // diez acciones guardadas: se restauran las diez
- const ten=[];const t=CUENTA_HARNESS({api:prof});t.nav('#/c/yambo-toro');t.A.register('fav',a=>ten.push(a));
- t.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'10',more:[1,2,3,4,5,6,7,8,9].map(n=>({act:'fav',arg:String(n)}))});t.C.user={id:'user_a'};await t.A.resume();for(let i=0;i<4;i++)await tick();
- assert.deepEqual(ten,['1','2','3','4','5','6','7','8','9','10'],'la última no se pierde por el tope');
- // nombres heredados y acciones que fallan no frenan a las demás
- const out=[];const w=CUENTA_HARNESS({api:prof});w.nav('#/c/yambo-toro');w.A.register('fav',a=>out.push(a));w.A.register('bad',()=>{throw new Error('x')});
- w.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'cigarros:valida',more:[{act:'__proto__',arg:'x'},{act:'constructor',arg:'x'},{act:'toString'},{act:'bad',arg:'x'}]});w.C.user={id:'user_a'};
- await w.A.resume();for(let i=0;i<4;i++)await tick();
- assert.deepEqual(out,['cigarros:valida'],'la acción válida corre aunque haya nombres heredados o una acción que falla');
-});
-test('LHB-48: más de diez toques mientras carga Clerk: el lote acepta diez, los mismos diez que se guardan; volver de Google no cancela el dibujo de Mi Hoja; la foto elegida pertenece a quien la eligió',async()=>{
- const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- let release;const slow=new Promise(r=>{release=r});const g=CUENTA_HARNESS({api:prof,clerk:async()=>{await slow;return g.C}});g.nav('#/c/yambo-toro');g.A.register('fav',()=>{});
- const ran=[];for(let n=1;n<=11;n++)g.A.quick(()=>ran.push(n),{inPlace:true,act:'fav',arg:String(n)});
- release();for(let i=0;i<6;i++)await tick();const it=g.intent();assert.equal(it.arg,'10','lo guardado termina en la décima');assert.equal(it.more.length,9,'con nueve antes');
- g.C.signIn('user_a');for(let i=0;i<8;i++)await tick();
- assert.deepEqual(ran,[1,2,3,4,5,6,7,8,9,10],'el lote acepta diez');
- // volver de Google en una página que pasa por la puerta (Mi Hoja): la acción corre y la página también se dibuja
- let rel;const hold=new Promise(r=>{rel=r});const h=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});h.nav('#/mihoja/favoritos');h.C.user={id:'user_a'};
- const fav=[];h.A.register('fav',a=>fav.push(a));h.setIntent({from:'#/mihoja/favoritos',act:'fav',arg:'cigarros:x'});let drawn=0;
- h.A.require(()=>{drawn++});await tick();h.A.resume();await tick();rel();for(let i=0;i<8;i++)await tick();
- assert.deepEqual(fav,['cigarros:x'],'la acción guardada corre');assert.equal(drawn,1,'y Mi Hoja se dibuja');
- // la foto
- const ap=read('app.js');
- assert.ok(/const onFile=async e=>\{const f=e\.target\.files&&e\.target\.files\[0\];if\(!f\)return;const G=EXT\.accountGen\(\),form=\$\('#upForm'\);try\{const b=await resizeImage\(f\);if\(EXT\.accountGen\(\)!==G\|\|\$\('#upForm'\)!==form\)return;pendingPhoto=b;/.test(ap),'la foto elegida se descarta si cambió la cuenta o el formulario mientras se preparaba');
-});
-test('LHB-48: lo restaurado conserva a su dueño y toda su lista en cada reintento; dos reintentos seguidos se conservan entre sí',async()=>{
- const tick=()=>new Promise(r=>setTimeout(r,0));const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- // una acción de A restaurada cuando ya es B: no corre, no pide nada y se borra lo guardado
- let calls=0;const a=CUENTA_HARNESS({api:async()=>{calls++;return prof()}});a.nav('#/c/yambo-toro');const ra=[];a.A.register('fav',x=>ra.push(x));
- a.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'x',uid:'user_a'});a.C.user={id:'user_b'};await a.A.resume();for(let i=0;i<6;i++)await tick();
- assert.deepEqual(ra,[],'la acción de A no corre para B');assert.equal(a.intent(),null,'y se borra lo guardado');assert.equal(calls,0,'sin tocar la red');
- // restaurada como A y con 401: al pulsar Entrar se guarda de nuevo con las dos acciones y el mismo dueño
- let ok=false;const b=CUENTA_HARNESS({api:async()=>ok?await prof():{status:401,body:{}}});b.nav('#/c/yambo-toro');b.A.register('fav',()=>{});
- b.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'dos',more:[{act:'fav',arg:'uno'}],uid:'user_a'});b.C.user={id:'user_a'};await b.A.resume();for(let i=0;i<8;i++)await tick();
- b.C.signIn(null);await tick();ok=true;b.notice().on();await tick();
- assert.deepEqual(b.intent(),{from:'#/c/yambo-toro',act:'fav',arg:'dos',uid:'user_a',more:[{act:'fav',arg:'uno'}]},'el reintento conserva la lista completa y a su dueño');
- // dos toques cuyas revisiones fallan una tras otra: el segundo reintento no borra al primero
- let n=0,rel;const hold=new Promise(r=>{rel=r});const c=CUENTA_HARNESS({api:async()=>{n++;if(n===1||n===3)return {status:503,body:{}};if(n===2){await hold;return prof()}return prof()}});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};
- const rc=[];c.A.quick(()=>rc.push('uno'),{inPlace:true,act:'fav'});for(let i=0;i<6;i++)await tick();
- c.A.quick(()=>rc.push('dos'),{inPlace:true,act:'fav'});for(let i=0;i<8;i++)await tick();rel();for(let i=0;i<6;i++)await tick();
- assert.deepEqual(rc.slice().sort(),['dos','uno'],'las dos acciones corren, una vez cada una');
-});
-test('LHB-48: cada acción en espera la hace una sola vez quien la reclama; las canceladas no vuelven; el dueño se respeta también sin Clerk y en el lote; el tope cuenta las aceptadas',async()=>{
+test('LHB-48: cada toque es una sola acción: corre una vez o ninguna; si se toca otra antes de terminar la revisión, vale la última; los guardados llevan solo la acción y su argumento',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
- // 1) un reintento hace las dos acciones y la revisión que seguía pendiente no repite la segunda
- let n1=0,r2,r3;const h2=new Promise(r=>{r2=r}),h3=new Promise(r=>{r3=r});
- const a=CUENTA_HARNESS({api:async()=>{n1++;if(n1===1)return {status:503,body:{}};if(n1===2){await h2;return prof()}await h3;return prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};
- const ra=[];a.A.quick(()=>ra.push('uno'),{inPlace:true,act:'fav'});await ticks(6);a.A.quick(()=>ra.push('dos'),{inPlace:true,act:'fav'});await ticks(4);r2();await ticks(6);r3();await ticks(6);
- assert.deepEqual(ra,['uno','dos'],'cada acción corre una sola vez');
- // 2a) una acción que empezó A (sin dueño todavía) no se cuela en el reintento de B
- let wait,rel;const hold=new Promise(r=>{rel=r});let nc=0;let calls=0;const b=CUENTA_HARNESS({api:async()=>{calls++;return calls===1?{status:503,body:{}}:prof()},clerk:async()=>{nc++;if(nc===2){await hold}return b.C}});
- b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};b.cache({sub:'user_a',handle:'ana'});await b.A.quick(()=>{},{inPlace:true,act:'fav'});await ticks(4);
- const rb=[];b.A.quick(()=>rb.push('de A'),{inPlace:true,act:'fav'});await ticks(2);b.C.signIn('user_b');
- b.A.quick(()=>rb.push('de B'),{inPlace:true,act:'fav'});await ticks(10);rel();await ticks(6);
- assert.deepEqual(rb,['de B'],'la acción de A no corre para B');
- // 2b) irse de la página durante la revisión cancela la acción: al volver no se suma al reintento de otra
- let rel4;const hold4=new Promise(r=>{rel4=r});let n4=0;const c=CUENTA_HARNESS({api:async()=>{n4++;if(n4===1){await hold4;return {status:503,body:{}}}if(n4===2)return {status:503,body:{}};return prof()}});
- c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};const rc=[];c.A.quick(()=>rc.push('abandonada'),{inPlace:true,act:'fav'});await ticks(4);c.nav('#/artesanos');rel4();await ticks(6);c.nav('#/c/yambo-toro');
- c.A.quick(()=>rc.push('nueva'),{inPlace:true,act:'fav'});await ticks(10);
- assert.deepEqual(rc,['nueva'],'la abandonada no vuelve');
- // 3) sin Clerk: una acción de A no corre con el perfil guardado de B
- const rd=[];const d=CUENTA_HARNESS({clerk:async()=>{throw new Error('offline')}});d.nav('#/c/yambo-toro');d.A.register('fav',x=>rd.push(x));d.cache({sub:'user_b',handle:'bea'});d.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'de-A',uid:'user_a'});
- await d.A.resume();await ticks(4);assert.deepEqual(rd,[],'sin Clerk, la acción de A no corre con el perfil de B');assert.equal(d.intent(),null);
- const re=[];const e=CUENTA_HARNESS({clerk:async()=>{throw new Error('offline')}});e.nav('#/c/yambo-toro');e.A.register('fav',x=>re.push(x));e.cache({sub:'user_a',handle:'ana'});e.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'de-A',uid:'user_a'});
- await e.A.resume();await ticks(4);assert.deepEqual(re,['de-A'],'sin Clerk, con el perfil de A, corre una vez');
- // 4) una acción restaurada con dueño no se mezcla con el lote sin dueño
- let rel5;const hold5=new Promise(r=>{rel5=r});const f=CUENTA_HARNESS({api:prof,clerk:async()=>{await hold5;return f.C}});f.nav('#/c/yambo-toro');const rf=[];f.A.register('fav',x=>rf.push('guardada:'+x));
- f.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'de-A',uid:'user_a'});f.A.quick(()=>rf.push('nueva'),{inPlace:true,act:'fav',arg:'n'});f.A.resume();rel5();await ticks(6);
- assert.equal(f.intent().uid,undefined,'lo guardado no lleva a la acción con dueño');assert.deepEqual((f.intent().more||[]).map(m=>m.arg),[],'ni como anterior');
- f.C.signIn('user_b');await ticks(8);assert.deepEqual(rf,['nueva'],'al entrar B corre solo lo suyo');
- // 5) once toques con la revisión pendiente: se aceptan diez
- let rel6;const hold6=new Promise(r=>{rel6=r});const g=CUENTA_HARNESS({api:async()=>{await hold6;return prof()}});g.nav('#/c/yambo-toro');g.C.user={id:'user_a'};const rg=[];
- for(let k=1;k<=11;k++){g.A.quick(()=>rg.push(k),{inPlace:true,act:'fav'});await ticks(3)}
- rel6();await ticks(8);assert.deepEqual(rg,[1,2,3,4,5,6,7,8,9,10],'se aceptan diez, y las diez corren');
- // 6) una acción restaurada con nueve anteriores ocupa diez: otro toque no cabe
- let rel7;const hold7=new Promise(r=>{rel7=r});const h=CUENTA_HARNESS({api:async()=>{await hold7;return prof()}});h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};const rh=[];h.A.register('fav',x=>rh.push(x));
- h.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'10',uid:'user_a',more:[1,2,3,4,5,6,7,8,9].map(n=>({act:'fav',arg:String(n)}))});
- h.A.resume();await ticks(4);h.A.quick(()=>rh.push('extra'),{inPlace:true,act:'fav'});await ticks(2);rel7();await ticks(8);
- assert.deepEqual(rh,['1','2','3','4','5','6','7','8','9','10'],'las diez de lo restaurado corren y el toque once no cabe');
+ // sin sesión: dos toques, una hoja de entrar; al entrar corre solo el último, una vez; lo guardado no lleva lista ni dueño
+ const a=CUENTA_HARNESS({api:prof});a.nav('#/c/yambo-toro');const ra=[];a.A.register('fav',x=>ra.push('reg:'+x));
+ a.A.quick(()=>ra.push('uno'),{inPlace:true,act:'fav',arg:'1'});a.A.quick(()=>ra.push('dos'),{inPlace:true,act:'fav',arg:'2'});await ticks(4);
+ assert.equal(a.log.filter(x=>x==='open').length,1,'una sola hoja de entrar');assert.deepEqual(Object.keys(a.intent()).sort(),['act','arg','from'],'lo guardado: página, acción y argumento, nada más');assert.equal(a.intent().arg,'2');
+ a.C.signIn('user_a');await ticks(8);assert.deepEqual(ra,['dos'],'al entrar corre solo el último toque, una vez');
+ // con sesión y revisión lenta: dos toques, el primero se cancela y el segundo corre una vez
+ let rel;const hold=new Promise(r=>{rel=r});const b=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};const rb=[];
+ b.A.quick(()=>rb.push('uno'),{inPlace:true,act:'fav'});await ticks(3);b.A.quick(()=>rb.push('dos'),{inPlace:true,act:'fav'});await ticks(3);rel();await ticks(8);
+ assert.deepEqual(rb,['dos'],'vale el último toque');
+ // con el perfil guardado de esa persona cada toque corre al instante, los dos
+ const c=CUENTA_HARNESS({api:prof});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};c.cache({sub:'user_a',handle:'ana'});const rc=[];
+ c.A.quick(()=>rc.push('uno'),{inPlace:true,act:'fav'});c.A.quick(()=>rc.push('dos'),{inPlace:true,act:'fav'});await ticks(4);
+ assert.deepEqual(rc,['uno','dos'],'con el perfil guardado cada toque corre');
 });
-test('LHB-48: un cambio de cuenta mientras Clerk carga cancela la acción; la acción con dueño sin sesión solo borra lo suyo',async()=>{
+test('LHB-48: irse de la página o cambiar de cuenta durante la revisión descarta la acción; una abandonada no vuelve; una respuesta tardía no guarda el perfil',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ // salir mientras se revisa
+ let rel;const hold=new Promise(r=>{rel=r});const a=CUENTA_HARNESS({api:async()=>{await hold;return prof()}});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};const ra=[];
+ a.A.quick(()=>ra.push('a'),{inPlace:true,act:'fav'});await tick();a.C.signIn(null);rel();await ticks(6);
+ assert.ok(!a.log.some(x=>x.startsWith('store:')),'una respuesta de antes de salir no guarda el perfil');assert.deepEqual(ra,[],'y la acción no corre');
+ // irse de la página y volver: la abandonada no corre cuando el siguiente toque pasa
+ let n=0,rel2;const hold2=new Promise(r=>{rel2=r});const b=CUENTA_HARNESS({api:async()=>{n++;if(n===1){await hold2;return {status:503,body:{}}}return prof()}});b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};const rb=[];
+ b.A.quick(()=>rb.push('abandonada'),{inPlace:true,act:'fav'});await ticks(3);b.nav('#/artesanos');rel2();await ticks(6);b.nav('#/c/yambo-toro');
+ b.A.quick(()=>rb.push('nueva'),{inPlace:true,act:'fav'});await ticks(8);assert.deepEqual(rb,['nueva'],'la abandonada no vuelve');
+ // cambio de cuenta mientras la revisión espera: no corre para la otra persona
+ let rel3;const hold3=new Promise(r=>{rel3=r});const c=CUENTA_HARNESS({api:async()=>{await hold3;return prof()}});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};const rc=[];
+ c.A.quick(()=>rc.push('de A'),{inPlace:true,act:'fav'});await tick();c.C.signIn('user_b');rel3();await ticks(6);
+ assert.deepEqual(rc,[],'una acción que empezó A no corre cuando ya es B');
+});
+test('LHB-48: con el perfil guardado, la acción en sitio no espera a la red pero se descarta si mientras carga Clerk cambia la cuenta o la página; los nombres de acción no se heredan',async()=>{
  const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};
- // 1) Clerk carga despacio, entra B, y la acción que empezó sin sesión no corre para B aunque su perfil ya esté guardado
- let rel;const hold=new Promise(r=>{rel=r});let nc=0;const a=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'bea'}}}),clerk:async()=>{nc++;if(nc===2){await hold}return a.C}});
- a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};a.cache({sub:'user_a',handle:'ana'});await a.A.quick(()=>{},{inPlace:true,act:'fav'});a.C.signIn(null);a.cache({sub:'user_b',handle:'bea'});
- const ra=[];a.A.quick(()=>ra.push('sin sesion'),{inPlace:true,act:'fav'});await ticks(2);a.C.signIn('user_b');rel();await ticks(8);
- assert.deepEqual(ra,[],'la acción que empezó sin sesión no corre para quien entró mientras tanto');
- // 2) lo mismo cuando Clerk termina fallando
- let rel2;const hold2=new Promise(r=>{rel2=r});let nd=0;const b=CUENTA_HARNESS({clerk:async()=>{nd++;if(nd===2){await hold2;throw new Error('sin red')}return b.C}});
- b.nav('#/c/yambo-toro');b.C.user={id:'user_a'};b.cache({sub:'user_a',handle:'ana'});await b.A.quick(()=>{},{inPlace:true,act:'fav'});b.C.signIn(null);b.cache({sub:'user_b',handle:'bea'});
- const rb=[];b.A.quick(()=>rb.push('sin sesion'),{inPlace:true,act:'fav'});await ticks(2);b.C.signIn('user_b');rel2();await ticks(8);
- assert.deepEqual(rb,[],'si Clerk falla tras el cambio de cuenta, la acción tampoco corre');
- // 3) una acción restaurada con dueño, sin sesión: no borra lo guardado por otro lote, y sí lo suyo
- const c=CUENTA_HARNESS();c.nav('#/c/yambo-toro');c.A.register('fav',()=>{});
- c.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'del-lote'});await c.A.quick(()=>{},{inPlace:true,act:'fav',uid:'user_a'});await ticks(4);
- assert.equal(c.intent().arg,'del-lote','lo guardado por el lote sin dueño sigue ahí');
- const d=CUENTA_HARNESS();d.nav('#/c/yambo-toro');d.A.register('fav',()=>{});
- d.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'suya',uid:'user_a'});await d.A.quick(()=>{},{inPlace:true,act:'fav',uid:'user_a'});await ticks(4);
- assert.equal(d.intent(),null,'lo guardado a nombre del mismo dueño se borra');
+ const mk=async()=>{let n=0,rel;const hold=new Promise(r=>{rel=r});const h=CUENTA_HARNESS({clerk:async()=>{n++;if(n===2)await hold;return h.C}});h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});
+  await h.A.quick(()=>{},{inPlace:true,act:'fav'});return {h,rel}};
+ // cambia la cuenta mientras Clerk carga: la acción de A no corre para B aunque B tenga su perfil guardado
+ let {h,rel}=await mk();const r1=[];h.A.quick(()=>r1.push('de A'),{inPlace:true,act:'fav'});await tick();h.C.signIn('user_b');h.cache({sub:'user_b',handle:'bea'});rel();await ticks(6);
+ assert.deepEqual(r1,[],'la acción de A no corre cuando ya es B');
+ // cambia la página mientras Clerk carga
+ ({h,rel}=await mk());const r2=[];h.A.quick(()=>r2.push('x'),{inPlace:true,act:'fav'});await tick();h.nav('#/artesanos');rel();await ticks(6);
+ assert.deepEqual(r2,[],'la acción no corre en otra página');
+ // sin cambios corre una vez
+ ({h,rel}=await mk());const r3=[];h.A.quick(()=>r3.push('x'),{inPlace:true,act:'fav'});await tick();rel();await ticks(6);assert.deepEqual(r3,['x']);
+ // los nombres heredados no son acciones
+ assert.ok(/const ACT=Object\.create\(null\)/.test(read('cuenta.js')),'el registro de acciones no hereda nombres (constructor, toString...)');
+});
+test('LHB-48: un 401 y volver a entrar conserva la acción (la persona que entra en este equipo la continúa); un fallo de Clerk usa el perfil guardado solo del mismo momento',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ const run=async who=>{let ok=false;const x=CUENTA_HARNESS({api:async()=>ok?await prof():{status:401,body:{}}});x.nav('#/c/yambo-toro');x.C.user={id:'user_a'};const ran=[];
+  x.A.quick(()=>ran.push('a'),{inPlace:true,act:'fav'});await ticks(6);
+  x.C.signIn(null);await tick();ok=true;const n=x.notice();n.on();await tick();x.C.signIn(who);await ticks(8);return ran};
+ assert.deepEqual(await run('user_a'),['a'],'tras el 401, salir y entrar de nuevo continúa la acción, una vez');
+ // Clerk no carga: con perfil guardado la acción corre una vez; sin él se avisa y no corre
+ const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});k.nav('#/c/yambo-toro');k.cache({sub:'user_a',handle:'ana'});const rk=[];k.A.quick(()=>rk.push('k'),{inPlace:true,act:'fav'});await ticks(4);
+ assert.deepEqual(rk,['k'],'Clerk no carga y hay perfil guardado: corre una vez');
+ const k2=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});k2.nav('#/c/yambo-toro');const rk2=[];k2.A.quick(()=>rk2.push('k'),{inPlace:true,act:'fav'});await ticks(4);
+ assert.deepEqual(rk2,[],'Clerk no carga y no hay perfil guardado: no corre');assert.ok(k2.log.includes('notice:Necesitas conexión'),'y se avisa');
+});
+test('LHB-48: una acción en sitio no cancela la puerta de una página: al volver de Google en Mi Hoja la acción corre y la página se dibuja, aunque la revisión de la acción falle',async()=>{
+ const tick=()=>new Promise(r=>setTimeout(r,0));const ticks=async n=>{for(let i=0;i<n;i++)await tick()};const prof=async()=>({status:200,body:{profile:{handle:'ana'}}});
+ for(const second of [{status:503,body:{}},{status:200,body:{profile:{handle:'ana'}}}]){
+  let rel,n=0;const hold=new Promise(r=>{rel=r});const h=CUENTA_HARNESS({api:async()=>{n++;if(n===1){await hold;return prof()}return second}});h.nav('#/mihoja/favoritos');h.C.user={id:'user_a'};
+  const fav=[];h.A.register('fav',a=>fav.push(a));h.setIntent({from:'#/mihoja/favoritos',act:'fav',arg:'cigarros:x'});let drawn=0;
+  h.A.require(()=>{drawn++});await tick();h.A.resume();await ticks(4);rel();await ticks(8);
+  assert.equal(drawn,1,'Mi Hoja se dibuja (respuesta de la acción: '+second.status+')');assert.deepEqual(fav,second.status===200?['cigarros:x']:[],'la acción corre solo si su revisión salió bien')}
+ // lo guardado solo se retoma si la acción está registrada y es de esta página
+ const g=CUENTA_HARNESS({api:prof});g.nav('#/c/yambo-toro');g.C.user={id:'user_a'};g.cache({sub:'user_a',handle:'ana'});const rg=[];g.A.register('fav',x=>rg.push(x));
+ for(const bad of [{from:'#/c/yambo-toro',act:'constructor',arg:'x'},{from:'#/c/yambo-toro',act:'__proto__'},{from:'#/otra',act:'fav',arg:'x'},{from:'#/c/yambo-toro',act:'nada'}]){g.setIntent(bad);g.A.resume();await ticks(2);assert.equal(g.intent(),null,'se borra lo que no es una acción registrada de esta página: '+bad.act)}
+ assert.deepEqual(rg,[],'y ninguna de ellas corre');g.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'bien'});g.A.resume();await ticks(3);assert.deepEqual(rg,['bien'],'la buena sí, una vez');
 });
 test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
  const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));

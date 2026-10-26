@@ -1,0 +1,46 @@
+G1 heart on cards bypasses the gate: exit 1, fail 1  -> RED
+G2 stamp bypasses the gate: exit 1, fail 1  -> RED
+G3 add-to-humidor bypasses the gate: exit 1, fail 1  -> RED
+G4 cigar page heart writes directly: exit 1, fail 1  -> RED
+G5 stars write directly: exit 1, fail 1  -> RED
+G6 upload page open without an account: exit 1, fail 1  -> RED
+G7 tasting page open without an account: exit 1, fail 1  -> RED
+G10 heart accepts an empty id: exit 1, fail 1  -> RED
+G11 stamp accepts inherited keys (__proto__): exit 1, fail 1  -> RED
+G12 rating accepts out-of-range numbers: exit 1, fail 1  -> RED
+G13 rating accepts fractions: exit 1, fail 1  -> RED
+G14 humidor passes any argument through: exit 1, fail 1  -> RED
+G15 fast path trusts another person cached profile: exit 1, fail 1  -> RED
+G16 fast path leaves the saved action behind: exit 1, fail 2  -> RED
+G21 actions not registered for the return from Google: exit 1, fail 3  -> RED
+G22 the gate drops the pressed button: exit 1, fail 1  -> RED
+H1 sign-out leaves the tasting editor open: exit 1, fail 1  -> RED
+H2 sign-out leaves the upload editor open: exit 1, fail 1  -> RED
+H3 heart accepts inherited ids: exit 1, fail 1  -> RED
+H4 stamp accepts inherited ids: exit 1, fail 1  -> RED
+H5 rating accepts inherited ids: exit 1, fail 1  -> RED
+G8 the gate waits for the server every time: exit 1, fail 1  -> RED
+G9 the gate replaces the page with the card: exit 1, fail 1  -> RED
+G17 saved action loses its argument: exit 1, fail 2  -> RED
+G18 saved action stores a non-text argument: exit 1, fail 2  -> RED
+U3 a photo prepared for the previous person is kept: exit 1, fail 1  -> RED
+S2 an upload finishes for the next person: exit 1, fail 1  -> RED
+T7 inherited action names pass: exit 1, fail 1  -> RED
+N1 an action in place shares the counter of the page gate: exit 1, fail 6  -> RED
+N2 an instant action depends on later taps: exit 1, fail 1  -> RED
+N3 an account change does not cancel the action in place: exit 1, fail 1  -> RED
+N4 an account change does not move the generation: exit 1, fail 1  -> RED
+N5 an instant action ignores an account change while Clerk loads: exit 1, fail 1  -> RED
+N6 an instant action runs on another page: exit 1, fail 1  -> RED
+N7 a superseded action goes on after the fast path: exit 1, fail 1  -> RED
+N8 the gate for an action replaces the page with the card: exit 1, fail 1  -> RED
+N9 the gate for an action always waits for the server: exit 1, fail 1  -> RED
+N10 the saved action may be one that is not registered: exit 1, fail 1  -> RED
+N11 the saved action runs on another page: exit 1, fail 2  -> RED
+N12 the saved action passes a non-text argument: exit 1, fail 1  -> RED
+N13 the saved action loses its argument on return: exit 1, fail 2  -> RED
+N14 the saved action carries a list and an owner: exit 1, fail 3  -> RED
+N15 coming back from Google does nothing: exit 1, fail 4  -> RED
+N16 the action ignores the gate result: runs on a failed check: exit 1, fail 7  -> RED
+N17 a failed check on an action in place hides the error: exit 1, fail 4  -> RED
+restored: exit 0, pass 71
