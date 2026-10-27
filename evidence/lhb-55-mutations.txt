@@ -18,8 +18,9 @@ S7 servidor: la respuesta de editar trae la fecha de nacimiento -> ROJO (bien) f
       LHB-55: PUT /api/profile edita el perfil entero del dueño en SQLite real: cada campo se guarda, el nombre público se arma otra vez, lo privado no vuel
 S8 servidor: editar deja el género sin cambiar -> ROJO (bien) fail=1
       LHB-55: PUT /api/profile edita el perfil entero del dueño en SQLite real: cada campo se guarda, el nombre público se arma otra vez, lo privado no vuel
-C1 cuenta: subir una foto mientras se guarda se permite -> ROJO (bien) fail=2
+C1 cuenta: subir una foto mientras se guarda se permite -> ROJO (bien) fail=3
       LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto
+      LHB-55 (Codex ronda 2): un guardado que sigue en curso de un formulario ya cerrado bloquea la subida del formulario nuevo; terminado, se sube
       LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez
 C2 cuenta: un formulario de editar viejo o de otra cuenta sigue guardando -> ROJO (bien) fail=1
       LHB-55: un formulario de editar viejo no manda nada: otra cuenta, otro formulario encima, sin conexión y sin perfil completo
@@ -37,11 +38,11 @@ C6 cuenta: sin Clerk se edita con el perfil guardado en el teléfono -> ROJO (bi
 C7 cuenta: sin conexión se edita con el perfil guardado en el teléfono -> ROJO (bien) fail=2
       LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
       LHB-55: un formulario de editar viejo no manda nada: otra cuenta, otro formulario encima, sin conexión y sin perfil completo
-C8 cuenta: la puerta no abre el formulario de editar -> ROJO (bien) fail=6
+C8 cuenta: la puerta no abre el formulario de editar -> ROJO (bien) fail=7
       LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda
+      LHB-55 (Codex ronda 2): un guardado que sigue en curso de un formulario ya cerrado bloquea la subida del formulario nuevo; terminado, se sube
       LHB-55: editar pasa por la puerta de la cuenta, abre el formulario con lo guardado y solo al guardar corre la acción, una vez
       LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez
-      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
 C9 cuenta: la foto de editar es siempre la de la cuenta y no la del perfil guardado -> ROJO (bien) fail=1
       LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez
 C10 cuenta: una foto guardada que no es de Clerk se usa -> ROJO (bien) fail=1
@@ -75,8 +76,10 @@ H10 caché: el shell se publica con la versión de antes -> ROJO (bien) fail=16
       LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
       LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
       artisan logos: every id in LOGOS maps to an existing webp and a real artisan
-C8 cuenta: cada selector cuenta solo sus propias subidas (una subida vieja no bloquea el formulario nuevo, Codex ronda 1) -> ROJO (bien) fail=1
+C12 cuenta: cada selector cuenta solo sus propias subidas (una subida vieja no bloquea el formulario nuevo, Codex ronda 1) -> ROJO (bien) fail=1
       LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda
+C13 cuenta: el envio en curso se cuenta solo por formulario (un guardado viejo no bloquea la subida del formulario nuevo, Codex ronda 2) -> ROJO (bien) fail=1
+      LHB-55 (Codex ronda 2): un guardado que sigue en curso de un formulario ya cerrado bloquea la subida del formulario nuevo; terminado, se sube
 restaurado (0, [])
-mutaciones: 30 sobrevivieron o con error: 0
+mutaciones: 31 sobrevivieron o con error: 0
 EXIT 0
