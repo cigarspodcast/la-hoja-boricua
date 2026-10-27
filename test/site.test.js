@@ -1699,19 +1699,19 @@ function HOJA38(opts){opts=opts||{};
  const present=id=>html.includes('id="'+id+'"');
  const $=s=>{if(s[0]!=='#')return null;const id=s.slice(1);if(!present(id))return null;return els[id]||(els[id]=mkEl(id))};
  const lists={};const $$=s=>lists[s]||[];
- const toasts=[],blobs=[],log=[];
+ const toasts=[],blobs=[],log=[];const acctBox={v:{sub:'u_a'}};
  const resized=[];
  const ctx={window:{},$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
   A:{D:()=>({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),cigarById:id=>id==='c1'?{id:'c1',nombre:'Yambú Toro'}:null,artisanName:c=>'Casa Yambú',allCigars:()=>[],
    resizeImage:opts.resize||(async(f,max,q)=>{resized.push([max,q]);return {blob:1}}),hydrate:r=>log.push('hydrate'),route:()=>log.push('route')},
-  D:()=>({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),APP_URL:'https://x.test/',
+  D:()=>({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),APP_URL:'https://x.test/',acct:{get:()=>acctBox.v},
   bindWheel:()=>{},tagChips:()=>'',subnav:()=>'',backupPanel:()=>'',bindBackup:()=>{},WN:x=>x,cigarOptions:()=>'',
   localStorage,indexedDB,navigator:{},location:{hash:''},scrollY:0,scrollTo:()=>{},confirm:()=>true,setTimeout:()=>0,
   URL:{createObjectURL:b=>{blobs.push(b);return 'blob:x'},revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},
   FileReader:class{readAsText(f){this.result=f.__text;this.onload()}},Blob,JSON,Date:opts.now?class extends Date{constructor(...a){if(a.length)super(...a);else super(opts.now)}}:Date};
  vm.createContext(ctx);
  vm.runInContext(code+';this.API={okDay,entryDefaults,normalize,upgrade,load,S,save,write,hoy,exportar,importar,saveCata,renderCata,startCata,vDiario,stepBody,NEWDRAFT,FOTOS,PASOS,setCD:v=>{CD=v},getCD:()=>CD,persistDraft,vCata}',ctx);
- return {API:ctx.API,ctx,ls,store,idbLog,els,lists,toasts,blobs,log,resized,html:()=>html,set:(k,v)=>{ls.set(k,JSON.stringify(v))}};
+ return {API:ctx.API,ctx,ls,store,idbLog,els,lists,toasts,blobs,log,resized,acctBox,html:()=>html,set:(k,v)=>{ls.set(k,JSON.stringify(v))}};
 }
 const E38=(o)=>({id:'d1',fecha:'2026-03-04T02:00:00.000Z',cigarId:null,nombre:'Toro',artesano:'',rating:4,notas:'bien',tags:['madera'],origen:'cata',actualizado:'2026-03-04T02:00:00.000Z',...o});
 test('LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo dos veces no cambia nada',()=>{
@@ -1858,6 +1858,27 @@ test('LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede
  assert.deepEqual(g.API.S().diario.map(e=>e.id),['a1','b2'],'la entrada sigue en pantalla y en memoria');assert.equal(g.store.has('dfoto_a1'),true,'y su foto');assert.equal(g.API.S().cambios||0,c0,'no cuenta como cambio');
  assert.equal(JSON.parse(g.ls.get('lhb_mihoja_v1')).diario.length,2,'el teléfono sigue con las dos');
  lib2();g.lists['[data-ddel]']=[{dataset:{ddel:'a1'},onclick:null}];g.API.vDiario();await g.lists['[data-ddel]'][0].onclick();await tick();assert.deepEqual(g.API.S().diario.map(e=>e.id),['b2']);assert.equal(g.store.has('dfoto_a1'),false,'con el teléfono libre se borra todo');
+});
+test('LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo borrar se borra en la próxima anotación',async()=>{
+ const now='2026-10-27T15:00:00.000Z';const png={type:'image/png',name:'a.png'};
+ const open=(o)=>{const h=HOJA38({now,...o});h.ctx.location.hash='#/cata';const d={...h.API.NEWDRAFT('','Toro'),rating:3,...(o&&o.draft||{})};d.paso=h.API.PASOS.length-1;h.API.setCD(d);h.API.renderCata();return h};
+ const pick=(h,f)=>h.els.cFotoF.onchange({target:{files:[f||png],value:'x'}});
+ const lleno=h=>{const orig=h.ctx.localStorage.setItem;h.ctx.localStorage.setItem=()=>{throw new Error('lleno')};return ()=>{h.ctx.localStorage.setItem=orig}};
+ /* 1. el borrador y una entrada recuperada de un respaldo comparten la llave: abandonar el borrador no borra la foto de la entrada */
+ let h=open({ls:{lhb_mihoja_v1:JSON.stringify({schema:1,humidor:[],ratings:{},diario:[E38({id:'r1',foto:'dfoto_k'})]})}});
+ h.store.set('dfoto_k',{blob:1});h.API.getCD().foto='dfoto_k';h.API.persistDraft();
+ h.API.startCata('','');await tick();assert.equal(h.store.has('dfoto_k'),true,'la foto que usa una entrada se queda');
+ /* y una que nadie usa sí se borra */
+ h=open();await pick(h,png);await tick();const k=h.API.getCD().foto;h.API.startCata('','');await tick();assert.equal(h.store.has(k),false);
+ /* 2. sin cuenta (cerró sesión mientras se achicaba) la foto tardía no vuelve a pintar el formulario */
+ h=open();const d=defer();h.ctx.A.resizeImage=async()=>{await d.p;return {blob:1}};const pend=pick(h);await tick();h.acctBox.v=null;h.ctx.view.innerHTML='<puerta de entrada>';d.ok();await pend;await tick();
+ assert.equal(h.html(),'<puerta de entrada>','el formulario no reemplaza la puerta de la cuenta');
+ /* 3. un cambio de borrador que no se pudo anotar deja la foto pendiente; la próxima anotación que funcione la borra */
+ h=open();await pick(h,png);await tick();const k3=h.API.getCD().foto;let libre=lleno(h);h.API.startCata('','');await tick();assert.equal(h.store.has(k3),true,'con el teléfono lleno la foto se queda');
+ libre();h.API.persistDraft();await tick();assert.equal(h.store.has(k3),false,'y se borra en cuanto una anotación funciona');
+ /* pero si mientras tanto una entrada la usa, no */
+ h=open({ls:{lhb_mihoja_v1:JSON.stringify({schema:1,humidor:[],ratings:{},diario:[]})}});await pick(h,png);await tick();const k4=h.API.getCD().foto;libre=lleno(h);h.API.startCata('','');libre();
+ h.API.S().diario.push(E38({id:'z9',foto:k4}));h.API.persistDraft();await tick();assert.equal(h.store.has(k4),true,'una foto en uso no se borra');
 });
 test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto',async()=>{
  const now='2026-10-27T15:00:00.000Z';
