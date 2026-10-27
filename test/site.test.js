@@ -1448,7 +1448,10 @@ test('LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen c
   assert.deepEqual(await a.get('u_yo','https://x.test/api/people'),[400,{error:'q-short'}],'sin q no hay lista de todos');
   assert.equal((await a.find('u_yo','ab'))[0],200,'dos caracteres alcanzan');assert.equal((await a.find('u_yo','x'.repeat(40)))[0],200,'cuarenta caben');assert.deepEqual(await a.find('u_yo','x'.repeat(41)),[400,{error:'q-long'}]);
   assert.equal((await a.find('u_yo','🌿'.repeat(40)))[0],200,'se cuentan caracteres, no bytes');assert.deepEqual(await a.find('u_yo','🌿'.repeat(41)),[400,{error:'q-long'}]);
-  for(const q of ['an\u0000a','an\na','an\u0085a'])assert.deepEqual(await a.find('u_yo',q),[400,{error:'q-invalid'}],'caracteres de control: '+JSON.stringify(q));
+  for(const q of ['an\u0000a','an\u0085a','an\u0007a'])assert.deepEqual(await a.find('u_yo',q),[400,{error:'q-invalid'}],'caracteres de control: '+JSON.stringify(q));
+  /* U+2028 y el salto de linea cuentan como espacio: se normalizan, no se rechazan */
+  assert.equal((await a.find('u_yo','ana\nmora'))[0],200,'un salto de linea es un espacio');
+  assert.deepEqual(handles57(await a.find('u_yo','ana\nmora')),['ana_mora'],'un salto de línea o un tab entre palabras es un espacio');
   /* % y _ no son comodines */
   assert.deepEqual(handles57(await a.find('u_yo','ana_')),['ana_mora'],'"_" vale como "_": no como cualquier letra (Anaya y "Ana María" no entran)');
   assert.deepEqual(handles57(await a.find('u_yo','%%')),[],'"%" no es comodín');assert.deepEqual(handles57(await a.find('u_yo','%a')),[]);assert.deepEqual(handles57(await a.find('u_yo','__')),[],'"__" no es "cualquier cosa"');assert.deepEqual(handles57(await a.find('u_yo','p_q')),['p_q_r']);assert.deepEqual(handles57(await a.find('u_yo','\\a')),[]);
@@ -1516,7 +1519,7 @@ test('LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo l
  /* escapado: un nombre o @ con HTML no se vuelve HTML, y una foto que no es de Clerk no se carga */
  const fila=H.ctx.personRow({handle:'x<img src=x onerror=alert(1)>',display_name:'<script>alert(1)</script>',avatar_key:'https://evil.example/x.png'});
  assert.ok(!/<script|<img src=x/.test(fila),'todo escapado');assert.ok(!/evil\.example/.test(fila),'una foto que no es de Clerk no se carga');assert.match(fila,/>&lt;/);
- assert.match(H.ctx.personRow({handle:'ana_mora',display_name:null,avatar_key:null}),/<b>@ana_mora<\/b>[\s\S]*>A<\/span>/,'sin nombre público: el @ y la inicial del @');
+ assert.match(H.ctx.personRow({handle:'ana_mora',display_name:null,avatar_key:null}),/>A<\/span>[\s\S]*<b>@ana_mora<\/b>/,'sin nombre público: la inicial del @ y el @');
 });
 test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo',()=>{
  const h=read('hoja.js').replace(/\r\n/g,'\n'),css=read('styles.css');

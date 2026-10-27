@@ -269,7 +269,7 @@ function vPersonas(){
   if(r.status!==200||!Array.isArray(r.body.people)){say(r.status===400?'Escribe al menos 2 letras.':'No pudimos buscar. Intenta otra vez.');return}
   last=q;next=r.body.next||null;$('#psL').insertAdjacentHTML('beforeend',r.body.people.map(personRow).join(''));
   const n=$('#psL').children.length;say(n?'':'No encontramos a nadie con ese nombre.');$('#psMore').hidden=!next};
- form.onsubmit=e=>{e.preventDefault();clearTimeout(timer);run(false)};
+ form.onsubmit=e=>{e.preventDefault();clearTimeout(timer);return run(false)};
  $('#psQ').oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>run(false),350)};
  $('#psMore').onclick=()=>run(true)}
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);
