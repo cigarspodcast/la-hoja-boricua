@@ -303,7 +303,7 @@ test('LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscu
  const h=read('hoja.js');const re=h.match(/const HANDLE_RE=(\/[^;]+\/);/)[1];assert.equal(re,'/^[a-z0-9_]{3,20}$/','la app usa la misma regla que el servidor');
  for(const [pk,fapi] of [...h.matchAll(/pk:'(pk_(?:live|test)_[A-Za-z0-9]+)',fapi:'([a-z0-9.-]+)'/g)].map(m=>[m[1],m[2]]))assert.equal(Buffer.from(pk.slice(8),'base64').toString(),fapi+'$',fapi);
  assert.match(h,/CLERK=location\.hostname==='lahojaboricua\.com'\?\{pk:'pk_live_/,'producción usa la llave live; las vistas previas, la de Development');
- assert.match(h,/function vMiHoja\(sub\)\{requireAccount\(\(\)=>vMiHojaIn\(sub\)\)\}/,'Mi Hoja pasa por la cuenta');assert.ok(read('index.html').indexOf('cuenta.js')>0&&read('index.html').indexOf('cuenta.js')<read('index.html').indexOf('hoja.js'),'cuenta.js antes de hoja.js');assert.ok(read('sw.js').includes("'cuenta.js'"),'cuenta.js en el shell');
+ assert.match(h,/function vMiHoja\(sub\)\{requireAccount\(\(\)=>vMiHojaIn\(sub\),sub==='editar'\?\{edit:true\}:undefined\)\}/,'Mi Hoja pasa por la cuenta');assert.ok(read('index.html').indexOf('cuenta.js')>0&&read('index.html').indexOf('cuenta.js')<read('index.html').indexOf('hoja.js'),'cuenta.js antes de hoja.js');assert.ok(read('sw.js').includes("'cuenta.js'"),'cuenta.js en el shell');
  assert.ok(!h.includes('obAge')&&!h.includes('Tengo 21 años o más'),'LHB-52: la casilla de 21+ se quitó; la fecha de nacimiento la reemplaza');
 });
 test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403',async()=>{
@@ -458,7 +458,7 @@ test('LHB-25: entrar desde una página pública y fallar la revisión muestra el
   const retry=h.notice();assert.equal(retry.label,'Intentar otra vez');retry.on();await tick();assert.deepEqual(h.log.filter(x=>x==='GO'),['GO'],'el reintento hace la acción exactamente una vez: '+why);}
  const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});k.nav('#/c/yambo-toro');await k.A.require(k.go,{inPlace:true});await tick();assert.ok(k.log.includes('notice:Necesitas conexión')&&!k.log.some(x=>x.startsWith('card')),'sin conexión también se avisa en sitio');
  const m=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});m.nav('#/mihoja');m.C.user={id:'user_a'};await m.A.require(m.go);await tick();assert.ok(m.log.includes('card:No pudimos revisar tu cuenta')&&!m.log.some(x=>x.startsWith('notice')),'en Mi Hoja el error va en la tarjeta, no en una hoja');
- assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,\'identity\'),toast,closeAll:closeSheetNow}'),'hoja.js pasa el aviso sobre la página');
+ assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,\'identity\'),edit:(prof,submit,picture)=>onboardingForm(submit,picture,\'edit\',prof),toast,closeAll:closeSheetNow}'),'hoja.js pasa el aviso sobre la página');
 });
 test('LHB-25: un reintento del usuario puede volver a abrir la hoja de entrar y la acción sigue viva',async()=>{
  let status=401;const h=CUENTA_HARNESS({api:async()=>({status,body:status===200?{profile:{handle:'ana'}}:{}})});h.nav('#/c/yambo-toro');
@@ -1018,7 +1018,7 @@ function FORM_HARNESS(picture,submit,resize,opts){opts=opts||{};
  /* un reloj fijo para el formulario (new Date() sin argumentos); con argumentos, el Date de siempre */
  if(opts.now){const RD=Date;ctx.Date=class extends RD{constructor(...a){if(a.length)super(...a);else super(opts.now)}}}
  vm.createContext(ctx);vm.runInContext(code+';this.onboardingForm=onboardingForm;this.OB_ERR=OB_ERR;this.idProblem=idProblem',ctx);
- ctx.onboardingForm(submit,picture,opts.mode);
+ ctx.onboardingForm(submit,picture,opts.mode,opts.init);
  const pick=f=>ctx.$('#obPf').onchange({target:{files:[f],value:'x'}});
  /* send llena el formulario (nombre, apellido, género y fecha; el @ solo en el formulario nuevo) y lo envía; lo que no se da, se llena con una identidad válida */
  const send=(v={})=>{if(opts.mode!=='identity')ctx.$('#obH').value=v.handle===undefined?'ana':v.handle;
@@ -1026,7 +1026,7 @@ function FORM_HARNESS(picture,submit,resize,opts){opts=opts||{};
   const g=v.gender===undefined?'F':v.gender;ctx.$('#obGM').checked=g==='M';ctx.$('#obGF').checked=g==='F';ctx.$('#obD').value=v.birth===undefined?'1990-05-17':v.birth;
   return ctx.$('#obForm').onsubmit({preventDefault(){}})};
  const state=()=>({go:ctx.$('#obGo').disabled,pb:ctx.$('#obPb').disabled,err:ctx.$('#obErr').hidden?'':ctx.$('#obErr').textContent,hint:ctx.$('#obPh').textContent,img:ctx.$('#obPv').children[0]&&ctx.$('#obPv').children[0].src});
- return {ctx,$:ctx.$,pick,send,state,html:()=>html,idProblem:ctx.idProblem,remount:()=>ctx.onboardingForm(submit,picture,opts.mode),OB:ctx.OB_ERR};
+ return {ctx,$:ctx.$,pick,send,state,html:()=>html,idProblem:ctx.idProblem,remount:()=>ctx.onboardingForm(submit,picture,opts.mode,opts.init),OB:ctx.OB_ERR};
 }
 test('LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones',async()=>{
  const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';
@@ -1101,7 +1101,7 @@ test('LHB-49: toda salida que da por buena la cuenta con perfil retira el formul
 });
 test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL',()=>{
  const h=read('hoja.js'),app=read('app.js'),css=read('styles.css'),cu=read('cuenta.js'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');
- assert.ok(h.includes('function onboardingForm(submit,picture,mode){'),'el formulario recibe la foto (y, desde LHB-52, el modo)');
+ assert.ok(h.includes('function onboardingForm(submit,picture,mode,init){'),'el formulario recibe la foto (y, desde LHB-52, el modo)');
  assert.ok(h.includes('<input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1">'),'solo imágenes');
  const i=h.indexOf('function onboardingForm'),form=h.slice(i,h.indexOf('\nconst CUENTA=',i));
  assert.ok(form.includes("A.resizeImage(f,512,.85)")&&form.includes("picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))"),'se achica antes de subir');
@@ -1115,7 +1115,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  const up=form.slice(form.indexOf("$('#obPf').onchange="),form.indexOf("$('#obB').oninput")),sb=form.slice(form.indexOf('form.onsubmit='));
  for(const [nombre,src] of [['subir',up],['enviar',sb]])assert.ok(src.includes("if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}"),'una operación invalidada con el formulario aún en pantalla suelta el candado al enviar/subir: '+nombre);
  assert.ok(/busy\(false\);if\(r\.error\)return err\(OB_ERR\[r\.error\]\|\|OB_ERR\['avatar-upload'\]\);\s*own=true;showPic\(\)/.test(up),'subir: éxito y error sueltan el candado');
- assert.ok(/busy\(false\);if\(r\.error\)err\(OB_ERR\[r\.error\]\|\|\(idm\?'No pudimos guardar tu perfil\. Intenta otra vez\.':'No pudimos crear tu perfil/.test(sb),'enviar: éxito y error sueltan el candado');
+ assert.ok(/busy\(false\);if\(r\.error\)err\(OB_ERR\[r\.error\]\|\|\(idm\|\|edm\?'No pudimos guardar tu perfil\. Intenta otra vez\.':'No pudimos crear tu perfil/.test(sb),'enviar: éxito y error sueltan el candado');
  assert.ok(cu.includes('let uq=Promise.resolve();')&&cu.includes('uq.then(async()=>{try{')&&cu.includes('uq=job.catch(()=>{})'),'las subidas van en cola, una a la vez');
  assert.ok(app.includes('vPerfil,resizeImage,hydrate:'),'app.js le pasa resizeImage a Mi Hoja');
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
@@ -1404,6 +1404,182 @@ test('LHB-52: el error del formulario se ve: caja roja con borde y letra grande,
  assert.match(e.style.cssText,/border:2px solid var\(--flam\)/);assert.match(e.style.cssText,/font-size:16px/);assert.match(e.style.cssText,/background:rgba\(208,25,46/);
  assert.equal(e.scrolls,1,'la pantalla baja hasta el error');
  await f.send({});assert.equal(e.hidden,true,'al corregir, el error desaparece');assert.equal(e.style.cssText,'');assert.equal(e.scrolls,1,'y no vuelve a moverse la pantalla');
+});
+
+
+/* ===================== LHB-55: editar el perfil (una pantalla para cambiar todo, también la foto) ===================== */
+const AV55='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';
+const PERFIL55=o=>({handle:'tabaquero',...IDN,avatar_url:AV,bio:'Fumo los domingos.',favorite_brand:'Cohiba',...o});
+test('LHB-55: PUT /api/profile edita el perfil entero del dueño en SQLite real: cada campo se guarda, el nombre público se arma otra vez, lo privado no vuelve y el @ viejo queda libre',async()=>{
+ const a=await API52();
+ try{
+  const tkA=await a.tok('user_a'),tkB=await a.tok('user_b');
+  a.freeze(T0);assert.equal((await a.post(tkA,{handle:'tabaquero',...IDN,avatar_url:AV}))[0],201);
+  const antes=ROW(a.db,'user_a');a.thaw();a.freeze('2026-10-27T12:00:00.000Z');
+  const r=await a.put(tkA,PERFIL55({handle:'Nuevo_Nombre',first_name:' Beatriz ',last_name:'ñoño',gender:'M',birth_date:'1980-02-03',bio:'Otra bio',favorite_brand:'Padrón',avatar_url:AV55}));
+  assert.deepEqual(r,[200,{profile:{handle:'nuevo_nombre',display_name:'Beatriz Ñ.',bio:'Otra bio',favorite_brand:'Padrón',avatar_key:AV55}}],'la respuesta no trae género ni fecha de nacimiento');
+  const row=ROW(a.db,'user_a');
+  assert.deepEqual([row.handle,row.first_name,row.last_name,row.gender,row.birth_date,row.bio,row.favorite_brand,row.avatar_key,row.display_name],['nuevo_nombre','Beatriz','ñoño','M','1980-02-03','Otra bio','Padrón',AV55,'Beatriz Ñ.'],'cada campo se guardó (el @ en minúscula)');
+  assert.equal(row.created_at,antes.created_at,'created_at no cambia');assert.equal(row.age_ok_at,antes.age_ok_at,'el sello del 21+ no se toca');assert.equal(row.updated_at,'2026-10-27T12:00:00.000Z');assert.equal(COUNT(a.db),1,'no se creó otra fila');
+  const [st,m]=await a.me(tkA);assert.equal(st,200);assert.deepEqual(m,{profile:{handle:'nuevo_nombre',display_name:'Beatriz Ñ.',bio:'Otra bio',favorite_brand:'Padrón',avatar_key:AV55,first_name:'Beatriz',last_name:'ñoño',gender:'M',birth_date:'1980-02-03'},needsIdentity:false},'el dueño lo ve todo en /api/me');
+  const pub=await a.P.publicProfile(a.DB,'nuevo_nombre');assert.deepEqual(Object.keys(pub).sort(),['avatar_key','bio','display_name','favorite_brand','handle']);for(const s of ['ñoño','1980-02-03','"M"'])assert.ok(!JSON.stringify(pub).includes(s),'lo público no trae '+s);
+  /* el @ viejo queda libre; guardar con el mismo @ no choca consigo mismo; vaciar la bio y la marca las deja en null */
+  assert.equal((await a.post(tkB,{handle:'tabaquero',...IDN,avatar_url:AV}))[0],201,'otra persona toma el @ que quedó libre');
+  assert.equal((await a.put(tkA,PERFIL55({handle:'nuevo_nombre',bio:'',favorite_brand:'  ',avatar_url:AV55})))[0],200,'el mismo @ no es un choque');
+  assert.deepEqual([ROW(a.db,'user_a').bio,ROW(a.db,'user_a').favorite_brand],[null,null]);
+  /* el perfil ajeno no se toca: B edita lo suyo y A queda igual */
+  const deA=ROW(a.db,'user_a');assert.equal((await a.put(tkB,PERFIL55({handle:'bea',first_name:'Bea',last_name:'Soto',avatar_url:AV})))[0],200);
+  assert.deepEqual(ROW(a.db,'user_a'),deA,'editar el perfil propio no toca el de otra persona');assert.equal(ROW(a.db,'user_b').handle,'bea');
+ }finally{a.done()}
+});
+test('LHB-55: PUT /api/profile rechaza sin cambiar nada: @ mal o reservado o ajeno, menos de 21, fecha futura, datos que faltan, foto que no es de Clerk, textos largos; sin sesión, sin perfil, sin JSON',async()=>{
+ const a=await API52();
+ try{
+  const tkA=await a.tok('user_a'),tkB=await a.tok('user_b'),tkC=await a.tok('user_c');
+  a.freeze(T0);assert.equal((await a.post(tkA,{handle:'tabaquero',...IDN,avatar_url:AV}))[0],201);assert.equal((await a.post(tkB,{handle:'bea',...IDN,avatar_url:AV}))[0],201);
+  const intacta=ROW(a.db,'user_a'),deB=ROW(a.db,'user_b');
+  const rechazos=[
+   ['@ muy corto',{handle:'ab'},400,'handle-invalid'],['@ con caracteres raros',{handle:'ana mora'},400,'handle-invalid'],['@ reservado',{handle:'admin'},400,'handle-reserved'],['@ de otra persona',{handle:'bea'},409,'handle-taken'],['@ de otra persona en mayúsculas',{handle:'BEA'},409,'handle-taken'],
+   ['20 años y 364 días',{birth_date:'2005-10-27'},400,'age-under-21'],['fecha futura',{birth_date:'2026-10-27'},400,'birth_date-future'],['fecha que no existe',{birth_date:'2001-02-29'},400,'birth_date-invalid'],
+   ['sin nombre',{first_name:'  '},400,'first_name-required'],['sin apellido',{last_name:''},400,'last_name-required'],['género X',{gender:'X'},400,'gender-invalid'],['sin género',{gender:null},400,'gender-required'],
+   ['foto vacía',{avatar_url:''},400,'avatar-required'],['foto de otro sitio',{avatar_url:'https://evil.example/x.png'},400,'avatar-invalid'],['bio de 161 caracteres',{bio:'x'.repeat(161)},400,'bio-long'],['marca de 61 caracteres',{favorite_brand:'x'.repeat(61)},400,'favorite_brand-long']];
+  for(const [que,o,st,err] of rechazos){assert.deepEqual(await a.put(tkA,PERFIL55(o)),[st,{error:err}],que);assert.deepEqual(ROW(a.db,'user_a'),intacta,que+': la fila no cambió');assert.deepEqual(ROW(a.db,'user_b'),deB,que+': la de otra persona tampoco')}
+  /* sin la foto en el cuerpo no es una edición: es la ruta de completar la identidad, que a un perfil completo le da 409 y no cambia nada */
+  const sinFoto=PERFIL55({handle:'otro'});delete sinFoto.avatar_url;assert.deepEqual(await a.put(tkA,sinFoto),[409,{error:'identity-exists'}]);assert.deepEqual(ROW(a.db,'user_a'),intacta);
+  /* quien no es el dueño o no tiene cuenta */
+  assert.deepEqual(await a.put(null,PERFIL55()),[401,{error:'no-session'}],'sin sesión');
+  assert.deepEqual(await a.put(tkA,PERFIL55(),'text/plain'),[415,{error:'bad-type'}],'solo JSON');
+  assert.deepEqual(await a.put(tkC,PERFIL55({handle:'nuevo'})),[403,{error:'no-profile'}],'sin perfil no se crea uno por aquí');assert.equal(COUNT(a.db),2,'ninguna fila nueva');
+  assert.deepEqual(await a.put(tkA,'{no es json'),[400,{error:'bad-body'}]);assert.deepEqual(ROW(a.db,'user_a'),intacta);
+ }finally{a.done()}
+});
+/* editar por la puerta de la cuenta, con una Clerk de mentira y /api/me y /api/profile de mentira */
+const PROF55={handle:'ana',display_name:'Ana M.',bio:'hola',favorite_brand:'Cohiba',avatar_key:AV,...IDN};
+async function EDT(user,over){over=over||{};const puts=[],calls=[];let prof,submit,picture,editors=0,identities=0;
+ const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{calls.push(m+' '+p);if(m==='GET')return over.me||{status:200,body:{profile:PROF55,needsIdentity:false}};puts.push(b);return over.put?over.put(b):{status:200,body:{profile:{handle:b.handle}}}}});
+ h.D.ui.edit=(p,s,pc)=>{prof=p;submit=s;picture=pc;editors++};h.D.ui.identity=()=>{identities++};
+ h.C.user=user;const run=()=>h.A.require(h.go,{edit:true});await run();await tick();
+ return {h,puts,calls,run,get prof(){return prof},get picture(){return picture},raw:()=>submit,editors:()=>editors,identities:()=>identities,submit:f=>submit(f||{handle:'ana',...IDN,bio:'hola',favorite_brand:'Cohiba'})}}
+const GOS=h=>h.log.filter(x=>x==='GO').length;
+test('LHB-55: editar pasa por la puerta de la cuenta, abre el formulario con lo guardado y solo al guardar corre la acción, una vez',async()=>{
+ const o=await EDT({id:'user_a',hasImage:true,imageUrl:AV});
+ assert.equal(o.editors(),1,'se abre el formulario de editar');assert.deepEqual(o.prof,PROF55,'con lo que el servidor tiene guardado');assert.equal(o.picture.url(),AV,'y su foto puesta');assert.equal(GOS(o.h),0,'ver el formulario no es haber guardado');assert.deepEqual(o.puts,[]);
+ assert.deepEqual(await o.submit({handle:'ana2',first_name:'Bea',last_name:'Soto',gender:'M',birth_date:'1980-02-03',bio:'',favorite_brand:''}),{ok:true});
+ assert.equal(o.puts.length,1);assert.deepEqual(o.puts[0],{handle:'ana2',first_name:'Bea',last_name:'Soto',gender:'M',birth_date:'1980-02-03',bio:'',favorite_brand:'',avatar_url:AV},'se manda el perfil entero con la foto puesta');
+ assert.deepEqual(o.calls,['GET /api/me','PUT /api/profile']);assert.ok(o.h.log.includes('store:user_a:ana2'),'el perfil guardado en el teléfono lleva el @ nuevo');assert.ok(o.h.log.includes('toast'));assert.equal(GOS(o.h),1,'la acción corre una vez');
+});
+test('LHB-55: un guardado que falla deja el formulario vivo con lo escrito, y se puede reintentar; el que ya guardó no corre dos veces',async()=>{
+ let n=0;const o=await EDT({id:'user_a',hasImage:true,imageUrl:AV},{put:()=>++n===1?{status:409,body:{error:'handle-taken'}}:n===2?{status:0,body:{}}:{status:200,body:{profile:{handle:'ana'}}}});
+ assert.deepEqual(await o.submit(),{error:'handle-taken'},'el error llega al formulario');assert.equal(GOS(o.h),0);assert.ok(!o.h.log.includes('toast'));assert.deepEqual(o.h.log.filter(x=>x.startsWith('store')),['store:user_a:ana'],'solo el perfil que ya estaba al abrir: el rechazo no guarda nada nuevo en el teléfono');
+ assert.deepEqual(await o.submit(),{error:'generic'},'sin red: error, el formulario sigue');assert.equal(GOS(o.h),0);
+ assert.deepEqual(await o.submit(),{ok:true},'el mismo formulario reintenta');assert.equal(GOS(o.h),1);
+});
+test('LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez',async()=>{
+ /* una subida que falla deja la foto de antes y es esa la que se manda */
+ let u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){throw new Error('413')}};let o=await EDT(u);
+ assert.deepEqual(await o.picture.upload(IMG('a.jpg')),{error:'avatar-upload'});assert.equal(o.picture.url(),AV,'sigue la foto de antes');await o.submit();assert.equal(o.puts[0].avatar_url,AV);
+ /* una subida buena: Clerk la guarda, se lee la URL nueva y esa es la que se manda */
+ u={id:'user_a',hasImage:true,imageUrl:AV,sets:[],async setProfileImage(f){u.sets.push(f)},async reload(){u.imageUrl=AV55}};o=await EDT(u);
+ assert.deepEqual(await o.picture.upload(IMG('a.jpg')),{url:AV55});assert.equal(u.sets.length,1);assert.equal(o.picture.url(),AV55);await o.submit();assert.equal(o.puts[0].avatar_url,AV55,'se manda la foto nueva');
+ /* no es imagen: ni se sube */
+ u={id:'user_a',hasImage:true,imageUrl:AV,sets:[],async setProfileImage(f){u.sets.push(f)},async reload(){}};o=await EDT(u);assert.deepEqual(await o.picture.upload({type:'text/plain'}),{error:'avatar-type'});assert.equal(u.sets.length,0);
+ /* una URL que no es de Clerk tras la subida no se acepta, y la de antes se queda */
+ u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){u.imageUrl='https://evil.example/x.png'},async reload(){}};o=await EDT(u);assert.deepEqual(await o.picture.upload(IMG('a.jpg')),{error:'avatar-upload'});assert.equal(o.picture.url(),AV);
+ /* sin foto guardada en el perfil: la de la cuenta; sin ninguna, no se guarda */
+ o=await EDT({id:'user_a',hasImage:true,imageUrl:AV55},{me:{status:200,body:{profile:{...PROF55,avatar_key:null},needsIdentity:false}}});assert.equal(o.picture.url(),AV55,'toma la foto de la cuenta');
+ o=await EDT({id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG},{me:{status:200,body:{profile:{...PROF55,avatar_key:null},needsIdentity:false}}});assert.deepEqual(await o.submit(),{error:'avatar-required'});assert.deepEqual(o.puts,[],'sin foto no se manda nada');
+ /* la foto del perfil guardado es la que vale aunque la cuenta de Clerk solo tenga la silueta; una guardada que no es de Clerk no se usa */
+ o=await EDT({id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG});assert.equal(o.picture.url(),AV,'la foto guardada en el perfil');await o.submit();assert.equal(o.puts[0].avatar_url,AV,'y esa se manda');
+ o=await EDT({id:'user_a',hasImage:true,imageUrl:AV55},{me:{status:200,body:{profile:{...PROF55,avatar_key:'https://evil.example/x.png'},needsIdentity:false}}});assert.equal(o.picture.url(),AV55,'una foto guardada que no es de Clerk no se usa: queda la de la cuenta');
+ /* subir y guardar no corren a la vez */
+ const g=defer();u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};o=await EDT(u);
+ const up=o.picture.upload(IMG('a.jpg'));await tick();assert.deepEqual(await o.submit(),{error:'avatar-busy'},'con una subida en curso no se guarda');assert.deepEqual(o.puts,[]);g.ok();assert.deepEqual(await up,{url:AV55});
+ const g2=defer();o=await EDT({id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){throw new Error('x')},async reload(){}},{put:()=>g2.p});
+ const env=o.submit();await tick();assert.deepEqual(await o.picture.upload(IMG('a.jpg')),{error:'avatar-busy'},'con un guardado en curso no se sube');g2.ok({status:200,body:{profile:{handle:'ana'}}});assert.deepEqual(await env,{ok:true});
+});
+test('LHB-55: un formulario de editar viejo no manda nada: otra cuenta, otro formulario encima, sin conexión y sin perfil completo',async()=>{
+ /* cambió la cuenta */
+ let o=await EDT({id:'user_a',hasImage:true,imageUrl:AV});o.h.C.signIn(null);assert.deepEqual(await o.submit(),{stale:true});assert.deepEqual(o.puts,[],'a nombre de nadie se manda');assert.equal(GOS(o.h),0);
+ o=await EDT({id:'user_a',hasImage:true,imageUrl:AV});o.h.C.signIn('user_b');assert.deepEqual(await o.submit(),{stale:true},'otra persona entró');assert.deepEqual(o.puts,[]);
+ /* otro formulario encima: el viejo ya no vale y el nuevo sí */
+ o=await EDT({id:'user_a',hasImage:true,imageUrl:AV});const viejo=o.raw();await o.run();await tick();assert.equal(o.editors(),2);
+ assert.deepEqual(await viejo({handle:'ana',...IDN}),{stale:true},'el formulario reemplazado no guarda');assert.deepEqual(o.puts,[]);assert.deepEqual(await o.submit(),{ok:true});assert.equal(o.puts.length,1);
+ /* se fue de la página */
+ o=await EDT({id:'user_a',hasImage:true,imageUrl:AV});o.h.nav('#/catalogo');assert.deepEqual(await o.submit(),{stale:true},'otra página');assert.deepEqual(o.puts,[]);
+ /* sin conexión no se edita con lo guardado en el teléfono: se avisa */
+ const h2=CUENTA_HARNESS({api:async()=>({status:0,body:{}})});h2.C.user={id:'user_a'};h2.cache({sub:'user_a',handle:'ana'});let abrio=0;h2.D.ui.edit=()=>abrio++;
+ await h2.A.require(h2.go,{edit:true});await tick();assert.equal(abrio,0);assert.ok(!h2.log.includes('GO'),'editar sin conexión no abre nada');assert.ok(h2.log.includes('card:No pudimos revisar tu cuenta'),'y se avisa');
+ const h3=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});h3.cache({sub:'user_a',handle:'ana'});await h3.A.require(h3.go,{edit:true});await tick();assert.ok(!h3.log.includes('GO')&&h3.log.includes('card:Necesitas conexión'),'sin Clerk tampoco se edita con el perfil del teléfono');
+ /* un perfil de antes sin identidad la completa primero, y no abre el editor */
+ o=await EDT({id:'user_a',hasImage:true,imageUrl:AV},{me:{status:200,body:{profile:{...PROF55,first_name:null},needsIdentity:true}}});assert.equal(o.identities(),1,'primero completa la identidad');assert.equal(o.editors(),0);
+ /* sin cuenta (401): nada */
+ o=await EDT({id:'user_a',hasImage:true,imageUrl:AV},{me:{status:401,body:{error:'no-session'}}});assert.equal(o.editors(),0);assert.equal(GOS(o.h),0);
+});
+test('LHB-55: el formulario real de editar sobre un DOM de mentira: viene lleno, guarda todo, una fecha de menos de 21 no manda nada y un error deja lo escrito',async()=>{
+ const subs=[];let res={ok:true};
+ const f=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV55})},async v=>{subs.push(v);return res},null,{mode:'edit',init:PROF55});
+ assert.match(f.html(),/Editar <em>perfil<\/em>/);assert.match(f.html(),/id="obGo">Guardar<\/button>/);assert.match(f.html(),/<a class="lbtn" href="#\/mihoja\/perfil" id="obCancel">Cancelar<\/a>/,'hay cómo salir sin guardar');assert.ok(!/Crear mi perfil/.test(f.html()));
+ assert.deepEqual([f.$('#obH').value,f.$('#obFn').value,f.$('#obLn').value,f.$('#obGM').checked,f.$('#obGF').checked,f.$('#obD').value,f.$('#obB').value,f.$('#obM').value],['ana','Ana','Mora',false,true,'1990-05-17','hola','Cohiba'],'viene con lo guardado');
+ assert.equal(f.$('#obPb').textContent,'Cambiar foto');assert.match(f.state().hint,/Esta es tu foto de perfil/);assert.equal(f.state().img,AV,'se ve la foto de ahora');
+ /* guarda todo lo cambiado */
+ f.$('#obB').value='Otra bio';f.$('#obM').value='Padrón';await f.send({handle:'nuevo',first:'Bea',last:'Soto',gender:'M',birth:'1980-02-03'});
+ assert.deepEqual(subs,[{handle:'nuevo',first_name:'Bea',last_name:'Soto',gender:'M',birth_date:'1980-02-03',bio:'Otra bio',favorite_brand:'Padrón'}]);assert.deepEqual([f.state().go,f.state().pb],[false,false],'termina y suelta los botones');
+ /* menos de 21: no se manda nada */
+ subs.length=0;await f.send({birth:'2010-01-01'});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['age-under-21']);
+ await f.send({handle:'ab'});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['handle-invalid']);
+ /* un error del servidor deja el formulario con lo escrito */
+ res={error:'handle-taken'};await f.send({handle:'ocupado',first:'Cami'});assert.equal(subs.length,1);assert.equal(f.state().err,f.OB['handle-taken']);assert.deepEqual([f.$('#obH').value,f.$('#obFn').value],['ocupado','Cami'],'lo escrito sigue ahí');assert.deepEqual([f.state().go,f.state().pb],[false,false],'y se puede reintentar');
+ res={error:'inventado'};await f.send({});assert.equal(f.state().err,'No pudimos guardar tu perfil. Intenta otra vez.','un error desconocido dice guardar, no crear');
+ /* una foto que no se pudo subir deja la de antes */
+ const g=FORM_HARNESS({url:()=>AV,upload:async()=>({error:'avatar-upload'})},async()=>({ok:true}),null,{mode:'edit',init:PROF55});await g.pick({name:'a.png',type:'image/png'});
+ assert.equal(g.state().err,g.OB['avatar-upload']);assert.equal(g.state().img,AV,'la foto de antes sigue puesta');assert.deepEqual([g.state().go,g.state().pb],[false,false]);
+ /* el formulario nuevo y el de completar siguen como estaban */
+ const nuevo=FORM_HARNESS({url:()=>null,upload:async()=>({url:AV})},async()=>({ok:true}));assert.match(nuevo.html(),/Crear mi perfil/);assert.ok(!/obCancel/.test(nuevo.html()));
+});
+test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo',()=>{
+ const cu=read('cuenta.js').replace(/\r\n/g,'\n'),h=read('hoja.js').replace(/\r\n/g,'\n'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');
+ assert.equal((cu.match(/U\.setProfileImage\(/g)||[]).length,1,'una sola subida a Clerk: el selector se comparte, no se copia');
+ assert.ok(cu.includes('function picker(U,live,pic0,sending){')&&/function onboard\([^)]*\)\{[\s\S]*?picker\(U,live,picOf\(U\)/.test(cu)&&/function edit\([^)]*\)\{[\s\S]*?picker\(U,live,/.test(cu),'el perfil nuevo y el de editar usan picker()');
+ assert.ok(cu.includes("D.api(C,'PUT','/api/profile',{...f,avatar_url:pic},uid)"),'editar manda el perfil entero con la foto');
+ assert.ok(cu.includes('if(r.status===200&&r.body.profile&&o.edit){')&&cu.includes('if(D.store.get()&&!o.edit)')&&cu.includes('c&&c.sub===uid&&!o.edit&&'),'editar nunca se abre con lo guardado en el teléfono');
+ assert.ok(h.includes('<a class="lbtn" href="#/mihoja/editar" id="mhEdit">Editar perfil</a>'),'el encabezado de Mi Hoja (y de Perfil) lleva el enlace a editar');
+ assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+ assert.ok(h.includes('edit:(prof,submit,picture)=>onboardingForm(submit,picture,\'edit\',prof)'));
+ assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+ assert.match(read('sw.js'),/const VERSION='lhb-v55'/,'el shell nuevo se publica con otra versión del caché');
+});
+test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+ const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+ const o=await EDT(u);const up=o.picture.upload(IMG('a.jpg'));await tick();
+ /* Cancelar y volver a abrir Editar perfil: otro formulario, con su propio selector de foto, mientras la subida vieja sigue */
+ await o.run();await tick();assert.equal(o.editors(),2);
+ assert.deepEqual(await o.submit(),{error:'avatar-busy'},'la cuenta de Clerk es una sola: con la subida vieja en curso el formulario nuevo no guarda');assert.deepEqual(o.puts,[],'ni un PUT');
+ g.ok();assert.deepEqual(await up,{stale:true},'la subida del formulario cerrado ya no cambia ninguna foto');await tick();
+ assert.deepEqual(await o.submit(),{ok:true},'terminada la subida, el formulario nuevo guarda');assert.equal(o.puts.length,1);
+ /* lo mismo con el formulario del perfil nuevo reemplazado por otro */
+ const g2=defer();const u2={id:'user_b',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){await g2.p},async reload(){u2.hasImage=true;u2.imageUrl=AV55}};
+ const posts=[];let pics=[],subs=[];const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{if(m==='GET')return {status:200,body:{needsProfile:true}};posts.push(b);return {status:201,body:{profile:{handle:b.handle}}}}});
+ h.D.ui.onboarding=(s,p)=>{subs.push(s);pics.push(p)};h.C.user=u2;await h.A.require(h.go);await tick();
+ const up2=pics[0].upload(IMG('a.jpg'));await tick();await h.A.require(h.go);await tick();assert.equal(subs.length,2);
+ assert.deepEqual(await subs[1]({handle:'ana',...IDN,bio:'',favorite_brand:''}),{error:'avatar-busy'},'el formulario de perfil nuevo tampoco crea con una subida vieja en curso');assert.deepEqual(posts,[]);
+ g2.ok();await up2;await tick();
+});
+test('LHB-55 (Codex ronda 2): un guardado que sigue en curso de un formulario ya cerrado bloquea la subida del formulario nuevo; terminado, se sube',async()=>{
+ const g=defer();let setCalls=0;const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){setCalls++},async reload(){u.imageUrl=AV55}};
+ const o=await EDT(u,{put:()=>g.p.then(()=>({status:200,body:{profile:{handle:'ana'}}}))});
+ const sv=o.submit();await tick();assert.equal(o.puts.length,1,'el guardado viejo salio y sigue en curso');
+ /* Cancelar y volver a abrir Editar perfil: otro formulario, con su propio selector de foto, mientras el PUT viejo sigue */
+ await o.run();await tick();assert.equal(o.editors(),2);
+ assert.deepEqual(await o.picture.upload(IMG('a.jpg')),{error:'avatar-busy'},'la cuenta es una sola: con un guardado viejo en curso el formulario nuevo no sube');assert.equal(setCalls,0,'Clerk no se toca');
+ g.ok();await sv;await tick();
+ const r=await o.picture.upload(IMG('a.jpg'));assert.equal(r.url,AV55,'terminado el guardado, el formulario nuevo sube');assert.equal(setCalls,1);
+ /* lo mismo con el formulario de perfil nuevo */
+ const g2=defer();let sc2=0;const u2={id:'user_b',hasImage:true,imageUrl:AV,async setProfileImage(){sc2++},async reload(){u2.hasImage=true;u2.imageUrl=AV55}};
+ let pics=[],subs=[];const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{if(m==='GET')return {status:200,body:{needsProfile:true}};await g2.p;return {status:201,body:{profile:{handle:b.handle}}}}});
+ h.D.ui.onboarding=(s,p)=>{subs.push(s);pics.push(p)};h.C.user=u2;await h.A.require(h.go);await tick();
+ const sv2=subs[0]({handle:'ana',...IDN,bio:'',favorite_brand:''});await tick();await h.A.require(h.go);await tick();assert.equal(subs.length,2);
+ assert.deepEqual(await pics[1].upload(IMG('a.jpg')),{error:'avatar-busy'},'el formulario de perfil nuevo tampoco sube con un guardado viejo en curso');assert.equal(sc2,0);
+ g2.ok();await sv2;await tick();
 });
 
 /* ===================== LHB-57: buscar personas por @ o por nombre ===================== */
