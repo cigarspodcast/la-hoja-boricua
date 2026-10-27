@@ -1009,7 +1009,7 @@ test('LHB-49: si otra acción gana primero porque el perfil ya existe, el formul
 function FORM_HARNESS(picture,submit,resize,opts){opts=opts||{};
  const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
  const code=src.match(/const HANDLE_RE=.*\n/)[0]+src.match(/const OB_ERR=.*\n/)[0]+src.slice(src.indexOf('const ID_BAD='),src.indexOf('\nconst CUENTA='));
- let els={};const mkEl=()=>{const e={disabled:false,hidden:false,value:'',checked:false,children:[],onclick:null,onchange:null,onsubmit:null,oninput:null,clicks:0,
+ let els={};const mkEl=()=>{const e={disabled:false,hidden:false,value:'',checked:false,children:[],style:{cssText:''},scrolls:0,scrollIntoView(){e.scrolls++},onclick:null,onchange:null,onsubmit:null,oninput:null,clicks:0,
   appendChild(c){e.children.push(c)},click(){e.clicks++}};let tc='';Object.defineProperty(e,'textContent',{get:()=>tc,set:v=>{tc=v;e.children=[]}});return e};
  const $=s=>s==='#obForm'?els.form:(els[s]||(els[s]=mkEl()));
  let html='';const view={set innerHTML(h){els={form:mkEl()};html=h}};
@@ -1396,4 +1396,12 @@ test('LHB-52: si el perfil ya existía al crearlo (409) y sigue sin identidad, s
  /* completarlo termina igual que siempre: guarda, felicita, repinta y hace la acción */
  h.D.api=async(C,m)=>({status:200,body:{ok:true}});assert.deepEqual(await idn({first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-01-01'}),{ok:true});
  assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'||x.startsWith('store')),['store:user_a:sergio','reroute','GO']);
+});
+test('LHB-52: el error del formulario se ve: caja roja con borde y letra grande, la pantalla baja hasta ella y se quita al corregir',async()=>{
+ const f=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{now:T0});
+ await f.send({birth:'2019-09-09'});const e=f.$('#obErr');
+ assert.equal(e.hidden,false);assert.equal(e.textContent,f.OB['age-under-21']);
+ assert.match(e.style.cssText,/border:2px solid var\(--flam\)/);assert.match(e.style.cssText,/font-size:16px/);assert.match(e.style.cssText,/background:rgba\(208,25,46/);
+ assert.equal(e.scrolls,1,'la pantalla baja hasta el error');
+ await f.send({});assert.equal(e.hidden,true,'al corregir, el error desaparece');assert.equal(e.style.cssText,'');assert.equal(e.scrolls,1,'y no vuelve a moverse la pantalla');
 });

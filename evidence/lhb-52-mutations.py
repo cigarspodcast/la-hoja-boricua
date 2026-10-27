@@ -80,6 +80,9 @@ MUTS = [
     ('H12 formulario: la fecha y el género se guardan en el navegador', HO, "const bad=idProblem(f,new Date().toISOString().slice(0,10));", "try{localStorage.setItem('birth_date',f.birth_date)}catch(e){}const bad=idProblem(f,new Date().toISOString().slice(0,10));"),
     ('K1 hoja: el perfil guardado de antes (llave vieja) vuelve a valer', HO, "A.LS.get('cuenta2',null)", "A.LS.get('cuenta',null)"),
     ('K2 hoja: salir no borra la llave vieja', HO, "localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')", "localStorage.removeItem('vb_cuenta2')"),
+    ('K3 formulario: el error no baja la pantalla hasta él', HO, "  if(m&&typeof e.scrollIntoView==='function')e.scrollIntoView({block:'center',behavior:'smooth'})", ""),
+    ('K4 formulario: el error vuelve a ser texto suelto sin caja roja', HO, "border:2px solid var(--flam);", ""),
+    ('K5 formulario: el error corregido deja la caja puesta', HO, "line-height:1.4;margin:14px 0':'';", "line-height:1.4;margin:14px 0':e.style.cssText;"),
     # service worker
     ('W1 sw: la versión del caché no cambia', 'site/sw.js', "const VERSION='lhb-v53';", "const VERSION='lhb-v52';"),
 ]

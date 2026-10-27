@@ -183,7 +183,10 @@ function onboardingForm(submit,picture,mode){const marcas=[...new Set((D().artes
  <p class="hint" id="obErr" role="alert" hidden></p>
  <button class="btn" type="submit" id="obGo">${idm?'Guardar':'Crear mi perfil'}</button></form>`;
  const form=$('#obForm');
- const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m};
+ /* un error del formulario tiene que verse: caja roja con borde, texto grande, y la pantalla baja hasta ella (en un teléfono quedaba debajo del botón y pasaba desapercibido) */
+ const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m;
+  if(e.style)e.style.cssText=m?'border:2px solid var(--flam);background:rgba(208,25,46,.2);color:var(--cream);padding:12px 14px;border-radius:12px;font-size:16px;font-weight:600;line-height:1.4;margin:14px 0':'';
+  if(m&&typeof e.scrollIntoView==='function')e.scrollIntoView({block:'center',behavior:'smooth'})};
  /* LHB-49: la foto es obligatoria. Viene la de la cuenta (Google, Apple) si la hay; la persona puede escoger otra, que se achica aquí antes de subirla a su cuenta */
  let own=false;
  const showPic=()=>{if(idm)return;const u=picture.url(),v=$('#obPv');v.textContent='';if(u){const im=document.createElement('img');im.alt='Tu foto de perfil';im.src=u;v.appendChild(im)}else v.textContent='+';
