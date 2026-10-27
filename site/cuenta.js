@@ -18,6 +18,8 @@ const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='stri
 /* toda salida que da por buena la cuenta con perfil retira el formulario de perfil que siga abierto: quedó viejo y su respuesta tardía ya no corre su acción además de esta */
 const retire=()=>{if(ob){ob=false;D.reroute()}};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
+/* LHB-51: al abrir la app con una cuenta guardada, Clerk dice quién es: si es otra (o nadie) lo guardado se descarta; sin conexión se queda */
+async function reconcile(){if(!D.store.get())return;let C;try{C=await D.clerk()}catch(e){return}hook(C)}
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
  /* LHB-51: lo guardado es de otra cuenta que la que Clerk dice (o de ninguna): se descarta ya, aunque luego /api/me falle */
  {const c0=D.store.get();if(c0&&(!C.user||c0.sub!==C.user.id))D.store.clear()}
@@ -190,4 +192,4 @@ function resume(){const it=D.intent.get();
  if(it&&it.from===D.here()&&!onMiHoja()&&typeof it.act==='string'&&typeof ACT[it.act]==='function'){const act=it.act,arg=typeof it.arg==='string'?it.arg:undefined;
   return quick(()=>ACT[act](arg),{resume:true,act,arg})}
  D.intent.clear()}
-return {require:go,quick,resume,gen:()=>gen,register:(name,fn)=>{ACT[name]=fn}}};
+return {require:go,reconcile,quick,resume,gen:()=>gen,register:(name,fn)=>{ACT[name]=fn}}};

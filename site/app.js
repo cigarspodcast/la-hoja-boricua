@@ -210,7 +210,8 @@ const acctNow=()=>{const a=LS.get('cuenta2',null);return a&&typeof a==='object'&
 const acctAvatar=a=>a&&typeof a.avatar==='string'&&a.avatar.startsWith(AV_HOST)?a.avatar:'';
 const acctName=a=>a.name||('@'+a.handle);
 /* las iniciales como las de Google: la primera letra del nombre y la de la última palabra ("Ana M." da AM); una sola palabra da una letra */
-const initialsOf=s=>{const w=String(s||'').replace(/[^\p{L}\p{N}\s]/gu,' ').trim().split(/\s+/).filter(Boolean);if(!w.length)return '';return ([...w[0]][0]+(w.length>1?[...w[w.length-1]][0]:'')).toUpperCase()};
+const g1=s=>{try{return [...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(s)][0].segment}catch(e){return [...s][0]}};
+const initialsOf=s=>{const w=String(s||'').replace(/[^\p{L}\p{M}\p{N}\s]/gu,' ').trim().split(/\s+/).filter(Boolean);if(!w.length)return '';return (g1(w[0])+(w.length>1?g1(w[w.length-1]):'')).toUpperCase()};
 const acctInitial=a=>initialsOf(a.name)||([...String(a.handle||'')][0]||'\u2606').toUpperCase();
 /* pone la foto en el círculo; si no carga (una URL vencida) deja la inicial */
 function paintAvatar(el,a,alt){const src=acctAvatar(a),ini=`<span>${esc(acctInitial(a))}</span>`;
@@ -219,21 +220,17 @@ function paintAvatar(el,a,alt){const src=acctAvatar(a),ini=`<span>${esc(acctInit
 async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=acctNow();const ups=uploads();const favs=EXT.S().favs.cigarros;const rat=EXT.S().ratings;
  const favC=favs.map(cigarById).filter(Boolean);const ratC=Object.keys(rat).map(cigarById).filter(Boolean);
  view.innerHTML=`${EXT.subnav('perfil')}<div class="section-title"><h2>${tt('pf.title')}</h2></div>
- <div class="me"><div class="pic" id="mePic">${ac?esc(acctInitial(ac)):p.nombre?esc(initialsOf(p.nombre)):'☆'}</div><div><div class="n">${esc(ac?acctName(ac):p.nombre||tt('pf.yourName'))}</div><div class="c">${ac?'@'+esc(ac.handle)+(p.capa?' \u00b7 '+tt('pf.favCapa')+': '+esc(p.capa):''):p.capa?tt('pf.favCapa')+': '+esc(p.capa):tt('pf.pickCapa')}</div></div></div>
+ <div class="me"><div class="pic" id="mePic">${ac?esc(acctInitial(ac)):'\u2606'}</div><div><div class="n">${esc(ac?acctName(ac):tt('pf.yourName'))}</div><div class="c">${ac?'@'+esc(ac.handle)+(p.capa?' \u00b7 '+tt('pf.favCapa')+': '+esc(p.capa):''):p.capa?tt('pf.favCapa')+': '+esc(p.capa):tt('pf.pickCapa')}</div></div></div>
  <div class="stats"><div class="stat"><b>${ups.length}</b><span>${tt('pf.uploads')}</span></div><div class="stat"><b>${favC.length}</b><span>${tt('pf.favs')}</span></div><div class="stat"><b>${ratC.length}</b><span>${tt('pf.rated')}</span></div></div>
- <details class="edit" ${ac||p.nombre?'':'open'}><summary>${ac?tt('pf.favCapa'):tt('pf.edit')}</summary><form class="form" id="pForm">
- ${ac?'':`<div class="field"><label for="pN">${tt('pf.name')}</label><input id="pN" maxlength="40" value="${esc(p.nombre)}" placeholder="${tt('pf.namePh')}"></div>`}
+ <details class="edit"><summary>${tt('pf.favCapa')}</summary><form class="form" id="pForm">
  <div class="field"><label for="pC">${tt('pf.favCapa')}</label><select id="pC"><option value="">\u2014</option>${['Claro','Connecticut','Natural','Colorado','Habano','Corojo','Criollo','Maduro','Oscuro'].map(x=>`<option ${p.capa===x?'selected':''}>${x}</option>`).join('')}</select></div>
- ${ac?'':`<div class="field"><label>${tt('pf.foto')}</label><div class="photo-btns" style="margin:0"><label>${tt('up.camera')}<input type="file" accept="image/*" capture="user" id="pCam"></label><label>${tt('up.gallery')}<input type="file" accept="image/*" id="pGal"></label></div></div>`}
  <button class="btn" type="submit">${tt('pf.save')}</button></form></details>
  <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
  <div class="section-title"><h2>${tt('pf.myFavs')}</h2></div>${favC.length?`<div class="mini-row">${favC.map(cigarCard).join('')}</div>`:'<div class="empty">'+tt('pf.noFavs')+'</div>'}
  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--gold);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
  <p class="note">${tt('pf.note')}</p>`;
- if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));else{const u=await photoURL('perfil');if(u)$('#mePic').innerHTML=`<img src="${u}" alt="${tt('pf.fotoAlt')}">`}
- const onPic=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const b=await resizeImage(f,600,.82);await idb.put('perfil',b);if(urlCache.perfil){URL.revokeObjectURL(urlCache.perfil);delete urlCache.perfil}toast(tt('pf.fotoOk'));route();topAvatar()}catch(err){toast(tt('foto.err'))}};
- if($('#pCam')){$('#pCam').onchange=onPic;$('#pGal').onchange=onPic}
- $('#pForm').onsubmit=e=>{e.preventDefault();LS.set('perfil',{nombre:$('#pN')?$('#pN').value.trim():p.nombre,capa:$('#pC').value});toast(tt('pf.saved'));vPerfil();topAvatar()};hydratePhotos()}
+ if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));
+ $('#pForm').onsubmit=e=>{e.preventDefault();LS.set('perfil',{nombre:p.nombre,capa:$('#pC').value});toast(tt('pf.saved'));vPerfil();topAvatar()};hydratePhotos()}
 /* sin una cuenta guardada el círculo es la estrella: la foto y el nombre locales son de todo el teléfono, y a quien acaba de entrar con otra cuenta no se le muestra la foto de otra persona */
 function topAvatar(){const el=$('#topAvatar');if(!el)return;const a=acctNow();if(a)paintAvatar(el,a,'');else el.innerHTML='<span>\u2606</span>'}
 /* ---------- v6: Mi Hoja y demás (hoja.js) ---------- */

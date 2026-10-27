@@ -743,9 +743,8 @@ test('LHB-48: lo guardado para volver de Google solo se retoma si es una acción
  for(const bad of [{from:'#/c/yambo-toro',act:'constructor',arg:'x'},{from:'#/c/yambo-toro',act:'__proto__'},{from:'#/otra',act:'fav',arg:'x'},{from:'#/c/yambo-toro',act:'nada'}]){g.setIntent(bad);g.A.resume();await ticks(2);assert.equal(g.intent(),null,'se borra lo que no es una acción registrada de esta página: '+bad.act)}
  assert.deepEqual(rg,[],'y ninguna de ellas corre');g.setIntent({from:'#/c/yambo-toro',act:'fav',arg:'bien'});g.A.resume();await ticks(3);assert.deepEqual(rg,['bien'],'la buena sí, una vez');
 });
-test('LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente',()=>{
- const app=read('app.js');const i=app.indexOf("const onPic=async e=>");const seg=app.slice(i,app.indexOf('\n',i));
- assert.ok(seg.includes("await idb.put('perfil',b)")&&seg.includes("toast(tt('pf.fotoOk'));route();topAvatar()"),'tras guardar la foto se llama route()');assert.ok(!/fotoOk'\)\);vPerfil\(\)/.test(seg),'no se repinta el perfil sin pasar por la puerta');
+test('LHB-51: Perfil ya no guarda ni muestra una foto local de todo el teléfono (la foto es la de la cuenta, LHB-55)',()=>{
+ const app=read('app.js');assert.ok(!app.includes("idb.put('perfil'")&&!app.includes("photoURL('perfil')")&&!app.includes('id="pCam"'),'ni se guarda ni se pide la foto local de Perfil');
 });
 test('LHB-42: llms.txt lista cada página del sitemap una vez; robots.txt deja pasar a todos los bots',()=>{
  const sm=[...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]);const tx=read('llms.txt').replace(/\r\n/g,'\n');
@@ -1619,7 +1618,7 @@ test('LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la f
  /* y al guardarse la cuenta, el círculo pasa de la estrella a las iniciales */
  H.store.cuenta2={sub:'user_b',handle:'beto',name:'Beto S.',avatar:''};H.ctx.topAvatar();assert.equal(H.$('#topAvatar').innerHTML,'<span>BS</span>');
  /* las iniciales: la primera letra del nombre y la de la última palabra */
- const I=H.ctx.initialsOf;for(const [n,e] of [['Ana M.','AM'],['Ana','A'],['  ana   mora ','AM'],['José Luis Pérez','JP'],['Ñandú R.','ÑR'],['María-José S.','MS'],['ana_mora','AM'],['','']  ,['@@..',''],[null,''],[undefined,''],[7,'7']])assert.equal(I(n),e,JSON.stringify(n));
+ const I=H.ctx.initialsOf;for(const [n,e] of [['Ana M.','AM'],['Ana','A'],['  ana   mora ','AM'],['José Luis Pérez','JP'],['Ñandú R.','ÑR'],['María-José S.','MS'],['E\u0301mile','E\u0301'],['हर्ष','ह'],['ana_mora','AM'],['','']  ,['@@..',''],[null,''],[undefined,''],[7,'7']])assert.equal(I(n),e,JSON.stringify(n));
 });
 test('LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes',async()=>{
  let H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'ana',name:'Ana M.',avatar:CLK},perfil:{nombre:'Viejo Local',capa:'Habano'},photoURL:Promise.resolve('blob:foto-local-de-otra-cuenta')});
@@ -1632,9 +1631,9 @@ test('LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambi
  H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'ana',name:'Ana M.',avatar:''}});await H.ctx.vPerfil();assert.match(H.$('#mePic').innerHTML,/^<span>AM<\/span>$/,'las iniciales del nombre');
  /* sin nombre público guardado: el @ hace de nombre */
  H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'zeta',name:'',avatar:''}});await H.ctx.vPerfil();assert.match(H.html(),/<div class="n">@zeta<\/div>/,'sin nombre público sale el @');assert.match(H.$('#mePic').innerHTML,/^<span>Z<\/span>$/);
- /* sin cuenta: la foto local de siempre y el formulario completo */
- H=PERFIL_HARNESS({cuenta2:null,perfil:{nombre:'Luis',capa:''},photoURL:Promise.resolve('blob:local')});await H.ctx.vPerfil();
- assert.match(H.html(),/<div class="n">Luis<\/div>/);assert.ok(H.html().includes('id="pN"')&&H.html().includes('id="pCam"'));assert.match(H.$('#mePic').innerHTML,/blob:local/);assert.equal(H.calls.photoURL,1);
+ /* sin cuenta guardada (por ejemplo, no se pudo escribir en el teléfono): tarjeta neutra, nunca el nombre ni la foto locales de todo el teléfono (Codex ronda 2) */
+ H=PERFIL_HARNESS({cuenta2:null,perfil:{nombre:'Luis Local',capa:''},photoURL:Promise.resolve('blob:local-de-otra-cuenta')});await H.ctx.vPerfil();
+ assert.match(H.html(),/<div class="n">pf\.yourName<\/div>/,'sin cuenta guardada, ni el nombre local');assert.ok(!/Luis Local/.test(H.html()));assert.ok(H.html().includes('id="mePic">\u2606</div>'),'la estrella');assert.equal(H.calls.photoURL,0,'ni se pide la foto local');assert.ok(!H.html().includes('id="pN"')&&!H.html().includes('id="pCam"'),'ni se ofrece cambiar nombre o foto locales');
  /* un nombre con HTML no se vuelve HTML */
  H=PERFIL_HARNESS({cuenta2:{sub:'u',handle:'ana',name:'<img src=x onerror=alert(1)>',avatar:''}});await H.ctx.vPerfil();assert.ok(!/<img src=x/.test(H.html()),'el nombre va escapado');
 });
@@ -1667,4 +1666,15 @@ test('LHB-51 (Codex ronda 1): al cargar Clerk, lo guardado de otra cuenta (o de 
  }
  /* la misma cuenta que dice Clerk: se queda (sirve sin conexión) */
  const ok=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});ok.cache({sub:'user_a',handle:'ana',name:'Ana M.',avatar:''});ok.C.user={id:'user_a'};await ok.A.require(ok.go);await tick();assert.equal(ok.D.store.get().sub,'user_a','la misma cuenta se queda');
+});
+test('LHB-51 (Codex ronda 2): al abrir la app con una cuenta guardada, Clerk confirma quién es; otra cuenta o nadie la borra, sin conexión se queda',async()=>{
+ const mk=(user,over)=>{const h=CUENTA_HARNESS(over);h.cache({sub:'user_a',handle:'ana',name:'Ana M.',avatar:''});h.C.user=user;return h};
+ let h=mk({id:'user_b'});await h.A.reconcile();assert.equal(h.D.store.get(),null,'Clerk dice B: lo de A se va');
+ h=mk(null);await h.A.reconcile();assert.equal(h.D.store.get(),null,'Clerk dice nadie: se va');
+ h=mk({id:'user_a'});await h.A.reconcile();assert.equal(h.D.store.get().sub,'user_a','la misma cuenta se queda');
+ h=mk({id:'user_b'},{clerk:async()=>{throw new Error('sin red')}});await h.A.reconcile();assert.equal(h.D.store.get().sub,'user_a','sin conexión no se puede saber: se queda');
+ let called=0;h=CUENTA_HARNESS({clerk:async()=>{called++;throw new Error('x')}});await h.A.reconcile();assert.equal(called,0,'sin cuenta guardada no se carga Clerk');
+ /* y después de confirmar, un cambio de cuenta sigue borrando */
+ h=mk({id:'user_a'});await h.A.reconcile();h.cache({sub:'user_a',handle:'ana',name:'Ana M.',avatar:''});h.C.signIn('user_b');assert.equal(h.D.store.get(),null,'el cambio posterior se oye');
+ const hj=read('hoja.js');assert.ok(hj.includes("setTimeout(()=>{if(acct.get())CUENTA.reconcile()},2500);"),'hoja.js lo pide al abrir');
 });
