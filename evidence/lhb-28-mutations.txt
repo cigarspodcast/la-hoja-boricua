@@ -1,0 +1,244 @@
+baseline (0, [])
+S1 api: leer no pide sesion ni perfil -> ROJO (bien) fail=5
+      LHB-28: GET /api/mihoja pide sesión y perfil; sin copia en el servidor dice rev 0 y doc null; la copia de una cuenta no se ve desde otra
+      LHB-28: cambiar de cuenta en el mismo teléfono aparta la Mi Hoja anterior (no se borra ni se sube a la otra cuenta) y empieza con la de la nueva
+      LHB-28: el rev manda: If-Match 0 crea, el rev vigente actualiza, uno viejo o futuro da 409 con la copia de ahora y no pisa nada; dos a la vez no pasan
+      LHB-28: entrar por primera vez lleva lo guardado en el teléfono a la cuenta, sin lo que es solo del teléfono, y avisa una vez
+S2 api: leer trae la copia de otra cuenta -> ROJO (bien) fail=5
+      LHB-28: GET /api/mihoja pide sesión y perfil; sin copia en el servidor dice rev 0 y doc null; la copia de una cuenta no se ve desde otra
+      LHB-28: cambiar de cuenta en el mismo teléfono aparta la Mi Hoja anterior (no se borra ni se sube a la otra cuenta) y empieza con la de la nueva
+      LHB-28: el rev manda: If-Match 0 crea, el rev vigente actualiza, uno viejo o futuro da 409 con la copia de ahora y no pisa nada; dos a la vez no pasan
+      LHB-28: entrar por primera vez lleva lo guardado en el teléfono a la cuenta, sin lo que es solo del teléfono, y avisa una vez
+S3 api: guardar acepta cualquier tipo de contenido -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+S4 api: guardar sin If-Match no da 428 -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+S5 api: guardar pisa aunque el rev no sea el vigente -> ROJO (bien) fail=2
+      LHB-28: el rev manda: If-Match 0 crea, el rev vigente actualiza, uno viejo o futuro da 409 con la copia de ahora y no pisa nada; dos a la vez no pasan
+      LHB-31: si otro teléfono guarda en medio, el PUT da 409, se junta con la copia nueva y se reintenta sin perder ninguno de los dos cambios
+S6 api: el rev no sube al guardar -> ROJO (bien) fail=3
+      LHB-28: el rev manda: If-Match 0 crea, el rev vigente actualiza, uno viejo o futuro da 409 con la copia de ahora y no pisa nada; dos a la vez no pasan
+      LHB-28: entrar con una cuenta que ya tiene Mi Hoja la trae al teléfono; con las dos, se juntan y las dos quedan iguales
+      LHB-31: si otro teléfono guarda en medio, el PUT da 409, se junta con la copia nueva y se reintenta sin perder ninguno de los dos cambios
+S7 api: crear con If-Match 0 pisa una copia que ya existe -> ROJO (bien) fail=1
+      LHB-28: el rev manda: If-Match 0 crea, el rev vigente actualiza, uno viejo o futuro da 409 con la copia de ahora y no pisa nada; dos a la vez no pasan
+S8 api: el 409 no trae la copia de ahora -> ROJO (bien) fail=1
+      LHB-28: el rev manda: If-Match 0 crea, el rev vigente actualiza, uno viejo o futuro da 409 con la copia de ahora y no pisa nada; dos a la vez no pasan
+S9 api: guardar siempre dice que pasó -> ROJO (bien) fail=2
+      LHB-28: el rev manda: If-Match 0 crea, el rev vigente actualiza, uno viejo o futuro da 409 con la copia de ahora y no pisa nada; dos a la vez no pasan
+      LHB-31: si otro teléfono guarda en medio, el PUT da 409, se junta con la copia nueva y se reintenta sin perder ninguno de los dos cambios
+S10 api: una fila dañada se manda como si no hubiera copia -> ROJO (bien) fail=1
+      LHB-28: GET /api/mihoja pide sesión y perfil; sin copia en el servidor dice rev 0 y doc null; la copia de una cuenta no se ve desde otra
+S11 lib: If-Match vacío o con letras vale -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+S12 lib: el servidor acepta un esquema mas nuevo -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+S13 lib: sin tope de tamano del documento -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+S14 lib: sin tope de entradas por lista -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+S15 lib: el doc puede no ser un objeto -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+S16 lib: una fila con JSON dañado no se detecta -> ROJO (bien) fail=1
+      LHB-28: GET /api/mihoja pide sesión y perfil; sin copia en el servidor dice rev 0 y doc null; la copia de una cuenta no se ve desde otra
+S17 lib: el esquema solo se compara por arriba -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+S18 lib: humidor y diario pueden no ser listas -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+S19 lib: pasaporte, favoritos y estrellas pueden no ser mapas -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+M1 juntar: si solo el otro cambio un registro, no se toma lo suyo -> ROJO (bien) fail=1
+      LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, juntar lo mismo no cambia nada, nada de lo agregado se pierde y quien junta 
+M2 juntar: si solo este cambio un registro, no se toma lo suyo -> ROJO (bien) fail=2
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+      LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, juntar lo mismo no cambia nada, nada de lo agregado se pierde y quien junta 
+M3 juntar: lo que el otro borro vuelve -> ROJO (bien) fail=3
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+      LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, juntar lo mismo no cambia nada, nada de lo agregado se pierde y quien junta 
+      LHB-31: dos teléfonos: lo agregado, lo editado y lo borrado en uno llega al otro, y el borrado no vuelve
+M4 juntar: lo que este borro vuelve -> ROJO (bien) fail=5
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+      LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, juntar lo mismo no cambia nada, nada de lo agregado se pierde y quien junta 
+      LHB-31: borrar la última entrada mientras se sincroniza también llega a la cuenta, y no se confunde con una pérdida
+      LHB-31: dos teléfonos: lo agregado, lo editado y lo borrado en uno llega al otro, y el borrado no vuelve
+M5 juntar: borrar le gana a editar -> ROJO (bien) fail=8
+      LHB-28: entrar con una cuenta que ya tiene Mi Hoja la trae al teléfono; con las dos, se juntan y las dos quedan iguales
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+      LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, juntar lo mismo no cambia nada, nada de lo agregado se pierde y quien junta 
+      LHB-31: borrar la última entrada mientras se sincroniza también llega a la cuenta, y no se confunde con una pérdida
+M6 juntar: gana lo mas viejo -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M7 juntar: el empate depende de quien junta -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M8 juntar: al importar no gana lo de este telefono -> SOBREVIVIÓ fail=0
+M9 juntar: un favorito quitado vuelve -> ROJO (bien) fail=2
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+      LHB-31: si el teléfono se quedó vacío sin que la persona borrara (almacenamiento limpiado), se trae la cuenta en vez de vaciarla
+M10 juntar: el sello se queda con la fecha mas nueva -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M11 juntar: la estrella se queda con la menor -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M12 juntar: un sello o estrella quitado en el otro vuelve (lado de aqui) -> ROJO (bien) fail=1
+      LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, juntar lo mismo no cambia nada, nada de lo agregado se pierde y quien junta 
+M13 juntar: un sello o estrella quitado aqui vuelve (lado de alla) -> ROJO (bien) fail=3
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+      LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, juntar lo mismo no cambia nada, nada de lo agregado se pierde y quien junta 
+      LHB-31: si el teléfono se quedó vacío sin que la persona borrara (almacenamiento limpiado), se trae la cuenta en vez de vaciarla
+M14 juntar: creado se queda con la fecha mas nueva -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M15 juntar: el esquema se queda con el menor -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M16 juntar: el borrador viaja a la cuenta -> ROJO (bien) fail=4
+      LHB-28: entrar con una cuenta que ya tiene Mi Hoja la trae al teléfono; con las dos, se juntan y las dos quedan iguales
+      LHB-28: entrar por primera vez lleva lo guardado en el teléfono a la cuenta, sin lo que es solo del teléfono, y avisa una vez
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+      LHB-31: guardar en el teléfono sincroniza tras una pausa y una sola vez; lo que la propia sincronización escribe no la dispara otra vez, y sin cambios
+M17 juntar: se aceptan registros sin id -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M18 juntar: las estrellas no cuentan como datos -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M19 juntar: comparar copias depende del orden de las listas -> ROJO (bien) fail=2
+      LHB-28: entrar con una cuenta que ya tiene Mi Hoja la trae al teléfono; con las dos, se juntan y las dos quedan iguales
+      LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, juntar lo mismo no cambia nada, nada de lo agregado se pierde y quien junta 
+M20 juntar: lo nuevo de la cuenta no va primero en el humidor -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M21 juntar: el diario no queda de lo mas nuevo a lo mas viejo -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+M22 juntar: los campos que esta version no conoce no viajan -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+E1 motor: el PUT no manda If-Match -> ROJO (bien) fail=13
+      LHB-28: cambiar de cuenta en el mismo teléfono aparta la Mi Hoja anterior (no se borra ni se sube a la otra cuenta) y empieza con la de la nueva
+      LHB-28: entrar con una cuenta que ya tiene Mi Hoja la trae al teléfono; con las dos, se juntan y las dos quedan iguales
+      LHB-28: entrar por primera vez lleva lo guardado en el teléfono a la cuenta, sin lo que es solo del teléfono, y avisa una vez
+      LHB-28: un esquema más nuevo en la cuenta no se toca ni se pisa desde esta versión
+E2 motor: un 409 no se junta ni se reintenta -> ROJO (bien) fail=1
+      LHB-31: si otro teléfono guarda en medio, el PUT da 409, se junta con la copia nueva y se reintenta sin perder ninguno de los dos cambios
+E3 motor: un solo intento -> ROJO (bien) fail=1
+      LHB-31: si otro teléfono guarda en medio, el PUT da 409, se junta con la copia nueva y se reintenta sin perder ninguno de los dos cambios
+E4 motor: no se usa la base y lo borrado vuelve -> ROJO (bien) fail=3
+      LHB-31: borrar la última entrada mientras se sincroniza también llega a la cuenta, y no se confunde con una pérdida
+      LHB-31: dos teléfonos: lo agregado, lo editado y lo borrado en uno llega al otro, y el borrado no vuelve
+      LHB-31: si el teléfono se quedó vacío sin que la persona borrara (almacenamiento limpiado), se trae la cuenta en vez de vaciarla
+E5 motor: un telefono vaciado sin que nadie escribiera vacia la cuenta -> ROJO (bien) fail=2
+      LHB-31: borrar la última entrada mientras se sincroniza también llega a la cuenta, y no se confunde con una pérdida
+      LHB-31: si el teléfono se quedó vacío sin que la persona borrara (almacenamiento limpiado), se trae la cuenta en vez de vaciarla
+E6 motor: borrar la ultima entrada se toma por una perdida -> ROJO (bien) fail=1
+      LHB-31: si el teléfono se quedó vacío sin que la persona borrara (almacenamiento limpiado), se trae la cuenta en vez de vaciarla
+E7 motor: al cambiar de cuenta no se aparta la copia anterior -> ROJO (bien) fail=1
+      LHB-28: cambiar de cuenta en el mismo teléfono aparta la Mi Hoja anterior (no se borra ni se sube a la otra cuenta) y empieza con la de la nueva
+E8 motor: no se nota el cambio de cuenta -> ROJO (bien) fail=1
+      LHB-28: cambiar de cuenta en el mismo teléfono aparta la Mi Hoja anterior (no se borra ni se sube a la otra cuenta) y empieza con la de la nueva
+E9 motor: no se comprueba que la sesion sea de la cuenta guardada -> ROJO (bien) fail=1
+      LHB-31: errores del servidor y de la cuenta: 5xx reintenta; un esquema nuevo no se toca; sin cuenta o con otra cuenta no manda nada
+E10 motor: se toca una copia de un esquema mas nuevo -> ROJO (bien) fail=1
+      LHB-28: un esquema más nuevo en la cuenta no se toca ni se pisa desde esta versión
+E11 motor: se sube aunque no haya nada nuevo -> ROJO (bien) fail=3
+      LHB-28: entrar con una cuenta que ya tiene Mi Hoja la trae al teléfono; con las dos, se juntan y las dos quedan iguales
+      LHB-28: entrar por primera vez lleva lo guardado en el teléfono a la cuenta, sin lo que es solo del teléfono, y avisa una vez
+      LHB-31: si otro teléfono guarda en medio, el PUT da 409, se junta con la copia nueva y se reintenta sin perder ninguno de los dos cambios
+E12 motor: el aviso de que se subio sale en cada pasada -> ROJO (bien) fail=1
+      LHB-28: entrar por primera vez lleva lo guardado en el teléfono a la cuenta, sin lo que es solo del teléfono, y avisa una vez
+E13 motor: se avisa que llego algo cuando no llego nada -> ROJO (bien) fail=1
+      LHB-28: entrar por primera vez lleva lo guardado en el teléfono a la cuenta, sin lo que es solo del teléfono, y avisa una vez
+E14 motor: se reescribe Mi Hoja aunque no cambiara -> ROJO (bien) fail=1
+      LHB-28: entrar por primera vez lleva lo guardado en el teléfono a la cuenta, sin lo que es solo del teléfono, y avisa una vez
+E15 motor: lo escrito mientras se sincroniza se pisa -> ROJO (bien) fail=2
+      LHB-31: borrar la última entrada mientras se sincroniza también llega a la cuenta, y no se confunde con una pérdida
+      LHB-31: si el teléfono no puede guardar lo traído, lo dice y no marca la pasada como buena; lo escrito mientras se sincroniza se junta en vez de pisar
+E16 motor: lo que es solo del telefono se pierde al recibir -> ROJO (bien) fail=1
+      LHB-28: entrar con una cuenta que ya tiene Mi Hoja la trae al teléfono; con las dos, se juntan y las dos quedan iguales
+E17 motor: dos pasadas a la vez -> ROJO (bien) fail=2
+      LHB-31: errores del servidor y de la cuenta: 5xx reintenta; un esquema nuevo no se toca; sin cuenta o con otra cuenta no manda nada
+      LHB-31: sin conexión nada se pierde ni se rompe: queda pendiente, reintenta con espera creciente y sigue al volver la red
+E18 motor: abrir Mi Hoja siempre sincroniza -> ROJO (bien) fail=1
+      LHB-31: errores del servidor y de la cuenta: 5xx reintenta; un esquema nuevo no se toca; sin cuenta o con otra cuenta no manda nada
+E19 motor: la espera de reintento no crece -> ROJO (bien) fail=2
+      LHB-31: errores del servidor y de la cuenta: 5xx reintenta; un esquema nuevo no se toca; sin cuenta o con otra cuenta no manda nada
+      LHB-31: sin conexión nada se pierde ni se rompe: queda pendiente, reintenta con espera creciente y sigue al volver la red
+E20 motor: guardar sincroniza sin pausa -> ROJO (bien) fail=1
+      LHB-31: sin conexión nada se pierde ni se rompe: queda pendiente, reintenta con espera creciente y sigue al volver la red
+E21 motor: lo que la sincronizacion escribe la vuelve a disparar -> ROJO (bien) fail=2
+      LHB-31: borrar la última entrada mientras se sincroniza también llega a la cuenta, y no se confunde con una pérdida
+      LHB-31: guardar en el teléfono sincroniza tras una pausa y una sola vez; lo que la propia sincronización escribe no la dispara otra vez, y sin cambios
+E22 motor: un cambio solo del telefono pide red -> ROJO (bien) fail=1
+      LHB-31: guardar en el teléfono sincroniza tras una pausa y una sola vez; lo que la propia sincronización escribe no la dispara otra vez, y sin cambios
+E23 motor: no escucha cuando vuelve la red -> ROJO (bien) fail=1
+      LHB-31: sin conexión nada se pierde ni se rompe: queda pendiente, reintenta con espera creciente y sigue al volver la red
+E24 motor: no escucha cuando la pagina se ve -> ROJO (bien) fail=1
+      LHB-31: sin conexión nada se pierde ni se rompe: queda pendiente, reintenta con espera creciente y sigue al volver la red
+E25 motor: al abrir la app no sincroniza -> ROJO (bien) fail=1
+      LHB-31: guardar en el teléfono sincroniza tras una pausa y una sola vez; lo que la propia sincronización escribe no la dispara otra vez, y sin cambios
+E26 motor: sin conexion se dice error -> ROJO (bien) fail=2
+      LHB-31: la línea de estado del respaldo dice si Mi Hoja está en la cuenta, sincronizando, sin conexión o con error; y el aviso de respaldo ya no dice 
+      LHB-31: sin conexión nada se pierde ni se rompe: queda pendiente, reintenta con espera creciente y sigue al volver la red
+E27 motor: un fallo al avisar la pantalla rompe la pasada -> ROJO (bien) fail=1
+      LHB-31: la línea de estado del respaldo dice si Mi Hoja está en la cuenta, sincronizando, sin conexión o con error; y el aviso de respaldo ya no dice 
+E28 motor: tras un exito la espera sigue creciendo -> ROJO (bien) fail=1
+      LHB-31: sin conexión nada se pierde ni se rompe: queda pendiente, reintenta con espera creciente y sigue al volver la red
+E29 motor: el reintento pendiente sigue despues de un exito -> ROJO (bien) fail=1
+      LHB-31: sin conexión nada se pierde ni se rompe: queda pendiente, reintenta con espera creciente y sigue al volver la red
+E30 motor: cada cambio abre otro temporizador -> ROJO (bien) fail=1
+      LHB-31: guardar en el teléfono sincroniza tras una pausa y una sola vez; lo que la propia sincronización escribe no la dispara otra vez, y sin cambios
+E31 motor: si el telefono no puede guardar lo traido se da por bueno -> ROJO (bien) fail=1
+      LHB-31: si el teléfono no puede guardar lo traído, lo dice y no marca la pasada como buena; lo escrito mientras se sincroniza se junta en vez de pisar
+E32 motor: lo borrado mientras se sincroniza se toma por perdida -> SOBREVIVIÓ fail=0
+E33 motor: escribir no marca que la persona hizo un cambio -> ROJO (bien) fail=1
+      LHB-31: si el teléfono se quedó vacío sin que la persona borrara (almacenamiento limpiado), se trae la cuenta en vez de vaciarla
+E34 motor: un error del servidor al leer se ignora -> ROJO (bien) fail=1
+      LHB-31: errores del servidor y de la cuenta: 5xx reintenta; un esquema nuevo no se toca; sin cuenta o con otra cuenta no manda nada
+W1 hoja: escribir Mi Hoja no avisa al motor -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+W2 hoja: importar junta sin dar prioridad a lo de este telefono -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+W3 hoja: la tarjeta de entrar no sabe si hay datos guardados -> ROJO (bien) fail=1
+      LHB-28: la tarjeta de entrar dice que lo guardado en el teléfono pasa a la cuenta solo cuando hay algo guardado
+W4 hoja: abrir Mi Hoja no sincroniza -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+W5 hoja: el motor nunca arranca -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+W6 pagina: sync.js no se carga -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+W7 cache: sync.js no esta en el shell -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+W8 cuenta: la tarjeta no dice que lo guardado pasa a la cuenta -> ROJO (bien) fail=1
+      LHB-28: la tarjeta de entrar dice que lo guardado en el teléfono pasa a la cuenta solo cuando hay algo guardado
+W9 hoja: lo que llega se repinta aunque haya una hoja abierta -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+W10 hoja: el panel de respaldo no muestra el estado -> ROJO (bien) fail=1
+      LHB-31: la línea de estado del respaldo dice si Mi Hoja está en la cuenta, sincronizando, sin conexión o con error; y el aviso de respaldo ya no dice 
+W11 hoja: el estado no se repinta al cambiar -> ROJO (bien) fail=1
+      LHB-31: la línea de estado del respaldo dice si Mi Hoja está en la cuenta, sincronizando, sin conexión o con error; y el aviso de respaldo ya no dice 
+W12 hoja: el aviso de respaldo dice que todo vive solo en el telefono -> ROJO (bien) fail=1
+      LHB-31: la línea de estado del respaldo dice si Mi Hoja está en la cuenta, sincronizando, sin conexión o con error; y el aviso de respaldo ya no dice 
+W13 cache: el shell se publica con la version de antes -> ROJO (bien) fail=17
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+W14 hoja: api no manda las cabeceras de mas -> ROJO (bien) fail=1
+      LHB-28: exportar e importar solo se alcanzan desde las listas de Mi Hoja, que ya pasan por la puerta; ningún otro archivo los menciona
+W15 hoja: lo que llega no se guarda por write -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+G1 puerta: el corazon de las tarjetas escribe sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+G2 puerta: el sello escribe sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+G3 puerta: el humidor se abre sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+G4 puerta: el favorito de la vitola escribe sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+G5 puerta: la estrella escribe sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+G6 puerta: catar se abre sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+G7 puerta: subir se abre sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+G8 puerta: Mi Hoja se abre sin cuenta -> ROJO (bien) fail=2
+      LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160
+      LHB-28: exportar e importar solo se alcanzan desde las listas de Mi Hoja, que ya pasan por la puerta; ningún otro archivo los menciona
+G9 respaldo: exportar se alcanza desde fuera del panel -> ROJO (bien) fail=1
+      LHB-28: exportar e importar solo se alcanzan desde las listas de Mi Hoja, que ya pasan por la puerta; ningún otro archivo los menciona
+G10 respaldo: el panel aparece en otra pagina -> ROJO (bien) fail=1
+      LHB-28: exportar e importar solo se alcanzan desde las listas de Mi Hoja, que ya pasan por la puerta; ningún otro archivo los menciona
+restaurado (0, [])
+mutaciones: 100 sobrevivieron o con error: 2

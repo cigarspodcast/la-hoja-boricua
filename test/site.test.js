@@ -1782,6 +1782,7 @@ test('LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; b
  const t1=E({humidor:[h('a',{marca:'uno'})]}),t2=E({humidor:[h('a',{marca:'dos'})]});
  assert.equal(X.merge(base,t1,t2).humidor[0].marca,X.merge(base,t2,t1).humidor[0].marca,'un empate se resuelve igual juntando en cualquier sentido');
  assert.equal(X.merge(null,t1,t2,{prefer:'local'}).humidor[0].marca,'uno','al importar un respaldo gana lo de este teléfono');
+ {const a1=E({humidor:[h('a',{marca:'aaa'})]}),z1=E({humidor:[h('a',{marca:'zzz'})]});assert.equal(X.merge(null,a1,z1,{prefer:'local'}).humidor[0].marca,'aaa','gana lo de aquí aunque el desempate lo dejaría de último');assert.equal(X.merge(null,z1,a1,{prefer:'local'}).humidor[0].marca,'zzz');}
  /* solo uno cambió: pasa lo que cambió */
  assert.equal(X.merge(base,E({humidor:[h('a',{marca:'solo yo',actualizado:'2026-09-01'}),h('b')]}),base).humidor.find(x=>x.id==='a').marca,'solo yo','aunque su fecha sea más vieja, el otro no lo tocó');
  /* favoritos */
@@ -2053,8 +2054,7 @@ test('LHB-31: borrar la última entrada mientras se sincroniza también llega a 
  try{
   const A=DEV28(a,'user_a');A.seed({...DOC28,diario:[],favs:{artesanos:[],cigarros:[],lugares:[]},pasaporte:{artesanos:{},cigarros:{},lugares:{}},ratings:{}});await A.sync();assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1']);
   const orig=A.D.api;let hit=false;A.D.api=async(C,m,p,b,u,h)=>{const out=await orig(C,m,p,b,u,h);if(m==='GET'&&!hit){hit=true;A.edit(d=>{d.humidor=[]})}return out};
-  A.edit(d=>{d.ratings.k=1});
-  await A.fire();await A.fire();await A.sync();
+  await A.sync('guardado');await A.fire();await A.sync();
   const s=srv28(a,'user_a').doc;assert.deepEqual(hid28(s),[],'el borrado de la última entrada llegó');assert.deepEqual(hid28(A.doc()),[]);
   assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).dirty,false,'al terminar nada queda marcado como pendiente');
   /* una copia que desaparece sin que nadie escriba sí se trae */
