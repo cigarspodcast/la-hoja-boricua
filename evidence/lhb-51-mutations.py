@@ -19,12 +19,12 @@ HO = 'site/hoja.js'
 
 # (nombre, archivo, texto exacto que existe una vez, texto que lo reemplaza, [otro texto, su reemplazo]...)
 MUTS = [
-    ('A1 encabezado: no mira la cuenta que entro', APP, "const a=acctNow();if(a){paintAvatar(el,a,'');return}", "const a=null;if(a){paintAvatar(el,a,'');return}"),
-    ('A2 encabezado: una foto local que llega tarde pisa la de la cuenta', APP, "if(acctNow())return;el.innerHTML=u?", "el.innerHTML=u?"),
+    ('A1 encabezado: no mira la cuenta que entro', APP, "const a=acctNow();if(a)paintAvatar(el,a,'');else", "const a=null;if(a)paintAvatar(el,a,'');else"),
+    ('A2 encabezado: sin cuenta guardada se pide la foto local del telefono (Codex ronda 1)', APP, r"else el.innerHTML='<span>\u2606</span>'}", r"else{photoURL('perfil');el.innerHTML='<span>\u2606</span>'}}"),
     ('A3 foto: se carga una foto de cualquier sitio', APP, "typeof a.avatar==='string'&&a.avatar.startsWith(AV_HOST)?a.avatar:''", "typeof a.avatar==='string'?a.avatar:''"),
     ('A4 foto: si no carga queda un hueco en vez de la inicial', APP, "im.onerror=()=>{if(el.firstChild===im)el.innerHTML=ini};", ""),
     ('A5 cuenta: cualquier cosa guardada vale como cuenta', APP, "&&typeof a.sub==='string'&&a.sub&&typeof a.handle==='string'?a:null", "?a:null"),
-    ('A6 inicial: sale la del @ y no la del nombre publico', APP, "String(a.name||a.handle||'')", "String(a.handle||'')"),
+    ('A6 inicial: salen las del @ y no las del nombre', APP, "const acctInitial=a=>initialsOf(a.name)||(", "const acctInitial=a=>("),
     ('A7 nombre: sin nombre publico no sale el @', APP, "const acctName=a=>a.name||('@'+a.handle);", "const acctName=a=>a.name||'';"),
     ('P1 Perfil: la tarjeta lleva el nombre local y no el de la cuenta', APP, "esc(ac?acctName(ac):p.nombre||tt('pf.yourName'))", "esc(p.nombre||tt('pf.yourName'))"),
     ('P2 Perfil: con cuenta se sigue pidiendo la foto local', APP, "if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));else{", "if(false){paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'))}else{"),
@@ -38,6 +38,9 @@ MUTS = [
     ('C3 cuenta: al editar solo se guarda el @', CU, "if(!!C.user&&C.user.id===uid)cache(snap(uid,r.body.profile));", "if(!!C.user&&C.user.id===uid)cache({sub:uid,handle:r.body.profile.handle});"),
     ('C4 cuenta: se guarda de mas (la marca y la bio)', CU, "name:typeof p.display_name==='string'?p.display_name:'',", "name:typeof p.display_name==='string'?p.display_name:'',bio:p.bio,favorite_brand:p.favorite_brand,"),
     ('C5 cuenta: al cambiar de cuenta no se borra lo guardado de la anterior', CU, "D.store.clear();if(!id)D.intent.clear();", "if(!id){D.store.clear();D.intent.clear()}"),
+    ('I1 iniciales: solo la del primer nombre', APP, "([...w[0]][0]+(w.length>1?[...w[w.length-1]][0]:''))", "([...w[0]][0]+'')"),
+    ('I2 iniciales: la segunda palabra y no la ultima', APP, "[...w[w.length-1]][0]", "[...w[1]][0]"),
+    ('C6 cuenta: al cargar Clerk no se descarta lo guardado de otra cuenta (Codex ronda 1)', CU, "{const c0=D.store.get();if(c0&&(!C.user||c0.sub!==C.user.id))D.store.clear()}", ""),
     ('H1 hoja: al guardar la cuenta no se repinta el encabezado', HO, "set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}", "set:v=>{A.LS.set('cuenta2',v)}"),
     ('H2 hoja: al salir no se repinta el encabezado', HO, "catch(e){}if(A.topAvatar)A.topAvatar()}};", "catch(e){}}};"),
     ('H3 app: Mi Hoja no recibe topAvatar', APP, "window.LHB_EXT({topAvatar,$,$$,", "window.LHB_EXT({$,$$,"),

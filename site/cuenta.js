@@ -19,6 +19,8 @@ const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='stri
 const retire=()=>{if(ob){ob=false;D.reroute()}};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
+ /* LHB-51: lo guardado es de otra cuenta que la que Clerk dice (o de ninguna): se descarta ya, aunque luego /api/me falle */
+ {const c0=D.store.get();if(c0&&(!C.user||c0.sub!==C.user.id))D.store.clear()}
  C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;sip++;gen++;D.ui.closeAll();
   /* LHB-51: lo guardado es de la cuenta anterior: al salir o al cambiar de cuenta se borra, para que el encabezado nunca muestre a una persona con la sesión de otra */
   D.store.clear();if(!id)D.intent.clear();

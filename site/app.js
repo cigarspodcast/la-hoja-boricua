@@ -209,7 +209,9 @@ const AV_HOST='https://img.clerk.com/';
 const acctNow=()=>{const a=LS.get('cuenta2',null);return a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub&&typeof a.handle==='string'?a:null};
 const acctAvatar=a=>a&&typeof a.avatar==='string'&&a.avatar.startsWith(AV_HOST)?a.avatar:'';
 const acctName=a=>a.name||('@'+a.handle);
-const acctInitial=a=>([...String(a.name||a.handle||'')][0]||'\u2606').toUpperCase();
+/* las iniciales como las de Google: la primera letra del nombre y la de la última palabra ("Ana M." da AM); una sola palabra da una letra */
+const initialsOf=s=>{const w=String(s||'').replace(/[^\p{L}\p{N}\s]/gu,' ').trim().split(/\s+/).filter(Boolean);if(!w.length)return '';return ([...w[0]][0]+(w.length>1?[...w[w.length-1]][0]:'')).toUpperCase()};
+const acctInitial=a=>initialsOf(a.name)||([...String(a.handle||'')][0]||'\u2606').toUpperCase();
 /* pone la foto en el círculo; si no carga (una URL vencida) deja la inicial */
 function paintAvatar(el,a,alt){const src=acctAvatar(a),ini=`<span>${esc(acctInitial(a))}</span>`;
  if(!src){el.innerHTML=ini;return}
@@ -217,7 +219,7 @@ function paintAvatar(el,a,alt){const src=acctAvatar(a),ini=`<span>${esc(acctInit
 async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=acctNow();const ups=uploads();const favs=EXT.S().favs.cigarros;const rat=EXT.S().ratings;
  const favC=favs.map(cigarById).filter(Boolean);const ratC=Object.keys(rat).map(cigarById).filter(Boolean);
  view.innerHTML=`${EXT.subnav('perfil')}<div class="section-title"><h2>${tt('pf.title')}</h2></div>
- <div class="me"><div class="pic" id="mePic">${ac?esc(acctInitial(ac)):p.nombre?esc(p.nombre[0].toUpperCase()):'☆'}</div><div><div class="n">${esc(ac?acctName(ac):p.nombre||tt('pf.yourName'))}</div><div class="c">${ac?'@'+esc(ac.handle)+(p.capa?' \u00b7 '+tt('pf.favCapa')+': '+esc(p.capa):''):p.capa?tt('pf.favCapa')+': '+esc(p.capa):tt('pf.pickCapa')}</div></div></div>
+ <div class="me"><div class="pic" id="mePic">${ac?esc(acctInitial(ac)):p.nombre?esc(initialsOf(p.nombre)):'☆'}</div><div><div class="n">${esc(ac?acctName(ac):p.nombre||tt('pf.yourName'))}</div><div class="c">${ac?'@'+esc(ac.handle)+(p.capa?' \u00b7 '+tt('pf.favCapa')+': '+esc(p.capa):''):p.capa?tt('pf.favCapa')+': '+esc(p.capa):tt('pf.pickCapa')}</div></div></div>
  <div class="stats"><div class="stat"><b>${ups.length}</b><span>${tt('pf.uploads')}</span></div><div class="stat"><b>${favC.length}</b><span>${tt('pf.favs')}</span></div><div class="stat"><b>${ratC.length}</b><span>${tt('pf.rated')}</span></div></div>
  <details class="edit" ${ac||p.nombre?'':'open'}><summary>${ac?tt('pf.favCapa'):tt('pf.edit')}</summary><form class="form" id="pForm">
  ${ac?'':`<div class="field"><label for="pN">${tt('pf.name')}</label><input id="pN" maxlength="40" value="${esc(p.nombre)}" placeholder="${tt('pf.namePh')}"></div>`}
@@ -232,8 +234,8 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
  const onPic=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const b=await resizeImage(f,600,.82);await idb.put('perfil',b);if(urlCache.perfil){URL.revokeObjectURL(urlCache.perfil);delete urlCache.perfil}toast(tt('pf.fotoOk'));route();topAvatar()}catch(err){toast(tt('foto.err'))}};
  if($('#pCam')){$('#pCam').onchange=onPic;$('#pGal').onchange=onPic}
  $('#pForm').onsubmit=e=>{e.preventDefault();LS.set('perfil',{nombre:$('#pN')?$('#pN').value.trim():p.nombre,capa:$('#pC').value});toast(tt('pf.saved'));vPerfil();topAvatar()};hydratePhotos()}
-async function topAvatar(){const el=$('#topAvatar');if(!el)return;const a=acctNow();if(a){paintAvatar(el,a,'');return}
- const p=LS.get('perfil',{});const u=await photoURL('perfil');if(acctNow())return;el.innerHTML=u?`<img src="${u}" alt="">`:`<span>${esc((p.nombre||'☆')[0].toUpperCase())}</span>`}
+/* sin una cuenta guardada el círculo es la estrella: la foto y el nombre locales son de todo el teléfono, y a quien acaba de entrar con otra cuenta no se le muestra la foto de otra persona */
+function topAvatar(){const el=$('#topAvatar');if(!el)return;const a=acctNow();if(a)paintAvatar(el,a,'');else el.innerHTML='<span>\u2606</span>'}
 /* ---------- v6: Mi Hoja y demás (hoja.js) ---------- */
 const EXT=window.LHB_EXT({topAvatar,$,$$,esc,toast,view,VBArt,LS,D:()=>D,allCigars,artisanById,cigarById,artisanName,cigarSVG,mono,linkBtn,ICON,FORT,fortLabel,PROTO_NOTE,head,cigarCard,goLink,evDate,route:()=>route(),vPerfil,resizeImage,hydrate:r=>hydratePhotos(r||view)});
 /* ---------- router ---------- */

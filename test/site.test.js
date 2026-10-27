@@ -1598,7 +1598,7 @@ function PERFIL_HARNESS(opts){
   LS:{get:(k,d)=>store[k]===undefined||store[k]===null?d:store[k],set:(k,v)=>{store[k]=v}},
   photoURL:async()=>{calls.photoURL++;return photoP},uploads:()=>[],EXT:{subnav:()=>'',S:()=>({favs:{cigarros:[]},ratings:{}})},cigarById:()=>null,cigarCard:()=>'',cigarSVG:()=>'',artisanName:()=>'',emptyCoqui:()=>'',
   hydratePhotos:()=>{calls.hydrate++},toast:m=>calls.toast.push(m),route:()=>{calls.route++},idb:{put:async()=>{}},urlCache:{},resizeImage:async f=>f};
- vm.createContext(ctx);vm.runInContext(code+';this.vPerfil=vPerfil;this.topAvatar=topAvatar;this.acctNow=acctNow;this.acctAvatar=acctAvatar;this.paintAvatar=paintAvatar',ctx);
+ vm.createContext(ctx);vm.runInContext(code+';this.vPerfil=vPerfil;this.topAvatar=topAvatar;this.acctNow=acctNow;this.acctAvatar=acctAvatar;this.paintAvatar=paintAvatar;this.initialsOf=initialsOf',ctx);
  return {ctx,$,store,calls,html:()=>html,setPhoto:p=>{photoP=p}}}
 const CLK='https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ';
 test('LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la foto local del teléfono',async()=>{
@@ -1607,18 +1607,19 @@ test('LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la f
  assert.ok(img&&img.src===CLK,'el círculo de arriba lleva la foto de la cuenta');assert.equal(img.alt,'');assert.equal(H.calls.photoURL,0,'ni se pide la foto local del teléfono');
  /* una foto que no es de Clerk no se carga: queda la inicial del nombre público */
  H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'ana',name:'Ana M.',avatar:'https://evil.example/x.png'}});await H.ctx.topAvatar();
- assert.equal(H.$('#topAvatar').firstChild,null);assert.match(H.$('#topAvatar').innerHTML,/^<span>A<\/span>$/);
+ assert.equal(H.$('#topAvatar').firstChild,null);assert.match(H.$('#topAvatar').innerHTML,/^<span>AM<\/span>$/,'las iniciales del nombre, como Google');
  /* sin nombre público guardado (lo de antes de este cambio): la inicial del @ */
  H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'zeta'}});await H.ctx.topAvatar();assert.match(H.$('#topAvatar').innerHTML,/^<span>Z<\/span>$/);
  /* la foto vencida no deja un hueco: si no carga, queda la inicial */
- H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'ana',name:'Beto S.',avatar:CLK}});await H.ctx.topAvatar();const im2=H.$('#topAvatar').firstChild;im2.onerror();assert.match(H.$('#topAvatar').innerHTML,/^<span>B<\/span>$/,'si la foto no carga, la inicial');
+ H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'ana',name:'Beto S.',avatar:CLK}});await H.ctx.topAvatar();const im2=H.$('#topAvatar').firstChild;im2.onerror();assert.match(H.$('#topAvatar').innerHTML,/^<span>BS<\/span>$/,'si la foto no carga, las iniciales');
  /* lo guardado que no tiene forma de cuenta no cuenta */
  for(const bad of ['x',7,{},{sub:'',handle:'a'},{sub:'u'},{handle:'a'}]){H=PERFIL_HARNESS({cuenta2:bad});assert.equal(H.ctx.acctNow(),null,JSON.stringify(bad))}
- /* sin cuenta: se queda lo de antes (la foto local) */
- H=PERFIL_HARNESS({cuenta2:null,photoURL:Promise.resolve('blob:local')});await H.ctx.topAvatar();assert.match(H.$('#topAvatar').innerHTML,/blob:local/,'sin cuenta, la foto local de siempre');
- /* una foto local que llega tarde no pisa la de la cuenta que entró mientras tanto */
- const g=defer();H=PERFIL_HARNESS({cuenta2:null,photoURL:g.p});const late=H.ctx.topAvatar();await tick();H.store.cuenta2={sub:'user_a',handle:'ana',name:'Ana M.',avatar:CLK};await H.ctx.topAvatar();g.ok('blob:local');await late;
- assert.ok(H.$('#topAvatar').firstChild&&H.$('#topAvatar').firstChild.src===CLK,'la local que llega tarde no pisa la de la cuenta');
+ /* sin cuenta guardada (nadie entró, o acaba de cambiar la cuenta): la estrella, y nunca la foto ni el nombre locales de todo el teléfono (Codex ronda 1) */
+ H=PERFIL_HARNESS({cuenta2:null,perfil:{nombre:'Luis Local',capa:''},photoURL:Promise.resolve('blob:local-de-la-cuenta-anterior')});H.ctx.topAvatar();assert.equal(H.$('#topAvatar').innerHTML,'<span>\u2606</span>','sin cuenta guardada, la estrella');assert.equal(H.calls.photoURL,0,'no se pide la foto local');assert.equal(H.$('#topAvatar').firstChild,null);
+ /* y al guardarse la cuenta, el círculo pasa de la estrella a las iniciales */
+ H.store.cuenta2={sub:'user_b',handle:'beto',name:'Beto S.',avatar:''};H.ctx.topAvatar();assert.equal(H.$('#topAvatar').innerHTML,'<span>BS</span>');
+ /* las iniciales: la primera letra del nombre y la de la última palabra */
+ const I=H.ctx.initialsOf;for(const [n,e] of [['Ana M.','AM'],['Ana','A'],['  ana   mora ','AM'],['José Luis Pérez','JP'],['Ñandú R.','ÑR'],['María-José S.','MS'],['ana_mora','AM'],['','']  ,['@@..',''],[null,''],[undefined,''],[7,'7']])assert.equal(I(n),e,JSON.stringify(n));
 });
 test('LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes',async()=>{
  let H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'ana',name:'Ana M.',avatar:CLK},perfil:{nombre:'Viejo Local',capa:'Habano'},photoURL:Promise.resolve('blob:foto-local-de-otra-cuenta')});
@@ -1628,7 +1629,7 @@ test('LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambi
  assert.ok(!h.includes('id="pN"')&&!h.includes('id="pCam"')&&!h.includes('id="pGal"'),'con cuenta no hay nombre ni foto locales que editar');assert.ok(h.includes('id="pC"'),'queda la capa favorita');assert.ok(h.includes('<summary>pf.favCapa</summary>'));
  H.$('#pC').value='Maduro';H.$('#pForm').onsubmit({preventDefault(){}});assert.deepEqual(H.store.perfil,{nombre:'Viejo Local',capa:'Maduro'},'guardar la capa no borra lo demás');
  /* sin foto de Clerk: la inicial del nombre */
- H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'ana',name:'Ana M.',avatar:''}});await H.ctx.vPerfil();assert.match(H.$('#mePic').innerHTML,/^<span>A<\/span>$/);
+ H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'ana',name:'Ana M.',avatar:''}});await H.ctx.vPerfil();assert.match(H.$('#mePic').innerHTML,/^<span>AM<\/span>$/,'las iniciales del nombre');
  /* sin nombre público guardado: el @ hace de nombre */
  H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'zeta',name:'',avatar:''}});await H.ctx.vPerfil();assert.match(H.html(),/<div class="n">@zeta<\/div>/,'sin nombre público sale el @');assert.match(H.$('#mePic').innerHTML,/^<span>Z<\/span>$/);
  /* sin cuenta: la foto local de siempre y el formulario completo */
@@ -1658,4 +1659,12 @@ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta 
  h.C.user={id:'user_a'};await h.A.require(h.go);await tick();assert.equal(h.D.store.get().sub,'user_a','la cuenta A queda guardada');
  h.C.signIn('user_b');assert.equal(h.D.store.get(),null,'de A a B directo: lo de A se borra aunque nadie haya salido');
  h.cache({sub:'user_b',handle:'beto',name:'Beto S.',avatar:''});h.C.signIn(null);assert.equal(h.D.store.get(),null,'al salir se borra');
+});
+test('LHB-51 (Codex ronda 1): al cargar Clerk, lo guardado de otra cuenta (o de ninguna) se descarta aunque /api/me falle',async()=>{
+ for(const [nombre,user] of [['otra cuenta',{id:'user_b'}],['nadie entró',null]]){
+  const h=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});h.cache({sub:'user_a',handle:'ana',name:'Ana M.',avatar:''});h.C.user=user;await h.A.require(h.go);await tick();
+  assert.equal(h.D.store.get(),null,nombre+': lo de A ya no vale');assert.ok(!h.log.includes('GO'));
+ }
+ /* la misma cuenta que dice Clerk: se queda (sirve sin conexión) */
+ const ok=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});ok.cache({sub:'user_a',handle:'ana',name:'Ana M.',avatar:''});ok.C.user={id:'user_a'};await ok.A.require(ok.go);await tick();assert.equal(ok.D.store.get().sub,'user_a','la misma cuenta se queda');
 });
