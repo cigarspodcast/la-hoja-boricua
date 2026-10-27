@@ -1548,3 +1548,19 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
  assert.match(read('sw.js'),/const VERSION='lhb-v54'/,'el shell nuevo se publica con otra versión del caché');
 });
+test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+ const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+ const o=await EDT(u);const up=o.picture.upload(IMG('a.jpg'));await tick();
+ /* Cancelar y volver a abrir Editar perfil: otro formulario, con su propio selector de foto, mientras la subida vieja sigue */
+ await o.run();await tick();assert.equal(o.editors(),2);
+ assert.deepEqual(await o.submit(),{error:'avatar-busy'},'la cuenta de Clerk es una sola: con la subida vieja en curso el formulario nuevo no guarda');assert.deepEqual(o.puts,[],'ni un PUT');
+ g.ok();assert.deepEqual(await up,{stale:true},'la subida del formulario cerrado ya no cambia ninguna foto');await tick();
+ assert.deepEqual(await o.submit(),{ok:true},'terminada la subida, el formulario nuevo guarda');assert.equal(o.puts.length,1);
+ /* lo mismo con el formulario del perfil nuevo reemplazado por otro */
+ const g2=defer();const u2={id:'user_b',hasImage:false,imageUrl:DEFAULT_IMG,async setProfileImage(){await g2.p},async reload(){u2.hasImage=true;u2.imageUrl=AV55}};
+ const posts=[];let pics=[],subs=[];const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{if(m==='GET')return {status:200,body:{needsProfile:true}};posts.push(b);return {status:201,body:{profile:{handle:b.handle}}}}});
+ h.D.ui.onboarding=(s,p)=>{subs.push(s);pics.push(p)};h.C.user=u2;await h.A.require(h.go);await tick();
+ const up2=pics[0].upload(IMG('a.jpg'));await tick();await h.A.require(h.go);await tick();assert.equal(subs.length,2);
+ assert.deepEqual(await subs[1]({handle:'ana',...IDN,bio:'',favorite_brand:''}),{error:'avatar-busy'},'el formulario de perfil nuevo tampoco crea con una subida vieja en curso');assert.deepEqual(posts,[]);
+ g2.ok();await up2;await tick();
+});

@@ -70,6 +70,8 @@ const CLERK_IMG='https://img.clerk.com/';
 const picOf=U=>U&&U.hasImage===true&&typeof U.imageUrl==='string'&&U.imageUrl.startsWith(CLERK_IMG)?U.imageUrl:null;
 /* las subidas van de una en una aunque el formulario se cierre y se abra otro: la cuenta de Clerk es una sola, y si dos escrituras corrieran a la vez no se sabría cuál dejó la URL que se lee */
 let uq=Promise.resolve();
+/* cuántas subidas siguen en curso en toda la cuenta, también las de un formulario que ya se cerró: la cuenta de Clerk es una sola, así que ningún formulario nuevo guarda mientras una subida vieja sigue (LHB-55, ronda 1) */
+let upn=0;
 /* el último formulario de perfil abierto: uno que ya fue reemplazado por otro no vuelve a valer */
 let formSeq=0;
 /* lo que comparten el formulario del perfil nuevo y el de completar la identidad (LHB-52) */
@@ -83,14 +85,14 @@ function guard(C,o,lv,uid){
  return {live,settle}}
 /* LHB-55: el selector de foto lo comparten el formulario del perfil nuevo y el de editar: la misma subida, la misma cola y la misma lectura de la URL.
    url() es la foto puesta ahora (pic0 al abrir); upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva).
-   sending() dice si hay un envío en curso (la subida lo respeta) y pending() cuántas subidas siguen en la cola. */
+   sending() dice si hay un envío en curso (la subida lo respeta) y pending() cuántas subidas siguen en curso en toda la cuenta. */
 function picker(U,live,pic0,sending){
- let pic=pic0,up=0,pend=0;
+ let pic=pic0,up=0;
  const picture={url:()=>pic,upload:file=>{
   if(!live())return Promise.resolve({stale:true});
   if(sending())return Promise.resolve({error:'avatar-busy'});
   if(!file||typeof file.type!=='string'||!/^image\//.test(file.type))return Promise.resolve({error:'avatar-type'});
-  const n=++up,cur=()=>live()&&n===up;pend++;
+  const n=++up,cur=()=>live()&&n===up;upn++;
   const job=uq.then(async()=>{try{
    if(!cur())return {stale:true};
    try{await U.setProfileImage({file})}catch(e){return cur()?{error:'avatar-upload'}:{stale:true}}
@@ -98,9 +100,9 @@ function picker(U,live,pic0,sending){
    try{if(typeof U.reload!=='function')throw 0;await U.reload()}catch(e){return cur()?{error:'avatar-upload'}:{stale:true}}
    if(!cur())return {stale:true};
    const p=picOf(U);if(!p)return {error:'avatar-upload'};
-   pic=p;return {url:p}}finally{pend--}});
+   pic=p;return {url:p}}finally{upn--}});
   uq=job.catch(()=>{});return job}};
- return {picture,pending:()=>pend}}
+ return {picture,pending:()=>upn}}
 function onboard(C,done,o,lv,uid){ob=true;
  const {live,settle}=guard(C,o,lv,uid);
  const U=C.user;let sending=false;

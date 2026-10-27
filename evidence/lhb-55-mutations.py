@@ -53,6 +53,7 @@ MUTS = [
     ('H8 ruta: el encabezado no lleva el enlace a editar', HO, "<p><a class=\"lbtn\" href=\"#/mihoja/editar\" id=\"mhEdit\">Editar perfil</a></p>", ""),
     ('H9 ruta: la puerta no conoce el formulario de editar', HO, "edit:(prof,submit,picture)=>onboardingForm(submit,picture,'edit',prof),", ""),
     ('H10 caché: el shell se publica con la versión de antes', 'site/sw.js', "const VERSION='lhb-v54';", "const VERSION='lhb-v53';"),
+    ('C8 cuenta: cada selector cuenta solo sus propias subidas (una subida vieja no bloquea el formulario nuevo, Codex ronda 1)', CU, "function picker(U,live,pic0,sending){\n let pic=pic0,up=0;", "function picker(U,live,pic0,sending){\n let pic=pic0,up=0,upn=0;"),
 ]
 
 def load(rel):
