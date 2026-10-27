@@ -13,3 +13,10 @@ CREATE TABLE follows (
 -- quién me sigue (por fecha, la más nueva primero) y a quién sigo
 CREATE INDEX follows_by_followee ON follows (followee_id, created_at DESC);
 CREATE INDEX follows_by_follower ON follows (follower_id, created_at DESC);
+
+-- un renglon por cada seguir NUEVO; dejar de seguir no lo borra, para que el tope por hora no se reinicie al dejar de seguir y volver a seguir. Se podan los de mas de una hora.
+CREATE TABLE follow_events (
+  follower_id TEXT NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX follow_events_by_follower ON follow_events (follower_id, created_at);

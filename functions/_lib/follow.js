@@ -19,7 +19,7 @@ export async function targetOf(db, rawHandle, { hidden = false } = {}) {
   const h = checkHandle(rawHandle);
   if (h.error) return null;
   return db.prepare(
-    'SELECT user_id, handle, display_name, avatar_key FROM profiles WHERE handle = ?1' + (hidden ? '' : ' AND hidden = 0')
+    'SELECT user_id, handle, display_name, avatar_key, hidden FROM profiles WHERE handle = ?1' + (hidden ? '' : ' AND hidden = 0')
   ).bind(h.handle).first();
 }
 

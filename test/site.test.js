@@ -1610,6 +1610,7 @@ test('LHB-56: la migración 0004 crea follows con llave del par, sin seguirse a 
   const cols=a.db.prepare('PRAGMA table_info(follows)').all();assert.deepEqual(cols.map(c=>c.name),['follower_id','followee_id','created_at']);for(const c of cols)assert.equal(c.notnull,1,c.name+' no admite null');
   assert.deepEqual(cols.filter(c=>c.pk).map(c=>c.name).sort(),['followee_id','follower_id'],'la llave es el par');
   const idx=a.db.prepare('PRAGMA index_list(follows)').all().map(i=>i.name);assert.ok(idx.includes('follows_by_followee')&&idx.includes('follows_by_follower'),'índices por los dos lados');
+  const ecols=a.db.prepare('PRAGMA table_info(follow_events)').all();assert.deepEqual(ecols.map(c=>c.name),['follower_id','created_at'],'el registro de seguidas nuevas');for(const c of ecols)assert.equal(c.notnull,1,c.name+' no admite null');assert.ok(a.db.prepare('PRAGMA index_list(follow_events)').all().map(i=>i.name).includes('follow_events_by_follower'));
   const ins=(x,y)=>a.db.prepare("INSERT INTO follows (follower_id,followee_id,created_at) VALUES (?1,?2,'x')").run(x,y);
   ins('u1','u2');assert.throws(()=>ins('u1','u2'),/UNIQUE|constraint/i,'el mismo par no se repite');assert.doesNotThrow(()=>ins('u2','u1'),'el par al revés es otra fila');
   assert.throws(()=>ins('u1','u1'),/CHECK|constraint/i,'nadie se sigue a sí mismo ni por SQL');assert.throws(()=>ins('u1','nadie'),/FOREIGN|constraint/i,'ni se sigue a un perfil que no existe');
@@ -1640,8 +1641,10 @@ test('LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y 
   assert.deepEqual(a.rows(),antes,'ningún rechazo dejó una fila');
   /* quien dejó de seguir a alguien que luego se ocultó: se puede; a uno que no existe, no */
   assert.deepEqual(await a.follow('u_cami','bea'),[200,{following:true,followers:1}]);a.db.prepare("UPDATE profiles SET hidden=1 WHERE user_id='u_bea'").run();
-  assert.deepEqual(await a.unfollow('u_cami','bea'),[200,{following:false,followers:0}],'dejar de seguir a un perfil oculto se puede');assert.equal(a.rows().filter(r=>r.follower_id==='u_cami').length,0);
+  assert.deepEqual(await a.unfollow('u_cami','bea'),[200,{following:false}],'dejar de seguir a un perfil oculto se puede, y no sale su conteo');assert.equal(a.rows().filter(r=>r.follower_id==='u_cami').length,0);
   assert.deepEqual(await a.unfollow('u_cami','nadie_asi'),[404,{error:'not-found'}]);
+  /* Codex ronda 1: quien nunca siguio a un perfil oculto no puede saber ni que existe ni cuantos lo siguen: igual que un @ que no existe */
+  assert.deepEqual(await a.unfollow('u_cami','bea'),[404,{error:'not-found'}],'ya no lo sigue: para cami el perfil oculto no existe');assert.deepEqual(await a.unfollow('u_ana','bea'),[404,{error:'not-found'}],'ana nunca lo siguio');
   /* el que no tiene perfil, la sesión, el JSON */
   const tkC=await a.tok('u_sinperfil');
   assert.deepEqual(await a.raw(a.F.onRequestPost,tkC,{handle:'ana'}),[403,{error:'no-profile'}],'sin perfil no se sigue');assert.deepEqual(await a.raw(a.F.onRequestPost,null,{handle:'ana'}),[401,{error:'no-session'}]);assert.deepEqual(await a.raw(a.F.onRequestDelete,null,{handle:'ana'}),[401,{error:'no-session'}]);
@@ -1702,25 +1705,54 @@ test('LHB-56: las listas van con cursor, las más nuevas primero, sin repetir ni
   const sc=JSON.stringify([await a.list('followers','ana'),await a.list('following','ana'),g1,g2]);for(const s of SECRETOS56)assert.ok(!sc.includes(s),'las listas no traen '+s);
  }finally{a.done()}
 });
-test('LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; los de hace más de una hora no cuentan',async()=>{
+test('LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de una hora no cuentan',async()=>{
  const a=await API56();
  try{
   a.mk('u_ana','ana');a.freeze('2026-10-27T10:00:00.000Z');
   const FL=a.FL;assert.deepEqual([FL.FOLLOW_PER_HOUR,FL.FOLLOW_MAX],[60,5000],'los topes de prueba documentados');
-  for(let i=0;i<60;i++){a.mk('u_p'+i,'persona'+String(i).padStart(2,'0'));a.fol('u_ana','u_p'+i,'2026-10-27T09:30:00.000Z')}
+  const evt=(u,at)=>a.db.prepare('INSERT INTO follow_events (follower_id,created_at) VALUES (?1,?2)').run(u,at);
+  const evs=u=>a.db.prepare('SELECT COUNT(*) n FROM follow_events WHERE follower_id=?1').get(u).n;
+  for(let i=0;i<60;i++){a.mk('u_p'+i,'persona'+String(i).padStart(2,'0'));a.fol('u_ana','u_p'+i,'2026-10-27T09:30:00.000Z');evt('u_ana','2026-10-27T09:30:00.000Z')}
   a.mk('u_nueva','nueva');
-  assert.deepEqual(await a.follow('u_ana','nueva'),[429,{error:'follow-rate'}],'60 en la última hora: el 61 espera');assert.equal(a.rows().filter(r=>r.followee_id==='u_nueva').length,0);
-  assert.deepEqual(await a.follow('u_ana','persona03'),[200,{following:true,followers:1}],'repetir uno ya hecho no gasta tope');
+  assert.deepEqual(await a.follow('u_ana','nueva'),[429,{error:'follow-rate'}],'60 en la última hora: el 61 espera');assert.equal(a.rows().filter(r=>r.followee_id==='u_nueva').length,0);assert.equal(evs('u_ana'),60,'un rechazo no anota nada');
+  assert.deepEqual(await a.follow('u_ana','persona03'),[200,{following:true,followers:1}],'repetir uno ya hecho no gasta tope');assert.equal(evs('u_ana'),60,'ni anota');
+  /* Codex ronda 1: dejar de seguir no libera cupo por hora (si no, seguir y dejar de seguir se repetiria sin limite) */
   assert.deepEqual(await a.unfollow('u_ana','persona03'),[200,{following:false,followers:0}],'dejar de seguir no tiene tope');
+  assert.deepEqual(await a.follow('u_ana','nueva'),[429,{error:'follow-rate'}],'dejar de seguir no reinicia el tope por hora');
+  /* la ventana es de una hora: a los 59 minutos todavia cuenta, a los 61 ya no */
+  a.freeze('2026-10-27T10:29:00.000Z');assert.deepEqual(await a.follow('u_ana','nueva'),[429,{error:'follow-rate'}],'a los 59 minutos todavia cuenta');
   a.freeze('2026-10-27T10:31:00.000Z');assert.deepEqual(await a.follow('u_ana','nueva'),[200,{following:true,followers:1}],'pasada la hora los de antes ya no cuentan');
+  assert.equal(evs('u_ana'),1,'los de mas de una hora se podan y queda el nuevo');
   /* el tope total */
   for(let i=0;i<5000;i++){const u='u_m'+i;a.db.prepare("INSERT INTO profiles (user_id,handle,age_ok_at,created_at,updated_at) VALUES (?1,?2,'x','x','x')").run(u,'masa'+i);}
   a.db.exec('BEGIN');for(let i=0;i<4998;i++)a.fol('u_ana','u_m'+i,'2026-10-20T00:00:00.000Z');a.db.exec('COMMIT');
-  const n=a.db.prepare("SELECT COUNT(*) n FROM follows WHERE follower_id='u_ana'").get().n;assert.equal(n,59+1+4998,'preparado: 5058 sin pasar el tope por hora');
-  a.db.exec("DELETE FROM follows WHERE follower_id='u_ana' AND followee_id LIKE 'u_p%'");const n2=a.db.prepare("SELECT COUNT(*) n FROM follows WHERE follower_id='u_ana'").get().n;assert.equal(n2,4999);
+  a.db.exec("DELETE FROM follows WHERE follower_id='u_ana' AND followee_id LIKE 'u_p%'");const n2=a.db.prepare("SELECT COUNT(*) n FROM follows WHERE follower_id='u_ana'").get().n;assert.equal(n2,4999,'4998 de masa mas nueva');
   assert.deepEqual(await a.follow('u_ana','masa4999'),[200,{following:true,followers:1}],'el 5000 todavía cabe');
   assert.deepEqual(await a.follow('u_ana','persona00'),[429,{error:'follow-cap'}],'el 5001 no');
   assert.deepEqual(await a.follow('u_ana','masa4999'),[200,{following:true,followers:1}],'y repetir uno ya hecho sigue valiendo en el tope');
+ }finally{a.done()}
+});
+test('LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura',async()=>{
+ const a=await API56();
+ try{
+  a.mk('u_ana','ana');a.mk('u_nueva','nueva');a.mk('u_otra','otra');a.freeze('2026-10-27T10:00:00.000Z');
+  /* un DB que, justo despues de preguntar si ya se seguia, deja pasar a un pedido competidor (lo que hace otro Worker a la vez) */
+  const racing=hook=>({...a.env,DB:{prepare:s=>{const st=a.env.DB.prepare(s);if(!/SELECT 1 AS n FROM follows WHERE follower_id = \?1 AND followee_id = \?2/.test(s))return st;
+   return {bind:(...x)=>{const q=st.bind(...x);return {first:async()=>{const r=await q.first();if(hook){const h=hook;hook=null;h()}return r},all:q.all.bind(q),run:q.run.bind(q)}}}}}});
+  /* por hora: 59 anotadas y el competidor anota la 60 antes que este pedido */
+  for(let i=0;i<59;i++)a.db.prepare("INSERT INTO follow_events (follower_id,created_at) VALUES ('u_ana','2026-10-27T09:45:00.000Z')").run();
+  let r=await a.follow('u_ana','nueva',racing(()=>a.db.prepare("INSERT INTO follow_events (follower_id,created_at) VALUES ('u_ana','2026-10-27T09:59:59.000Z')").run()));
+  assert.deepEqual(r,[429,{error:'follow-rate'}],'el competidor tomó el ultimo cupo por hora: este no pasa');assert.equal(a.rows().filter(x=>x.followee_id==='u_nueva').length,0,'y no deja fila');
+  a.db.exec("DELETE FROM follow_events");
+  /* total: 4999 seguidas y el competidor sigue a la 5000 antes que este pedido */
+  for(let i=0;i<5000;i++){const u='u_m'+i;a.db.prepare("INSERT INTO profiles (user_id,handle,age_ok_at,created_at,updated_at) VALUES (?1,?2,'x','x','x')").run(u,'masa'+i);}
+  a.db.exec('BEGIN');for(let i=0;i<4999;i++)a.fol('u_ana','u_m'+i,'2026-10-20T00:00:00.000Z');a.db.exec('COMMIT');
+  r=await a.follow('u_ana','nueva',racing(()=>a.fol('u_ana','u_m4999','2026-10-27T09:59:59.000Z')));
+  assert.deepEqual(r,[429,{error:'follow-cap'}],'el competidor tomó el ultimo lugar: este no pasa');assert.equal(a.db.prepare("SELECT COUNT(*) n FROM follows WHERE follower_id='u_ana'").get().n,5000,'nunca 5001');
+  /* y si el competidor era el MISMO pedido (doble toque), el segundo es solo un seguir ya hecho */
+  a.db.exec("DELETE FROM follows WHERE follower_id='u_ana'");a.db.exec("DELETE FROM follow_events");
+  r=await a.follow('u_ana','otra',racing(()=>a.fol('u_ana','u_otra','2026-10-27T09:59:59.000Z')));
+  assert.deepEqual(r,[200,{following:true,followers:1}],'un doble toque no es un error');assert.equal(a.rows().filter(x=>x.followee_id==='u_otra').length,1);
  }finally{a.done()}
 });
 test('LHB-56: borrar un perfil borra sus filas de los dos lados, y los conteos de los demás bajan con la tabla',async()=>{
@@ -1734,7 +1766,8 @@ test('LHB-56: borrar un perfil borra sus filas de los dos lados, y los conteos d
   assert.equal((await a.state('cami'))[1].followers,1);assert.equal((await a.state('ana'))[1].followers,0,'ana ya no tiene a bea entre sus seguidoras');
   assert.deepEqual(await a.follow('u_ana','bea'),[404,{error:'not-found'}],'y no se puede seguir al perfil borrado');
   /* la cascada necesita llaves foráneas activas; el SQL de la tabla las declara con ON DELETE CASCADE por los dos lados */
-  const sql=a.mig('0004_follows.sql');assert.equal((sql.match(/REFERENCES profiles\(user_id\) ON DELETE CASCADE/g)||[]).length,2);
+  const sql=a.mig('0004_follows.sql');assert.equal((sql.match(/REFERENCES profiles\(user_id\) ON DELETE CASCADE/g)||[]).length,3,'follows por los dos lados y el registro de seguidas nuevas');
+  a.mk('u_dani','dani');a.db.prepare("INSERT INTO follow_events (follower_id,created_at) VALUES ('u_dani','2026-10-27T10:00:00.000Z')").run();a.db.prepare("DELETE FROM profiles WHERE user_id='u_dani'").run();assert.equal(a.db.prepare("SELECT COUNT(*) n FROM follow_events WHERE follower_id='u_dani'").get().n,0,'borrar el perfil borra su registro de seguidas');
  }finally{a.done()}
 });
 test('LHB-56: la regla de bloqueo ya está en su sitio (no hace nada hasta LHB-62), y el código no lee ni escribe nada privado',async()=>{

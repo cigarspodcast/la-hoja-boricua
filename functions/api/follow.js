@@ -1,6 +1,6 @@
 /* LHB-56: seguir y dejar de seguir (una vía, sin aprobación). Solo quien ya tiene perfil sigue; se sigue por @.
    POST /api/follow {handle}   → {following: true, followers}   (repetirlo no cambia nada)
-   DELETE /api/follow {handle} → {following: false, followers}  (repetirlo tampoco)
+   DELETE /api/follow {handle} → {following: false, followers}  (repetirlo tampoco; de un perfil oculto solo si se le seguia, y sin conteo)
    GET /api/follow?handle=x    → los conteos públicos de esa persona y, con sesión, si yo la sigo
    Reglas: no se sigue a uno mismo (400 self-follow), ni a un perfil oculto o que no existe (404 not-found), ni a quien tiene el par bloqueado (403 blocked; LHB-62 lo completa);
    topes de prueba por hora y en total (429 follow-rate, follow-cap), documentados en _lib/follow.js. */
@@ -28,15 +28,23 @@ export async function onRequestPost({ request, env }) {
   const { me, who } = it;
   if (who.user_id === me) return json({ error: 'self-follow' }, 400);
   if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'blocked' }, 403);
-  const had = await env.DB.prepare('SELECT 1 AS n FROM follows WHERE follower_id = ?1 AND followee_id = ?2').bind(me, who.user_id).first();
-  if (!had) {
+  const has = () => env.DB.prepare('SELECT 1 AS n FROM follows WHERE follower_id = ?1 AND followee_id = ?2').bind(me, who.user_id).first();
+  if (!(await has())) {
     const now = new Date();
-    const hour = await env.DB.prepare('SELECT COUNT(*) AS n FROM follows WHERE follower_id = ?1 AND created_at > ?2').bind(me, new Date(now.getTime() - 3600e3).toISOString()).first();
-    if (hour.n >= FOLLOW_PER_HOUR) return json({ error: 'follow-rate' }, 429);
-    const all = await env.DB.prepare('SELECT COUNT(*) AS n FROM follows WHERE follower_id = ?1').bind(me).first();
-    if (all.n >= FOLLOW_MAX) return json({ error: 'follow-cap' }, 429);
-    await env.DB.prepare('INSERT INTO follows (follower_id, followee_id, created_at) VALUES (?1, ?2, ?3) ON CONFLICT(follower_id, followee_id) DO NOTHING')
-      .bind(me, who.user_id, now.toISOString()).run();
+    const since = new Date(now.getTime() - 3600e3).toISOString();
+    // lo de mas de una hora ya no cuenta
+    await env.DB.prepare('DELETE FROM follow_events WHERE follower_id = ?1 AND created_at <= ?2').bind(me, since).run();
+    // el tope por hora: UNA sentencia revisa y anota, asi dos pedidos a la vez no pasan los dos; dejar de seguir no borra el registro
+    const ev = await env.DB.prepare(
+      'INSERT INTO follow_events (follower_id, created_at) SELECT ?1, ?2 WHERE (SELECT COUNT(*) FROM follow_events WHERE follower_id = ?1 AND created_at > ?3) < ?4'
+    ).bind(me, now.toISOString(), since, FOLLOW_PER_HOUR).run();
+    if (!ev.meta.changes) return json({ error: 'follow-rate' }, 429);
+    // el tope total: UNA sentencia revisa e inserta
+    const ins = await env.DB.prepare(
+      'INSERT INTO follows (follower_id, followee_id, created_at) SELECT ?1, ?2, ?3 WHERE (SELECT COUNT(*) FROM follows WHERE follower_id = ?1) < ?4 ON CONFLICT(follower_id, followee_id) DO NOTHING'
+    ).bind(me, who.user_id, now.toISOString(), FOLLOW_MAX).run();
+    // sin fila nueva: o ya existia (otro pedido igual llego antes) o se llego al tope
+    if (!ins.meta.changes && !(await has())) return json({ error: 'follow-cap' }, 429);
   }
   return json({ following: true, followers: (await countsOf(env.DB, who.user_id)).followers });
 }
@@ -46,7 +54,11 @@ export async function onRequestDelete({ request, env }) {
   const it = await intake(request, env, { hidden: true });
   if (it.res) return it.res;
   const { me, who } = it;
+  const had = await env.DB.prepare('SELECT 1 AS n FROM follows WHERE follower_id = ?1 AND followee_id = ?2').bind(me, who.user_id).first();
+  // un perfil oculto solo se deja de seguir si de verdad se seguia: para los demas no existe, ni su conteo
+  if (who.hidden && !had) return json({ error: 'not-found' }, 404);
   await env.DB.prepare('DELETE FROM follows WHERE follower_id = ?1 AND followee_id = ?2').bind(me, who.user_id).run();
+  if (who.hidden) return json({ following: false });
   return json({ following: false, followers: (await countsOf(env.DB, who.user_id)).followers });
 }
 
