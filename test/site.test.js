@@ -2040,7 +2040,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  const h=read('hoja.js').replace(/\r\n/g,'\n'),ix=read('index.html'),sw=read('sw.js');
  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
- assert.ok(/function write\(s,quiet\)\{try\{localStorage\.setItem\(KEY,JSON\.stringify\(s\)\)\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(\)/.test(h),'cada escritura de la persona avisa al motor');
+ assert.ok(/function write\(s,quiet\)\{if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}try\{localStorage\.setItem\(KEY,JSON\.stringify\(s\)\)\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(\)/.test(h),'cada escritura de la persona avisa al motor');
  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on'))A.route()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta');
@@ -2126,9 +2126,9 @@ test('LHB-31 (Codex ronda 1): si no se puede anotar lo sincronizado, la pasada f
   P.st.failKey='lhb_mihoja_v1_sync';let r=await P.eng.run('guardado');await new Promise(x=>setTimeout(x,20));
   assert.equal(r.fail,'storage');assert.equal(P.eng.status().state,'error');assert.equal(P.ls.get('lhb_mihoja_v1_owner'),'user_a','la dueña sigue anotada');
   P.st.failKey=null;
-  /* otro teléfono borra h1 mientras tanto; con la base dudosa nada se da por borrado: no se pierde nada */
+  /* otro teléfono borra h1 mientras tanto; esta pestaña recuerda la base de su última pasada, así que el borrado se respeta y lo escrito aquí no se pierde */
   const B=DEV28(a,'user_a');await B.sync();B.edit(d=>{d.humidor=[]});await B.fire();
-  r=await P.sync('reintento');assert.equal(r.ok,true,JSON.stringify(r));assert.ok(P.doc().diario.some(x=>x.id==='d2'),'lo escrito aquí no se pierde');assert.ok(P.doc().humidor.some(x=>x.id==='h1'),'con la base dudosa nada se da por borrado');
+  r=await P.sync('reintento');assert.equal(r.ok,true,JSON.stringify(r));assert.ok(P.doc().diario.some(x=>x.id==='d2'),'lo escrito aquí no se pierde');assert.ok(!P.doc().humidor.some(x=>x.id==='h1'),'el borrado del otro teléfono sobrevive a la pasada que no pudo anotar la meta');
   /* con la meta ya buena, la siguiente pasada vuelve a usar la base y respeta los borrados */
   B.edit(d=>{d.diario=d.diario.filter(x=>x.id!=='d1')});await B.fire();await P.sync();assert.ok(!P.doc().diario.some(x=>x.id==='d1'),'el borrado de otro teléfono llega otra vez');
   /* cambiar de cuenta tras el fallo no sube lo de A a B */
@@ -2203,6 +2203,38 @@ test('LHB-31 (Codex ronda 1): una pasada hecha hace poco por otra cuenta no fren
   assert.equal((await Q.eng.run('mi-hoja',{minAge:20e3})).skip,'reciente','la misma cuenta sí espera');assert.deepEqual(Q.net.log,[]);
  }finally{a.done()}
 });
+test('LHB-31 (Codex ronda 2): lo escrito antes de la primera pasada ya es de quien lo escribió, aunque entre otra cuenta',async()=>{
+ const a=await ENG28();
+ try{
+  const P=DEV28(a,'user_a');P.seed(DOC28);P.edit(d=>{d.humidor.push({id:'hA',marca:'A',actualizado:'2026-10-25'})});
+  assert.equal(P.ls.get('lhb_mihoja_v1_owner'),'user_a','al escribir queda anotada la dueña');
+  P.st.acct='user_b';P.st.user='user_b';const r=await P.sync('b');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(hid28(srv28(a,'user_b').doc),[],'a B no le llega nada de A');assert.ok(String(P.ls.get('lhb_mihoja_v1_de_user_a')).includes('hA'),'lo de A queda apartado');
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 2): si la dueña se anota y la meta no, la meta de otra cuenta no sirve de base y no borra nada de la cuenta nueva',async()=>{
+ const a=await ENG28();
+ try{
+  const Q=DEV28(a,'user_b');Q.seed(DOC28);await Q.sync('b');
+  const P=DEV28(a,'user_a');P.seed(DOC28);await P.sync('a');
+  P.st.acct='user_b';P.st.user='user_b';P.st.failKey='lhb_mihoja_v1_sync';assert.equal(P.eng.isolate(),false,'la meta no se pudo escribir');
+  P.st.failKey=null;assert.equal(P.eng.isolate(),true);
+  P.edit(d=>{d.diario=[{id:'d9',fecha:'2026-10-25',nota:'b'}]});const r=await P.sync('b');assert.equal(r.ok,true,JSON.stringify(r));
+  const s=srv28(a,'user_b').doc;assert.equal(s.ratings.c1,4,'la estrella de B sigue');assert.ok(s.favs.artesanos.includes('a1'),'el favorito de B sigue');assert.deepEqual(hid28({humidor:s.diario}),['d1','d9']);
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 2): lo que otra pestaña borra mientras esta espera la red queda marcado como pendiente y el borrado llega a la cuenta',async()=>{
+ const a=await ENG28();
+ try{
+  const base={...DOC28,diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{}};
+  const P=DEV28(a,'user_a');P.seed(base);await P.sync('entrar');
+  const E2=SYNC28().LHB_SYNC(P.D);const orig=P.D.api;let done=false;
+  P.D.api=async(...args)=>{const out=await orig(...args);if(args[1]==='GET'&&!done){done=true;const d=P.doc();d.humidor=[];P.ls.set(P.KEY,JSON.stringify(d));E2.changed()}return out};
+  let r=await P.sync('guardado');assert.equal(r.ok,true,JSON.stringify(r));
+  P.D.api=orig;r=await P.sync('siguiente');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(hid28(P.doc()),[],'lo borrado no vuelve');assert.deepEqual(hid28(srv28(a,'user_a').doc),[],'el borrado llega a la cuenta');
+ }finally{a.done()}
+});
 test('LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada',()=>{
  const {LHB_MERGE:X}=SYNC28();const E=o=>({schema:1,creado:'2026-10-01',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{},...o});
  const base=JSON.parse('{"ratings":{"constructor":3,"toString":2}}');
@@ -2235,7 +2267,9 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
  const h=read('hoja.js').replace(/\r\n/g,'\n');
  assert.ok(h.includes("getDoc:()=>(ST=load())"),'la sincronización lee del almacenamiento y no de la copia en memoria');
  assert.ok(h.includes("window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null})"),'otra pestaña que escribe invalida la copia en memoria');
- assert.ok(h.includes("const S=()=>{if(SYNC)SYNC.isolate();return ST||(ST=load())};"),'S aparta lo de otra cuenta antes de leer');
+ assert.ok(h.includes("const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();return ST||(ST=load())};"),'S aparta lo de otra cuenta antes de leer y, si no pudo, no muestra lo de la otra');
+ assert.ok(h.includes("if(SYNC&&!SYNC.isolate()){toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}"),'write no escribe si no se pudo apartar lo de la otra cuenta');
+ assert.ok(read('sync.js').includes('if(inIso)return true;'),'aislar dentro de aislar se corta (write llama a isolate y isolate escribe por setDoc)');
  assert.ok(h.includes("s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}"),'la copia nueva o dañada que la app crea sola no cuenta como un cambio de la persona');
  assert.ok(h.includes("function write(s,quiet){")&&h.includes("if(SYNC&&!quiet)SYNC.changed()"),'write acepta quiet');
  assert.ok(h.includes("lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f()"),'una sola pasada entre pestañas');

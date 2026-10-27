@@ -69,12 +69,15 @@ const hasData=d=>{d=std(d);return d.humidor.length+d.diario.length+KINDS.reduce(
 window.LHB_MERGE={merge,strip,canon,same,hasData,LOCAL_ONLY};
 
 /* ---------- el motor ---------- */
-const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',KEY='lhb_mihoja_v1';
+const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_seq',KEY='lhb_mihoja_v1';
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 window.LHB_SYNC=function(D){
- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,state={state:'idle',err:null};
+ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,mem=null,state={state:'idle',err:null};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
  const writeMeta=m=>{try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
+ /* un contador chico compartido entre pestañas: cada escritura de la persona lo sube, y una pasada sabe si alguien escribió (aquí o en otra pestaña) mientras esperaba la red */
+ const readSeq=()=>{try{const n=parseInt(D.ls.get(SEQ),10);return n>0?n:0}catch(e){return 0}};
+ const bumpSeq=()=>{try{D.ls.set(SEQ,String(readSeq()+1))}catch(e){}};
  const keep=d=>{const o={};for(const k of LOCAL_ONLY)if(d&&d[k]!==undefined)o[k]=d[k];return o};
  const set=(s,err)=>{state={state:s,err:err||null};if(D.onState){try{D.onState(state)}catch(e){}}};
  const parkKey=sub=>KEY+'_de_'+String(sub).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,60);
@@ -84,12 +87,14 @@ window.LHB_SYNC=function(D){
  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
  const rawHasData=raw=>{try{return hasData(JSON.parse(raw))}catch(e){return true}};
  /* Lo guardado era de otra cuenta: se aparta en una llave libre (nunca sobre otra copia apartada), Mi Hoja queda vacía y la dueña pasa a ser la nueva. Es síncrono: se llama antes de leer o escribir Mi Hoja, sin esperar a la red */
- function isolate(){const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
+ let inIso=false;
+ function isolate(){if(inIso)return true;const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
   const old=ownerOf();if(old===null||old===acc.sub)return true;
-  let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
-  if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return false;try{D.ls.set(k,raw)}catch(e){return false}}
-  applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
-  return !!ok&&setOwner(acc.sub)}
+  inIso=true;try{
+   let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
+   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return false;try{D.ls.set(k,raw)}catch(e){return false}}
+   applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
+   return !!ok&&setOwner(acc.sub)}finally{inIso=false}}
  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
  async function once(){
   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};
@@ -100,10 +105,11 @@ window.LHB_SYNC=function(D){
   /* de quién es lo guardado se anota antes de tocar la red: si esta primera pasada falla y luego entra otra cuenta, lo de esta no se sube a la otra */
   if(ownerOf()===null&&!setOwner(uid))return {fail:'storage'};
   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid};
-  const meta=readMeta();
+  /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
+  const meta0=readMeta(),meta=meta0&&meta0.sub===uid?meta0:null;
   const first=!meta||!meta.at;
   for(let i=0;i<TRIES;i++){
-   const e0=edits,local0=D.getDoc(),L=std(local0);
+   const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
    let g;try{g=await D.api(C,'GET','/api/mihoja',null,uid)}catch(e){return {skip:'offline'}}
    if(!alive())return {skip:'other-account'};
    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
@@ -112,7 +118,8 @@ window.LHB_SYNC=function(D){
    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
    const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
-   const base=meta&&meta.base&&!wipe&&!staleBase?meta.base:null;
+   /* si la meta no se pudo anotar la vez pasada, vale lo que esta pestaña recuerda de esa pasada (si ya no lo recuerda, se junta sin dar nada por borrado) */
+   const base=meta&&meta.base&&!wipe&&!staleBase?meta.base:staleBase&&mem&&mem.sub===uid?mem.base:null;
    const merged=remote?merge(base,L,remote):L;
    let newRev=rev,pushed=false;
    if(!remote||canon(merged)!==canon(remote)){
@@ -130,8 +137,11 @@ window.LHB_SYNC=function(D){
    if(canon(full)!==canon(Ln)){applying=true;try{wrote=D.setDoc(full)}finally{applying=false}}
    if(!wrote)return {fail:'storage'};
    /* si no se puede anotar lo sincronizado, la próxima pasada no se fía de la base vieja (junta sin dar nada por borrado) */
-   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edits!==e0})){staleBase=true;return {fail:'storage'}}
-   staleBase=false;if(edits===e0)dirty=false;
+   /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
+   const edited=edits!==e0||readSeq()!==s0;
+   mem={sub:uid,base:merged};
+   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;return {fail:'storage'}}
+   staleBase=false;if(!edited)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
    const pulled=!!remote&&canon(merged)!==canon(L);
    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');
@@ -155,7 +165,10 @@ window.LHB_SYNC=function(D){
   return busy}
  /* Mi Hoja se escribió: si lo que viaja cambió respecto a lo último sincronizado, se sincroniza tras una pausa corta */
  function changed(){if(applying)return;
-  edits++;dirty=true;{const m=readMeta();if(m&&!m.dirty){m.dirty=true;writeMeta(m)}}
+  edits++;dirty=true;bumpSeq();
+  /* lo escrito pertenece a quien lo escribió, aunque la cuenta cambie antes de la primera pasada */
+  {const acc=D.acct();if(acc&&typeof acc.sub==='string'&&acc.sub&&ownerOf()===null)setOwner(acc.sub)}
+  {const m=readMeta();if(m&&!m.dirty){m.dirty=true;writeMeta(m)}}
   schedule(DEBOUNCE,()=>{const acc=D.acct();if(!acc)return;const m=readMeta();
    if(m&&m.sub===acc.sub&&m.base&&canon(D.getDoc())===canon(m.base)){dirty=false;if(m.dirty){delete m.dirty;writeMeta(m)}return}   /* volvió a ser igual: no hay nada que llevar */
    run('guardado')})}
