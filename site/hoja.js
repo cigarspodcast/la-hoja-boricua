@@ -503,7 +503,7 @@ const evLine=(e,p)=>{const m=evMeta(e,p);return m?`<div class="s">${m}</div>`:''
 function evCard(e,pending){const d=A.evDate(e.fecha);const m={nombre:e.lugar||e.titulo,direccion:e.direccion||'',pueblo:e.pueblo,maps:e.maps,lat:e.lat,lng:e.lng};const src=e.enlace||e.fuente_url;
  return `<article class="ev ${pending?'pending':''}" id="ev-${esc(e.id)}"><div class="date">${d?`<small>${MES[d.getMonth()]}</small><b>${d.getDate()}</b><small>${DIAS[d.getDay()]}</small>`:'<b>?</b>'}</div><div style="min-width:0;flex:1">
  <div class="t">${esc(e.titulo)}</div>${evLine(e)}
- ${okv(e.detalle)?`<div class="s">${esc(scrub(e.detalle))}</div>`:''}
+ ${e.imagen?`<img class="ev-flyer" src="${esc(e.imagen)}" alt="${esc(e.titulo)}" width="480" height="600" loading="lazy">`:''} ${okv(e.detalle)?`<div class="s">${esc(scrub(e.detalle))}</div>`:''}
  <div class="src">${pending?'Sugerida por ti · pendiente de verificar':(e.fuente?`vía ${e.fuente_url?`<a href="${esc(e.fuente_url)}" target="_blank" rel="noopener">${esc(e.fuente)}</a>`:esc(e.fuente)}`:'')}</div>
  <div class="links">${src?A.linkBtn('web',src,pending?'Ver enlace':'Ver fuente'):''}${pending?'':`<button type="button" class="lbtn" data-ics="${esc(e.id)}">${CAL_ICO}Añadir a calendario</button>`}${(okv(e.lugar)||e.maps)?`<a class="lbtn go-map" href="${esc(A.goLink(m))}" target="_blank" rel="noopener">${A.ICON.map}Cómo llegar</a>`:''}</div></div></article>`}
 function anchorCard(e){const d=A.evDate(e.fecha);const m={nombre:e.lugar,pueblo:e.pueblo,maps:e.maps};
