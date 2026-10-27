@@ -1708,7 +1708,7 @@ test('LHB-63: la migración 0005 crea handle_checks con su índice y no toca lo 
   assert.deepEqual(a.db.prepare('PRAGMA foreign_key_list(handle_checks)').all(),[],'sin llave a profiles: en el registro todavía no hay perfil');
   const after=a.db.prepare("SELECT name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all().map(r=>({...r}));
   assert.deepEqual(after.filter(r=>before.some(x=>x.name===r.name)),before,'lo anterior queda igual');assert.deepEqual(after.filter(r=>!before.some(x=>x.name===r.name)).map(r=>r.name).sort(),['handle_checks','handle_checks_by_user']);
-  assert.ok(!/—/.test(a.mig('0005_handle_checks.sql')),'sin raya larga');
+  assert.ok(!/\u2014/.test(a.mig('0005_handle_checks.sql')),'sin raya larga');
  }finally{a.done()}
 });
 test('LHB-63: el @ libre, tomado, reservado o inválido, con las mismas reglas que al guardar; el tuyo sale libre; un perfil oculto cuenta como tomado',async()=>{
