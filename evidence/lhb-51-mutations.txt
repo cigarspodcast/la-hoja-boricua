@@ -1,0 +1,61 @@
+baseline (0, [])
+A1 encabezado: no mira la cuenta que entro -> ROJO (bien) fail=1
+      LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la foto local del teléfono
+A2 encabezado: sin cuenta guardada se pide la foto local del telefono (Codex ronda 1) -> ROJO (bien) fail=1
+      LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la foto local del teléfono
+A3 foto: se carga una foto de cualquier sitio -> ROJO (bien) fail=1
+      LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la foto local del teléfono
+A4 foto: si no carga queda un hueco en vez de la inicial -> ROJO (bien) fail=1
+      LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la foto local del teléfono
+A5 cuenta: cualquier cosa guardada vale como cuenta -> ROJO (bien) fail=1
+      LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la foto local del teléfono
+A6 inicial: salen las del @ y no las del nombre -> ROJO (bien) fail=2
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+      LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la foto local del teléfono
+A7 nombre: sin nombre publico no sale el @ -> ROJO (bien) fail=1
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+P1 Perfil: la tarjeta lleva el nombre local y no el de la cuenta -> ROJO (bien) fail=1
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+P2 Perfil: con cuenta se sigue pidiendo la foto local -> ROJO (bien) fail=1
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+P3 Perfil: con cuenta se sigue ofreciendo el nombre local -> ROJO (bien) fail=1
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+P4 Perfil: con cuenta se sigue ofreciendo la foto local -> ROJO (bien) fail=1
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+P5 Perfil: guardar la capa borra el nombre local -> ROJO (bien) fail=1
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+P6 Perfil: el encabezado de la capa dice Editar perfil otra vez -> ROJO (bien) fail=1
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+P7 Perfil: la tarjeta no lleva el @ -> ROJO (bien) fail=1
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+C1 cuenta: se guarda una foto de cualquier sitio -> ROJO (bien) fail=1
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+C2 cuenta: no se guarda el nombre publico -> ROJO (bien) fail=1
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+C3 cuenta: al editar solo se guarda el @ -> ROJO (bien) fail=1
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+C4 cuenta: se guarda de mas (la marca y la bio) -> ROJO (bien) fail=1
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+C5 cuenta: al cambiar de cuenta no se borra lo guardado de la anterior -> ROJO (bien) fail=1
+      LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión d
+I1 iniciales: solo la del primer nombre -> ROJO (bien) fail=2
+      LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambiar la foto local; sin cuenta queda como antes
+      LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la foto local del teléfono
+I2 iniciales: la segunda palabra y no la ultima -> ROJO (bien) fail=1
+      LHB-51: el encabezado muestra la foto de la cuenta que entró y nunca la foto local del teléfono
+C6 cuenta: al cargar Clerk no se descarta lo guardado de otra cuenta (Codex ronda 1) -> ROJO (bien) fail=1
+      LHB-51 (Codex ronda 1): al cargar Clerk, lo guardado de otra cuenta (o de ninguna) se descarta aunque /api/me falle
+H1 hoja: al guardar la cuenta no se repinta el encabezado -> ROJO (bien) fail=1
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+H2 hoja: al salir no se repinta el encabezado -> ROJO (bien) fail=1
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+H3 app: Mi Hoja no recibe topAvatar -> ROJO (bien) fail=1
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+H4 cache: el shell se publica con la version de antes -> ROJO (bien) fail=17
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+restaurado (0, [])
+mutaciones: 26 sobrevivieron o con error: 0
+EXIT 0
