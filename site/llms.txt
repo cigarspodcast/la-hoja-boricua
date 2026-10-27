@@ -7,7 +7,7 @@
 - [La Hoja Boricua](https://lahojaboricua.com/): la app, con catálogo, artesanos, lugares, eventos y Mi Hoja
 - [Cigar lounges en Puerto Rico](https://lahojaboricua.com/lugares/): 28 lounges y 13 tiendas, por pueblo
 - [Artesanos de cigarros en Puerto Rico](https://lahojaboricua.com/artesanos/): 32 artesanos, torcedores y tabacaleras
-- [Cigarros hechos por artesanos boricuas](https://lahojaboricua.com/cigarros/): 43 cigarros con capa, fortaleza y vitolas
+- [Cigarros hechos por artesanos boricuas](https://lahojaboricua.com/cigarros/): 48 cigarros con capa, fortaleza y vitolas
 
 ## Lugares
 
@@ -132,4 +132,9 @@
 - [Villareño (surtido)](https://lahojaboricua.com/cigarros/villareno-surtido): de Villareño Cigars (Delvis)
 - [Villareño Box Pressed San Andrés](https://lahojaboricua.com/cigarros/villareno-box-pressed-san-andres): de Villareño Cigars (Delvis), capa San Andrés (México)
 - [Willys Cigars (tripa corta y ligas de la casa)](https://lahojaboricua.com/cigarros/willys-tripa-corta): de Willys Cigars
+- [Willys Cigars · Banda azul con rabito](https://lahojaboricua.com/cigarros/willys-banda-azul-coleta): de Willys Cigars
+- [Willys Cigars · Banda azul ovalada](https://lahojaboricua.com/cigarros/willys-banda-azul-ovalada): de Willys Cigars
+- [Willys Cigars · Banda azul y oro](https://lahojaboricua.com/cigarros/willys-banda-azul-oro): de Willys Cigars
+- [Willys Cigars · Banda azul, roja y oro](https://lahojaboricua.com/cigarros/willys-banda-azul-roja-oro): de Willys Cigars
+- [Willys Cigars · Banda negra y oro](https://lahojaboricua.com/cigarros/willys-banda-negra-oro): de Willys Cigars
 - [Yambó Toro Box Press](https://lahojaboricua.com/cigarros/yambo-toro): de Yambó Cigars, capa Habano

@@ -241,6 +241,71 @@
     ]
   },
   {
+    "id": "willys-banda-negra-oro",
+    "nombre": "Willys Cigars · Banda negra y oro",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre de la línea, vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
+    "id": "willys-banda-azul-oro",
+    "nombre": "Willys Cigars · Banda azul y oro",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre de la línea, vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
+    "id": "willys-banda-azul-roja-oro",
+    "nombre": "Willys Cigars · Banda azul, roja y oro",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre de la línea, vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
+    "id": "willys-banda-azul-coleta",
+    "nombre": "Willys Cigars · Banda azul con rabito",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre de la línea, vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
+    "id": "willys-banda-azul-ovalada",
+    "nombre": "Willys Cigars · Banda azul ovalada",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre de la línea, vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
     "id": "don-collins-corona-grande",
     "nombre": "El Puro Corona Grande",
     "artesano_id": "don-collins",
