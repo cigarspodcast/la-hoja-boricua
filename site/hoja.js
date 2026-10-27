@@ -39,7 +39,8 @@ function load(){const raw=localStorage.getItem(KEY);
  const s=DEF();const f=legacy('favs'),r=legacy('ratings');
  if(Array.isArray(f))s.favs.cigarros=f.filter(x=>typeof x==='string');if(r&&typeof r==='object'&&!Array.isArray(r))s.ratings={...r};
  s.migrado=(f||r)?'v5':'nuevo';write(s);return s}
-function write(s){try{localStorage.setItem(KEY,JSON.stringify(s));return true}catch(e){toast('No hay espacio para guardar. Exporta un respaldo.');return false}}
+const PEND=[];/* LHB-38: fotos que no se pudieron borrar porque el cambio no se anotó; se borran en la próxima anotación que funcione, la que sea */
+function write(s){try{localStorage.setItem(KEY,JSON.stringify(s));for(const k of PEND.splice(0))if(!refd(k))FOTOS.del(k);return true}catch(e){toast('No hay espacio para guardar. Exporta un respaldo.');return false}}
 const S=()=>ST||(ST=load());
 function save(mut){const s=S();mut&&mut(s);s.cambios=(s.cambios||0)+1;write(s);return s}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
@@ -368,9 +369,9 @@ const FOTOS=(()=>{let p;const open=()=>p||(p=new Promise((res,rej)=>{const r=ind
 const NEWDRAFT=(cid,nombre)=>({paso:0,cigarId:cid||'',nombre:nombre||'',capa:'',aspecto:[],tiro:'',quemadaIni:'',ceniza:'',quemada:'',largo:'',fortaleza:'',cuerpo:'',rating:0,notaFinal:'',sellar:true,tags:{aroma:[],tercio1:[],tercio2:[],tercio3:[],final:[]},notas:{},foto:'',publica:false,consumido:hoy(),marca:'',inicio:new Date().toISOString()});
 let CD=null;
 /* LHB-38 (Codex ronda 3): una foto se borra solo si nada la usa (ni el borrador de ahora ni una entrada del diario, por ejemplo una recuperada de un respaldo) y solo cuando el cambio ya quedó anotado; si no se pudo anotar, queda pendiente y se borra en la próxima anotación que sí funcione */
-const PEND=[];const refd=k=>(CD&&CD.foto===k)||S().diario.some(e=>e&&e.foto===k);
+const refd=k=>(CD&&CD.foto===k)||(S().draft&&S().draft.foto===k)||S().diario.some(e=>e&&e.foto===k);
 const dropFoto=(d,ok)=>{if(!d||!d.foto)return;if(ok===false){PEND.push(d.foto);return}if(!refd(d.foto))FOTOS.del(d.foto)};
-function persistDraft(){const s=S();s.draft=CD;const ok=write(s);if(ok)for(const k of PEND.splice(0))if(!refd(k))FOTOS.del(k);return ok}
+function persistDraft(){const s=S();s.draft=CD;return write(s)}
 /* LHB-38 (Codex ronda 1): sobre la foto de la cata manda la última acción. Cada escoger, quitar, empezar otra cata o cambiar de borrador sube fotoSeq; una foto que termina de achicarse con otro número, o con otro borrador, ya no vale y su archivo se borra */
 let fotoSeq=0;
 function startCata(cid,nombre){fotoSeq++;const old=S().draft;CD=NEWDRAFT(cid,nombre);if(cid||nombre)CD.paso=1;dropFoto(old,persistDraft());if(location.hash!=='#/cata')location.hash='#/cata';else renderCata()}

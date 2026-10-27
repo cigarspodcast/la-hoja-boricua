@@ -1880,6 +1880,25 @@ test('LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borr
  h=open({ls:{lhb_mihoja_v1:JSON.stringify({schema:1,humidor:[],ratings:{},diario:[]})}});await pick(h,png);await tick();const k4=h.API.getCD().foto;libre=lleno(h);h.API.startCata('','');libre();
  h.API.S().diario.push(E38({id:'z9',foto:k4}));h.API.persistDraft();await tick();assert.equal(h.store.has(k4),true,'una foto en uso no se borra');
 });
+test('LHB-38 (Codex ronda 4): el borrador guardado también cuenta como uso de la foto; lo pendiente se borra en cualquier anotación que funcione',async()=>{
+ const now='2026-10-27T15:00:00.000Z';const png={type:'image/png',name:'a.png'};
+ const lleno=h=>{const orig=h.ctx.localStorage.setItem;h.ctx.localStorage.setItem=()=>{throw new Error('lleno')};return ()=>{h.ctx.localStorage.setItem=orig}};
+ /* 1. borrador guardado y entrada con la misma llave, sin ninguna cata abierta: borrar la entrada no borra la foto del borrador */
+ const st={schema:1,humidor:[],ratings:{},diario:[E38({id:'r1',foto:'dfoto_k'})],draft:null};
+ let h=HOJA38({now,ls:{lhb_mihoja_v1:JSON.stringify(st)}});
+ st.draft={...h.API.NEWDRAFT('','Toro'),foto:'dfoto_k'};h.ls.set('lhb_mihoja_v1',JSON.stringify(st));
+ h=HOJA38({now,ls:{lhb_mihoja_v1:JSON.stringify(st)}});h.store.set('dfoto_k',{blob:1});
+ assert.equal(h.API.getCD(),null,'ninguna cata abierta');
+ h.lists['[data-ddel]']=[{dataset:{ddel:'r1'},onclick:null}];h.API.vDiario();await h.lists['[data-ddel]'][0].onclick();await tick();
+ assert.deepEqual(h.API.S().diario,[],'la entrada se borró');assert.equal(h.store.has('dfoto_k'),true,'pero el borrador guardado todavía usa su foto');
+ /* 2. un cambio de borrador que no se pudo anotar; después cualquier anotación que funcione (por ejemplo hacer pública una entrada) borra la foto abandonada */
+ const base={schema:1,humidor:[],ratings:{},diario:[E38({id:'p1'})]};
+ h=HOJA38({now,ls:{lhb_mihoja_v1:JSON.stringify(base)}});h.ctx.location.hash='#/cata';const d={...h.API.NEWDRAFT('','Toro'),rating:3};d.paso=h.API.PASOS.length-1;h.API.setCD(d);h.API.renderCata();
+ await h.els.cFotoF.onchange({target:{files:[png],value:'x'}});await tick();const k=h.API.getCD().foto;assert.ok(k);
+ const libre=lleno(h);h.API.startCata('','');await tick();assert.equal(h.store.has(k),true,'con el teléfono lleno se queda');libre();
+ h.lists['[data-dpub]']=[{dataset:{dpub:'p1'},checked:true,onchange:null}];h.API.vDiario();h.lists['[data-dpub]'][0].onchange();await tick();
+ assert.equal(h.store.has(k),false,'la primera anotación que funciona, sea cual sea, la borra');
+});
 test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto',async()=>{
  const now='2026-10-27T15:00:00.000Z';
  const h=HOJA38({now,ls:{lhb_mihoja_v1:JSON.stringify({schema:1,humidor:[],ratings:{},diario:[
