@@ -143,7 +143,14 @@ function onboard(C,done,o,lv,uid){ob=true;
  D.ui.onboarding(async f=>{
   if(!live())return {stale:true};
   if(pending()||sending)return {error:'avatar-busy'};
-  sending=true;snd++;try{return await send(f)}finally{sending=false;snd--}},picture)}
+  sending=true;snd++;try{return await send(f)}finally{sending=false;snd--}},picture,handleCheck(C,uid,live))}
+/* LHB-63: la pregunta "¿está libre este @?" del formulario. Devuelve {available, reason} o null (cuenta o página cambiadas, sin conexión, tope, error): null no dice nada en pantalla */
+function handleCheck(C,uid,live){
+ return async h=>{
+  if(!live())return null;
+  let r;try{r=await D.api(C,'GET','/api/handle?h='+encodeURIComponent(h),null,uid)}catch(e){return null}
+  if(!live()||!r||r.status!==200||!r.body||typeof r.body.available!=='boolean')return null;
+  return r.body}}
 /* LHB-55: editar el perfil propio. Mismo cuidado que el formulario nuevo (cuenta, página y formulario vigentes; un envío a la vez; subida y envío nunca a la vez; una sola salida),
    con lo que ya tiene el perfil puesto: prof viene de /api/me (solo su dueño recibe nombre, apellido, género y fecha). Un envío que falla deja el formulario con lo escrito y la foto de antes. */
 function edit(C,done,o,lv,uid,prof){ob=true;
@@ -162,7 +169,7 @@ function edit(C,done,o,lv,uid,prof){ob=true;
  D.ui.edit(prof,async f=>{
   if(!live())return {stale:true};
   if(pending()||sending)return {error:'avatar-busy'};
-  sending=true;snd++;try{return await send(f||{})}finally{sending=false;snd--}},picture)}
+  sending=true;snd++;try{return await send(f||{})}finally{sending=false;snd--}},picture,handleCheck(C,uid,live))}
 /* LHB-52: completar la identidad de un perfil que ya existía. Mismo cuidado que el formulario nuevo (cuenta, página y formulario vigentes; un envío a la vez; una sola salida),
    pero sin foto ni @: el servidor (PUT /api/profile) solo toca un perfil al que le falta alguno de los cuatro datos. */
 function identify(C,done,o,lv,uid,prof){ob=true;
