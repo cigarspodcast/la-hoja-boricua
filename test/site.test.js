@@ -1588,7 +1588,7 @@ function PERFIL_HARNESS(opts){
  opts=opts||{};const vm=require('vm');const src=read('app.js').replace(/\r\n/g,'\n');
  const code=src.slice(src.indexOf("/* LHB-51: la foto y el nombre de Perfil"),src.indexOf('/* ---------- v6: Mi Hoja y demás (hoja.js)'));
  let els={},html='';const store={cuenta2:opts.cuenta2===undefined?null:opts.cuenta2,perfil:opts.perfil||{nombre:'',capa:''}};
- const mkEl=()=>{const e={innerHTML:'',firstChild:null,onchange:null,onsubmit:null,value:''};e.replaceChildren=n=>{e.firstChild=n;e.innerHTML='[node]'};return e};
+ const mkEl=()=>{let h='';const e={firstChild:null,onchange:null,onsubmit:null,value:''};Object.defineProperty(e,'innerHTML',{get:()=>h,set:v=>{h=v;e.firstChild=null}});e.replaceChildren=n=>{h='[node]';e.firstChild=n};return e};
  const $=s=>{if(s!=='#topAvatar'&&!html.includes('id="'+s.slice(1)+'"'))return null;return els[s]||(els[s]=mkEl())};
  const view={set innerHTML(h){els={};html=h},get innerHTML(){return html}};
  const calls={photoURL:0,toast:[],route:0,hydrate:0};
@@ -1629,6 +1629,8 @@ test('LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambi
  H.$('#pC').value='Maduro';H.$('#pForm').onsubmit({preventDefault(){}});assert.deepEqual(H.store.perfil,{nombre:'Viejo Local',capa:'Maduro'},'guardar la capa no borra lo demás');
  /* sin foto de Clerk: la inicial del nombre */
  H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'ana',name:'Ana M.',avatar:''}});await H.ctx.vPerfil();assert.match(H.$('#mePic').innerHTML,/^<span>A<\/span>$/);
+ /* sin nombre público guardado: el @ hace de nombre */
+ H=PERFIL_HARNESS({cuenta2:{sub:'user_a',handle:'zeta',name:'',avatar:''}});await H.ctx.vPerfil();assert.match(H.html(),/<div class="n">@zeta<\/div>/,'sin nombre público sale el @');assert.match(H.$('#mePic').innerHTML,/^<span>Z<\/span>$/);
  /* sin cuenta: la foto local de siempre y el formulario completo */
  H=PERFIL_HARNESS({cuenta2:null,perfil:{nombre:'Luis',capa:''},photoURL:Promise.resolve('blob:local')});await H.ctx.vPerfil();
  assert.match(H.html(),/<div class="n">Luis<\/div>/);assert.ok(H.html().includes('id="pN"')&&H.html().includes('id="pCam"'));assert.match(H.$('#mePic').innerHTML,/blob:local/);assert.equal(H.calls.photoURL,1);
