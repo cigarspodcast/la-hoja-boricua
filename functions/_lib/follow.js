@@ -15,6 +15,7 @@ export async function isBlocked(db, a, b) {
 
 // la persona a la que se apunta por su @: nunca un perfil oculto (a menos que se pida, para dejar de seguirlo). null si no existe.
 export async function targetOf(db, rawHandle, { hidden = false } = {}) {
+  if (typeof rawHandle !== 'string') return null;
   const h = checkHandle(rawHandle);
   if (h.error) return null;
   return db.prepare(
