@@ -1,0 +1,87 @@
+baseline (0, [])
+P1 consulta: los perfiles ocultos salen en la busqueda -> ROJO (bien) fail=2
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo
+P2 consulta: quien busca se encuentra a si mismo -> ROJO (bien) fail=2
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo
+P3 consulta: el cursor no se usa y la segunda pagina repite la primera -> ROJO (bien) fail=1
+      LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni saltar a nadie; exactamente 20 no promete otra página
+P4 consulta: el texto buscado vale como patron (% _ y \ sin escapar) -> ROJO (bien) fail=1
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+P5 consulta: busca en cualquier parte del texto y no solo desde el principio -> ROJO (bien) fail=1
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+P6 consulta: no se busca por el @ -> ROJO (bien) fail=2
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+P7 consulta: no se busca por el nombre -> SOBREVIVIÓ fail=0
+P8 consulta: no se busca por el apellido -> ROJO (bien) fail=1
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+P9 consulta: no se busca por nombre y apellido juntos -> ROJO (bien) fail=2
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+P10 consulta: el orden va de la Z a la A -> ROJO (bien) fail=2
+      LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni saltar a nadie; exactamente 20 no promete otra página
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+P11 consulta: se pide una fila menos y nunca hay siguiente -> ROJO (bien) fail=1
+      LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni saltar a nadie; exactamente 20 no promete otra página
+P12 pagina: la pagina es de otro tamano -> ROJO (bien) fail=1
+      LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni saltar a nadie; exactamente 20 no promete otra página
+P13 pagina: el siguiente sale aunque no haya mas -> ROJO (bien) fail=1
+      LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni saltar a nadie; exactamente 20 no promete otra página
+P14 privacidad: salen datos privados (fecha de nacimiento, genero, apellido) -> ROJO (bien) fail=1
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+P15 consulta: una letra basta -> ROJO (bien) fail=1
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+P16 consulta: sin tope de largo -> ROJO (bien) fail=1
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+P17 consulta: se aceptan caracteres de control -> ROJO (bien) fail=1
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+P18 consulta: el @ de entrada se busca como letra -> ROJO (bien) fail=2
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+P19 consulta: los espacios dobles no se juntan -> ROJO (bien) fail=2
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+P20 consulta: cualquier cursor vale -> ROJO (bien) fail=1
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+P21 consulta: no se recorta el texto de los lados -> ROJO (bien) fail=2
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+A1 api: buscar no pide sesion ni perfil -> ROJO (bien) fail=3
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+A2 api: una consulta mala no da 400 -> ROJO (bien) fail=1
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+A3 api: la busqueda no sabe quien busca -> ROJO (bien) fail=1
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+H1 pantalla: la pestana Personas no esta en el submenu -> ROJO (bien) fail=1
+      LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo
+H2 pantalla: la ruta no abre Personas -> ROJO (bien) fail=1
+      LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo
+H3 pantalla: se busca con una sola letra -> ROJO (bien) fail=1
+      LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo lo público, pide más con el cursor y no pinta respuestas viejas
+H4 pantalla: una respuesta vieja pinta encima de la nueva -> ROJO (bien) fail=1
+      LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo lo público, pide más con el cursor y no pinta respuestas viejas
+H5 pantalla: el @ y los espacios sobrantes viajan en la consulta -> ROJO (bien) fail=1
+      LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo lo público, pide más con el cursor y no pinta respuestas viejas
+H6 pantalla: Ver mas no manda el cursor -> ROJO (bien) fail=1
+      LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo lo público, pide más con el cursor y no pinta respuestas viejas
+H7 pantalla: Ver mas reemplaza en vez de agregar -> ROJO (bien) fail=1
+      LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo lo público, pide más con el cursor y no pinta respuestas viejas
+H8 pantalla: la busqueda no espera a que se deje de escribir -> ROJO (bien) fail=1
+      LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo
+H9 pantalla: la foto de cualquier sitio se carga -> ROJO (bien) fail=1
+      LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo lo público, pide más con el cursor y no pinta respuestas viejas
+H10 pantalla: el nombre no se escapa -> ROJO (bien) fail=1
+      LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo lo público, pide más con el cursor y no pinta respuestas viejas
+H11 pantalla: un error de red se queda con el mensaje de buscando -> ROJO (bien) fail=1
+      LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo lo público, pide más con el cursor y no pinta respuestas viejas
+H12 cache: el shell se publica con la version de antes -> ROJO (bien) fail=18
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+restaurado (0, [])
+mutaciones: 36 sobrevivieron o con error: 1

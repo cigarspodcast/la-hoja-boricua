@@ -1,0 +1,6 @@
+baseline (0, [])
+P7 consulta: no se busca por el nombre (ni solo ni junto con el apellido) -> ROJO (bien) fail=2
+      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
+restaurado (0, [])
+mutaciones: 36 sobrevivieron o con error: 0

@@ -25,7 +25,7 @@ MUTS = [
     ('P4 consulta: el texto buscado vale como patron (% _ y \\ sin escapar)', LIB, r"export const likeOf = q => q.replace(/[\\%_]/g, c => '\\' + c) + '%';", "export const likeOf = q => q + '%';"),
     ('P5 consulta: busca en cualquier parte del texto y no solo desde el principio', LIB, r"export const likeOf = q => q.replace(/[\\%_]/g, c => '\\' + c) + '%';", r"export const likeOf = q => '%' + q.replace(/[\\%_]/g, c => '\\' + c) + '%';"),
     ('P6 consulta: no se busca por el @', LIB, r"(handle LIKE ?3 ESCAPE '\\' OR first_name", r"(first_name"),
-    ('P7 consulta: no se busca por el nombre', LIB, r"OR first_name LIKE ?3 ESCAPE '\\' OR last_name", r"OR last_name"),
+    ('P7 consulta: no se busca por el nombre (ni solo ni junto con el apellido)', LIB, r"OR first_name LIKE ?3 ESCAPE '\\' OR last_name LIKE ?3 ESCAPE '\\' OR (first_name || ' ' || last_name) LIKE ?3 ESCAPE '\\')", r"OR last_name LIKE ?3 ESCAPE '\\')"),
     ('P8 consulta: no se busca por el apellido', LIB, r"OR last_name LIKE ?3 ESCAPE '\\' OR (first_name", r"OR (first_name"),
     ('P9 consulta: no se busca por nombre y apellido juntos', LIB, r" OR (first_name || ' ' || last_name) LIKE ?3 ESCAPE '\\'", ""),
     ('P10 consulta: el orden va de la Z a la A', LIB, "ORDER BY handle ASC LIMIT ", "ORDER BY handle DESC LIMIT "),
