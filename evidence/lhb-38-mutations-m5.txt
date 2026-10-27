@@ -1,6 +1,0 @@
-baseline (0, [])
-M5 okDay: un día que desborda el mes (31 de abril) pasa por válido -> ROJO (bien) fail=2
-      LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; p
-      LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
-restaurado (0, [])
-mutaciones: 42 sobrevivieron o con error: 0

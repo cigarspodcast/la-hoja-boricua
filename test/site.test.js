@@ -1710,7 +1710,7 @@ function HOJA38(opts){opts=opts||{};
   URL:{createObjectURL:b=>{blobs.push(b);return 'blob:x'},revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},
   FileReader:class{readAsText(f){this.result=f.__text;this.onload()}},Blob,JSON,Date:opts.now?class extends Date{constructor(...a){if(a.length)super(...a);else super(opts.now)}}:Date};
  vm.createContext(ctx);
- vm.runInContext(code+';this.API={okDay,entryDefaults,normalize,upgrade,load,S,save,write,hoy,exportar,importar,saveCata,renderCata,startCata,vDiario,stepBody,NEWDRAFT,FOTOS,PASOS,setCD:v=>{CD=v},getCD:()=>CD,persistDraft}',ctx);
+ vm.runInContext(code+';this.API={okDay,entryDefaults,normalize,upgrade,load,S,save,write,hoy,exportar,importar,saveCata,renderCata,startCata,vDiario,stepBody,NEWDRAFT,FOTOS,PASOS,setCD:v=>{CD=v},getCD:()=>CD,persistDraft,vCata}',ctx);
  return {API:ctx.API,ctx,ls,store,idbLog,els,lists,toasts,blobs,log,resized,html:()=>html,set:(k,v)=>{ls.set(k,JSON.stringify(v))}};
 }
 const E38=(o)=>({id:'d1',fecha:'2026-03-04T02:00:00.000Z',cigarId:null,nombre:'Toro',artesano:'',rating:4,notas:'bien',tags:['madera'],origen:'cata',actualizado:'2026-03-04T02:00:00.000Z',...o});
@@ -1790,7 +1790,7 @@ test('LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro"
 });
 test('LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada a medias',async()=>{
  const now='2026-10-27T15:00:00.000Z';
- const open=(o)=>{const h=HOJA38({now,...o});const d={...h.API.NEWDRAFT('','Toro'),rating:3};d.paso=h.API.PASOS.length-1;h.API.setCD(d);h.API.renderCata();return h};
+ const open=(o)=>{const h=HOJA38({now,...o});h.ctx.location.hash='#/cata';const d={...h.API.NEWDRAFT('','Toro'),rating:3};d.paso=h.API.PASOS.length-1;h.API.setCD(d);h.API.renderCata();return h};
  const pick=(h,f)=>h.els.cFotoF.onchange({target:{files:[f],value:'x'}});const png={type:'image/png',name:'a.png'};
  let h=open();
  h.els.cFotoB.onclick();assert.equal(h.els.cFotoF.clicks,1,'el botón abre el selector');
@@ -1808,12 +1808,38 @@ test('LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del t
  /* un fallo al achicar o al guardar deja la foto de antes y lo dice */
  h=open({resize:async()=>{throw new Error('canvas')}});await pick(h,png);await tick();assert.equal(h.API.getCD().foto,'');assert.equal(h.store.size,0);assert.match(h.els.cFotoH.textContent,/No pudimos guardar la foto/);
  /* la base de fotos del teléfono falla */
- const h3=HOJA38({now});const d3={...h3.API.NEWDRAFT('','Toro'),rating:3};d3.paso=h3.API.PASOS.length-1;h3.API.setCD(d3);h3.API.renderCata();h3.ctx.indexedDB.open=()=>{const r={};setImmediate(()=>r.onerror&&r.onerror());return r};await pick(h3,png);await tick(20);assert.equal(h3.API.getCD().foto,'');assert.match(h3.els.cFotoH.textContent,/No pudimos guardar la foto/);
+ const h3=HOJA38({now});h3.ctx.location.hash='#/cata';const d3={...h3.API.NEWDRAFT('','Toro'),rating:3};d3.paso=h3.API.PASOS.length-1;h3.API.setCD(d3);h3.API.renderCata();h3.ctx.indexedDB.open=()=>{const r={};setImmediate(()=>r.onerror&&r.onerror());return r};await pick(h3,png);await tick(20);assert.equal(h3.API.getCD().foto,'');assert.match(h3.els.cFotoH.textContent,/No pudimos guardar la foto/);
  /* una foto que llega cuando el borrador ya es otro (guardó o empezó otra cata) se borra y no toca nada */
  h=open();const g=defer();h.ctx.A.resizeImage=async()=>{await g.p;return {blob:3}};const pend=pick(h,png);await tick();h.API.setCD({...h.API.NEWDRAFT('','Otro'),rating:3});g.ok();await pend;await tick();
  assert.equal(h.store.size,0,'la foto tardía no queda guardada');assert.equal(h.API.getCD().foto,'','y el borrador nuevo no la recibe');
  /* empezar otra cata suelta la foto del borrador que se deja */
  h=open();await pick(h,png);await tick();const viejo=h.API.getCD().foto;assert.ok(viejo);h.API.startCata('','');await tick();assert.equal(h.store.has(viejo),false,'la foto del borrador anterior se borra');
+});
+test('LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra la foto abandonada',async()=>{
+ const now='2026-10-27T15:00:00.000Z';const png={type:'image/png',name:'a.png'};
+ const open=(o)=>{const h=HOJA38({now,...o});h.ctx.location.hash='#/cata';const d={...h.API.NEWDRAFT('','Toro'),rating:3};d.paso=h.API.PASOS.length-1;h.API.setCD(d);h.API.renderCata();return h};
+ const pick=(h,f)=>h.els.cFotoF.onchange({target:{files:[f||png],value:'x'}});
+ const gates=h=>{const g=[];h.ctx.A.resizeImage=()=>{const d=defer();g.push(d);return d.p};return g};
+ /* 1. la foto guardada no se pierde si la nueva no se puede anotar en el teléfono */
+ let h=open();await pick(h,png);await tick();const k1=h.API.getCD().foto;assert.ok(k1&&h.store.has(k1));
+ const setItem=h.ctx.localStorage.setItem;h.ctx.localStorage.setItem=()=>{throw new Error('lleno')};
+ await pick(h,png);await tick();
+ assert.equal(h.API.getCD().foto,k1,'el borrador sigue con la foto de antes');assert.ok(h.store.has(k1),'y su archivo sigue en el teléfono');assert.equal(h.store.size,1,'la nueva no queda guardada');assert.match(h.els.cFotoH.textContent,/No hay espacio/);
+ h.ctx.localStorage.setItem=setItem;
+ /* quitar con el teléfono lleno: la foto se queda */
+ h.ctx.localStorage.setItem=()=>{throw new Error('lleno')};h.els.cFotoX.onclick();await tick();assert.equal(h.API.getCD().foto,k1,'no se pudo anotar el cambio: la foto sigue');assert.ok(h.store.has(k1));h.ctx.localStorage.setItem=setItem;
+ /* 2. una foto que termina cuando la persona ya está en el diario no cambia la página */
+ h=open();let g=gates(h);const pend=pick(h);await tick();h.ctx.location.hash='#/mihoja/diario';h.ctx.view.innerHTML='<diario>';g[0].ok({blob:1});await pend;await tick();
+ assert.equal(h.html(),'<diario>','la página del diario se queda como estaba');assert.equal(h.API.getCD().foto.startsWith('dfoto_'),true,'la foto queda en el borrador');assert.equal(JSON.parse(h.ls.get('lhb_mihoja_v1')).draft.foto,h.API.getCD().foto);
+ /* 3. escoger A y luego B, terminando A al final: gana B */
+ h=open();g=gates(h);const pa=pick(h),pb=pick(h);await tick();g[1].ok({blob:'B'});await pb;await tick();const kb=h.API.getCD().foto;assert.ok(kb);g[0].ok({blob:'A'});await pa;await tick();
+ assert.equal(h.API.getCD().foto,kb,'la última escogida se queda');assert.equal(h.store.size,1,'la tardía se borra');assert.deepEqual([...h.store.keys()],[kb]);
+ /* 3b. quitar mientras otra foto se está achicando: no vuelve */
+ h=open();await pick(h);await tick();const k0=h.API.getCD().foto;g=gates(h);const pc=pick(h);await tick();h.els.cFotoX.onclick();await tick();assert.equal(h.API.getCD().foto,'');g[0].ok({blob:'C'});await pc;await tick();
+ assert.equal(h.API.getCD().foto,'','la que llegó después de quitar no se restaura');assert.equal(h.store.size,0,'ni queda guardada');assert.equal(h.store.has(k0),false);
+ /* 4. empezar una cata del catálogo desde el paso 0 borra la foto del borrador que se deja */
+ h=open();await pick(h);await tick();const kd=h.API.getCD().foto;const dr=h.API.S().draft;dr.paso=0;h.API.S().draft=dr;h.API.write(h.API.S());
+ h.API.vCata('c1');await tick();assert.equal(h.store.has(kd),false,'la foto abandonada se borra');assert.equal(h.API.getCD().foto,'');
 });
 test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto',async()=>{
  const now='2026-10-27T15:00:00.000Z';

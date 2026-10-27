@@ -365,12 +365,14 @@ const FOTOS=(()=>{let p;const open=()=>p||(p=new Promise((res,rej)=>{const r=ind
  return{put:(k,v)=>tx('readwrite',s=>s.put(v,k)),del:k=>tx('readwrite',s=>s.delete(k)).catch(()=>{})}})();
 const NEWDRAFT=(cid,nombre)=>({paso:0,cigarId:cid||'',nombre:nombre||'',capa:'',aspecto:[],tiro:'',quemadaIni:'',ceniza:'',quemada:'',largo:'',fortaleza:'',cuerpo:'',rating:0,notaFinal:'',sellar:true,tags:{aroma:[],tercio1:[],tercio2:[],tercio3:[],final:[]},notas:{},foto:'',publica:false,consumido:hoy(),marca:'',inicio:new Date().toISOString()});
 let CD=null;
-function persistDraft(){const s=S();s.draft=CD;write(s)}
-function startCata(cid,nombre){const old=S().draft;if(old&&old.foto)FOTOS.del(old.foto);CD=NEWDRAFT(cid,nombre);if(cid||nombre)CD.paso=1;persistDraft();if(location.hash!=='#/cata')location.hash='#/cata';else renderCata()}
+function persistDraft(){const s=S();s.draft=CD;return write(s)}
+/* LHB-38 (Codex ronda 1): sobre la foto de la cata manda la última acción. Cada escoger, quitar, empezar otra cata o cambiar de borrador sube fotoSeq; una foto que termina de achicarse con otro número, o con otro borrador, ya no vale y su archivo se borra */
+let fotoSeq=0;const dropFoto=d=>{if(d&&d.foto)FOTOS.del(d.foto)};
+function startCata(cid,nombre){fotoSeq++;dropFoto(S().draft);CD=NEWDRAFT(cid,nombre);if(cid||nombre)CD.paso=1;persistDraft();if(location.hash!=='#/cata')location.hash='#/cata';else renderCata()}
 function vCata(cid){const dr=S().draft;
  if(cid&&dr&&dr.paso>0&&dr.cigarId!==cid){const c=A.cigarById(cid);view.innerHTML=`<div class="cata"><div class="eyebrow">Cata guiada</div><h1>Tienes una cata <em>a medias</em></h1><p class="lead">${esc(dr.nombre||'Sin nombre')} va por el paso ${dr.paso} de ${PASOS.length-1}.</p><div class="stack"><button class="btn" id="cCont" type="button">Seguir con ${esc(dr.nombre||'esa cata')}</button><button class="btn secondary" id="cNew" type="button">Empezar ${esc(c?c.nombre:'otra')}</button></div></div>`;
   $('#cCont').onclick=()=>{CD=dr;location.hash='#/cata'};$('#cNew').onclick=()=>{startCata(cid,c?c.nombre:'')};return}
- if(cid&&(!dr||dr.cigarId!==cid)){const c=A.cigarById(cid);CD=NEWDRAFT(cid,c?c.nombre:'');CD.paso=1;persistDraft()}else CD=dr?normDraft(dr):NEWDRAFT();renderCata()}
+ if(cid&&(!dr||dr.cigarId!==cid)){fotoSeq++;dropFoto(dr);const c=A.cigarById(cid);CD=NEWDRAFT(cid,c?c.nombre:'');CD.paso=1;persistDraft()}else CD=dr?normDraft(dr):NEWDRAFT();renderCata()}
 const normDraft=d=>{const n=NEWDRAFT();return {...n,...d,tags:{...n.tags,...(d.tags||{})},notas:d.notas||{}}};
 const seg=(key,opts,cur,label)=>`<div class="seg wrap" role="group" aria-label="${label}">${opts.map(o=>`<button type="button" data-set="${key}" data-v="${esc(o)}" aria-pressed="${cur===o}">${esc(o)}</button>`).join('')}</div>`;
 const multi=(key,opts,cur,label)=>`<div class="chips wrapc" role="group" aria-label="${label}">${opts.map(o=>`<button type="button" class="chip" data-tog="${key}" data-v="${esc(o)}" aria-pressed="${cur.includes(o)}">${esc(o)}</button>`).join('')}</div>`;
@@ -416,12 +418,16 @@ function renderCata(){const p=PASOS[CD.paso];const n=PASOS.length-1;
  const fb=$('#cFotoB'),ff=$('#cFotoF');if(fb&&ff){fb.onclick=()=>ff.click();
   ff.onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;const h=$('#cFotoH');
    if(!/^image\//.test(f.type)){if(h)h.textContent='Escoge una imagen.';return}
-   const mine=CD,key='dfoto_'+uid('');let ok=false;
+   const mine=CD,my=++fotoSeq,key='dfoto_'+uid('');let ok=false;
    try{const b=await A.resizeImage(f,1100,.8);await FOTOS.put(key,b);ok=true}catch(x){}
-   if(CD!==mine){if(ok)FOTOS.del(key);return}
-   if(!ok){if(h)h.textContent='No pudimos guardar la foto. Intenta otra vez.';return}
-   const old=CD.foto;CD.foto=key;persistDraft();if(old)FOTOS.del(old);const y=scrollY;renderCata();scrollTo(0,y)}}
- const fx=$('#cFotoX');if(fx)fx.onclick=()=>{const old=CD.foto;CD.foto='';persistDraft();if(old)FOTOS.del(old);const y=scrollY;renderCata();scrollTo(0,y)};
+   if(my!==fotoSeq||CD!==mine){if(ok)FOTOS.del(key);return}
+   const here=/^#\/cata/.test(location.hash),hint=m=>{const x=here&&$('#cFotoH');if(x)x.textContent=m};
+   if(!ok){hint('No pudimos guardar la foto. Intenta otra vez.');return}
+   const old=CD.foto;CD.foto=key;
+   if(!persistDraft()){CD.foto=old;FOTOS.del(key);hint('No hay espacio para guardar la foto.');return}
+   if(old)FOTOS.del(old);
+   if(here){const y=scrollY;renderCata();scrollTo(0,y)}}}
+ const fx=$('#cFotoX');if(fx)fx.onclick=()=>{const old=CD.foto;fotoSeq++;CD.foto='';if(!persistDraft()){CD.foto=old;return}if(old)FOTOS.del(old);const y=scrollY;renderCata();scrollTo(0,y)};
  A.hydrate(view);
  const cc=$('#cCig'),co=$('#cOtro');if(cc){cc.onchange=()=>{if(cc.value)co.value=''};co.oninput=()=>{if(co.value)cc.value=''}}
  const go=d=>{CD.paso=Math.max(0,Math.min(n,CD.paso+d));persistDraft();renderCata();scrollTo(0,0)};

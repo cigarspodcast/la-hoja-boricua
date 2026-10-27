@@ -10,7 +10,9 @@ M3 defaults: el día por defecto es hoy y no el de la fecha de la cata -> ROJO (
       LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
 M4 defaults: un día que no existe se acepta -> ROJO (bien) fail=1
       LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
-M5 okDay: el 31 de abril pasa por válido -> SOBREVIVIÓ fail=0
+M5 okDay: un día que desborda el mes (31 de abril) pasa por válido -> ROJO (bien) fail=2
+      LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; p
+      LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
 M6 defaults: la marca no se corta a 60 -> ROJO (bien) fail=1
       LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
 M7 normalize: no pasa las entradas por los valores por defecto -> ROJO (bien) fail=2
@@ -39,11 +41,13 @@ M17 foto: se achica a otra medida -> ROJO (bien) fail=1
       LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
 M18 foto: acepta lo que no es imagen -> ROJO (bien) fail=1
       LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
-M19 foto: la que llega tarde queda guardada -> ROJO (bien) fail=1
+M19 foto: la que llega tarde queda guardada -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
       LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
 M20 foto: cambiarla deja la anterior en el teléfono -> ROJO (bien) fail=1
       LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
-M21 foto: quitarla no la borra del teléfono -> ROJO (bien) fail=1
+M21 foto: quitarla no la borra del teléfono -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
       LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
 M22 foto: un fallo al guardar la da por puesta -> ROJO (bien) fail=1
       LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
@@ -82,6 +86,18 @@ M38 esquema: sube a 2 (no es aditivo) -> ROJO (bien) fail=2
       LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos
 M39 formulario: el botón de foto no cambia con foto -> ROJO (bien) fail=1
       LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M40 foto: gana la que termina primero y no la última escogida -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+M41 foto: quitar no cancela la que se está achicando -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+M42 foto: la nueva reemplaza aunque el teléfono no la pueda anotar -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+M43 foto: quitar con el teléfono lleno borra la foto igual -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+M44 foto: una foto tardía vuelve a pintar la cata sobre otra página -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+M45 cata: reemplazar el borrador desde el catálogo deja su foto -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
 C1 estilos: una foto que no se encuentra deja un hueco -> ROJO (bien) fail=1
       LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó
 C2 estilos: la foto sin tamaño -> ROJO (bien) fail=1
@@ -92,4 +108,4 @@ V1 caché: el shell nuevo con la versión de antes -> ROJO (bien) fail=18
       LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
       LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
 restaurado (0, [])
-mutaciones: 42 sobrevivieron o con error: 1
+mutaciones: 48 sobrevivieron o con error: 0
