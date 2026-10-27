@@ -111,7 +111,9 @@ MUTS = [
     ('R5 motor: al apartar no se pasa la duena a la cuenta nueva', SY, "return !!ok&&setOwner(acc.sub)}", "return !!ok}"),
     ('R6 motor: no se revisa la cuenta despues de leer', SY, "catch(e){return {skip:'offline'}}\n   if(!alive())return {skip:'other-account'};\n   if(g.status", "catch(e){return {skip:'offline'}}\n   if(g.status"),
     ('R7 motor: no se revisa la cuenta despues de guardar', SY, "\n    if(!alive())return {skip:'other-account'};\n    if(p.status===409)continue;", "\n    if(p.status===409)continue;"),
-    ('R8 motor: no se revisa la cuenta antes de aplicar', SY, "   if(!alive())return {skip:'other-account'};\n   let wrote=true;", "   let wrote=true;"),
+    # R8 (quitar la revision de cuenta justo antes de aplicar) NO esta en la lista: es un mutante equivalente. Entre la revision de despues de leer o de guardar y esa
+    # no hay ningun await (solo getDoc, merge y canon, que son sincronos), y JavaScript no cambia de cuenta entre dos lineas sin await. Se deja la revision como defensa si alguien agrega un await ahi.
+    # Medido en la ronda r3 (evidence/lhb-28-mutations-r3.txt): sobrevivio con fail=0.
     ('R9 motor: una pasada reciente de otra cuenta vale', SY, "if(m&&a&&m.sub===a.sub&&m.at&&", "if(m&&a&&m.at&&"),
     ('R10 motor: las pestanas no comparten candado', SY, "r=await (D.lock?D.lock(once):once());", "r=await once();"),
     ('R11 juntar: las llaves heredadas cuentan como presentes', SY, "const inL=own(l,k),inR=own(r,k),inB=own(b,k);", "const inL=k in l,inR=k in r,inB=k in b;"),

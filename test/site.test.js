@@ -1726,7 +1726,7 @@ test('LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rec
   for(const k of ['humidor','diario'])assert.deepEqual(await a.put('user_a',{schema:1,doc:{[k]:'x'}},'0'),[400,{error:'bad-doc'}],k+' no es lista');
   for(const k of ['pasaporte','favs','ratings'])for(const v of [[],'x',42])assert.deepEqual(await a.put('user_a',{schema:1,doc:{[k]:v}},'0'),[400,{error:'bad-doc'}],k+' no es mapa');
   assert.deepEqual(await a.put('user_a',{schema:1,doc:{humidor:Array.from({length:5001},(_,i)=>({id:'h'+i}))}},'0'),[413,{error:'too-big'}],'más de 5000 entradas');
-  assert.deepEqual(await a.put('user_a',{schema:1,doc:{humidor:Array.from({length:4000},(_,i)=>({id:'h'+i,nota:'x'.repeat(250)}))}},'0'),[413,{error:'too-big'}],'más de 900000 caracteres');
+  assert.deepEqual(await a.put('user_a',{schema:1,doc:{humidor:Array.from({length:3400},(_,i)=>({id:'h'+i,nota:'x'.repeat(250)}))}},'0'),[413,{error:'too-big'}],'más de 900000 caracteres del documento, con un cuerpo aún menor que el tope del cuerpo');
   assert.equal((await a.put('user_a',{schema:1,doc:{humidor:Array.from({length:5000},(_,i)=>({id:'h'+i}))}},'0'))[0],200,'exactamente 5000 pasa');
   assert.equal(a.rows(),1,'solo el último PUT creó la fila');
  }finally{a.done()}
@@ -2183,12 +2183,33 @@ test('LHB-31 (Codex ronda 1): si la cuenta cambia mientras una pasada espera la 
   assert.deepEqual(srv28(a,'user_b').doc.humidor.map(x=>x.id),['hB'],'a B le llega solo lo suyo');assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','hA'],'lo de A llegó a A');
  }finally{a.done()}
 });
+test('LHB-31 (Codex ronda 1): con la cuenta cambiada durante la lectura o durante el guardado, la pasada se detiene al instante y no manda nada más',async()=>{
+ const a=await ENG28();
+ try{
+  const mk=async()=>{const P=DEV28(a,'user_a');P.seed(DOC28);await P.sync('entrar');P.edit(d=>{d.humidor.push({id:'hA',marca:'A',actualizado:'2026-10-25'})});P.net.log.length=0;return P};
+  const swapOn=(P,method)=>{const orig=P.D.api;let swapped=false;P.D.api=async(C,m,p,b,u,h)=>{const out=await orig(C,m,p,b,u,h);if(m===method&&!swapped){swapped=true;P.st.acct='user_b';P.st.user='user_b';P.eng.isolate()}return out}};
+  let P=await mk();swapOn(P,'GET');let r=await P.sync('guardado');
+  assert.equal(r.skip,'other-account');assert.deepEqual(P.net.log,['GET'],'tras el cambio durante la lectura no se manda el guardado de A');
+  P=await mk();P.net.status={PUT:500};swapOn(P,'PUT');r=await P.sync('guardado');
+  assert.equal(r.skip,'other-account','una respuesta de error que llega ya con otra cuenta no cuenta como fallo de la nueva');assert.equal(P.eng.status().state,'off');assert.deepEqual(P.net.log,['GET','PUT']);
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 1): una pasada hecha hace poco por otra cuenta no frena la de ahora',async()=>{
+ const a=await ENG28();
+ try{
+  const P=DEV28(a,'user_a');P.seed(DOC28);await P.sync('entrar');P.advance(5e3);P.st.acct='user_b';P.st.user='user_b';
+  const r=await P.eng.run('mi-hoja',{minAge:20e3});assert.notEqual(r.skip,'reciente','el tiempo de A no vale para B');
+  const Q=DEV28(a,'user_a');Q.seed(DOC28);await Q.sync('entrar');Q.advance(5e3);Q.net.log.length=0;
+  assert.equal((await Q.eng.run('mi-hoja',{minAge:20e3})).skip,'reciente','la misma cuenta sí espera');assert.deepEqual(Q.net.log,[]);
+ }finally{a.done()}
+});
 test('LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada',()=>{
  const {LHB_MERGE:X}=SYNC28();const E=o=>({schema:1,creado:'2026-10-01',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{},...o});
  const base=JSON.parse('{"ratings":{"constructor":3,"toString":2}}');
  let m;assert.doesNotThrow(()=>{m=X.merge(base,E({}),E({ratings:{constructor:3,toString:2}}))});assert.deepEqual(m.ratings,{},'lo que se quitó aquí y el otro no tocó se va, aunque se llame constructor');
  assert.doesNotThrow(()=>{m=X.merge(null,JSON.parse('{"ratings":{"__proto__":{"x":1},"a":2},"pasaporte":{"artesanos":{"__proto__":"2026-10-01","b":"2026-10-02"}}}'),E({}))});
  assert.deepEqual(m.ratings,{a:2});assert.deepEqual(m.pasaporte.artesanos,{b:'2026-10-02'});assert.equal(({}).x,undefined,'Object.prototype intacto');
+ assert.equal(Object.getPrototypeOf(m.ratings),Object.prototype,'el resultado no cambia su propio prototipo');assert.equal(m.ratings.x,undefined,'lo de una llave __proto__ no se hereda');
  m=X.merge(null,E({ratings:{constructor:5}}),E({ratings:{}}));assert.equal(m.ratings.constructor,5,'una llave llamada constructor se guarda como cualquier otra');
 });
 test('LHB-28 (Codex ronda 1): el servidor mira el tamaño antes de leer el JSON, topa también favoritos, sellos y estrellas, rechaza If-Match mal cerrado y responde 503 si D1 falla al revisar el perfil',async()=>{
