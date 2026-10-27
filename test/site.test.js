@@ -2125,10 +2125,10 @@ test('LHB-31 (Codex ronda 1): si no se puede anotar lo sincronizado, la pasada f
   P.edit(d=>{d.diario.push({id:'d2',fecha:'2026-10-21',nota:'x'})});
   P.st.failKey='lhb_mihoja_v1_sync';let r=await P.eng.run('guardado');await new Promise(x=>setTimeout(x,20));
   assert.equal(r.fail,'storage');assert.equal(P.eng.status().state,'error');assert.equal(P.ls.get('lhb_mihoja_v1_owner'),'user_a','la dueña sigue anotada');
-  P.st.failKey=null;
-  /* otro teléfono borra h1 mientras tanto; esta pestaña recuerda la base de su última pasada, así que el borrado se respeta y lo escrito aquí no se pierde */
-  const B=DEV28(a,'user_a');await B.sync();B.edit(d=>{d.humidor=[]});await B.fire();
-  r=await P.sync('reintento');assert.equal(r.ok,true,JSON.stringify(r));assert.ok(P.doc().diario.some(x=>x.id==='d2'),'lo escrito aquí no se pierde');assert.ok(!P.doc().humidor.some(x=>x.id==='h1'),'el borrado del otro teléfono sobrevive a la pasada que no pudo anotar la meta');
+  P.st.failKey=null;P.edit(d=>{d.diario.push({id:'d4',fecha:'2026-10-23',nota:'z'})});
+  /* otro teléfono recibe d2 (que subió la pasada que no pudo anotar la meta) y la borra junto con h1; esta pestaña recuerda la base de esa pasada, así que los dos borrados se respetan y lo escrito después aquí no se pierde */
+  const B=DEV28(a,'user_a');await B.sync();assert.ok(B.doc().diario.some(x=>x.id==='d2'),'B recibió d2');B.edit(d=>{d.humidor=[];d.diario=d.diario.filter(x=>x.id!=='d2')});await B.fire();
+  r=await P.sync('reintento');assert.equal(r.ok,true,JSON.stringify(r));assert.ok(P.doc().diario.some(x=>x.id==='d4'),'lo escrito aquí no se pierde');assert.ok(!P.doc().humidor.some(x=>x.id==='h1'),'el borrado del otro teléfono sobrevive a la pasada que no pudo anotar la meta');assert.ok(!P.doc().diario.some(x=>x.id==='d2'),'lo que subió esa pasada y el otro borró no vuelve (la base vieja no lo conoce)');
   /* con la meta ya buena, la siguiente pasada vuelve a usar la base y respeta los borrados */
   B.edit(d=>{d.diario=d.diario.filter(x=>x.id!=='d1')});await B.fire();await P.sync();assert.ok(!P.doc().diario.some(x=>x.id==='d1'),'el borrado de otro teléfono llega otra vez');
   /* cambiar de cuenta tras el fallo no sube lo de A a B */
@@ -2233,6 +2233,16 @@ test('LHB-31 (Codex ronda 2): lo que otra pestaña borra mientras esta espera la
   let r=await P.sync('guardado');assert.equal(r.ok,true,JSON.stringify(r));
   P.D.api=orig;r=await P.sync('siguiente');assert.equal(r.ok,true,JSON.stringify(r));
   assert.deepEqual(hid28(P.doc()),[],'lo borrado no vuelve');assert.deepEqual(hid28(srv28(a,'user_a').doc),[],'el borrado llega a la cuenta');
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 2): lo borrado antes de recargar la página sigue siendo un borrado: la marca de pendiente está en la meta, no solo en la pestaña',async()=>{
+ const a=await ENG28();
+ try{
+  const base={...DOC28,diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{}};
+  const P=DEV28(a,'user_a');P.seed(base);await P.sync('entrar');
+  P.edit(d=>{d.humidor=[]});assert.equal(JSON.parse(P.ls.get('lhb_mihoja_v1_sync')).dirty,true,'la meta guarda que la persona escribió');
+  const P2=SYNC28().LHB_SYNC(P.D);const r=await P2.run('recarga');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(hid28(P.doc()),[],'tras recargar, lo borrado no vuelve');assert.deepEqual(hid28(srv28(a,'user_a').doc),[],'el borrado llega a la cuenta');
  }finally{a.done()}
 });
 test('LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada',()=>{
