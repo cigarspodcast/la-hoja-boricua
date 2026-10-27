@@ -1564,3 +1564,20 @@ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya 
  assert.deepEqual(await subs[1]({handle:'ana',...IDN,bio:'',favorite_brand:''}),{error:'avatar-busy'},'el formulario de perfil nuevo tampoco crea con una subida vieja en curso');assert.deepEqual(posts,[]);
  g2.ok();await up2;await tick();
 });
+test('LHB-55 (Codex ronda 2): un guardado que sigue en curso de un formulario ya cerrado bloquea la subida del formulario nuevo; terminado, se sube',async()=>{
+ const g=defer();let setCalls=0;const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){setCalls++},async reload(){u.imageUrl=AV55}};
+ const o=await EDT(u,{put:()=>g.p.then(()=>({status:200,body:{profile:{handle:'ana'}}}))});
+ const sv=o.submit();await tick();assert.equal(o.puts.length,1,'el guardado viejo salio y sigue en curso');
+ /* Cancelar y volver a abrir Editar perfil: otro formulario, con su propio selector de foto, mientras el PUT viejo sigue */
+ await o.run();await tick();assert.equal(o.editors(),2);
+ assert.deepEqual(await o.picture.upload(IMG('a.jpg')),{error:'avatar-busy'},'la cuenta es una sola: con un guardado viejo en curso el formulario nuevo no sube');assert.equal(setCalls,0,'Clerk no se toca');
+ g.ok();await sv;await tick();
+ const r=await o.picture.upload(IMG('a.jpg'));assert.equal(r.url,AV55,'terminado el guardado, el formulario nuevo sube');assert.equal(setCalls,1);
+ /* lo mismo con el formulario de perfil nuevo */
+ const g2=defer();let sc2=0;const u2={id:'user_b',hasImage:true,imageUrl:AV,async setProfileImage(){sc2++},async reload(){u2.hasImage=true;u2.imageUrl=AV55}};
+ let pics=[],subs=[];const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{if(m==='GET')return {status:200,body:{needsProfile:true}};await g2.p;return {status:201,body:{profile:{handle:b.handle}}}}});
+ h.D.ui.onboarding=(s,p)=>{subs.push(s);pics.push(p)};h.C.user=u2;await h.A.require(h.go);await tick();
+ const sv2=subs[0]({handle:'ana',...IDN,bio:'',favorite_brand:''});await tick();await h.A.require(h.go);await tick();assert.equal(subs.length,2);
+ assert.deepEqual(await pics[1].upload(IMG('a.jpg')),{error:'avatar-busy'},'el formulario de perfil nuevo tampoco sube con un guardado viejo en curso');assert.equal(sc2,0);
+ g2.ok();await sv2;await tick();
+});

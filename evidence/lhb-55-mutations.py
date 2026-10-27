@@ -33,7 +33,7 @@ MUTS = [
     # cuenta.js: la puerta y el formulario de editar
     ('C1 cuenta: subir una foto mientras se guarda se permite', CU, "  if(sending())return Promise.resolve({error:'avatar-busy'});\n", ""),
     ('C2 cuenta: un formulario de editar viejo o de otra cuenta sigue guardando', CU, "const send=async f=>{\n  if(!live())return {stale:true};\n  const pic=picture.url();\n  if(!pic)return {error:'avatar-required'};\n  let r;try{r=await D.api(C,'PUT'", "const send=async f=>{\n  const pic=picture.url();\n  if(!pic)return {error:'avatar-required'};\n  let r;try{r=await D.api(C,'PUT'", "D.ui.edit(prof,async f=>{\n  if(!live())return {stale:true};\n", "D.ui.edit(prof,async f=>{\n"),
-    ('C3 cuenta: guardar con una subida en curso se permite', CU, "if(pending()||sending)return {error:'avatar-busy'};\n  sending=true;try{return await send(f||{})}finally{sending=false}},picture)}", "sending=true;try{return await send(f||{})}finally{sending=false}},picture)}"),
+    ('C3 cuenta: guardar con una subida en curso se permite', CU, "if(pending()||sending)return {error:'avatar-busy'};\n  sending=true;snd++;try{return await send(f||{})}finally{sending=false;snd--}},picture)}", "sending=true;snd++;try{return await send(f||{})}finally{sending=false;snd--}},picture)}"),
     ('C4 cuenta: al guardar la edición no corre la acción', CU, "D.ui.toast('Perfil guardado.');done();return {ok:true}", "D.ui.toast('Perfil guardado.');return {ok:true}"),
     ('C5 cuenta: un guardado rechazado se da por bueno', CU, "if(r.status===200&&r.body.profile){if(!!C.user&&C.user.id===uid)cache", "if(r.status!==0){if(!!C.user&&C.user.id===uid)cache"),
     ('C6 cuenta: sin Clerk se edita con el perfil guardado en el teléfono', CU, "if(D.store.get()&&!o.edit)", "if(D.store.get())"),
@@ -53,7 +53,8 @@ MUTS = [
     ('H8 ruta: el encabezado no lleva el enlace a editar', HO, "<p><a class=\"lbtn\" href=\"#/mihoja/editar\" id=\"mhEdit\">Editar perfil</a></p>", ""),
     ('H9 ruta: la puerta no conoce el formulario de editar', HO, "edit:(prof,submit,picture)=>onboardingForm(submit,picture,'edit',prof),", ""),
     ('H10 caché: el shell se publica con la versión de antes', 'site/sw.js', "const VERSION='lhb-v54';", "const VERSION='lhb-v53';"),
-    ('C8 cuenta: cada selector cuenta solo sus propias subidas (una subida vieja no bloquea el formulario nuevo, Codex ronda 1)', CU, "function picker(U,live,pic0,sending){\n let pic=pic0,up=0;", "function picker(U,live,pic0,sending){\n let pic=pic0,up=0,upn=0;"),
+    ('C12 cuenta: cada selector cuenta solo sus propias subidas (una subida vieja no bloquea el formulario nuevo, Codex ronda 1)', CU, "function picker(U,live,pic0,sending){\n let pic=pic0,up=0;", "function picker(U,live,pic0,sending){\n let pic=pic0,up=0,upn=0;"),
+    ('C13 cuenta: el envio en curso se cuenta solo por formulario (un guardado viejo no bloquea la subida del formulario nuevo, Codex ronda 2)', CU, "const U=C.user;let sending=false;\n const {picture,pending}=picker(U,live,typeof prof", "const U=C.user;let sending=false;let snd=0;\n const {picture,pending}=picker(U,live,typeof prof"),
 ]
 
 def load(rel):

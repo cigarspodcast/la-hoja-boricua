@@ -72,6 +72,8 @@ const picOf=U=>U&&U.hasImage===true&&typeof U.imageUrl==='string'&&U.imageUrl.st
 let uq=Promise.resolve();
 /* cuántas subidas siguen en curso en toda la cuenta, también las de un formulario que ya se cerró: la cuenta de Clerk es una sola, así que ningún formulario nuevo guarda mientras una subida vieja sigue (LHB-55, ronda 1) */
 let upn=0;
+/* y cuántos envíos de perfil siguen en curso en toda la cuenta, también los de un formulario que ya se cerró: una subida no arranca mientras un envío viejo sigue (LHB-55, ronda 2); el envío de cada formulario sigue frenando solo a ese formulario */
+let snd=0;
 /* el último formulario de perfil abierto: uno que ya fue reemplazado por otro no vuelve a valer */
 let formSeq=0;
 /* lo que comparten el formulario del perfil nuevo y el de completar la identidad (LHB-52) */
@@ -85,7 +87,7 @@ function guard(C,o,lv,uid){
  return {live,settle}}
 /* LHB-55: el selector de foto lo comparten el formulario del perfil nuevo y el de editar: la misma subida, la misma cola y la misma lectura de la URL.
    url() es la foto puesta ahora (pic0 al abrir); upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva).
-   sending() dice si hay un envío en curso (la subida lo respeta) y pending() cuántas subidas siguen en curso en toda la cuenta. */
+   sending() dice si hay un envío en curso en toda la cuenta (la subida lo respeta) y pending() cuántas subidas siguen en curso en toda la cuenta. */
 function picker(U,live,pic0,sending){
  let pic=pic0,up=0;
  const picture={url:()=>pic,upload:file=>{
@@ -106,7 +108,7 @@ function picker(U,live,pic0,sending){
 function onboard(C,done,o,lv,uid){ob=true;
  const {live,settle}=guard(C,o,lv,uid);
  const U=C.user;let sending=false;
- const {picture,pending}=picker(U,live,picOf(U),()=>sending);
+ const {picture,pending}=picker(U,live,picOf(U),()=>snd>0);
  const send=async f=>{
   /* el formulario puede seguir en pantalla después de un cambio de cuenta: no se manda nada a nombre de otra persona */
   if(!live())return {stale:true};
@@ -132,13 +134,13 @@ function onboard(C,done,o,lv,uid){ob=true;
  D.ui.onboarding(async f=>{
   if(!live())return {stale:true};
   if(pending()||sending)return {error:'avatar-busy'};
-  sending=true;try{return await send(f)}finally{sending=false}},picture)}
+  sending=true;snd++;try{return await send(f)}finally{sending=false;snd--}},picture)}
 /* LHB-55: editar el perfil propio. Mismo cuidado que el formulario nuevo (cuenta, página y formulario vigentes; un envío a la vez; subida y envío nunca a la vez; una sola salida),
    con lo que ya tiene el perfil puesto: prof viene de /api/me (solo su dueño recibe nombre, apellido, género y fecha). Un envío que falla deja el formulario con lo escrito y la foto de antes. */
 function edit(C,done,o,lv,uid,prof){ob=true;
  const {live,settle}=guard(C,o,lv,uid);
  const U=C.user;let sending=false;
- const {picture,pending}=picker(U,live,typeof prof.avatar_key==='string'&&prof.avatar_key.startsWith(CLERK_IMG)?prof.avatar_key:picOf(U),()=>sending);
+ const {picture,pending}=picker(U,live,typeof prof.avatar_key==='string'&&prof.avatar_key.startsWith(CLERK_IMG)?prof.avatar_key:picOf(U),()=>snd>0);
  const send=async f=>{
   if(!live())return {stale:true};
   const pic=picture.url();
@@ -151,7 +153,7 @@ function edit(C,done,o,lv,uid,prof){ob=true;
  D.ui.edit(prof,async f=>{
   if(!live())return {stale:true};
   if(pending()||sending)return {error:'avatar-busy'};
-  sending=true;try{return await send(f||{})}finally{sending=false}},picture)}
+  sending=true;snd++;try{return await send(f||{})}finally{sending=false;snd--}},picture)}
 /* LHB-52: completar la identidad de un perfil que ya existía. Mismo cuidado que el formulario nuevo (cuenta, página y formulario vigentes; un envío a la vez; una sola salida),
    pero sin foto ni @: el servidor (PUT /api/profile) solo toca un perfil al que le falta alguno de los cuatro datos. */
 function identify(C,done,o,lv,uid,prof){ob=true;
