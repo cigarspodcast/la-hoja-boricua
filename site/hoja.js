@@ -291,7 +291,9 @@ function vDiario(){const s=S();
  :`<div class="empty">Tu diario está vacío.<br>Haz una cata guiada y se guarda aquí.</div>`}
  ${backupPanel()}`;
  $$('[data-dpub]').forEach(b=>b.onchange=()=>{save(s=>{const x=s.diario.find(y=>y.id===b.dataset.dpub);if(x){x.publica=!!b.checked;x.actualizado=new Date().toISOString()}})});
- $$('[data-ddel]').forEach(b=>b.onclick=()=>{if(confirm('¿Borrar esta entrada del diario?')){const x=S().diario.find(y=>y.id===b.dataset.ddel);if(x&&x.foto)FOTOS.del(x.foto);save(s=>{s.diario=s.diario.filter(y=>y.id!==b.dataset.ddel)});vDiario();bindBackup()}});
+ $$('[data-ddel]').forEach(b=>b.onclick=()=>{if(confirm('¿Borrar esta entrada del diario?')){const x=S().diario.find(y=>y.id===b.dataset.ddel),s=S(),prev=s.diario;s.diario=prev.filter(y=>y.id!==b.dataset.ddel);s.cambios=(s.cambios||0)+1;
+  /* la foto se borra solo cuando el cambio ya quedó anotado en el teléfono; si no, la entrada y su foto se quedan */
+  if(write(s)){if(x&&x.foto)FOTOS.del(x.foto)}else{s.diario=prev;s.cambios-=1}vDiario();bindBackup()}});
  A.hydrate(view)}
 /* pasaporte */
 const BADGES=[{id:'primer',n:'Primer sello',d:'Tu primer sello',k:'total',m:1,c:'#8fd162'},
@@ -368,11 +370,11 @@ let CD=null;
 function persistDraft(){const s=S();s.draft=CD;return write(s)}
 /* LHB-38 (Codex ronda 1): sobre la foto de la cata manda la última acción. Cada escoger, quitar, empezar otra cata o cambiar de borrador sube fotoSeq; una foto que termina de achicarse con otro número, o con otro borrador, ya no vale y su archivo se borra */
 let fotoSeq=0;const dropFoto=d=>{if(d&&d.foto)FOTOS.del(d.foto)};
-function startCata(cid,nombre){fotoSeq++;dropFoto(S().draft);CD=NEWDRAFT(cid,nombre);if(cid||nombre)CD.paso=1;persistDraft();if(location.hash!=='#/cata')location.hash='#/cata';else renderCata()}
+function startCata(cid,nombre){fotoSeq++;const old=S().draft;CD=NEWDRAFT(cid,nombre);if(cid||nombre)CD.paso=1;if(persistDraft())dropFoto(old);if(location.hash!=='#/cata')location.hash='#/cata';else renderCata()}
 function vCata(cid){const dr=S().draft;
  if(cid&&dr&&dr.paso>0&&dr.cigarId!==cid){const c=A.cigarById(cid);view.innerHTML=`<div class="cata"><div class="eyebrow">Cata guiada</div><h1>Tienes una cata <em>a medias</em></h1><p class="lead">${esc(dr.nombre||'Sin nombre')} va por el paso ${dr.paso} de ${PASOS.length-1}.</p><div class="stack"><button class="btn" id="cCont" type="button">Seguir con ${esc(dr.nombre||'esa cata')}</button><button class="btn secondary" id="cNew" type="button">Empezar ${esc(c?c.nombre:'otra')}</button></div></div>`;
   $('#cCont').onclick=()=>{CD=dr;location.hash='#/cata'};$('#cNew').onclick=()=>{startCata(cid,c?c.nombre:'')};return}
- if(cid&&(!dr||dr.cigarId!==cid)){fotoSeq++;dropFoto(dr);const c=A.cigarById(cid);CD=NEWDRAFT(cid,c?c.nombre:'');CD.paso=1;persistDraft()}else CD=dr?normDraft(dr):NEWDRAFT();renderCata()}
+ if(cid&&(!dr||dr.cigarId!==cid)){fotoSeq++;const c=A.cigarById(cid);CD=NEWDRAFT(cid,c?c.nombre:'');CD.paso=1;if(persistDraft())dropFoto(dr)}else CD=dr?normDraft(dr):NEWDRAFT();renderCata()}
 const normDraft=d=>{const n=NEWDRAFT();return {...n,...d,tags:{...n.tags,...(d.tags||{})},notas:d.notas||{}}};
 const seg=(key,opts,cur,label)=>`<div class="seg wrap" role="group" aria-label="${label}">${opts.map(o=>`<button type="button" data-set="${key}" data-v="${esc(o)}" aria-pressed="${cur===o}">${esc(o)}</button>`).join('')}</div>`;
 const multi=(key,opts,cur,label)=>`<div class="chips wrapc" role="group" aria-label="${label}">${opts.map(o=>`<button type="button" class="chip" data-tog="${key}" data-v="${esc(o)}" aria-pressed="${cur.includes(o)}">${esc(o)}</button>`).join('')}</div>`;

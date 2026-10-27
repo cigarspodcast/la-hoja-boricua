@@ -1841,6 +1841,24 @@ test('LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pier
  h=open();await pick(h);await tick();const kd=h.API.getCD().foto;const dr=h.API.S().draft;dr.paso=0;h.API.S().draft=dr;h.API.write(h.API.S());
  h.API.vCata('c1');await tick();assert.equal(h.store.has(kd),false,'la foto abandonada se borra');assert.equal(h.API.getCD().foto,'');
 });
+test('LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una entrada',async()=>{
+ const now='2026-10-27T15:00:00.000Z';const png={type:'image/png',name:'a.png'};
+ const open=()=>{const h=HOJA38({now});h.ctx.location.hash='#/cata';const d={...h.API.NEWDRAFT('','Toro'),rating:3};d.paso=h.API.PASOS.length-1;h.API.setCD(d);h.API.renderCata();return h};
+ const lleno=h=>{const orig=h.ctx.localStorage.setItem;h.ctx.localStorage.setItem=()=>{throw new Error('lleno')};return ()=>{h.ctx.localStorage.setItem=orig}};
+ const conFoto=async()=>{const h=open();await h.els.cFotoF.onchange({target:{files:[png],value:'x'}});await tick();const k=h.API.getCD().foto;assert.ok(k&&h.store.has(k));return {h,k}};
+ /* empezar otra cata con el teléfono lleno: la foto del borrador que se deja sigue ahí (el teléfono todavía lo recuerda) */
+ let {h,k}=await conFoto();let libre=lleno(h);h.API.startCata('','');await tick();assert.equal(h.store.has(k),true,'startCata: la foto se queda si el borrador nuevo no se pudo anotar');
+ /* lo mismo desde una cata del catálogo con un borrador en el paso 0 */
+ ({h,k}=await conFoto());const dr=h.API.S().draft;dr.paso=0;h.API.write(h.API.S());libre=lleno(h);h.API.vCata('c1');await tick();assert.equal(h.store.has(k),true,'vCata: la foto se queda si no se pudo anotar');
+ libre();h.API.setCD(dr);h.API.persistDraft();h.API.vCata('c1');await tick();assert.equal(h.store.has(k),false,'vCata: con el teléfono libre se borra');
+ /* borrar una entrada con el teléfono lleno: la entrada y su foto se quedan */
+ const g=HOJA38({now,ls:{lhb_mihoja_v1:JSON.stringify({schema:1,humidor:[],ratings:{},diario:[E38({id:'a1',foto:'dfoto_a1'}),E38({id:'b2'})]})}});g.store.set('dfoto_a1',{blob:1});
+ g.lists['[data-ddel]']=[{dataset:{ddel:'a1'},onclick:null}];g.API.vDiario();const btn=g.lists['[data-ddel]'][0];
+ const lib2=lleno(g);const c0=g.API.S().cambios||0;await btn.onclick();await tick();
+ assert.deepEqual(g.API.S().diario.map(e=>e.id),['a1','b2'],'la entrada sigue en pantalla y en memoria');assert.equal(g.store.has('dfoto_a1'),true,'y su foto');assert.equal(g.API.S().cambios||0,c0,'no cuenta como cambio');
+ assert.equal(JSON.parse(g.ls.get('lhb_mihoja_v1')).diario.length,2,'el teléfono sigue con las dos');
+ lib2();g.lists['[data-ddel]']=[{dataset:{ddel:'a1'},onclick:null}];g.API.vDiario();await g.lists['[data-ddel]'][0].onclick();await tick();assert.deepEqual(g.API.S().diario.map(e=>e.id),['b2']);assert.equal(g.store.has('dfoto_a1'),false,'con el teléfono libre se borra todo');
+});
 test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto',async()=>{
  const now='2026-10-27T15:00:00.000Z';
  const h=HOJA38({now,ls:{lhb_mihoja_v1:JSON.stringify({schema:1,humidor:[],ratings:{},diario:[

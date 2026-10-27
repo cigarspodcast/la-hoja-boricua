@@ -73,7 +73,8 @@ M32 diario: la casilla no cambia la entrada -> ROJO (bien) fail=1
       LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
 M33 diario: cambiarla no marca la entrada como actualizada -> ROJO (bien) fail=1
       LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
-M34 diario: borrar una entrada deja su foto -> ROJO (bien) fail=1
+M34 diario: borrar una entrada deja su foto -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
       LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
 M35 respaldo: exportar no lleva los campos nuevos -> ROJO (bien) fail=1
       LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos
@@ -96,8 +97,20 @@ M43 foto: quitar con el teléfono lleno borra la foto igual -> ROJO (bien) fail=
       LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
 M44 foto: una foto tardía vuelve a pintar la cata sobre otra página -> ROJO (bien) fail=1
       LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
-M45 cata: reemplazar el borrador desde el catálogo deja su foto -> ROJO (bien) fail=1
+M45 cata: reemplazar el borrador desde el catálogo deja su foto -> ROJO (bien) fail=2
       LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+M46 cata nueva: borra la foto del borrador antes de anotar el nuevo (Codex ronda 2) -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+M47 cata del catálogo: borra la foto del borrador antes de anotar el nuevo (Codex ronda 2) -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+M48 diario: borra la foto aunque el cambio no se pudo anotar (Codex ronda 2) -> ROJO (bien) fail=8
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+      LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
+      LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro", foto y pública, todo se guarda en el borrador
+M49 diario: si no se pudo anotar la entrada desaparece de la pantalla (Codex ronda 2) -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
 C1 estilos: una foto que no se encuentra deja un hueco -> ROJO (bien) fail=1
       LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó
 C2 estilos: la foto sin tamaño -> ROJO (bien) fail=1
@@ -108,4 +121,4 @@ V1 caché: el shell nuevo con la versión de antes -> ROJO (bien) fail=18
       LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
       LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
 restaurado (0, [])
-mutaciones: 48 sobrevivieron o con error: 0
+mutaciones: 52 sobrevivieron o con error: 0
