@@ -1,0 +1,79 @@
+baseline (0, [])
+S1 servidor: la edición se reconoce por el @ y no por la foto (el PUT de completar la identidad cambia el @) -> ROJO (bien) fail=3
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-55: PUT /api/profile rechaza sin cambiar nada: @ mal o reservado o ajeno, menos de 21, fecha futura, datos que faltan, foto que no es de Clerk, te
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+S2 servidor: editar no se limita al perfil del dueño (sin WHERE) -> ROJO (bien) fail=2
+      LHB-55: PUT /api/profile edita el perfil entero del dueño en SQLite real: cada campo se guarda, el nombre público se arma otra vez, lo privado no vuel
+      LHB-55: PUT /api/profile rechaza sin cambiar nada: @ mal o reservado o ajeno, menos de 21, fecha futura, datos que faltan, foto que no es de Clerk, te
+S3 servidor: un @ ocupado no da 409 al editar -> ROJO (bien) fail=1
+      LHB-55: PUT /api/profile rechaza sin cambiar nada: @ mal o reservado o ajeno, menos de 21, fecha futura, datos que faltan, foto que no es de Clerk, te
+S4 servidor: sin perfil, editar no da 403 -> ROJO (bien) fail=1
+      LHB-55: PUT /api/profile rechaza sin cambiar nada: @ mal o reservado o ajeno, menos de 21, fecha futura, datos que faltan, foto que no es de Clerk, te
+S5 servidor: una fecha de menos de 21 no frena la edición -> ROJO (bien) fail=1
+      LHB-55: PUT /api/profile rechaza sin cambiar nada: @ mal o reservado o ajeno, menos de 21, fecha futura, datos que faltan, foto que no es de Clerk, te
+S6 servidor: el nombre público no se arma otra vez al editar -> ROJO (bien) fail=1
+      LHB-55: PUT /api/profile edita el perfil entero del dueño en SQLite real: cada campo se guarda, el nombre público se arma otra vez, lo privado no vuel
+S7 servidor: la respuesta de editar trae la fecha de nacimiento -> ROJO (bien) fail=1
+      LHB-55: PUT /api/profile edita el perfil entero del dueño en SQLite real: cada campo se guarda, el nombre público se arma otra vez, lo privado no vuel
+S8 servidor: editar deja el género sin cambiar -> ROJO (bien) fail=1
+      LHB-55: PUT /api/profile edita el perfil entero del dueño en SQLite real: cada campo se guarda, el nombre público se arma otra vez, lo privado no vuel
+C1 cuenta: subir una foto mientras se guarda se permite -> ROJO (bien) fail=2
+      LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto
+      LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez
+C2 cuenta: un formulario de editar viejo o de otra cuenta sigue guardando -> ROJO (bien) fail=1
+      LHB-55: un formulario de editar viejo no manda nada: otra cuenta, otro formulario encima, sin conexión y sin perfil completo
+C3 cuenta: guardar con una subida en curso se permite -> ROJO (bien) fail=1
+      LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez
+C4 cuenta: al guardar la edición no corre la acción -> ROJO (bien) fail=2
+      LHB-55: editar pasa por la puerta de la cuenta, abre el formulario con lo guardado y solo al guardar corre la acción, una vez
+      LHB-55: un guardado que falla deja el formulario vivo con lo escrito, y se puede reintentar; el que ya guardó no corre dos veces
+C5 cuenta: un guardado rechazado se da por bueno -> ROJO (bien) fail=1
+      LHB-55: un guardado que falla deja el formulario vivo con lo escrito, y se puede reintentar; el que ya guardó no corre dos veces
+C6 cuenta: sin Clerk se edita con el perfil guardado en el teléfono -> ROJO (bien) fail=2
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+      LHB-55: un formulario de editar viejo no manda nada: otra cuenta, otro formulario encima, sin conexión y sin perfil completo
+C7 cuenta: sin conexión se edita con el perfil guardado en el teléfono -> ROJO (bien) fail=2
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+      LHB-55: un formulario de editar viejo no manda nada: otra cuenta, otro formulario encima, sin conexión y sin perfil completo
+C8 cuenta: la puerta no abre el formulario de editar -> ROJO (bien) fail=5
+      LHB-55: editar pasa por la puerta de la cuenta, abre el formulario con lo guardado y solo al guardar corre la acción, una vez
+      LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+      LHB-55: un formulario de editar viejo no manda nada: otra cuenta, otro formulario encima, sin conexión y sin perfil completo
+C9 cuenta: la foto de editar es siempre la de la cuenta y no la del perfil guardado -> ROJO (bien) fail=1
+      LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez
+C10 cuenta: una foto guardada que no es de Clerk se usa -> ROJO (bien) fail=1
+      LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez
+C11 cuenta: editar manda el perfil sin la foto -> ROJO (bien) fail=3
+      LHB-55: editar pasa por la puerta de la cuenta, abre el formulario con lo guardado y solo al guardar corre la acción, una vez
+      LHB-55: la foto de editar usa la misma subida que el perfil nuevo; si falla se queda la de antes, y subir y guardar nunca corren a la vez
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+H1 pantalla: el formulario de editar no trae el nombre guardado -> ROJO (bien) fail=1
+      LHB-55: el formulario real de editar sobre un DOM de mentira: viene lleno, guarda todo, una fecha de menos de 21 no manda nada y un error deja lo escr
+H2 pantalla: el formulario de editar no trae el @ guardado -> ROJO (bien) fail=1
+      LHB-55: el formulario real de editar sobre un DOM de mentira: viene lleno, guarda todo, una fecha de menos de 21 no manda nada y un error deja lo escr
+H3 pantalla: no hay cómo salir sin guardar (Cancelar) -> ROJO (bien) fail=1
+      LHB-55: el formulario real de editar sobre un DOM de mentira: viene lleno, guarda todo, una fecha de menos de 21 no manda nada y un error deja lo escr
+H4 pantalla: el botón de editar dice Crear mi perfil -> ROJO (bien) fail=1
+      LHB-55: el formulario real de editar sobre un DOM de mentira: viene lleno, guarda todo, una fecha de menos de 21 no manda nada y un error deja lo escr
+H5 pantalla: un error desconocido al editar dice crear -> ROJO (bien) fail=2
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-55: el formulario real de editar sobre un DOM de mentira: viene lleno, guarda todo, una fecha de menos de 21 no manda nada y un error deja lo escr
+H6 ruta: #/mihoja/editar no pide el formulario de editar -> ROJO (bien) fail=1
+      LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160
+H7 ruta: al guardar no vuelve a Perfil -> ROJO (bien) fail=1
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+H8 ruta: el encabezado no lleva el enlace a editar -> ROJO (bien) fail=1
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+H9 ruta: la puerta no conoce el formulario de editar -> ROJO (bien) fail=2
+      LHB-25: entrar desde una página pública y fallar la revisión muestra el error sobre la página y el reintento conserva la acción
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+H10 caché: el shell se publica con la versión de antes -> ROJO (bien) fail=16
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+      artisan logos: every id in LOGOS maps to an existing webp and a real artisan
+restaurado (0, [])
+mutaciones: 29 sobrevivieron o con error: 0
+EXIT 0
