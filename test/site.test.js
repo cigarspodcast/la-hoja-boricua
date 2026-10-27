@@ -1841,9 +1841,9 @@ test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, 
  assert.deepEqual(failures.slice(0,5),[],failures.length+' casos fallan');
 });
 /* un teléfono de mentira para probar el motor contra el servidor de verdad (SQLite): su almacenamiento, su reloj, sus temporizadores y su red */
-function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
+function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,failBigKey:null,failBig:0,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
  const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
- const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey)throw new Error('QuotaExceededError');ls.set(k,v)}},
+ const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)}},
   getDoc:()=>rawDoc(),setDoc:d=>{st.setDocs++;if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
@@ -2273,6 +2273,21 @@ test('LHB-31 (Codex ronda 4): un teléfono que se quedó vacío por pérdida tra
   T.seed({schema:1,creado:'',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{}});
   r=await T.sync('reintento');assert.equal(r.ok,true,JSON.stringify(r));
   assert.deepEqual(hid28(T.doc()),['h1','x1'],'lo vacío por pérdida no se toma por borrado: se trae la cuenta');assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','x1']);
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 5): tras una pasada que no pudo anotar la meta, recargar no hace que el teléfono borre en la cuenta lo que otro volvió a agregar; y una cata a medias se aparta al cambiar de cuenta',async()=>{
+ const a=await ENG28();
+ try{
+  const P=DEV28(a,'user_a');P.seed(DOC28);await P.sync('entrar');const Q=DEV28(a,'user_a');await Q.sync();
+  Q.edit(d=>{d.favs.artesanos=[]});await Q.fire();
+  P.st.failBigKey='lhb_mihoja_v1_sync';P.st.failBig=300;let r=await P.eng.run('trae');assert.equal(r.fail,'storage');assert.deepEqual(P.doc().favs.artesanos,[],'P recibió el borrado');
+  const m=JSON.parse(P.ls.get('lhb_mihoja_v1_sync'));assert.equal(m.base,null,'la base vieja quedó tachada con una meta mínima');
+  P.st.failBigKey=null;const P2=SYNC28().LHB_SYNC(P.D);
+  Q.edit(d=>{d.favs.artesanos=['a1']});await Q.fire();
+  r=await P2.run('recarga');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'lo que Q volvió a agregar sigue en la cuenta');
+  const D=DEV28(a,'user_a');D.eng.ensureOwner();D.seed({schema:1,creado:'',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{},draft:{marca:'a medias'}});
+  D.st.acct='user_b';D.st.user='user_b';assert.equal(D.eng.isolate(),true);assert.ok(String(D.ls.get('lhb_mihoja_v1_de_user_a')).includes('a medias'),'la cata a medias de A queda apartada');
  }finally{a.done()}
 });
 test('LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada',()=>{

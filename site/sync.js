@@ -87,7 +87,8 @@ window.LHB_SYNC=function(D){
  /* antes de guardar lo que escribe la persona hay que poder anotar de quién es; si no se puede, no se guarda */
  const ensureOwner=()=>{const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;if(ownerOf()!==null)return true;return setOwner(acc.sub)};
  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
- const rawHasData=raw=>{try{return hasData(JSON.parse(raw))}catch(e){return true}};
+ /* se aparta si tiene datos o un borrador sin terminar (la cata a medias es de quien la escribía); una copia que no se puede leer también */
+ const rawHasData=raw=>{try{const d=JSON.parse(raw);return hasData(d)||(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length>0)}catch(e){return true}};
  /* Lo guardado era de otra cuenta: se aparta en una llave libre (nunca sobre otra copia apartada), Mi Hoja queda vacía y la dueña pasa a ser la nueva. Es síncrono: se llama antes de leer o escribir Mi Hoja, sin esperar a la red */
  let inIso=false;
  function isolate(){if(inIso)return true;const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
@@ -110,6 +111,8 @@ window.LHB_SYNC=function(D){
   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
   const meta0=readMeta(),meta=meta0&&meta0.sub===uid?meta0:null;
   const first=!meta||!meta.at;
+  /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
+  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true});
   for(let i=0;i<TRIES;i++){
    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
    let g;try{g=await D.api(C,'GET','/api/mihoja',null,uid)}catch(e){return {skip:'offline'}}
@@ -139,12 +142,12 @@ window.LHB_SYNC=function(D){
    if(!alive())return {skip:'other-account'};
    let wrote=true;
    if(canon(full)!==canon(Ln)){applying=true;try{wrote=D.setDoc(full)}finally{applying=false}}
-   if(!wrote)return {fail:'storage'};
+   if(!wrote){if(pushed)poison();return {fail:'storage'}}
    /* si no se puede anotar lo sincronizado, la próxima pasada no se fía de la base vieja (junta sin dar nada por borrado) */
    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
    const edited=edits!==e0||readSeq()!==s0;
    mem={sub:uid,base:merged,rev:newRev};
-   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;return {fail:'storage'}}
+   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}
    staleBase=false;if(!edited)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
    const pulled=!!remote&&canon(merged)!==canon(L);
