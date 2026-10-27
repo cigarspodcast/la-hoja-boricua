@@ -31,7 +31,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v55'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v59'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -51,25 +51,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
- assert.match(sw,/const VERSION='lhb-v55'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+ assert.match(sw,/const VERSION='lhb-v59'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
 
 test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v55'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v59'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v55'/);
+ assert.match(sw,/const VERSION='lhb-v59'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v55'/);
+ assert.match(sw,/const VERSION='lhb-v59'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
@@ -95,12 +95,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v55'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v59'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v55'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v59'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -108,7 +108,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v55'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v59'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -125,7 +125,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v55/);});
+ assert.match(read('sw.js'),/lhb-v59/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -138,17 +138,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v55'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v59'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v55'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v59'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v55'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v59'/);});
 
-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v55'/);});
+test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v59'/);});
 
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
@@ -432,7 +432,7 @@ test('LHB-25: un formulario de perfil que quedó en pantalla tras cambiar de cue
  calls.length=0;assert.deepEqual(await submit({handle:'ana'}),{stale:true});assert.deepEqual(calls,[],'no se mandó el perfil de A a nombre de B');assert.ok(!h.log.includes('GO'));
  const ok=[];const g=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{ok.push(uid);return m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:'ana'}}}}});
  let s2;g.D.ui.onboarding=s=>{s2=s};g.C.user={id:'user_a'};await g.A.require(g.go,{inPlace:true,act:'x'});await tick();await s2({handle:'ana'});assert.deepEqual(ok,['user_a','user_a'],'cada llamada de la cuenta lleva su usuario, para que el adaptador la ate a esa sesión');
- const hj=read('hoja.js');assert.match(hj,/async function api\(C,method,path,body,uid\)\{const t=await C\.session\.getToken\(\);if\(uid&&\(!C\.user\|\|C\.user\.id!==uid\)\)throw new Error\('account-changed'\)/,'el adaptador se niega si la sesión ya es de otra cuenta');
+ const hj=read('hoja.js');assert.match(hj,/async function api\(C,method,path,body,uid,extra\)\{const t=await C\.session\.getToken\(\);if\(uid&&\(!C\.user\|\|C\.user\.id!==uid\)\)throw new Error\('account-changed'\)/,'el adaptador se niega si la sesión ya es de otra cuenta');
 });
 test('LHB-25: si el perfil se creó pero se perdió la respuesta, el reintento termina igual que un 201 y repinta la página de origen',async()=>{
  let gets=0,submit;const h=CUENTA_HARNESS({api:async(C,m)=>{if(m==='GET')return ++gets===1?{status:200,body:{needsProfile:true}}:{status:200,body:{profile:{handle:'ana'}}};return {status:409,body:{error:'profile-exists'}}}});
@@ -1120,7 +1120,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v55'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v59'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1367,7 +1367,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v55'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v59'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1545,7 +1545,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
  assert.ok(h.includes('edit:(prof,submit,picture)=>onboardingForm(submit,picture,\'edit\',prof)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v55'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v59'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1651,7 +1651,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\)\}/.test(hj),'guardar y borrar repintan el encabezado');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v55'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v59'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -1683,4 +1683,422 @@ test('LHB-51 (Codex ronda 3): si al confirmar la cuenta lo guardado era de otra,
  let h=mk('#/mihoja/perfil');await h.A.reconcile();assert.equal(h.D.store.get(),null);assert.equal(h.log.filter(x=>x==='reroute').length,1,'Perfil de A se repinta por la puerta de B');
  h=mk('#/catalogo');await h.A.reconcile();assert.equal(h.D.store.get(),null);assert.equal(h.log.filter(x=>x==='reroute').length,0,'en otra página no se repinta nada');
  h=mk('#/mihoja/perfil');h.C.user={id:'user_a'};await h.A.reconcile();assert.equal(h.log.filter(x=>x==='reroute').length,0,'la misma cuenta no mueve nada');
+});
+/* ===================== LHB-28 / LHB-31: Mi Hoja en la cuenta (servidor, juntar, motor) ===================== */
+async function API28(){
+ const a=await API52();const M=await a.imp('api/mihoja.js'),ML=await a.imp('_lib/mihoja.js');
+ const mk=(u,handle)=>a.db.prepare("INSERT INTO profiles (user_id,handle,display_name,avatar_key,first_name,last_name,gender,birth_date,hidden,age_ok_at,created_at,updated_at) VALUES (?1,?2,'Ana M.',NULL,'Ana','Mora','F','1990-05-17',0,'2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z')").run(u,handle);
+ const rq=(token,body,o)=>{o=o||{};return {headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':o.type!==undefined?o.type:'application/json','If-Match':o.match!==undefined?o.match:null})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body}};
+ const get=async(u,e=a.env)=>{const r=await M.onRequestGet({request:rq(u?await a.tok(u):null),env:e});return [r.status,await r.json()]};
+ const put=async(u,body,match,o,e=a.env)=>{const r=await M.onRequestPut({request:rq(u?await a.tok(u):null,body,{match,...(o||{})}),env:e});return [r.status,await r.json()]};
+ const rows=()=>a.db.prepare('SELECT COUNT(*) n FROM mihoja').get().n;
+ return {...a,M,ML,mk,get,put,rows,rq}}
+const DOC28={schema:1,creado:'2026-10-01T00:00:00.000Z',humidor:[{id:'h1',marca:'Don Rey',actualizado:'2026-10-02'}],diario:[{id:'d1',fecha:'2026-10-03',nota:'buena'}],pasaporte:{artesanos:{a1:'2026-10-04'},cigarros:{},lugares:{}},favs:{artesanos:['a1'],cigarros:[],lugares:[]},ratings:{c1:4}};
+test('LHB-28: GET /api/mihoja pide sesión y perfil; sin copia en el servidor dice rev 0 y doc null; la copia de una cuenta no se ve desde otra',async()=>{
+ const a=await API28();
+ try{
+  assert.deepEqual(await a.get(null),[401,{error:'no-session'}]);
+  {const r=await a.M.onRequestGet({request:a.rq('basura'),env:a.env});assert.deepEqual([r.status,await r.json()],[401,{error:'no-session'}],'un token que no es de Clerk');}
+  assert.deepEqual(await a.get('user_a'),[403,{error:'no-profile'}],'una cuenta sin perfil no tiene Mi Hoja en el servidor');
+  a.mk('user_a','ana_a');a.mk('user_b','beto_b');
+  assert.deepEqual(await a.get('user_a'),[200,{rev:0,schema:null,doc:null,updated_at:null}]);
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'0'))[0],200);
+  const [s,b]=await a.get('user_a');assert.equal(s,200);assert.equal(b.rev,1);assert.equal(b.schema,1);assert.deepEqual(b.doc,DOC28);assert.ok(/^20\d\d-\d\d-\d\dT/.test(b.updated_at));
+  assert.deepEqual(await a.get('user_b'),[200,{rev:0,schema:null,doc:null,updated_at:null}],'la otra cuenta no ve nada');
+  assert.equal(a.rows(),1);
+  a.db.prepare("UPDATE mihoja SET doc='no es json' WHERE user_id='user_a'").run();
+  assert.deepEqual(await a.get('user_a'),[500,{error:'corrupt'}],'una fila dañada no se manda como si fuera buena');
+ }finally{a.done()}
+});
+test('LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada',async()=>{
+ const a=await API28();
+ try{
+  a.mk('user_a','ana_a');
+  const ok={schema:1,doc:DOC28};
+  assert.deepEqual(await a.put(null,ok,'0'),[401,{error:'no-session'}]);
+  assert.deepEqual(await a.put('user_a',ok,'0',{type:'text/plain'}),[415,{error:'bad-type'}],'solo JSON');
+  assert.deepEqual(await a.put('user_a',ok,'0',{type:null}),[415,{error:'bad-type'}]);
+  for(const m of [null,'','abc','-1','1.5','1e3','0x1','1 2',' ','9999999999','1,2'])assert.deepEqual(await a.put('user_a',ok,m),[428,{error:'if-match-required'}],'If-Match '+JSON.stringify(m));
+  assert.deepEqual(await a.put('user_a','no es json','0'),[400,{error:'bad-body'}]);
+  for(const b of [null,[],'x',42,true])assert.deepEqual(await a.put('user_a',b,'0'),[400,{error:'bad-body'}],'cuerpo '+JSON.stringify(b));
+  for(const s of [0,2,-1,1.5,'1',null,undefined,true])assert.deepEqual(await a.put('user_a',{schema:s,doc:DOC28},'0'),[400,{error:'schema-unsupported'}],'schema '+JSON.stringify(s));
+  for(const d of [null,[],'x',42,undefined])assert.deepEqual(await a.put('user_a',{schema:1,doc:d},'0'),[400,{error:'bad-doc'}],'doc '+JSON.stringify(d));
+  for(const k of ['humidor','diario'])assert.deepEqual(await a.put('user_a',{schema:1,doc:{[k]:'x'}},'0'),[400,{error:'bad-doc'}],k+' no es lista');
+  for(const k of ['pasaporte','favs','ratings'])for(const v of [[],'x',42])assert.deepEqual(await a.put('user_a',{schema:1,doc:{[k]:v}},'0'),[400,{error:'bad-doc'}],k+' no es mapa');
+  assert.deepEqual(await a.put('user_a',{schema:1,doc:{humidor:Array.from({length:5001},(_,i)=>({id:'h'+i}))}},'0'),[413,{error:'too-big'}],'más de 5000 entradas');
+  assert.deepEqual(await a.put('user_a',{schema:1,doc:{humidor:Array.from({length:4000},(_,i)=>({id:'h'+i,nota:'x'.repeat(250)}))}},'0'),[413,{error:'too-big'}],'más de 900000 caracteres');
+  assert.equal((await a.put('user_a',{schema:1,doc:{humidor:Array.from({length:5000},(_,i)=>({id:'h'+i}))}},'0'))[0],200,'exactamente 5000 pasa');
+  assert.equal(a.rows(),1,'solo el último PUT creó la fila');
+ }finally{a.done()}
+});
+test('LHB-28: el rev manda: If-Match 0 crea, el rev vigente actualiza, uno viejo o futuro da 409 con la copia de ahora y no pisa nada; dos a la vez no pasan los dos',async()=>{
+ const a=await API28();
+ try{
+  a.mk('user_a','ana_a');a.mk('user_b','beto_b');
+  const v1={schema:1,doc:{...DOC28,humidor:[{id:'h1',marca:'uno'}]}},v2={schema:1,doc:{...DOC28,humidor:[{id:'h1',marca:'dos'}]}},v3={schema:1,doc:{...DOC28,humidor:[{id:'h1',marca:'tres'}]}};
+  let r=await a.put('user_a',v1,'0');assert.equal(r[0],200);assert.equal(r[1].rev,1);
+  r=await a.put('user_a',v2,'0');assert.equal(r[0],409,'crear otra vez no pisa');assert.equal(r[1].error,'conflict');assert.equal(r[1].rev,1);assert.deepEqual(r[1].doc,v1.doc,'trae la copia vigente');
+  r=await a.put('user_a',v2,'1');assert.equal(r[0],200);assert.equal(r[1].rev,2);
+  r=await a.put('user_a',v3,'1');assert.equal(r[0],409,'rev viejo');assert.equal(r[1].rev,2);assert.deepEqual(r[1].doc,v2.doc);
+  r=await a.put('user_a',v3,'5');assert.equal(r[0],409,'rev del futuro');assert.equal(r[1].rev,2);
+  assert.deepEqual((await a.get('user_a'))[1].doc,v2.doc,'nada se pisó');
+  assert.equal((await a.put('user_a',v3,'"2"'))[1].rev,3,'If-Match entre comillas');assert.equal((await a.put('user_a',v1,'W/"3"'))[1].rev,4,'validador débil');assert.equal((await a.put('user_a',v2,' 4 '))[1].rev,5,'con espacios');
+  const [x,y]=await Promise.all([a.put('user_a',v1,'5'),a.put('user_a',v2,'5')]);assert.deepEqual([x[0],y[0]].sort(),[200,409],'de dos con el mismo rev pasa uno');
+  assert.equal((await a.get('user_a'))[1].rev,6);
+  assert.equal((await a.get('user_b'))[1].rev,0,'la otra cuenta sigue vacía');assert.equal((await a.put('user_b',v1,'0'))[1].rev,1,'cada cuenta lleva su propio rev');
+  assert.equal(a.rows(),2);
+  /* el servidor guarda lo que llegó, sin tocarlo */
+  const raw=a.db.prepare("SELECT doc FROM mihoja WHERE user_id='user_b'").get().doc;assert.equal(raw,JSON.stringify(v1.doc));
+  /* un D1 caído se dice como 503, no como éxito */
+  const dead={...a.env,DB:{prepare:(sql)=>sql.startsWith('SELECT doc')?{bind:()=>({first:async()=>{throw new Error('d1')}})}:a.env.DB.prepare(sql)}};
+  assert.deepEqual(await a.get('user_a',dead),[503,{error:'unavailable'}]);
+  const dead2={...a.env,DB:{prepare:(sql)=>sql.startsWith('SELECT')?a.env.DB.prepare(sql):{bind:()=>({run:async()=>{throw new Error('d1')}})}}};
+  assert.deepEqual(await a.put('user_a',v1,'6',undefined,dead2),[503,{error:'unavailable'}]);
+ }finally{a.done()}
+});
+test('LHB-28: Mi Hoja del servidor solo sale por /api/mihoja y solo para su dueña: ninguna otra ruta ni columna pública la toca',()=>{
+ const fs2=require('fs'),path2=require('path');const root=path.join(__dirname,'..','functions');const hits=[];
+ (function walk(d){for(const f of fs2.readdirSync(d,{withFileTypes:true})){const p=path2.join(d,f.name);if(f.isDirectory())walk(p);else if(/mihoja/i.test(fs2.readFileSync(p,'utf8')))hits.push(path2.relative(root,p).replace(/\\/g,'/'))}})(root);
+ assert.deepEqual(hits.sort(),['_lib/mihoja.js','_lib/profile.js','api/mihoja.js'],'solo estos archivos del servidor mencionan mihoja');
+ const pf=fs2.readFileSync(path.join(root,'_lib','profile.js'),'utf8');{const ls=pf.split(String.fromCharCode(10)).filter(l=>/mihoja/i.test(l));assert.equal(ls.length,1);assert.ok(ls[0].includes("'mihoja', 'cata'"),'profile.js solo la nombra en la lista de @ reservados')}
+});
+function SYNC28(){const win={};new Function('window',read('sync.js'))(win);return win}
+function rng28(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+test('LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios en el mismo registro lo más nuevo gana',()=>{
+ const {LHB_MERGE:X}=SYNC28();const E=(o)=>({schema:1,creado:'2026-10-01',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{},...o});
+ const h=(id,extra)=>({id,marca:'m'+id,actualizado:'2026-10-01',...extra});
+ const ids=d=>d.humidor.map(x=>x.id).sort();
+ /* unión sin base: nada se pierde */
+ assert.deepEqual(ids(X.merge(null,E({humidor:[h('a')]}),E({humidor:[h('b')]}))),['a','b']);
+ /* borrar: la base lo tenía */
+ const base=E({humidor:[h('a'),h('b')]});
+ assert.deepEqual(ids(X.merge(base,E({humidor:[h('b')]}),base)),['b'],'este lo borró, el otro no lo tocó: se va');
+ assert.deepEqual(ids(X.merge(base,base,E({humidor:[h('b')]}))),['b'],'el otro lo borró, este no lo tocó: se va');
+ assert.deepEqual(ids(X.merge(base,E({humidor:[h('b')]}),E({humidor:[h('a',{marca:'editada',actualizado:'2026-10-05'}),h('b')]}))),['a','b'],'uno borró y el otro editó: queda lo editado');
+ assert.equal(X.merge(base,E({humidor:[h('b')]}),E({humidor:[h('a',{marca:'editada',actualizado:'2026-10-05'}),h('b')]})).humidor.find(x=>x.id==='a').marca,'editada');
+ /* dos ediciones: la más nueva; empate: igual en los dos sentidos */
+ const e1=E({humidor:[h('a',{marca:'uno',actualizado:'2026-10-02'})]}),e2=E({humidor:[h('a',{marca:'dos',actualizado:'2026-10-03'})]});
+ assert.equal(X.merge(base,e1,e2).humidor[0].marca,'dos');assert.equal(X.merge(base,e2,e1).humidor[0].marca,'dos');
+ const t1=E({humidor:[h('a',{marca:'uno'})]}),t2=E({humidor:[h('a',{marca:'dos'})]});
+ assert.equal(X.merge(base,t1,t2).humidor[0].marca,X.merge(base,t2,t1).humidor[0].marca,'un empate se resuelve igual juntando en cualquier sentido');
+ assert.equal(X.merge(null,t1,t2,{prefer:'local'}).humidor[0].marca,'uno','al importar un respaldo gana lo de este teléfono');
+ /* solo uno cambió: pasa lo que cambió */
+ assert.equal(X.merge(base,E({humidor:[h('a',{marca:'solo yo',actualizado:'2026-09-01'}),h('b')]}),base).humidor.find(x=>x.id==='a').marca,'solo yo','aunque su fecha sea más vieja, el otro no lo tocó');
+ /* favoritos */
+ const fb=E({favs:{artesanos:['x','y'],cigarros:[],lugares:[]}});
+ assert.deepEqual(X.merge(fb,E({favs:{artesanos:['y','z'],cigarros:[],lugares:[]}}),E({favs:{artesanos:['x','y','w'],cigarros:[],lugares:[]}})).favs.artesanos.sort(),['w','y','z'],'x lo quitó uno; z y w las agregaron');
+ /* pasaporte: la fecha más antigua; sellos de un solo lado se quedan */
+ const p=X.merge(null,E({pasaporte:{artesanos:{a:'2026-10-05',b:'2026-10-01'},cigarros:{},lugares:{}}}),E({pasaporte:{artesanos:{a:'2026-10-02'},cigarros:{},lugares:{c:'2026-10-09'}}}));
+ assert.deepEqual(p.pasaporte.artesanos,{a:'2026-10-02',b:'2026-10-01'});assert.deepEqual(p.pasaporte.lugares,{c:'2026-10-09'});
+ /* estrellas: la mayor; borrada en uno y sin tocar en el otro, se va */
+ assert.deepEqual(X.merge(null,E({ratings:{c:3,d:5}}),E({ratings:{c:4}})).ratings,{c:4,d:5});
+ assert.deepEqual(X.merge(E({ratings:{c:3}}),E({ratings:{}}),E({ratings:{c:3}})).ratings,{});
+ /* creado: el más viejo; schema: el mayor; lo que es solo del teléfono no viaja */
+ const m=X.merge(null,{...E({creado:'2026-10-09'}),draft:{x:1},cambios:3,respaldo:'z',sync:1},E({creado:'2026-10-02'}));
+ assert.equal(m.creado,'2026-10-02');for(const k of X.LOCAL_ONLY)assert.ok(!(k in m),k+' no viaja');
+ assert.ok(!('draft' in X.strip({draft:1,humidor:[]})));
+ assert.equal(X.merge(null,E({schema:1}),E({schema:2})).schema,2,'schema: el mayor');
+ assert.deepEqual(X.merge(null,E({humidor:[h('a')]}),E({humidor:[h('b')]})).humidor.map(x=>x.id),['b','a'],'lo que llega de la cuenta va primero');
+ assert.deepEqual(X.merge(null,E({humidor:[h('a')]}),E({humidor:[h('b')]}),{prefer:'local'}).humidor.map(x=>x.id),['a','b'],'al importar, lo de este teléfono va primero');
+ assert.deepEqual(X.merge(null,E({diario:[{id:'d1',fecha:'2026-10-01'}]}),E({diario:[{id:'d2',fecha:'2026-10-05'}]})).diario.map(x=>x.id),['d2','d1'],'el diario va de lo más nuevo a lo más viejo');
+ {const z=X.merge(null,E({foo:1,bar:{a:1}}),E({baz:2,bar:{b:2}}));assert.equal(z.foo,1);assert.equal(z.baz,2);assert.ok(z.bar,'los campos que esta versión no conoce también viajan');}
+ /* registros sin id se descartan; datos raros no rompen */
+ assert.deepEqual(X.merge(null,{humidor:[{marca:'sin id'},null,5,{id:''}],diario:'x'},null).humidor,[]);
+ assert.equal(X.hasData(E({})),false);assert.equal(X.hasData(E({ratings:{a:1}})),true);assert.equal(X.hasData(null),false);assert.equal(X.hasData(E({favs:{artesanos:['a'],cigarros:[],lugares:[]}})),true);
+});
+test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, juntar lo mismo no cambia nada, nada de lo agregado se pierde y quien junta después con la base llega al mismo resultado',()=>{
+ const {LHB_MERGE:X}=SYNC28();const R=rng28(2810);const pick=(a)=>a[Math.floor(R()*a.length)];
+ const day=()=>'2026-10-'+String(1+Math.floor(R()*28)).padStart(2,'0');
+ const E=()=>({schema:1,creado:'2026-10-01',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{}});
+ const KS=['artesanos','cigarros','lugares'];
+ const op=(d,n)=>{const t=Math.floor(R()*9);const list=pick(['humidor','diario']);
+  if(t===0)d[list].push({id:list[0]+n+'_'+Math.floor(R()*1e6),marca:'m'+Math.floor(R()*5),actualizado:day(),fecha:day()});
+  else if(t===1&&d[list].length)d[list].splice(Math.floor(R()*d[list].length),1);
+  else if(t===2&&d[list].length){const x=pick(d[list]);x.marca='e'+Math.floor(R()*5);x.actualizado=day();x.fecha=x.actualizado}
+  else if(t===3){const k=pick(KS),id='f'+Math.floor(R()*6);if(!d.favs[k].includes(id))d.favs[k].push(id)}
+  else if(t===4){const k=pick(KS);if(d.favs[k].length)d.favs[k].splice(Math.floor(R()*d.favs[k].length),1)}
+  else if(t===5){const k=pick(KS);d.pasaporte[k]['p'+Math.floor(R()*5)]=day()}
+  else if(t===6){const k=pick(KS),ks=Object.keys(d.pasaporte[k]);if(ks.length)delete d.pasaporte[k][pick(ks)]}
+  else if(t===7)d.ratings['c'+Math.floor(R()*5)]=1+Math.floor(R()*5);
+  else{const ks=Object.keys(d.ratings);if(ks.length)delete d.ratings[pick(ks)]}};
+ let failures=[];
+ for(let i=0;i<400;i++){
+  const b=E();for(let k=0;k<Math.floor(R()*8);k++)op(b,'b');
+  const l=JSON.parse(JSON.stringify(b)),r=JSON.parse(JSON.stringify(b));for(let k=0;k<Math.floor(R()*6);k++)op(l,'l');for(let k=0;k<Math.floor(R()*6);k++)op(r,'r');
+  const m=X.merge(b,l,r),m2=X.merge(b,r,l);
+  const bad=(w)=>failures.push(i+': '+w);
+  if(X.canon(m)!==X.canon(m2))bad('el orden importa');
+  if(X.canon(X.merge(b,l,l))!==X.canon(l))bad('juntar lo mismo cambia algo');
+  if(X.canon(X.merge(b,m,m))!==X.canon(m))bad('juntar el resultado consigo mismo');
+  if(X.canon(X.merge(b,r,m))!==X.canon(m))bad('quien junta después no llega al mismo resultado');
+  if(X.canon(X.merge(b,l,m))!==X.canon(m))bad('el otro lado tampoco');
+  if(X.canon(X.merge(m,m,r))!==X.canon(m)&&X.canon(X.merge(m,m,m))!==X.canon(m))bad('con la base nueva');
+  for(const list of ['humidor','diario'])for(const side of [l,r])for(const x of side[list])if(!b[list].some(y=>y.id===x.id)&&!m[list].some(y=>y.id===x.id))bad('se perdió un '+list+' agregado '+x.id);
+  for(const k of KS)for(const side of [l,r])for(const f of side.favs[k])if(!b.favs[k].includes(f)&&!m.favs[k].includes(f))bad('se perdió un favorito agregado');
+  for(const k of KS)for(const side of [l,r])for(const p of Object.keys(side.pasaporte[k]))if(!(p in b.pasaporte[k])&&!(p in m.pasaporte[k]))bad('se perdió un sello agregado');
+ }
+ assert.deepEqual(failures.slice(0,5),[],failures.length+' casos fallan');
+});
+/* un teléfono de mentira para probar el motor contra el servidor de verdad (SQLite): su almacenamiento, su reloj, sus temporizadores y su red */
+function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
+ const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
+ const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full)throw new Error('QuotaExceededError');ls.set(k,v)}},
+  getDoc:()=>rawDoc(),setDoc:d=>{st.setDocs++;if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
+  clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
+  api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
+   net.log.push(method);if(net.status&&net.status[method])return {status:net.status[method],body:{}};
+   if(method==='PUT'&&net.beforePut){const f=net.beforePut;net.beforePut=null;await f()}
+   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match']}),env:a.env});return {status:r.status,body:await r.json()}},
+  acct:()=>st.acct?{sub:st.acct}:null,now:()=>new Date(st.clock).toISOString(),nowMs:()=>st.clock,
+  setTimer:(fn,ms)=>{const t={fn,ms,live:true};timers.push(t);return t},clearTimer:t=>{if(t)t.live=false},
+  toast:m=>toasts.push(m),listen:(ev,fn)=>{handlers[ev]=fn},onState:s=>{st.states.push(s.state)},onApplied:()=>{st.applied++}};
+ const win=SYNC28();eng=win.LHB_SYNC(D);
+ const settle=async()=>{await new Promise(r=>setTimeout(r,2));for(let i=0;i<2000&&eng._busy();i++)await new Promise(r=>setTimeout(r,2))};
+ const dev={D,eng,ls,net,timers,toasts,st,handlers,X:win.LHB_MERGE,KEY,
+  doc:rawDoc,seed:d=>{ls.set(KEY,JSON.stringify(d))},
+  edit:fn=>{const d=rawDoc();fn(d);ls.set(KEY,JSON.stringify(d));eng.changed()},
+  live:()=>timers.filter(t=>t.live),
+  fire:async()=>{for(const t of timers.filter(x=>x.live)){t.live=false;t.fn()}await settle()},
+  sync:async(why)=>{const r=await eng.run(why||'prueba');await settle();return r},
+  advance:ms=>{st.clock+=ms}};
+ return dev}
+async function ENG28(){const a=await API28();a.mk('user_a','ana_a');a.mk('user_b','beto_b');a.mk('user_c','cata_c');return a}
+const srv28=(a,u)=>{const r=a.db.prepare('SELECT doc, rev FROM mihoja WHERE user_id=?1').get(u);return r?{doc:JSON.parse(r.doc),rev:r.rev}:null};
+const hid28=d=>(d.humidor||[]).map(x=>x.id).sort();
+test('LHB-28: entrar por primera vez lleva lo guardado en el teléfono a la cuenta, sin lo que es solo del teléfono, y avisa una vez',async()=>{
+ const a=await ENG28();
+ try{
+  const p=DEV28(a,'user_a');p.seed({...DOC28,draft:{x:1},cambios:7,respaldo:'2026-10-01',recordarDespues:'z',migrado:true,sync:{x:1}});
+  const r=await p.sync('entrar');assert.equal(r.ok,true);assert.equal(r.pushed,true);assert.equal(r.pulled,false);
+  const s=srv28(a,'user_a');assert.equal(s.rev,1);assert.deepEqual(s.doc,p.X.strip(DOC28),'la cuenta recibe la copia sin lo del teléfono');for(const k of p.X.LOCAL_ONLY)assert.ok(!(k in s.doc),k);
+  assert.equal(p.doc().draft.x,1,'lo del teléfono se queda en el teléfono');assert.equal(p.doc().cambios,7);
+  assert.deepEqual(p.toasts,['Tu Mi Hoja de este teléfono ya está en tu cuenta ✓']);
+  const meta=JSON.parse(p.ls.get('lhb_mihoja_v1_sync'));assert.equal(meta.sub,'user_a');assert.equal(meta.rev,1);assert.deepEqual(meta.base,s.doc);
+  assert.equal(p.eng.status().state,'ok');assert.equal(p.st.setDocs,0,'lo que se subió ya estaba en el teléfono: no se reescribe');assert.equal(p.st.applied,0,'nada llegó de la cuenta');
+  /* segunda pasada sin cambios: ni un PUT */
+  p.net.log.length=0;const r2=await p.sync('otra');assert.equal(r2.ok,true);assert.equal(r2.pushed,false);assert.deepEqual(p.net.log,['GET']);assert.equal(p.toasts.length,1,'el aviso sale una sola vez');
+  /* un teléfono vacío no avisa nada */
+  const q=DEV28(a,'user_b');await q.sync('entrar');assert.deepEqual(q.toasts,[]);assert.equal(srv28(a,'user_b').rev,1,'una cuenta vacía también queda creada');
+ }finally{a.done()}
+});
+test('LHB-28: entrar con una cuenta que ya tiene Mi Hoja la trae al teléfono; con las dos, se juntan y las dos quedan iguales',async()=>{
+ const a=await ENG28();
+ try{
+  const p1=DEV28(a,'user_a');p1.seed(DOC28);await p1.sync();
+  const p2=DEV28(a,'user_a');p2.seed({draft:{x:1},cambios:2});
+  let r=await p2.sync('entrar');assert.equal(p2.doc().draft.x,1,'lo que es solo del teléfono sobrevive a lo que llega');assert.equal(p2.doc().cambios,2);assert.equal(r.pulled,true);assert.equal(r.pushed,false);assert.deepEqual(p2.X.strip(p2.doc()),p2.X.strip(DOC28));assert.equal(p2.st.applied,1);assert.equal(srv28(a,'user_a').rev,1,'no se subió nada');
+  /* el otro teléfono ya tenía cosas suyas */
+  const p3=DEV28(a,'user_a');p3.seed({...DOC28,humidor:[{id:'h9',marca:'Mío',actualizado:'2026-10-09'}],diario:[],favs:{artesanos:[],cigarros:['k1'],lugares:[]},pasaporte:{artesanos:{},cigarros:{},lugares:{}},ratings:{c2:5}});
+  r=await p3.sync('entrar');assert.equal(r.ok,true);assert.equal(r.pushed,true);assert.equal(r.pulled,true);
+  assert.deepEqual(hid28(p3.doc()),['h1','h9']);assert.deepEqual(p3.doc().diario.map(x=>x.id),['d1']);assert.deepEqual(p3.doc().favs.cigarros,['k1']);assert.deepEqual(p3.doc().favs.artesanos,['a1']);assert.deepEqual(p3.doc().ratings,{c1:4,c2:5});
+  assert.deepEqual(srv28(a,'user_a').doc,p3.X.strip(p3.doc()),'el teléfono y la cuenta quedaron iguales');assert.equal(srv28(a,'user_a').rev,2);
+  /* el primero se pone al día en su próxima pasada */
+  r=await p1.sync();assert.equal(r.pulled,true);assert.deepEqual(hid28(p1.doc()),['h1','h9']);assert.equal(srv28(a,'user_a').rev,2,'sin subir nada');
+ }finally{a.done()}
+});
+test('LHB-31: dos teléfonos: lo agregado, lo editado y lo borrado en uno llega al otro, y el borrado no vuelve',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();assert.deepEqual(hid28(B.doc()),['h1']);
+  A.edit(d=>{d.humidor.push({id:'h2',marca:'Nuevo',actualizado:'2026-10-10'})});await A.fire();
+  await B.sync();assert.deepEqual(hid28(B.doc()),['h1','h2'],'lo agregado llegó');
+  B.edit(d=>{d.humidor=d.humidor.filter(x=>x.id!=='h1');d.humidor.find(x=>x.id==='h2').marca='Editado';d.humidor.find(x=>x.id==='h2').actualizado='2026-10-11'});await B.fire();
+  await A.sync();assert.deepEqual(hid28(A.doc()),['h2'],'el borrado llegó y no volvió');assert.equal(A.doc().humidor[0].marca,'Editado');
+  await B.sync();assert.deepEqual(hid28(B.doc()),['h2'],'tampoco volvió en el otro sentido');assert.deepEqual(hid28(srv28(a,'user_a').doc),['h2']);
+  /* cambios a la vez en los dos sin sincronizar: se juntan */
+  A.edit(d=>{d.favs.lugares.push('l1')});B.edit(d=>{d.diario.push({id:'d2',fecha:'2026-10-12',nota:'otra'})});
+  await A.fire();await B.fire();await A.sync();
+  for(const P of [A,B]){assert.deepEqual(P.doc().favs.lugares,['l1']);assert.deepEqual(P.doc().diario.map(x=>x.id).sort(),['d1','d2'])}
+  assert.deepEqual(srv28(a,'user_a').doc,A.X.strip(A.doc()));
+ }finally{a.done()}
+});
+test('LHB-31: si otro teléfono guarda en medio, el PUT da 409, se junta con la copia nueva y se reintenta sin perder ninguno de los dos cambios',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
+  A.edit(d=>{d.humidor.push({id:'hA',marca:'A',actualizado:'2026-10-10'})});B.edit(d=>{d.humidor.push({id:'hB',marca:'B',actualizado:'2026-10-10'})});
+  /* justo antes del PUT de B, A guarda lo suyo */
+  B.net.beforePut=async()=>{await A.eng.run('mientras')};
+  const r=await B.sync('guardado');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','hA','hB'],'ninguno se perdió');
+  assert.deepEqual(B.net.log.filter(m=>m==='PUT').length,2,'un PUT con 409 y otro que pasó');assert.deepEqual(hid28(B.doc()),['h1','hA','hB']);
+  await A.sync();assert.deepEqual(hid28(A.doc()),['h1','hA','hB']);
+  /* si el servidor sigue dando 409 siempre, se cansa y lo dice sin tocar nada */
+  const C=DEV28(a,'user_a');C.seed(DOC28);await C.sync();C.edit(d=>{d.humidor.push({id:'hC',marca:'C',actualizado:'2026-10-13'})});
+  const orig=C.D.api;let n=0;C.D.api=async(Cl,m,p,b,u,h)=>{if(m==='PUT'){n++;await A.eng.run('x');A.edit(d=>{d.diario.push({id:'z'+n,fecha:'2026-10-2'+n%9,nota:'x'})});await A.eng.run('y')}return orig(Cl,m,p,b,u,h)};
+  const r2=await C.sync('guardado');assert.equal(r2.fail,'conflict');assert.equal(C.eng.status().state,'error');assert.ok(C.doc().humidor.some(x=>x.id==='hC'),'lo de este teléfono sigue en el teléfono');
+ }finally{a.done()}
+});
+test('LHB-31: sin conexión nada se pierde ni se rompe: queda pendiente, reintenta con espera creciente y sigue al volver la red',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.net.off=true;A.edit(d=>{d.humidor.push({id:'h2',marca:'sin red',actualizado:'2026-10-10'})});
+  assert.equal(A.live().length,1,'un solo temporizador de guardado');assert.equal(A.live()[0].ms,2500,'espera 2,5 segundos');
+  await A.fire();assert.equal(A.eng.status().state,'offline');assert.deepEqual(hid28(A.doc()),['h1','h2'],'lo escrito sigue en el teléfono');assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1']);
+  assert.deepEqual(A.live().map(t=>t.ms),[20e3],'reintenta en 20 s');
+  await A.fire();assert.deepEqual(A.live().map(t=>t.ms),[40e3],'luego 40 s');
+  await A.fire();assert.deepEqual(A.live().map(t=>t.ms),[80e3]);await A.fire();assert.deepEqual(A.live().map(t=>t.ms),[160e3]);await A.fire();assert.deepEqual(A.live().map(t=>t.ms),[300e3]);await A.fire();assert.deepEqual(A.live().map(t=>t.ms),[300e3],'tope de 5 minutos');
+  /* vuelve la red: el aviso del navegador sincroniza ya, sin esperar el temporizador */
+  A.net.off=false;A.eng.start();assert.ok(A.handlers.online&&A.handlers.visible,'escucha cuando vuelve la red y cuando la página se ve');
+  A.handlers.online();await new Promise(r=>setImmediate(r));await A.sync();
+  assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','h2']);assert.equal(A.eng.status().state,'ok');assert.equal(A.live().filter(t=>t.ms>=20e3).length,0,'el reintento pendiente se canceló');
+  A.net.off=true;A.edit(d=>{d.ratings.z=2});await A.fire();assert.deepEqual(A.live().map(t=>t.ms),[20e3],'tras un éxito la espera vuelve a empezar');
+ }finally{a.done()}
+});
+test('LHB-31: errores del servidor y de la cuenta: 5xx reintenta; un esquema nuevo no se toca; sin cuenta o con otra cuenta no manda nada',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed(DOC28);
+  A.net.status={GET:503};let r=await A.sync();assert.equal(r.fail,'get-503');assert.equal(A.eng.status().state,'error');assert.deepEqual(A.net.log,['GET']);assert.deepEqual(A.live().map(t=>t.ms),[20e3]);
+  A.net.status=null;A.net.status={PUT:500};r=await A.sync();assert.equal(r.fail,'put-500');assert.deepEqual(A.live().map(t=>t.ms).slice(-1),[40e3],'la espera crece');
+  A.net.status=null;
+  a.db.prepare("UPDATE mihoja SET schema=2 WHERE user_id='user_a'").run();
+  /* sin cuenta */
+  const S=DEV28(a,'user_a');S.st.acct=null;S.seed(DOC28);r=await S.sync();assert.equal(r.skip,'signed-out');assert.equal(S.eng.status().state,'off');assert.deepEqual(S.net.log,[]);assert.equal(S.live().length,0);
+  /* la sesión de Clerk es de otra cuenta que la guardada */
+  const O=DEV28(a,'user_a');O.st.user='user_b';O.seed(DOC28);r=await O.sync();assert.equal(r.skip,'other-account');assert.deepEqual(O.net.log,[]);
+  /* Clerk sin red */
+  const F=DEV28(a,'user_a');F.net.off=true;F.seed(DOC28);r=await F.sync();assert.equal(r.skip,'offline');
+  /* una sola pasada a la vez */
+  const G=DEV28(a,'user_b');G.seed(DOC28);const p1=G.eng.run('a'),p2=G.eng.run('b');assert.equal(p1,p2,'la segunda petición comparte la pasada en curso');await G.sync();
+  /* una pasada reciente no se repite al ver la página */
+  G.advance(10e3);r=await G.eng.run('visible',{minAge:30e3});assert.equal(r.skip,'reciente');G.advance(40e3);r=await G.eng.run('visible',{minAge:30e3});assert.equal(r.ok,true);
+ }finally{a.done()}
+});
+test('LHB-28: un esquema más nuevo en la cuenta no se toca ni se pisa desde esta versión',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  a.db.prepare("UPDATE mihoja SET schema=2 WHERE user_id='user_a'").run();
+  A.edit(d=>{d.humidor.push({id:'h2',marca:'nuevo',actualizado:'2026-10-10'})});const before=JSON.stringify(A.doc());
+  const r=await A.sync('guardado');assert.equal(r.fail,'schema');assert.equal(a.db.prepare("SELECT schema FROM mihoja").get().schema,2);assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1'],'no se subió nada');assert.equal(JSON.stringify(A.doc()),before,'el teléfono quedó igual');
+ }finally{a.done()}
+});
+test('LHB-28: cambiar de cuenta en el mismo teléfono aparta la Mi Hoja anterior (no se borra ni se sube a la otra cuenta) y empieza con la de la nueva',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const other=DEV28(a,'user_b');other.seed({...DOC28,humidor:[{id:'hb',marca:'de b',actualizado:'2026-10-02'}],diario:[]});await other.sync();
+  /* el mismo teléfono ahora entra con user_b */
+  A.st.acct='user_b';A.st.user='user_b';const toasts0=A.toasts.length;
+  const r=await A.sync('entrar');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(hid28(A.doc()),['hb'],'el teléfono muestra lo de la cuenta nueva');assert.ok(!hid28(srv28(a,'user_b').doc).includes('h1'),'lo de la otra cuenta no se subió');
+  const parked=JSON.parse(A.ls.get('lhb_mihoja_v1_de_user_a'));assert.deepEqual(hid28(parked),['h1'],'la copia de la cuenta anterior se guardó aparte');
+  assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).sub,'user_b');assert.equal(A.toasts.length,toasts0,'no se dice que se subió lo de la otra cuenta');
+  /* si no se puede apartar, no se borra nada */
+  const B=DEV28(a,'user_a');B.seed(DOC28);await B.sync();B.st.acct='user_c';B.st.user='user_c';B.st.full=true;
+  const r2=await B.sync('entrar');assert.equal(r2.fail,'park');assert.deepEqual(hid28(B.doc()),['h1'],'sin lugar para apartarla, la copia se queda como está');
+ }finally{a.done()}
+});
+test('LHB-31: si el teléfono se quedó vacío sin que la persona borrara (almacenamiento limpiado), se trae la cuenta en vez de vaciarla',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.ls.delete(A.KEY);
+  const r=await A.sync('abrir');assert.equal(r.ok,true);assert.equal(r.pulled,true);assert.deepEqual(hid28(A.doc()),['h1']);assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1'],'la cuenta no se vació');
+  /* borrar de verdad una entrada sí se sincroniza */
+  A.edit(d=>{d.humidor=[]});await A.fire();assert.deepEqual(hid28(srv28(a,'user_a').doc),[]);
+  /* y vaciar todo a mano, entrada por entrada, también */
+  A.edit(d=>{d.diario=[];d.favs={artesanos:[],cigarros:[],lugares:[]};d.pasaporte={artesanos:{},cigarros:{},lugares:{}};d.ratings={}});await A.fire();
+  const s=srv28(a,'user_a').doc;assert.equal(A.X.hasData(s),false,'lo que la persona quitó se quitó en la cuenta');
+ }finally{a.done()}
+});
+test('LHB-31: si el teléfono no puede guardar lo traído, lo dice y no marca la pasada como buena; lo escrito mientras se sincroniza se junta en vez de pisarse',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  B.st.failSet=true;let r=await B.sync('entrar');assert.equal(r.fail,'storage');assert.equal(B.eng.status().state,'error');assert.equal(B.ls.get('lhb_mihoja_v1_sync'),null,'sin meta: la próxima pasada empieza de nuevo');assert.deepEqual(B.live().map(t=>t.ms),[20e3]);
+  B.st.failSet=false;r=await B.sync('reintento');assert.equal(r.ok,true);assert.deepEqual(hid28(B.doc()),['h1']);
+  /* alguien escribe en el teléfono mientras la pasada está en el aire */
+  B.net.beforePut=null;A.edit(d=>{d.humidor.push({id:'hA',marca:'A',actualizado:'2026-10-10'})});await A.fire();
+  const orig=B.D.api;let hit=false;B.D.api=async(C,m,p,b,u,h)=>{const out=await orig(C,m,p,b,u,h);if(m==='GET'&&!hit){hit=true;const d=B.doc();d.humidor.push({id:'hB',marca:'B',actualizado:'2026-10-11'});B.ls.set(B.KEY,JSON.stringify(d))}return out};
+  r=await B.sync('abrir');assert.equal(r.ok,true);assert.deepEqual(hid28(B.doc()),['h1','hA','hB'],'lo traído y lo escrito en medio están los dos');
+  await B.fire();await B.sync();assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','hA','hB'],'lo escrito en medio llegó a la cuenta en la pasada siguiente');
+ }finally{a.done()}
+});
+test('LHB-31: guardar en el teléfono sincroniza tras una pausa y una sola vez; lo que la propia sincronización escribe no la dispara otra vez, y sin cambios no hay red',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();A.net.log.length=0;
+  A.edit(d=>{d.ratings.c9=3});A.edit(d=>{d.ratings.c9=4});A.edit(d=>{d.ratings.c9=5});
+  assert.equal(A.live().length,1,'tres cambios seguidos, un solo temporizador');
+  await A.fire();assert.deepEqual(A.net.log,['GET','PUT']);assert.equal(srv28(a,'user_a').doc.ratings.c9,5);
+  A.net.log.length=0;await A.fire();assert.deepEqual(A.net.log,[],'nada pendiente');
+  /* un cambio solo de lo del teléfono no toca la red */
+  A.edit(d=>{d.draft={x:2};d.cambios=9});await A.fire();assert.deepEqual(A.net.log,[],'lo que solo es del teléfono no sincroniza');
+  /* lo traído de otro teléfono no dispara un guardado (setDoc avisa a changed, pero se ignora) */
+  const B=DEV28(a,'user_a');await B.sync();B.edit(d=>{d.ratings.c8=2});await B.fire();A.net.log.length=0;
+  await A.sync();assert.equal(A.doc().ratings.c8,2);assert.equal(A.live().filter(t=>t.ms===2500).length,0,'ningún guardado nuevo quedó pendiente');
+  /* sin cuenta, un cambio no pide nada */
+  const S=DEV28(a,'user_a');S.st.acct=null;S.seed(DOC28);S.edit(d=>{d.ratings.z=1});await S.fire();assert.deepEqual(S.net.log,[]);
+  /* abrir la app con cuenta sincroniza a los 1,5 s; sin cuenta no */
+  const O=DEV28(a,'user_a');O.eng.start();assert.deepEqual(O.live().map(t=>t.ms),[1500]);const N=DEV28(a,'user_a');N.st.acct=null;N.eng.start();assert.deepEqual(N.live().map(t=>t.ms),[]);
+ }finally{a.done()}
+});
+test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura',()=>{
+ const h=read('hoja.js').replace(/\r\n/g,'\n'),ix=read('index.html'),sw=read('sw.js');
+ assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
+ assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
+ assert.ok(/function write\(s\)\{[^}]*localStorage\.setItem\(KEY,JSON\.stringify\(s\)\)[^}]*\}[^}]*if\(SYNC\)SYNC\.changed\(\)/.test(h)||/if\(SYNC\)SYNC\.changed\(\)/.test(h),'cada escritura avisa al motor');
+ assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
+ assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
+ assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on'))A.route()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta');
+ assert.ok(h.includes("listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})}"),'el navegador avisa al volver la red y al ver la página');
+ assert.ok(h.includes("setDoc:d=>{ST=normalize(d);return write(ST)}"),'lo que llega se guarda por write y devuelve si se pudo');
+ assert.ok(ix.indexOf('sync.js')>0&&ix.indexOf('sync.js')<ix.indexOf('hoja.js'),'sync.js carga antes que hoja.js');
+ assert.ok(sw.includes("'sync.js'"),'sync.js está en el caché del shell');
+});
+test('LHB-31: borrar la última entrada mientras se sincroniza también llega a la cuenta, y no se confunde con una pérdida',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed({...DOC28,diario:[],favs:{artesanos:[],cigarros:[],lugares:[]},pasaporte:{artesanos:{},cigarros:{},lugares:{}},ratings:{}});await A.sync();assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1']);
+  const orig=A.D.api;let hit=false;A.D.api=async(C,m,p,b,u,h)=>{const out=await orig(C,m,p,b,u,h);if(m==='GET'&&!hit){hit=true;A.edit(d=>{d.humidor=[]})}return out};
+  A.edit(d=>{d.ratings.k=1});
+  await A.fire();await A.fire();await A.sync();
+  const s=srv28(a,'user_a').doc;assert.deepEqual(hid28(s),[],'el borrado de la última entrada llegó');assert.deepEqual(hid28(A.doc()),[]);
+  assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).dirty,false,'al terminar nada queda marcado como pendiente');
+  /* una copia que desaparece sin que nadie escriba sí se trae */
+  const B=DEV28(a,'user_a');B.seed(DOC28);await B.sync();B.ls.delete(B.KEY);await B.sync();assert.deepEqual(hid28(B.doc()),['h1']);
+ }finally{a.done()}
+});
+test('LHB-28: la tarjeta de entrar dice que lo guardado en el teléfono pasa a la cuenta solo cuando hay algo guardado',async()=>{
+ const body=async(hasLocal)=>{let txt=null;const h=CUENTA_HARNESS({hasLocal});h.D.ui.card=(t,p)=>{if(t==='Entra para usar Mi Hoja')txt=p};await h.A.require(h.go);await tick();return txt};
+ const con=await body(()=>true),sin=await body(()=>false),nada=await body(undefined);
+ assert.ok(con&&con.includes('Lo que ya tienes guardado en este teléfono pasa a tu cuenta al entrar.'),'con datos guardados lo dice');
+ assert.ok(sin&&!sin.includes('pasa a tu cuenta'),'sin datos no promete nada');assert.ok(nada&&!nada.includes('pasa a tu cuenta'),'sin la función tampoco');
+ assert.ok(con.startsWith('Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta.')&&con.endsWith('siguen abiertos sin cuenta.'),'el resto del texto no cambia');
+ const hj=read('hoja.js');assert.ok(hj.includes('hasLocal:()=>LHB_MERGE.hasData(S())'),'hoja.js decide con lo guardado de verdad');
+});
+test('LHB-31: la línea de estado del respaldo dice si Mi Hoja está en la cuenta, sincronizando, sin conexión o con error; y el aviso de respaldo ya no dice que todo vive solo en el teléfono',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();assert.deepEqual(A.st.states,['syncing','ok']);
+  const s=A.eng.status();assert.equal(s.state,'ok');assert.equal(s.at,'2026-10-27T12:00:00.000Z');
+  A.st.states.length=0;A.net.off=true;A.edit(d=>{d.ratings.q=1});await A.fire();assert.deepEqual(A.st.states.slice(0,2),['syncing','offline']);assert.equal(A.eng.status().state,'offline');
+  A.st.states.length=0;A.net.off=false;A.net.status={GET:500};await A.sync();assert.deepEqual(A.st.states,['syncing','error']);
+  const S=DEV28(a,'user_a');S.st.acct=null;await S.sync();assert.equal(S.eng.status().state,'off');
+  /* una función de aviso que falla no rompe la sincronización */
+  const B=DEV28(a,'user_a');B.D.onState=()=>{throw new Error('pantalla')};B.seed(DOC28);const r=await B.sync();assert.equal(r.ok,true);
+ }finally{a.done()}
+ const h=read('hoja.js').replace(/\r\n/g,'\n');
+ const line=h.match(/const syncLine=\(\)=>\{[\s\S]*?\n/)[0];
+ for(const m of ['Tu Mi Hoja está en tu cuenta','Sincronizando con tu cuenta','Sin conexión. Tus cambios quedan en este teléfono','No pudimos sincronizar con tu cuenta'])assert.ok(line.includes(m),m);
+ assert.ok(/id="syncSt" aria-live="polite"/.test(line),'se anuncia sin interrumpir');
+ assert.ok(/\$\{syncLine\(\)\}<\/section>/.test(h),'está en el panel de respaldo');
+ assert.ok(/onState:\(\)=>\{const el=document\.getElementById\('syncSt'\);if\(el\)el\.outerHTML=syncLine\(\)\}/.test(h),'se repinta cuando cambia el estado');
+ assert.ok(!h.includes('viven solo en este teléfono'),'el aviso ya no dice que todo vive solo en el teléfono');
+});
+test('LHB-28: exportar e importar solo se alcanzan desde las listas de Mi Hoja, que ya pasan por la puerta; ningún otro archivo los menciona',()=>{
+ const h=read('hoja.js').replace(/\r\n/g,'\n');const cnt=(s,re)=>(s.match(re)||[]).length;
+ for(const f of ['app.js','index.html','cuenta.js'])assert.equal(cnt(read(f),/exportar|importar|impF|data-exp/g),0,f+' no menciona el respaldo');
+ assert.equal(cnt(h,/\bexportar\b/g),2,'exportar: su definición y el botón del panel');
+ assert.equal(cnt(h,/\bimportar\b/g),3,'importar: su definición, un comentario y el selector del panel');
+ const chunk=n=>{const i=h.indexOf('\nfunction '+n+'(');assert.ok(i>0,n);const j=h.indexOf('\nfunction ',i+10);return h.slice(i,j>0?j:h.length)};
+ for(const v of ['vHumidor','vDiario','vPasaporte','vFavoritos'])assert.equal(cnt(chunk(v),/backupPanel\(\)/g),1,v+' trae el panel de respaldo');
+ assert.equal(cnt(h,/backupPanel\(\)/g),4,'el panel solo está en esas cuatro listas');
+ assert.equal(cnt(h,/\$\{backupBanner\(\)\}|backupBanner\(\)`/g),1,'el aviso solo cuelga del submenú de Mi Hoja');
+ assert.deepEqual(['vHumidor','vDiario','vPasaporte','vFavoritos'].map(n=>cnt(h,new RegExp('\\b'+n+'\\b','g'))),[4,3,2,2],'esas listas solo se llaman desde Mi Hoja y desde sí mismas');
+ for(const n of ['vHumidor','vDiario','vPasaporte','vFavoritos'])assert.equal(cnt(read('app.js'),new RegExp('\\b'+n+'\\b','g')),0,'app.js no abre '+n);
+ assert.ok(/function vMiHoja\(sub\)\{requireAccount\(\(\)=>vMiHojaIn\(sub\)/.test(h),'Mi Hoja pasa por la cuenta');
+ assert.ok(/headers:\{Authorization:'Bearer '\+t,\.\.\.\(body\?\{'Content-Type':'application\/json'\}:\{\}\),\.\.\.\(extra\|\|\{\}\)\}/.test(h),'api manda las cabeceras de más (If-Match)');
 });
