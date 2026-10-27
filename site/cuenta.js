@@ -19,7 +19,9 @@ const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='stri
 const retire=()=>{if(ob){ob=false;D.reroute()}};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 /* LHB-51: al abrir la app con una cuenta guardada, Clerk dice quién es: si es otra (o nadie) lo guardado se descarta; sin conexión se queda */
-async function reconcile(){if(!D.store.get())return;let C;try{C=await D.clerk()}catch(e){return}hook(C)}
+async function reconcile(){const c0=D.store.get();if(!c0)return;let C;try{C=await D.clerk()}catch(e){return}hook(C);
+ /* si lo guardado era de otra cuenta y la persona está en Mi Hoja, lo que se pintó con ello (Perfil) se vuelve a pasar por la puerta */
+ if(!D.store.get()&&onMiHoja())D.reroute()}
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
  /* LHB-51: lo guardado es de otra cuenta que la que Clerk dice (o de ninguna): se descarta ya, aunque luego /api/me falle */
  {const c0=D.store.get();if(c0&&(!C.user||c0.sub!==C.user.id))D.store.clear()}

@@ -1678,3 +1678,9 @@ test('LHB-51 (Codex ronda 2): al abrir la app con una cuenta guardada, Clerk con
  h=mk({id:'user_a'});await h.A.reconcile();h.cache({sub:'user_a',handle:'ana',name:'Ana M.',avatar:''});h.C.signIn('user_b');assert.equal(h.D.store.get(),null,'el cambio posterior se oye');
  const hj=read('hoja.js');assert.ok(hj.includes("setTimeout(()=>{if(acct.get())CUENTA.reconcile()},2500);"),'hoja.js lo pide al abrir');
 });
+test('LHB-51 (Codex ronda 3): si al confirmar la cuenta lo guardado era de otra, Mi Hoja ya pintada se vuelve a pasar por la puerta; en otra página no se mueve nada',async()=>{
+ const mk=nav=>{const h=CUENTA_HARNESS();h.nav(nav);h.cache({sub:'user_a',handle:'ana',name:'Ana M.',avatar:''});h.C.user={id:'user_b'};return h};
+ let h=mk('#/mihoja/perfil');await h.A.reconcile();assert.equal(h.D.store.get(),null);assert.equal(h.log.filter(x=>x==='reroute').length,1,'Perfil de A se repinta por la puerta de B');
+ h=mk('#/catalogo');await h.A.reconcile();assert.equal(h.D.store.get(),null);assert.equal(h.log.filter(x=>x==='reroute').length,0,'en otra página no se repinta nada');
+ h=mk('#/mihoja/perfil');h.C.user={id:'user_a'};await h.A.reconcile();assert.equal(h.log.filter(x=>x==='reroute').length,0,'la misma cuenta no mueve nada');
+});
