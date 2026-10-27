@@ -1,6 +1,7 @@
 const test=require('node:test');const assert=require('node:assert');const fs=require('fs');const path=require('path');
 const S=path.join(__dirname,'..','site');const read=f=>fs.readFileSync(path.join(S,f),'utf8');const DD=path.join(__dirname,'..','data');const readD=f=>fs.readFileSync(path.join(DD,f),'utf8');
 const AV='https://img.clerk.com/eyJ0eXBlIjoicHJveHkiLCJzcmMiOiJodHRwczovL2V4YW1wbGUifQ';/* LHB-49: una URL de foto de Clerk */
+const IDN={first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-05-17'};/* LHB-52: una identidad válida (nombre, apellido, género, fecha de nacimiento) */
 const I18N=()=>{const w={};require('vm').runInNewContext(read('i18n.js'),{window:w});return w.LHB_I18N};
 test('index: title, viewport, PWA meta, local assets exist',()=>{const h=read('index.html');
  assert.match(h,/<title>La Hoja Boricua/);assert.match(h,/name="viewport"[^>]*viewport-fit=cover/);assert.match(h,/lang="es-PR"/);
@@ -30,7 +31,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v52'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v53'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -50,25 +51,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
- assert.match(sw,/const VERSION='lhb-v52'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+ assert.match(sw,/const VERSION='lhb-v53'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
 
 test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v52'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v53'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v52'/);
+ assert.match(sw,/const VERSION='lhb-v53'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v52'/);
+ assert.match(sw,/const VERSION='lhb-v53'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
@@ -94,12 +95,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v52'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v53'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v52'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v53'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -107,7 +108,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v52'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v53'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -124,7 +125,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v52/);});
+ assert.match(read('sw.js'),/lhb-v53/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -137,17 +138,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v52'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v53'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v52'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v53'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v52'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v53'/);});
 
-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v52'/);});
+test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v53'/);});
 
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
@@ -278,34 +279,36 @@ test('LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propi
  assert.equal(ws.url,H+'/');assert.equal(ws.name,'La Hoja Boricua');assert.equal(ws.publisher['@id'],org['@id']);assert.equal(org.url,H+'/');assert.ok(fs.existsSync(path.join(S,org.logo.replace(H+'/',''))),'logo existe');
  for(const dir of Object.keys(SEC))for(const f of fs.readdirSync(path.join(S,dir)).filter(f=>f.endsWith('.html')))assert.ok(!/dateModified|datePublished/.test(read(dir+'/'+f)),'sin fechas inventadas '+f);
 });
-test('LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160, 21+',async()=>{
+test('LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160',async()=>{
  const {pathToFileURL}=require('url');const P=await import(pathToFileURL(path.join(__dirname,'..','functions','_lib','profile.js')).href);
  assert.deepEqual(P.checkHandle('  Sergio_PR '),{handle:'sergio_pr'},'se guarda en minúscula, sin espacios');
  for(const h of ['abc','a_1','x'.repeat(20)])assert.deepEqual(P.checkHandle(h),{handle:h},h);
  for(const h of ['ab','x'.repeat(21),'ab-c','a b','ñandú','a.b','',null,undefined])assert.deepEqual(P.checkHandle(h),{error:'handle-invalid'},String(h));
  for(const h of ['admin','API','lahojaboricua','mihoja','cigarros','privacidad'])assert.deepEqual(P.checkHandle(h),{error:'handle-reserved'},h);
  assert.deepEqual(P.checkHandle('u'),{error:'handle-invalid'},'u es muy corto antes de ser reservado');assert.ok(P.RESERVED.has('u'));
- const ok={handle:'tabaquero',age_ok:true,avatar_url:AV};
- assert.deepEqual(P.checkProfile(ok),{handle:'tabaquero',display_name:null,bio:null,favorite_brand:null,avatar_key:AV});
- for(const a of [undefined,false,'true',1])assert.deepEqual(P.checkProfile({...ok,age_ok:a}),{error:'age-required'},'21+ '+a);
+ const ok={handle:'tabaquero',...IDN,avatar_url:AV};
+ assert.deepEqual(P.checkProfile(ok),{handle:'tabaquero',first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-05-17',display_name:'Ana M.',bio:null,favorite_brand:null,avatar_key:AV});
+ /* LHB-52: la casilla de 21+ ya no vale: sin fecha de nacimiento no hay perfil, diga lo que diga age_ok */
+ for(const a of [undefined,false,'true',1,true])assert.deepEqual(P.checkProfile({handle:'tabaquero',age_ok:a,avatar_url:AV}),{error:'first_name-required'},'age_ok '+a+' no reemplaza la identidad');
+ assert.deepEqual(P.checkProfile({...ok,age_ok:false}).error,undefined,'y una fecha válida tampoco necesita age_ok');
  for(const b of [null,'x',[],42])assert.deepEqual(P.checkProfile(b),{error:'bad-body'});
  assert.equal(P.checkProfile({...ok,bio:'🌿'.repeat(160)}).bio,'🌿'.repeat(160),'160 caracteres (no bytes)');
  assert.deepEqual(P.checkProfile({...ok,bio:'a'.repeat(161)}),{error:'bio-long'});
- assert.deepEqual(P.checkProfile({...ok,display_name:'a'.repeat(51)}),{error:'display_name-long'});
+ assert.equal(P.checkProfile({...ok,display_name:'Cualquier Otro Nombre'}).display_name,'Ana M.','display_name no lo manda el cliente: sale del nombre y la inicial del apellido');
  assert.deepEqual(P.checkProfile({...ok,favorite_brand:'a'.repeat(61)}),{error:'favorite_brand-long'});
  assert.equal(P.checkProfile({...ok,bio:'línea 1\nlínea 2'}).bio,'línea 1\nlínea 2','la bio admite saltos de línea');
- assert.deepEqual(P.checkProfile({...ok,display_name:'a\nb'}),{error:'display_name-invalid'},'el nombre no');
+ assert.deepEqual(P.checkProfile({...ok,first_name:'a\nb'}),{error:'first_name-invalid'},'el nombre no admite saltos de línea');
  assert.deepEqual(P.checkProfile({...ok,favorite_brand:7}),{error:'favorite_brand-invalid'});
- assert.equal(P.checkProfile({...ok,display_name:'   '}).display_name,null,'vacío se guarda null');
+ assert.deepEqual(P.checkProfile({...ok,first_name:'   '}),{error:'first_name-required'},'un nombre en blanco no cuenta');
  const h=read('hoja.js');const re=h.match(/const HANDLE_RE=(\/[^;]+\/);/)[1];assert.equal(re,'/^[a-z0-9_]{3,20}$/','la app usa la misma regla que el servidor');
  for(const [pk,fapi] of [...h.matchAll(/pk:'(pk_(?:live|test)_[A-Za-z0-9]+)',fapi:'([a-z0-9.-]+)'/g)].map(m=>[m[1],m[2]]))assert.equal(Buffer.from(pk.slice(8),'base64').toString(),fapi+'$',fapi);
  assert.match(h,/CLERK=location\.hostname==='lahojaboricua\.com'\?\{pk:'pk_live_/,'producción usa la llave live; las vistas previas, la de Development');
  assert.match(h,/function vMiHoja\(sub\)\{requireAccount\(\(\)=>vMiHojaIn\(sub\)\)\}/,'Mi Hoja pasa por la cuenta');assert.ok(read('index.html').indexOf('cuenta.js')>0&&read('index.html').indexOf('cuenta.js')<read('index.html').indexOf('hoja.js'),'cuenta.js antes de hoja.js');assert.ok(read('sw.js').includes("'cuenta.js'"),'cuenta.js en el shell');
- assert.ok(h.includes('<input type="checkbox" id="obAge" required> Tengo 21 años o más.'),'casilla 21+ con el texto aprobado (LHB-21)');
+ assert.ok(!h.includes('obAge')&&!h.includes('Tengo 21 años o más'),'LHB-52: la casilla de 21+ se quitó; la fecha de nacimiento la reemplaza');
 });
 test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403',async()=>{
  const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync(':memory:');
- const mig=f=>fs.readFileSync(path.join(__dirname,'..','migrations',f),'utf8');db.exec(mig('0001_init.sql'));db.exec(mig('0002_clerk_profiles.sql'));
+ const mig=f=>fs.readFileSync(path.join(__dirname,'..','migrations',f),'utf8');db.exec(mig('0001_init.sql'));db.exec(mig('0002_clerk_profiles.sql'));db.exec(mig('0003_identity.sql'));
  const DB={prepare:sql=>{const st=db.prepare(sql);return{bind:(...a)=>({first:async()=>st.get(...a)??null,run:async()=>({success:true,meta:{changes:Number(st.run(...a).changes)}})})}}};
  const {pathToFileURL}=require('url');const imp=f=>import(pathToFileURL(path.join(__dirname,'..','functions',...f.split('/'))).href);
  const auth=await imp('_lib/auth.js'),P=await imp('_lib/profile.js'),api=await imp('api/profile.js'),me=await imp('api/me.js');
@@ -320,20 +323,20 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, 
  try{auth.clearJwksCache();
   const a=await tok('user_a'),b=await tok('user_b'),c=await tok('user_c');
   assert.deepEqual(await post(null,{handle:'x'}),[401,{error:'no-session'}]);
-  assert.deepEqual(await post(a,{handle:'tabaquero',age_ok:true},undefined,{DB}),[503,{error:'no-auth-config'}]);
-  assert.deepEqual(await post('basura',{handle:'tabaquero',age_ok:true}),[401,{error:'no-session'}]);
-  assert.deepEqual(await post(a,{handle:'tabaquero',age_ok:true},'text/plain'),[415,{error:'bad-type'}],'solo JSON');
+  assert.deepEqual(await post(a,{handle:'tabaquero',...IDN},undefined,{DB}),[503,{error:'no-auth-config'}]);
+  assert.deepEqual(await post('basura',{handle:'tabaquero',...IDN}),[401,{error:'no-session'}]);
+  assert.deepEqual(await post(a,{handle:'tabaquero',...IDN},'text/plain'),[415,{error:'bad-type'}],'solo JSON');
   assert.deepEqual(await post(a,'{no es json'),[400,{error:'bad-body'}]);
-  assert.deepEqual(await post(a,{handle:'tabaquero'}),[400,{error:'age-required'}],'sin 21+ no hay perfil');
-  assert.deepEqual(await post(a,{handle:'admin',age_ok:true}),[400,{error:'handle-reserved'}]);
+  assert.deepEqual(await post(a,{handle:'tabaquero',age_ok:true}),[400,{error:'first_name-required'}],'sin identidad no hay perfil, ni con age_ok');
+  assert.deepEqual(await post(a,{handle:'admin',...IDN}),[400,{error:'handle-reserved'}]);
   assert.equal(db.prepare('SELECT COUNT(*) n FROM profiles').get().n,0,'nada guardado todavía');
   const before=new Date().toISOString();
-  assert.deepEqual(await post(a,{handle:'TabaQuero',display_name:' Ana ',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',age_ok:true,avatar_url:AV}),
-   [201,{profile:{handle:'tabaquero',display_name:'Ana',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',avatar_key:AV}}]);
+  assert.deepEqual(await post(a,{handle:'TabaQuero',...IDN,first_name:' Ana ',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',avatar_url:AV}),
+   [201,{profile:{handle:'tabaquero',display_name:'Ana M.',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',avatar_key:AV}}]);
   const row=db.prepare('SELECT * FROM profiles WHERE user_id=?1').get('user_a');assert.equal(row.handle,'tabaquero');assert.ok(row.age_ok_at>=before,'hora del 21+ guardada');assert.equal(row.hidden,0);
-  assert.deepEqual(await post(b,{handle:'tabaquero',age_ok:true,avatar_url:AV}),[409,{error:'handle-taken'}],'@ único');
-  assert.deepEqual(await post(b,{handle:'TABAQUERO',age_ok:true,avatar_url:AV}),[409,{error:'handle-taken'}],'único sin importar mayúsculas');
-  assert.deepEqual(await post(a,{handle:'otro_nombre',age_ok:true,avatar_url:AV}),[409,{error:'profile-exists'}],'cambiar el perfil es de LHB-34');
+  assert.deepEqual(await post(b,{handle:'tabaquero',...IDN,avatar_url:AV}),[409,{error:'handle-taken'}],'@ único');
+  assert.deepEqual(await post(b,{handle:'TABAQUERO',...IDN,avatar_url:AV}),[409,{error:'handle-taken'}],'único sin importar mayúsculas');
+  assert.deepEqual(await post(a,{handle:'otro_nombre',...IDN,avatar_url:AV}),[409,{error:'profile-exists'}],'cambiar el perfil es de LHB-34');
   assert.equal(db.prepare('SELECT handle FROM profiles WHERE user_id=?1').get('user_a').handle,'tabaquero','el 409 no cambió nada');
   const gate=async token=>{const r=await P.requireProfile(req(token),env);return r instanceof Response?[r.status,await r.json()]:[200,r.profile.handle,r.user.sub]};
   assert.deepEqual(await gate(null),[401,{error:'no-session'}]);
@@ -343,11 +346,11 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, 
   /* LHB-49: la foto es obligatoria y solo vale una URL de Clerk; un rechazo no guarda nada ni gasta el @ */
   assert.equal(db.prepare('SELECT avatar_key FROM profiles WHERE user_id=?1').get('user_a').avatar_key,AV,'la URL de Clerk quedó en avatar_key');
   assert.equal((await (await me.onRequestGet({request:req(a),env})).json()).profile.avatar_key,AV,'/api/me devuelve la URL guardada');
-  assert.deepEqual(await post(c,{handle:'sinfoto',age_ok:true}),[400,{error:'avatar-required'}],'sin foto no hay perfil');
-  assert.deepEqual(await post(c,{handle:'sinfoto',age_ok:true,avatar_url:''}),[400,{error:'avatar-required'}]);
-  for(const bad of ['https://evil.example/x.png','http://img.clerk.com/x','https://img.clerk.com.evil.example/x',42])assert.deepEqual(await post(c,{handle:'sinfoto',age_ok:true,avatar_url:bad}),[400,{error:'avatar-invalid'}],String(bad));
+  assert.deepEqual(await post(c,{handle:'sinfoto',...IDN}),[400,{error:'avatar-required'}],'sin foto no hay perfil');
+  assert.deepEqual(await post(c,{handle:'sinfoto',...IDN,avatar_url:''}),[400,{error:'avatar-required'}]);
+  for(const bad of ['https://evil.example/x.png','http://img.clerk.com/x','https://img.clerk.com.evil.example/x',42])assert.deepEqual(await post(c,{handle:'sinfoto',...IDN,avatar_url:bad}),[400,{error:'avatar-invalid'}],String(bad));
   assert.equal(db.prepare('SELECT COUNT(*) n FROM profiles WHERE user_id=?1').get('user_c').n,0,'los rechazos no guardaron nada');
-  assert.equal((await post(c,{handle:'sinfoto',age_ok:true,avatar_url:AV}))[0],201,'y el @ no se gastó con los rechazos');
+  assert.equal((await post(c,{handle:'sinfoto',...IDN,avatar_url:AV}))[0],201,'y el @ no se gastó con los rechazos');
  }finally{globalThis.fetch=realFetch}
 });
 function CUENTA_HARNESS(over){
@@ -358,7 +361,7 @@ function CUENTA_HARNESS(over){
  const D={clerk:async()=>C,api:async()=>({status:0,body:{}}),here:()=>hash,onNav:f=>navL.push(f),reroute:()=>log.push('reroute'),
   store:{get:()=>store,set:v=>{store=v;log.push('store:'+v.sub+':'+v.handle)},clear:()=>{store=null;log.push('clear')}},
   intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
-  openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>{lastNotice=null;log.push('closeAll')},onboarding:f=>log.push('onboarding'),toast:m=>log.push('toast')},...over};
+  openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>{lastNotice=null;log.push('closeAll')},onboarding:f=>log.push('onboarding'),identity:f=>log.push('identity'),toast:m=>log.push('toast')},...over};
  const A=ctx.window.LHB_CUENTA(D);
  return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{const ch=h!==hash;hash=h;if(ch)navL.forEach(f=>f())},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
 }
@@ -455,7 +458,7 @@ test('LHB-25: entrar desde una página pública y fallar la revisión muestra el
   const retry=h.notice();assert.equal(retry.label,'Intentar otra vez');retry.on();await tick();assert.deepEqual(h.log.filter(x=>x==='GO'),['GO'],'el reintento hace la acción exactamente una vez: '+why);}
  const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});k.nav('#/c/yambo-toro');await k.A.require(k.go,{inPlace:true});await tick();assert.ok(k.log.includes('notice:Necesitas conexión')&&!k.log.some(x=>x.startsWith('card')),'sin conexión también se avisa en sitio');
  const m=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});m.nav('#/mihoja');m.C.user={id:'user_a'};await m.A.require(m.go);await tick();assert.ok(m.log.includes('card:No pudimos revisar tu cuenta')&&!m.log.some(x=>x.startsWith('notice')),'en Mi Hoja el error va en la tarjeta, no en una hoja');
- assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast,closeAll:closeSheetNow}'),'hoja.js pasa el aviso sobre la página');
+ assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,\'identity\'),toast,closeAll:closeSheetNow}'),'hoja.js pasa el aviso sobre la página');
 });
 test('LHB-25: un reintento del usuario puede volver a abrir la hoja de entrar y la acción sigue viva',async()=>{
  let status=401;const h=CUENTA_HARNESS({api:async()=>({status,body:status===200?{profile:{handle:'ana'}}:{}})});h.nav('#/c/yambo-toro');
@@ -479,7 +482,7 @@ test('LHB-25: un almacenamiento lleno no impide entrar ni crear el perfil; un ca
  for(const [hash,who] of [['#/mihoja','Mi Hoja'],['#/c/yambo-toro','una página pública']]){const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});h.nav(hash);h.C.user={id:'user_a'};await h.A.require(h.go,{inPlace:true});await tick();
   h.log.length=0;h.C.signIn(null);await tick();assert.ok(h.log.includes('closeAll'),'salir cierra el editor abierto en '+who);h.log.length=0;h.C.signIn('user_b');await tick();assert.ok(h.log.includes('closeAll'),'cambiar de cuenta también, en '+who)}
  assert.ok(/function closeSheetNow\(\)\{clearTimeout\(closeT\);const el=\$\('#sheet'\);if\(!el\)return;el\.classList\.remove\('open'\);el\.hidden=true;el\.innerHTML='';/.test(hj),'cierra al instante y vacía la hoja, sin esperar el temporizador');
- assert.ok(hj.includes("let r;try{r=await submit({handle:h,")&&hj.includes("catch(x){r={error:'generic'}}"),'un error inesperado al enviar devuelve el botón en vez de dejarlo apagado');
+ assert.ok(hj.includes("let r;try{r=await submit(idm?f:{handle:h,")&&hj.includes("catch(x){r={error:'generic'}}"),'un error inesperado al enviar devuelve el botón en vez de dejarlo apagado');
 });
 test('LHB-25: el botón de entrar de nuevo solo aparece al salir de una acción que falló, no al cambiar de cuenta ni después de un éxito',async()=>{
  let status=401;const mk=()=>CUENTA_HARNESS({api:async()=>({status,body:status===200?{profile:{handle:'ana'}}:{}})});
@@ -820,9 +823,9 @@ test('LHB-24: token de Clerk (RS256) verificado con JWKS: iss, exp, nbf, azp, fi
  assert.equal(m.tokenOf(req('a=1; __session=TOK; b=2',null)),'TOK');assert.equal(m.tokenOf(req(null,'Bearer BEAR')),'BEAR');assert.equal(m.tokenOf(req('__session=TOK','Bearer BEAR')),'BEAR');
  assert.equal(m.tokenOf(req('x__session=1',null)),null);assert.equal(m.tokenOf(req(null,'Basic abc')),null);
 });
-test('LHB-24: migraciones 0001 y 0002 en SQLite real; /api/me: 401, needsProfile, perfil',async()=>{
+test('LHB-24: migraciones 0001, 0002 y 0003 en SQLite real; /api/me: 401, needsProfile, perfil',async()=>{
  const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON');
- const mig=f=>fs.readFileSync(path.join(__dirname,'..','migrations',f),'utf8');db.exec(mig('0001_init.sql'));db.exec(mig('0002_clerk_profiles.sql'));
+ const mig=f=>fs.readFileSync(path.join(__dirname,'..','migrations',f),'utf8');db.exec(mig('0001_init.sql'));db.exec(mig('0002_clerk_profiles.sql'));db.exec(mig('0003_identity.sql'));
  const tables=db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name);assert.deepEqual(tables,['mihoja','profiles']);
  const ins=db.prepare('INSERT INTO profiles (user_id,handle,age_ok_at,created_at,updated_at) VALUES (?1,?2,?3,?4,?4)');
  ins.run('user_2abc','sergio','2026-10-25T20:00:00Z','2026-10-25T20:00:00Z');
@@ -861,20 +864,20 @@ test('LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.c
   'https://img.clerk.com/x y','https://img.clerk.com/x\n','https://img.clerk.com/\u0000','https://img.clerk.com/\\@evil.example','https://img.clerk.com/ñ','https://img.clerk.com/ ',edge+'a',
   42,true,{},['https://img.clerk.com/x'],{toString:()=>AV}];
  for(const v of bad)assert.deepEqual(P.checkAvatar(v),{error:'avatar-invalid'},'rechazada: '+JSON.stringify(v));
- assert.deepEqual(P.checkProfile({handle:'tabaquero',age_ok:true}),{error:'avatar-required'},'un perfil válido sin foto no se crea');
- assert.deepEqual(P.checkProfile({handle:'tabaquero',age_ok:true,avatar_url:'https://evil.example/x.png'}),{error:'avatar-invalid'});
- assert.deepEqual(P.checkProfile({handle:'ab',age_ok:true}),{error:'handle-invalid'},'los otros errores siguen primero');
- assert.equal(P.checkProfile({handle:'tabaquero',age_ok:true,avatar_url:AV,avatar_key:'https://evil.example/x'}).avatar_key,AV,'avatar_key del cliente no cuenta, solo avatar_url');
+ assert.deepEqual(P.checkProfile({handle:'tabaquero',...IDN}),{error:'avatar-required'},'un perfil válido sin foto no se crea');
+ assert.deepEqual(P.checkProfile({handle:'tabaquero',...IDN,avatar_url:'https://evil.example/x.png'}),{error:'avatar-invalid'});
+ assert.deepEqual(P.checkProfile({handle:'ab',...IDN}),{error:'handle-invalid'},'los otros errores siguen primero');
+ assert.equal(P.checkProfile({handle:'tabaquero',...IDN,avatar_url:AV,avatar_key:'https://evil.example/x'}).avatar_key,AV,'avatar_key del cliente no cuenta, solo avatar_url');
 });
 async function ONB(user,apiFn){const posts=[],calls=[];let submit,picture;
  const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{calls.push(m+' '+p);if(m==='GET')return {status:200,body:{needsProfile:true}};posts.push(b);return apiFn?apiFn(b):{status:201,body:{profile:{handle:b.handle}}}}});
  h.D.ui.onboarding=(s,p)=>{submit=s;picture=p};h.C.user=user;await h.A.require(h.go);await tick();assert.equal(typeof submit,'function','muestra el onboarding');
- return {h,posts,calls,picture,submit:f=>submit(f||{handle:'ana',display_name:'',bio:'',favorite_brand:''})}}
+ return {h,posts,calls,picture,submit:f=>submit(f||{handle:'ana',...IDN,bio:'',favorite_brand:''})}}
 const DEFAULT_IMG='https://img.clerk.com/eyJ0eXBlIjoiZGVmYXVsdCJ9';
 const IMG=name=>({type:'image/jpeg',name});
 test('LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan',async()=>{
  let o=await ONB({id:'user_a',hasImage:true,imageUrl:AV});
- assert.equal(o.picture.url(),AV,'la foto importada viene puesta');assert.deepEqual(await o.submit(),{ok:true});assert.equal(o.posts.length,1);assert.equal(o.posts[0].avatar_url,AV,'se manda la URL de Clerk');assert.equal(o.posts[0].age_ok,true);
+ assert.equal(o.picture.url(),AV,'la foto importada viene puesta');assert.deepEqual(await o.submit(),{ok:true});assert.equal(o.posts.length,1);assert.equal(o.posts[0].avatar_url,AV,'se manda la URL de Clerk');assert.ok(!('age_ok' in o.posts[0]),'LHB-52: ya no se manda la casilla de 21+');assert.deepEqual([o.posts[0].first_name,o.posts[0].last_name,o.posts[0].gender,o.posts[0].birth_date],['Ana','Mora','F','1990-05-17'],'se manda la identidad');
  o=await ONB({id:'user_a',hasImage:false,imageUrl:DEFAULT_IMG});assert.equal(o.picture.url(),null,'la silueta (hasImage false) no es una foto');
  o=await ONB({id:'user_a',hasImage:true,imageUrl:'https://lh3.googleusercontent.com/a/x'});assert.equal(o.picture.url(),null,'solo URLs de Clerk');
  o=await ONB({id:'user_a',hasImage:true,imageUrl:'http://img.clerk.com/x'});assert.equal(o.picture.url(),null,'solo https');
@@ -1003,21 +1006,27 @@ test('LHB-49: si otra acción gana primero porque el perfil ya existe, el formul
  }
 });
 /* el formulario de perfil de hoja.js corre tal cual sobre un DOM de mentira (un mapa de selectores a elementos), sin dependencias nuevas */
-function FORM_HARNESS(picture,submit,resize){
+function FORM_HARNESS(picture,submit,resize,opts){opts=opts||{};
  const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
- const code=src.match(/const HANDLE_RE=.*\n/)[0]+src.match(/const OB_ERR=.*\n/)[0]+src.slice(src.indexOf('function onboardingForm'),src.indexOf('\nconst CUENTA='));
- let els={};const mkEl=()=>{const e={disabled:false,hidden:false,value:'',checked:false,children:[],onclick:null,onchange:null,onsubmit:null,oninput:null,clicks:0,
+ const code=src.match(/const HANDLE_RE=.*\n/)[0]+src.match(/const OB_ERR=.*\n/)[0]+src.slice(src.indexOf('const ID_BAD='),src.indexOf('\nconst CUENTA='));
+ let els={};const mkEl=()=>{const e={disabled:false,hidden:false,value:'',checked:false,children:[],style:{cssText:''},scrolls:0,scrollIntoView(){e.scrolls++},onclick:null,onchange:null,onsubmit:null,oninput:null,clicks:0,
   appendChild(c){e.children.push(c)},click(){e.clicks++}};let tc='';Object.defineProperty(e,'textContent',{get:()=>tc,set:v=>{tc=v;e.children=[]}});return e};
  const $=s=>s==='#obForm'?els.form:(els[s]||(els[s]=mkEl()));
- const view={set innerHTML(h){els={form:mkEl()}}};
+ let html='';const view={set innerHTML(h){els={form:mkEl()};html=h}};
  const uploads=[];class FakeFile{constructor(parts,name,o){this.parts=parts;this.name=name;this.type=o&&o.type}}
  const ctx={view,$,A:{resizeImage:resize||(async f=>({blob:f.name}))},D:()=>({artesanos:[]}),esc:s=>s,document:{createElement:()=>({})},File:FakeFile};
- vm.createContext(ctx);vm.runInContext(code+';this.onboardingForm=onboardingForm;this.OB_ERR=OB_ERR',ctx);
- ctx.onboardingForm(submit,picture);
+ /* un reloj fijo para el formulario (new Date() sin argumentos); con argumentos, el Date de siempre */
+ if(opts.now){const RD=Date;ctx.Date=class extends RD{constructor(...a){if(a.length)super(...a);else super(opts.now)}}}
+ vm.createContext(ctx);vm.runInContext(code+';this.onboardingForm=onboardingForm;this.OB_ERR=OB_ERR;this.idProblem=idProblem',ctx);
+ ctx.onboardingForm(submit,picture,opts.mode);
  const pick=f=>ctx.$('#obPf').onchange({target:{files:[f],value:'x'}});
- const send=(v={})=>{ctx.$('#obH').value=v.handle===undefined?'ana':v.handle;ctx.$('#obAge').checked=v.age!==false;return ctx.$('#obForm').onsubmit({preventDefault(){}})};
+ /* send llena el formulario (nombre, apellido, género y fecha; el @ solo en el formulario nuevo) y lo envía; lo que no se da, se llena con una identidad válida */
+ const send=(v={})=>{if(opts.mode!=='identity')ctx.$('#obH').value=v.handle===undefined?'ana':v.handle;
+  ctx.$('#obFn').value=v.first===undefined?'Ana':v.first;ctx.$('#obLn').value=v.last===undefined?'Mora':v.last;
+  const g=v.gender===undefined?'F':v.gender;ctx.$('#obGM').checked=g==='M';ctx.$('#obGF').checked=g==='F';ctx.$('#obD').value=v.birth===undefined?'1990-05-17':v.birth;
+  return ctx.$('#obForm').onsubmit({preventDefault(){}})};
  const state=()=>({go:ctx.$('#obGo').disabled,pb:ctx.$('#obPb').disabled,err:ctx.$('#obErr').hidden?'':ctx.$('#obErr').textContent,hint:ctx.$('#obPh').textContent,img:ctx.$('#obPv').children[0]&&ctx.$('#obPv').children[0].src});
- return {ctx,$:ctx.$,pick,send,state,remount:()=>ctx.onboardingForm(submit,picture),OB:ctx.OB_ERR};
+ return {ctx,$:ctx.$,pick,send,state,html:()=>html,idProblem:ctx.idProblem,remount:()=>ctx.onboardingForm(submit,picture,opts.mode),OB:ctx.OB_ERR};
 }
 test('LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones',async()=>{
  const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';
@@ -1048,13 +1057,13 @@ test('LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se ac
  const p3=f.pick({name:'a.png',type:'image/png'});await tick();f.remount();g3.ok();await p3;assert.deepEqual([f.state().go,f.state().pb,f.state().img],[false,false,undefined],'si otro formulario ocupó la pantalla, la subida vieja no le cambia la foto ni los botones');
 });
 test('LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones',async()=>{
- const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';const FILL=(o)=>Object.assign({handle:'ana'},o);
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';
  let subs=[];let f=FORM_HARNESS({url:()=>null,upload:async()=>({url:AV2})},async v=>{subs.push(v);return {ok:true}});
  await f.send();assert.equal(subs.length,0,'sin foto no se llama a submit');assert.equal(f.state().err,f.OB['avatar-required']);assert.deepEqual([f.state().go,f.state().pb],[false,false]);
- await f.send({handle:'a',age:false});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['avatar-required'],'sin foto y con el @ mal: primero se pide la foto');
- f=FORM_HARNESS({url:()=>AV2,upload:async()=>({url:AV2})},async v=>{subs.push(v);return {ok:true}});
+ await f.send({handle:'a',birth:'2010-01-01'});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['avatar-required'],'sin foto y con el @ y la fecha mal: primero se pide la foto');
+ f=FORM_HARNESS({url:()=>AV2,upload:async()=>({url:AV2})},async v=>{subs.push(v);return {ok:true}},undefined,{now:'2026-10-26T15:00:00.000Z'});
  await f.send({handle:'a'});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['handle-invalid'],'luego el @');
- await f.send({age:false});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['age-required'],'luego los 21');
+ await f.send({birth:'2010-01-01'});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['age-under-21'],'luego la fecha: menos de 21 años');
  /* mientras se envía, la foto no cambia */
  const g=defer();let ups=0;f=FORM_HARNESS({url:()=>AV2,upload:async()=>{ups++;return {url:AV2}}},async()=>{await g.p;return {ok:true}});
  const s1=f.send();await tick();assert.deepEqual([f.state().go,f.state().pb],[true,true],'enviando: los dos botones apagados');
@@ -1092,25 +1101,307 @@ test('LHB-49: toda salida que da por buena la cuenta con perfil retira el formul
 });
 test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL',()=>{
  const h=read('hoja.js'),app=read('app.js'),css=read('styles.css'),cu=read('cuenta.js'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');
- assert.ok(h.includes('function onboardingForm(submit,picture){'),'el formulario recibe la foto');
+ assert.ok(h.includes('function onboardingForm(submit,picture,mode){'),'el formulario recibe la foto (y, desde LHB-52, el modo)');
  assert.ok(h.includes('<input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1">'),'solo imágenes');
  const i=h.indexOf('function onboardingForm'),form=h.slice(i,h.indexOf('\nconst CUENTA=',i));
  assert.ok(form.includes("A.resizeImage(f,512,.85)")&&form.includes("picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))"),'se achica antes de subir');
  const a=form.indexOf("picture.url())return err(OB_ERR['avatar-required'])");assert.ok(a>0&&a<form.indexOf('HANDLE_RE.test(h)'),'la foto se pide primero al enviar');
  assert.ok(/id="obPb"/.test(form)&&form.includes("'Cambiar foto':'Elegir foto'")&&form.includes('Usamos la foto de tu cuenta'),'la foto de la cuenta se anuncia y se puede cambiar');
  for(const k of ['avatar-required','avatar-invalid','avatar-type','avatar-upload','avatar-busy'])assert.ok(h.includes("'"+k+"':'"),'mensaje de '+k);
- assert.ok(form.includes("let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;$('#obPb').disabled=b};"),'una sola operación a la vez: el botón de foto y el de crear se apagan juntos');
+ assert.ok(form.includes("let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;const pb=$('#obPb');if(pb)pb.disabled=b};"),'una sola operación a la vez: el botón de foto y el de crear se apagan juntos');
  assert.ok(form.includes("e.preventDefault();if(working)return;")&&/err\(''\);busy\(true\);\s*let r;try\{r=await submit\(/.test(form)&&form.includes("busy(false);if(r.error)err("),'el envío toma y suelta el mismo candado');
  assert.ok(/if\(!f\|\|working\)return;/.test(form),'y una foto escogida mientras algo corre se ignora');
  /* cada salida de cada manejador suelta el candado, también si la operación quedó invalidada con el formulario todavía en pantalla (ronda 2, hallazgo 1) */
  const up=form.slice(form.indexOf("$('#obPf').onchange="),form.indexOf("$('#obB').oninput")),sb=form.slice(form.indexOf('form.onsubmit='));
  for(const [nombre,src] of [['subir',up],['enviar',sb]])assert.ok(src.includes("if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}"),'una operación invalidada con el formulario aún en pantalla suelta el candado al enviar/subir: '+nombre);
  assert.ok(/busy\(false\);if\(r\.error\)return err\(OB_ERR\[r\.error\]\|\|OB_ERR\['avatar-upload'\]\);\s*own=true;showPic\(\)/.test(up),'subir: éxito y error sueltan el candado');
- assert.ok(/busy\(false\);if\(r\.error\)err\(OB_ERR\[r\.error\]\|\|'No pudimos crear tu perfil/.test(sb),'enviar: éxito y error sueltan el candado');
+ assert.ok(/busy\(false\);if\(r\.error\)err\(OB_ERR\[r\.error\]\|\|\(idm\?'No pudimos guardar tu perfil\. Intenta otra vez\.':'No pudimos crear tu perfil/.test(sb),'enviar: éxito y error sueltan el candado');
  assert.ok(cu.includes('let uq=Promise.resolve();')&&cu.includes('uq.then(async()=>{try{')&&cu.includes('uq=job.catch(()=>{})'),'las subidas van en cola, una a la vez');
  assert.ok(app.includes('vPerfil,resizeImage,hydrate:'),'app.js le pasa resizeImage a Mi Hoja');
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
- assert.ok(pf.includes('avatar_key, age_ok_at')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v52'/,'el shell nuevo se publica con otra versión del caché');
+ assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+ assert.match(read('sw.js'),/const VERSION='lhb-v53'/,'el shell nuevo se publica con otra versión del caché');
+});
+/* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+/* la API de perfil sobre SQLite real: migraciones, JWT de Clerk de mentira y un reloj que se puede fijar (solo new Date() sin argumentos; Date.now sigue real para los tokens) */
+async function API52(opts){opts=opts||{};
+ const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync(':memory:');
+ const mig=f=>fs.readFileSync(path.join(__dirname,'..','migrations',f),'utf8');db.exec(mig('0001_init.sql'));db.exec(mig('0002_clerk_profiles.sql'));if(!opts.legacy)db.exec(mig('0003_identity.sql'));
+ const DB={prepare:sql=>{const st=db.prepare(sql);return{bind:(...a)=>({first:async()=>st.get(...a)??null,run:async()=>({success:true,meta:{changes:Number(st.run(...a).changes)}})})}}};
+ const {pathToFileURL}=require('url');const imp=f=>import(pathToFileURL(path.join(__dirname,'..','functions',...f.split('/'))).href);
+ const auth=await imp('_lib/auth.js'),P=await imp('_lib/profile.js'),api=await imp('api/profile.js'),me=await imp('api/me.js');
+ const ISS='https://daring-eagle-8394.clerk.accounts.dev';const alg={name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'};
+ const k=await crypto.subtle.generateKey(alg,true,['sign','verify']);const jwk={...await crypto.subtle.exportKey('jwk',k.publicKey),kid:'k1'};
+ const b64=b=>Buffer.from(b).toString('base64url');const enc=o=>b64(JSON.stringify(o));const t=Math.floor(Date.now()/1000);
+ const tok=async sub=>{const d=enc({alg:'RS256',kid:'k1'})+'.'+enc({iss:ISS,sub,azp:'https://lhb-52.la-hoja-boricua.pages.dev',exp:t+60,nbf:t-5});return d+'.'+b64(new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',k.privateKey,new TextEncoder().encode(d))))};
+ const realFetch=globalThis.fetch;globalThis.fetch=async u=>{assert.equal(String(u),ISS+'/.well-known/jwks.json');return new Response(JSON.stringify({keys:[jwk]}))};auth.clearJwksCache();
+ const env={CLERK_ISSUERS:ISS,DB};
+ const req=(token,body,type='application/json')=>({headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':type})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body});
+ const call=async(fn,token,body,type,e=env)=>{const r=await fn({request:req(token,body,type),env:e});return [r.status,await r.json()]};
+ const RealDate=Date;const freeze=iso=>{globalThis.Date=class extends RealDate{constructor(...a){if(a.length)super(...a);else super(iso)}}};const thaw=()=>{globalThis.Date=RealDate};
+ return {db,DB,P,env,tok,imp,mig,
+  post:(token,body,type,e)=>call(api.onRequestPost,token,body,type,e),put:(token,body,type,e)=>call(api.onRequestPut,token,body,type,e),me:(token,e)=>call(me.onRequestGet,token,undefined,undefined,e),
+  freeze,thaw,done:()=>{thaw();globalThis.fetch=realFetch}}}
+const ROW=(db,u)=>db.prepare('SELECT * FROM profiles WHERE user_id=?1').get(u);
+const COUNT=db=>db.prepare('SELECT COUNT(*) n FROM profiles').get().n;
+test('LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC',async()=>{
+ const {pathToFileURL}=require('url');const P=await import(pathToFileURL(path.join(__dirname,'..','functions','_lib','profile.js')).href);
+ const now=new Date(T0);const ID=(o)=>P.checkIdentity({...IDN,...o},now);
+ assert.deepEqual(ID({}),{first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-05-17',display_name:'Ana M.'});
+ /* los cuatro son obligatorios: falta, null, vacío y en blanco */
+ for(const f of ['first_name','last_name'])for(const v of [undefined,null,'','   ','\t'])assert.deepEqual(ID({[f]:v}),{error:f+'-required'},f+' '+JSON.stringify(v));
+ for(const v of [undefined,null,''])assert.deepEqual(ID({gender:v}),{error:'gender-required'},'género '+v);
+ for(const v of [undefined,null,''])assert.deepEqual(ID({birth_date:v}),{error:'birth_date-required'},'fecha '+v);
+ /* los nombres: 1 a 50 caracteres (no bytes), sin caracteres de control */
+ assert.equal(ID({first_name:'a'}).first_name,'a','1 carácter');assert.equal(ID({first_name:'a'.repeat(50)}).first_name.length,50,'50 caracteres');assert.deepEqual(ID({first_name:'a'.repeat(51)}),{error:'first_name-long'});assert.deepEqual(ID({last_name:'a'.repeat(51)}),{error:'last_name-long'});
+ assert.equal(ID({last_name:'🌿'.repeat(50)}).last_name,'🌿'.repeat(50),'50 caracteres que pesan 200 bytes');assert.deepEqual(ID({last_name:'🌿'.repeat(51)}),{error:'last_name-long'});
+ assert.equal(ID({first_name:'  '+'a'.repeat(50)+'  '}).first_name.length,50,'se mide ya sin los espacios de los lados');
+ for(const c of ['\u0000','\n','\r','\t','\u001f','\u007f','\u0085','\u009f',' ',' '])for(const f of ['first_name','last_name'])assert.deepEqual(ID({[f]:'An'+c+'a'}),{error:f+'-invalid'},f+' con U+'+c.charCodeAt(0).toString(16));
+ for(const v of [42,true,{},['Ana'],{toString:()=>'Ana'}])assert.deepEqual(ID({first_name:v}),{error:'first_name-invalid'},'no es texto: '+JSON.stringify(v));
+ assert.equal(ID({first_name:'Ana María',last_name:'de la Cruz'}).display_name,'Ana María D.','espacios por dentro sí');assert.equal(ID({first_name:'Ñandú',last_name:'ñoño'}).display_name,'Ñandú Ñ.','acentos y eñes');assert.equal(ID({first_name:'ana',last_name:'mora'}).display_name,'ana M.','la inicial va en mayúscula');
+ assert.equal(ID({last_name:'🌿x'}).display_name,'Ana 🌿.','la inicial es un carácter, no media pareja de bytes');
+ assert.ok(!ID({}).display_name.includes('Mora'),'el apellido completo no está en el nombre público');
+ /* el género: M o F exactos */
+ assert.equal(ID({gender:'M'}).gender,'M');assert.equal(ID({gender:'F'}).gender,'F');
+ for(const v of ['X','m','f','Male','Female','Masculino','MF',' M',1,true,{},['M']])assert.deepEqual(ID({gender:v}),{error:'gender-invalid'},'género '+JSON.stringify(v));
+ /* la fecha, con hoy = 2026-10-26: exactamente 21 hoy pasa, 20 años y 364 días no */
+ for(const d of ['2005-10-26','2005-10-25','1990-05-17','1900-01-01','2004-02-29','2000-02-29'])assert.equal(ID({birth_date:d}).birth_date,d,'pasa '+d);
+ for(const d of ['2005-10-27','2005-10-28','2005-11-26','2006-01-01','2010-01-01','2026-10-26'])assert.deepEqual(ID({birth_date:d}),{error:'age-under-21'},'menos de 21: '+d);
+ for(const d of ['2026-10-27','2026-12-31','2030-01-01','9999-12-31'])assert.deepEqual(ID({birth_date:d}),{error:'birth_date-future'},'futura: '+d);
+ for(const d of ['2000-02-30','2001-02-29','2100-02-29','2000-13-01','2000-00-10','2000-01-00','2000-04-31','2000-1-1','00-01-01','abcd-ef-gh','2000/01/01','2000-01-01T00:00:00Z',' 2000-01-01','2000-01-01\n','1990-05-17 ','１９９０-０５-１７','19900517',19900517,{},['1990-05-17'],true,'1899-12-31','0001-01-01'])assert.deepEqual(ID({birth_date:d}),{error:'birth_date-invalid'},'inválida: '+JSON.stringify(d));
+ /* el cuerpo entero */
+ for(const x of [null,'x',[],42,undefined])assert.deepEqual(P.checkIdentity(x,now),{error:'bad-body'});
+ /* la edad se mide en la fecha UTC del servidor, no en la del teléfono: a las 23:30 en Puerto Rico del 26 ya es 27 en UTC */
+ const tarde=new Date('2026-10-26T23:30:00-04:00');assert.equal(P.utcDay(tarde),'2026-10-27');
+ assert.equal(P.checkIdentity({...IDN,birth_date:'2005-10-27'},tarde).birth_date,'2005-10-27','el 27 UTC ya cumple 21');assert.deepEqual(P.checkIdentity({...IDN,birth_date:'2005-10-27'},new Date('2026-10-26T23:59:59Z')),{error:'age-under-21'},'un segundo antes de la medianoche UTC todavía no');
+ /* los bordes del calendario */
+ const at=(iso,d)=>P.checkIdentity({...IDN,birth_date:d},new Date(iso));
+ assert.deepEqual(at('2025-02-28T12:00:00Z','2004-02-29'),{error:'age-under-21'},'nacida el 29 de febrero: el 28 de febrero todavía no cumple');assert.equal(at('2025-03-01T12:00:00Z','2004-02-29').birth_date,'2004-02-29','el 1 de marzo sí');
+ assert.equal(at('2028-02-29T12:00:00Z','2007-02-28').birth_date,'2007-02-28');assert.deepEqual(at('2028-02-29T12:00:00Z','2007-03-01'),{error:'age-under-21'},'hoy es 29 de febrero y nació el 1 de marzo');assert.equal(at('2028-02-29T12:00:00Z','2007-02-28').birth_date,'2007-02-28');
+ assert.equal(at('2026-01-01T00:00:00Z','2005-01-01').birth_date,'2005-01-01','cumple 21 el 1 de enero');assert.deepEqual(at('2026-01-01T00:00:00Z','2005-01-02'),{error:'age-under-21'});
+ /* checkProfile usa lo mismo, y el orden de los errores no se mezcla con el @ ni con la foto */
+ const full={handle:'tabaquero',...IDN,avatar_url:AV};
+ assert.deepEqual(P.checkProfile({...full,birth_date:'2010-01-01'},now),{error:'age-under-21'});assert.equal(P.checkProfile(full,now).birth_date,'1990-05-17');assert.equal(P.checkProfile(full,now).display_name,'Ana M.');
+ assert.deepEqual(P.checkProfile({...full,gender:'X'},now),{error:'gender-invalid'});
+ assert.equal(P.checkProfile({handle:'tabaquero',...IDN,avatar_url:AV},new Date(T0)).error,undefined);
+});
+test('LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el 21+ sale de la fecha',async()=>{
+ const a=await API52();
+ try{
+  const tkA=await a.tok('user_a'),tkB=await a.tok('user_b');const body=(o)=>({handle:'tabaquero',...IDN,avatar_url:AV,...o});
+  a.freeze(T0);
+  const rejects=[
+   ['falta el nombre',{first_name:undefined},'first_name-required'],['falta el apellido',{last_name:undefined},'last_name-required'],['falta el género',{gender:undefined},'gender-required'],['falta la fecha',{birth_date:undefined},'birth_date-required'],
+   ['nombre en blanco',{first_name:'   '},'first_name-required'],['nombre de 51 caracteres',{first_name:'a'.repeat(51)},'first_name-long'],['apellido con salto de línea',{last_name:'Mo\nra'},'last_name-invalid'],
+   ['género fuera de M y F',{gender:'X'},'gender-invalid'],['fecha que no existe',{birth_date:'2001-02-29'},'birth_date-invalid'],['fecha con otro formato',{birth_date:'17/05/1990'},'birth_date-invalid'],
+   ['20 años y 364 días',{birth_date:'2005-10-27'},'age-under-21'],['nació hoy',{birth_date:'2026-10-26'},'age-under-21'],['fecha futura',{birth_date:'2026-10-27'},'birth_date-future'],
+   ['la casilla vieja sin fecha',{birth_date:undefined,age_ok:true},'birth_date-required']];
+  for(const [que,o,err] of rejects){const b=body(o);for(const k of Object.keys(b))if(b[k]===undefined)delete b[k];
+   assert.deepEqual(await a.post(tkA,b),[400,{error:err}],que);assert.equal(COUNT(a.db),0,que+': no se creó nada');}
+  assert.deepEqual(await a.post(tkA,body({birth_date:'2005-10-27'})),[400,{error:'age-under-21'}]);
+  /* exactamente 21 hoy: se crea, el 21+ queda sellado con la hora del servidor, y nada privado vuelve en la respuesta */
+  const r=await a.post(tkA,body({birth_date:'2005-10-26'}));assert.equal(r[0],201);
+  assert.deepEqual(r[1],{profile:{handle:'tabaquero',display_name:'Ana M.',bio:null,favorite_brand:null,avatar_key:AV}},'la respuesta no trae género ni fecha de nacimiento');
+  const row=ROW(a.db,'user_a');assert.deepEqual([row.first_name,row.last_name,row.gender,row.birth_date,row.display_name],['Ana','Mora','F','2005-10-26','Ana M.']);
+  assert.equal(row.age_ok_at,T0,'age_ok_at lo sella el servidor cuando la fecha muestra 21 o más');assert.equal(row.created_at,T0);
+  /* el @ no se gastó con los rechazos, y los demás errores siguen igual */
+  assert.deepEqual(await a.post(tkB,body({handle:'tabaquero'})),[409,{error:'handle-taken'}]);
+  assert.deepEqual(await a.post(tkA,body({handle:'otro'})),[409,{error:'profile-exists'}]);
+  assert.equal(ROW(a.db,'user_a').handle,'tabaquero');
+  /* quien trae display_name o age_ok en el cuerpo no cambia nada: el nombre público sale del nombre y la inicial */
+  const r2=await a.post(tkB,body({handle:'bea',first_name:' Bea ',last_name:'ñoño',gender:'F',birth_date:'1985-01-01',display_name:'Beatriz Ñoño Completa',age_ok:true}));
+  assert.equal(r2[0],201);assert.equal(r2[1].profile.display_name,'Bea Ñ.');assert.equal(ROW(a.db,'user_b').first_name,'Bea');
+ }finally{a.done()}
+});
+test('LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño',async()=>{
+ const a=await API52();
+ try{
+  const tkA=await a.tok('user_a'),tkB=await a.tok('user_b');
+  assert.equal((await a.post(tkA,{handle:'tabaquero',...IDN,avatar_url:AV,bio:'Fumo los domingos.'}))[0],201);
+  assert.equal((await a.post(tkB,{handle:'bea',first_name:'Bea',last_name:'Soto',gender:'M',birth_date:'1980-02-03',avatar_url:AV}))[0],201);
+  const secretos=['Mora','1990-05-17','"F"'];
+  /* la lectura pública: solo las cinco columnas públicas, también con los datos privados en la fila */
+  const pub=await a.P.publicProfile(a.DB,'tabaquero');
+  assert.deepEqual(Object.keys(pub).sort(),['avatar_key','bio','display_name','favorite_brand','handle'],'las columnas públicas, y solo esas');
+  assert.deepEqual(pub,{handle:'tabaquero',display_name:'Ana M.',bio:'Fumo los domingos.',favorite_brand:null,avatar_key:AV});
+  for(const s of secretos)assert.ok(!JSON.stringify(pub).includes(s),'la lectura pública no trae '+s);
+  for(const k of ['first_name','last_name','gender','birth_date','age_ok_at','user_id'])assert.ok(!(k in pub),k+' no sale');
+  assert.equal(a.P.PUBLIC_COLUMNS,'handle, display_name, bio, favorite_brand, avatar_key');
+  a.db.prepare("UPDATE profiles SET hidden=1 WHERE user_id='user_b'").run();assert.equal(await a.P.publicProfile(a.DB,'bea'),null,'un perfil oculto no se lee en público');
+  /* lo que la puerta de Mi Hoja le da a las APIs tampoco lo trae */
+  const g=await a.P.requireProfile({headers:{get:h=>({Authorization:'Bearer '+tkA})[h]??null}},a.env);
+  assert.deepEqual(Object.keys(g.profile).sort(),['avatar_key','bio','display_name','favorite_brand','handle','hidden']);for(const s of secretos)assert.ok(!JSON.stringify(g.profile).includes(s));
+  /* /api/me: a su dueño, con todo; a otra persona, solo lo suyo */
+  const [st,m]=await a.me(tkA);assert.equal(st,200);
+  assert.deepEqual(m,{profile:{handle:'tabaquero',display_name:'Ana M.',bio:'Fumo los domingos.',favorite_brand:null,avatar_key:AV,first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-05-17'},needsIdentity:false});
+  const [,mb]=await a.me(tkB);assert.deepEqual([mb.profile.first_name,mb.profile.gender,mb.profile.birth_date],['Bea','M','1980-02-03']);assert.ok(!JSON.stringify(mb).includes('Mora')&&!JSON.stringify(mb).includes('1990-05-17'),'cada quien ve lo suyo');
+  assert.deepEqual(await a.me(null),[401,{error:'no-session'}]);
+  /* ningún otro archivo del servidor lee esas columnas hacia afuera: hoy solo /api/me las selecciona, y publicProfile no las nombra */
+  const dir=path.join(__dirname,'..','functions');const files=[];(function w(d){for(const f of fs.readdirSync(d,{withFileTypes:true}))f.isDirectory()?w(path.join(d,f.name)):/\.js$/.test(f.name)&&files.push(path.join(d,f.name))})(dir);
+  const reads=files.filter(f=>/SELECT[^;`']*\b(birth_date|gender)\b/.test(fs.readFileSync(f,'utf8').replace(/\r\n/g,'\n').replace(/'\s*\+\s*\n\s*'/g,''))).map(f=>path.relative(dir,f).replace(/\\/g,'/'));
+  assert.deepEqual(reads,['api/me.js'],'solo /api/me selecciona la fecha y el género');
+ }finally{a.done()}
+});
+test('LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son',async()=>{
+ const a=await API52({legacy:true});
+ try{
+  /* un perfil de antes de 0003 (el del dueño es uno): con nombre público viejo y sin identidad */
+  a.db.prepare("INSERT INTO profiles (user_id,handle,display_name,age_ok_at,created_at,updated_at) VALUES ('user_old','sergio','Sergio B','2026-10-25T20:00:00.000Z','2026-10-25T20:00:00.000Z','2026-10-25T20:00:00.000Z')").run();
+  const antes=ROW(a.db,'user_old');assert.ok(!('first_name' in antes),'antes de 0003 no existen');
+  a.db.exec(a.mig('0003_identity.sql'));
+  const cols=a.db.prepare("PRAGMA table_info(profiles)").all();for(const c of ['first_name','last_name','gender','birth_date']){const col=cols.find(x=>x.name===c);assert.ok(col,c+' existe');assert.equal(col.notnull,0,c+' admite null');assert.equal(col.type,'TEXT')}
+  const dsp=ROW(a.db,'user_old');assert.deepEqual([dsp.first_name,dsp.last_name,dsp.gender,dsp.birth_date],[null,null,null,null],'ninguna fila existente se rellena');
+  for(const k of Object.keys(antes))assert.equal(dsp[k],antes[k],k+' no cambió');
+  const ins=(g,b)=>a.db.prepare("INSERT INTO profiles (user_id,handle,age_ok_at,created_at,updated_at,gender,birth_date) VALUES (?1,?1,'x','x','x',?2,?3)").run('u_'+Math.random().toString(36).slice(2),g,b);
+  assert.doesNotThrow(()=>ins('M','1990-05-17'));assert.doesNotThrow(()=>ins('F',null));assert.doesNotThrow(()=>ins(null,'2000-01-01'));
+  for(const g of ['X','m','f','Male','',' M'])assert.throws(()=>ins(g,null),/CHECK/,'género '+JSON.stringify(g));
+  for(const d of ['ayer','1990-5-7','90-05-17','1990/05/17','','1990-05-1'])assert.throws(()=>ins(null,d),/CHECK/,'fecha '+JSON.stringify(d));
+  /* un perfil de antes llega a /api/me con needsIdentity, con sus nulos y su nombre público viejo */
+  const [st,m]=await a.me(await a.tok('user_old'));assert.equal(st,200);
+  assert.deepEqual(m,{profile:{handle:'sergio',display_name:'Sergio B',bio:null,favorite_brand:null,avatar_key:null,first_name:null,last_name:null,gender:null,birth_date:null},needsIdentity:true});
+  /* a medias también cuenta como incompleto: basta con que falte uno */
+  for(const c of ['first_name','last_name','gender','birth_date']){a.db.prepare("UPDATE profiles SET first_name='A',last_name='B',gender='M',birth_date='1990-01-01' WHERE user_id='user_old'").run();a.db.prepare("UPDATE profiles SET "+c+"=NULL WHERE user_id='user_old'").run();
+   assert.equal((await a.me(await a.tok('user_old')))[1].needsIdentity,true,'falta '+c)}
+  a.db.prepare("UPDATE profiles SET first_name='A',last_name='B',gender='M',birth_date='1990-01-01' WHERE user_id='user_old'").run();assert.equal((await a.me(await a.tok('user_old')))[1].needsIdentity,false,'con los cuatro ya no');
+ }finally{a.done()}
+});
+test('LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás',async()=>{
+ const a=await API52({legacy:true});
+ try{
+  const mkOld=(u,h,dn)=>a.db.prepare("INSERT INTO profiles (user_id,handle,display_name,bio,age_ok_at,created_at,updated_at) VALUES (?1,?2,?3,'mi bio','2026-10-25T20:00:00.000Z','2026-10-25T20:00:00.000Z','2026-10-25T20:00:00.000Z')").run(u,h,dn);
+  mkOld('user_old','sergio','Sergio B');mkOld('user_nodn','sinnombre',null);
+  a.db.exec(a.mig('0003_identity.sql'));
+  const tk=await a.tok('user_old');a.freeze(T0);
+  /* el prólogo es el de POST */
+  assert.deepEqual(await a.put(null,IDN),[401,{error:'no-session'}]);assert.deepEqual(await a.put(tk,IDN,undefined,{DB:a.DB}),[503,{error:'no-auth-config'}]);
+  assert.deepEqual(await a.put(tk,IDN,'text/plain'),[415,{error:'bad-type'}]);assert.deepEqual(await a.put(tk,'{no es json'),[400,{error:'bad-body'}]);
+  /* cada rechazo deja la fila como estaba */
+  const intacta=ROW(a.db,'user_old');
+  for(const [que,o,err] of [['falta el nombre',{first_name:''},'first_name-required'],['sin género',{gender:null},'gender-required'],['fecha mala',{birth_date:'2001-02-29'},'birth_date-invalid'],['20 años y 364 días',{birth_date:'2005-10-27'},'age-under-21'],['futura',{birth_date:'2027-01-01'},'birth_date-future'],['género raro',{gender:'X'},'gender-invalid']])
+   {assert.deepEqual(await a.put(tk,{...IDN,...o}),[400,{error:err}],que);assert.deepEqual(ROW(a.db,'user_old'),intacta,que+': la fila no cambió')}
+  /* completar: guarda los cuatro, deja el nombre público viejo, el 21+ original y el @ */
+  assert.deepEqual(await a.put(tk,{...IDN,first_name:' Sergio ',last_name:'Báez',gender:'M',birth_date:'1975-03-04',handle:'otro',display_name:'Otro',age_ok:false}),[200,{ok:true}]);
+  const r=ROW(a.db,'user_old');assert.deepEqual([r.first_name,r.last_name,r.gender,r.birth_date],['Sergio','Báez','M','1975-03-04']);
+  assert.equal(r.display_name,'Sergio B','el nombre público que ya existía se queda (display_name legacy sigue legible)');assert.equal(r.handle,'sergio','el @ no se cambia por aquí');assert.equal(r.age_ok_at,'2026-10-25T20:00:00.000Z','el sello del 21+ original no se toca');assert.equal(r.bio,'mi bio');assert.equal(r.updated_at,T0);
+  /* una segunda vez: 409, y nada cambia */
+  const hecha=ROW(a.db,'user_old');assert.deepEqual(await a.put(tk,{...IDN,first_name:'Otra'}),[409,{error:'identity-exists'}]);assert.deepEqual(ROW(a.db,'user_old'),hecha,'ya completo: no se sobrescribe');
+  /* uno sin nombre público lo recibe de su nombre y la inicial */
+  assert.deepEqual(await a.put(await a.tok('user_nodn'),IDN),[200,{ok:true}]);assert.equal(ROW(a.db,'user_nodn').display_name,'Ana M.');
+  /* sin perfil: 403; y nadie toca el perfil de otro */
+  assert.deepEqual(await a.put(await a.tok('user_nuevo'),IDN),[403,{error:'no-profile'}]);assert.equal(COUNT(a.db),2,'PUT no crea perfiles');
+  a.db.prepare("INSERT INTO profiles (user_id,handle,age_ok_at,created_at,updated_at,first_name,last_name,gender,birth_date) VALUES ('user_c','c','x','x','x','Cata','Rey','F','1990-01-01')").run();
+  assert.deepEqual(await a.put(await a.tok('user_c'),IDN),[409,{error:'identity-exists'}]);assert.equal(ROW(a.db,'user_c').first_name,'Cata');
+ }finally{a.done()}
+});
+test('LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez',async()=>{
+ const mk=async(putRes,after,me,over)=>{const calls=[];let submit;const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{calls.push(m+' '+p);if(m==='GET')return typeof me==='function'?me(calls):{status:200,body:me||{profile:{handle:'sergio'},needsIdentity:true}};h.puts=(h.puts||[]).concat([b]);return putRes(b)},...over});
+  h.D.ui.identity=s=>{submit=s;h.log.push('identity')};h.D.ui.onboarding=()=>h.log.push('onboarding');h.nav('#/mihoja');h.C.user={id:'user_a'};await h.A.require(h.go,over&&over.inPlaceOpts);await tick();return {h,calls,submit:f=>{const r=submit(f);after&&after(h);return r},raw:()=>submit}};
+ /* la puerta: no abre, no guarda el perfil para abrir sin red, no pide foto ni @ */
+ let r=await mk(()=>({status:200,body:{ok:true}}));
+ assert.equal(typeof r.raw(),'function','muestra el paso de identidad');assert.ok(r.h.log.includes('identity'));assert.ok(!r.h.log.includes('GO')&&!r.h.log.includes('onboarding'),'todavía no abre Mi Hoja ni pide un perfil nuevo');
+ assert.ok(r.h.log.includes('clear')&&!r.h.log.some(x=>x.startsWith('store')),'el perfil guardado de antes se borra y no se vuelve a guardar hasta completar');
+ /* completar: manda solo los cuatro datos, luego guarda, felicita y abre */
+ const F={first_name:'Sergio',last_name:'Báez',gender:'M',birth_date:'1975-03-04',handle:'otro',bio:'x',favorite_brand:'y',display_name:'Z',age_ok:true,avatar_url:'https://img.clerk.com/x'};
+ r=await mk(()=>({status:200,body:{ok:true}}));assert.deepEqual(await r.submit(F),{ok:true});
+ assert.deepEqual(r.h.puts,[{first_name:'Sergio',last_name:'Báez',gender:'M',birth_date:'1975-03-04'}],'el PUT lleva solo nombre, apellido, género y fecha');
+ assert.deepEqual(r.calls,['GET /api/me','PUT /api/profile']);assert.deepEqual(r.h.log.filter(x=>x.startsWith('store')||x==='GO'||x==='toast'),['store:user_a:sergio','toast','GO']);
+ /* un rechazo del servidor deja el formulario vivo y no abre nada; luego el mismo formulario puede reintentar */
+ let n=0;r=await mk(()=>++n===1?{status:400,body:{error:'age-under-21'}}:{status:200,body:{ok:true}});
+ assert.deepEqual(await r.submit(F),{error:'age-under-21'});assert.ok(!r.h.log.includes('GO')&&!r.h.log.includes('toast'));assert.deepEqual(await r.submit(F),{ok:true});assert.deepEqual(r.h.log.filter(x=>x==='GO'),['GO'],'el reintento abre una sola vez');
+ r=await mk(()=>({status:500,body:{}}));assert.deepEqual(await r.submit(F),{error:'generic'});r=await mk(()=>{throw new Error('sin red')});assert.deepEqual(await r.submit(F),{error:'generic'});assert.ok(!r.h.log.includes('GO'));
+ /* ya estaba completo (otra pestaña, o la respuesta se perdió): se revisa de nuevo y, si sale completo, termina igual que un 200; si no, error y se puede reintentar */
+ r=await mk(()=>({status:409,body:{error:'identity-exists'}}),null,calls=>calls.filter(c=>c.startsWith('GET')).length===1?{status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}:{status:200,body:{profile:{handle:'sergio'},needsIdentity:false}});
+ assert.deepEqual(await r.submit(F),{ok:true});assert.deepEqual(r.h.log.filter(x=>x==='GO'||x==='toast'),['toast','GO']);
+ r=await mk(()=>({status:409,body:{error:'identity-exists'}}),null,()=>({status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}));assert.deepEqual(await r.submit(F),{error:'recheck'},'si la revisión sigue diciendo que falta, no se anuncia éxito');assert.ok(!r.h.log.includes('GO'));
+ /* un solo envío a la vez */
+ const d=defer();r=await mk(()=>d.p);const p1=r.submit(F);const p2=await Promise.race([r.submit(F),tick(20).then(()=>'colgado')]);assert.deepEqual(p2,{error:'busy'},'el segundo envío no espera ni manda');d.ok({status:200,body:{ok:true}});assert.deepEqual(await p1,{ok:true});assert.deepEqual(r.h.puts.length,1,'un solo PUT');
+ /* cuenta o página distintas: no se manda ni se abre nada */
+ r=await mk(()=>({status:200,body:{ok:true}}),h=>h.C.signIn('user_b'));assert.deepEqual(await r.submit(F),{stale:true});assert.ok(!r.h.log.includes('GO')&&!r.h.log.includes('toast'),'otra cuenta: no abre ni felicita');assert.ok(!r.h.log.some(x=>x.startsWith('store')));
+ r=await mk(()=>({status:200,body:{ok:true}}),h=>h.nav('#/catalogo'));assert.deepEqual(await r.submit(F),{stale:true});assert.ok(!r.h.log.includes('GO'),'el usuario se fue de la pantalla: no se abre Mi Hoja encima');
+ r=await mk(()=>({status:200,body:{ok:true}}));r.h.C.signIn('user_b');await tick();const pc=r.h.puts?r.h.puts.length:0;assert.deepEqual(await r.raw()(F),{stale:true});assert.equal(r.h.puts?r.h.puts.length:0,pc,'un formulario que quedó de otra cuenta no manda nada');
+ /* desde una página pública: tras completar repinta la página y hace la acción */
+ const h=CUENTA_HARNESS({api:async(C,m)=>m==='GET'?{status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}:{status:200,body:{ok:true}}});let sub;h.D.ui.identity=s=>{sub=s};h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};
+ await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();assert.deepEqual(await sub(F),{ok:true});assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'),['reroute','GO'],'repinta la página y hace la acción');
+ /* quien ya tiene su identidad (needsIdentity false, o sin la marca) no ve el paso */
+ for(const body of [{profile:{handle:'ana'},needsIdentity:false},{profile:{handle:'ana'}}]){const k=CUENTA_HARNESS({api:async()=>({status:200,body})});let seen=false;k.D.ui.identity=()=>{seen=true};k.C.user={id:'user_a'};await k.A.require(k.go);await tick();assert.ok(!seen&&k.log.includes('GO'),'sin la marca no hay paso extra: '+JSON.stringify(body))}
+ /* y un 401 o 403 con la marca no abre nada (la puerta sigue igual) */
+ const z=CUENTA_HARNESS({api:async()=>({status:403,body:{needsIdentity:true,profile:{handle:'x'}}})});let sz=false;z.D.ui.identity=()=>{sz=true};z.C.user={id:'user_a'};await z.A.require(z.go);await tick();assert.ok(!sz&&!z.log.includes('GO'));
+});
+test('LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';const now='2026-10-26T15:00:00.000Z';const subs=[];
+ const mk=(o)=>FORM_HARNESS({url:()=>AV2,upload:async()=>({url:AV2})},async v=>{subs.push(v);return {ok:true}},undefined,{now,...o});
+ let f=mk();
+ /* la forma: nombre, apellido, género, fecha (con tope hoy) y ninguna casilla de 21 */
+ const html=f.html();for(const id of ['obFn','obLn','obGM','obGF','obD'])assert.ok(html.includes('id="'+id+'"'),id+' está');assert.ok(!html.includes('obAge')&&!html.includes('Tengo 21')&&!html.includes('id="obN"'),'ni casilla de 21 ni nombre público opcional');
+ assert.match(html,/id="obD" type="date"[^>]*min="1900-01-01"[^>]*max="2026-10-26"/,'la fecha es un campo de fecha, con tope hoy');assert.match(html,/Masculino/);assert.match(html,/Femenino/);assert.ok(!/Otro|No binario/i.test(html),'solo dos opciones');assert.match(html,/privad/);
+ /* cada dato que falta: no se manda nada y se dice cuál */
+ for(const [v,err] of [[{first:''},'first_name-required'],[{first:'   '},'first_name-required'],[{last:''},'last_name-required'],[{first:'a'.repeat(51)},'first_name-long'],[{last:'Mo\nra'},'last_name-invalid'],[{gender:''},'gender-required'],[{birth:''},'birth_date-required'],[{birth:'2001-02-29'},'birth_date-invalid'],[{birth:'2026-10-27'},'birth_date-future'],[{birth:'2005-10-27'},'age-under-21'],[{birth:'2026-10-26'},'age-under-21']]){
+  subs.length=0;f=mk();await f.send(v);assert.equal(subs.length,0,JSON.stringify(v)+': no se manda nada');assert.equal(f.state().err,f.OB[err],JSON.stringify(v)+' dice '+err);assert.deepEqual([f.state().go,f.state().pb],[false,false],'los botones responden');}
+ assert.ok(f.OB['age-under-21']&&/21/.test(f.OB['age-under-21']),'el mensaje de menores es claro y menciona los 21');
+ /* exactamente 21 hoy: se manda, con el @, la identidad y nada de display_name, age_ok ni casilla */
+ subs.length=0;f=mk();await f.send({birth:'2005-10-26'});assert.equal(subs.length,1);assert.deepEqual(subs[0],{handle:'ana',first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'2005-10-26',bio:'',favorite_brand:''});assert.equal(f.state().err,'');
+ subs.length=0;f=mk();await f.send({first:'  Ana María ',last:' de la Cruz ',gender:'M'});assert.deepEqual([subs[0].first_name,subs[0].last_name,subs[0].gender],['Ana María','de la Cruz','M'],'los espacios de los lados se recortan');
+ /* la fecha se compara contra el día UTC, no contra la hora de la persona */
+ subs.length=0;f=mk({now:'2026-10-26T23:59:59.000Z'});await f.send({birth:'2005-10-27'});assert.equal(subs.length,0);subs.length=0;f=mk({now:'2026-10-27T00:00:00.000Z'});await f.send({birth:'2005-10-27'});assert.equal(subs.length,1,'a partir de la medianoche UTC ya cumple');
+ /* el formulario de completar: sin foto, @, bio ni marca; solo los cuatro datos; también rechaza a un menor */
+ const idm=(o)=>FORM_HARNESS(null,async v=>{subs.push(v);return {ok:true}},undefined,{now,mode:'identity',...o});
+ f=idm();const h2=f.html();assert.match(h2,/Completa tu <em>perfil<\/em>/);assert.ok(h2.includes('Guardar')&&!h2.includes('Crear mi perfil'));for(const id of ['obH','obPf','obPb','obB','obM','obAge'])assert.ok(!h2.includes('id="'+id+'"'),id+' no está en el paso de completar');
+ for(const id of ['obFn','obLn','obGM','obGF','obD'])assert.ok(h2.includes('id="'+id+'"'),id+' sí');
+ subs.length=0;await f.send({birth:'2010-01-01'});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['age-under-21']);
+ subs.length=0;f=idm();await f.send({});assert.deepEqual(subs,[{first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-05-17'}],'solo los cuatro datos, sin @');
+ for(const e of ['first_name-required','last_name-required','last_name-long','last_name-invalid','gender-required','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists','busy'])assert.ok(f.OB[e],'hay mensaje para '+e);
+ assert.ok(!f.OB['age-required'],'el mensaje de la casilla ya no existe');
+});
+test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)',async()=>{
+ const {pathToFileURL}=require('url');const P=await import(pathToFileURL(path.join(__dirname,'..','functions','_lib','profile.js')).href);
+ const now=new Date(T0);const today=P.utcDay(now);const f=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{now:T0});
+ const names=['Ana','','   ','a'.repeat(50),'a'.repeat(51),'🌿'.repeat(50),'🌿'.repeat(51),'An\na','An\u0000a','An a','Ñandú','  Ana  '];
+ const genders=['M','F',''];const births=['1990-05-17','2005-10-26','2005-10-27','2026-10-26','2026-10-27','2001-02-29','2000-02-29','1899-12-31','1900-01-01','0001-01-01','9999-12-31','','17/05/1990','2000-1-1','2000-13-01'];
+ let n=0;
+ for(const a of names)for(const b of [names[0],names[3]])for(const g of genders)for(const d of births){const o={first_name:a,last_name:b,gender:g,birth_date:d};
+  const s=P.checkIdentity(o,now),c=f.idProblem(o,today);assert.equal(c||undefined,s.error,JSON.stringify(o));n++}
+ for(const a of names)for(const g of genders)for(const d of births){const o={first_name:'Ana',last_name:a,gender:g,birth_date:d};assert.equal(f.idProblem(o,today)||undefined,P.checkIdentity(o,now).error,JSON.stringify(o));n++}
+ assert.ok(n>1000,'la matriz tiene casos: '+n);
+ /* los mismos mensajes: cada error que el servidor puede dar tiene texto en el formulario */
+ for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+});
+test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v53'/);
+ /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+ for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+ const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+});
+test('LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)',async()=>{
+ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/const acct=\{.*\};\n/)[0];
+ const mem=new Map();const ls={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};
+ const ctx={A:{LS:{get(k,d){try{const v=ls.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){ls.setItem('vb_'+k,JSON.stringify(v))}}},localStorage:ls};vm.createContext(ctx);vm.runInContext(line+';this.acct=acct',ctx);
+ /* lo que guardó la versión anterior: otra llave, y ya no se lee */
+ ls.setItem('vb_cuenta',JSON.stringify({sub:'user_a',handle:'sergio'}));assert.equal(ctx.acct.get(),null,'el perfil guardado antes de LHB-52 no cuenta');
+ ctx.acct.set({sub:'user_a',handle:'sergio'});assert.deepEqual(ctx.acct.get(),{sub:'user_a',handle:'sergio'},'lo nuevo sí se guarda y se lee');assert.ok(mem.has('vb_cuenta2'));
+ ctx.acct.clear();assert.equal(ctx.acct.get(),null);assert.ok(!mem.has('vb_cuenta2')&&!mem.has('vb_cuenta'),'salir borra la llave nueva y la vieja');
+ /* y el gate, con ese almacén vacío: sin conexión no abre, y la acción rápida pasa por /api/me y por el paso de identidad */
+ const off=CUENTA_HARNESS({api:async()=>({status:0,body:{}})});off.C.user={id:'user_a'};await off.A.require(off.go);await tick();assert.ok(!off.log.includes('GO'),'sin perfil guardado y sin red no abre');
+ const calls=[];const fast=CUENTA_HARNESS({api:async(C,m,p)=>{calls.push(m+' '+p);return {status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}}});fast.D.ui.identity=()=>fast.log.push('identity');fast.nav('#/c/yambo-toro');fast.C.user={id:'user_a'};
+ fast.A.quick(()=>fast.log.push('ACTION'),{inPlace:true,act:'humidor'});await tick();assert.deepEqual(calls,['GET /api/me'],'sin perfil guardado la acción rápida revisa en el servidor');assert.ok(fast.log.includes('identity')&&!fast.log.includes('ACTION'),'y pide la identidad antes de hacer la acción');
+ assert.ok(src.includes("A.LS.get('cuenta2',null)")&&src.includes("A.LS.set('cuenta2',v)"),'la llave nueva');
+});
+test('LHB-52: si el perfil ya existía al crearlo (409) y sigue sin identidad, se pide completar antes de guardar o abrir',async()=>{
+ let gets=0;const h=CUENTA_HARNESS({api:async(C,m)=>m==='POST'?{status:409,body:{error:'profile-exists'}}:++gets===1?{status:200,body:{needsProfile:true}}:{status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}});
+ let onb,idn;h.D.ui.onboarding=s=>{onb=s};h.D.ui.identity=s=>{idn=s;h.log.push('identity')};h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};
+ await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();assert.equal(typeof onb,'function');
+ assert.deepEqual(await onb({handle:'sergio',first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-01-01'}),{stale:true},'el formulario de perfil nuevo queda reemplazado');
+ assert.equal(typeof idn,'function','aparece el paso de completar');assert.ok(!h.log.includes('GO')&&!h.log.some(x=>x.startsWith('store')),'no abre ni guarda el perfil sin identidad');
+ /* completarlo termina igual que siempre: guarda, felicita, repinta y hace la acción */
+ h.D.api=async(C,m)=>({status:200,body:{ok:true}});assert.deepEqual(await idn({first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-01-01'}),{ok:true});
+ assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'||x.startsWith('store')),['store:user_a:sergio','reroute','GO']);
+});
+test('LHB-52: el error del formulario se ve: caja roja con borde y letra grande, la pantalla baja hasta ella y se quita al corregir',async()=>{
+ const f=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{now:T0});
+ await f.send({birth:'2019-09-09'});const e=f.$('#obErr');
+ assert.equal(e.hidden,false);assert.equal(e.textContent,f.OB['age-under-21']);
+ assert.match(e.style.cssText,/border:2px solid var\(--flam\)/);assert.match(e.style.cssText,/font-size:16px/);assert.match(e.style.cssText,/background:rgba\(208,25,46/);
+ assert.equal(e.scrolls,1,'la pantalla baja hasta el error');
+ await f.send({});assert.equal(e.hidden,true,'al corregir, el error desaparece');assert.equal(e.style.cssText,'');assert.equal(e.scrolls,1,'y no vuelve a moverse la pantalla');
 });

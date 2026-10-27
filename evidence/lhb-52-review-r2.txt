@@ -1,0 +1,1732 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: high
+reasoning summaries: none
+session id: 01a17a87-0a18-7732-9f1f-4a09bf286030
+--------
+user
+HARD RULES: You are an independent code reviewer, round 2. You REVIEW AND CHANGE NOTHING: edit no file, make no commit, run no git command that writes. Load no skill, plugin or template. Do not print file contents back. Your FIRST and ONLY message is the answer, ending with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+REPO: C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2 (La Hoja Boricua, Cloudflare Pages Functions + D1 + Clerk, vanilla JS PWA, Spanish UI text). Review the slice: git diff 4283dac..HEAD (branch lhb-52-identity). Tests: node --test test/site.test.js (you may run it). The tracker is not readable by you, so the contract is quoted here.
+
+TICKET LHB-52 CONTRACT (unchanged from round 1).
+Scope (nothing else may change): functions/_lib/profile.js, functions/api/profile.js, functions/api/me.js, migrations/0003_identity.sql, site/cuenta.js, site/hoja.js, site/sw.js, test/site.test.js, evidence/.
+Contract impact: migration 0003 adds nullable columns first_name, last_name, gender ('M' or 'F'), birth_date ('YYYY-MM-DD') to profiles. birth_date and gender are never returned by any public endpoint, only to their owner on /api/me. Existing profiles have nulls; their next Mi Hoja entry shows a Completa tu perfil step before anything else; delivered rows are never backfilled. The 21+ checkbox is removed; age_ok_at is stamped when the date shows 21 or older. site/privacidad.html is NOT edited.
+Pinned decisions (owner, do not re-litigate): all four fields required. Gender is Male or Female. DOB must be a real calendar date, not in the future, and 21 or older on the server UTC date; a younger date gets a clear message and creates nothing. DOB and gender are private; public surfaces show first name plus last initial and @handle only. Names 1 to 50 characters (characters not bytes), no control characters; public display name defaults to first name plus last initial; legacy display_name stays readable. LHB-49 picture rules stay.
+Not mine: a third gender choice; the privacy wording; applying migration 0003 to production.
+Proof asked: server tests per rejection (missing field, bad date, 20 years 364 days, exactly 21 today, future date); a real-SQLite test that a public read never contains birth_date or gender; a form test that an under-21 date sends nothing; a test that an existing null-identity profile is routed to the completion step; each test seen failing against a mutated source (evidence/lhb-52-mutations.py, output in evidence/lhb-52-mutations.txt, which you can read; you cannot rerun it because it edits files).
+
+ROUND 1 FINDINGS AND DISPOSITIONS (from your round 1, verdict BLOCK).
+F1 BLOCKING site/cuenta.js go(): a legacy user keeps a pre-migration cached {sub, handle} profile, which the offline path, the 5xx path and the fast in-place path trust, so Mi Hoja or an action opens without the completion step. DISPOSITION: FIXED in the commit under review. site/hoja.js now keeps the cached profile under a new localStorage key (cuenta2, stored as vb_cuenta2); anything saved before this ticket (key vb_cuenta) is never read, and clear() removes both. A cache entry written by this code is only written after a 200 from /api/me with needsIdentity false, or after a successful completion. New test: LHB-52 un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexion ni por el camino rapido. Please check that this closes F1 and look for any path still reading or writing the old key or caching a profile whose identity is incomplete.
+F2 BLOCKING mutation evidence: S8, C6, C7 survived in the run you saw and the contract file name was absent. DISPOSITION: FIXED. S8, C6 (a hanging second submit is now a race, so it fails instead of hanging) and C7 (two redundant guards removed together) were repaired and the full run repeated; evidence/lhb-52-mutations.txt is that run (read it), evidence/lhb-52-mutations-r1.txt is the earlier run kept as record.
+F3 ADVISORY the minimum birth year 1900 rejects 1899-12-31. DISPOSITION: MAINTAIN. It is a sanity bound on a field nobody can truthfully have earlier than a 127 year old person, it does not touch any pinned rule (a date that old is not a plausible real date of birth), and it turns away the typo years 0001 to 1899 that a date field can produce. Both client and server apply it and the matrix test pins them together. If you believe this violates a pinned decision, say so with the pinned text.
+
+REVIEW FOCUS for this round: (a) does the F1 fix hold, including a user who is signed in, offline and has only the old vb_cuenta entry; (b) any new defect introduced by the fix; (c) anything from round 1 focus areas you did not report because it was fine is not needed again. Mark anything you could not verify as NOT VERIFIED.
+
+ANSWER FORMAT. Numbered findings, each BLOCKING or ADVISORY, file and symbol, the concrete input or state that fails. Then the single VERDICT line.
+
+2026-10-26T23:24:00.521189Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-26T23:24:02.672979Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The cache fix needs verification against the actual diff and the offline entry paths. I will read those paths and the mutation evidence, then run the permitted tests without changing files.
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git status --short; git diff --stat 4283dac..HEAD; git diff 4283dac..HEAD -- site/cuenta.js site/hoja.js site/sw.js' in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+ succeeded in 1616ms:
+?? evidence/lhb-52-review-r2.txt
+ evidence/lhb-52-mutations-r1.txt     |  151 ++
+ evidence/lhb-52-mutations.py         |  131 ++
+ evidence/lhb-52-mutations.txt        |  161 +++
+ evidence/lhb-52-review-prompt-r1.txt |   16 +
+ evidence/lhb-52-review-prompt-r2.txt |   19 +
+ evidence/lhb-52-review-r1.txt        | 2594 ++++++++++++++++++++++++++++++++++
+ evidence/lhb-52-tests.txt            |  107 ++
+ functions/_lib/profile.js            |   80 +-
+ functions/api/me.js                  |   10 +-
+ functions/api/profile.js             |   58 +-
+ migrations/0003_identity.sql         |    9 +
+ site/cuenta.js                       |   33 +-
+ site/hoja.js                         |   62 +-
+ site/sw.js                           |    2 +-
+ test/site.test.js                    |  399 +++++-
+ 15 files changed, 3721 insertions(+), 111 deletions(-)
+diff --git a/site/cuenta.js b/site/cuenta.js
+index 7022262..f1ed9a7 100644
+--- a/site/cuenta.js
++++ b/site/cuenta.js
+@@ -54,6 +54,8 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
+  const uid=C.user.id;let r;
+  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
+  if(!lv(C,uid))return;
++ /* LHB-52: un perfil de antes, sin nombre, apellido, género y fecha de nacimiento, completa su identidad antes de abrir nada; mientras tanto no se guarda para abrir sin conexión */
++ if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
+  if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();retire();return done()}
+  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
+  if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
+@@ -68,13 +70,17 @@ const picOf=U=>U&&U.hasImage===true&&typeof U.imageUrl==='string'&&U.imageUrl.st
+ let uq=Promise.resolve();
+ /* el último formulario de perfil abierto: uno que ya fue reemplazado por otro no vuelve a valer */
+ let formSeq=0;
+-function onboard(C,done,o,lv,uid){ob=true;
++/* lo que comparten el formulario del perfil nuevo y el de completar la identidad (LHB-52) */
++function guard(C,o,lv,uid){
+  /* lv también se cae cuando otra acción tocó después y falló (un 503) sin abrir otro formulario: este formulario sigue en pantalla, con la misma cuenta y la misma página, y la persona
+     debe poder terminar. Vale mientras sea el último formulario abierto; un cambio de cuenta, de página o de formulario lo sigue descartando */
+  const mine=++formSeq,here0=D.here(),vis0=vis;
+  const live=()=>lv(C,uid)||(mine===formSeq&&ob&&vis===vis0&&D.here()===here0&&!!C.user&&C.user.id===uid);
+  /* si el perfil se crea con lv caído, una acción más nueva que sigue en vuelo se descarta y la que falló y quedó para volver también: la acción de este formulario corre una sola vez */
+  const settle=()=>{failure=null;if(!lv(C,uid)){if(o.inPlace)sip++;else seq++}};
++ return {live,settle}}
++function onboard(C,done,o,lv,uid){ob=true;
++ const {live,settle}=guard(C,o,lv,uid);
+  const U=C.user;let pic=picOf(U),up=0,pend=0,sending=false;
+  /* url() es la foto puesta ahora; upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva) */
+  const picture={url:()=>pic,upload:file=>{
+@@ -95,7 +101,7 @@ function onboard(C,done,o,lv,uid){ob=true;
+   /* el formulario puede seguir en pantalla después de un cambio de cuenta: no se manda nada a nombre de otra persona */
+   if(!live())return {stale:true};
+   if(!pic)return {error:'avatar-required'};
+-  let r;try{r=await D.api(C,'POST','/api/profile',{...f,age_ok:true,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
++  let r;try{r=await D.api(C,'POST','/api/profile',{...f,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
+   const same=!!C.user&&C.user.id===uid;
+   if(r.status===201){if(same)cache({sub:uid,handle:r.body.profile.handle});
+    if(!live())return {stale:true};
+@@ -114,6 +120,29 @@ function onboard(C,done,o,lv,uid){ob=true;
+   if(!live())return {stale:true};
+   if(pend||sending)return {error:'avatar-busy'};
+   sending=true;try{return await send(f)}finally{sending=false}},picture)}
++/* LHB-52: completar la identidad de un perfil que ya existía. Mismo cuidado que el formulario nuevo (cuenta, página y formulario vigentes; un envío a la vez; una sola salida),
++   pero sin foto ni @: el servidor (PUT /api/profile) solo toca un perfil al que le falta alguno de los cuatro datos. */
++function identify(C,done,o,lv,uid,prof){ob=true;
++ /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, se vuelve a revisar */
++ D.store.clear();
++ const {live,settle}=guard(C,o,lv,uid);let sending=false;
++ const finish=()=>{cache({sub:uid,handle:prof.handle});settle();ob=false;D.intent.clear();D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();return {ok:true}};
++ const send=async f=>{
++  if(!live())return {stale:true};
++  let r;try{r=await D.api(C,'PUT','/api/profile',{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date},uid)}catch(e){r={status:0,body:{}}}
++  if(!live())return {stale:true};
++  if(r.status===200)return finish();
++  /* ya estaba completo (otra pestaña o un envío cuya respuesta se perdió): se revisa dentro de este mismo envío y, si sale completo, termina igual que un 200 */
++  if(r.body.error==='identity-exists'){
++   let m;try{m=await D.api(C,'GET','/api/me',null,uid)}catch(e){m={status:0,body:{}}}
++   if(!live())return {stale:true};
++   if(m.status===200&&m.body.profile&&m.body.needsIdentity!==true)return finish();
++   return {error:'recheck'}}
++  return {error:r.body.error||'generic'}};
++ D.ui.identity(async f=>{
++  if(!live())return {stale:true};
++  if(sending)return {error:'busy'};
++  sending=true;try{return await send(f||{})}finally{sending=false}})}
+ /* acción en sitio: pasa por la misma puerta que Mi Hoja (con el perfil de ese usuario ya guardado no espera a la red). Si el usuario toca otra acción antes de que
+    termine la revisión, vale la última: cada toque es una sola acción y corre una vez o ninguna. */
+ const quick=(done,o)=>go(done,{...o,inPlace:true,fast:true,quick:true});
+diff --git a/site/hoja.js b/site/hoja.js
+index a546bd9..96d82ba 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -139,7 +139,8 @@ function bindBackup(){$$('[data-exp]').forEach(b=>b.onclick=exportar);$$('[data-
+ const CLERK=location.hostname==='lahojaboricua.com'?{pk:'pk_live_Y2xlcmsubGFob2phYm9yaWN1YS5jb20k',fapi:'clerk.lahojaboricua.com'}:{pk:'pk_test_ZGFyaW5nLWVhZ2xlLTgzOTQuY2xlcmsuYWNjb3VudHMuZGV2JA',fapi:'daring-eagle-8394.clerk.accounts.dev'};
+ const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
+ /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
+-const acct={get:()=>A.LS.get('cuenta',null),set:v=>A.LS.set('cuenta',v),clear:()=>{try{localStorage.removeItem('vb_cuenta')}catch(e){}}};
++/* LHB-52: la llave nueva (cuenta2) deja sin valor lo guardado antes de pedir la identidad: un perfil guardado de antes ({sub,handle}) no abre Mi Hoja sin conexión ni por el camino rápido; clear() borra las dos */
++const acct={get:()=>A.LS.get('cuenta2',null),set:v=>A.LS.set('cuenta2',v),clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}}};
+ /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
+ const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
+ let clerkP=null;
+@@ -153,28 +154,44 @@ async function api(C,method,path,body,uid){const t=await C.session.getToken();if
+ function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
+ function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
+  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}
+-const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','age-required':'Tienes que confirmar que tienes 21 años o más.','bio-long':'La descripción puede tener hasta 160 caracteres.','display_name-long':'El nombre puede tener hasta 50 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.','recheck':'Tu perfil ya existe, pero no pudimos abrirlo. Intenta otra vez.','avatar-required':'Pon una foto para crear tu perfil.','avatar-invalid':'No pudimos usar esa foto. Escoge otra.','avatar-type':'Escoge un archivo de imagen, una foto.','avatar-upload':'No pudimos subir la foto. Intenta otra vez.','avatar-busy':'Espera a que termine lo que está en curso e intenta otra vez.'};
+-function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));
+- view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Tu <em>perfil</em></h1></header>
++const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','first_name-required':'Escribe tu nombre.','first_name-long':'Tu nombre puede tener hasta 50 caracteres.','first_name-invalid':'Tu nombre tiene caracteres que no podemos usar.','last_name-required':'Escribe tu apellido.','last_name-long':'Tu apellido puede tener hasta 50 caracteres.','last_name-invalid':'Tu apellido tiene caracteres que no podemos usar.','gender-required':'Escoge Masculino o Femenino.','gender-invalid':'Escoge Masculino o Femenino.','birth_date-required':'Escribe tu fecha de nacimiento.','birth_date-invalid':'Esa fecha de nacimiento no es válida. Revísala.','birth_date-future':'Esa fecha todavía no llega. Revisa tu fecha de nacimiento.','age-under-21':'La Hoja Boricua es para personas de 21 años o más. Todavía no puedes crear tu perfil.','identity-exists':'Tu perfil ya está completo.','busy':'Espera a que termine lo que está en curso e intenta otra vez.','bio-long':'La descripción puede tener hasta 160 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.','recheck':'Tu perfil ya existe, pero no pudimos abrirlo. Intenta otra vez.','avatar-required':'Pon una foto para crear tu perfil.','avatar-invalid':'No pudimos usar esa foto. Escoge otra.','avatar-type':'Escoge un archivo de imagen, una foto.','avatar-upload':'No pudimos subir la foto. Intenta otra vez.','avatar-busy':'Espera a que termine lo que está en curso e intenta otra vez.'};
++/* LHB-52: la identidad del perfil. Las mismas reglas que el servidor (functions/_lib/profile.js): nombre y apellido de 1 a 50 caracteres sin caracteres de control, género M o F, y una fecha real,
++   que no sea futura y dé 21 años o más. today es la fecha UTC ('YYYY-MM-DD'), la misma que usa el servidor, no la del teléfono. Devuelve la clave del error o '' */
++const ID_BAD=/[\p{Cc}\p{Zl}\p{Zp}]/u;
++function idProblem(f,today){
++ for(const k of ['first_name','last_name']){const s=String(f[k]==null?'':f[k]).trim();if(!s)return k+'-required';if(ID_BAD.test(s))return k+'-invalid';if([...s].length>50)return k+'-long'}
++ if(f.gender!=='M'&&f.gender!=='F')return 'gender-required';
++ const v=f.birth_date;if(v==null||v==='')return 'birth_date-required';
++ if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return 'birth_date-invalid';
++ const y=+v.slice(0,4),m=+v.slice(5,7),d=+v.slice(8,10),dt=new Date(0);dt.setUTCFullYear(y,m-1,d);
++ if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==m-1||dt.getUTCDate()!==d||y<1900)return 'birth_date-invalid';
++ if(v>today)return 'birth_date-future';
++ if(v>String(+today.slice(0,4)-21).padStart(4,'0')+today.slice(4))return 'age-under-21';
++ return ''}
++/* mode 'identity': un perfil que ya existía y solo le falta nombre, apellido, género y fecha de nacimiento ("Completa tu perfil"); sin foto, sin @, sin bio ni marca */
++function onboardingForm(submit,picture,mode){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));const idm=mode==='identity';const today=new Date().toISOString().slice(0,10);
++ view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>${idm?'Completa tu <em>perfil</em>':'Tu <em>perfil</em>'}</h1></header>
+  <form class="form" id="obForm" novalidate>
+- <div class="ob-pic" role="group" aria-labelledby="obPt"><p class="ob-pic-t" id="obPt">Tu foto</p><div class="ob-pic-row"><span class="ob-pic-img" id="obPv"></span><button class="lbtn" type="button" id="obPb"></button></div><p class="hint" id="obPh" aria-live="polite"></p><input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1"></div>
+- <div class="field"><label for="obH">Tu @ (nombre de usuario)</label><input id="obH" required minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="ej. tabaquero_pr"><p class="hint">De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.</p></div>
+- <div class="field"><label for="obN">Tu nombre (opcional)</label><input id="obN" maxlength="50" autocomplete="name"></div>
+- <div class="field"><label for="obB">Una descripción corta (opcional)</label><textarea id="obB" maxlength="160" rows="3"></textarea><p class="hint"><span id="obBn">0</span>/160</p></div>
+- <div class="field"><label for="obM">Tu marca favorita (opcional)</label><input id="obM" maxlength="60" list="obML"><datalist id="obML">${marcas.map(m=>`<option value="${esc(m)}">`).join('')}</datalist></div>
+- <label class="check"><input type="checkbox" id="obAge" required> Tengo 21 años o más.</label>
++ ${idm?'<p class="hint">Ahora pedimos tu nombre, tu apellido, tu género y tu fecha de nacimiento. Es un solo paso y no se repite.</p>':`<div class="ob-pic" role="group" aria-labelledby="obPt"><p class="ob-pic-t" id="obPt">Tu foto</p><div class="ob-pic-row"><span class="ob-pic-img" id="obPv"></span><button class="lbtn" type="button" id="obPb"></button></div><p class="hint" id="obPh" aria-live="polite"></p><input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1"></div>
++ <div class="field"><label for="obH">Tu @ (nombre de usuario)</label><input id="obH" required minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="ej. tabaquero_pr"><p class="hint">De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.</p></div>`}
++ <div class="field"><label for="obFn">Tu nombre</label><input id="obFn" required maxlength="50" autocomplete="given-name"></div>
++ <div class="field"><label for="obLn">Tu apellido</label><input id="obLn" required maxlength="50" autocomplete="family-name"></div>
++ <div role="radiogroup" aria-labelledby="obGt"><p class="ob-pic-t" id="obGt">Tu género</p><label class="check"><input type="radio" name="obG" id="obGM" value="M"> Masculino</label><label class="check"><input type="radio" name="obG" id="obGF" value="F"> Femenino</label></div>
++ <div class="field"><label for="obD">Tu fecha de nacimiento</label><input id="obD" type="date" required min="1900-01-01" max="${today}" autocomplete="bday"><p class="hint">Tienes que tener 21 años o más. Tu fecha de nacimiento y tu género son privados: solo los ves tú. Los demás ven tu nombre con la inicial de tu apellido (por ejemplo, Ana M.) y tu @.</p></div>
++ ${idm?'':`<div class="field"><label for="obB">Una descripción corta (opcional)</label><textarea id="obB" maxlength="160" rows="3"></textarea><p class="hint"><span id="obBn">0</span>/160</p></div><div class="field"><label for="obM">Tu marca favorita (opcional)</label><input id="obM" maxlength="60" list="obML"><datalist id="obML">${marcas.map(m=>`<option value="${esc(m)}">`).join('')}</datalist></div>`}
+  <p class="hint">Lee qué guardamos y qué ven los demás en <a href="/privacidad">Privacidad y cuenta</a>.</p>
+  <p class="hint" id="obErr" role="alert" hidden></p>
+- <button class="btn" type="submit" id="obGo">Crear mi perfil</button></form>`;
++ <button class="btn" type="submit" id="obGo">${idm?'Guardar':'Crear mi perfil'}</button></form>`;
+  const form=$('#obForm');
+  const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m};
+  /* LHB-49: la foto es obligatoria. Viene la de la cuenta (Google, Apple) si la hay; la persona puede escoger otra, que se achica aquí antes de subirla a su cuenta */
+  let own=false;
+- const showPic=()=>{const u=picture.url(),v=$('#obPv');v.textContent='';if(u){const im=document.createElement('img');im.alt='Tu foto de perfil';im.src=u;v.appendChild(im)}else v.textContent='+';
++ const showPic=()=>{if(idm)return;const u=picture.url(),v=$('#obPv');v.textContent='';if(u){const im=document.createElement('img');im.alt='Tu foto de perfil';im.src=u;v.appendChild(im)}else v.textContent='+';
+   $('#obPb').textContent=u?'Cambiar foto':'Elegir foto';$('#obPh').textContent=u?(own?'Listo, esta es tu foto.':'Usamos la foto de tu cuenta. Puedes escoger otra.'):'Para crear tu perfil necesitas una foto. Escoge una de tu teléfono.'};
+  /* una sola operación a la vez: mientras se sube la foto o se crea el perfil, ni el botón de foto ni el de crear responden */
+- let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;$('#obPb').disabled=b};
++ let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;const pb=$('#obPb');if(pb)pb.disabled=b};
+  showPic();
++ if(!idm){
+  $('#obPb').onclick=()=>$('#obPf').click();
+  $('#obPf').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||working)return;
+   if(!/^image\//.test(f.type))return err(OB_ERR['avatar-type']);
+@@ -183,15 +200,20 @@ function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos|
+   if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
+   busy(false);if(r.error)return err(OB_ERR[r.error]||OB_ERR['avatar-upload']);
+   own=true;showPic()};
+- $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length};
+- form.onsubmit=async e=>{e.preventDefault();if(working)return;const h=$('#obH').value.trim().toLowerCase();
+-  if(!picture.url())return err(OB_ERR['avatar-required']);
+-  if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid']);if(!$('#obAge').checked)return err(OB_ERR['age-required']);
++ $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length}}
++ form.onsubmit=async e=>{e.preventDefault();if(working)return;
++  const f={first_name:$('#obFn').value.trim(),last_name:$('#obLn').value.trim(),gender:$('#obGM').checked?'M':$('#obGF').checked?'F':'',birth_date:$('#obD').value};
++  let h='';
++  if(!idm){h=$('#obH').value.trim().toLowerCase();
++   if(!picture.url())return err(OB_ERR['avatar-required']);
++   if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid'])}
++  /* LHB-52: una fecha que muestra menos de 21 años (o inválida, o futura) no se manda a ningún lado */
++  const bad=idProblem(f,new Date().toISOString().slice(0,10));if(bad)return err(OB_ERR[bad]||OB_ERR['birth_date-invalid']);
+   err('');busy(true);
+-  let r;try{r=await submit({handle:h,display_name:$('#obN').value,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
++  let r;try{r=await submit(idm?f:{handle:h,...f,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
+   if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
+-  busy(false);if(r.error)err(OB_ERR[r.error]||'No pudimos crear tu perfil. Intenta otra vez.')}}
+-const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast,closeAll:closeSheetNow}});
++  busy(false);if(r.error)err(OB_ERR[r.error]||(idm?'No pudimos guardar tu perfil. Intenta otra vez.':'No pudimos crear tu perfil. Intenta otra vez.'))}}
++const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,'identity'),toast,closeAll:closeSheetNow}});
+ /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
+ const requireAccount=(go,o)=>CUENTA.require(go,o);
+ /* ---------- acciones que piden cuenta (LHB-48) ----------
+diff --git a/site/sw.js b/site/sw.js
+index 9dba0a9..35df8ef 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas; fotos grandes se cachean al verlas */
+-const VERSION='lhb-v52';
++const VERSION='lhb-v53';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Content site/cuenta.js; Get-Content evidence/lhb-52-mutations.txt; Get-Content evidence/lhb-52-mutations.py' in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "git log --oneline -5; git diff 4283dac..HEAD -- functions/_lib/profile.js functions/api/profile.js functions/api/me.js migrations/0003_identity.sql; Get-ChildItem site,test,functions -Recurse -File | Select-String -Pattern 'vb_cuenta|cuenta2|cache\\(|needsIdentity|perfil guardado de antes'" in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'node --test test/site.test.js' in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+ succeeded in 1717ms:
+/* La Hoja Boricua · cuenta (LHB-25): quién puede abrir Mi Hoja y qué pasa al entrar.
+   Sin DOM ni red propios: todo entra por D, así que se prueba con una Clerk de mentira.
+   Reglas:
+   - Un 401 o 403 de /api/me cierra la puerta; el perfil guardado solo abre si no hay conexión o el servidor falla (0 o 5xx), y solo para el mismo usuario.
+   - Cada respuesta pendiente se amarra al usuario, a la pantalla y a la operación que la pidió; si algo cambió, se ignora.
+   - Entrar desde cualquier página deja la página como está, y al terminar se hace la acción que el usuario empezó. */
+window.LHB_CUENTA=function(D){'use strict';
+const ACT=Object.create(null);let seq=0,sip=0,gen=0,hooked=false,lastId=null,pending=null,ob=false,failure=null,vis=0;
+/* irse de una página termina todo lo que esa visita esperaba: volver después no revive una revisión ni una acción que quedó pendiente */
+if(typeof D.onNav==='function')D.onNav(()=>{vis++;pending=null;failure=null;const it=D.intent.get();if(it&&it.from!==D.here())D.intent.clear()});
+/* lo guardado para volver de Google: la acción y su argumento de texto; solo acciones registradas */
+const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.arg=o.arg;return v};
+/* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil; también las páginas que escriben datos de la cuenta (#/cata y #/subir): al cambiar la cuenta se vuelven a pasar por la puerta */
+/* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
+const cache=v=>{try{D.store.set(v)}catch(e){}};
+/* toda salida que da por buena la cuenta con perfil retira el formulario de perfil que siga abierto: quedó viejo y su respuesta tardía ya no corre su acción además de esta */
+const retire=()=>{if(ob){ob=false;D.reroute()}};
+const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
+function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
+ C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;sip++;gen++;D.ui.closeAll();
+  if(!id){D.store.clear();D.intent.clear()}
+  const p=pending;pending=null;const fl=failure;failure=null;
+  if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
+  if(onMiHoja()||ob){ob=false;D.reroute()}
+  /* el aviso de error pedía salir y volver a entrar: al salir, la hoja se cierra con todo y su botón; se deja un botón nuevo para entrar y seguir con la acción */
+  if(!id&&fl&&fl.from===D.here())D.ui.notice('Entra otra vez','Tu acción quedó pendiente. Entra para continuar.',{label:'Entrar',on:()=>go(fl.done,{...fl.o,resume:false})})})}
+/* una acción en sitio (corazón, sello, estrella, humidor) cuenta aparte de la puerta de una página: tocar un corazón no cancela el dibujo de Mi Hoja ni al revés; un cambio de cuenta cancela las dos */
+async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=vis,op=inp?++sip:++seq;if(inp){failure=null;/* un toque nuevo sustituye al anterior: lo guardado del anterior para volver de Google ya no vale (el nuevo guarda el suyo si hace falta) */if(!o.resume)D.intent.clear()}else ob=false;
+ const lv=(C,uid)=>op===(inp?sip:seq)&&vis===v0&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
+ const show=(h,p,b)=>{if(!inp&&op===seq)D.ui.card(h,p,b)};
+ /* un error nunca se esconde: sobre la página (en sitio) o en la tarjeta de Mi Hoja, siempre con reintento que conserva la acción */
+ const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:'Intentar otra vez',on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}else D.ui.card(h,p,b)};
+ show('Un momento…','Revisando tu cuenta.');
+ let C;
+ try{C=await D.clerk()}catch(e){
+  if(op!==(inp?sip:seq)||vis!==v0||D.here()!==from)return;
+  if(D.store.get()){D.intent.clear();retire();return done()}
+  fail('Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
+ hook(C);
+ /* con el perfil de ese usuario ya guardado la acción en sitio no espera a la red ni depende de otro toque: solo se descarta si cambió la cuenta o la página */
+ if(inp?(gen!==g0||vis!==v0||D.here()!==from):!lv(C))return;
+ /* una acción en sitio (corazón, sello, estrella) no espera a la red: con sesión abierta y el perfil de ese mismo usuario guardado, se hace al instante */
+ if(o.fast&&C.user){const c0=D.store.get();if(c0&&c0.sub===C.user.id){D.intent.clear();retire();return done()}}
+ if(!lv(C))return;
+ /* en Mi Hoja y las páginas de la cuenta la puerta de la página es la única que espera: una acción en sitio que no puede hacerse al instante no se guarda ni compite con ella;
+    sin sesión solo se abre la hoja de entrar */
+ if(o.quick&&onMiHoja()){if(!C.user)D.openSignIn(C);return}
+ if(!C.user){D.store.clear();
+  if(o.resume){D.intent.clear();return}
+  pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));
+  const open=()=>D.openSignIn(C);
+  show('Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta. El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.',{label:'Entrar o crear cuenta',on:open});
+  open();return}
+ const uid=C.user.id;let r;
+ try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
+ if(!lv(C,uid))return;
+ /* LHB-52: un perfil de antes, sin nombre, apellido, género y fecha de nacimiento, completa su identidad antes de abrir nada; mientras tanto no se guarda para abrir sin conexión */
+ if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
+ if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();retire();return done()}
+ if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
+ if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
+ const c=D.store.get();
+ if(c&&c.sub===uid&&(r.status===0||r.status>=500)){D.intent.clear();retire();return done()}
+ fail('No pudimos revisar tu cuenta','Intenta otra vez en un momento.')}
+/* LHB-49: la foto de perfil es la de Clerk. Si la cuenta ya trae una (Google, Apple) viene puesta; si no, o si la persona quiere otra, la sube con setProfileImage.
+   Una foto de Clerk que no se subió ni se importó (la silueta de siempre) tiene hasImage en false y no cuenta. Sin foto no se manda el perfil. */
+const CLERK_IMG='https://img.clerk.com/';
+const picOf=U=>U&&U.hasImage===true&&typeof U.imageUrl==='string'&&U.imageUrl.startsWith(CLERK_IMG)?U.imageUrl:null;
+/* las subidas van de una en una aunque el formulario se cierre y se abra otro: la cuenta de Clerk es una sola, y si dos escrituras corrieran a la vez no se sabría cuál dejó la URL que se lee */
+let uq=Promise.resolve();
+/* el último formulario de perfil abierto: uno que ya fue reemplazado por otro no vuelve a valer */
+let formSeq=0;
+/* lo que comparten el formulario del perfil nuevo y el de completar la identidad (LHB-52) */
+function guard(C,o,lv,uid){
+ /* lv también se cae cuando otra acción tocó después y falló (un 503) sin abrir otro formulario: este formulario sigue en pantalla, con la misma cuenta y la misma página, y la persona
+    debe poder terminar. Vale mientras sea el último formulario abierto; un cambio de cuenta, de página o de formulario lo sigue descartando */
+ const mine=++formSeq,here0=D.here(),vis0=vis;
+ const live=()=>lv(C,uid)||(mine===formSeq&&ob&&vis===vis0&&D.here()===here0&&!!C.user&&C.user.id===uid);
+ /* si el perfil se crea con lv caído, una acción más nueva que sigue en vuelo se descarta y la que falló y quedó para volver también: la acción de este formulario corre una sola vez */
+ const settle=()=>{failure=null;if(!lv(C,uid)){if(o.inPlace)sip++;else seq++}};
+ return {live,settle}}
+function onboard(C,done,o,lv,uid){ob=true;
+ const {live,settle}=guard(C,o,lv,uid);
+ const U=C.user;let pic=picOf(U),up=0,pend=0,sending=false;
+ /* url() es la foto puesta ahora; upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva) */
+ const picture={url:()=>pic,upload:file=>{
+  if(!live())return Promise.resolve({stale:true});
+  if(sending)return Promise.resolve({error:'avatar-busy'});
+  if(!file||typeof file.type!=='string'||!/^image\//.test(file.type))return Promise.resolve({error:'avatar-type'});
+  const n=++up,cur=()=>live()&&n===up;pend++;
+  const job=uq.then(async()=>{try{
+   if(!cur())return {stale:true};
+   try{await U.setProfileImage({file})}catch(e){return cur()?{error:'avatar-upload'}:{stale:true}}
+   /* la URL nueva solo se lee de una cuenta recargada después de esta escritura; si no se pudo recargar no hay con qué confirmar y se queda la foto de antes */
+   try{if(typeof U.reload!=='function')throw 0;await U.reload()}catch(e){return cur()?{error:'avatar-upload'}:{stale:true}}
+   if(!cur())return {stale:true};
+   const p=picOf(U);if(!p)return {error:'avatar-upload'};
+   pic=p;return {url:p}}finally{pend--}});
+  uq=job.catch(()=>{});return job}};
+ const send=async f=>{
+  /* el formulario puede seguir en pantalla después de un cambio de cuenta: no se manda nada a nombre de otra persona */
+  if(!live())return {stale:true};
+  if(!pic)return {error:'avatar-required'};
+  let r;try{r=await D.api(C,'POST','/api/profile',{...f,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
+  const same=!!C.user&&C.user.id===uid;
+  if(r.status===201){if(same)cache({sub:uid,handle:r.body.profile.handle});
+   if(!live())return {stale:true};
+   settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
+  if(!live())return {stale:true};
+  /* la respuesta se perdió pero el perfil sí se creó: se revisa de nuevo dentro de este mismo envío y, si sale bien, se termina igual que con un 201.
+     Si la revisión falla, el formulario sigue vivo para reintentar; no se anuncia éxito antes de tiempo. */
+  if(r.body.error==='profile-exists'){
+   let m;try{m=await D.api(C,'GET','/api/me',null,uid)}catch(e){m={status:0,body:{}}}
+   if(!live())return {stale:true};
+   if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
+   return {error:'recheck'}}
+  return {error:r.body.error||'generic'}};
+ /* un envío y una subida nunca corren a la vez: lo que se manda es la foto que se ve, y la que se sube no llega tarde a un perfil ya enviado */
+ D.ui.onboarding(async f=>{
+  if(!live())return {stale:true};
+  if(pend||sending)return {error:'avatar-busy'};
+  sending=true;try{return await send(f)}finally{sending=false}},picture)}
+/* LHB-52: completar la identidad de un perfil que ya existía. Mismo cuidado que el formulario nuevo (cuenta, página y formulario vigentes; un envío a la vez; una sola salida),
+   pero sin foto ni @: el servidor (PUT /api/profile) solo toca un perfil al que le falta alguno de los cuatro datos. */
+function identify(C,done,o,lv,uid,prof){ob=true;
+ /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, se vuelve a revisar */
+ D.store.clear();
+ const {live,settle}=guard(C,o,lv,uid);let sending=false;
+ const finish=()=>{cache({sub:uid,handle:prof.handle});settle();ob=false;D.intent.clear();D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();return {ok:true}};
+ const send=async f=>{
+  if(!live())return {stale:true};
+  let r;try{r=await D.api(C,'PUT','/api/profile',{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date},uid)}catch(e){r={status:0,body:{}}}
+  if(!live())return {stale:true};
+  if(r.status===200)return finish();
+  /* ya estaba completo (otra pestaña o un envío cuya respuesta se perdió): se revisa dentro de este mismo envío y, si sale completo, termina igual que un 200 */
+  if(r.body.error==='identity-exists'){
+   let m;try{m=await D.api(C,'GET','/api/me',null,uid)}catch(e){m={status:0,body:{}}}
+   if(!live())return {stale:true};
+   if(m.status===200&&m.body.profile&&m.body.needsIdentity!==true)return finish();
+   return {error:'recheck'}}
+  return {error:r.body.error||'generic'}};
+ D.ui.identity(async f=>{
+  if(!live())return {stale:true};
+  if(sending)return {error:'busy'};
+  sending=true;try{return await send(f||{})}finally{sending=false}})}
+/* acción en sitio: pasa por la misma puerta que Mi Hoja (con el perfil de ese usuario ya guardado no espera a la red). Si el usuario toca otra acción antes de que
+   termine la revisión, vale la última: cada toque es una sola acción y corre una vez o ninguna. */
+const quick=(done,o)=>go(done,{...o,inPlace:true,fast:true,quick:true});
+/* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
+function resume(){const it=D.intent.get();
+ if(it&&it.from===D.here()&&!onMiHoja()&&typeof it.act==='string'&&typeof ACT[it.act]==='function'){const act=it.act,arg=typeof it.arg==='string'?it.arg:undefined;
+  return quick(()=>ACT[act](arg),{resume:true,act,arg})}
+ D.intent.clear()}
+return {require:go,quick,resume,gen:()=>gen,register:(name,fn)=>{ACT[name]=fn}}};
+baseline (0, [])
+S1 servidor: un nombre vacío se acepta -> ROJO (bien) fail=5
+      LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+S2 servidor: los caracteres de control en el nombre pasan -> ROJO (bien) fail=4
+      LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S3 servidor: el largo del nombre se mide en unidades UTF-16, no en caracteres -> ROJO (bien) fail=2
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S4 servidor: el nombre puede tener 51 caracteres -> ROJO (bien) fail=3
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S5 servidor: cualquier género pasa -> ROJO (bien) fail=3
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S6 servidor: el género no es obligatorio -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S7 servidor: la fecha no es obligatoria -> ROJO (bien) fail=3
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S8 servidor: el 30 de febrero pasa (la fecha no se verifica en el calendario) -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S9 servidor: un año anterior a 1900 pasa -> ROJO (bien) fail=2
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S10 servidor: una fecha futura no tiene su propio error -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S11 servidor: quien cumple 21 hoy se rechaza -> ROJO (bien) fail=3
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S12 servidor: la edad mínima es 20 -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S13 servidor: el corte de los 21 años ignora el mes y el día -> ROJO (bien) fail=4
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+      LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC
+S14 servidor: el nombre público trae el apellido completo -> ROJO (bien) fail=6
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+      LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+S15 servidor: la lectura pública trae la fecha de nacimiento -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+S16 servidor: la lectura pública trae el género -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+S17 servidor: la lectura pública trae perfiles ocultos -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+S18 servidor: la puerta de Mi Hoja trae el nombre y el apellido -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+P1 POST: la fecha de nacimiento no se guarda -> ROJO (bien) fail=2
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+P2 POST: la respuesta 201 trae el género y la fecha -> ROJO (bien) fail=2
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+P3 PUT: se puede sobrescribir una identidad completa -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P4 PUT: el nombre público que ya existía se pisa -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P5 PUT: se toca el sello del 21+ original -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P6 PUT: sin validar la identidad -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P7 PUT: sin perfil también da 409 -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+E1 /api/me: un perfil sin fecha de nacimiento no pide completar -> ROJO (bien) fail=1
+      LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son
+E2 /api/me: no manda la marca needsIdentity -> ROJO (bien) fail=2
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+      LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son
+E3 /api/me: un perfil sin género no pide completar -> ROJO (bien) fail=1
+      LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son
+C1 gate: un perfil sin identidad abre Mi Hoja directo -> ROJO (bien) fail=2
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+      LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+C2 gate: el perfil guardado de antes no se borra -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C3 gate: el PUT lleva todo lo que mande el formulario -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C4 gate: un rechazo del servidor se da por completado -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C5 gate: la revisión que sigue diciendo que falta se da por buena -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C6 gate: se puede enviar dos veces a la vez -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C7 gate: se manda el PUT aunque la cuenta ya sea otra (se quitan las dos revisiones de antes del PUT) -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C8 gate: la respuesta tardía de otra cuenta completa esta -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C9 gate: tras completar en una página pública no se repinta -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C10 gate: tras completar no se guarda el perfil -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C11 gate: el perfil nuevo sigue mandando la casilla de 21 -> ROJO (bien) fail=2
+      LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+H1 formulario: la fecha de un menor se manda -> ROJO (bien) fail=3
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H2 formulario: no se revisa la identidad antes de mandar -> ROJO (bien) fail=2
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H3 formulario: una fecha futura pasa -> ROJO (bien) fail=2
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H4 formulario: el género no es obligatorio -> ROJO (bien) fail=2
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H5 formulario: el largo del nombre se mide en unidades UTF-16 -> ROJO (bien) fail=1
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H6 formulario: los separadores de línea pasan en el nombre -> ROJO (bien) fail=1
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H7 formulario: completar también manda el @ y la bio -> ROJO (bien) fail=2
+      LHB-25: un almacenamiento lleno no impide entrar ni crear el perfil; un cambio de cuenta cierra las hojas de Mi Hoja
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H8 formulario: el campo de fecha no tiene tope en hoy -> ROJO (bien) fail=1
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H9 formulario: aparece un tercer género -> ROJO (bien) fail=1
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H10 formulario: completar muestra la foto y el @ -> ROJO (bien) fail=1
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H11 hoja: el paso de completar no está en la interfaz -> ROJO (bien) fail=1
+      LHB-25: entrar desde una página pública y fallar la revisión muestra el error sobre la página y el reintento conserva la acción
+H12 formulario: la fecha y el género se guardan en el navegador -> ROJO (bien) fail=1
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+K1 hoja: el perfil guardado de antes (llave vieja) vuelve a valer -> ROJO (bien) fail=1
+      LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+K2 hoja: salir no borra la llave vieja -> ROJO (bien) fail=1
+      LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+W1 sw: la versión del caché no cambia -> ROJO (bien) fail=15
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+      artisan logos: every id in LOGOS maps to an existing webp and a real artisan
+      v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)
+restaurado (0, [])
+mutaciones: 54 sobrevivieron o con error: 0
+
+exit=0
+"""LHB-52: la prueba de que las pruebas nuevas pueden fallar. Cada mutación rompe una línea de lo que se entrega,
+corre `node --test test/site.test.js` y debe dar al menos una prueba en rojo. Al final todo se restaura byte por byte.
+Uso: python evidence/lhb-52-mutations.py  (desde la raíz del repositorio); con --check solo comprueba que cada texto a mutar aparece una vez."""
+import os, re, subprocess, sys
+R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+def run():
+    p = subprocess.run(['node', '--test', '--test-timeout=60000', 'test/site.test.js'], cwd=R, capture_output=True, text=True, encoding='utf-8')
+    # una prueba que se cuelga hasta el tiempo límite sale como cancelled, no como fail: cuenta como roja
+    fail = int(re.search(r'^ℹ fail (\d+)', p.stdout, re.M).group(1)) + int(re.search(r'^ℹ cancelled (\d+)', p.stdout, re.M).group(1))
+    names = sorted(set(re.findall(r'^✖ (.+?) \(\d', p.stdout, re.M)))
+    return fail, names
+
+PF = 'functions/_lib/profile.js'
+AP = 'functions/api/profile.js'
+ME = 'functions/api/me.js'
+CU = 'site/cuenta.js'
+HO = 'site/hoja.js'
+
+# (nombre, archivo, texto exacto que existe una vez, texto que lo reemplaza); el texto puede abarcar varias líneas
+MUTS = [
+    # servidor: las reglas
+    ('S1 servidor: un nombre vacío se acepta', PF, "  if (!t) return { error: field + '-required' };\n", "  if (!t) return { value: t };\n"),
+    ('S2 servidor: los caracteres de control en el nombre pasan', PF, "  if (NAME_CONTROL.test(t)) return { error: field + '-invalid' };\n", ""),
+    ('S3 servidor: el largo del nombre se mide en unidades UTF-16, no en caracteres', PF, "if ([...t].length > NAME_MAX)", "if (t.length > NAME_MAX)"),
+    ('S4 servidor: el nombre puede tener 51 caracteres', PF, "export const NAME_MAX = 50;", "export const NAME_MAX = 51;"),
+    ('S5 servidor: cualquier género pasa', PF, "  if (v !== 'M' && v !== 'F') return { error: 'gender-invalid' };\n", ""),
+    ('S6 servidor: el género no es obligatorio', PF, "  if (v == null || v === '') return { error: 'gender-required' };\n", ""),
+    ('S7 servidor: la fecha no es obligatoria', PF, "  if (v == null || v === '') return { error: 'birth_date-required' };\n", ""),
+    ('S8 servidor: el 30 de febrero pasa (la fecha no se verifica en el calendario)', PF, " || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d", ""),
+    ('S9 servidor: un año anterior a 1900 pasa', PF, " || y < MIN_BIRTH_YEAR", ""),
+    ('S10 servidor: una fecha futura no tiene su propio error', PF, "  if (v > today) return { error: 'birth_date-future' };\n", ""),
+    ('S11 servidor: quien cumple 21 hoy se rechaza', PF, "  if (v > cutoff) return", "  if (v >= cutoff) return"),
+    ('S12 servidor: la edad mínima es 20', PF, "export const MIN_AGE = 21;", "export const MIN_AGE = 20;"),
+    ('S13 servidor: el corte de los 21 años ignora el mes y el día', PF, ".padStart(4, '0') + today.slice(4);", ".padStart(4, '0') + '-12-31';"),
+    ('S14 servidor: el nombre público trae el apellido completo', PF, "[...last][0].toUpperCase() + '.'", "last + '.'"),
+    ('S15 servidor: la lectura pública trae la fecha de nacimiento', PF, "'handle, display_name, bio, favorite_brand, avatar_key'", "'handle, display_name, bio, favorite_brand, avatar_key, birth_date'"),
+    ('S16 servidor: la lectura pública trae el género', PF, "'handle, display_name, bio, favorite_brand, avatar_key'", "'handle, display_name, bio, favorite_brand, avatar_key, gender'"),
+    ('S17 servidor: la lectura pública trae perfiles ocultos', PF, " WHERE handle = ?1 AND hidden = 0'", " WHERE handle = ?1'"),
+    ('S18 servidor: la puerta de Mi Hoja trae el nombre y el apellido', PF, "', hidden FROM profiles WHERE user_id = ?1'", "', hidden, first_name, last_name, birth_date FROM profiles WHERE user_id = ?1'"),
+    # servidor: POST y PUT
+    ('P1 POST: la fecha de nacimiento no se guarda', AP, "p.gender, p.birth_date, stamp)", "p.gender, null, stamp)"),
+    ('P2 POST: la respuesta 201 trae el género y la fecha', AP, "return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key } }, 201);", "return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key, gender: p.gender, birth_date: p.birth_date } }, 201);"),
+    ('P3 PUT: se puede sobrescribir una identidad completa', AP, "'WHERE user_id = ?1 AND (first_name IS NULL OR last_name IS NULL OR gender IS NULL OR birth_date IS NULL)'", "'WHERE user_id = ?1'"),
+    ('P4 PUT: el nombre público que ya existía se pisa', AP, "display_name = COALESCE(display_name, ?6)", "display_name = ?6"),
+    ('P5 PUT: se toca el sello del 21+ original', AP, "updated_at = ?7 ' +", "updated_at = ?7, age_ok_at = ?7 ' +"),
+    ('P6 PUT: sin validar la identidad', AP, "  if (id.error) return json({ error: id.error }, 400);\n", ""),
+    ('P7 PUT: sin perfil también da 409', AP, "return has ? json({ error: 'identity-exists' }, 409) : json({ error: 'no-profile' }, 403);", "return json({ error: 'identity-exists' }, 409);"),
+    # /api/me
+    ('E1 /api/me: un perfil sin fecha de nacimiento no pide completar', ME, " || p.birth_date == null;", ";"),
+    ('E2 /api/me: no manda la marca needsIdentity', ME, "return json({ profile: p, needsIdentity });", "return json({ profile: p });"),
+    ('E3 /api/me: un perfil sin género no pide completar', ME, "|| p.gender == null ", ""),
+    # cuenta.js
+    ('C1 gate: un perfil sin identidad abre Mi Hoja directo', CU, " if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);\n", ""),
+    ('C2 gate: el perfil guardado de antes no se borra', CU, " D.store.clear();\n const {live,settle}=guard(C,o,lv,uid);let sending=false;", " const {live,settle}=guard(C,o,lv,uid);let sending=false;"),
+    ('C3 gate: el PUT lleva todo lo que mande el formulario', CU, "{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date}", "f"),
+    ('C4 gate: un rechazo del servidor se da por completado', CU, "  if(r.status===200)return finish();\n", "  if(r.status===200||r.status===400)return finish();\n"),
+    ('C5 gate: la revisión que sigue diciendo que falta se da por buena', CU, "&&m.body.needsIdentity!==true)return finish();", ")return finish();"),
+    ('C6 gate: se puede enviar dos veces a la vez', CU, "  if(sending)return {error:'busy'};\n", ""),
+    ('C7 gate: se manda el PUT aunque la cuenta ya sea otra (se quitan las dos revisiones de antes del PUT)', CU, "  if(!live())return {stale:true};\n  let r;try{r=await D.api(C,'PUT'", "  let r;try{r=await D.api(C,'PUT'", " D.ui.identity(async f=>{\n  if(!live())return {stale:true};\n", " D.ui.identity(async f=>{\n"),
+    ('C8 gate: la respuesta tardía de otra cuenta completa esta', CU, "  if(!live())return {stale:true};\n  if(r.status===200)return finish();", "  if(r.status===200)return finish();"),
+    ('C9 gate: tras completar en una página pública no se repinta', CU, "D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();", "D.ui.toast('Listo, tu perfil está completo.');done();"),
+    ('C10 gate: tras completar no se guarda el perfil', CU, "const finish=()=>{cache({sub:uid,handle:prof.handle});", "const finish=()=>{"),
+    ('C11 gate: el perfil nuevo sigue mandando la casilla de 21', CU, "{...f,avatar_url:pic}", "{...f,age_ok:true,avatar_url:pic}"),
+    # hoja.js
+    ('H1 formulario: la fecha de un menor se manda', HO, "if(v>String(+today.slice(0,4)-21).padStart(4,'0')+today.slice(4))return 'age-under-21';\n", ""),
+    ('H2 formulario: no se revisa la identidad antes de mandar', HO, "const bad=idProblem(f,new Date().toISOString().slice(0,10));if(bad)return err(OB_ERR[bad]||OB_ERR['birth_date-invalid']);", ""),
+    ('H3 formulario: una fecha futura pasa', HO, " if(v>today)return 'birth_date-future';\n", ""),
+    ('H4 formulario: el género no es obligatorio', HO, " if(f.gender!=='M'&&f.gender!=='F')return 'gender-required';\n", ""),
+    ('H5 formulario: el largo del nombre se mide en unidades UTF-16', HO, "if([...s].length>50)return k+'-long'", "if(s.length>50)return k+'-long'"),
+    ('H6 formulario: los separadores de línea pasan en el nombre', HO, "const ID_BAD=/[\\p{Cc}\\p{Zl}\\p{Zp}]/u;", "const ID_BAD=/[\\p{Cc}]/u;"),
+    ('H7 formulario: completar también manda el @ y la bio', HO, "submit(idm?f:{handle:h,", "submit({handle:h,"),
+    ('H8 formulario: el campo de fecha no tiene tope en hoy', HO, 'min="1900-01-01" max="${today}"', 'min="1900-01-01"'),
+    ('H9 formulario: aparece un tercer género', HO, "Femenino</label></div>", 'Femenino</label><label class="check"><input type="radio" name="obG" id="obGX" value="X"> Otro</label></div>'),
+    ('H10 formulario: completar muestra la foto y el @', HO, "${idm?'<p class=\"hint\">Ahora pedimos", "${false?'<p class=\"hint\">Ahora pedimos"),
+    ('H11 hoja: el paso de completar no está en la interfaz', HO, "identity:submit=>onboardingForm(submit,null,'identity'),", ""),
+    ('H12 formulario: la fecha y el género se guardan en el navegador', HO, "const bad=idProblem(f,new Date().toISOString().slice(0,10));", "try{localStorage.setItem('birth_date',f.birth_date)}catch(e){}const bad=idProblem(f,new Date().toISOString().slice(0,10));"),
+    ('K1 hoja: el perfil guardado de antes (llave vieja) vuelve a valer', HO, "A.LS.get('cuenta2',null)", "A.LS.get('cuenta',null)"),
+    ('K2 hoja: salir no borra la llave vieja', HO, "localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')", "localStorage.removeItem('vb_cuenta2')"),
+    # service worker
+    ('W1 sw: la versión del caché no cambia', 'site/sw.js', "const VERSION='lhb-v53';", "const VERSION='lhb-v52';"),
+]
+
+def load(rel):
+    p = os.path.join(R, *rel.split('/'))
+    orig = open(p, 'rb').read()
+    text = orig.decode('utf-8')
+    return p, orig, '\r\n' in text, text.replace('\r\n', '\n')
+
+def main():
+    if '--check' in sys.argv:
+        bad = 0
+        for name, rel, a, b, *more in MUTS:
+            t = load(rel)[3]
+            for x in [a] + more[0::2]:
+                n = t.count(x)
+                if n != 1: bad += 1; print(name, '-> aparece', n, 'veces')
+        print('mutaciones:', len(MUTS), 'con anclaje malo:', bad)
+        return 1 if bad else 0
+    base = run()
+    print('baseline', base)
+    assert base[0] == 0, 'la línea base debe estar en verde'
+    bad = 0
+    only = [x for x in sys.argv[1:] if not x.startswith('--')]  # p. ej. C6 C7 S8: solo esas mutaciones
+    for name, rel, a, b, *more in MUTS:
+        if only and name.split()[0] not in only: continue
+        p, orig, crlf, t = load(rel)
+        if t.count(a) != 1:
+            print(name, '-> ERROR: el texto a mutar aparece', t.count(a), 'veces'); bad += 1; continue
+        m = t.replace(a, b, 1)
+        for a2, b2 in zip(more[0::2], more[1::2]):
+            assert m.count(a2) == 1, (name, a2)
+            m = m.replace(a2, b2, 1)
+        open(p, 'wb').write((m.replace('\n', '\r\n') if crlf else m).encode('utf-8'))
+        try:
+            fail, names = run()
+        finally:
+            open(p, 'wb').write(orig)
+        verdict = 'ROJO (bien)' if fail > 0 else 'SOBREVIVIÓ'
+        if fail == 0: bad += 1
+        print(name, '->', verdict, 'fail=%d' % fail)
+        for n in names[:4]: print('     ', n[:150])
+    final = run()
+    print('restaurado', final)
+    print('mutaciones:', len(MUTS), 'sobrevivieron o con error:', bad)
+    return 0 if bad == 0 and final[0] == 0 else 1
+
+if __name__ == '__main__':
+    sys.exit(main())
+
+ succeeded in 1749ms:
+60e4856 LHB-52: Codex round 1 fixes (perfil guardado de antes ya no abre Mi Hoja) y evidencia de mutaciones
+c756916 LHB-52: identidad al crear el perfil (nombre, apellido, genero, fecha de nacimiento)
+4283dac LHB-49: Codex TIER 1 round 7 (merge with origin/main and cache version v52) verdict PASS saved
+6f696b5 LHB-49: service worker cache version lhb-v52 (main already serves lhb-v51 from the Entre Humos event commit 18209ba)
+2d9543b Merge remote-tracking branch 'origin/main'
+diff --git a/functions/_lib/profile.js b/functions/_lib/profile.js
+index a129939..80ad592 100644
+--- a/functions/_lib/profile.js
++++ b/functions/_lib/profile.js
+@@ -8,7 +8,7 @@ export const RESERVED = new Set([
+   'maridajes', 'podcast', 'buscar', 'cigarros', 'privacidad', 'icons', 'img', 'data', 'functions',
+   'sitemap', 'robots', 'llms', 'index', 'clerk', 'accounts', 'www'
+ ]);
+-export const LIMITS = { display_name: 50, bio: 160, favorite_brand: 60 };
++export const LIMITS = { bio: 160, favorite_brand: 60 };
+ // la bio puede tener saltos de línea y tabs; el nombre y la marca, ningún carácter de control
+ const CONTROL = { bio: /[\u0000-\u0008\u000B-\u001F\u007F]/, line: /[\u0000-\u001F\u007F]/ };
+ 
+@@ -41,13 +41,75 @@ export function checkAvatar(v) {
+   return { avatar_key: v };
+ }
+ 
+-export function checkProfile(b) {
++// LHB-52: identidad. Nombre y apellido (1 a 50 caracteres, no bytes, sin caracteres de control), género M o F y fecha de nacimiento.
++// La fecha reemplaza la casilla de 21+: tiene que ser una fecha real del calendario, no estar en el futuro y dar 21 años o más en la fecha UTC del servidor.
++export const NAME_MAX = 50;
++export const MIN_AGE = 21;
++export const MIN_BIRTH_YEAR = 1900;
++const NAME_CONTROL = /[\p{Cc}\p{Zl}\p{Zp}]/u;
++
++// la fecha de hoy en UTC, 'YYYY-MM-DD': la que decide la edad, no la del teléfono
++export function utcDay(now = new Date()) {
++  return now.toISOString().slice(0, 10);
++}
++
++function name(v, field) {
++  if (v == null) return { error: field + '-required' };
++  if (typeof v !== 'string') return { error: field + '-invalid' };
++  const t = v.trim();
++  if (!t) return { error: field + '-required' };
++  if (NAME_CONTROL.test(t)) return { error: field + '-invalid' };
++  if ([...t].length > NAME_MAX) return { error: field + '-long' };
++  return { value: t };
++}
++
++export function checkGender(v) {
++  if (v == null || v === '') return { error: 'gender-required' };
++  if (v !== 'M' && v !== 'F') return { error: 'gender-invalid' };
++  return { gender: v };
++}
++
++// today es 'YYYY-MM-DD' (utcDay). Se compara como texto: el corte de los 21 años es hoy con el año restado, y 'YYYY-MM-DD' ordena igual que las fechas
++export function checkBirthDate(v, today = utcDay()) {
++  if (v == null || v === '') return { error: 'birth_date-required' };
++  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return { error: 'birth_date-invalid' };
++  const y = +v.slice(0, 4), m = +v.slice(5, 7), d = +v.slice(8, 10);
++  const dt = new Date(0);
++  dt.setUTCFullYear(y, m - 1, d);
++  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d || y < MIN_BIRTH_YEAR) return { error: 'birth_date-invalid' };
++  if (v > today) return { error: 'birth_date-future' };
++  const cutoff = String(+today.slice(0, 4) - MIN_AGE).padStart(4, '0') + today.slice(4);
++  if (v > cutoff) return { error: 'age-under-21' };
++  return { birth_date: v };
++}
++
++// el nombre público: el nombre y la inicial del apellido ("Ana M."); el apellido completo no sale del dueño
++export function publicName(first, last) {
++  return first + ' ' + [...last][0].toUpperCase() + '.';
++}
++
++export function checkIdentity(b, now = new Date()) {
+   if (!b || typeof b !== 'object' || Array.isArray(b)) return { error: 'bad-body' };
+-  if (b.age_ok !== true) return { error: 'age-required' };
++  const first = name(b.first_name, 'first_name');
++  if (first.error) return first;
++  const last = name(b.last_name, 'last_name');
++  if (last.error) return last;
++  const g = checkGender(b.gender);
++  if (g.error) return g;
++  const bd = checkBirthDate(b.birth_date, utcDay(now));
++  if (bd.error) return bd;
++  return { first_name: first.value, last_name: last.value, gender: g.gender, birth_date: bd.birth_date, display_name: publicName(first.value, last.value) };
++}
++
++// display_name ya no lo manda el cliente: sale del nombre y la inicial del apellido
++export function checkProfile(b, now = new Date()) {
++  if (!b || typeof b !== 'object' || Array.isArray(b)) return { error: 'bad-body' };
++  const id = checkIdentity(b, now);
++  if (id.error) return id;
+   const h = checkHandle(b.handle);
+   if (h.error) return h;
+-  const out = { handle: h.handle };
+-  for (const f of Object.keys(LIMITS)) {
++  const out = { handle: h.handle, ...id };
++  for (const f of ['bio', 'favorite_brand']) {
+     const r = text(b[f], f);
+     if (r.error) return r;
+     out[f] = r.value;
+@@ -58,6 +120,12 @@ export function checkProfile(b) {
+   return out;
+ }
+ 
++// LHB-52: lo único que sale de un perfil hacia los demás. Nombre, apellido, género y fecha de nacimiento no están aquí; display_name es el nombre y la inicial.
++export const PUBLIC_COLUMNS = 'handle, display_name, bio, favorite_brand, avatar_key';
++export function publicProfile(db, handle) {
++  return db.prepare('SELECT ' + PUBLIC_COLUMNS + ' FROM profiles WHERE handle = ?1 AND hidden = 0').bind(handle).first();
++}
++
+ // la puerta de toda API de Mi Hoja: { user, profile } o la respuesta de rechazo (401, 403 no-profile, 503)
+ export async function requireProfile(request, env) {
+   if (!tokenOf(request)) return json({ error: 'no-session' }, 401);
+@@ -66,7 +134,7 @@ export async function requireProfile(request, env) {
+   if (!user) return json({ error: 'no-session' }, 401);
+   if (!env.DB) return json({ error: 'no-db' }, 503);
+   const profile = await env.DB.prepare(
+-    'SELECT handle, display_name, bio, favorite_brand, avatar_key, hidden FROM profiles WHERE user_id = ?1'
++    'SELECT ' + PUBLIC_COLUMNS + ', hidden FROM profiles WHERE user_id = ?1'
+   ).bind(user.sub).first();
+   if (!profile) return json({ error: 'no-profile' }, 403);
+   return { user, profile };
+diff --git a/functions/api/me.js b/functions/api/me.js
+index 0352546..0708cb9 100644
+--- a/functions/api/me.js
++++ b/functions/api/me.js
+@@ -1,4 +1,6 @@
+-/* LHB-24: GET /api/me. 401 sin sesión de Clerk; { needsProfile: true } si aún no creó su perfil; si no, el perfil. */
++/* LHB-24: GET /api/me. 401 sin sesión de Clerk; { needsProfile: true } si aún no creó su perfil; si no, el perfil.
++   LHB-52: el perfil trae también nombre, apellido, género y fecha de nacimiento, solo aquí y solo para su dueño (la sesión decide de quién es). Un perfil al que le falta
++   alguno de los cuatro (los que existían antes) llega con needsIdentity: true y la app muestra "Completa tu perfil" antes de abrir Mi Hoja. */
+ import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
+ 
+ export async function onRequestGet({ request, env }) {
+@@ -8,7 +10,9 @@ export async function onRequestGet({ request, env }) {
+   if (!user) return json({ error: 'no-session' }, 401);
+   if (!env.DB) return json({ error: 'no-db' }, 503);
+   const p = await env.DB.prepare(
+-    'SELECT handle, display_name, bio, favorite_brand, avatar_key FROM profiles WHERE user_id = ?1'
++    'SELECT handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date FROM profiles WHERE user_id = ?1'
+   ).bind(user.sub).first();
+-  return p ? json({ profile: p }) : json({ needsProfile: true });
++  if (!p) return json({ needsProfile: true });
++  const needsIdentity = p.first_name == null || p.last_name == null || p.gender == null || p.birth_date == null;
++  return json({ profile: p, needsIdentity });
+ }
+diff --git a/functions/api/profile.js b/functions/api/profile.js
+index bf89f41..7e12111 100644
+--- a/functions/api/profile.js
++++ b/functions/api/profile.js
+@@ -1,27 +1,37 @@
+-/* LHB-25: POST /api/profile crea el perfil del onboarding (@handle, nombre, bio, marca favorita, la
+-   confirmación de 21+ y, desde LHB-49, la foto: la URL de Clerk en avatar_url, que se guarda en avatar_key).
+-   Cambiar el perfil después es de LHB-34; aquí un segundo POST da 409. */
++/* LHB-25: POST /api/profile crea el perfil del onboarding (@handle, bio, marca favorita y, desde LHB-49, la foto: la URL de Clerk en avatar_url, que se guarda en avatar_key).
++   LHB-52: desde ahora también pide nombre, apellido, género y fecha de nacimiento. La fecha reemplaza la casilla de 21+: age_ok_at se sella cuando la fecha da 21 años o más.
++   display_name sale del nombre y la inicial del apellido ("Ana M."); el género y la fecha de nacimiento nunca salen en la respuesta.
++   PUT /api/profile completa la identidad de un perfil que ya existía sin ella (null en las cuatro columnas nuevas); uno que ya la tiene da 409.
++   Cambiar el perfil después es de LHB-34 y LHB-55; aquí un segundo POST da 409. */
+ import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
+-import { checkProfile } from '../_lib/profile.js';
++import { checkProfile, checkIdentity } from '../_lib/profile.js';
+ 
+-export async function onRequestPost({ request, env }) {
+-  if (!tokenOf(request)) return json({ error: 'no-session' }, 401);
+-  if (!issuersOf(env).length) return json({ error: 'no-auth-config' }, 503);
++// la sesión, la base y el cuerpo JSON: { user, body } o la respuesta de rechazo
++async function intake(request, env) {
++  if (!tokenOf(request)) return { res: json({ error: 'no-session' }, 401) };
++  if (!issuersOf(env).length) return { res: json({ error: 'no-auth-config' }, 503) };
+   const user = await userOf(request, env);
+-  if (!user) return json({ error: 'no-session' }, 401);
+-  if (!env.DB) return json({ error: 'no-db' }, 503);
++  if (!user) return { res: json({ error: 'no-session' }, 401) };
++  if (!env.DB) return { res: json({ error: 'no-db' }, 503) };
+   // solo JSON: un formulario de otro sitio no puede mandarlo sin preflight
+-  if (!/^application\/json\b/i.test(request.headers.get('Content-Type') || '')) return json({ error: 'bad-type' }, 415);
++  if (!/^application\/json\b/i.test(request.headers.get('Content-Type') || '')) return { res: json({ error: 'bad-type' }, 415) };
+   let body;
+-  try { body = await request.json(); } catch (e) { return json({ error: 'bad-body' }, 400); }
+-  const p = checkProfile(body);
++  try { body = await request.json(); } catch (e) { return { res: json({ error: 'bad-body' }, 400) }; }
++  return { user, body };
++}
++
++export async function onRequestPost({ request, env }) {
++  const it = await intake(request, env);
++  if (it.res) return it.res;
++  const now = new Date();
++  const p = checkProfile(it.body, now);
+   if (p.error) return json({ error: p.error }, 400);
+-  const now = new Date().toISOString();
++  const stamp = now.toISOString();
+   try {
+     const r = await env.DB.prepare(
+-      'INSERT INTO profiles (user_id, handle, display_name, bio, favorite_brand, avatar_key, age_ok_at, created_at, updated_at) ' +
+-      'VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, ?7) ON CONFLICT(user_id) DO NOTHING'
+-    ).bind(user.sub, p.handle, p.display_name, p.bio, p.favorite_brand, p.avatar_key, now).run();
++      'INSERT INTO profiles (user_id, handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date, age_ok_at, created_at, updated_at) ' +
++      'VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?11) ON CONFLICT(user_id) DO NOTHING'
++    ).bind(it.user.sub, p.handle, p.display_name, p.bio, p.favorite_brand, p.avatar_key, p.first_name, p.last_name, p.gender, p.birth_date, stamp).run();
+     if (!r.meta.changes) return json({ error: 'profile-exists' }, 409);
+   } catch (e) {
+     if (/UNIQUE/i.test(String(e && e.message))) return json({ error: 'handle-taken' }, 409);
+@@ -30,3 +40,19 @@ export async function onRequestPost({ request, env }) {
+   const { handle, display_name, bio, favorite_brand, avatar_key } = p;
+   return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key } }, 201);
+ }
++
++export async function onRequestPut({ request, env }) {
++  const it = await intake(request, env);
++  if (it.res) return it.res;
++  const now = new Date();
++  const id = checkIdentity(it.body, now);
++  if (id.error) return json({ error: id.error }, 400);
++  // una sola sentencia: solo toca un perfil al que le falta alguna de las cuatro; un display_name que ya existía se queda, y age_ok_at no se toca
++  const r = await env.DB.prepare(
++    'UPDATE profiles SET first_name = ?2, last_name = ?3, gender = ?4, birth_date = ?5, display_name = COALESCE(display_name, ?6), updated_at = ?7 ' +
++    'WHERE user_id = ?1 AND (first_name IS NULL OR last_name IS NULL OR gender IS NULL OR birth_date IS NULL)'
++  ).bind(it.user.sub, id.first_name, id.last_name, id.gender, id.birth_date, id.display_name, now.toISOString()).run();
++  if (r.meta.changes) return json({ ok: true });
++  const has = await env.DB.prepare('SELECT 1 AS n FROM profiles WHERE user_id = ?1').bind(it.user.sub).first();
++  return has ? json({ error: 'identity-exists' }, 409) : json({ error: 'no-profile' }, 403);
++}
+diff --git a/migrations/0003_identity.sql b/migrations/0003_identity.sql
+new file mode 100644
+index 0000000..b74f5ae
+--- /dev/null
++++ b/migrations/0003_identity.sql
+@@ -0,0 +1,9 @@
++-- LHB-52: identidad al crear el perfil. Nombre, apellido, género y fecha de nacimiento; los cuatro son privados salvo lo que se arma con ellos
++-- (display_name: nombre y la inicial del apellido). Nullable: los perfiles que ya existen quedan con null y completan su identidad en su próxima entrada a Mi Hoja.
++-- Ninguna fila existente se rellena. 0001 y 0002 se quedan como se aplicaron.
++-- age_ok_at se queda: ahora se sella cuando la fecha de nacimiento muestra 21 años o más.
++
++ALTER TABLE profiles ADD COLUMN first_name TEXT;
++ALTER TABLE profiles ADD COLUMN last_name TEXT;
++ALTER TABLE profiles ADD COLUMN gender TEXT CHECK (gender IS NULL OR gender IN ('M', 'F'));
++ALTER TABLE profiles ADD COLUMN birth_date TEXT CHECK (birth_date IS NULL OR birth_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]');
+
+site\cuenta.js:58: if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return 
+identify(C,done,o,lv,uid,r.body.profile);
+site\cuenta.js:59: 
+if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();retire();return 
+done()}
+site\cuenta.js:106:  if(r.status===201){if(same)cache({sub:uid,handle:r.body.profile.handle});
+site\cuenta.js:115:   if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});settle();ob=fals
+e;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
+site\cuenta.js:126: /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, 
+se vuelve a revisar */
+site\cuenta.js:129: const 
+finish=()=>{cache({sub:uid,handle:prof.handle});settle();ob=false;D.intent.clear();D.ui.toast('Listo, tu perfil está 
+completo.');if(o.inPlace)D.reroute();done();return {ok:true}};
+site\cuenta.js:139:   if(m.status===200&&m.body.profile&&m.body.needsIdentity!==true)return finish();
+site\hoja.js:142:/* LHB-52: la llave nueva (cuenta2) deja sin valor lo guardado antes de pedir la identidad: un perfil 
+guardado de antes ({sub,handle}) no abre Mi Hoja sin conexión ni por el camino rápido; clear() borra las dos */
+site\hoja.js:143:const acct={get:()=>A.LS.get('cuenta2',null),set:v=>A.LS.set('cuenta2',v),clear:()=>{try{localStorage.
+removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}}};
+test\site.test.js:323: try{auth.clearJwksCache();
+test\site.test.js:371: for(const st of [401,403]){const h=CUENTA_HARNESS({api:async()=>({status:st,body:{error:'no-sess
+ion'}})});h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});
+test\site.test.js:373: for(const st of [0,500,503]){const h=CUENTA_HARNESS({api:async()=>{if(st===0)throw new 
+Error('offline');return {status:st,body:{}}}});h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});
+test\site.test.js:375: const x4=CUENTA_HARNESS({api:async()=>({status:404,body:{}})});x4.C.user={id:'user_a'};x4.cache(
+{sub:'user_a',handle:'ana'});await x4.A.require(x4.go);await tick();assert.ok(!x4.log.includes('GO'),'un 404 tampoco 
+abre desde el perfil guardado');const o=CUENTA_HARNESS({api:async()=>({status:0,body:{}})});o.C.user={id:'user_b'};o.ca
+che({sub:'user_a',handle:'ana'});await o.A.require(o.go);await tick();
+test\site.test.js:378: const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin 
+red')}});k.cache({sub:'user_a',handle:'ana'});await k.A.require(k.go);await 
+tick();assert.ok(k.log.includes('GO'),'Clerk no carga y hay perfil guardado: abre');
+test\site.test.js:502: const run=async(over,label)=>{const g=CUENTA_HARNESS(over);g.nav('#/c/yambo-toro');g.cache({sub:
+'user_a',handle:'ana'});g.C.user={id:'user_a'};g.A.register('humidor',g.go);g.setIntent({from:'#/c/yambo-toro',act:'hum
+idor'});
+test\site.test.js:555: const a=CUENTA_HARNESS({api});a.nav('#/c/yambo-toro');a.C.user={id:'user_a'};a.cache({sub:'user_
+a',handle:'ana'});a.setIntent({from:'#/c/yambo-toro',act:'x'});
+test\site.test.js:558: const 
+b=CUENTA_HARNESS({api});b.nav('#/c/yambo-toro');b.C.user={id:'user_b'};b.cache({sub:'user_a',handle:'ana'});
+test\site.test.js:561: const 
+c=CUENTA_HARNESS({api});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};c.cache({sub:'user_a',handle:'ana'});
+test\site.test.js:608: const r=[];g.A.quick(()=>r.push('de A'),{inPlace:true,act:'fav'});await 
+tick();g.C.signIn('user_b');g.cache({sub:'user_b',handle:'bea'});rej(new Error('offline'));for(let i=0;i<6;i++)await 
+tick();
+test\site.test.js:623: const 
+c=CUENTA_HARNESS({api:prof});c.nav('#/c/yambo-toro');c.C.user={id:'user_a'};c.cache({sub:'user_a',handle:'ana'});const 
+rc=[];
+test\site.test.js:644: const mk=async()=>{let n=0,rel;const hold=new Promise(r=>{rel=r});const 
+h=CUENTA_HARNESS({clerk:async()=>{n++;if(n===2)await hold;return 
+h.C}});h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});
+test\site.test.js:647: let {h,rel}=await mk();const r1=[];h.A.quick(()=>r1.push('de 
+A'),{inPlace:true,act:'fav'});await tick();h.C.signIn('user_b');h.cache({sub:'user_b',handle:'bea'});rel();await 
+ticks(6);
+test\site.test.js:665: const 
+g=CUENTA_HARNESS({api:prof});g.nav('#/mihoja');g.C.user={id:'user_a'};g.cache({sub:'user_a',handle:'ana'});const 
+rg=[];g.A.quick(()=>rg.push('x'),{inPlace:true,act:'fav'});await ticks(4);assert.deepEqual(rg,['x'],'con el perfil 
+guardado corre al instante');
+test\site.test.js:692: const mk=async fail=>{let n=0,rel;const hold=new Promise(r=>{rel=r});const 
+h=CUENTA_HARNESS({clerk:async()=>{n++;if(n===2){await hold;if(fail)throw new Error('sin red')}return 
+h.C}});h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});
+test\site.test.js:722: const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin 
+red')}});k.nav('#/c/yambo-toro');k.cache({sub:'user_a',handle:'ana'});const 
+rk=[];k.A.quick(()=>rk.push('k'),{inPlace:true,act:'fav'});await ticks(4);
+test\site.test.js:742: const 
+g=CUENTA_HARNESS({api:prof});g.nav('#/c/yambo-toro');g.C.user={id:'user_a'};g.cache({sub:'user_a',handle:'ana'});const 
+rg=[];g.A.register('fav',x=>rg.push(x));
+test\site.test.js:795: m.clearJwksCache();
+test\site.test.js:844: try{auth.clearJwksCache();
+test\site.test.js:1139: const realFetch=globalThis.fetch;globalThis.fetch=async 
+u=>{assert.equal(String(u),ISS+'/.well-known/jwks.json');return new 
+Response(JSON.stringify({keys:[jwk]}))};auth.clearJwksCache();
+test\site.test.js:1238:  assert.deepEqual(m,{profile:{handle:'tabaquero',display_name:'Ana M.',bio:'Fumo los domingos.'
+,favorite_brand:null,avatar_key:AV,first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-05-17'},needsIdentity:
+false});
+test\site.test.js:1261:  /* un perfil de antes llega a /api/me con needsIdentity, con sus nulos y su nombre público 
+viejo */
+test\site.test.js:1263:  assert.deepEqual(m,{profile:{handle:'sergio',display_name:'Sergio B',bio:null,favorite_brand:n
+ull,avatar_key:null,first_name:null,last_name:null,gender:null,birth_date:null},needsIdentity:true});
+test\site.test.js:1266:   assert.equal((await a.me(await a.tok('user_old')))[1].needsIdentity,true,'falta '+c)}
+test\site.test.js:1267:  a.db.prepare("UPDATE profiles SET 
+first_name='A',last_name='B',gender='M',birth_date='1990-01-01' WHERE user_id='user_old'").run();assert.equal((await 
+a.me(await a.tok('user_old')))[1].needsIdentity,false,'con los cuatro ya no');
+test\site.test.js:1299: const mk=async(putRes,after,me,over)=>{const calls=[];let submit;const 
+h=CUENTA_HARNESS({api:async(C,m,p,b)=>{calls.push(m+' '+p);if(m==='GET')return typeof me==='function'?me(calls):{status
+:200,body:me||{profile:{handle:'sergio'},needsIdentity:true}};h.puts=(h.puts||[]).concat([b]);return 
+putRes(b)},...over});
+test\site.test.js:1304: assert.ok(r.h.log.includes('clear')&&!r.h.log.some(x=>x.startsWith('store')),'el perfil 
+guardado de antes se borra y no se vuelve a guardar hasta completar');
+test\site.test.js:1315: r=await mk(()=>({status:409,body:{error:'identity-exists'}}),null,calls=>calls.filter(c=>c.star
+tsWith('GET')).length===1?{status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}:{status:200,body:{profile:{h
+andle:'sergio'},needsIdentity:false}});
+test\site.test.js:1317: r=await mk(()=>({status:409,body:{error:'identity-exists'}}),null,()=>({status:200,body:{profil
+e:{handle:'sergio'},needsIdentity:true}}));assert.deepEqual(await r.submit(F),{error:'recheck'},'si la revisión sigue 
+diciendo que falta, no se anuncia éxito');assert.ok(!r.h.log.includes('GO'));
+test\site.test.js:1325: const h=CUENTA_HARNESS({api:async(C,m)=>m==='GET'?{status:200,body:{profile:{handle:'sergio'},n
+eedsIdentity:true}}:{status:200,body:{ok:true}}});let 
+sub;h.D.ui.identity=s=>{sub=s};h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};
+test\site.test.js:1327: /* quien ya tiene su identidad (needsIdentity false, o sin la marca) no ve el paso */
+test\site.test.js:1328: for(const body of 
+[{profile:{handle:'ana'},needsIdentity:false},{profile:{handle:'ana'}}]){const 
+k=CUENTA_HARNESS({api:async()=>({status:200,body})});let 
+seen=false;k.D.ui.identity=()=>{seen=true};k.C.user={id:'user_a'};await k.A.require(k.go);await 
+tick();assert.ok(!seen&&k.log.includes('GO'),'sin la marca no hay paso extra: '+JSON.stringify(body))}
+test\site.test.js:1330: const 
+z=CUENTA_HARNESS({api:async()=>({status:403,body:{needsIdentity:true,profile:{handle:'x'}}})});let 
+sz=false;z.D.ui.identity=()=>{sz=true};z.C.user={id:'user_a'};await z.A.require(z.go);await 
+tick();assert.ok(!sz&&!z.log.includes('GO'));
+test\site.test.js:1376:test('LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni 
+por el camino rápido (la llave del almacenamiento cambió)',async()=>{
+test\site.test.js:1381: 
+ls.setItem('vb_cuenta',JSON.stringify({sub:'user_a',handle:'sergio'}));assert.equal(ctx.acct.get(),null,'el perfil 
+guardado antes de LHB-52 no cuenta');
+test\site.test.js:1382: 
+ctx.acct.set({sub:'user_a',handle:'sergio'});assert.deepEqual(ctx.acct.get(),{sub:'user_a',handle:'sergio'},'lo nuevo 
+sí se guarda y se lee');assert.ok(mem.has('vb_cuenta2'));
+test\site.test.js:1383: 
+ctx.acct.clear();assert.equal(ctx.acct.get(),null);assert.ok(!mem.has('vb_cuenta2')&&!mem.has('vb_cuenta'),'salir 
+borra la llave nueva y la vieja');
+test\site.test.js:1386: const calls=[];const fast=CUENTA_HARNESS({api:async(C,m,p)=>{calls.push(m+' '+p);return {status
+:200,body:{profile:{handle:'sergio'},needsIdentity:true}}}});fast.D.ui.identity=()=>fast.log.push('identity');fast.nav(
+'#/c/yambo-toro');fast.C.user={id:'user_a'};
+test\site.test.js:1388: assert.ok(src.includes("A.LS.get('cuenta2',null)")&&src.includes("A.LS.set('cuenta2',v)"),'la 
+llave nueva');
+functions\api\me.js:3:   alguno de los cuatro (los que existían antes) llega con needsIdentity: true y la app muestra 
+"Completa tu perfil" antes de abrir Mi Hoja. */
+functions\api\me.js:16:  const needsIdentity = p.first_name == null || p.last_name == null || p.gender == null || 
+p.birth_date == null;
+functions\api\me.js:17:  return json({ profile: p, needsIdentity });
+
+
+ succeeded in 10835ms:
+✔ index: title, viewport, PWA meta, local assets exist (5.8517ms)
+✔ manifest: standalone, icons 192/512/maskable exist (1.8554ms)
+✔ service worker precaches files that exist (13.8806ms)
+✔ Spanish UI, Fortaleza wording, prototype note, forbidden names absent (18.1589ms)
+✔ data layer: separate JSON files with real entries and sources (5.6416ms)
+✔ app wiring: upload uses camera capture and IndexedDB; offline fallback map; Volky art (1.2898ms)
+✔ v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir (5.6233ms)
+✔ v6: data counts (2.8261ms)
+✔ v7: fotos reales de producto (12.9346ms)
+✔ v8: guagua B (recorte + campo de tabaco en el splash) (2.3445ms)
+✔ v9: splash por capas + garita fuera del header (1.608ms)
+✔ v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11) (0.7162ms)
+✔ v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño (1.663ms)
+✔ v13: icon files present with right sizes, new leaf-flag art; El Chalet in Lugares (4.8893ms)
+✔ v14: botón de Spotify en Podcast (1.0201ms)
+✔ v15: banner de Sergio en el catálogo, sin guagua (1.345ms)
+✔ v16: paleta B Bandera (verdes intactos) (2.3254ms)
+✔ v17: flor de tabaco reemplaza la garita, flamboyán nuevo (1.2837ms)
+✔ v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla (4.2747ms)
+✔ v19: subtítulo del banner (1.758ms)
+✔ artisan logos: every id in LOGOS maps to an existing webp and a real artisan (1.769ms)
+✔ v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone (10.8977ms)
+✔ v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta (4.162ms)
+✔ v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta (2.9882ms)
+✔ v28: splash con La Ruta del Tabaco, eslogan y flor (2.0146ms)
+✔ v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan (4.5983ms)
+✔ v32: catálogo en orden alfabético (0.8112ms)
+✔ v39 SEO: páginas estáticas por lugar, índice, sitemap y robots (23.0317ms)
+✔ v40 SEO: páginas estáticas por artesano, índice y sitemap (28.7865ms)
+✔ LHB-41 SEO: página estática por cigarro, índice, sitemap y fuera del caché del shell (31.9397ms)
+✔ LHB-41: el service worker no guarda una página de cigarro como el shell de la app (78.6865ms)
+✔ LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves (4.5808ms)
+✔ LHB-27: ningún texto en español queda escrito en las vistas de app.js (antes: 161) (14.7677ms)
+✔ LHB-27: idioma por navigator.language, se recuerda, y se queda en español hasta E6 (5.2225ms)
+✔ LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propiedades, sameAs de los datos, WebSite en el inicio (315.2169ms)
+✔ LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160 (7.175ms)
+✔ LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403 (131.5357ms)
+✔ LHB-25: la puerta de Mi Hoja: un 401 o 403 cierra aunque haya perfil guardado; sin conexión o 5xx abre solo al mismo usuario (15.657ms)
+✔ LHB-25: una respuesta tardía no se le pega a otra cuenta ni a otra pantalla (13.0888ms)
+✔ LHB-25: el perfil nuevo: se guarda una vez, abre Mi Hoja, y un envío pendiente no toca nada si el usuario cambió o se fue (12.9161ms)
+✔ LHB-25: entrar desde una página pública no la reemplaza y retoma la acción; al volver de Google también (8.2689ms)
+✔ LHB-25: salir cierra Mi Hoja también por #mihoja y #perfil, igual que el router; el formulario de perfil de una cuenta anterior no queda (10.2587ms)
+✔ LHB-25: un formulario de perfil que quedó en pantalla tras cambiar de cuenta no manda nada y se repinta (13.288ms)
+✔ LHB-25: si el perfil se creó pero se perdió la respuesta, el reintento termina igual que un 201 y repinta la página de origen (6.2973ms)
+✔ LHB-25: si la revisión tras un perfil ya existente falla, el formulario sigue usable y no se anuncia éxito (8.0836ms)
+✔ LHB-25: entrar desde una página pública y fallar la revisión muestra el error sobre la página y el reintento conserva la acción (16.7676ms)
+✔ LHB-25: un reintento del usuario puede volver a abrir la hoja de entrar y la acción sigue viva (8.8028ms)
+✔ LHB-25: un almacenamiento lleno no impide entrar ni crear el perfil; un cambio de cuenta cierra las hojas de Mi Hoja (10.1868ms)
+✔ LHB-25: el botón de entrar de nuevo solo aparece al salir de una acción que falló, no al cambiar de cuenta ni después de un éxito (8.4479ms)
+✔ LHB-25: una hoja nueva no la borra el temporizador de cierre de la anterior (Escape y luego salir) (1.3712ms)
+✔ LHB-25: entrar con el perfil guardado (sin conexión) consume la acción guardada; al recargar no se repite (20.9547ms)
+✔ LHB-48: las acciones que piden cuenta validan su argumento antes de tocar los datos (2.8838ms)
+✔ LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no (6.172ms)
+✔ LHB-48: una acción en sitio con sesión y perfil guardado no espera a la red; si no, pasa por la revisión completa (67.7529ms)
+✔ LHB-48: al volver de Google la acción retoma con su argumento, una vez (29.6354ms)
+✔ LHB-48: los argumentos con nombres heredados (constructor, __proto__, toString) no llegan a los datos (2.2063ms)
+✔ LHB-48: al cambiar la cuenta, #/cata y #/subir vuelven a pasar por la puerta (no quedan editores abiertos) (153.2581ms)
+✔ LHB-48: una subida de fotos empezada por una persona no se guarda cuando ya es otra (1.6933ms)
+✔ LHB-48: si Clerk falla después de cambiar la cuenta, la acción de la anterior no corre con el perfil guardado de la nueva (171.7637ms)
+✔ LHB-48: cada toque es una sola acción: corre una vez o ninguna; si se toca otra antes de terminar la revisión, vale la última; los guardados llevan solo la acción y su argumento (422.4223ms)
+✔ LHB-48: irse de la página o cambiar de cuenta durante la revisión descarta la acción; una abandonada no vuelve; una respuesta tardía no guarda el perfil (447.3117ms)
+✔ LHB-48: con el perfil guardado, la acción en sitio no espera a la red pero se descarta si mientras carga Clerk cambia la cuenta o la página; los nombres de acción no se heredan (327.8301ms)
+✔ LHB-48: en Mi Hoja y las páginas de la cuenta solo espera la puerta de la página; una acción en sitio corre al instante o solo abre la hoja de entrar; en una página pública espera y corre al entrar (1301.6474ms)
+✔ LHB-48: una persona nueva en Mi Hoja con una acción tocada ve un solo formulario y la página se dibuja una vez; irse y volver no revive nada (605.3179ms)
+✔ LHB-48: irse y volver mientras carga Clerk descarta la acción (también si Clerk falla); cada cosa que espera se retoma sola; la página avisa de la navegación (560.3567ms)
+✔ LHB-48: al volver de Google a Mi Hoja la acción guardada no compite con la puerta de la página; irse de la página borra lo guardado para volver (236.2686ms)
+✔ LHB-48: un 401 y volver a entrar conserva la acción (la persona que entra en este equipo la continúa); un fallo de Clerk usa el perfil guardado solo del mismo momento (329.7337ms)
+✔ LHB-48: un toque nuevo sustituye al anterior también en lo guardado para volver de Google (276.9863ms)
+✔ LHB-48: lo guardado para volver de Google solo se retoma si es una acción registrada de esta página pública (157.2487ms)
+✔ LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente (21.419ms)
+✔ LHB-42: llms.txt lista cada página del sitemap una vez; robots.txt deja pasar a todos los bots (15.1861ms)
+✔ dominio propio: lahojaboricua.com, sin tab.bot, 404 real (145.9458ms)
+✔ LHB-24: el service worker no responde /api/ (siempre red), sí lo demás (5.3691ms)
+✔ LHB-24: _routes.json manda solo /api/* a Functions (1.5785ms)
+✔ LHB-24: token de Clerk (RS256) verificado con JWKS: iss, exp, nbf, azp, firma, alg, kid (1071.3163ms)
+✔ LHB-24: migraciones 0001, 0002 y 0003 en SQLite real; /api/me: 401, needsProfile, perfil (177.4577ms)
+✔ LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.clerk.com/): falta, otro host, parecidos y caracteres raros (1.318ms)
+✔ LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan (15.8905ms)
+✔ LHB-49: sin foto no se crea el perfil: no se manda nada al servidor, y el error del servidor también llega al formulario (35.1067ms)
+✔ LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto (81.5885ms)
+✔ LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario (10.2164ms)
+✔ LHB-49: una subida que sigue en curso cuando se cierra el formulario no le pone su foto al formulario nuevo: las subidas van en orden aunque cambie la pantalla (9.0614ms)
+✔ LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto (35.5552ms)
+✔ LHB-49: si otra acción toca después y falla, el formulario de perfil que sigue en pantalla se puede terminar (subir foto y crear); uno reemplazado por otro, no (30.4328ms)
+✔ LHB-49: si otra acción gana primero porque el perfil ya existe, el formulario viejo no corre su acción además: ni con la respuesta 201 ni con profile-exists (9.0443ms)
+✔ LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones (48.463ms)
+✔ LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones (23.8106ms)
+✔ LHB-49: toda salida que da por buena la cuenta con perfil retira el formulario abierto: el camino rápido con el perfil guardado y el de sin conexión también (5.0268ms)
+✔ LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL (31.5973ms)
+✔ LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC (2.201ms)
+✔ LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el 21+ sale de la fecha (431.568ms)
+✔ LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño (266.0662ms)
+✔ LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son (340.0884ms)
+✔ LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás (232.5714ms)
+✔ LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez (59.6275ms)
+✔ LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe (57.7721ms)
+✔ LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos) (23.3578ms)
+✔ LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados (3.5091ms)
+✔ LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió) (33.9498ms)
+ℹ tests 99
+ℹ suites 0
+ℹ pass 99
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9605.7666
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Content test/site.test.js | Select-Object -Skip 330 -First 38; Get-Content test/site.test.js | Select-Object -Skip 1288 -First 115; Get-Content evidence/lhb-52-mutations.py; Get-Content evidence/lhb-52-mutations.txt | Select-Object -Skip 65; git log --oneline -4' in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+ succeeded in 2489ms:
+  assert.deepEqual(await post(a,{handle:'admin',...IDN}),[400,{error:'handle-reserved'}]);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM profiles').get().n,0,'nada guardado todavía');
+  const before=new Date().toISOString();
+  assert.deepEqual(await post(a,{handle:'TabaQuero',...IDN,first_name:' Ana ',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',avatar_url:AV}),
+   [201,{profile:{handle:'tabaquero',display_name:'Ana M.',bio:'Fumo los domingos.',favorite_brand:'Yambo Cigars',avatar_key:AV}}]);
+  const row=db.prepare('SELECT * FROM profiles WHERE user_id=?1').get('user_a');assert.equal(row.handle,'tabaquero');assert.ok(row.age_ok_at>=before,'hora del 21+ guardada');assert.equal(row.hidden,0);
+  assert.deepEqual(await post(b,{handle:'tabaquero',...IDN,avatar_url:AV}),[409,{error:'handle-taken'}],'@ único');
+  assert.deepEqual(await post(b,{handle:'TABAQUERO',...IDN,avatar_url:AV}),[409,{error:'handle-taken'}],'único sin importar mayúsculas');
+  assert.deepEqual(await post(a,{handle:'otro_nombre',...IDN,avatar_url:AV}),[409,{error:'profile-exists'}],'cambiar el perfil es de LHB-34');
+  assert.equal(db.prepare('SELECT handle FROM profiles WHERE user_id=?1').get('user_a').handle,'tabaquero','el 409 no cambió nada');
+  const gate=async token=>{const r=await P.requireProfile(req(token),env);return r instanceof Response?[r.status,await r.json()]:[200,r.profile.handle,r.user.sub]};
+  assert.deepEqual(await gate(null),[401,{error:'no-session'}]);
+  assert.deepEqual(await gate(c),[403,{error:'no-profile'}],'una API de Mi Hoja rechaza a quien no tiene perfil');
+  assert.deepEqual(await gate(a),[200,'tabaquero','user_a']);
+  const m=await me.onRequestGet({request:req(a),env});assert.equal((await m.json()).profile.handle,'tabaquero','/api/me ya ve el perfil');
+  /* LHB-49: la foto es obligatoria y solo vale una URL de Clerk; un rechazo no guarda nada ni gasta el @ */
+  assert.equal(db.prepare('SELECT avatar_key FROM profiles WHERE user_id=?1').get('user_a').avatar_key,AV,'la URL de Clerk quedó en avatar_key');
+  assert.equal((await (await me.onRequestGet({request:req(a),env})).json()).profile.avatar_key,AV,'/api/me devuelve la URL guardada');
+  assert.deepEqual(await post(c,{handle:'sinfoto',...IDN}),[400,{error:'avatar-required'}],'sin foto no hay perfil');
+  assert.deepEqual(await post(c,{handle:'sinfoto',...IDN,avatar_url:''}),[400,{error:'avatar-required'}]);
+  for(const bad of ['https://evil.example/x.png','http://img.clerk.com/x','https://img.clerk.com.evil.example/x',42])assert.deepEqual(await post(c,{handle:'sinfoto',...IDN,avatar_url:bad}),[400,{error:'avatar-invalid'}],String(bad));
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM profiles WHERE user_id=?1').get('user_c').n,0,'los rechazos no guardaron nada');
+  assert.equal((await post(c,{handle:'sinfoto',...IDN,avatar_url:AV}))[0],201,'y el @ no se gastó con los rechazos');
+ }finally{globalThis.fetch=realFetch}
+});
+function CUENTA_HARNESS(over){
+ const vm=require('vm');const ctx={window:{}};vm.createContext(ctx);vm.runInContext(read('cuenta.js'),ctx);
+ const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;const navL=[];
+ /* LHB-49: una cuenta de prueba sin hasImage explícito trae foto (la que Clerk importa de Google); las pruebas de la foto lo ponen en false */
+ let cu=null;const C={get user(){return cu},set user(v){cu=v&&v.hasImage===undefined?{hasImage:true,imageUrl:'https://img.clerk.com/test-'+v.id,...v}:v},addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
+ const D={clerk:async()=>C,api:async()=>({status:0,body:{}}),here:()=>hash,onNav:f=>navL.push(f),reroute:()=>log.push('reroute'),
+  store:{get:()=>store,set:v=>{store=v;log.push('store:'+v.sub+':'+v.handle)},clear:()=>{store=null;log.push('clear')}},
+  intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
+  openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>{lastNotice=null;log.push('closeAll')},onboarding:f=>log.push('onboarding'),identity:f=>log.push('identity'),toast:m=>log.push('toast')},...over};
+ const A=ctx.window.LHB_CUENTA(D);
+ return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{const ch=h!==hash;hash=h;if(ch)navL.forEach(f=>f())},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
+}
+const tick=async(n=8)=>{for(let i=0;i<n;i++)await new Promise(r=>setImmediate(r))};
+  const hecha=ROW(a.db,'user_old');assert.deepEqual(await a.put(tk,{...IDN,first_name:'Otra'}),[409,{error:'identity-exists'}]);assert.deepEqual(ROW(a.db,'user_old'),hecha,'ya completo: no se sobrescribe');
+  /* uno sin nombre público lo recibe de su nombre y la inicial */
+  assert.deepEqual(await a.put(await a.tok('user_nodn'),IDN),[200,{ok:true}]);assert.equal(ROW(a.db,'user_nodn').display_name,'Ana M.');
+  /* sin perfil: 403; y nadie toca el perfil de otro */
+  assert.deepEqual(await a.put(await a.tok('user_nuevo'),IDN),[403,{error:'no-profile'}]);assert.equal(COUNT(a.db),2,'PUT no crea perfiles');
+  a.db.prepare("INSERT INTO profiles (user_id,handle,age_ok_at,created_at,updated_at,first_name,last_name,gender,birth_date) VALUES ('user_c','c','x','x','x','Cata','Rey','F','1990-01-01')").run();
+  assert.deepEqual(await a.put(await a.tok('user_c'),IDN),[409,{error:'identity-exists'}]);assert.equal(ROW(a.db,'user_c').first_name,'Cata');
+ }finally{a.done()}
+});
+test('LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez',async()=>{
+ const mk=async(putRes,after,me,over)=>{const calls=[];let submit;const h=CUENTA_HARNESS({api:async(C,m,p,b)=>{calls.push(m+' '+p);if(m==='GET')return typeof me==='function'?me(calls):{status:200,body:me||{profile:{handle:'sergio'},needsIdentity:true}};h.puts=(h.puts||[]).concat([b]);return putRes(b)},...over});
+  h.D.ui.identity=s=>{submit=s;h.log.push('identity')};h.D.ui.onboarding=()=>h.log.push('onboarding');h.nav('#/mihoja');h.C.user={id:'user_a'};await h.A.require(h.go,over&&over.inPlaceOpts);await tick();return {h,calls,submit:f=>{const r=submit(f);after&&after(h);return r},raw:()=>submit}};
+ /* la puerta: no abre, no guarda el perfil para abrir sin red, no pide foto ni @ */
+ let r=await mk(()=>({status:200,body:{ok:true}}));
+ assert.equal(typeof r.raw(),'function','muestra el paso de identidad');assert.ok(r.h.log.includes('identity'));assert.ok(!r.h.log.includes('GO')&&!r.h.log.includes('onboarding'),'todavía no abre Mi Hoja ni pide un perfil nuevo');
+ assert.ok(r.h.log.includes('clear')&&!r.h.log.some(x=>x.startsWith('store')),'el perfil guardado de antes se borra y no se vuelve a guardar hasta completar');
+ /* completar: manda solo los cuatro datos, luego guarda, felicita y abre */
+ const F={first_name:'Sergio',last_name:'Báez',gender:'M',birth_date:'1975-03-04',handle:'otro',bio:'x',favorite_brand:'y',display_name:'Z',age_ok:true,avatar_url:'https://img.clerk.com/x'};
+ r=await mk(()=>({status:200,body:{ok:true}}));assert.deepEqual(await r.submit(F),{ok:true});
+ assert.deepEqual(r.h.puts,[{first_name:'Sergio',last_name:'Báez',gender:'M',birth_date:'1975-03-04'}],'el PUT lleva solo nombre, apellido, género y fecha');
+ assert.deepEqual(r.calls,['GET /api/me','PUT /api/profile']);assert.deepEqual(r.h.log.filter(x=>x.startsWith('store')||x==='GO'||x==='toast'),['store:user_a:sergio','toast','GO']);
+ /* un rechazo del servidor deja el formulario vivo y no abre nada; luego el mismo formulario puede reintentar */
+ let n=0;r=await mk(()=>++n===1?{status:400,body:{error:'age-under-21'}}:{status:200,body:{ok:true}});
+ assert.deepEqual(await r.submit(F),{error:'age-under-21'});assert.ok(!r.h.log.includes('GO')&&!r.h.log.includes('toast'));assert.deepEqual(await r.submit(F),{ok:true});assert.deepEqual(r.h.log.filter(x=>x==='GO'),['GO'],'el reintento abre una sola vez');
+ r=await mk(()=>({status:500,body:{}}));assert.deepEqual(await r.submit(F),{error:'generic'});r=await mk(()=>{throw new Error('sin red')});assert.deepEqual(await r.submit(F),{error:'generic'});assert.ok(!r.h.log.includes('GO'));
+ /* ya estaba completo (otra pestaña, o la respuesta se perdió): se revisa de nuevo y, si sale completo, termina igual que un 200; si no, error y se puede reintentar */
+ r=await mk(()=>({status:409,body:{error:'identity-exists'}}),null,calls=>calls.filter(c=>c.startsWith('GET')).length===1?{status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}:{status:200,body:{profile:{handle:'sergio'},needsIdentity:false}});
+ assert.deepEqual(await r.submit(F),{ok:true});assert.deepEqual(r.h.log.filter(x=>x==='GO'||x==='toast'),['toast','GO']);
+ r=await mk(()=>({status:409,body:{error:'identity-exists'}}),null,()=>({status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}));assert.deepEqual(await r.submit(F),{error:'recheck'},'si la revisión sigue diciendo que falta, no se anuncia éxito');assert.ok(!r.h.log.includes('GO'));
+ /* un solo envío a la vez */
+ const d=defer();r=await mk(()=>d.p);const p1=r.submit(F);const p2=await Promise.race([r.submit(F),tick(20).then(()=>'colgado')]);assert.deepEqual(p2,{error:'busy'},'el segundo envío no espera ni manda');d.ok({status:200,body:{ok:true}});assert.deepEqual(await p1,{ok:true});assert.deepEqual(r.h.puts.length,1,'un solo PUT');
+ /* cuenta o página distintas: no se manda ni se abre nada */
+ r=await mk(()=>({status:200,body:{ok:true}}),h=>h.C.signIn('user_b'));assert.deepEqual(await r.submit(F),{stale:true});assert.ok(!r.h.log.includes('GO')&&!r.h.log.includes('toast'),'otra cuenta: no abre ni felicita');assert.ok(!r.h.log.some(x=>x.startsWith('store')));
+ r=await mk(()=>({status:200,body:{ok:true}}),h=>h.nav('#/catalogo'));assert.deepEqual(await r.submit(F),{stale:true});assert.ok(!r.h.log.includes('GO'),'el usuario se fue de la pantalla: no se abre Mi Hoja encima');
+ r=await mk(()=>({status:200,body:{ok:true}}));r.h.C.signIn('user_b');await tick();const pc=r.h.puts?r.h.puts.length:0;assert.deepEqual(await r.raw()(F),{stale:true});assert.equal(r.h.puts?r.h.puts.length:0,pc,'un formulario que quedó de otra cuenta no manda nada');
+ /* desde una página pública: tras completar repinta la página y hace la acción */
+ const h=CUENTA_HARNESS({api:async(C,m)=>m==='GET'?{status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}:{status:200,body:{ok:true}}});let sub;h.D.ui.identity=s=>{sub=s};h.nav('#/c/yambo-toro');h.C.user={id:'user_a'};
+ await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();assert.deepEqual(await sub(F),{ok:true});assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'),['reroute','GO'],'repinta la página y hace la acción');
+ /* quien ya tiene su identidad (needsIdentity false, o sin la marca) no ve el paso */
+ for(const body of [{profile:{handle:'ana'},needsIdentity:false},{profile:{handle:'ana'}}]){const k=CUENTA_HARNESS({api:async()=>({status:200,body})});let seen=false;k.D.ui.identity=()=>{seen=true};k.C.user={id:'user_a'};await k.A.require(k.go);await tick();assert.ok(!seen&&k.log.includes('GO'),'sin la marca no hay paso extra: '+JSON.stringify(body))}
+ /* y un 401 o 403 con la marca no abre nada (la puerta sigue igual) */
+ const z=CUENTA_HARNESS({api:async()=>({status:403,body:{needsIdentity:true,profile:{handle:'x'}}})});let sz=false;z.D.ui.identity=()=>{sz=true};z.C.user={id:'user_a'};await z.A.require(z.go);await tick();assert.ok(!sz&&!z.log.includes('GO'));
+});
+test('LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';const now='2026-10-26T15:00:00.000Z';const subs=[];
+ const mk=(o)=>FORM_HARNESS({url:()=>AV2,upload:async()=>({url:AV2})},async v=>{subs.push(v);return {ok:true}},undefined,{now,...o});
+ let f=mk();
+ /* la forma: nombre, apellido, género, fecha (con tope hoy) y ninguna casilla de 21 */
+ const html=f.html();for(const id of ['obFn','obLn','obGM','obGF','obD'])assert.ok(html.includes('id="'+id+'"'),id+' está');assert.ok(!html.includes('obAge')&&!html.includes('Tengo 21')&&!html.includes('id="obN"'),'ni casilla de 21 ni nombre público opcional');
+ assert.match(html,/id="obD" type="date"[^>]*min="1900-01-01"[^>]*max="2026-10-26"/,'la fecha es un campo de fecha, con tope hoy');assert.match(html,/Masculino/);assert.match(html,/Femenino/);assert.ok(!/Otro|No binario/i.test(html),'solo dos opciones');assert.match(html,/privad/);
+ /* cada dato que falta: no se manda nada y se dice cuál */
+ for(const [v,err] of [[{first:''},'first_name-required'],[{first:'   '},'first_name-required'],[{last:''},'last_name-required'],[{first:'a'.repeat(51)},'first_name-long'],[{last:'Mo\nra'},'last_name-invalid'],[{gender:''},'gender-required'],[{birth:''},'birth_date-required'],[{birth:'2001-02-29'},'birth_date-invalid'],[{birth:'2026-10-27'},'birth_date-future'],[{birth:'2005-10-27'},'age-under-21'],[{birth:'2026-10-26'},'age-under-21']]){
+  subs.length=0;f=mk();await f.send(v);assert.equal(subs.length,0,JSON.stringify(v)+': no se manda nada');assert.equal(f.state().err,f.OB[err],JSON.stringify(v)+' dice '+err);assert.deepEqual([f.state().go,f.state().pb],[false,false],'los botones responden');}
+ assert.ok(f.OB['age-under-21']&&/21/.test(f.OB['age-under-21']),'el mensaje de menores es claro y menciona los 21');
+ /* exactamente 21 hoy: se manda, con el @, la identidad y nada de display_name, age_ok ni casilla */
+ subs.length=0;f=mk();await f.send({birth:'2005-10-26'});assert.equal(subs.length,1);assert.deepEqual(subs[0],{handle:'ana',first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'2005-10-26',bio:'',favorite_brand:''});assert.equal(f.state().err,'');
+ subs.length=0;f=mk();await f.send({first:'  Ana María ',last:' de la Cruz ',gender:'M'});assert.deepEqual([subs[0].first_name,subs[0].last_name,subs[0].gender],['Ana María','de la Cruz','M'],'los espacios de los lados se recortan');
+ /* la fecha se compara contra el día UTC, no contra la hora de la persona */
+ subs.length=0;f=mk({now:'2026-10-26T23:59:59.000Z'});await f.send({birth:'2005-10-27'});assert.equal(subs.length,0);subs.length=0;f=mk({now:'2026-10-27T00:00:00.000Z'});await f.send({birth:'2005-10-27'});assert.equal(subs.length,1,'a partir de la medianoche UTC ya cumple');
+ /* el formulario de completar: sin foto, @, bio ni marca; solo los cuatro datos; también rechaza a un menor */
+ const idm=(o)=>FORM_HARNESS(null,async v=>{subs.push(v);return {ok:true}},undefined,{now,mode:'identity',...o});
+ f=idm();const h2=f.html();assert.match(h2,/Completa tu <em>perfil<\/em>/);assert.ok(h2.includes('Guardar')&&!h2.includes('Crear mi perfil'));for(const id of ['obH','obPf','obPb','obB','obM','obAge'])assert.ok(!h2.includes('id="'+id+'"'),id+' no está en el paso de completar');
+ for(const id of ['obFn','obLn','obGM','obGF','obD'])assert.ok(h2.includes('id="'+id+'"'),id+' sí');
+ subs.length=0;await f.send({birth:'2010-01-01'});assert.equal(subs.length,0);assert.equal(f.state().err,f.OB['age-under-21']);
+ subs.length=0;f=idm();await f.send({});assert.deepEqual(subs,[{first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-05-17'}],'solo los cuatro datos, sin @');
+ for(const e of ['first_name-required','last_name-required','last_name-long','last_name-invalid','gender-required','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists','busy'])assert.ok(f.OB[e],'hay mensaje para '+e);
+ assert.ok(!f.OB['age-required'],'el mensaje de la casilla ya no existe');
+});
+test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)',async()=>{
+ const {pathToFileURL}=require('url');const P=await import(pathToFileURL(path.join(__dirname,'..','functions','_lib','profile.js')).href);
+ const now=new Date(T0);const today=P.utcDay(now);const f=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{now:T0});
+ const names=['Ana','','   ','a'.repeat(50),'a'.repeat(51),'🌿'.repeat(50),'🌿'.repeat(51),'An\na','An\u0000a','An a','Ñandú','  Ana  '];
+ const genders=['M','F',''];const births=['1990-05-17','2005-10-26','2005-10-27','2026-10-26','2026-10-27','2001-02-29','2000-02-29','1899-12-31','1900-01-01','0001-01-01','9999-12-31','','17/05/1990','2000-1-1','2000-13-01'];
+ let n=0;
+ for(const a of names)for(const b of [names[0],names[3]])for(const g of genders)for(const d of births){const o={first_name:a,last_name:b,gender:g,birth_date:d};
+  const s=P.checkIdentity(o,now),c=f.idProblem(o,today);assert.equal(c||undefined,s.error,JSON.stringify(o));n++}
+ for(const a of names)for(const g of genders)for(const d of births){const o={first_name:'Ana',last_name:a,gender:g,birth_date:d};assert.equal(f.idProblem(o,today)||undefined,P.checkIdentity(o,now).error,JSON.stringify(o));n++}
+ assert.ok(n>1000,'la matriz tiene casos: '+n);
+ /* los mismos mensajes: cada error que el servidor puede dar tiene texto en el formulario */
+ for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+});
+test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v53'/);
+ /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+ for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+ const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+});
+test('LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)',async()=>{
+ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/const acct=\{.*\};\n/)[0];
+ const mem=new Map();const ls={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};
+ const ctx={A:{LS:{get(k,d){try{const v=ls.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){ls.setItem('vb_'+k,JSON.stringify(v))}}},localStorage:ls};vm.createContext(ctx);vm.runInContext(line+';this.acct=acct',ctx);
+ /* lo que guardó la versión anterior: otra llave, y ya no se lee */
+ ls.setItem('vb_cuenta',JSON.stringify({sub:'user_a',handle:'sergio'}));assert.equal(ctx.acct.get(),null,'el perfil guardado antes de LHB-52 no cuenta');
+ ctx.acct.set({sub:'user_a',handle:'sergio'});assert.deepEqual(ctx.acct.get(),{sub:'user_a',handle:'sergio'},'lo nuevo sí se guarda y se lee');assert.ok(mem.has('vb_cuenta2'));
+ ctx.acct.clear();assert.equal(ctx.acct.get(),null);assert.ok(!mem.has('vb_cuenta2')&&!mem.has('vb_cuenta'),'salir borra la llave nueva y la vieja');
+ /* y el gate, con ese almacén vacío: sin conexión no abre, y la acción rápida pasa por /api/me y por el paso de identidad */
+ const off=CUENTA_HARNESS({api:async()=>({status:0,body:{}})});off.C.user={id:'user_a'};await off.A.require(off.go);await tick();assert.ok(!off.log.includes('GO'),'sin perfil guardado y sin red no abre');
+ const calls=[];const fast=CUENTA_HARNESS({api:async(C,m,p)=>{calls.push(m+' '+p);return {status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}}});fast.D.ui.identity=()=>fast.log.push('identity');fast.nav('#/c/yambo-toro');fast.C.user={id:'user_a'};
+ fast.A.quick(()=>fast.log.push('ACTION'),{inPlace:true,act:'humidor'});await tick();assert.deepEqual(calls,['GET /api/me'],'sin perfil guardado la acción rápida revisa en el servidor');assert.ok(fast.log.includes('identity')&&!fast.log.includes('ACTION'),'y pide la identidad antes de hacer la acción');
+ assert.ok(src.includes("A.LS.get('cuenta2',null)")&&src.includes("A.LS.set('cuenta2',v)"),'la llave nueva');
+});
+"""LHB-52: la prueba de que las pruebas nuevas pueden fallar. Cada mutación rompe una línea de lo que se entrega,
+corre `node --test test/site.test.js` y debe dar al menos una prueba en rojo. Al final todo se restaura byte por byte.
+Uso: python evidence/lhb-52-mutations.py  (desde la raíz del repositorio); con --check solo comprueba que cada texto a mutar aparece una vez."""
+import os, re, subprocess, sys
+R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+def run():
+    p = subprocess.run(['node', '--test', '--test-timeout=60000', 'test/site.test.js'], cwd=R, capture_output=True, text=True, encoding='utf-8')
+    # una prueba que se cuelga hasta el tiempo límite sale como cancelled, no como fail: cuenta como roja
+    fail = int(re.search(r'^ℹ fail (\d+)', p.stdout, re.M).group(1)) + int(re.search(r'^ℹ cancelled (\d+)', p.stdout, re.M).group(1))
+    names = sorted(set(re.findall(r'^✖ (.+?) \(\d', p.stdout, re.M)))
+    return fail, names
+
+PF = 'functions/_lib/profile.js'
+AP = 'functions/api/profile.js'
+ME = 'functions/api/me.js'
+CU = 'site/cuenta.js'
+HO = 'site/hoja.js'
+
+# (nombre, archivo, texto exacto que existe una vez, texto que lo reemplaza); el texto puede abarcar varias líneas
+MUTS = [
+    # servidor: las reglas
+    ('S1 servidor: un nombre vacío se acepta', PF, "  if (!t) return { error: field + '-required' };\n", "  if (!t) return { value: t };\n"),
+    ('S2 servidor: los caracteres de control en el nombre pasan', PF, "  if (NAME_CONTROL.test(t)) return { error: field + '-invalid' };\n", ""),
+    ('S3 servidor: el largo del nombre se mide en unidades UTF-16, no en caracteres', PF, "if ([...t].length > NAME_MAX)", "if (t.length > NAME_MAX)"),
+    ('S4 servidor: el nombre puede tener 51 caracteres', PF, "export const NAME_MAX = 50;", "export const NAME_MAX = 51;"),
+    ('S5 servidor: cualquier género pasa', PF, "  if (v !== 'M' && v !== 'F') return { error: 'gender-invalid' };\n", ""),
+    ('S6 servidor: el género no es obligatorio', PF, "  if (v == null || v === '') return { error: 'gender-required' };\n", ""),
+    ('S7 servidor: la fecha no es obligatoria', PF, "  if (v == null || v === '') return { error: 'birth_date-required' };\n", ""),
+    ('S8 servidor: el 30 de febrero pasa (la fecha no se verifica en el calendario)', PF, " || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d", ""),
+    ('S9 servidor: un año anterior a 1900 pasa', PF, " || y < MIN_BIRTH_YEAR", ""),
+    ('S10 servidor: una fecha futura no tiene su propio error', PF, "  if (v > today) return { error: 'birth_date-future' };\n", ""),
+    ('S11 servidor: quien cumple 21 hoy se rechaza', PF, "  if (v > cutoff) return", "  if (v >= cutoff) return"),
+    ('S12 servidor: la edad mínima es 20', PF, "export const MIN_AGE = 21;", "export const MIN_AGE = 20;"),
+    ('S13 servidor: el corte de los 21 años ignora el mes y el día', PF, ".padStart(4, '0') + today.slice(4);", ".padStart(4, '0') + '-12-31';"),
+    ('S14 servidor: el nombre público trae el apellido completo', PF, "[...last][0].toUpperCase() + '.'", "last + '.'"),
+    ('S15 servidor: la lectura pública trae la fecha de nacimiento', PF, "'handle, display_name, bio, favorite_brand, avatar_key'", "'handle, display_name, bio, favorite_brand, avatar_key, birth_date'"),
+    ('S16 servidor: la lectura pública trae el género', PF, "'handle, display_name, bio, favorite_brand, avatar_key'", "'handle, display_name, bio, favorite_brand, avatar_key, gender'"),
+    ('S17 servidor: la lectura pública trae perfiles ocultos', PF, " WHERE handle = ?1 AND hidden = 0'", " WHERE handle = ?1'"),
+    ('S18 servidor: la puerta de Mi Hoja trae el nombre y el apellido', PF, "', hidden FROM profiles WHERE user_id = ?1'", "', hidden, first_name, last_name, birth_date FROM profiles WHERE user_id = ?1'"),
+    # servidor: POST y PUT
+    ('P1 POST: la fecha de nacimiento no se guarda', AP, "p.gender, p.birth_date, stamp)", "p.gender, null, stamp)"),
+    ('P2 POST: la respuesta 201 trae el género y la fecha', AP, "return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key } }, 201);", "return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key, gender: p.gender, birth_date: p.birth_date } }, 201);"),
+    ('P3 PUT: se puede sobrescribir una identidad completa', AP, "'WHERE user_id = ?1 AND (first_name IS NULL OR last_name IS NULL OR gender IS NULL OR birth_date IS NULL)'", "'WHERE user_id = ?1'"),
+    ('P4 PUT: el nombre público que ya existía se pisa', AP, "display_name = COALESCE(display_name, ?6)", "display_name = ?6"),
+    ('P5 PUT: se toca el sello del 21+ original', AP, "updated_at = ?7 ' +", "updated_at = ?7, age_ok_at = ?7 ' +"),
+    ('P6 PUT: sin validar la identidad', AP, "  if (id.error) return json({ error: id.error }, 400);\n", ""),
+    ('P7 PUT: sin perfil también da 409', AP, "return has ? json({ error: 'identity-exists' }, 409) : json({ error: 'no-profile' }, 403);", "return json({ error: 'identity-exists' }, 409);"),
+    # /api/me
+    ('E1 /api/me: un perfil sin fecha de nacimiento no pide completar', ME, " || p.birth_date == null;", ";"),
+    ('E2 /api/me: no manda la marca needsIdentity', ME, "return json({ profile: p, needsIdentity });", "return json({ profile: p });"),
+    ('E3 /api/me: un perfil sin género no pide completar', ME, "|| p.gender == null ", ""),
+    # cuenta.js
+    ('C1 gate: un perfil sin identidad abre Mi Hoja directo', CU, " if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);\n", ""),
+    ('C2 gate: el perfil guardado de antes no se borra', CU, " D.store.clear();\n const {live,settle}=guard(C,o,lv,uid);let sending=false;", " const {live,settle}=guard(C,o,lv,uid);let sending=false;"),
+    ('C3 gate: el PUT lleva todo lo que mande el formulario', CU, "{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date}", "f"),
+    ('C4 gate: un rechazo del servidor se da por completado', CU, "  if(r.status===200)return finish();\n", "  if(r.status===200||r.status===400)return finish();\n"),
+    ('C5 gate: la revisión que sigue diciendo que falta se da por buena', CU, "&&m.body.needsIdentity!==true)return finish();", ")return finish();"),
+    ('C6 gate: se puede enviar dos veces a la vez', CU, "  if(sending)return {error:'busy'};\n", ""),
+    ('C7 gate: se manda el PUT aunque la cuenta ya sea otra (se quitan las dos revisiones de antes del PUT)', CU, "  if(!live())return {stale:true};\n  let r;try{r=await D.api(C,'PUT'", "  let r;try{r=await D.api(C,'PUT'", " D.ui.identity(async f=>{\n  if(!live())return {stale:true};\n", " D.ui.identity(async f=>{\n"),
+    ('C8 gate: la respuesta tardía de otra cuenta completa esta', CU, "  if(!live())return {stale:true};\n  if(r.status===200)return finish();", "  if(r.status===200)return finish();"),
+    ('C9 gate: tras completar en una página pública no se repinta', CU, "D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();", "D.ui.toast('Listo, tu perfil está completo.');done();"),
+    ('C10 gate: tras completar no se guarda el perfil', CU, "const finish=()=>{cache({sub:uid,handle:prof.handle});", "const finish=()=>{"),
+    ('C11 gate: el perfil nuevo sigue mandando la casilla de 21', CU, "{...f,avatar_url:pic}", "{...f,age_ok:true,avatar_url:pic}"),
+    # hoja.js
+    ('H1 formulario: la fecha de un menor se manda', HO, "if(v>String(+today.slice(0,4)-21).padStart(4,'0')+today.slice(4))return 'age-under-21';\n", ""),
+    ('H2 formulario: no se revisa la identidad antes de mandar', HO, "const bad=idProblem(f,new Date().toISOString().slice(0,10));if(bad)return err(OB_ERR[bad]||OB_ERR['birth_date-invalid']);", ""),
+    ('H3 formulario: una fecha futura pasa', HO, " if(v>today)return 'birth_date-future';\n", ""),
+    ('H4 formulario: el género no es obligatorio', HO, " if(f.gender!=='M'&&f.gender!=='F')return 'gender-required';\n", ""),
+    ('H5 formulario: el largo del nombre se mide en unidades UTF-16', HO, "if([...s].length>50)return k+'-long'", "if(s.length>50)return k+'-long'"),
+    ('H6 formulario: los separadores de línea pasan en el nombre', HO, "const ID_BAD=/[\\p{Cc}\\p{Zl}\\p{Zp}]/u;", "const ID_BAD=/[\\p{Cc}]/u;"),
+    ('H7 formulario: completar también manda el @ y la bio', HO, "submit(idm?f:{handle:h,", "submit({handle:h,"),
+    ('H8 formulario: el campo de fecha no tiene tope en hoy', HO, 'min="1900-01-01" max="${today}"', 'min="1900-01-01"'),
+    ('H9 formulario: aparece un tercer género', HO, "Femenino</label></div>", 'Femenino</label><label class="check"><input type="radio" name="obG" id="obGX" value="X"> Otro</label></div>'),
+    ('H10 formulario: completar muestra la foto y el @', HO, "${idm?'<p class=\"hint\">Ahora pedimos", "${false?'<p class=\"hint\">Ahora pedimos"),
+    ('H11 hoja: el paso de completar no está en la interfaz', HO, "identity:submit=>onboardingForm(submit,null,'identity'),", ""),
+    ('H12 formulario: la fecha y el género se guardan en el navegador', HO, "const bad=idProblem(f,new Date().toISOString().slice(0,10));", "try{localStorage.setItem('birth_date',f.birth_date)}catch(e){}const bad=idProblem(f,new Date().toISOString().slice(0,10));"),
+    ('K1 hoja: el perfil guardado de antes (llave vieja) vuelve a valer', HO, "A.LS.get('cuenta2',null)", "A.LS.get('cuenta',null)"),
+    ('K2 hoja: salir no borra la llave vieja', HO, "localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')", "localStorage.removeItem('vb_cuenta2')"),
+    # service worker
+    ('W1 sw: la versión del caché no cambia', 'site/sw.js', "const VERSION='lhb-v53';", "const VERSION='lhb-v52';"),
+]
+
+def load(rel):
+    p = os.path.join(R, *rel.split('/'))
+    orig = open(p, 'rb').read()
+    text = orig.decode('utf-8')
+    return p, orig, '\r\n' in text, text.replace('\r\n', '\n')
+
+def main():
+    if '--check' in sys.argv:
+        bad = 0
+        for name, rel, a, b, *more in MUTS:
+            t = load(rel)[3]
+            for x in [a] + more[0::2]:
+                n = t.count(x)
+                if n != 1: bad += 1; print(name, '-> aparece', n, 'veces')
+        print('mutaciones:', len(MUTS), 'con anclaje malo:', bad)
+        return 1 if bad else 0
+    base = run()
+    print('baseline', base)
+    assert base[0] == 0, 'la línea base debe estar en verde'
+    bad = 0
+    only = [x for x in sys.argv[1:] if not x.startswith('--')]  # p. ej. C6 C7 S8: solo esas mutaciones
+    for name, rel, a, b, *more in MUTS:
+        if only and name.split()[0] not in only: continue
+        p, orig, crlf, t = load(rel)
+        if t.count(a) != 1:
+            print(name, '-> ERROR: el texto a mutar aparece', t.count(a), 'veces'); bad += 1; continue
+        m = t.replace(a, b, 1)
+        for a2, b2 in zip(more[0::2], more[1::2]):
+            assert m.count(a2) == 1, (name, a2)
+            m = m.replace(a2, b2, 1)
+        open(p, 'wb').write((m.replace('\n', '\r\n') if crlf else m).encode('utf-8'))
+        try:
+            fail, names = run()
+        finally:
+            open(p, 'wb').write(orig)
+        verdict = 'ROJO (bien)' if fail > 0 else 'SOBREVIVIÓ'
+        if fail == 0: bad += 1
+        print(name, '->', verdict, 'fail=%d' % fail)
+        for n in names[:4]: print('     ', n[:150])
+    final = run()
+    print('restaurado', final)
+    print('mutaciones:', len(MUTS), 'sobrevivieron o con error:', bad)
+    return 0 if bad == 0 and final[0] == 0 else 1
+
+if __name__ == '__main__':
+    sys.exit(main())
+S16 servidor: la lectura pública trae el género -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+S17 servidor: la lectura pública trae perfiles ocultos -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+S18 servidor: la puerta de Mi Hoja trae el nombre y el apellido -> ROJO (bien) fail=1
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+P1 POST: la fecha de nacimiento no se guarda -> ROJO (bien) fail=2
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+P2 POST: la respuesta 201 trae el género y la fecha -> ROJO (bien) fail=2
+      LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403
+      LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el
+P3 PUT: se puede sobrescribir una identidad completa -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P4 PUT: el nombre público que ya existía se pisa -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P5 PUT: se toca el sello del 21+ original -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P6 PUT: sin validar la identidad -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+P7 PUT: sin perfil también da 409 -> ROJO (bien) fail=1
+      LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás
+E1 /api/me: un perfil sin fecha de nacimiento no pide completar -> ROJO (bien) fail=1
+      LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son
+E2 /api/me: no manda la marca needsIdentity -> ROJO (bien) fail=2
+      LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño
+      LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son
+E3 /api/me: un perfil sin género no pide completar -> ROJO (bien) fail=1
+      LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son
+C1 gate: un perfil sin identidad abre Mi Hoja directo -> ROJO (bien) fail=2
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+      LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+C2 gate: el perfil guardado de antes no se borra -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C3 gate: el PUT lleva todo lo que mande el formulario -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C4 gate: un rechazo del servidor se da por completado -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C5 gate: la revisión que sigue diciendo que falta se da por buena -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C6 gate: se puede enviar dos veces a la vez -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C7 gate: se manda el PUT aunque la cuenta ya sea otra (se quitan las dos revisiones de antes del PUT) -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C8 gate: la respuesta tardía de otra cuenta completa esta -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C9 gate: tras completar en una página pública no se repinta -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C10 gate: tras completar no se guarda el perfil -> ROJO (bien) fail=1
+      LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez
+C11 gate: el perfil nuevo sigue mandando la casilla de 21 -> ROJO (bien) fail=2
+      LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+H1 formulario: la fecha de un menor se manda -> ROJO (bien) fail=3
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H2 formulario: no se revisa la identidad antes de mandar -> ROJO (bien) fail=2
+      LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H3 formulario: una fecha futura pasa -> ROJO (bien) fail=2
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H4 formulario: el género no es obligatorio -> ROJO (bien) fail=2
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H5 formulario: el largo del nombre se mide en unidades UTF-16 -> ROJO (bien) fail=1
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H6 formulario: los separadores de línea pasan en el nombre -> ROJO (bien) fail=1
+      LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+H7 formulario: completar también manda el @ y la bio -> ROJO (bien) fail=2
+      LHB-25: un almacenamiento lleno no impide entrar ni crear el perfil; un cambio de cuenta cierra las hojas de Mi Hoja
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H8 formulario: el campo de fecha no tiene tope en hoy -> ROJO (bien) fail=1
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H9 formulario: aparece un tercer género -> ROJO (bien) fail=1
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H10 formulario: completar muestra la foto y el @ -> ROJO (bien) fail=1
+      LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+H11 hoja: el paso de completar no está en la interfaz -> ROJO (bien) fail=1
+      LHB-25: entrar desde una página pública y fallar la revisión muestra el error sobre la página y el reintento conserva la acción
+H12 formulario: la fecha y el género se guardan en el navegador -> ROJO (bien) fail=1
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+K1 hoja: el perfil guardado de antes (llave vieja) vuelve a valer -> ROJO (bien) fail=1
+      LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+K2 hoja: salir no borra la llave vieja -> ROJO (bien) fail=1
+      LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+W1 sw: la versión del caché no cambia -> ROJO (bien) fail=15
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+      artisan logos: every id in LOGOS maps to an existing webp and a real artisan
+      v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)
+restaurado (0, [])
+mutaciones: 54 sobrevivieron o con error: 0
+
+exit=0
+60e4856 LHB-52: Codex round 1 fixes (perfil guardado de antes ya no abre Mi Hoja) y evidencia de mutaciones
+c756916 LHB-52: identidad al crear el perfil (nombre, apellido, genero, fecha de nacimiento)
+4283dac LHB-49: Codex TIER 1 round 7 (merge with origin/main and cache version v52) verdict PASS saved
+6f696b5 LHB-49: service worker cache version lhb-v52 (main already serves lhb-v51 from the Entre Humos event commit 18209ba)
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Content functions/api/me.js; Get-Content functions/api/profile.js; Get-Content evidence/lhb-52-mutations.py | Select-Object -First 30; Get-Content test/site.test.js | Select-Object -Skip 1375 -First 25; git diff c756916..HEAD -- site/hoja.js site/cuenta.js test/site.test.js' in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+ succeeded in 3666ms:
+/* LHB-24: GET /api/me. 401 sin sesión de Clerk; { needsProfile: true } si aún no creó su perfil; si no, el perfil.
+   LHB-52: el perfil trae también nombre, apellido, género y fecha de nacimiento, solo aquí y solo para su dueño (la sesión decide de quién es). Un perfil al que le falta
+   alguno de los cuatro (los que existían antes) llega con needsIdentity: true y la app muestra "Completa tu perfil" antes de abrir Mi Hoja. */
+import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
+
+export async function onRequestGet({ request, env }) {
+  if (!tokenOf(request)) return json({ error: 'no-session' }, 401);
+  if (!issuersOf(env).length) return json({ error: 'no-auth-config' }, 503);
+  const user = await userOf(request, env);
+  if (!user) return json({ error: 'no-session' }, 401);
+  if (!env.DB) return json({ error: 'no-db' }, 503);
+  const p = await env.DB.prepare(
+    'SELECT handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date FROM profiles WHERE user_id = ?1'
+  ).bind(user.sub).first();
+  if (!p) return json({ needsProfile: true });
+  const needsIdentity = p.first_name == null || p.last_name == null || p.gender == null || p.birth_date == null;
+  return json({ profile: p, needsIdentity });
+}
+/* LHB-25: POST /api/profile crea el perfil del onboarding (@handle, bio, marca favorita y, desde LHB-49, la foto: la URL de Clerk en avatar_url, que se guarda en avatar_key).
+   LHB-52: desde ahora también pide nombre, apellido, género y fecha de nacimiento. La fecha reemplaza la casilla de 21+: age_ok_at se sella cuando la fecha da 21 años o más.
+   display_name sale del nombre y la inicial del apellido ("Ana M."); el género y la fecha de nacimiento nunca salen en la respuesta.
+   PUT /api/profile completa la identidad de un perfil que ya existía sin ella (null en las cuatro columnas nuevas); uno que ya la tiene da 409.
+   Cambiar el perfil después es de LHB-34 y LHB-55; aquí un segundo POST da 409. */
+import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
+import { checkProfile, checkIdentity } from '../_lib/profile.js';
+
+// la sesión, la base y el cuerpo JSON: { user, body } o la respuesta de rechazo
+async function intake(request, env) {
+  if (!tokenOf(request)) return { res: json({ error: 'no-session' }, 401) };
+  if (!issuersOf(env).length) return { res: json({ error: 'no-auth-config' }, 503) };
+  const user = await userOf(request, env);
+  if (!user) return { res: json({ error: 'no-session' }, 401) };
+  if (!env.DB) return { res: json({ error: 'no-db' }, 503) };
+  // solo JSON: un formulario de otro sitio no puede mandarlo sin preflight
+  if (!/^application\/json\b/i.test(request.headers.get('Content-Type') || '')) return { res: json({ error: 'bad-type' }, 415) };
+  let body;
+  try { body = await request.json(); } catch (e) { return { res: json({ error: 'bad-body' }, 400) }; }
+  return { user, body };
+}
+
+export async function onRequestPost({ request, env }) {
+  const it = await intake(request, env);
+  if (it.res) return it.res;
+  const now = new Date();
+  const p = checkProfile(it.body, now);
+  if (p.error) return json({ error: p.error }, 400);
+  const stamp = now.toISOString();
+  try {
+    const r = await env.DB.prepare(
+      'INSERT INTO profiles (user_id, handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date, age_ok_at, created_at, updated_at) ' +
+      'VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?11) ON CONFLICT(user_id) DO NOTHING'
+    ).bind(it.user.sub, p.handle, p.display_name, p.bio, p.favorite_brand, p.avatar_key, p.first_name, p.last_name, p.gender, p.birth_date, stamp).run();
+    if (!r.meta.changes) return json({ error: 'profile-exists' }, 409);
+  } catch (e) {
+    if (/UNIQUE/i.test(String(e && e.message))) return json({ error: 'handle-taken' }, 409);
+    throw e;
+  }
+  const { handle, display_name, bio, favorite_brand, avatar_key } = p;
+  return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key } }, 201);
+}
+
+export async function onRequestPut({ request, env }) {
+  const it = await intake(request, env);
+  if (it.res) return it.res;
+  const now = new Date();
+  const id = checkIdentity(it.body, now);
+  if (id.error) return json({ error: id.error }, 400);
+  // una sola sentencia: solo toca un perfil al que le falta alguna de las cuatro; un display_name que ya existía se queda, y age_ok_at no se toca
+  const r = await env.DB.prepare(
+    'UPDATE profiles SET first_name = ?2, last_name = ?3, gender = ?4, birth_date = ?5, display_name = COALESCE(display_name, ?6), updated_at = ?7 ' +
+    'WHERE user_id = ?1 AND (first_name IS NULL OR last_name IS NULL OR gender IS NULL OR birth_date IS NULL)'
+  ).bind(it.user.sub, id.first_name, id.last_name, id.gender, id.birth_date, id.display_name, now.toISOString()).run();
+  if (r.meta.changes) return json({ ok: true });
+  const has = await env.DB.prepare('SELECT 1 AS n FROM profiles WHERE user_id = ?1').bind(it.user.sub).first();
+  return has ? json({ error: 'identity-exists' }, 409) : json({ error: 'no-profile' }, 403);
+}
+"""LHB-52: la prueba de que las pruebas nuevas pueden fallar. Cada mutación rompe una línea de lo que se entrega,
+corre `node --test test/site.test.js` y debe dar al menos una prueba en rojo. Al final todo se restaura byte por byte.
+Uso: python evidence/lhb-52-mutations.py  (desde la raíz del repositorio); con --check solo comprueba que cada texto a mutar aparece una vez."""
+import os, re, subprocess, sys
+R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+def run():
+    p = subprocess.run(['node', '--test', '--test-timeout=60000', 'test/site.test.js'], cwd=R, capture_output=True, text=True, encoding='utf-8')
+    # una prueba que se cuelga hasta el tiempo límite sale como cancelled, no como fail: cuenta como roja
+    fail = int(re.search(r'^ℹ fail (\d+)', p.stdout, re.M).group(1)) + int(re.search(r'^ℹ cancelled (\d+)', p.stdout, re.M).group(1))
+    names = sorted(set(re.findall(r'^✖ (.+?) \(\d', p.stdout, re.M)))
+    return fail, names
+
+PF = 'functions/_lib/profile.js'
+AP = 'functions/api/profile.js'
+ME = 'functions/api/me.js'
+CU = 'site/cuenta.js'
+HO = 'site/hoja.js'
+
+# (nombre, archivo, texto exacto que existe una vez, texto que lo reemplaza); el texto puede abarcar varias líneas
+MUTS = [
+    # servidor: las reglas
+    ('S1 servidor: un nombre vacío se acepta', PF, "  if (!t) return { error: field + '-required' };\n", "  if (!t) return { value: t };\n"),
+    ('S2 servidor: los caracteres de control en el nombre pasan', PF, "  if (NAME_CONTROL.test(t)) return { error: field + '-invalid' };\n", ""),
+    ('S3 servidor: el largo del nombre se mide en unidades UTF-16, no en caracteres', PF, "if ([...t].length > NAME_MAX)", "if (t.length > NAME_MAX)"),
+    ('S4 servidor: el nombre puede tener 51 caracteres', PF, "export const NAME_MAX = 50;", "export const NAME_MAX = 51;"),
+    ('S5 servidor: cualquier género pasa', PF, "  if (v !== 'M' && v !== 'F') return { error: 'gender-invalid' };\n", ""),
+    ('S6 servidor: el género no es obligatorio', PF, "  if (v == null || v === '') return { error: 'gender-required' };\n", ""),
+test('LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)',async()=>{
+ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/const acct=\{.*\};\n/)[0];
+ const mem=new Map();const ls={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};
+ const ctx={A:{LS:{get(k,d){try{const v=ls.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){ls.setItem('vb_'+k,JSON.stringify(v))}}},localStorage:ls};vm.createContext(ctx);vm.runInContext(line+';this.acct=acct',ctx);
+ /* lo que guardó la versión anterior: otra llave, y ya no se lee */
+ ls.setItem('vb_cuenta',JSON.stringify({sub:'user_a',handle:'sergio'}));assert.equal(ctx.acct.get(),null,'el perfil guardado antes de LHB-52 no cuenta');
+ ctx.acct.set({sub:'user_a',handle:'sergio'});assert.deepEqual(ctx.acct.get(),{sub:'user_a',handle:'sergio'},'lo nuevo sí se guarda y se lee');assert.ok(mem.has('vb_cuenta2'));
+ ctx.acct.clear();assert.equal(ctx.acct.get(),null);assert.ok(!mem.has('vb_cuenta2')&&!mem.has('vb_cuenta'),'salir borra la llave nueva y la vieja');
+ /* y el gate, con ese almacén vacío: sin conexión no abre, y la acción rápida pasa por /api/me y por el paso de identidad */
+ const off=CUENTA_HARNESS({api:async()=>({status:0,body:{}})});off.C.user={id:'user_a'};await off.A.require(off.go);await tick();assert.ok(!off.log.includes('GO'),'sin perfil guardado y sin red no abre');
+ const calls=[];const fast=CUENTA_HARNESS({api:async(C,m,p)=>{calls.push(m+' '+p);return {status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}}});fast.D.ui.identity=()=>fast.log.push('identity');fast.nav('#/c/yambo-toro');fast.C.user={id:'user_a'};
+ fast.A.quick(()=>fast.log.push('ACTION'),{inPlace:true,act:'humidor'});await tick();assert.deepEqual(calls,['GET /api/me'],'sin perfil guardado la acción rápida revisa en el servidor');assert.ok(fast.log.includes('identity')&&!fast.log.includes('ACTION'),'y pide la identidad antes de hacer la acción');
+ assert.ok(src.includes("A.LS.get('cuenta2',null)")&&src.includes("A.LS.set('cuenta2',v)"),'la llave nueva');
+});
+diff --git a/site/hoja.js b/site/hoja.js
+index 5592edb..96d82ba 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -139,7 +139,8 @@ function bindBackup(){$$('[data-exp]').forEach(b=>b.onclick=exportar);$$('[data-
+ const CLERK=location.hostname==='lahojaboricua.com'?{pk:'pk_live_Y2xlcmsubGFob2phYm9yaWN1YS5jb20k',fapi:'clerk.lahojaboricua.com'}:{pk:'pk_test_ZGFyaW5nLWVhZ2xlLTgzOTQuY2xlcmsuYWNjb3VudHMuZGV2JA',fapi:'daring-eagle-8394.clerk.accounts.dev'};
+ const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
+ /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
+-const acct={get:()=>A.LS.get('cuenta',null),set:v=>A.LS.set('cuenta',v),clear:()=>{try{localStorage.removeItem('vb_cuenta')}catch(e){}}};
++/* LHB-52: la llave nueva (cuenta2) deja sin valor lo guardado antes de pedir la identidad: un perfil guardado de antes ({sub,handle}) no abre Mi Hoja sin conexión ni por el camino rápido; clear() borra las dos */
++const acct={get:()=>A.LS.get('cuenta2',null),set:v=>A.LS.set('cuenta2',v),clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}}};
+ /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
+ const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
+ let clerkP=null;
+diff --git a/test/site.test.js b/test/site.test.js
+index e37a0f5..c444bdc 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -1373,3 +1373,17 @@ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca lo
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+ });
++test('LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)',async()=>{
++ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/const acct=\{.*\};\n/)[0];
++ const mem=new Map();const ls={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};
++ const ctx={A:{LS:{get(k,d){try{const v=ls.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){ls.setItem('vb_'+k,JSON.stringify(v))}}},localStorage:ls};vm.createContext(ctx);vm.runInContext(line+';this.acct=acct',ctx);
++ /* lo que guardó la versión anterior: otra llave, y ya no se lee */
++ ls.setItem('vb_cuenta',JSON.stringify({sub:'user_a',handle:'sergio'}));assert.equal(ctx.acct.get(),null,'el perfil guardado antes de LHB-52 no cuenta');
++ ctx.acct.set({sub:'user_a',handle:'sergio'});assert.deepEqual(ctx.acct.get(),{sub:'user_a',handle:'sergio'},'lo nuevo sí se guarda y se lee');assert.ok(mem.has('vb_cuenta2'));
++ ctx.acct.clear();assert.equal(ctx.acct.get(),null);assert.ok(!mem.has('vb_cuenta2')&&!mem.has('vb_cuenta'),'salir borra la llave nueva y la vieja');
++ /* y el gate, con ese almacén vacío: sin conexión no abre, y la acción rápida pasa por /api/me y por el paso de identidad */
++ const off=CUENTA_HARNESS({api:async()=>({status:0,body:{}})});off.C.user={id:'user_a'};await off.A.require(off.go);await tick();assert.ok(!off.log.includes('GO'),'sin perfil guardado y sin red no abre');
++ const calls=[];const fast=CUENTA_HARNESS({api:async(C,m,p)=>{calls.push(m+' '+p);return {status:200,body:{profile:{handle:'sergio'},needsIdentity:true}}}});fast.D.ui.identity=()=>fast.log.push('identity');fast.nav('#/c/yambo-toro');fast.C.user={id:'user_a'};
++ fast.A.quick(()=>fast.log.push('ACTION'),{inPlace:true,act:'humidor'});await tick();assert.deepEqual(calls,['GET /api/me'],'sin perfil guardado la acción rápida revisa en el servidor');assert.ok(fast.log.includes('identity')&&!fast.log.includes('ACTION'),'y pide la identidad antes de hacer la acción');
++ assert.ok(src.includes("A.LS.get('cuenta2',null)")&&src.includes("A.LS.set('cuenta2',v)"),'la llave nueva');
++});
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "@'
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const source=fs.readFileSync('site/cuenta.js','utf8');
+const acctLine=fs.readFileSync('site/hoja.js','utf8').match(/const acct=\\{.*\\};/)[0];
+function make(api,clerkFails=false){const mem=new Map([['vb_cuenta',JSON.stringify({sub:'u',handle:'legacy'})]]);const ls={getItem:k=>mem.get(k)||null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};const ctx={window:{},localStorage:ls,A:{LS:{get:(k,d)=>{const v=ls.getItem('vb_'+k);return v?JSON.parse(v):d},set:(k,v)=>ls.setItem('vb_'+k,JSON.stringify(v))}}};vm.createContext(ctx);vm.runInContext(acctLine+';this.acct=acct;'+source,ctx);const C={user:{id:'u',hasImage:true,imageUrl:'https://img.clerk.com/a'},addListener:()=>{}};const result={opened:0,identity:0,submit:null};const D={clerk:async()=>{if(clerkFails)throw Error('offline');return C},api,here:()=> '#/c/item',store:ctx.acct,intent:{get:()=>null,clear:()=>{}},ui:{card:()=>{},notice:()=>{},closeAll:()=>{},toast:()=>{},identity:()=>result.identity++,onboarding:f=>result.submit=f},reroute:()=>{}};return {A:ctx.window.LHB_CUENTA(D),mem,result,go:()=>result.opened++};}
+(async()=>{for(const st of [0,500,503]){for(const quick of [false,true]){const h=make(async()=>({status:st,body:{}}));await (quick?h.A.quick(h.go):h.A.require(h.go));assert.equal(h.result.opened,0);assert.equal(h.mem.has('vb_cuenta2'),false);}}const off=make(null,true);await off.A.require(off.go);assert.equal(off.result.opened,0);console.log('Actual acct + gate: old key only blocks offline, 500, 503, fast action, Clerk failure.');let get=0;const h=make(async(C,method)=>method==='POST'?{status:409,body:{error:'profile-exists'}}:++get===1?{status:200,body:{needsProfile:true}}:{status:200,body:{profile:{handle:'legacy',first_name:null,last_name:null,gender:null,birth_date:null},needsIdentity:true}});await h.A.require(h.go);await h.result.submit({first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-01-01',handle:'ana'});console.log(JSON.stringify({scenario:'POST profile-exists recovery with needsIdentity true',opened:h.result.opened,identityShown:h.result.identity,newKeyWritten:h.mem.has('vb_cuenta2')}));assert.equal(h.result.opened,1);assert.equal(h.result.identity,0);assert.equal(h.mem.has('vb_cuenta2'),true);})();
+'@ | node; git status --short" in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+ succeeded in 932ms:
+Actual acct + gate: old key only blocks offline, 500, 503, fast action, Clerk failure.
+{"scenario":"POST profile-exists recovery with needsIdentity true","opened":1,"identityShown":0,"newKeyWritten":true}
+?? evidence/lhb-52-review-r2.txt
+
+codex
+1. BLOCKING [Certain] `site/cuenta.js`, `onboard()` recovery after `profile-exists`: the second `/api/me` response ignores `needsIdentity:true`, writes the incomplete profile into `vb_cuenta2`, and opens Mi Hoja. Reproduced read-only with this sequence: initial GET needs a profile; POST returns `409 profile-exists`; recovery GET returns a null-identity profile. Result: opened once, completion never shown, new cache written. Subsequent fast/offline entry trusts that cache. Route this recovery through identity completion before caching. Production occurrence of this response sequence: NOT VERIFIED.
+
+   F1: MAINTAIN for the remaining incomplete-cache path. The specific old-key-only offline, 5xx, fast-action and Clerk-failure paths now correctly block.
+
+2. ADVISORY [Certain] `evidence/lhb-52-mutations.txt`: F2 CONCUR. The recorded run reports all 54 mutations detected, including S8, C6 and C7. Mutation execution was NOT VERIFIED independently because rerunning would edit files. The permitted suite independently passed all 99 tests.
+
+VERDICT: BLOCK
+tokens used
+53,888
+1. BLOCKING [Certain] `site/cuenta.js`, `onboard()` recovery after `profile-exists`: the second `/api/me` response ignores `needsIdentity:true`, writes the incomplete profile into `vb_cuenta2`, and opens Mi Hoja. Reproduced read-only with this sequence: initial GET needs a profile; POST returns `409 profile-exists`; recovery GET returns a null-identity profile. Result: opened once, completion never shown, new cache written. Subsequent fast/offline entry trusts that cache. Route this recovery through identity completion before caching. Production occurrence of this response sequence: NOT VERIFIED.
+
+   F1: MAINTAIN for the remaining incomplete-cache path. The specific old-key-only offline, 5xx, fast-action and Clerk-failure paths now correctly block.
+
+2. ADVISORY [Certain] `evidence/lhb-52-mutations.txt`: F2 CONCUR. The recorded run reports all 54 mutations detected, including S8, C6 and C7. Mutation execution was NOT VERIFIED independently because rerunning would edit files. The permitted suite independently passed all 99 tests.
+
+VERDICT: BLOCK

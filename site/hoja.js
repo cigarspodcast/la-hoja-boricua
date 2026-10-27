@@ -139,7 +139,8 @@ function bindBackup(){$$('[data-exp]').forEach(b=>b.onclick=exportar);$$('[data-
 const CLERK=location.hostname==='lahojaboricua.com'?{pk:'pk_live_Y2xlcmsubGFob2phYm9yaWN1YS5jb20k',fapi:'clerk.lahojaboricua.com'}:{pk:'pk_test_ZGFyaW5nLWVhZ2xlLTgzOTQuY2xlcmsuYWNjb3VudHMuZGV2JA',fapi:'daring-eagle-8394.clerk.accounts.dev'};
 const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
-const acct={get:()=>A.LS.get('cuenta',null),set:v=>A.LS.set('cuenta',v),clear:()=>{try{localStorage.removeItem('vb_cuenta')}catch(e){}}};
+/* LHB-52: la llave nueva (cuenta2) deja sin valor lo guardado antes de pedir la identidad: un perfil guardado de antes ({sub,handle}) no abre Mi Hoja sin conexión ni por el camino rápido; clear() borra las dos */
+const acct={get:()=>A.LS.get('cuenta2',null),set:v=>A.LS.set('cuenta2',v),clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}}};
 /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
 const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
 let clerkP=null;
@@ -153,28 +154,47 @@ async function api(C,method,path,body,uid){const t=await C.session.getToken();if
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}
-const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','age-required':'Tienes que confirmar que tienes 21 años o más.','bio-long':'La descripción puede tener hasta 160 caracteres.','display_name-long':'El nombre puede tener hasta 50 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.','recheck':'Tu perfil ya existe, pero no pudimos abrirlo. Intenta otra vez.','avatar-required':'Pon una foto para crear tu perfil.','avatar-invalid':'No pudimos usar esa foto. Escoge otra.','avatar-type':'Escoge un archivo de imagen, una foto.','avatar-upload':'No pudimos subir la foto. Intenta otra vez.','avatar-busy':'Espera a que termine lo que está en curso e intenta otra vez.'};
-function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));
- view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Tu <em>perfil</em></h1></header>
+const OB_ERR={'handle-invalid':'Tu @ debe tener de 3 a 20 letras (a-z), números o _.','handle-reserved':'Ese @ está reservado. Escoge otro.','handle-taken':'Ese @ ya lo tiene otra persona. Escoge otro.','first_name-required':'Escribe tu nombre.','first_name-long':'Tu nombre puede tener hasta 50 caracteres.','first_name-invalid':'Tu nombre tiene caracteres que no podemos usar.','last_name-required':'Escribe tu apellido.','last_name-long':'Tu apellido puede tener hasta 50 caracteres.','last_name-invalid':'Tu apellido tiene caracteres que no podemos usar.','gender-required':'Escoge Masculino o Femenino.','gender-invalid':'Escoge Masculino o Femenino.','birth_date-required':'Escribe tu fecha de nacimiento.','birth_date-invalid':'Esa fecha de nacimiento no es válida. Revísala.','birth_date-future':'Esa fecha todavía no llega. Revisa tu fecha de nacimiento.','age-under-21':'La Hoja Boricua es para personas de 21 años o más. Todavía no puedes crear tu perfil.','identity-exists':'Tu perfil ya está completo.','busy':'Espera a que termine lo que está en curso e intenta otra vez.','bio-long':'La descripción puede tener hasta 160 caracteres.','favorite_brand-long':'La marca puede tener hasta 60 caracteres.','recheck':'Tu perfil ya existe, pero no pudimos abrirlo. Intenta otra vez.','avatar-required':'Pon una foto para crear tu perfil.','avatar-invalid':'No pudimos usar esa foto. Escoge otra.','avatar-type':'Escoge un archivo de imagen, una foto.','avatar-upload':'No pudimos subir la foto. Intenta otra vez.','avatar-busy':'Espera a que termine lo que está en curso e intenta otra vez.'};
+/* LHB-52: la identidad del perfil. Las mismas reglas que el servidor (functions/_lib/profile.js): nombre y apellido de 1 a 50 caracteres sin caracteres de control, género M o F, y una fecha real,
+   que no sea futura y dé 21 años o más. today es la fecha UTC ('YYYY-MM-DD'), la misma que usa el servidor, no la del teléfono. Devuelve la clave del error o '' */
+const ID_BAD=/[\p{Cc}\p{Zl}\p{Zp}]/u;
+function idProblem(f,today){
+ for(const k of ['first_name','last_name']){const s=String(f[k]==null?'':f[k]).trim();if(!s)return k+'-required';if(ID_BAD.test(s))return k+'-invalid';if([...s].length>50)return k+'-long'}
+ if(f.gender!=='M'&&f.gender!=='F')return 'gender-required';
+ const v=f.birth_date;if(v==null||v==='')return 'birth_date-required';
+ if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return 'birth_date-invalid';
+ const y=+v.slice(0,4),m=+v.slice(5,7),d=+v.slice(8,10),dt=new Date(0);dt.setUTCFullYear(y,m-1,d);
+ if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==m-1||dt.getUTCDate()!==d||y<1900)return 'birth_date-invalid';
+ if(v>today)return 'birth_date-future';
+ if(v>String(+today.slice(0,4)-21).padStart(4,'0')+today.slice(4))return 'age-under-21';
+ return ''}
+/* mode 'identity': un perfil que ya existía y solo le falta nombre, apellido, género y fecha de nacimiento ("Completa tu perfil"); sin foto, sin @, sin bio ni marca */
+function onboardingForm(submit,picture,mode){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));const idm=mode==='identity';const today=new Date().toISOString().slice(0,10);
+ view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>${idm?'Completa tu <em>perfil</em>':'Tu <em>perfil</em>'}</h1></header>
  <form class="form" id="obForm" novalidate>
- <div class="ob-pic" role="group" aria-labelledby="obPt"><p class="ob-pic-t" id="obPt">Tu foto</p><div class="ob-pic-row"><span class="ob-pic-img" id="obPv"></span><button class="lbtn" type="button" id="obPb"></button></div><p class="hint" id="obPh" aria-live="polite"></p><input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1"></div>
- <div class="field"><label for="obH">Tu @ (nombre de usuario)</label><input id="obH" required minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="ej. tabaquero_pr"><p class="hint">De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.</p></div>
- <div class="field"><label for="obN">Tu nombre (opcional)</label><input id="obN" maxlength="50" autocomplete="name"></div>
- <div class="field"><label for="obB">Una descripción corta (opcional)</label><textarea id="obB" maxlength="160" rows="3"></textarea><p class="hint"><span id="obBn">0</span>/160</p></div>
- <div class="field"><label for="obM">Tu marca favorita (opcional)</label><input id="obM" maxlength="60" list="obML"><datalist id="obML">${marcas.map(m=>`<option value="${esc(m)}">`).join('')}</datalist></div>
- <label class="check"><input type="checkbox" id="obAge" required> Tengo 21 años o más.</label>
+ ${idm?'<p class="hint">Ahora pedimos tu nombre, tu apellido, tu género y tu fecha de nacimiento. Es un solo paso y no se repite.</p>':`<div class="ob-pic" role="group" aria-labelledby="obPt"><p class="ob-pic-t" id="obPt">Tu foto</p><div class="ob-pic-row"><span class="ob-pic-img" id="obPv"></span><button class="lbtn" type="button" id="obPb"></button></div><p class="hint" id="obPh" aria-live="polite"></p><input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1"></div>
+ <div class="field"><label for="obH">Tu @ (nombre de usuario)</label><input id="obH" required minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="ej. tabaquero_pr"><p class="hint">De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.</p></div>`}
+ <div class="field"><label for="obFn">Tu nombre</label><input id="obFn" required maxlength="50" autocomplete="given-name"></div>
+ <div class="field"><label for="obLn">Tu apellido</label><input id="obLn" required maxlength="50" autocomplete="family-name"></div>
+ <div role="radiogroup" aria-labelledby="obGt"><p class="ob-pic-t" id="obGt">Tu género</p><label class="check"><input type="radio" name="obG" id="obGM" value="M"> Masculino</label><label class="check"><input type="radio" name="obG" id="obGF" value="F"> Femenino</label></div>
+ <div class="field"><label for="obD">Tu fecha de nacimiento</label><input id="obD" type="date" required min="1900-01-01" max="${today}" autocomplete="bday"><p class="hint">Tienes que tener 21 años o más. Tu fecha de nacimiento y tu género son privados: solo los ves tú. Los demás ven tu nombre con la inicial de tu apellido (por ejemplo, Ana M.) y tu @.</p></div>
+ ${idm?'':`<div class="field"><label for="obB">Una descripción corta (opcional)</label><textarea id="obB" maxlength="160" rows="3"></textarea><p class="hint"><span id="obBn">0</span>/160</p></div><div class="field"><label for="obM">Tu marca favorita (opcional)</label><input id="obM" maxlength="60" list="obML"><datalist id="obML">${marcas.map(m=>`<option value="${esc(m)}">`).join('')}</datalist></div>`}
  <p class="hint">Lee qué guardamos y qué ven los demás en <a href="/privacidad">Privacidad y cuenta</a>.</p>
  <p class="hint" id="obErr" role="alert" hidden></p>
- <button class="btn" type="submit" id="obGo">Crear mi perfil</button></form>`;
+ <button class="btn" type="submit" id="obGo">${idm?'Guardar':'Crear mi perfil'}</button></form>`;
  const form=$('#obForm');
- const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m};
+ /* un error del formulario tiene que verse: caja roja con borde, texto grande, y la pantalla baja hasta ella (en un teléfono quedaba debajo del botón y pasaba desapercibido) */
+ const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m;
+  if(e.style)e.style.cssText=m?'border:2px solid var(--flam);background:rgba(208,25,46,.2);color:var(--cream);padding:12px 14px;border-radius:12px;font-size:16px;font-weight:600;line-height:1.4;margin:14px 0':'';
+  if(m&&typeof e.scrollIntoView==='function')e.scrollIntoView({block:'center',behavior:'smooth'})};
  /* LHB-49: la foto es obligatoria. Viene la de la cuenta (Google, Apple) si la hay; la persona puede escoger otra, que se achica aquí antes de subirla a su cuenta */
  let own=false;
- const showPic=()=>{const u=picture.url(),v=$('#obPv');v.textContent='';if(u){const im=document.createElement('img');im.alt='Tu foto de perfil';im.src=u;v.appendChild(im)}else v.textContent='+';
+ const showPic=()=>{if(idm)return;const u=picture.url(),v=$('#obPv');v.textContent='';if(u){const im=document.createElement('img');im.alt='Tu foto de perfil';im.src=u;v.appendChild(im)}else v.textContent='+';
   $('#obPb').textContent=u?'Cambiar foto':'Elegir foto';$('#obPh').textContent=u?(own?'Listo, esta es tu foto.':'Usamos la foto de tu cuenta. Puedes escoger otra.'):'Para crear tu perfil necesitas una foto. Escoge una de tu teléfono.'};
  /* una sola operación a la vez: mientras se sube la foto o se crea el perfil, ni el botón de foto ni el de crear responden */
- let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;$('#obPb').disabled=b};
+ let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;const pb=$('#obPb');if(pb)pb.disabled=b};
  showPic();
+ if(!idm){
  $('#obPb').onclick=()=>$('#obPf').click();
  $('#obPf').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||working)return;
   if(!/^image\//.test(f.type))return err(OB_ERR['avatar-type']);
@@ -183,15 +203,20 @@ function onboardingForm(submit,picture){const marcas=[...new Set((D().artesanos|
   if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
   busy(false);if(r.error)return err(OB_ERR[r.error]||OB_ERR['avatar-upload']);
   own=true;showPic()};
- $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length};
- form.onsubmit=async e=>{e.preventDefault();if(working)return;const h=$('#obH').value.trim().toLowerCase();
-  if(!picture.url())return err(OB_ERR['avatar-required']);
-  if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid']);if(!$('#obAge').checked)return err(OB_ERR['age-required']);
+ $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length}}
+ form.onsubmit=async e=>{e.preventDefault();if(working)return;
+  const f={first_name:$('#obFn').value.trim(),last_name:$('#obLn').value.trim(),gender:$('#obGM').checked?'M':$('#obGF').checked?'F':'',birth_date:$('#obD').value};
+  let h='';
+  if(!idm){h=$('#obH').value.trim().toLowerCase();
+   if(!picture.url())return err(OB_ERR['avatar-required']);
+   if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid'])}
+  /* LHB-52: una fecha que muestra menos de 21 años (o inválida, o futura) no se manda a ningún lado */
+  const bad=idProblem(f,new Date().toISOString().slice(0,10));if(bad)return err(OB_ERR[bad]||OB_ERR['birth_date-invalid']);
   err('');busy(true);
-  let r;try{r=await submit({handle:h,display_name:$('#obN').value,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
+  let r;try{r=await submit(idm?f:{handle:h,...f,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
   if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
-  busy(false);if(r.error)err(OB_ERR[r.error]||'No pudimos crear tu perfil. Intenta otra vez.')}}
-const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,toast,closeAll:closeSheetNow}});
+  busy(false);if(r.error)err(OB_ERR[r.error]||(idm?'No pudimos guardar tu perfil. Intenta otra vez.':'No pudimos crear tu perfil. Intenta otra vez.'))}}
+const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,'identity'),toast,closeAll:closeSheetNow}});
 /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
 const requireAccount=(go,o)=>CUENTA.require(go,o);
 /* ---------- acciones que piden cuenta (LHB-48) ----------

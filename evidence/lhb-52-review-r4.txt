@@ -1,0 +1,832 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: high
+reasoning summaries: none
+session id: 01a17aba-f1f2-7591-906b-1fcca5c41444
+--------
+user
+HARD RULES: You are an independent code reviewer, round 4 (a small follow-up). You REVIEW AND CHANGE NOTHING: edit no file, make no commit, run no git command that writes. Load no skill, plugin or template. Do not print file contents back. Your FIRST and ONLY message is the answer, ending with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+REPO: C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2 (La Hoja Boricua, vanilla JS PWA, Spanish UI). Slice of this round only: git diff 2fe886d..HEAD (rounds 1 to 3 already reviewed the rest of git diff 4283dac..HEAD; round 3 verdict was PASS at 2fe886d). Tests: node --test test/site.test.js (you may run it).
+
+TICKET LHB-52 CONTRACT (unchanged): scope is functions/_lib/profile.js, functions/api/profile.js, functions/api/me.js, migrations/0003_identity.sql, site/cuenta.js, site/hoja.js, site/sw.js, test/site.test.js, evidence/ and nothing else. Identity at onboarding (first name, last name, gender M or F, date of birth), a younger date gets a clear message and creates nothing; DOB and gender private; privacidad.html and a third gender are not mine.
+
+WHY THIS ROUND. The owner tried the preview and said the under-21 error message should be more visible: it was small plain text near the bottom of the form (the element #obErr in the onboardingForm of site/hoja.js). CHANGE UNDER REVIEW, in the err() helper of onboardingForm in site/hoja.js only (plus tests and evidence): when a message is set, the element gets an inline style (red border using the existing --flam token, translucent red background, 16px bold-ish text, padding, rounded corners) and scrollIntoView({block:center,behavior:smooth}) is called on it; when the message is cleared the inline style is removed and nothing scrolls. Inline style is used because site/styles.css is outside the ticket scope. The fake DOM in test/site.test.js got style and scrollIntoView so the real form code runs; a new test checks the box, the scroll and the removal; mutations K3 K4 K5 in evidence/lhb-52-mutations.py cover them (output in evidence/lhb-52-mutations.txt, readable by you, not rerunnable by you).
+
+REVIEW FOCUS: defects introduced by this change only: a thrown error when style or scrollIntoView is missing, an error box left visible or styled after the message is cleared, a role=alert or hidden attribute interaction, scrolling on every keystroke or while a submit is busy, the identity mode and new-profile mode both, accessibility (contrast, announced by screen readers), anything outside scope. Earlier rounds covered everything else; do not repeat them. Mark anything you could not verify as NOT VERIFIED.
+
+ANSWER FORMAT. Numbered findings, each BLOCKING or ADVISORY, file and symbol, the concrete input or state that fails. Then the single VERDICT line.
+
+2026-10-27T00:20:46.413563Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-27T00:20:47.770552Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git diff --stat 2fe886d..HEAD; git diff --name-only 2fe886d..HEAD; git status --short' in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+ succeeded in 881ms:
+ evidence/lhb-52-mutations-r3.txt     |  165 +++
+ evidence/lhb-52-mutations.py         |    3 +
+ evidence/lhb-52-mutations.txt        |   14 +-
+ evidence/lhb-52-review-prompt-r4.txt |   11 +
+ evidence/lhb-52-review-r3.txt        | 2326 ++++++++++++++++++++++++++++++++++
+ evidence/lhb-52-tests.txt            |  207 +--
+ site/hoja.js                         |    5 +-
+ test/site.test.js                    |   10 +-
+ 8 files changed, 2633 insertions(+), 108 deletions(-)
+evidence/lhb-52-mutations-r3.txt
+evidence/lhb-52-mutations.py
+evidence/lhb-52-mutations.txt
+evidence/lhb-52-review-prompt-r4.txt
+evidence/lhb-52-review-r3.txt
+evidence/lhb-52-tests.txt
+site/hoja.js
+test/site.test.js
+?? evidence/lhb-52-review-r4.txt
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "Select-String -Path site/hoja.js -Pattern 'function onboardingForm|obErr|function err|const err|scrollIntoView|oninput|onsubmit' -Context 8,16; Select-String -Path site/styles.css -Pattern '\\-\\-flam|\\-\\-bg|\\-\\-ink|\\[hidden\\]' -Context 1,2" in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git diff 2fe886d..HEAD -- site/hoja.js test/site.test.js evidence/lhb-52-mutations.py evidence/lhb-52-mutations.txt' in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'node --test test/site.test.js' in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+ succeeded in 1076ms:
+diff --git a/evidence/lhb-52-mutations.py b/evidence/lhb-52-mutations.py
+index ad3307e..fce1ead 100644
+--- a/evidence/lhb-52-mutations.py
++++ b/evidence/lhb-52-mutations.py
+@@ -80,6 +80,9 @@ MUTS = [
+     ('H12 formulario: la fecha y el género se guardan en el navegador', HO, "const bad=idProblem(f,new Date().toISOString().slice(0,10));", "try{localStorage.setItem('birth_date',f.birth_date)}catch(e){}const bad=idProblem(f,new Date().toISOString().slice(0,10));"),
+     ('K1 hoja: el perfil guardado de antes (llave vieja) vuelve a valer', HO, "A.LS.get('cuenta2',null)", "A.LS.get('cuenta',null)"),
+     ('K2 hoja: salir no borra la llave vieja', HO, "localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')", "localStorage.removeItem('vb_cuenta2')"),
++    ('K3 formulario: el error no baja la pantalla hasta él', HO, "  if(m&&typeof e.scrollIntoView==='function')e.scrollIntoView({block:'center',behavior:'smooth'})", ""),
++    ('K4 formulario: el error vuelve a ser texto suelto sin caja roja', HO, "border:2px solid var(--flam);", ""),
++    ('K5 formulario: el error corregido deja la caja puesta', HO, "line-height:1.4;margin:14px 0':'';", "line-height:1.4;margin:14px 0':e.style.cssText;"),
+     # service worker
+     ('W1 sw: la versión del caché no cambia', 'site/sw.js', "const VERSION='lhb-v53';", "const VERSION='lhb-v52';"),
+ ]
+diff --git a/evidence/lhb-52-mutations.txt b/evidence/lhb-52-mutations.txt
+index c139e75..b839137 100644
+--- a/evidence/lhb-52-mutations.txt
++++ b/evidence/lhb-52-mutations.txt
+@@ -120,12 +120,14 @@ C11 gate: el perfil nuevo sigue mandando la casilla de 21 -> ROJO (bien) fail=2
+       LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+ C12 gate: el perfil que aparece tras el 409 y sigue sin identidad se guarda y abre -> ROJO (bien) fail=1
+       LHB-52: si el perfil ya existía al crearlo
+-H1 formulario: la fecha de un menor se manda -> ROJO (bien) fail=3
++H1 formulario: la fecha de un menor se manda -> ROJO (bien) fail=4
+       LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
++      LHB-52: el error del formulario se ve: caja roja con borde y letra grande, la pantalla baja hasta ella y se quita al corregir
+       LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+       LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos)
+-H2 formulario: no se revisa la identidad antes de mandar -> ROJO (bien) fail=2
++H2 formulario: no se revisa la identidad antes de mandar -> ROJO (bien) fail=3
+       LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones
++      LHB-52: el error del formulario se ve: caja roja con borde y letra grande, la pantalla baja hasta ella y se quita al corregir
+       LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+ H3 formulario: una fecha futura pasa -> ROJO (bien) fail=2
+       LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe
+@@ -154,12 +156,18 @@ K1 hoja: el perfil guardado de antes (llave vieja) vuelve a valer -> ROJO (bien)
+       LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
+ K2 hoja: salir no borra la llave vieja -> ROJO (bien) fail=1
+       LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)
++K3 formulario: el error no baja la pantalla hasta él -> ROJO (bien) fail=1
++      LHB-52: el error del formulario se ve: caja roja con borde y letra grande, la pantalla baja hasta ella y se quita al corregir
++K4 formulario: el error vuelve a ser texto suelto sin caja roja -> ROJO (bien) fail=1
++      LHB-52: el error del formulario se ve: caja roja con borde y letra grande, la pantalla baja hasta ella y se quita al corregir
++K5 formulario: el error corregido deja la caja puesta -> ROJO (bien) fail=1
++      LHB-52: el error del formulario se ve: caja roja con borde y letra grande, la pantalla baja hasta ella y se quita al corregir
+ W1 sw: la versión del caché no cambia -> ROJO (bien) fail=15
+       LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+       LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+       artisan logos: every id in LOGOS maps to an existing webp and a real artisan
+       v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)
+ restaurado (0, [])
+-mutaciones: 55 sobrevivieron o con error: 0
++mutaciones: 58 sobrevivieron o con error: 0
+ 
+ exit=0
+diff --git a/site/hoja.js b/site/hoja.js
+index 96d82ba..f315dfa 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -183,7 +183,10 @@ function onboardingForm(submit,picture,mode){const marcas=[...new Set((D().artes
+  <p class="hint" id="obErr" role="alert" hidden></p>
+  <button class="btn" type="submit" id="obGo">${idm?'Guardar':'Crear mi perfil'}</button></form>`;
+  const form=$('#obForm');
+- const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m};
++ /* un error del formulario tiene que verse: caja roja con borde, texto grande, y la pantalla baja hasta ella (en un teléfono quedaba debajo del botón y pasaba desapercibido) */
++ const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m;
++  if(e.style)e.style.cssText=m?'border:2px solid var(--flam);background:rgba(208,25,46,.2);color:var(--cream);padding:12px 14px;border-radius:12px;font-size:16px;font-weight:600;line-height:1.4;margin:14px 0':'';
++  if(m&&typeof e.scrollIntoView==='function')e.scrollIntoView({block:'center',behavior:'smooth'})};
+  /* LHB-49: la foto es obligatoria. Viene la de la cuenta (Google, Apple) si la hay; la persona puede escoger otra, que se achica aquí antes de subirla a su cuenta */
+  let own=false;
+  const showPic=()=>{if(idm)return;const u=picture.url(),v=$('#obPv');v.textContent='';if(u){const im=document.createElement('img');im.alt='Tu foto de perfil';im.src=u;v.appendChild(im)}else v.textContent='+';
+diff --git a/test/site.test.js b/test/site.test.js
+index f1fa2b1..4baf45a 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -1009,7 +1009,7 @@ test('LHB-49: si otra acción gana primero porque el perfil ya existe, el formul
+ function FORM_HARNESS(picture,submit,resize,opts){opts=opts||{};
+  const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
+  const code=src.match(/const HANDLE_RE=.*\n/)[0]+src.match(/const OB_ERR=.*\n/)[0]+src.slice(src.indexOf('const ID_BAD='),src.indexOf('\nconst CUENTA='));
+- let els={};const mkEl=()=>{const e={disabled:false,hidden:false,value:'',checked:false,children:[],onclick:null,onchange:null,onsubmit:null,oninput:null,clicks:0,
++ let els={};const mkEl=()=>{const e={disabled:false,hidden:false,value:'',checked:false,children:[],style:{cssText:''},scrolls:0,scrollIntoView(){e.scrolls++},onclick:null,onchange:null,onsubmit:null,oninput:null,clicks:0,
+   appendChild(c){e.children.push(c)},click(){e.clicks++}};let tc='';Object.defineProperty(e,'textContent',{get:()=>tc,set:v=>{tc=v;e.children=[]}});return e};
+  const $=s=>s==='#obForm'?els.form:(els[s]||(els[s]=mkEl()));
+  let html='';const view={set innerHTML(h){els={form:mkEl()};html=h}};
+@@ -1397,3 +1397,11 @@ test('LHB-52: si el perfil ya existía al crearlo (409) y sigue sin identidad, s
+  h.D.api=async(C,m)=>({status:200,body:{ok:true}});assert.deepEqual(await idn({first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-01-01'}),{ok:true});
+  assert.deepEqual(h.log.filter(x=>x==='GO'||x==='reroute'||x.startsWith('store')),['store:user_a:sergio','reroute','GO']);
+ });
++test('LHB-52: el error del formulario se ve: caja roja con borde y letra grande, la pantalla baja hasta ella y se quita al corregir',async()=>{
++ const f=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{now:T0});
++ await f.send({birth:'2019-09-09'});const e=f.$('#obErr');
++ assert.equal(e.hidden,false);assert.equal(e.textContent,f.OB['age-under-21']);
++ assert.match(e.style.cssText,/border:2px solid var\(--flam\)/);assert.match(e.style.cssText,/font-size:16px/);assert.match(e.style.cssText,/background:rgba\(208,25,46/);
++ assert.equal(e.scrolls,1,'la pantalla baja hasta el error');
++ await f.send({});assert.equal(e.hidden,true,'al corregir, el error desaparece');assert.equal(e.style.cssText,'');assert.equal(e.scrolls,1,'y no vuelve a moverse la pantalla');
++});
+
+ succeeded in 1327ms:
+
+  site\hoja.js:101: <div class="field"><label for="hCig">Cigarro</label><select id="hCig"><option value="">Escoge del 
+catálogo…</option>${cigarOptions(sel)}<option value="__otro" ${it&&!it.cigarId?'selected':''}>Otro 
+(escribir)</option></select></div>
+  site\hoja.js:102: <div class="field" id="hOtroW" ${it&&!it.cigarId?'':'hidden'}><label for="hOtro">Nombre del 
+cigarro</label><input id="hOtro" maxlength="70" value="${esc(it&&!it.cigarId?it.nombre:'')}" placeholder="Ej. Robusto 
+que me regalaron"></div>
+  site\hoja.js:103: <div class="row2"><div class="field"><label for="hQty">Cantidad</label><div class="qty"><button 
+type="button" data-q="-1" aria-label="Menos">−</button><input id="hQty" type="number" inputmode="numeric" min="1" 
+max="999" value="${it?it.cantidad:1}"><button type="button" data-q="1" aria-label="Más">+</button></div></div>
+  site\hoja.js:104: <div class="field"><label for="hFecha">Fecha</label><input id="hFecha" type="date" 
+value="${esc(it?it.fecha:hoy())}"></div></div>
+  site\hoja.js:105: <div class="field"><label for="hNota">Nota (opcional)</label><input id="hNota" maxlength="120" 
+value="${esc(it?it.nota||'':'')}" placeholder="Dónde lo compraste, para cuándo…"></div>
+  site\hoja.js:106: <button class="btn" type="submit">${it?'Guardar cambios':'Guardar en mi 
+humidor'}</button></form>`,'Añadir al humidor');
+  site\hoja.js:107: $('#hCig',el).onchange=e=>{$('#hOtroW',el).hidden=e.target.value!=='__otro'};
+  site\hoja.js:108: $$('[data-q]',el).forEach(b=>b.onclick=()=>{const 
+q=$('#hQty',el);q.value=Math.max(1,Math.min(999,(+q.value||1)+(+b.dataset.q)))});
+> site\hoja.js:109: $('#hForm',el).onsubmit=e=>{e.preventDefault();const v=$('#hCig',el).value;const 
+otro=$('#hOtro',el).value.trim();
+  site\hoja.js:110:  if(!v||(v==='__otro'&&!otro)){toast('Escoge o escribe el cigarro');return}
+  site\hoja.js:111:  const c=v!=='__otro'?A.cigarById(v):null;const rec={id:it?it.id:uid('h'),cigarId:c?c.id:null,nombr
+e:c?c.nombre:otro,artesano:c?A.artisanName(c):'',cantidad:Math.max(1,Math.min(999,parseInt($('#hQty',el).value)||1)),fe
+cha:$('#hFecha',el).value||hoy(),nota:$('#hNota',el).value.trim(),actualizado:new Date().toISOString()};
+  site\hoja.js:112:  save(s=>{if(it)s.humidor=s.humidor.map(x=>x.id===it.id?rec:x);else{const same=rec.cigarId?s.humido
+r.find(x=>x.cigarId===rec.cigarId&&x.fecha===rec.fecha):null;if(same){same.cantidad+=rec.cantidad;same.actualizado=rec.
+actualizado}else s.humidor.unshift(rec)}});
+  site\hoja.js:113:  closeSheet();toast(it?'Humidor actualizado':`Añadido: ${rec.cantidad} × 
+${rec.nombre}`);if(location.hash.startsWith('#/mihoja'))setTimeout(()=>A.route(),220)}}
+  site\hoja.js:114:/* ---------- respaldo ---------- */
+  site\hoja.js:115:function download(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a
+.href=u;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);
+a.remove()},4000)}
+  site\hoja.js:116:function exportar(){const s=S();const data={app:'La Hoja 
+Boricua',tipo:'respaldo-mi-hoja',schema:SCHEMA,exportado:new Date().toISOString(),url:APP_URL,
+  site\hoja.js:117: mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:l
+egacy('uploads')||[]}};
+  site\hoja.js:118: download(new 
+Blob([JSON.stringify(data,null,1)],{type:'application/json'}),`la-hoja-boricua-respaldo-${hoy()}.json`);
+  site\hoja.js:119: s.respaldo=new Date().toISOString();s.cambios=0;s.recordarDespues=null;write(s);toast('Respaldo 
+descargado ✓');if(location.hash.startsWith('#/mihoja'))setTimeout(()=>A.route(),300)}
+  site\hoja.js:120:const byId=(a,b,key='id')=>{const m=new Map(a.map(x=>[x[key],x]));for(const x of 
+b){if(!x||!x[key])continue;const 
+o=m.get(x[key]);if(!o||(x.actualizado||x.fecha||'')>(o.actualizado||o.fecha||''))m.set(x[key],x)}return 
+[...m.values()]};
+  site\hoja.js:121:function importar(file){const fr=new FileReader();fr.onload=()=>{let 
+j;try{j=JSON.parse(fr.result)}catch(e){toast('Ese archivo no es un respaldo válido');return}
+  site\hoja.js:122: const m=j&&(j.mihoja||(Array.isArray(j.humidor)&&j));if(!m||(j.app&&j.app!=='La Hoja 
+Boricua')){toast('Ese archivo no es un respaldo de La Hoja Boricua');return}
+  site\hoja.js:123: const inc=upgrade(JSON.parse(JSON.stringify(m)));const 
+cur=S();try{localStorage.setItem(KEY+'_antes_de_importar',JSON.stringify(cur))}catch(e){}
+  site\hoja.js:124: const n0={d:cur.diario.length,h:cur.humidor.length};
+  site\hoja.js:125: save(s=>{s.humidor=byId(s.humidor,inc.humidor);s.diario=byId(s.diario,inc.diario).sort((a,b)=>(b.fe
+cha||'').localeCompare(a.fecha||''));
+  site\hoja.js:164: const v=f.birth_date;if(v==null||v==='')return 'birth_date-required';
+  site\hoja.js:165: if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return 'birth_date-invalid';
+  site\hoja.js:166: const y=+v.slice(0,4),m=+v.slice(5,7),d=+v.slice(8,10),dt=new Date(0);dt.setUTCFullYear(y,m-1,d);
+  site\hoja.js:167: if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==m-1||dt.getUTCDate()!==d||y<1900)return 
+'birth_date-invalid';
+  site\hoja.js:168: if(v>today)return 'birth_date-future';
+  site\hoja.js:169: if(v>String(+today.slice(0,4)-21).padStart(4,'0')+today.slice(4))return 'age-under-21';
+  site\hoja.js:170: return ''}
+  site\hoja.js:171:/* mode 'identity': un perfil que ya existía y solo le falta nombre, apellido, género y fecha de 
+nacimiento ("Completa tu perfil"); sin foto, sin @, sin bio ni marca */
+> site\hoja.js:172:function onboardingForm(submit,picture,mode){const marcas=[...new 
+Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));const idm=mode==='identity';const 
+today=new Date().toISOString().slice(0,10);
+  site\hoja.js:173: view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>${idm?'Completa tu 
+<em>perfil</em>':'Tu <em>perfil</em>'}</h1></header>
+  site\hoja.js:174: <form class="form" id="obForm" novalidate>
+  site\hoja.js:175: ${idm?'<p class="hint">Ahora pedimos tu nombre, tu apellido, tu género y tu fecha de nacimiento. 
+Es un solo paso y no se repite.</p>':`<div class="ob-pic" role="group" aria-labelledby="obPt"><p class="ob-pic-t" 
+id="obPt">Tu foto</p><div class="ob-pic-row"><span class="ob-pic-img" id="obPv"></span><button class="lbtn" 
+type="button" id="obPb"></button></div><p class="hint" id="obPh" aria-live="polite"></p><input type="file" 
+accept="image/*" id="obPf" class="sr" tabindex="-1"></div>
+  site\hoja.js:176: <div class="field"><label for="obH">Tu @ (nombre de usuario)</label><input id="obH" required 
+minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="ej. 
+tabaquero_pr"><p class="hint">De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.</p></div>`}
+  site\hoja.js:177: <div class="field"><label for="obFn">Tu nombre</label><input id="obFn" required maxlength="50" 
+autocomplete="given-name"></div>
+  site\hoja.js:178: <div class="field"><label for="obLn">Tu apellido</label><input id="obLn" required maxlength="50" 
+autocomplete="family-name"></div>
+  site\hoja.js:179: <div role="radiogroup" aria-labelledby="obGt"><p class="ob-pic-t" id="obGt">Tu género</p><label 
+class="check"><input type="radio" name="obG" id="obGM" value="M"> Masculino</label><label class="check"><input 
+type="radio" name="obG" id="obGF" value="F"> Femenino</label></div>
+  site\hoja.js:180: <div class="field"><label for="obD">Tu fecha de nacimiento</label><input id="obD" type="date" 
+required min="1900-01-01" max="${today}" autocomplete="bday"><p class="hint">Tienes que tener 21 años o más. Tu fecha 
+de nacimiento y tu género son privados: solo los ves tú. Los demás ven tu nombre con la inicial de tu apellido (por 
+ejemplo, Ana M.) y tu @.</p></div>
+  site\hoja.js:181: ${idm?'':`<div class="field"><label for="obB">Una descripción corta (opcional)</label><textarea 
+id="obB" maxlength="160" rows="3"></textarea><p class="hint"><span id="obBn">0</span>/160</p></div><div 
+class="field"><label for="obM">Tu marca favorita (opcional)</label><input id="obM" maxlength="60" 
+list="obML"><datalist id="obML">${marcas.map(m=>`<option value="${esc(m)}">`).join('')}</datalist></div>`}
+  site\hoja.js:182: <p class="hint">Lee qué guardamos y qué ven los demás en <a href="/privacidad">Privacidad y 
+cuenta</a>.</p>
+> site\hoja.js:183: <p class="hint" id="obErr" role="alert" hidden></p>
+  site\hoja.js:184: <button class="btn" type="submit" id="obGo">${idm?'Guardar':'Crear mi perfil'}</button></form>`;
+  site\hoja.js:185: const form=$('#obForm');
+  site\hoja.js:186: /* un error del formulario tiene que verse: caja roja con borde, texto grande, y la pantalla baja 
+hasta ella (en un teléfono quedaba debajo del botón y pasaba desapercibido) */
+> site\hoja.js:187: const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m;
+  site\hoja.js:188:  if(e.style)e.style.cssText=m?'border:2px solid 
+var(--flam);background:rgba(208,25,46,.2);color:var(--cream);padding:12px 
+14px;border-radius:12px;font-size:16px;font-weight:600;line-height:1.4;margin:14px 0':'';
+> site\hoja.js:189:  if(m&&typeof e.scrollIntoView==='function')e.scrollIntoView({block:'center',behavior:'smooth'})};
+  site\hoja.js:190: /* LHB-49: la foto es obligatoria. Viene la de la cuenta (Google, Apple) si la hay; la persona 
+puede escoger otra, que se achica aquí antes de subirla a su cuenta */
+  site\hoja.js:191: let own=false;
+  site\hoja.js:192: const showPic=()=>{if(idm)return;const u=picture.url(),v=$('#obPv');v.textContent='';if(u){const 
+im=document.createElement('img');im.alt='Tu foto de perfil';im.src=u;v.appendChild(im)}else v.textContent='+';
+  site\hoja.js:193:  $('#obPb').textContent=u?'Cambiar foto':'Elegir foto';$('#obPh').textContent=u?(own?'Listo, esta 
+es tu foto.':'Usamos la foto de tu cuenta. Puedes escoger otra.'):'Para crear tu perfil necesitas una foto. Escoge una 
+de tu teléfono.'};
+  site\hoja.js:194: /* una sola operación a la vez: mientras se sube la foto o se crea el perfil, ni el botón de foto 
+ni el de crear responden */
+  site\hoja.js:195: let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;const 
+pb=$('#obPb');if(pb)pb.disabled=b};
+  site\hoja.js:196: showPic();
+  site\hoja.js:197: if(!idm){
+  site\hoja.js:198: $('#obPb').onclick=()=>$('#obPf').click();
+  site\hoja.js:199: $('#obPf').onchange=async e=>{const 
+f=e.target.files&&e.target.files[0];e.target.value='';if(!f||working)return;
+  site\hoja.js:200:  if(!/^image\//.test(f.type))return err(OB_ERR['avatar-type']);
+  site\hoja.js:201:  err('');busy(true);let r;
+  site\hoja.js:202:  try{const b=await A.resizeImage(f,512,.85);r=await picture.upload(new 
+File([b],'perfil.jpg',{type:'image/jpeg'}))}catch(x){r={error:'avatar-type'}}
+  site\hoja.js:203:  if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
+  site\hoja.js:204:  busy(false);if(r.error)return err(OB_ERR[r.error]||OB_ERR['avatar-upload']);
+  site\hoja.js:205:  own=true;showPic()};
+> site\hoja.js:206: $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length}}
+> site\hoja.js:207: form.onsubmit=async e=>{e.preventDefault();if(working)return;
+  site\hoja.js:208:  const f={first_name:$('#obFn').value.trim(),last_name:$('#obLn').value.trim(),gender:$('#obGM').ch
+ecked?'M':$('#obGF').checked?'F':'',birth_date:$('#obD').value};
+  site\hoja.js:209:  let h='';
+  site\hoja.js:210:  if(!idm){h=$('#obH').value.trim().toLowerCase();
+  site\hoja.js:211:   if(!picture.url())return err(OB_ERR['avatar-required']);
+  site\hoja.js:212:   if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid'])}
+  site\hoja.js:213:  /* LHB-52: una fecha que muestra menos de 21 años (o inválida, o futura) no se manda a ningún 
+lado */
+  site\hoja.js:214:  const bad=idProblem(f,new Date().toISOString().slice(0,10));if(bad)return 
+err(OB_ERR[bad]||OB_ERR['birth_date-invalid']);
+  site\hoja.js:215:  err('');busy(true);
+  site\hoja.js:216:  let r;try{r=await 
+submit(idm?f:{handle:h,...f,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
+  site\hoja.js:217:  if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
+  site\hoja.js:218:  busy(false);if(r.error)err(OB_ERR[r.error]||(idm?'No pudimos guardar tu perfil. Intenta otra 
+vez.':'No pudimos crear tu perfil. Intenta otra vez.'))}}
+  site\hoja.js:219:const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('h
+ashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUp
+ForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>o
+nboardingForm(submit,null,'identity'),toast,closeAll:closeSheetNow}});
+  site\hoja.js:220:/* abre Mi Hoja solo con sesión y perfil; otras páginas usan 
+requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
+  site\hoja.js:221:const requireAccount=(go,o)=>CUENTA.require(go,o);
+  site\hoja.js:222:/* ---------- acciones que piden cuenta (LHB-48) ----------
+  site\hoja.js:223:   Corazón, sello, estrella y humidor se hacen solo con sesión y perfil; ver la página no pide 
+nada. El argumento viaja como texto (también por sessionStorage al volver de Google) y se valida aquí. */
+  site\hoja.js:375: <div class="learn"><p>${p.e}</p></div>
+  site\hoja.js:376: <div class="cata-body">${stepBody(p)}</div>
+  site\hoja.js:377: <div class="cata-nav">${CD.paso>0?'<button class="btn secondary" id="cPrev" type="button">‹ 
+Atrás</button>':'<span></span>'}<button class="btn" id="cNext" type="button">${CD.paso===n?'Guardar en mi 
+diario':CD.paso===0?'Empezar':'Siguiente ›'}</button></div>
+  site\hoja.js:378: ${CD.paso>0&&CD.paso<n?'<button class="linkish" id="cSkip" type="button">Saltar a tu 
+nota</button>':''}
+  site\hoja.js:379: <p class="note">Guía general para disfrutar y aprender. Para adultos.</p></div>`;
+  site\hoja.js:380: bindWheel(k=>CD.tags[k],(k,v)=>{CD.tags[k]=v;persistDraft()},(k,id)=>{const 
+y=scrollY;renderCata();scrollTo(0,y);const g=$(`.wseg[data-w="${id}"]`);g&&g.focus({preventScroll:true})});
+  site\hoja.js:381: $$('[data-set]').forEach(b=>b.onclick=()=>{const k=b.dataset.set;CD[k]=CD[k]===b.dataset.v?'':b.dat
+aset.v;persistDraft();$$(`[data-set="${k}"]`).forEach(x=>x.setAttribute('aria-pressed',CD[k]===x.dataset.v))});
+  site\hoja.js:382: $$('[data-tog]').forEach(b=>b.onclick=()=>{const k=b.dataset.tog,v=b.dataset.v;CD[k]=CD[k].includes
+(v)?CD[k].filter(x=>x!==v):[...CD[k],v];persistDraft();b.setAttribute('aria-pressed',CD[k].includes(v))});
+> site\hoja.js:383: $$('[data-note]').forEach(t=>t.oninput=()=>{CD.notas[t.dataset.note]=t.value;persistDraft()});
+  site\hoja.js:384: $$('[data-rate]').forEach(b=>b.onclick=()=>{CD.rating=+b.dataset.rate;persistDraft();$$('[data-rate
+]').forEach(x=>{x.classList.toggle('on',+x.dataset.rate<=CD.rating);x.setAttribute('aria-checked',+x.dataset.rate===CD.
+rating)})});
+> site\hoja.js:385: const nf=$('#cnFinal');if(nf)nf.oninput=()=>{CD.notaFinal=nf.value;persistDraft()};const 
+sl=$('#cSellar');if(sl)sl.onchange=()=>{CD.sellar=sl.checked;persistDraft()};
+> site\hoja.js:386: const 
+cc=$('#cCig'),co=$('#cOtro');if(cc){cc.onchange=()=>{if(cc.value)co.value=''};co.oninput=()=>{if(co.value)cc.value=''}}
+  site\hoja.js:387: const go=d=>{CD.paso=Math.max(0,Math.min(n,CD.paso+d));persistDraft();renderCata();scrollTo(0,0)};
+  site\hoja.js:388: $('#cNext').onclick=()=>{if(CD.paso===0){const 
+v=cc.value,o=co.value.trim();if(!v&&!o){toast('Escoge o escribe el cigarro');return}const 
+c=v&&A.cigarById(v);CD.cigarId=c?c.id:'';CD.nombre=c?c.nombre:o;go(1);return}
+  site\hoja.js:389:  if(CD.paso===n){saveCata();return}go(1)};
+  site\hoja.js:390: const pv=$('#cPrev');if(pv)pv.onclick=()=>go(-1);const 
+sk=$('#cSkip');if(sk)sk.onclick=()=>{CD.paso=n;persistDraft();renderCata();scrollTo(0,0)}}
+  site\hoja.js:391:function saveCata(){if(!CD.rating){toast('Ponle de 1 a 5 estrellas');return}const 
+c=CD.cigarId&&A.cigarById(CD.cigarId);
+  site\hoja.js:392: const 
+pasos=PASOS.slice(1,-1).map(p=>({paso:p.t,tags:p.w?CD.tags[p.w]:[],nota:(CD.notas[p.id]||'').trim()}));
+  site\hoja.js:393: const e={id:uid('d'),fecha:new Date().toISOString(),cigarId:c?c.id:null,nombre:CD.nombre,artesano:c
+?A.artisanName(c):'',rating:CD.rating,notas:(CD.notaFinal||'').trim(),tags:allTags(),fortaleza:CD.fortaleza,cuerpo:CD.c
+uerpo,final:CD.largo,capa:CD.capa,tiro:CD.tiro,quemada:CD.quemada,aspecto:CD.aspecto,pasos,origen:'cata',actualizado:ne
+w Date().toISOString()};
+  site\hoja.js:394: save(s=>{s.diario.unshift(e);if(c){s.ratings[c.id]=CD.rating;if(CD.sellar&&!s.pasaporte.cigarros[c.
+id])s.pasaporte.cigarros[c.id]=hoy()}s.draft=null});CD=null;
+  site\hoja.js:395: toast('Cata guardada en tu diario ✓');location.hash='#/mihoja/diario'}
+  site\hoja.js:396:/* ---------- maridajes (guía general, sin marcas) ---------- */
+  site\hoja.js:397:const RON=[{id:'blanco',n:'Ron blanco',p:'Ligero y limpio, filtrado después de añejarse. En Puerto 
+Rico el ron se añeja por lo menos un año, incluso el blanco.',f:['suave'],t:['floral','frutos','nuez'],m:'Con cigarros 
+suaves de capa clara o Connecticut: no tapa los sabores delicados. Mejor con hielo o en un trago sencillo.'},
+  site\hoja.js:398: {id:'dorado',n:'Ron dorado u oro',p:'Algo más de barrica: vainilla y caramelo 
+suave.',f:['suave','media'],t:['dulce','nuez','madera'],m:'Con suaves a medios de capa natural o colorado. Acompaña 
+notas de nuez, crema y madera.'},
+  site\hoja.js:399: {id:'anejo',n:'Ron añejo',p:'Varios años en roble: caramelo, vainilla, madera tostada y fruta 
+seca.',f:['media','fuerte'],t:['madera','especias','cacao','dulce'],m:'El maridaje clásico para medios a fuertes de 
+capa habano o corojo: su dulzor equilibra la especia y la madera del tabaco.'},
+  site\hoja.js:400: {id:'extra',n:'Ron muy añejo (reserva)',p:'Más denso y complejo: cuero, cacao y fruto 
+seco.',f:['fuerte'],t:['cuero','cacao','tierra'],m:'Para cigarros fuertes y capas maduro u oscuro, sin prisa. Sírvelo 
+solo o con unas gotas de agua.'},
+  site\hoja.js:401: {id:'especiado',n:'Ron especiado (spiced)',p:'Ron con especias y vainilla añadidas; más dulce y 
+aromático.',f:['media','fuerte'],t:['especias','dulce','cacao'],m:'Contrasta con cigarros pimentosos y acompaña capas 
+maduro con notas dulces. Con un cigarro muy suave, el azúcar puede cansar el paladar.'}];
+  site\hoja.js:402:const CAFE=[{id:'claro',n:'Café de tueste claro',p:'Más acidez y notas de fruta o 
+flor.',f:['suave'],t:['floral','frutos','nuez'],m:'Con cigarros suaves y cremosos, en la mañana.'},
+  site\hoja.js:526: ${mine.length?`<div class="section-title"><h2>Tus 
+sugerencias</h2></div>${mine.map(e=>evCard(e,true)).join('')}`:''}
+  site\hoja.js:527: <details class="edit"><summary>＋ Sugerir actividad</summary><form class="form" id="sugForm"><div 
+class="field"><label for="sT">Actividad</label><input id="sT" required maxlength="80" placeholder="Ej. Noche de 
+cata"></div>
+  site\hoja.js:528: <div class="field"><label for="sF">Fecha</label><input id="sF" type="date" required></div><div 
+class="field"><label for="sH">Hora</label><input id="sH" maxlength="20" placeholder="Ej. 7:00 PM"></div>
+  site\hoja.js:529: <div class="field"><label for="sL">Lugar</label><input id="sL" maxlength="60"></div><div 
+class="field"><label for="sP">Pueblo</label><input id="sP" maxlength="40"></div>
+  site\hoja.js:530: <div class="field"><label for="sE">Enlace (IG o web)</label><input id="sE" type="url" 
+maxlength="200" placeholder="https://"></div><button class="btn" type="submit">Guardar 
+sugerencia</button></form></details>
+  site\hoja.js:531: <div class="section-title"><h2>Fuentes</h2></div><p class="lead" style="margin-top:-4px">Las 
+cuentas que esta lista sigue para actualizarse.</p>
+  site\hoja.js:532: <div class="list">${(D().events.fuentes||[]).map(f=>`<a class="row" href="${esc(f.url)}" 
+target="_blank" rel="noopener">${A.mono(f.handle.replace('@',''),38)}<div><div 
+class="t">${esc(f.handle)}</div>${f.nombre?`<div class="s">${esc(f.nombre)}</div>`:''}</div><span 
+class="go">›</span></a>`).join('')}</div>${A.PROTO_NOTE}`;
+  site\hoja.js:533: $$('[data-evm]').forEach(b=>b.onclick=()=>{evst.mode=b.dataset.evm;vEventos()});
+> site\hoja.js:534: 
+$$('[data-day]').forEach(b=>b.onclick=()=>{evst.day=evst.day===b.dataset.day?'':b.dataset.day;vEventos();const 
+s=$('#calSel');s&&s.scrollIntoView({block:'nearest',behavior:'smooth'})});
+> site\hoja.js:535: $('#sugForm').onsubmit=e=>{e.preventDefault();const 
+t=$('#sT').value.trim(),f=$('#sF').value;if(!t||!f){toast('Falta la actividad o la fecha');return}
+  site\hoja.js:536:  LS.set('sugeridas',[...LS.get('sugeridas',[]),{id:'s'+Date.now().toString(36),titulo:t,fecha:f,hor
+a:$('#sH').value.trim(),lugar:$('#sL').value.trim(),pueblo:$('#sP').value.trim(),enlace:$('#sE').value.trim()}].sort((a
+,b)=>a.fecha.localeCompare(b.fecha)));toast('Sugerencia guardada');vEventos()};
+> site\hoja.js:537: if(focus){const el=document.getElementById('ev-'+focus);if(el){setTimeout(()=>{el.scrollIntoView({b
+lock:'start'});scrollBy(0,-80);el.classList.add('flash')},60)}}}
+  site\hoja.js:538:/* ---------- compartir ficha (PNG en canvas) ---------- */
+  site\hoja.js:539:const LEAF_P='M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408 C34 370 18 320 14 250 C10 160 24 
+70 60 22Z',LEAF_H='M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408Z';
+  site\hoja.js:540:function drawLeaf(x,cx,cy,sc,rot,op){x.save();x.translate(cx,cy);x.rotate(rot);x.scale(sc,sc);x.tran
+slate(-60,-220);x.globalAlpha=op;
+  site\hoja.js:541: x.strokeStyle='#a7d46f';x.lineWidth=5;x.beginPath();x.moveTo(60,436);x.lineTo(60,30);x.stroke();
+  site\hoja.js:542: x.fillStyle='#3f9150';x.fill(new Path2D(LEAF_P));x.fillStyle='#2c7a3e';x.fill(new Path2D(LEAF_H));
+  site\hoja.js:543: x.strokeStyle='#1e5a2d';x.lineWidth=2.4;x.beginPath();for(let y=70;y<=378;y+=22){const w=34+Math.mi
+n(8,(y-70)/30);x.moveTo(60,y);x.lineTo(60-w,y-14);x.moveTo(60,y);x.lineTo(60+w,y-14)}x.stroke();x.restore()}
+  site\hoja.js:544:function rr(x,X,Y,W,H,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+
+H,r);x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath()}
+  site\hoja.js:545:function wrap(x,t,maxW){const w=String(t).split(/\s+/);const lines=[];let cur='';for(const s of 
+w){const n=cur?cur+' '+s:s;if(x.measureText(n).width>maxW&&cur){lines.push(cur);cur=s}else 
+cur=n}if(cur)lines.push(cur);return lines}
+  site\hoja.js:546:async function cardBlob(c){const W=1080,H=1350;const 
+cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+  site\hoja.js:547: try{await Promise.all(['64px Shrikhand','600 36px Figtree','700 30px 
+Figtree'].map(f=>document.fonts.load(f)))}catch(e){}
+  site\hoja.js:548: const g=x.createLinearGradient(0,0,W*.4,H);g.addColorStop(0,'#1f5a36');g.addColorStop(.55,'#123a24'
+);g.addColorStop(1,'#0b1d12');x.fillStyle=g;x.fillRect(0,0,W,H);
+  site\hoja.js:549: drawLeaf(x,70,250,1.25,.5,.4);drawLeaf(x,1010,1120,1.35,-2.6,.33);
+  site\hoja.js:550: const 
+fb=[['#0050f0',.18],['#ed0000',.27],['#f8f8f4',.1],['#ed0000',.27],['#f8f8f4',.04],['#ed0000',.14]];let 
+fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});
+  site\hoja.js:551: x.textBaseline='alphabetic';x.font='64px Shrikhand';x.fillStyle='#f8f8f4';const t1='La Hoja 
+';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const 
+sx=(W-w1-w2)/2;x.fillText(t1,sx,120);x.fillStyle='#8fd162';x.fillText('Boricua',sx+w1,120);
+  site\hoja.js:552: x.font='600 24px Figtree';x.fillStyle='#8fb8ff';x.textAlign='center';x.fillText('HECHO EN PUERTO 
+RICO',W/2,162);x.textAlign='left';
+  site\hoja.js:553: const foto=(!c.yours&&window.LHB_FOTOS)?window.LHB_FOTOS[c.id]:null;let fimg=null;
+  site\styles.css:5::root{
+> site\styles.css:6: --bg:#0e2417; --bg2:#12301e; --card:#173a26; --card2:#1e4730; --line:#2c5a3d;
+  site\styles.css:7: --cream:#f8f8f4; --cream2:#dde3dc; --muted:#b3c0b5;
+> site\styles.css:8: --gold:#8fd162; --flam:#d0192e; --flam2:#ff8a8a; --ado:#8fb8ff; --ado-d:#0050f0;
+  site\styles.css:9: --rosa:#ff9a9a; --amarillo:#ffd27a; --turq:#7fb0ff; --verde:#a9c487; --lila:#c5cdf5;
+  site\styles.css:10: --pr-red:#ed0000; --pr-blue:#0050f0;
+  site\styles.css:15:*{box-sizing:border-box}
+> site\styles.css:16:html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);font-family:var(--sans);-we
+bkit-text-size-adjust:100%;}
+  site\styles.css:17:body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+  site\styles.css:18:img{max-width:100%;display:block}
+  site\styles.css:25:  radial-gradient(90% 50% at 0% 10%, rgba(143,184,255,.08), transparent 60%),
+> site\styles.css:26:  var(--bg);}
+  site\styles.css:27:.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-bet
+ween;gap:12px;
+  site\styles.css:28: padding:calc(var(--sat) + 10px) calc(var(--sar) + 16px) 10px calc(var(--sal) + 16px);
+  site\styles.css:71:.card .meta{font-size:12.5px;color:var(--muted);line-height:1.3}
+> site\styles.css:72:.card .fav-dot{position:absolute;top:8px;right:8px;background:rgba(14,36,23,.75);border-radius:999
+px;width:28px;height:28px;display:grid;place-items:center;color:var(--flam2);font-size:15px}
+  site\styles.css:73:.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;border-radius:999px;padding:
+3px 8px;background:var(--card2);color:var(--cream2);border:1px solid var(--line)}
+> site\styles.css:74:.pill.f-suave{color:#cfe0b0}.pill.f-media{color:var(--amarillo)}.pill.f-fuerte{color:var(--flam2)}
+  site\styles.css:75:.pill.yours{color:var(--turq)}
+  site\styles.css:76:.pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+  site\styles.css:86:.fav-btn{flex:none;border:1px solid 
+var(--line);background:var(--card);border-radius:999px;padding:9px 
+14px;font-size:14px;font-weight:600;display:flex;gap:6px;align-items:center}
+> site\styles.css:87:.fav-btn[aria-pressed="true"]{background:var(--flam);border-color:var(--flam);color:#fff}
+  site\styles.css:88:.specs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+  site\styles.css:89:.spec{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  site\styles.css:120:.lbtn.buy{background:var(--gold);border:0;color:#0e2417}
+> site\styles.css:121:.lbtn.go-map{background:var(--flam);border:0;color:#fff}
+  site\styles.css:122:.lbtn[aria-disabled="true"]{opacity:.45}
+  site\styles.css:123:.lbtn svg{width:17px;height:17px;fill:currentColor}
+  site\styles.css:137:.photo-btns input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+> site\styles.css:138:.btn{border:0;border-radius:14px;padding:14px 
+16px;font-weight:700;font-size:16px;background:var(--flam);color:#fff;width:100%}
+  site\styles.css:139:.btn.secondary{background:var(--card2);color:var(--cream);border:1px solid var(--line)}
+  site\styles.css:140:.btn:disabled{opacity:.5}
+  site\styles.css:154:.pin{width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px 
+solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+> site\styles.css:155:.pin.lounge,.legend .lounge{background:var(--flam)}
+  site\styles.css:156:.pin.venta,.legend .venta{background:var(--ado)}
+  site\styles.css:157:.leaflet-popup-content-wrapper{background:var(--card);color:var(--cream);border-radius:14px}
+  site\styles.css:198:.tab-plus{position:relative}
+> site\styles.css:199:.tab-plus .plus{width:50px;height:50px;border-radius:16px;background:var(--flam);color:#fff;displ
+ay:grid;place-items:center;font-size:30px;font-weight:400;line-height:1;margin-top:-18px;box-shadow:0 6px 18px 
+rgba(208,25,46,.45),inset 0 0 0 2px rgba(255,255,255,.12)}
+  site\styles.css:200:.tab-plus.active .plus{background:var(--gold);color:#0e2417}
+  site\styles.css:201:.toast{position:fixed;left:50%;bottom:calc(var(--tab-h) + var(--sab) + 
+18px);transform:translateX(-50%) translateY(20px);background:var(--cream);color:#0e2417;padding:10px 16px;border-radius
+:12px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:88vw;text-align
+:center}
+  site\styles.css:296:.sheet-bg{position:absolute;inset:0;background:rgba(4,14,8,.62);opacity:0;transition:opacity .2s}
+> site\styles.css:297:.sheet-panel{position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;background:v
+ar(--bg2);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:10px calc(var(--sar) + 16px) 
+calc(var(--sab) + 22px) calc(var(--sal) + 16px);transform:translateY(100%);transition:transform .22s 
+ease-out;max-width:760px;margin:0 auto}
+  site\styles.css:298:.sheet.open .sheet-bg{opacity:1}.sheet.open .sheet-panel{transform:none}
+  site\styles.css:299:.sheet-grip{width:44px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 8px}
+  site\styles.css:382:.heart{color:var(--cream)}
+> site\styles.css:383:.heart[aria-pressed="true"]{background:var(--flam);border-color:var(--flam);color:#fff}
+  site\styles.css:384:.stampbtn svg{width:18px;height:18px}
+  
+site\styles.css:385:.stampbtn[aria-pressed="true"]{background:var(--celeste);border-color:var(--celeste);color:#0e2417}
+  site\styles.css:430:.or{text-align:center;color:var(--cream2);font-size:13px;margin:6px 0}
+> site\styles.css:431:.cata-nav{position:sticky;bottom:calc(var(--tab-h) + var(--sab) + 
+8px);display:grid;grid-template-columns:1fr 1.6fr;gap:10px;margin-top:16px;padding:10px 0 
+0;background:linear-gradient(transparent,var(--bg) 30%);z-index:5}
+  site\styles.css:432:.sum-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 
+14px}
+  site\styles.css:433:.sum-card .t{font-family:var(--display);font-size:20px}
+  site\styles.css:446:.wseg:focus-visible path{stroke:#fff;stroke-width:4}
+> site\styles.css:447:.whub{fill:var(--bg);stroke:var(--line);stroke-width:2}
+  site\styles.css:448:.whub-n{fill:var(--gold);font:400 24px var(--display)}
+  site\styles.css:449:.whub-t{fill:var(--cream2);font:600 11px var(--sans)}
+  site\styles.css:555:.zs{flex:none;width:62px;height:62px;border-radius:50%;border:2px dashed 
+#2c5a3d;display:grid;place-content:center;justify-items:center;text-align:center;color:#4f7d5c;line-height:1.05}.zs 
+svg{width:13px;height:13px}.zs b{font-size:11px}.zs small{font-size:9px}
+> site\styles.css:556:.zs.ok{border:3px double 
+var(--flam);color:#ff8a8a;background:rgba(208,25,46,.12);transform:rotate(-8deg)}.zs.ok b{color:var(--cream)}
+  site\styles.css:557:.zts{display:flex;flex-wrap:wrap;gap:5px}.zt{border:1px solid 
+var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:5px 
+9px;font-size:12px}.zt.on{background:rgba(143,209,98,.16);border-color:var(--gold);color:var(--cream)}
+  site\styles.css:558:.rsub{margin:-8px 0 12px;color:var(--cream2);font-size:14px}.rl{display:grid;gap:8px}.ri{display:
+flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid 
+var(--line);border-radius:14px;padding:10px 12px}.ri 
+small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.ri .stampbtn{flex:none;padding:7px 
+10px;font-size:13px}
+  site\styles.css:561:.btn-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50p
+x;margin:-4px 0 16px;border:0;border-radius:14px;background:var(--gold);color:#0e2417;font:700 16px/1.2 
+var(--sans);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+> site\styles.css:562:.btn-add[hidden]{display:none}
+  site\styles.css:563:.inst-p{font-size:16px;line-height:1.5;color:var(--cream);margin:0 0 18px}
+  site\styles.css:564:.inst-ok{width:100%;font-size:16px}
+
+
+ succeeded in 9041ms:
+✔ index: title, viewport, PWA meta, local assets exist (7.1546ms)
+✔ manifest: standalone, icons 192/512/maskable exist (1.2425ms)
+✔ service worker precaches files that exist (5.0591ms)
+✔ Spanish UI, Fortaleza wording, prototype note, forbidden names absent (8.745ms)
+✔ data layer: separate JSON files with real entries and sources (4.5414ms)
+✔ app wiring: upload uses camera capture and IndexedDB; offline fallback map; Volky art (0.7093ms)
+✔ v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir (4.6321ms)
+✔ v6: data counts (2.9763ms)
+✔ v7: fotos reales de producto (12.6933ms)
+✔ v8: guagua B (recorte + campo de tabaco en el splash) (2.5584ms)
+✔ v9: splash por capas + garita fuera del header (2.5198ms)
+✔ v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11) (4.9913ms)
+✔ v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño (2.7612ms)
+✔ v13: icon files present with right sizes, new leaf-flag art; El Chalet in Lugares (7.2184ms)
+✔ v14: botón de Spotify en Podcast (1.2692ms)
+✔ v15: banner de Sergio en el catálogo, sin guagua (1.7016ms)
+✔ v16: paleta B Bandera (verdes intactos) (2.5615ms)
+✔ v17: flor de tabaco reemplaza la garita, flamboyán nuevo (1.4711ms)
+✔ v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla (5.1176ms)
+✔ v19: subtítulo del banner (2.2911ms)
+✔ artisan logos: every id in LOGOS maps to an existing webp and a real artisan (3.2669ms)
+✔ v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone (3.7047ms)
+✔ v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta (3.933ms)
+✔ v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta (3.2531ms)
+✔ v28: splash con La Ruta del Tabaco, eslogan y flor (1.9891ms)
+✔ v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan (4.413ms)
+✔ v32: catálogo en orden alfabético (0.6144ms)
+✔ v39 SEO: páginas estáticas por lugar, índice, sitemap y robots (21.5347ms)
+✔ v40 SEO: páginas estáticas por artesano, índice y sitemap (21.0506ms)
+✔ LHB-41 SEO: página estática por cigarro, índice, sitemap y fuera del caché del shell (37.2383ms)
+✔ LHB-41: el service worker no guarda una página de cigarro como el shell de la app (55.7088ms)
+✔ LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves (6.5147ms)
+✔ LHB-27: ningún texto en español queda escrito en las vistas de app.js (antes: 161) (6.6338ms)
+✔ LHB-27: idioma por navigator.language, se recuerda, y se queda en español hasta E6 (5.7592ms)
+✔ LHB-44: JSON-LD válido en cada página: migas de pan, tipos con sus propiedades, sameAs de los datos, WebSite en el inicio (264.8877ms)
+✔ LHB-25: reglas del @ y del perfil: largo, caracteres, reservados, minúscula, bio 160 (14.2662ms)
+✔ LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, perfil repetido; Mi Hoja sin perfil: 403 (111.243ms)
+✔ LHB-25: la puerta de Mi Hoja: un 401 o 403 cierra aunque haya perfil guardado; sin conexión o 5xx abre solo al mismo usuario (21.6189ms)
+✔ LHB-25: una respuesta tardía no se le pega a otra cuenta ni a otra pantalla (11.5526ms)
+✔ LHB-25: el perfil nuevo: se guarda una vez, abre Mi Hoja, y un envío pendiente no toca nada si el usuario cambió o se fue (9.0397ms)
+✔ LHB-25: entrar desde una página pública no la reemplaza y retoma la acción; al volver de Google también (7.6881ms)
+✔ LHB-25: salir cierra Mi Hoja también por #mihoja y #perfil, igual que el router; el formulario de perfil de una cuenta anterior no queda (10.6335ms)
+✔ LHB-25: un formulario de perfil que quedó en pantalla tras cambiar de cuenta no manda nada y se repinta (14.0713ms)
+✔ LHB-25: si el perfil se creó pero se perdió la respuesta, el reintento termina igual que un 201 y repinta la página de origen (3.7683ms)
+✔ LHB-25: si la revisión tras un perfil ya existente falla, el formulario sigue usable y no se anuncia éxito (4.6403ms)
+✔ LHB-25: entrar desde una página pública y fallar la revisión muestra el error sobre la página y el reintento conserva la acción (11.7508ms)
+✔ LHB-25: un reintento del usuario puede volver a abrir la hoja de entrar y la acción sigue viva (6.5656ms)
+✔ LHB-25: un almacenamiento lleno no impide entrar ni crear el perfil; un cambio de cuenta cierra las hojas de Mi Hoja (10.7263ms)
+✔ LHB-25: el botón de entrar de nuevo solo aparece al salir de una acción que falló, no al cambiar de cuenta ni después de un éxito (5.0632ms)
+✔ LHB-25: una hoja nueva no la borra el temporizador de cierre de la anterior (Escape y luego salir) (1.2391ms)
+✔ LHB-25: entrar con el perfil guardado (sin conexión) consume la acción guardada; al recargar no se repite (37.1028ms)
+✔ LHB-48: las acciones que piden cuenta validan su argumento antes de tocar los datos (3.0227ms)
+✔ LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no (5.7659ms)
+✔ LHB-48: una acción en sitio con sesión y perfil guardado no espera a la red; si no, pasa por la revisión completa (71.9136ms)
+✔ LHB-48: al volver de Google la acción retoma con su argumento, una vez (48.551ms)
+✔ LHB-48: los argumentos con nombres heredados (constructor, __proto__, toString) no llegan a los datos (2.6925ms)
+✔ LHB-48: al cambiar la cuenta, #/cata y #/subir vuelven a pasar por la puerta (no quedan editores abiertos) (148.3783ms)
+✔ LHB-48: una subida de fotos empezada por una persona no se guarda cuando ya es otra (2.0593ms)
+✔ LHB-48: si Clerk falla después de cambiar la cuenta, la acción de la anterior no corre con el perfil guardado de la nueva (128.2359ms)
+✔ LHB-48: cada toque es una sola acción: corre una vez o ninguna; si se toca otra antes de terminar la revisión, vale la última; los guardados llevan solo la acción y su argumento (356.196ms)
+✔ LHB-48: irse de la página o cambiar de cuenta durante la revisión descarta la acción; una abandonada no vuelve; una respuesta tardía no guarda el perfil (414.138ms)
+✔ LHB-48: con el perfil guardado, la acción en sitio no espera a la red pero se descarta si mientras carga Clerk cambia la cuenta o la página; los nombres de acción no se heredan (289.0339ms)
+✔ LHB-48: en Mi Hoja y las páginas de la cuenta solo espera la puerta de la página; una acción en sitio corre al instante o solo abre la hoja de entrar; en una página pública espera y corre al entrar (1277.0254ms)
+✔ LHB-48: una persona nueva en Mi Hoja con una acción tocada ve un solo formulario y la página se dibuja una vez; irse y volver no revive nada (540.9491ms)
+✔ LHB-48: irse y volver mientras carga Clerk descarta la acción (también si Clerk falla); cada cosa que espera se retoma sola; la página avisa de la navegación (509.3485ms)
+✔ LHB-48: al volver de Google a Mi Hoja la acción guardada no compite con la puerta de la página; irse de la página borra lo guardado para volver (194.8507ms)
+✔ LHB-48: un 401 y volver a entrar conserva la acción (la persona que entra en este equipo la continúa); un fallo de Clerk usa el perfil guardado solo del mismo momento (315.661ms)
+✔ LHB-48: un toque nuevo sustituye al anterior también en lo guardado para volver de Google (235.8102ms)
+✔ LHB-48: lo guardado para volver de Google solo se retoma si es una acción registrada de esta página pública (152.3396ms)
+✔ LHB-25: la foto de perfil, al terminar, vuelve a pasar por la puerta en vez de repintar el perfil directamente (2.582ms)
+✔ LHB-42: llms.txt lista cada página del sitemap una vez; robots.txt deja pasar a todos los bots (8.4544ms)
+✔ dominio propio: lahojaboricua.com, sin tab.bot, 404 real (38.9486ms)
+✔ LHB-24: el service worker no responde /api/ (siempre red), sí lo demás (2.4437ms)
+✔ LHB-24: _routes.json manda solo /api/* a Functions (0.5634ms)
+✔ LHB-24: token de Clerk (RS256) verificado con JWKS: iss, exp, nbf, azp, firma, alg, kid (392.8394ms)
+✔ LHB-24: migraciones 0001, 0002 y 0003 en SQLite real; /api/me: 401, needsProfile, perfil (232.4186ms)
+✔ LHB-49: el servidor solo acepta la URL de una foto de Clerk (https://img.clerk.com/): falta, otro host, parecidos y caracteres raros (1.613ms)
+✔ LHB-49: la foto de la cuenta (Google, Apple) viene puesta y se manda; la silueta de Clerk o una URL que no es de Clerk no cuentan (13.7645ms)
+✔ LHB-49: sin foto no se crea el perfil: no se manda nada al servidor, y el error del servidor también llega al formulario (12.0164ms)
+✔ LHB-49: subir su propia foto: solo imágenes, Clerk la guarda, se lee la URL nueva y esa es la que se manda; si falla, sigue sin foto (39.1605ms)
+✔ LHB-49: una subida de otra cuenta, de otra pantalla o ya superada no cambia la foto del formulario (15.1643ms)
+✔ LHB-49: una subida que sigue en curso cuando se cierra el formulario no le pone su foto al formulario nuevo: las subidas van en orden aunque cambie la pantalla (6.8398ms)
+✔ LHB-49: mientras se sube una foto no se envía el perfil, y mientras se envía no se cambia la foto (9.8568ms)
+✔ LHB-49: si otra acción toca después y falla, el formulario de perfil que sigue en pantalla se puede terminar (subir foto y crear); uno reemplazado por otro, no (18.5504ms)
+✔ LHB-49: si otra acción gana primero porque el perfil ya existe, el formulario viejo no corre su acción además: ni con la respuesta 201 ni con profile-exists (6.4465ms)
+✔ LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones (39.7833ms)
+✔ LHB-49: el formulario real sobre un DOM de mentira: pide la foto primero y cada salida del envío suelta los botones (30.5898ms)
+✔ LHB-49: toda salida que da por buena la cuenta con perfil retira el formulario abierto: el camino rápido con el perfil guardado y el de sin conexión también (12.7954ms)
+✔ LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL (6.2549ms)
+✔ LHB-52: reglas de la identidad en el servidor: nombre y apellido, género, fecha real, no futura, 21 años o más en la fecha UTC (4.4493ms)
+✔ LHB-52: POST /api/profile en SQLite real: cada rechazo (falta un dato, fecha mala, 20 años y 364 días, futura) no crea nada; exactamente 21 hoy sí; el 21+ sale de la fecha (166.1587ms)
+✔ LHB-52: DOB y género son privados: ninguna lectura pública los trae, /api/me solo se los da a su dueño (252.8962ms)
+✔ LHB-52: la migración 0003 agrega cuatro columnas nulas, no rellena nada, y la base rechaza un género o una fecha que no son (125.717ms)
+✔ LHB-52: PUT /api/profile completa la identidad de un perfil de antes, una sola vez, sin tocar lo demás (160.4639ms)
+✔ LHB-52: cuenta.js manda al paso "Completa tu perfil" a quien existía sin identidad, antes de abrir Mi Hoja, y lo termina una sola vez (91.7088ms)
+✔ LHB-52: el formulario real: una fecha de menos de 21 años no manda nada; faltar un dato, tampoco; la casilla de los 21 ya no existe (115.919ms)
+✔ LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, género y fecha (una sola matriz para los dos) (25.952ms)
+✔ LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados (7.9071ms)
+✔ LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió) (32.1699ms)
+✔ LHB-52: si el perfil ya existía al crearlo (409) y sigue sin identidad, se pide completar antes de guardar o abrir (9.1751ms)
+✔ LHB-52: el error del formulario se ve: caja roja con borde y letra grande, la pantalla baja hasta ella y se quita al corregir (5.4807ms)
+ℹ tests 101
+ℹ suites 0
+ℹ pass 101
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7656.5777
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command '$s=Get-Content site/hoja.js; $s[193..232]; $t=Get-Content test/site.test.js; $t[1008..1045]; $c=Get-Content site/styles.css; $c[0..13]; Select-String -Path site/styles.css -Pattern '"'"'^'"\\.hint|"'^'"\\.form|hidden|prefers-reduced-motion'" in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+ succeeded in 674ms:
+ /* una sola operación a la vez: mientras se sube la foto o se crea el perfil, ni el botón de foto ni el de crear responden */
+ let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;const pb=$('#obPb');if(pb)pb.disabled=b};
+ showPic();
+ if(!idm){
+ $('#obPb').onclick=()=>$('#obPf').click();
+ $('#obPf').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f||working)return;
+  if(!/^image\//.test(f.type))return err(OB_ERR['avatar-type']);
+  err('');busy(true);let r;
+  try{const b=await A.resizeImage(f,512,.85);r=await picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))}catch(x){r={error:'avatar-type'}}
+  if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
+  busy(false);if(r.error)return err(OB_ERR[r.error]||OB_ERR['avatar-upload']);
+  own=true;showPic()};
+ $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length}}
+ form.onsubmit=async e=>{e.preventDefault();if(working)return;
+  const f={first_name:$('#obFn').value.trim(),last_name:$('#obLn').value.trim(),gender:$('#obGM').checked?'M':$('#obGF').checked?'F':'',birth_date:$('#obD').value};
+  let h='';
+  if(!idm){h=$('#obH').value.trim().toLowerCase();
+   if(!picture.url())return err(OB_ERR['avatar-required']);
+   if(!HANDLE_RE.test(h))return err(OB_ERR['handle-invalid'])}
+  /* LHB-52: una fecha que muestra menos de 21 años (o inválida, o futura) no se manda a ningún lado */
+  const bad=idProblem(f,new Date().toISOString().slice(0,10));if(bad)return err(OB_ERR[bad]||OB_ERR['birth_date-invalid']);
+  err('');busy(true);
+  let r;try{r=await submit(idm?f:{handle:h,...f,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
+  if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
+  busy(false);if(r.error)err(OB_ERR[r.error]||(idm?'No pudimos guardar tu perfil. Intenta otra vez.':'No pudimos crear tu perfil. Intenta otra vez.'))}}
+const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,'identity'),toast,closeAll:closeSheetNow}});
+/* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
+const requireAccount=(go,o)=>CUENTA.require(go,o);
+/* ---------- acciones que piden cuenta (LHB-48) ----------
+   Corazón, sello, estrella y humidor se hacen solo con sesión y perfil; ver la página no pide nada. El argumento viaja como texto (también por sessionStorage al volver de Google) y se valida aquí. */
+const txt=v=>typeof v==='string'&&v.length<200;
+const split2=v=>txt(v)?v.split(/:(.*)/s):[];
+const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const keepScroll=()=>{const y=scrollY;A.route();scrollTo(0,y)};
+const ACTIONS={
+ fav(arg){const [k,id]=split2(arg);if(!id||id in Object.prototype||!own(S().favs,k)||!Array.isArray(S().favs[k]))return;
+  const on=toggleFav(k,id);
+  $$(`[data-fav="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',(on?'Quitar de':'Guardar en')+' favoritos');b.firstChild.textContent=on?'♥':'♡'});toast(on?window.LHB_I18N.t('fav.on'):window.LHB_I18N.t('fav.off'));if(/^#\/c\//.test(location.hash))keepScroll()},
+ stamp(arg,st){const [k,id]=split2(arg);if(!id||id in Object.prototype||!own(S().pasaporte,k)||typeof S().pasaporte[k]!=='object')return;st=st||$(`[data-stamp="${CSS.escape(arg)}"]`);
+  const before=badgeIds(),r0=ruta();const on=toggleStamp(k,id),r1=ruta(),nz=r1.ok.find(x=>!r0.ok.includes(x));RLIT=r1.lit.find(x=>!r0.lit.includes(x));if(RLIT&&(st&&st.closest('.rl')))closeSheet();if(nz)setTimeout(()=>zonaSheet(nz),1500);
+function FORM_HARNESS(picture,submit,resize,opts){opts=opts||{};
+ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
+ const code=src.match(/const HANDLE_RE=.*\n/)[0]+src.match(/const OB_ERR=.*\n/)[0]+src.slice(src.indexOf('const ID_BAD='),src.indexOf('\nconst CUENTA='));
+ let els={};const mkEl=()=>{const e={disabled:false,hidden:false,value:'',checked:false,children:[],style:{cssText:''},scrolls:0,scrollIntoView(){e.scrolls++},onclick:null,onchange:null,onsubmit:null,oninput:null,clicks:0,
+  appendChild(c){e.children.push(c)},click(){e.clicks++}};let tc='';Object.defineProperty(e,'textContent',{get:()=>tc,set:v=>{tc=v;e.children=[]}});return e};
+ const $=s=>s==='#obForm'?els.form:(els[s]||(els[s]=mkEl()));
+ let html='';const view={set innerHTML(h){els={form:mkEl()};html=h}};
+ const uploads=[];class FakeFile{constructor(parts,name,o){this.parts=parts;this.name=name;this.type=o&&o.type}}
+ const ctx={view,$,A:{resizeImage:resize||(async f=>({blob:f.name}))},D:()=>({artesanos:[]}),esc:s=>s,document:{createElement:()=>({})},File:FakeFile};
+ /* un reloj fijo para el formulario (new Date() sin argumentos); con argumentos, el Date de siempre */
+ if(opts.now){const RD=Date;ctx.Date=class extends RD{constructor(...a){if(a.length)super(...a);else super(opts.now)}}}
+ vm.createContext(ctx);vm.runInContext(code+';this.onboardingForm=onboardingForm;this.OB_ERR=OB_ERR;this.idProblem=idProblem',ctx);
+ ctx.onboardingForm(submit,picture,opts.mode);
+ const pick=f=>ctx.$('#obPf').onchange({target:{files:[f],value:'x'}});
+ /* send llena el formulario (nombre, apellido, género y fecha; el @ solo en el formulario nuevo) y lo envía; lo que no se da, se llena con una identidad válida */
+ const send=(v={})=>{if(opts.mode!=='identity')ctx.$('#obH').value=v.handle===undefined?'ana':v.handle;
+  ctx.$('#obFn').value=v.first===undefined?'Ana':v.first;ctx.$('#obLn').value=v.last===undefined?'Mora':v.last;
+  const g=v.gender===undefined?'F':v.gender;ctx.$('#obGM').checked=g==='M';ctx.$('#obGF').checked=g==='F';ctx.$('#obD').value=v.birth===undefined?'1990-05-17':v.birth;
+  return ctx.$('#obForm').onsubmit({preventDefault(){}})};
+ const state=()=>({go:ctx.$('#obGo').disabled,pb:ctx.$('#obPb').disabled,err:ctx.$('#obErr').hidden?'':ctx.$('#obErr').textContent,hint:ctx.$('#obPh').textContent,img:ctx.$('#obPv').children[0]&&ctx.$('#obPv').children[0].src});
+ return {ctx,$:ctx.$,pick,send,state,html:()=>html,idProblem:ctx.idProblem,remount:()=>ctx.onboardingForm(submit,picture,opts.mode),OB:ctx.OB_ERR};
+}
+test('LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones',async()=>{
+ const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';
+ /* éxito */
+ let cur=null,calls=[],resized=[];
+ let f=FORM_HARNESS({url:()=>cur,upload:async file=>{calls.push(file);cur=AV2;return {url:AV2}}},async()=>({ok:true}),async(file,w,q)=>{resized.push([file.name,w,q]);return {blob:1}});
+ assert.equal(f.state().pb,false);assert.match(f.state().hint,/necesitas una foto/);
+ await f.pick({name:'a.png',type:'image/png'});
+ assert.deepEqual(resized,[['a.png',512,.85]],'se achica a 512 con calidad .85');assert.equal(calls.length,1);assert.equal(calls[0].name,'perfil.jpg');assert.equal(calls[0].type,'image/jpeg','a Clerk le llega el JPEG achicado');
+ assert.deepEqual([f.state().go,f.state().pb],[false,false],'terminada la subida los dos botones responden');assert.match(f.state().hint,/Listo/);assert.equal(f.state().img,AV2,'y se ve la foto nueva');
+ /* un archivo que no es imagen ni se achica ni se sube */
+ calls=[];resized=[];await f.pick({name:'x.txt',type:'text/plain'});assert.deepEqual([calls.length,resized.length],[0,0]);assert.equal(f.state().err,f.OB['avatar-type']);assert.deepEqual([f.state().go,f.state().pb],[false,false]);
+ /* error de subida, y que la subida se rechace con una excepción */
+ for(const upload of [async()=>({error:'avatar-upload'}),async()=>{throw new Error('red')}]){
+  f=FORM_HARNESS({url:()=>null,upload},async()=>({ok:true}));await f.pick({name:'a.png',type:'image/png'});
+  assert.deepEqual([f.state().go,f.state().pb],[false,false],'un error suelta los botones');assert.ok(f.state().err.length>0,'y se avisa');assert.ok(!/Listo/.test(f.state().hint),'sin decir que ya hay foto');
+ }
+@font-face{font-family:'Figtree';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/figtree.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Fraunces';font-style:italic;font-weight:500;font-display:swap;src:url(fonts/fraunces-italic-500.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/fraunces-normal-600.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Shrikhand';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/shrikhand.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+:root{
+ --bg:#0e2417; --bg2:#12301e; --card:#173a26; --card2:#1e4730; --line:#2c5a3d;
+ --cream:#f8f8f4; --cream2:#dde3dc; --muted:#b3c0b5;
+ --gold:#8fd162; --flam:#d0192e; --flam2:#ff8a8a; --ado:#8fb8ff; --ado-d:#0050f0;
+ --rosa:#ff9a9a; --amarillo:#ffd27a; --turq:#7fb0ff; --verde:#a9c487; --lila:#c5cdf5;
+ --pr-red:#ed0000; --pr-blue:#0050f0;
+ --r:16px; --tab-h:64px;
+ --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+ --serif:'Fraunces',Georgia,serif; --display:'Shrikhand','Fraunces',Georgia,serif; --celeste:#8fb8ff; --photo:#fbfbf8; --sans:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+
+site\styles.css:37:.avatar-link{width:36px;height:36px;border-radius:50%;overflow:hidden;display:grid;place-items:cente
+r;background:var(--card2);border:1.5px solid var(--gold);text-decoration:none;font-weight:700;color:var(--gold)}
+site\styles.css:47:.hero{position:relative;border-radius:22px;overflow:hidden;padding:18px 18px 
+16px;margin-bottom:16px;
+site\styles.css:66:.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;tex
+t-decoration:none;display:flex;flex-direction:column;position:relative}
+site\styles.css:67:.card .ph{aspect-ratio:4/3;background:var(--card2);overflow:hidden}
+site\styles.css:83:.detail-ph{border-radius:20px;overflow:hidden;aspect-ratio:4/3;background:var(--card2);border:1px 
+solid var(--line)}
+site\styles.css:100:.mono{flex:none;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-wei
+ght:600;color:#0e2417;position:relative;overflow:hidden}
+site\styles.css:124:.form{display:flex;flex-direction:column;gap:14px}
+site\styles.css:132:.photo-drop{border:1.5px dashed var(--line);border-radius:18px;aspect-ratio:4/3;display:grid;place-
+items:center;overflow:hidden;background:var(--card);position:relative}
+site\styles.css:144:.map-wrap{position:relative;isolation:isolate;border-radius:18px;overflow:hidden;border:1px solid 
+var(--line);background:#1a2a33;height:min(58vh,460px)}
+site\styles.css:178:.me .pic{width:72px;height:72px;border-radius:50%;overflow:hidden;background:var(--card2);display:g
+rid;place-items:center;font-family:var(--serif);font-size:28px;color:var(--gold);border:2px solid 
+var(--gold);flex:none}
+site\styles.css:204:.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+site\styles.css:214:.road{position:relative;height:118px;margin:18px 0 6px;overflow:hidden;border-bottom:4px dashed 
+rgba(255,210,122,.35)}
+site\styles.css:246:@media 
+(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+site\styles.css:282:.hint{font-size:13.5px;color:var(--cream2);line-height:1.45;margin:8px 0}
+site\styles.css:283:.hint a{color:var(--gold)}
+site\styles.css:305:body.sheet-on{overflow:hidden}
+site\styles.css:318:.backup label.lbtn{position:relative;overflow:hidden}
+site\styles.css:322:.hum-ph{flex:none;width:76px;aspect-ratio:4/3;border:4px solid var(--photo);border-bottom-width:9px
+;border-radius:3px;overflow:hidden;background:var(--card2);display:grid;place-items:center;transform:rotate(-1.2deg);bo
+x-shadow:0 2px 8px rgba(0,0,0,.35)}
+site\styles.css:327:.qty{display:flex;align-items:center;border:1px solid 
+var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+site\styles.css:358:.pbar{height:8px;border-radius:9px;background:#24533a;overflow:hidden;margin:-2px 0 10px}
+site\styles.css:387:.heart.icon span,.heart.sm span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 
+0 0 0)}
+site\styles.css:502:.foto-th{flex:none;width:96px;padding:0;border:2px solid 
+var(--line);border-radius:8px;background:#fff;cursor:pointer;overflow:hidden;font:inherit}
+site\styles.css:506:.campo{position:relative;width:100%;max-width:600px;aspect-ratio:5/4;margin:10px auto 
+2px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 90%,transparent 
+100%);mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 90%,transparent 100%)}
+site\styles.css:536:.whl{position:absolute;border-radius:50%;overflow:hidden;opacity:.6}
+site\styles.css:562:.btn-add[hidden]{display:none}
+site\styles.css:570:.ob-pic-img{width:88px;height:88px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-i
+tems:center;background:var(--card2);border:1.5px solid var(--gold);color:var(--gold);font-weight:700;font-size:28px}
+
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "@'
+const fs=require('fs'), vm=require('vm'), assert=require('assert/strict');
+const tests=fs.readFileSync('test/site.test.js','utf8').replace(/\\r\\n/g,'\\n');
+const start=tests.indexOf('function FORM_HARNESS(');
+const harness=tests.slice(start,tests.indexOf('\\ntest(',start));
+const ctx={require,read:f=>fs.readFileSync('site/'+f,'utf8')};
+vm.createContext(ctx);vm.runInContext(harness+';this.harness=FORM_HARNESS',ctx);
+(async()=>{
+ let checked=0;
+ for(const mode of [undefined,'identity']){
+  for(const missing of ['none','style','scrollIntoView','both']){
+   let resolve, calls=0;
+   const f=ctx.harness(mode?null:{url:()=> 'https://img.clerk.com/test'},()=>{calls++;return new Promise(r=>resolve=r)},undefined,{now:'2026-10-26T12:00:00Z',mode});
+   const e=f."'$('"'#obErr'), options=[];
+   e.scrollIntoView=o=>options.push(JSON.parse(JSON.stringify(o)));
+   if(missing==='style'||missing==='both')delete e.style;
+   if(missing==='scrollIntoView'||missing==='both')delete e.scrollIntoView;
+   await f.send({birth:'2019-09-09'});
+   assert.equal(e.hidden,false);assert.equal(e.textContent,f.OB['age-under-21']);assert.equal(calls,0);
+   if(e.style)assert.ok(e.style.cssText.includes('font-size:16px'));
+   const expected=e.scrollIntoView?1:0;
+   assert.equal(options.length,expected);
+   if(expected)assert.deepEqual(options[0],{block:'center',behavior:'smooth'});
+   for(const id of ['#obFn','#obLn','#obD','#obGM','#obGF'])assert.equal(f."'$(id).oninput,null);
+   const pending=f.send({});assert.equal(e.hidden,true);assert.equal(e.textContent,'"'');if(e.style)assert.equal(e.style.cssText,'');
+   await f.send({birth:'2019-09-09'});assert.equal(options.length,expected);assert.equal(calls,1);
+   resolve({error:'generic'});await pending;assert.equal(e.hidden,false);assert.equal(options.length,expected*2);assert.equal(f."'$('"'#obGo').disabled,false);
+   checked++;
+  }
+ }
+ const lum=rgb=>rgb.map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4}).reduce((a,x,i)=>a+x*[.2126,.7152,.0722][i],0);
+ const bg=[14,36,23].map((x,i)=>.8*x+.2*[208,25,46][i]);
+ const contrast=(lum([248,248,244])+.05)/(lum(bg)+.05);
+ console.log(JSON.stringify({supplementalCasesPassed:checked,modes:['new-profile','identity'],checks:['missing style/scrollIntoView','scroll options','clear removes styling','no identity input scrolling','busy submit suppressed','server error after busy'],computedTextContrastOnRootBackground:contrast.toFixed(2)}));
+})().catch(e=>{console.error(e);process.exitCode=1});
+'@ | node" in C:\Users\Owner\la-hoja-boricua\.claude\worktrees\pensive-stonebraker-3551c2
+ succeeded in 914ms:
+{"supplementalCasesPassed":8,"modes":["new-profile","identity"],"checks":["missing style/scrollIntoView","scroll options","clear removes styling","no identity input scrolling","busy submit suppressed","server error after busy"],"computedTextContrastOnRootBackground":"14.16"}
+
+codex
+1. ADVISORY [Certain] `site/hoja.js`, `onboardingForm.err()`: When reduced motion is enabled, displaying an error still requests smooth scrolling. The existing CSS preference rule only disables animations and transitions. Consider immediate scrolling for this preference.
+
+2. ADVISORY [Certain] `site/hoja.js`, `onboardingForm()`; `test/site.test.js`: All 101 tests and eight supplemental cases passed, covering both modes, missing APIs, clearing styles, and busy submissions. No blocking regression or out-of-scope change found. Actual browser rendering and screen-reader announcements remain NOT VERIFIED.
+
+VERDICT: PASS
+tokens used
+35,052
+1. ADVISORY [Certain] `site/hoja.js`, `onboardingForm.err()`: When reduced motion is enabled, displaying an error still requests smooth scrolling. The existing CSS preference rule only disables animations and transitions. Consider immediate scrolling for this preference.
+
+2. ADVISORY [Certain] `site/hoja.js`, `onboardingForm()`; `test/site.test.js`: All 101 tests and eight supplemental cases passed, covering both modes, missing APIs, clearing styles, and busy submissions. No blocking regression or out-of-scope change found. Actual browser rendering and screen-reader announcements remain NOT VERIFIED.
+
+VERDICT: PASS
