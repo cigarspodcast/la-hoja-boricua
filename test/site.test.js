@@ -2040,7 +2040,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  const h=read('hoja.js').replace(/\r\n/g,'\n'),ix=read('index.html'),sw=read('sw.js');
  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
- assert.ok(/function write\(s,quiet\)\{if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}try\{localStorage\.setItem\(KEY,JSON\.stringify\(s\)\)\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(\)/.test(h),'cada escritura de la persona avisa al motor');
+ assert.ok(/function write\(s,quiet\)\{if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}try\{const txt=JSON\.stringify\(s\);localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on'))A.route()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta');
@@ -2245,6 +2245,25 @@ test('LHB-31 (Codex ronda 2): lo borrado antes de recargar la página sigue sien
   assert.deepEqual(hid28(P.doc()),[],'tras recargar, lo borrado no vuelve');assert.deepEqual(hid28(srv28(a,'user_a').doc),[],'el borrado llega a la cuenta');
  }finally{a.done()}
 });
+test('LHB-31 (Codex ronda 3): sin poder anotar la dueña no se guarda; la base recordada no pisa una meta más nueva de otra pestaña; una llave __proto__ anidada cuenta al comparar',async()=>{
+ const a=await ENG28();
+ try{
+  const P=DEV28(a,'user_a');P.st.failKey='lhb_mihoja_v1_owner';assert.equal(P.eng.ensureOwner(),false,'si la dueña no se puede anotar, hoja.js no guarda');
+  P.st.failKey=null;assert.equal(P.eng.ensureOwner(),true);assert.equal(P.ls.get('lhb_mihoja_v1_owner'),'user_a');assert.equal(P.eng.ensureOwner(),true,'ya anotada no hace nada');
+  const S=DEV28(a,'user_a');S.st.acct=null;assert.equal(S.eng.ensureOwner(),true,'sin cuenta no hay a quién anotar');
+  /* la pestaña 1 sube una adición y no puede anotar la meta; la pestaña 2 sincroniza dos veces y deja una meta más nueva; otro teléfono borra lo de la pestaña 2 */
+  const base={...DOC28,diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{}};
+  const T=DEV28(a,'user_a');T.seed(base);await T.sync('entrar');
+  T.edit(d=>{d.humidor.push({id:'one',marca:'1',actualizado:'2026-10-25'})});T.st.failKey='lhb_mihoja_v1_sync';let r=await T.eng.run('guardado');assert.equal(r.fail,'storage');T.st.failKey=null;
+  const E2=SYNC28().LHB_SYNC(T.D);r=await E2.run('pestana 2');assert.equal(r.ok,true,JSON.stringify(r));
+  T.edit(d=>{d.humidor.push({id:'two',marca:'2',actualizado:'2026-10-26'})});r=await E2.run('pestana 2 otra vez');assert.equal(r.ok,true,JSON.stringify(r));
+  const B=DEV28(a,'user_a');await B.sync();B.edit(d=>{d.humidor=d.humidor.filter(x=>x.id!=='two')});await B.fire();
+  r=await T.sync('reintento');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.ok(!T.doc().humidor.some(x=>x.id==='two'),'la base más nueva de la pestaña 2 hace que el borrado de "two" sobreviva');assert.ok(T.doc().humidor.some(x=>x.id==='one'));
+  const {LHB_MERGE:X}=SYNC28();assert.equal(X.same(JSON.parse('{"a":{"__proto__":{"x":1}}}'),JSON.parse('{"a":{"__proto__":{"x":2}}}')),false,'dos registros con distinta llave __proto__ anidada no son iguales');
+  assert.equal(X.same(JSON.parse('{"a":{"__proto__":{"x":1}}}'),JSON.parse('{"a":{"__proto__":{"x":1}}}')),true);
+ }finally{a.done()}
+});
 test('LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada',()=>{
  const {LHB_MERGE:X}=SYNC28();const E=o=>({schema:1,creado:'2026-10-01',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{},...o});
  const base=JSON.parse('{"ratings":{"constructor":3,"toString":2}}');
@@ -2275,9 +2294,9 @@ test('LHB-28 (Codex ronda 1): el servidor mira el tamaño antes de leer el JSON,
 });
 test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja la copia en memoria por vieja cuando otra pestaña escribe, aparta lo de otra cuenta antes de leer y no cuenta como cambio lo que la app escribe sola',()=>{
  const h=read('hoja.js').replace(/\r\n/g,'\n');
- assert.ok(h.includes("getDoc:()=>(ST=load())"),'la sincronización lee del almacenamiento y no de la copia en memoria');
+ assert.ok(h.includes("getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST}"),'la sincronización lee del almacenamiento y no de la copia en memoria');
  assert.ok(h.includes("window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null})"),'otra pestaña que escribe invalida la copia en memoria');
- assert.ok(h.includes("const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();return ST||(ST=load())};"),'S aparta lo de otra cuenta antes de leer y, si no pudo, no muestra lo de la otra');
+ assert.ok(h.includes("const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};"),'S aparta lo de otra cuenta antes de leer, no muestra lo de la otra si no pudo y solo confía en la copia en memoria si el texto guardado no cambió');
  assert.ok(h.includes("if(SYNC&&!SYNC.isolate()){toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}"),'write no escribe si no se pudo apartar lo de la otra cuenta');
  assert.ok(read('sync.js').includes('if(inIso)return true;'),'aislar dentro de aislar se corta (write llama a isolate y isolate escribe por setDoc)');
  assert.ok(h.includes("s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}"),'la copia nueva o dañada que la app crea sola no cuenta como un cambio de la persona');

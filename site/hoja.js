@@ -23,7 +23,7 @@ function normalize(o){const d=DEF();o=o&&typeof o==='object'?o:{};
  if(!Array.isArray(o.humidor))o.humidor=[];if(!Array.isArray(o.diario))o.diario=[];if(!o.ratings||typeof o.ratings!=='object')o.ratings={};return o}
 function upgrade(o){o=o||{};if(!o.schema)o.schema=1;while(o.schema<SCHEMA&&MIG[o.schema])o=MIG[o.schema](o);return normalize(o)}
 const legacy=k=>{try{const v=localStorage.getItem('vb_'+k);return v==null?null:JSON.parse(v)}catch(e){return null}};
-let ST=null;
+let ST=null,STRAW=null;
 function load(){const raw=localStorage.getItem(KEY);
  if(raw){try{return upgrade(JSON.parse(raw))}catch(e){try{localStorage.setItem(KEY+'_danado_'+Date.now(),raw)}catch(_){}}}
  /* primera vez en v6: trae favoritos y estrellas de la versión anterior (vb_favs, vb_ratings); las llaves viejas no se borran */
@@ -33,9 +33,9 @@ function load(){const raw=localStorage.getItem(KEY);
 /* LHB-31: cada escritura avisa a la sincronización, que decide tras una pausa si algo de lo que viaja a la cuenta cambió */
 let SYNC=null;
 /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
-function write(s,quiet){if(SYNC&&!SYNC.isolate()){toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){toast('No hay espacio para guardar. Exporta un respaldo.');return false}if(SYNC&&!quiet)SYNC.changed();return true}
+function write(s,quiet){if(SYNC&&!SYNC.isolate()){toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){toast('No hay espacio para guardar. Exporta un respaldo.');return false}try{const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){toast('No hay espacio para guardar. Exporta un respaldo.');return false}if(SYNC&&!quiet)SYNC.changed();return true}
 /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
-const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();return ST||(ST=load())};
+const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};
 window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null});
 function save(mut){const s=S();mut&&mut(s);s.cambios=(s.cambios||0)+1;write(s);return s}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
@@ -159,7 +159,7 @@ function clerk(){if(clerkP)return clerkP;
 /* extra: cabeceras de más (If-Match en la sincronización) */
 async function api(C,method,path,body,uid,extra){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
 /* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
-SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)},getDoc:()=>(ST=load()),setDoc:d=>{ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:d=>{ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),
  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),toast,
  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},

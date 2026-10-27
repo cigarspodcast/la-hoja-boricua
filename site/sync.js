@@ -12,7 +12,7 @@ const LOCAL_ONLY=['draft','cambios','respaldo','recordarDespues','migrado','sync
 const KINDS=['artesanos','cigarros','lugares'];
 const isObj=o=>o!==null&&typeof o==='object'&&!Array.isArray(o);
 /* JSON con las llaves en orden: dos valores iguales dan el mismo texto */
-const stable=v=>JSON.stringify(v,(k,x)=>isObj(x)?Object.keys(x).sort().reduce((o,key)=>(o[key]=x[key],o),{}):x);
+const stable=v=>JSON.stringify(v,(k,x)=>isObj(x)?Object.keys(x).sort().reduce((o,key)=>(Object.defineProperty(o,key,{value:x[key],enumerable:true,writable:true,configurable:true}),o),{}):x);
 const same=(a,b)=>stable(a)===stable(b);
 const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
 /* la copia que viaja: sin lo del teléfono y con todas las partes en su lugar */
@@ -84,6 +84,8 @@ window.LHB_SYNC=function(D){
  /* de quién es lo guardado en este teléfono: una llave aparte y chica, para saberlo sin leer la copia completa */
  const ownerOf=()=>{let o=null;try{o=D.ls.get(OWNER)}catch(e){}if(typeof o==='string'&&o)return o;const m=readMeta();return m?m.sub:null};
  const setOwner=uid=>{try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false}));return true}catch(e){return false}};
+ /* antes de guardar lo que escribe la persona hay que poder anotar de quién es; si no se puede, no se guarda */
+ const ensureOwner=()=>{const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;if(ownerOf()!==null)return true;return setOwner(acc.sub)};
  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
  const rawHasData=raw=>{try{return hasData(JSON.parse(raw))}catch(e){return true}};
  /* Lo guardado era de otra cuenta: se aparta en una llave libre (nunca sobre otra copia apartada), Mi Hoja queda vacía y la dueña pasa a ser la nueva. Es síncrono: se llama antes de leer o escribir Mi Hoja, sin esperar a la red */
@@ -119,7 +121,9 @@ window.LHB_SYNC=function(D){
       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
    const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
    /* si la meta no se pudo anotar la vez pasada, vale lo que esta pestaña recuerda de esa pasada (si ya no lo recuerda, se junta sin dar nada por borrado) */
-   const base=meta&&meta.base&&!wipe&&!staleBase?meta.base:staleBase&&mem&&mem.sub===uid?mem.base:null;
+   /* ...salvo que otra pestaña ya anotó una meta más nueva que la de esa pasada: esa base es la buena */
+   const memOk=staleBase&&!!mem&&mem.sub===uid&&!(meta&&meta.base&&meta.rev>mem.rev);
+   const base=meta&&meta.base&&!wipe&&(!staleBase||!memOk)?meta.base:memOk?mem.base:null;
    const merged=remote?merge(base,L,remote):L;
    let newRev=rev,pushed=false;
    if(!remote||canon(merged)!==canon(remote)){
@@ -139,7 +143,7 @@ window.LHB_SYNC=function(D){
    /* si no se puede anotar lo sincronizado, la próxima pasada no se fía de la base vieja (junta sin dar nada por borrado) */
    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
    const edited=edits!==e0||readSeq()!==s0;
-   mem={sub:uid,base:merged};
+   mem={sub:uid,base:merged,rev:newRev};
    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;return {fail:'storage'}}
    staleBase=false;if(!edited)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
@@ -167,7 +171,7 @@ window.LHB_SYNC=function(D){
  function changed(){if(applying)return;
   edits++;dirty=true;bumpSeq();
   /* lo escrito pertenece a quien lo escribió, aunque la cuenta cambie antes de la primera pasada */
-  {const acc=D.acct();if(acc&&typeof acc.sub==='string'&&acc.sub&&ownerOf()===null)setOwner(acc.sub)}
+  ensureOwner();
   {const m=readMeta();if(m&&!m.dirty){m.dirty=true;writeMeta(m)}}
   schedule(DEBOUNCE,()=>{const acc=D.acct();if(!acc)return;const m=readMeta();
    if(m&&m.sub===acc.sub&&m.base&&canon(D.getDoc())===canon(m.base)){dirty=false;if(m.dirty){delete m.dirty;writeMeta(m)}return}   /* volvió a ser igual: no hay nada que llevar */
@@ -176,5 +180,5 @@ window.LHB_SYNC=function(D){
   D.listen('online',()=>run('en-linea'));
   D.listen('visible',()=>run('visible',{minAge:30e3}));
   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
- return {run,changed,start,isolate,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
+ return {run,changed,start,isolate,ensureOwner,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
 })();
