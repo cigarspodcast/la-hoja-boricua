@@ -34,8 +34,8 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  let C;
  try{C=await D.clerk()}catch(e){
   if(op!==(inp?sip:seq)||vis!==v0||D.here()!==from)return;
-  if(D.store.get()){D.intent.clear();retire();return done()}
-  fail('Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
+  if(D.store.get()&&!o.edit){D.intent.clear();retire();return done()}
+  fail('Necesitas conexión',o.edit?'Para editar tu perfil necesitas conexión a internet.':'Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
  hook(C);
  /* con el perfil de ese usuario ya guardado la acción en sitio no espera a la red ni depende de otro toque: solo se descarta si cambió la cuenta o la página */
  if(inp?(gen!==g0||vis!==v0||D.here()!==from):!lv(C))return;
@@ -56,11 +56,13 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  if(!lv(C,uid))return;
  /* LHB-52: un perfil de antes, sin nombre, apellido, género y fecha de nacimiento, completa su identidad antes de abrir nada; mientras tanto no se guarda para abrir sin conexión */
  if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
+ /* LHB-55: editar el perfil pasa por la misma puerta y abre el formulario con lo que hay guardado; done corre al guardar */
+ if(r.status===200&&r.body.profile&&o.edit){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
  if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();retire();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
  if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
  const c=D.store.get();
- if(c&&c.sub===uid&&(r.status===0||r.status>=500)){D.intent.clear();retire();return done()}
+ if(c&&c.sub===uid&&!o.edit&&(r.status===0||r.status>=500)){D.intent.clear();retire();return done()}
  fail('No pudimos revisar tu cuenta','Intenta otra vez en un momento.')}
 /* LHB-49: la foto de perfil es la de Clerk. Si la cuenta ya trae una (Google, Apple) viene puesta; si no, o si la persona quiere otra, la sube con setProfileImage.
    Una foto de Clerk que no se subió ni se importó (la silueta de siempre) tiene hasImage en false y no cuenta. Sin foto no se manda el perfil. */
@@ -79,13 +81,14 @@ function guard(C,o,lv,uid){
  /* si el perfil se crea con lv caído, una acción más nueva que sigue en vuelo se descarta y la que falló y quedó para volver también: la acción de este formulario corre una sola vez */
  const settle=()=>{failure=null;if(!lv(C,uid)){if(o.inPlace)sip++;else seq++}};
  return {live,settle}}
-function onboard(C,done,o,lv,uid){ob=true;
- const {live,settle}=guard(C,o,lv,uid);
- const U=C.user;let pic=picOf(U),up=0,pend=0,sending=false;
- /* url() es la foto puesta ahora; upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva) */
+/* LHB-55: el selector de foto lo comparten el formulario del perfil nuevo y el de editar: la misma subida, la misma cola y la misma lectura de la URL.
+   url() es la foto puesta ahora (pic0 al abrir); upload(file) sube una nueva y devuelve {url}, {error} o {stale} (otra cuenta, otra pantalla o una subida más nueva).
+   sending() dice si hay un envío en curso (la subida lo respeta) y pending() cuántas subidas siguen en la cola. */
+function picker(U,live,pic0,sending){
+ let pic=pic0,up=0,pend=0;
  const picture={url:()=>pic,upload:file=>{
   if(!live())return Promise.resolve({stale:true});
-  if(sending)return Promise.resolve({error:'avatar-busy'});
+  if(sending())return Promise.resolve({error:'avatar-busy'});
   if(!file||typeof file.type!=='string'||!/^image\//.test(file.type))return Promise.resolve({error:'avatar-type'});
   const n=++up,cur=()=>live()&&n===up;pend++;
   const job=uq.then(async()=>{try{
@@ -97,9 +100,15 @@ function onboard(C,done,o,lv,uid){ob=true;
    const p=picOf(U);if(!p)return {error:'avatar-upload'};
    pic=p;return {url:p}}finally{pend--}});
   uq=job.catch(()=>{});return job}};
+ return {picture,pending:()=>pend}}
+function onboard(C,done,o,lv,uid){ob=true;
+ const {live,settle}=guard(C,o,lv,uid);
+ const U=C.user;let sending=false;
+ const {picture,pending}=picker(U,live,picOf(U),()=>sending);
  const send=async f=>{
   /* el formulario puede seguir en pantalla después de un cambio de cuenta: no se manda nada a nombre de otra persona */
   if(!live())return {stale:true};
+  const pic=picture.url();
   if(!pic)return {error:'avatar-required'};
   let r;try{r=await D.api(C,'POST','/api/profile',{...f,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
   const same=!!C.user&&C.user.id===uid;
@@ -120,8 +129,27 @@ function onboard(C,done,o,lv,uid){ob=true;
  /* un envío y una subida nunca corren a la vez: lo que se manda es la foto que se ve, y la que se sube no llega tarde a un perfil ya enviado */
  D.ui.onboarding(async f=>{
   if(!live())return {stale:true};
-  if(pend||sending)return {error:'avatar-busy'};
+  if(pending()||sending)return {error:'avatar-busy'};
   sending=true;try{return await send(f)}finally{sending=false}},picture)}
+/* LHB-55: editar el perfil propio. Mismo cuidado que el formulario nuevo (cuenta, página y formulario vigentes; un envío a la vez; subida y envío nunca a la vez; una sola salida),
+   con lo que ya tiene el perfil puesto: prof viene de /api/me (solo su dueño recibe nombre, apellido, género y fecha). Un envío que falla deja el formulario con lo escrito y la foto de antes. */
+function edit(C,done,o,lv,uid,prof){ob=true;
+ const {live,settle}=guard(C,o,lv,uid);
+ const U=C.user;let sending=false;
+ const {picture,pending}=picker(U,live,typeof prof.avatar_key==='string'&&prof.avatar_key.startsWith(CLERK_IMG)?prof.avatar_key:picOf(U),()=>sending);
+ const send=async f=>{
+  if(!live())return {stale:true};
+  const pic=picture.url();
+  if(!pic)return {error:'avatar-required'};
+  let r;try{r=await D.api(C,'PUT','/api/profile',{...f,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
+  if(!live())return {stale:true};
+  if(r.status===200&&r.body.profile){if(!!C.user&&C.user.id===uid)cache({sub:uid,handle:r.body.profile.handle});
+   settle();ob=false;D.intent.clear();D.ui.toast('Perfil guardado.');done();return {ok:true}}
+  return {error:r.body&&r.body.error||'generic'}};
+ D.ui.edit(prof,async f=>{
+  if(!live())return {stale:true};
+  if(pending()||sending)return {error:'avatar-busy'};
+  sending=true;try{return await send(f||{})}finally{sending=false}},picture)}
 /* LHB-52: completar la identidad de un perfil que ya existía. Mismo cuidado que el formulario nuevo (cuenta, página y formulario vigentes; un envío a la vez; una sola salida),
    pero sin foto ni @: el servidor (PUT /api/profile) solo toca un perfil al que le falta alguno de los cuatro datos. */
 function identify(C,done,o,lv,uid,prof){ob=true;
