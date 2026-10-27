@@ -1672,6 +1672,9 @@ test('LHB-57 (Codex ronda 4): un nombre guardado de antes con el acento suelto (
   assert.deepEqual(handles57(await a.find('u_yo','José M')),['pepe_m'],'nombre y apellido juntos con el acento suelto guardado');
   for(const q of ['nuñez','NUÑEZ','nuñez'])assert.deepEqual(handles57(await a.find('u_yo',q)),['may_n'],'apellido con la ñ suelta guardada: '+JSON.stringify(q));
   assert.deepEqual(handles57(await a.find('u_yo','ñez')),[],'prefijo, no de en medio');
+  /* mezclado: la u con el acento suelto y la ñ junta; Núñez escrito de cualquier forma lo encuentra */
+  a.mk('u_ana','ana_t','Ana','Nu\u0301ñez');
+  for(const q of ['núñez','NÚÑEZ','nu\u0301ñez','Nu\u0301n\u0303ez'])assert.deepEqual(handles57(await a.find('u_yo',q)),['ana_t'],'mezclado: '+JSON.stringify(q));
  }finally{a.done()}
 });
 test('LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni saltar a nadie; exactamente 20 no promete otra página',async()=>{
@@ -1716,8 +1719,8 @@ test('LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É:
   /* la ß y la ẞ son la misma letra; lo escrito con un acento suelto (NFD) es el mismo texto */
   a.mk('u_ss','sara_s','ẞara','Gómez');assert.deepEqual(handles57(await a.find('u_yo','ßa')),['sara_s']);assert.deepEqual(handles57(await a.find('u_yo','ẞa')),['sara_s']);
   assert.deepEqual(handles57(await a.find('u_yo','n\u0303and')),['nandu'],'ñ escrita como n y un tilde aparte');
-  assert.equal(a.PL.patternsOf('ñ').length,4,'ñ, Ñ y las dos con el tilde suelto');assert.equal(a.PL.stemOf('ñññññññá'),'ñññññ','el comienzo que reúne candidatos lleva a lo sumo 5 letras de dos formas');assert.equal(a.PL.patternsOf(a.PL.stemOf('ñññññññá')).length,64,'32 combinaciones por 2 formas de acento: cabe en los 100 parámetros de D1 con los 2 de la consulta');assert.deepEqual(a.PL.patternsOf('ana'),['ana%']);assert.equal(a.PL.stemOf('ana mora'),'ana','solo la primera palabra');
-  assert.deepEqual(a.PL.patternsOf('a_%').length,1,'% y _ siguen escapados');assert.deepEqual(a.PL.patternsOf('a_%'),['a\\_\\%%']);
+  assert.equal(a.PL.skeletonOf('ana'),'ana%');assert.equal(a.PL.skeletonOf('ana mora'),'ana%','solo la primera palabra');assert.equal(a.PL.skeletonOf('núñez'),'n%ez%','cada racha de letras fuera del ASCII es un solo comodín');assert.equal(a.PL.skeletonOf('ñand'),'%and%');assert.equal(a.PL.skeletonOf('ñññ'),'%');
+  assert.equal(a.PL.skeletonOf('a_%'),'a\\_\\%%','% y _ siguen escapados');
  }finally{a.done()}
 });
 /* la pantalla Personas de hoja.js corre tal cual sobre un DOM de mentira */

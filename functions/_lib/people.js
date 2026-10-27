@@ -4,7 +4,6 @@ import { publicName } from './profile.js';
 export const QMIN = 2;
 export const QMAX = 40;
 export const PAGE = 20;
-export const CASEMAX = 5;
 export const SCAN = 100;
 export const SCANMAX = 1000;
 
@@ -23,36 +22,16 @@ export function parseQuery(rawQ, rawCursor) {
   return { q, cursor: rawCursor || '' };
 }
 
-// el texto buscado no es un patrón: % _ y \ se escapan para que valgan como letras
-export const likeOf = q => q.replace(/[\\%_]/g, c => '\\' + c) + '%';
-
-// LIKE de SQLite solo iguala mayúsculas y minúsculas del ASCII. Las demás letras (Á, ñ, É...) tienen dos formas, y la ß también la ẞ
-const SHARP = ['ß', 'ẞ'];
-const formsOf = c => {
-  if (SHARP.includes(c)) return SHARP;
-  const lo = c.toLowerCase(), up = c.toUpperCase();
-  return c.codePointAt(0) > 127 && lo !== up && [...lo].length === 1 && [...up].length === 1 ? [lo, up] : null;
-};
-
-// el comienzo de la primera palabra de lo escrito, con a lo sumo CASEMAX letras de dos formas: con eso la base de datos reúne a los candidatos (un candidato de más no hace daño; uno de menos sí)
-export function stemOf(q) {
-  const out = [];
-  let k = 0;
+// El patrón con el que la base de datos reúne candidatos: las letras ASCII de la primera palabra (LIKE las iguala sin importar mayúsculas; % _ y \ valen como letras) y un comodín en lugar de cada racha de caracteres que no son ASCII (á, ñ, un acento suelto...).
+// Así da igual si el nombre guardado lleva la letra junta o suelta, en mayúscula o en minúscula, o mezcladas. Un candidato de más no hace daño (matches lo descarta); uno de menos sí.
+export function skeletonOf(q) {
+  let out = '', wild = false;
   for (const c of q.split(' ')[0]) {
-    if (formsOf(c)) { if (k === CASEMAX) break; k++; }
-    out.push(c);
+    if (c.codePointAt(0) > 127) { if (!wild) out += '%'; wild = true; continue; }
+    wild = false;
+    out += /[\\%_]/.test(c) ? '\\' + c : c;
   }
-  return out.join('');
-}
-
-// todas las combinaciones de mayúscula y minúscula de las letras que LIKE no iguala (2 a la k, k <= CASEMAX), cada una también con las letras sueltas de sus acentos (NFD): un nombre guardado de antes con la é en dos partes también llega a la comprobación. 64 patrones como mucho
-export function patternsOf(s) {
-  let outs = [[]];
-  for (const c of s) {
-    const f = formsOf(c);
-    outs = f ? outs.flatMap(p => f.map(x => p.concat(x))) : outs.map(p => p.concat(c));
-  }
-  return [...new Set(outs.map(p => p.join('')).flatMap(x => [x, x.normalize('NFD')]).map(x => likeOf(x)))];
+  return wild ? out : out + '%';
 }
 
 // la comparación de verdad, ya en código y con minúsculas de todo el alfabeto: lo escrito (en minúsculas) abre el @, el nombre, el apellido o "nombre apellido"
@@ -60,18 +39,18 @@ const matches = (ql, r) => [r.handle, r.first_name, r.last_name, r.first_name &&
   .some(s => s != null && s.normalize('NFC').toLowerCase().startsWith(ql));
 
 // las coincidencias empiezan por el @, el nombre, el apellido o "nombre apellido"; nunca perfiles ocultos ni el de quien busca; por @ de la A a la Z, PAGE por página.
-// la base de datos trae candidatos por el comienzo de la primera palabra en el @, el nombre o el apellido (lo que se escribe como "nombre apellido" empieza por el nombre; SCAN por tanda, a lo sumo SCANMAX revisados por llamada) y aquí se comprueba todo lo escrito, incluido "nombre apellido"; si se agota SCANMAX, next sigue desde lo último revisado.
+// la base de datos trae candidatos por el esqueleto de la primera palabra en el @, el nombre o el apellido (lo que se escribe como "nombre apellido" empieza por el nombre; SCAN por tanda, a lo sumo SCANMAX revisados por llamada) y aquí se comprueba todo lo escrito, incluido "nombre apellido";
+// si se agota SCANMAX, next sigue desde lo último revisado.
 // el nombre público siempre se arma aquí (nombre e inicial); un display_name guardado de antes no sale. Sin nombre ni apellido guardados, display_name es null y solo se muestra el @
 export async function searchPeople(db, me, { q, cursor }) {
-  const pats = patternsOf(stemOf(q)), ql = q.toLowerCase();
-  const one = pats.map((_, i) => "(handle LIKE ?" + (i + 3) + " ESCAPE '\\' OR first_name LIKE ?" + (i + 3) + " ESCAPE '\\' OR last_name LIKE ?" + (i + 3) + " ESCAPE '\\')");
+  const sk = skeletonOf(q), ql = q.toLowerCase();
   const sql = 'SELECT handle, first_name, last_name, avatar_key FROM profiles ' +
-    'WHERE hidden = 0 AND user_id <> ?1 AND handle > ?2 AND (' + one.join(' OR ') + ') ' +
+    "WHERE hidden = 0 AND user_id <> ?1 AND handle > ?2 AND (handle LIKE ?3 ESCAPE '\\' OR first_name LIKE ?3 ESCAPE '\\' OR last_name LIKE ?3 ESCAPE '\\') " +
     'ORDER BY handle ASC LIMIT ' + SCAN;
   const found = [];
   let at = cursor, scanned = 0, last = '', cut = false;
   for (;;) {
-    const rows = (await db.prepare(sql).bind(me, at, ...pats).all()).results || [];
+    const rows = (await db.prepare(sql).bind(me, at, sk).all()).results || [];
     for (const r of rows) {
       scanned++; last = r.handle;
       if (matches(ql, r)) found.push(r);
