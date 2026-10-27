@@ -54,7 +54,7 @@ MUTS = [
     ('H9 pantalla: la foto de cualquier sitio se carga', HO, "p.avatar_key.startsWith(CLERK_IMG_URL)?p.avatar_key:''", "p.avatar_key:''"),
     ('H10 pantalla: el nombre no se escapa', HO, "<b>${esc(nm)}</b>", "<b>${nm}</b>"),
     ('H11 pantalla: un error de red se queda con el mensaje de buscando', HO, "r={status:0,body:{}}}", "throw x}"),
-    ('H12 cache: el shell se publica con la version de antes', 'site/sw.js', "const VERSION='lhb-v55';", "const VERSION='lhb-v54';"),
+    ('H12 cache: el shell se publica con la version de antes', 'site/sw.js', "const VERSION='lhb-v57';", "const VERSION='lhb-v55';"),
 ]
 
 def load(rel):
