@@ -4,7 +4,7 @@ import { publicName } from './profile.js';
 export const QMIN = 2;
 export const QMAX = 40;
 export const PAGE = 20;
-export const CASEMAX = 6;
+export const CASEMAX = 5;
 export const SCAN = 100;
 export const SCANMAX = 1000;
 
@@ -45,14 +45,14 @@ export function stemOf(q) {
   return out.join('');
 }
 
-// todas las combinaciones de mayúscula y minúscula de las letras que LIKE no iguala (2 a la k, k <= CASEMAX, 64 como mucho)
+// todas las combinaciones de mayúscula y minúscula de las letras que LIKE no iguala (2 a la k, k <= CASEMAX), cada una también con las letras sueltas de sus acentos (NFD): un nombre guardado de antes con la é en dos partes también llega a la comprobación. 64 patrones como mucho
 export function patternsOf(s) {
   let outs = [[]];
   for (const c of s) {
     const f = formsOf(c);
     outs = f ? outs.flatMap(p => f.map(x => p.concat(x))) : outs.map(p => p.concat(c));
   }
-  return [...new Set(outs.map(p => likeOf(p.join(''))))];
+  return [...new Set(outs.map(p => p.join('')).flatMap(x => [x, x.normalize('NFD')]).map(x => likeOf(x)))];
 }
 
 // la comparación de verdad, ya en código y con minúsculas de todo el alfabeto: lo escrito (en minúsculas) abre el @, el nombre, el apellido o "nombre apellido"

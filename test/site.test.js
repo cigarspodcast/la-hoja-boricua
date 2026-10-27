@@ -1663,6 +1663,17 @@ test('LHB-57 (Codex ronda 3): un @ seguido de un espacio no sube la consulta de 
   for(const q of ['josé','JOSÉ','jose\u0301','Jos\u00e9 An','ana\u0301lisis'])assert.deepEqual(handles57(await a.find('u_yo',q)),['jose_m'],JSON.stringify(q));
  }finally{a.done()}
 });
+test('LHB-57 (Codex ronda 4): un nombre guardado de antes con el acento suelto (NFD) también se encuentra, escribiendo la letra junta o suelta',async()=>{
+ const a=await API57();
+ try{
+  a.mk('u_yo','yo_mismo','Yolanda','Mora');
+  a.mk('u_pepe','pepe_m','José','Mora');a.mk('u_may','may_n','JOSÉ','Nuñez');a.mk('u_nfc','jose_c','José','Soto');
+  for(const q of ['jos','josé','JOSÉ','josé'])assert.deepEqual(handles57(await a.find('u_yo',q)).sort(),['jose_c','may_n','pepe_m'],JSON.stringify(q));
+  assert.deepEqual(handles57(await a.find('u_yo','José M')),['pepe_m'],'nombre y apellido juntos con el acento suelto guardado');
+  for(const q of ['nuñez','NUÑEZ','nuñez'])assert.deepEqual(handles57(await a.find('u_yo',q)),['may_n'],'apellido con la ñ suelta guardada: '+JSON.stringify(q));
+  assert.deepEqual(handles57(await a.find('u_yo','ñez')),[],'prefijo, no de en medio');
+ }finally{a.done()}
+});
 test('LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni saltar a nadie; exactamente 20 no promete otra página',async()=>{
  const a=await API57();
  try{
@@ -1705,7 +1716,7 @@ test('LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É:
   /* la ß y la ẞ son la misma letra; lo escrito con un acento suelto (NFD) es el mismo texto */
   a.mk('u_ss','sara_s','ẞara','Gómez');assert.deepEqual(handles57(await a.find('u_yo','ßa')),['sara_s']);assert.deepEqual(handles57(await a.find('u_yo','ẞa')),['sara_s']);
   assert.deepEqual(handles57(await a.find('u_yo','n\u0303and')),['nandu'],'ñ escrita como n y un tilde aparte');
-  assert.equal(a.PL.patternsOf('ñññññá').length,64);assert.equal(a.PL.stemOf('ñññññññá'),'ññññññ','el comienzo que reúne candidatos lleva a lo sumo 6 letras de dos formas');assert.equal(a.PL.patternsOf(a.PL.stemOf('ñññññññá')).length,64);assert.deepEqual(a.PL.patternsOf('ana'),['ana%']);assert.equal(a.PL.stemOf('ana mora'),'ana','solo la primera palabra');
+  assert.equal(a.PL.patternsOf('ñ').length,4,'ñ, Ñ y las dos con el tilde suelto');assert.equal(a.PL.stemOf('ñññññññá'),'ñññññ','el comienzo que reúne candidatos lleva a lo sumo 5 letras de dos formas');assert.equal(a.PL.patternsOf(a.PL.stemOf('ñññññññá')).length,64,'32 combinaciones por 2 formas de acento: cabe en los 100 parámetros de D1 con los 2 de la consulta');assert.deepEqual(a.PL.patternsOf('ana'),['ana%']);assert.equal(a.PL.stemOf('ana mora'),'ana','solo la primera palabra');
   assert.deepEqual(a.PL.patternsOf('a_%').length,1,'% y _ siguen escapados');assert.deepEqual(a.PL.patternsOf('a_%'),['a\\_\\%%']);
  }finally{a.done()}
 });

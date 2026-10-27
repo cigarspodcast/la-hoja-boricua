@@ -16,20 +16,21 @@ P6 consulta: no se busca por el @ -> ROJO (bien) fail=3
       LHB-57 (Codex ronda 1): el nombre público se arma con nombre e inicial aunque haya un display_name viejo con el apellido; sin nombre guardado no sale 
       LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
       LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
-P7 consulta: no se busca por el nombre -> ROJO (bien) fail=4
+P7 consulta: no se busca por el nombre -> ROJO (bien) fail=5
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
       LHB-57 (Codex ronda 2): si la primera palabra reúne a muchos y nadie coincide con todo lo escrito, se revisa hasta el tope y next sigue desde ahí
       LHB-57 (Codex ronda 3): un @ seguido de un espacio no sube la consulta de una letra a dos; los nombres se guardan en una sola forma (NFC)
-      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
-P8 consulta: no se busca por el apellido -> ROJO (bien) fail=3
+      LHB-57 (Codex ronda 4): un nombre guardado de antes con el acento suelto (NFD) también se encuentra, escribiendo la letra junta o suelta
+P8 consulta: no se busca por el apellido -> ROJO (bien) fail=4
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
       LHB-57 (Codex ronda 3): un @ seguido de un espacio no sube la consulta de una letra a dos; los nombres se guardan en una sola forma (NFC)
+      LHB-57 (Codex ronda 4): un nombre guardado de antes con el acento suelto (NFD) también se encuentra, escribiendo la letra junta o suelta
       LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
-P9 busqueda: no se comprueba nombre y apellido juntos -> ROJO (bien) fail=5
+P9 busqueda: no se comprueba nombre y apellido juntos -> ROJO (bien) fail=6
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
       LHB-57 (Codex ronda 2): si la primera palabra reúne a muchos y nadie coincide con todo lo escrito, se revisa hasta el tope y next sigue desde ahí
       LHB-57 (Codex ronda 3): un @ seguido de un espacio no sube la consulta de una letra a dos; los nombres se guardan en una sola forma (NFC)
-      LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
+      LHB-57 (Codex ronda 4): un nombre guardado de antes con el acento suelto (NFD) también se encuentra, escribiendo la letra junta o suelta
 P10 consulta: el orden va de la Z a la A -> ROJO (bien) fail=4
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
       LHB-57 (Codex ronda 2): si la primera palabra reúne a muchos y nadie coincide con todo lo escrito, se revisa hasta el tope y next sigue desde ahí
@@ -73,29 +74,34 @@ P23 nombre publico: sale el apellido entero -> ROJO (bien) fail=4
       LHB-57 (Codex ronda 2): si la primera palabra reúne a muchos y nadie coincide con todo lo escrito, se revisa hasta el tope y next sigue desde ahí
       LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
       LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo
-P24 mayusculas: Á, ñ y É solo se buscan como se escribieron -> ROJO (bien) fail=2
+P24 mayusculas: Á, ñ y É solo se buscan como se escribieron -> ROJO (bien) fail=3
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
       LHB-57 (Codex ronda 3): un @ seguido de un espacio no sube la consulta de una letra a dos; los nombres se guardan en una sola forma (NFC)
+      LHB-57 (Codex ronda 4): un nombre guardado de antes con el acento suelto (NFD) también se encuentra, escribiendo la letra junta o suelta
 P25 mayusculas: el comienzo que reune candidatos lleva mas letras de dos formas -> ROJO (bien) fail=1
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
 P26 mayusculas: de cada letra fuera del ASCII solo la minuscula -> ROJO (bien) fail=1
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
-P27 busqueda: no se comprueba todo lo escrito, basta la primera palabra -> ROJO (bien) fail=4
+P27 busqueda: no se comprueba todo lo escrito, basta la primera palabra -> ROJO (bien) fail=5
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
       LHB-57 (Codex ronda 2): si la primera palabra reúne a muchos y nadie coincide con todo lo escrito, se revisa hasta el tope y next sigue desde ahí
+      LHB-57 (Codex ronda 4): un nombre guardado de antes con el acento suelto (NFD) también se encuentra, escribiendo la letra junta o suelta
       LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
-      LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen como letras; sin cuenta o sin perfil no se busca
 P28 busqueda: sin tope de revision por llamada -> ROJO (bien) fail=1
       LHB-57 (Codex ronda 2): si la primera palabra reúne a muchos y nadie coincide con todo lo escrito, se revisa hasta el tope y next sigue desde ahí
 P29 busqueda: la ß y la ẞ no son la misma letra -> ROJO (bien) fail=1
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
-P30 busqueda: lo escrito con acento suelto no se junta -> ROJO (bien) fail=2
+P30 busqueda: lo escrito con acento suelto no se junta -> ROJO (bien) fail=3
       LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
       LHB-57 (Codex ronda 3): un @ seguido de un espacio no sube la consulta de una letra a dos; los nombres se guardan en una sola forma (NFC)
+      LHB-57 (Codex ronda 4): un nombre guardado de antes con el acento suelto (NFD) también se encuentra, escribiendo la letra junta o suelta
 P31 consulta: un @ seguido de un espacio sube la consulta a dos letras -> ROJO (bien) fail=1
       LHB-57 (Codex ronda 3): un @ seguido de un espacio no sube la consulta de una letra a dos; los nombres se guardan en una sola forma (NFC)
 P32 nombres: se guardan como llegaron (e y un acento suelto) -> ROJO (bien) fail=1
       LHB-57 (Codex ronda 3): un @ seguido de un espacio no sube la consulta de una letra a dos; los nombres se guardan en una sola forma (NFC)
+P33 busqueda: un nombre guardado de antes con el acento suelto no llega a la comprobacion -> ROJO (bien) fail=2
+      LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
+      LHB-57 (Codex ronda 4): un nombre guardado de antes con el acento suelto (NFD) también se encuentra, escribiendo la letra junta o suelta
 A1 api: buscar no pide sesion ni perfil -> ROJO (bien) fail=3
       LHB-57: buscar por prefijo en el @, el nombre, el apellido o nombre y apellido, sin importar mayúsculas; un perfil oculto y quien busca nunca salen
       LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo
@@ -145,4 +151,4 @@ H12 cache: el shell se publica con la version de antes -> ROJO (bien) fail=18
       LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
       LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
 restaurado (0, [])
-mutaciones: 51 sobrevivieron o con error: 0
+mutaciones: 52 sobrevivieron o con error: 0
