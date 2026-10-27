@@ -16,6 +16,7 @@ def run():
 LIB = 'functions/_lib/people.js'
 API = 'functions/api/people.js'
 HO = 'site/hoja.js'
+PROF = 'functions/_lib/profile.js'
 
 # (nombre, archivo, texto exacto que existe una vez, texto que lo reemplaza, [otro texto, su reemplazo]...)
 MUTS = [
@@ -49,6 +50,8 @@ MUTS = [
     ('P28 busqueda: sin tope de revision por llamada', LIB, 'if (scanned >= SCANMAX) { cut = true; break; }', ''),
     ('P29 busqueda: la ß y la ẞ no son la misma letra', LIB, "const SHARP = ['ß', 'ẞ'];", 'const SHARP = [];'),
     ('P30 busqueda: lo escrito con acento suelto no se junta', LIB, "rawQ.normalize('NFC').trim()", 'rawQ.trim()'),
+    ('P31 consulta: un @ seguido de un espacio sube la consulta a dos letras', LIB, ".replace(/^@/, '').trim().replace(", ".replace(/^@/, '').replace("),
+    ('P32 nombres: se guardan como llegaron (e y un acento suelto)', PROF, "const t = v.normalize('NFC').trim();", 'const t = v.trim();'),
     ('A1 api: buscar no pide sesion ni perfil', API, "const g = await requireProfile(request, env);", "const g = { user: { sub: '' } };"),
     ('A2 api: una consulta mala no da 400', API, "  if (p.error) return json({ error: p.error }, 400);\n", ""),
     ('A3 api: la busqueda no sabe quien busca', API, "searchPeople(env.DB, g.user.sub, p)", "searchPeople(env.DB, '', p)"),

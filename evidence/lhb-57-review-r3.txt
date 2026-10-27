@@ -1,0 +1,120 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-57-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a17c36-10ef-71b3-b025-63b3d8f2e6ad
+--------
+user
+HARD RULES: You are an independent code reviewer. You REVIEW AND CHANGE NOTHING: edit no file, make no commit, run no git command that writes. Load no skill, plugin or template. Do not print file contents back. Your FIRST and ONLY message is the answer, ending with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+REPO: C:\Users\Owner\lhb-57-wt (a git worktree of La Hoja Boricua, Cloudflare Pages Functions + D1 + Clerk, vanilla JS PWA). Branch lhb-57-personas. Review the slice: git diff dab3764..HEAD (dab3764 is main and already passed its own reviews; do not re-review it). Tests: node --test test/site.test.js (you may run it; node is on PATH; the LHB-44 test needs Python and fails in your sandbox, that one is not part of this slice). The tracker is not readable by you, so the contract is quoted here in full.
+
+TICKET LHB-57 CONTRACT (M6-S6 Find people: search by @handle or name).
+Scope (nothing else may change): functions/api/people.js, functions/_lib/ helpers, site/hoja.js (a "Personas" screen with a search box and result rows), site/styles.css, site/sw.js, test/site.test.js, evidence/.
+Contract impact: one new read endpoint that searches @handle and public name by prefix. No schema change (an index only if a migration is justified; none was added).
+Pinned decisions (owner, do not re-litigate): returns public fields only: first name plus last initial, @handle, picture; never birth_date, gender, email or the raw last name. Hidden profiles never appear. Blocked pairs never appear once M6-S8 lands; until then no block check. A query needs at least 2 characters; results capped at 20 per page with a cursor. Matching is prefix and case-insensitive on handle and on first name / last name; the search must not allow enumerating everyone (no empty query). A result row opens the profile page (M6-S3) when it exists, else the existing public page.
+Not mine: ranking or recommendations; moderation.
+Proof the ticket asks for: tests that a hidden profile never appears (seen failing with the filter removed), that no private field is returned, that short and empty queries are refused, and that the cap and cursor work; every test seen failing against a mutated source (evidence/lhb-57-mutations.py; output evidence/lhb-57-mutations.txt shows 35 red and P7 surviving, 49 mutations, see evidence/lhb-57-mutations.txt for the last full run); suite 127/127 in evidence/lhb-57-tests.txt.
+
+DESIGN IN BRIEF. functions/api/people.js: GET /api/people?q=&cursor=, requireProfile (401 without session, 403 without a profile: a design choice of mine, searching is inside the app), parseQuery (trim, drop one leading @, collapse spaces, reject control characters, 2 to 40 characters counted by code points, cursor must match a handle shape), then searchPeople in functions/_lib/people.js: one SELECT handle, display_name, avatar_key FROM profiles WHERE hidden = 0 AND user_id <> me AND handle > cursor AND (handle LIKE ?3 OR first_name LIKE ?3 OR last_name LIKE ?3 OR (first_name || ' ' || last_name) LIKE ?3) with ESCAPE and the text escaped by likeOf so % _ \ are literals, ORDER BY handle LIMIT 21, the 21st row only says there is a next page (cursor = last handle of the page). Only handle, display_name, avatar_key leave the server. site/hoja.js: a Personas tab in Mi Hoja (vPersonas), 350 ms debounce, the same 2-character rule as the server, a sequence number so only the latest answer paints, "Ver más" for the next page, every value escaped (esc), the picture only if it starts with https://img.clerk.com/. site/sw.js version bump to lhb-v57.
+
+KNOWN LIMITS I AM REPORTING RATHER THAN HIDING. (a) Result rows are not links yet: no profile page exists on main (that is LHB-58) and I found no existing public page for a person to open; rows show name and @ only. (b) Prefix search on the last name and on "first last" means a typed prefix that matches only a hidden last name tells the searcher that the last name starts with it; the owner pinned last name as a match field. (c) The server does not rate-limit searches. Judge whether any of these is blocking.
+
+REVIEW FOCUS. Find real defects only, ranked. (1) Privacy: any path where birth_date, gender, email, the raw last name, a hidden profile, the searcher's own profile or a profile without a handle can appear; the display_name column: does it ever carry more than first name plus last initial; avatar_key handling. (2) Enumeration: can a short, empty, whitespace-only, @-only or wildcard query (%, _, \, unicode spaces, fullwidth characters) list everyone or bypass the 2-character minimum; is the cursor injectable or able to skip or repeat people; ordering stable across pages when handles share a prefix. (3) SQL: LIKE with ESCAPE in SQLite and in D1, case-insensitivity for non-ASCII (note it: SQLite LIKE folds ASCII only), the bind numbering, the LIMIT built by string concatenation from a constant. (4) The client: stale answers, the form replaced, typing while a page loads, "Ver más" after the query changed, a rejected promise, the timer left alive after leaving the screen, accessibility of the status line and the list, XSS through display_name / handle / avatar_key. (5) Tests that cannot fail or assert the wrong thing, and mutations that do not really test what they claim (P7 in particular). (6) Scope: files changed outside the Scope list; the version bump of the service worker and its test pins; edits to the shared subnav. (7) Repository rules: no em-dash character in anything added. Mark anything you could not verify as NOT VERIFIED rather than guessing.
+
+ANSWER FORMAT. Numbered findings, each: BLOCKING or ADVISORY, file and symbol, the concrete input or state that fails, expected versus actual. Then the single VERDICT line. If there is no blocking finding, say so plainly and give VERDICT: PASS.
+
+
+ROUND 2. Round 1 (BLOCK) gave four BLOCKING findings and two ADVISORY, quoted shortened. (1) "searchPeople: legacy display_name values bypass the required name format; a legacy row with display_name Ana Mora returns the full surname for search ana; expected Ana M." (2) "vPersonas input handler: changing the input does not immediately invalidate requests or pagination; start ana, type beto, resolve the first request before 350 ms, then click Ver mas: Ana's results appear under beto with cursor ana_mora." (3) "searchPeople: name matching violates case-insensitivity for non-ASCII characters; Alvaro Pena matches the capitalised query but not the lowercase one." (4) "personRow: results are inert list items with no navigation." (5, advisory) "a pending debounce callback throws after leaving the screen." (6, advisory) suite tally and P7.
+Fixes. (1) The public name is built in searchPeople from first_name and last_name with publicName (functions/_lib/profile.js, the same function the save uses); the stored display_name is not selected; a row without a first or last name gets display_name null and the screen shows the @. (2) The input handler now bumps the sequence number, clears the cursor and hides Ver mas at once; (5) run() returns first if the screen it belongs to is no longer the current one. (3) patternsOf(q) in functions/_lib/people.js: SQLite LIKE folds only ASCII case, so for the k characters of the query that are cased and outside ASCII every lower/upper combination is generated (2 to the k patterns, k at most 6 = 64 patterns, bound as ?3 to ?66, under D1's 100-parameter limit; with more than 6 such characters only lowercase, uppercase, capitalised and as-typed are tried), each pattern OR-ed over handle, first_name, last_name and full name. ASCII letters are left to SQLite. (4) NOT FIXED, ESCALATED: the contract says a row opens the profile page (M6-S3) when it exists, else the existing public page. Neither exists on main: M6-S3 is LHB-58 (blocked behind this and LHB-38), and no public page for a person exists in the app (the router in site/app.js has no per-person route; an unknown hash falls back to the catalogue). Making rows links now would send people to the catalogue. I am treating the link as LHB-58's deliverable, which the owner must confirm as a contract amendment; please do not count it against the code unless you can show an existing destination I missed. Please list it, if you still object, as the only blocking item so it can go to the owner.
+New tests: 'LHB-57 (Codex ronda 1)' x3 in test/site.test.js; mutations P22 to P27 and H13 to H15 added, P6 to P9 and P14 re-anchored. Please re-check the whole slice again for anything else and report only real defects; if nothing blocks, give VERDICT: PASS.
+
+
+ROUND 3. Round 2 (BLOCK) kept two BLOCKING findings and one ADVISORY. (1) "patternsOf: case-insensitivity remains incomplete; first name Maria Jose and surname Nunez Alvarez Pena (all accented), searching with capitals finds the person while the same text in lowercase returns nothing; the four-pattern fallback misses mixed capitalisation after six non-ASCII cased characters; also ss-sharp: the query lowercase sharp-s misses a stored capital sharp-s." (2) The row link, maintained as a contract dependency. (3, advisory) the captured transport log evidence/lhb-57-review-r1.txt contains one em-dash character: it is the raw, unedited transcript of your own previous run and the character comes from an MCP connector's error text ("plan has ended ... reactivate billing"); it is kept byte for byte as evidence and no code or document I wrote contains one.
+Fixes for (1), a different design rather than more patterns. Matching is now done in code: searchPeople (functions/_lib/people.js) asks the database only for CANDIDATES, using stemOf(q): the start of the first word of the query, cut before the 7th cased non-ASCII letter, expanded by patternsOf into every upper/lower combination of its non-ASCII letters (at most 64 patterns; the sharp-s and its capital count as one letter), OR-ed over handle, first_name, last_name (a "first last" query starts with the first name, so that is enough); candidates come in batches of 100 ordered by handle after the cursor; each candidate is then checked in code with matches(): NFC-normalised, toLowerCase, startsWith the whole lowercase query against the handle, the first name, the last name and "first last". A page is the first 20 verified matches; if 1000 candidates are checked without filling a page, next continues after the last one checked (so a page can be short or empty with a next, and the screen then no longer says nobody was found). parseQuery now NFC-normalises the text. The candidate step can only return too many, never too few, as long as the stem is a prefix of the first word of anything that matches (it is: a match of a multi-word query starts with that word at the start of the handle, first name, last name or "first last").
+(2) Same position as before: the destination does not exist yet. Please judge only whether the code now has any other blocking defect, and list the row link as a separate item, as in round 2.
+New tests in the LHB-57 tests of test/site.test.js (long accented names in three capitalisations, a multi-word surname, sharp-s, NFD input, the 1000-candidate cut with a continuing cursor, the empty page with next on the screen); mutations P24 to P30 and H16 added, P11 and P13 re-anchored. Please re-check the whole slice again for anything else and report only real defects; if nothing blocks other than the row link, say so and give VERDICT: BLOCK only if you find a blocking defect in code or tests, otherwise VERDICT: PASS with the row link listed as the open owner item.
+
+
+TOOL FALLBACK. The shell tool of your sandbox often fails to start on this host ("Failed to create unified exec process: helper_unknown_error: setup refresh had errors"). That is a transport problem, not a verdict: do not stop there. Use the JavaScript tool (node_repl) instead: require('fs') to read files, require('child_process').execFileSync to run git (for example execFileSync('git',['diff','dab3764..HEAD'],{cwd:'C:\\Users\\Owner\\lhb-57-wt'})) and to run the tests (execFileSync(process.execPath,['--test','test/site.test.js'],{cwd:...})). An attempt that read nothing is void: only if the JavaScript tool also fails, say exactly what you could not read, mark it NOT VERIFIED and answer VERDICT: BLOCK.
+
+2026-10-27T07:14:44.250290Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-27T07:14:46.419168Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The missing profile destination remains an open owner item; I will check the revised matching, pagination, client behavior, and tests for other blocking defects.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git status --short; git diff --stat dab3764..HEAD; git diff --name-only dab3764..HEAD' in C:\Users\Owner\lhb-57-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-27T07:14:52.056292Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The LHB-57 tests pass; the full suite has only the reported out-of-slice LHB-44 failure. The candidate query filters names before JavaScript normalizes them, so I am checking whether valid stored names can be excluded too early.
+
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] I reproduced false negatives in SQLite: an accepted stored name `Jose\u0301` is absent for `josé`, and stored `İpek` is found by `İP` but absent for its lowercase equivalent `i\u0307p`. Both are excluded by the SQL candidate filter before the JavaScript comparison runs.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. [Certain] **BLOCKING, MAINTAIN:** `functions/_lib/people.js`, `formsOf` / `searchPeople` (lines 31-34, 66-69). The SQL candidate filter still excludes valid matches before `matches()` runs. Reproduced with actual helper code and SQLite:
+   - Stored first name `İpek`, handle `ipek_user`: `İP` finds it; its lowercase equivalent `i\u0307p` returns nothing.
+   - Stored first name `Jose\u0301`, accepted unchanged by `checkIdentity`: searching `josé` returns nothing.
+   
+   Expected: both reach the normalized, case-insensitive comparison and return the person. Actual: `{people:[], next:null}`. The candidate set is not always a superset. Existing tests cover decomposed query input, but not decomposed stored names or expanding lowercase mappings.
+
+2. [Certain] **ADVISORY:** `functions/_lib/people.js`, `parseQuery` (line 17). Input `@ a` becomes `" a"` and passes the minimum; `stemOf` then produces an empty stem. Expected: trim after removing `@`, then reject the single-character query. Actual: HTTP 200 with an unrestricted candidate prefix.
+
+3. [Certain] **ADVISORY, open owner item:** `site/hoja.js`, `personRow`. Results remain inert list items. Expected under the original contract: profile navigation. Actual: no navigation. Repository routing supports the reported missing-destination dependency. Per Round 3 instructions, this does not independently block the verdict; owner amendment remains NOT VERIFIED.
+
+4. [Certain] **ADVISORY:** captured transport evidence contains an em-dash character in both `evidence/lhb-57-review-r1.txt:36` and `evidence/lhb-57-review-r2.txt:41`. Both originate in connector error text. No added implementation code contains that character.
+
+[Certain] CONCUR on the public-name, stale-response, and abandoned-timer fixes. All nine LHB-57 tests pass. Full suite: 126 passed, one failed, the identified out-of-slice LHB-44 test. D1 runtime execution and fresh mutation reruns are NOT VERIFIED.
+
+VERDICT: BLOCK
+tokens used
+81,225
+1. [Certain] **BLOCKING, MAINTAIN:** `functions/_lib/people.js`, `formsOf` / `searchPeople` (lines 31-34, 66-69). The SQL candidate filter still excludes valid matches before `matches()` runs. Reproduced with actual helper code and SQLite:
+   - Stored first name `İpek`, handle `ipek_user`: `İP` finds it; its lowercase equivalent `i\u0307p` returns nothing.
+   - Stored first name `Jose\u0301`, accepted unchanged by `checkIdentity`: searching `josé` returns nothing.
+   
+   Expected: both reach the normalized, case-insensitive comparison and return the person. Actual: `{people:[], next:null}`. The candidate set is not always a superset. Existing tests cover decomposed query input, but not decomposed stored names or expanding lowercase mappings.
+
+2. [Certain] **ADVISORY:** `functions/_lib/people.js`, `parseQuery` (line 17). Input `@ a` becomes `" a"` and passes the minimum; `stemOf` then produces an empty stem. Expected: trim after removing `@`, then reject the single-character query. Actual: HTTP 200 with an unrestricted candidate prefix.
+
+3. [Certain] **ADVISORY, open owner item:** `site/hoja.js`, `personRow`. Results remain inert list items. Expected under the original contract: profile navigation. Actual: no navigation. Repository routing supports the reported missing-destination dependency. Per Round 3 instructions, this does not independently block the verdict; owner amendment remains NOT VERIFIED.
+
+4. [Certain] **ADVISORY:** captured transport evidence contains an em-dash character in both `evidence/lhb-57-review-r1.txt:36` and `evidence/lhb-57-review-r2.txt:41`. Both originate in connector error text. No added implementation code contains that character.
+
+[Certain] CONCUR on the public-name, stale-response, and abandoned-timer fixes. All nine LHB-57 tests pass. Full suite: 126 passed, one failed, the identified out-of-slice LHB-44 test. D1 runtime execution and fresh mutation reruns are NOT VERIFIED.
+
+VERDICT: BLOCK

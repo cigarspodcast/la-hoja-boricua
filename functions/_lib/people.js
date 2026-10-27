@@ -14,7 +14,7 @@ const CURSOR = /^[a-z0-9_]{3,20}$/;
 // q: texto de 2 a 40 caracteres ya sin espacios de los lados ni un @ de entrada; el cursor es el @ de la última persona de la página anterior
 export function parseQuery(rawQ, rawCursor) {
   if (typeof rawQ !== 'string') return { error: 'q-short' };
-  let q = rawQ.normalize('NFC').trim().replace(/^@/, '').replace(/\s+/g, ' ');
+  let q = rawQ.normalize('NFC').trim().replace(/^@/, '').trim().replace(/\s+/g, ' ');
   if (CONTROL.test(q)) return { error: 'q-invalid' };
   const n = [...q].length;
   if (n < QMIN) return { error: 'q-short' };

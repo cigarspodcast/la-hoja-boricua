@@ -1650,6 +1650,19 @@ test('LHB-57 (Codex ronda 2): si la primera palabra reúne a muchos y nadie coin
   assert.equal(a.PL.SCANMAX,1000);assert.equal(a.PL.SCAN,100);
  }finally{a.done()}
 });
+test('LHB-57 (Codex ronda 3): un @ seguido de un espacio no sube la consulta de una letra a dos; los nombres se guardan en una sola forma (NFC)',async()=>{
+ const a=await API57();
+ try{
+  assert.deepEqual(a.PL.parseQuery('@ a',''),{error:'q-short'},'"@ a" es una sola letra');assert.deepEqual(a.PL.parseQuery('@  ab',''),{q:'ab',cursor:''});assert.deepEqual(a.PL.parseQuery(' @ ab ',''),{q:'ab',cursor:''});
+  a.mk('u_yo','yo_mismo','Yolanda','Mora');assert.deepEqual(await a.find('u_yo','@ a'),[400,{error:'q-short'}]);
+  const id=a.P.checkIdentity({first_name:'Jose\u0301',last_name:'Ana\u0301lisis',gender:'M',birth_date:'1990-05-17'});
+  assert.equal(id.first_name,'Jos\u00e9','el nombre se guarda con la é junta');assert.equal(id.last_name,'An\u00e1lisis');assert.equal(id.display_name,'Jos\u00e9 A.');
+  assert.equal(a.P.checkIdentity({first_name:'Jos\u00e9',last_name:'Mora',gender:'M',birth_date:'1990-05-17'}).first_name,'Jos\u00e9','lo ya junto queda igual');
+  /* guardado así, se encuentra escribiendo la é junta o suelta, y con otra capitalización */
+  a.mk('u_jose','jose_m',id.first_name,id.last_name);
+  for(const q of ['josé','JOSÉ','jose\u0301','Jos\u00e9 An','ana\u0301lisis'])assert.deepEqual(handles57(await a.find('u_yo',q)),['jose_m'],JSON.stringify(q));
+ }finally{a.done()}
+});
 test('LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni saltar a nadie; exactamente 20 no promete otra página',async()=>{
  const a=await API57();
  try{
