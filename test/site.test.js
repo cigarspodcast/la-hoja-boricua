@@ -1688,7 +1688,7 @@ test('LHB-51 (Codex ronda 3): si al confirmar la cuenta lo guardado era de otra,
 async function API28(){
  const a=await API52();const M=await a.imp('api/mihoja.js'),ML=await a.imp('_lib/mihoja.js');
  const mk=(u,handle)=>a.db.prepare("INSERT INTO profiles (user_id,handle,display_name,avatar_key,first_name,last_name,gender,birth_date,hidden,age_ok_at,created_at,updated_at) VALUES (?1,?2,'Ana M.',NULL,'Ana','Mora','F','1990-05-17',0,'2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z')").run(u,handle);
- const rq=(token,body,o)=>{o=o||{};return {headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':o.type!==undefined?o.type:'application/json','If-Match':o.match!==undefined?o.match:null})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body}};
+ const rq=(token,body,o)=>{o=o||{};return {headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':o.type!==undefined?o.type:'application/json','If-Match':o.match!==undefined?o.match:null,'Content-Length':o.len!==undefined?o.len:null})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body,text:async()=>typeof body==='string'?body:JSON.stringify(body)}};
  const get=async(u,e=a.env)=>{const r=await M.onRequestGet({request:rq(u?await a.tok(u):null),env:e});return [r.status,await r.json()]};
  const put=async(u,body,match,o,e=a.env)=>{const r=await M.onRequestPut({request:rq(u?await a.tok(u):null,body,{match,...(o||{})}),env:e});return [r.status,await r.json()]};
  const rows=()=>a.db.prepare('SELECT COUNT(*) n FROM mihoja').get().n;
@@ -1841,9 +1841,9 @@ test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, 
  assert.deepEqual(failures.slice(0,5),[],failures.length+' casos fallan');
 });
 /* un teléfono de mentira para probar el motor contra el servidor de verdad (SQLite): su almacenamiento, su reloj, sus temporizadores y su red */
-function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
+function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
  const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
- const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full)throw new Error('QuotaExceededError');ls.set(k,v)}},
+ const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey)throw new Error('QuotaExceededError');ls.set(k,v)}},
   getDoc:()=>rawDoc(),setDoc:d=>{st.setDocs++;if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
@@ -2008,7 +2008,7 @@ test('LHB-31: si el teléfono no puede guardar lo traído, lo dice y no marca la
  const a=await ENG28();
  try{
   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
-  B.st.failSet=true;let r=await B.sync('entrar');assert.equal(r.fail,'storage');assert.equal(B.eng.status().state,'error');assert.equal(B.ls.get('lhb_mihoja_v1_sync'),null,'sin meta: la próxima pasada empieza de nuevo');assert.deepEqual(B.live().map(t=>t.ms),[20e3]);
+  B.st.failSet=true;let r=await B.sync('entrar');assert.equal(r.fail,'storage');assert.equal(B.eng.status().state,'error');assert.equal(JSON.parse(B.ls.get('lhb_mihoja_v1_sync')).at,null,'la meta solo dice de quién es: la pasada no se marcó como hecha');assert.deepEqual(B.live().map(t=>t.ms),[20e3]);
   B.st.failSet=false;r=await B.sync('reintento');assert.equal(r.ok,true);assert.deepEqual(hid28(B.doc()),['h1']);
   /* alguien escribe en el teléfono mientras la pasada está en el aire */
   B.net.beforePut=null;A.edit(d=>{d.humidor.push({id:'hA',marca:'A',actualizado:'2026-10-10'})});await A.fire();
@@ -2040,7 +2040,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  const h=read('hoja.js').replace(/\r\n/g,'\n'),ix=read('index.html'),sw=read('sw.js');
  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
- assert.ok(/function write\(s\)\{[^}]*localStorage\.setItem\(KEY,JSON\.stringify\(s\)\)[^}]*\}[^}]*if\(SYNC\)SYNC\.changed\(\)/.test(h)||/if\(SYNC\)SYNC\.changed\(\)/.test(h),'cada escritura avisa al motor');
+ assert.ok(/function write\(s,quiet\)\{try\{localStorage\.setItem\(KEY,JSON\.stringify\(s\)\)\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(\)/.test(h),'cada escritura de la persona avisa al motor');
  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on'))A.route()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta');
@@ -2101,4 +2101,122 @@ test('LHB-28: exportar e importar solo se alcanzan desde las listas de Mi Hoja, 
  for(const n of ['vHumidor','vDiario','vPasaporte','vFavoritos'])assert.equal(cnt(read('app.js'),new RegExp('\\b'+n+'\\b','g')),0,'app.js no abre '+n);
  assert.ok(/function vMiHoja\(sub\)\{requireAccount\(\(\)=>vMiHojaIn\(sub\)/.test(h),'Mi Hoja pasa por la cuenta');
  assert.ok(/headers:\{Authorization:'Bearer '\+t,\.\.\.\(body\?\{'Content-Type':'application\/json'\}:\{\}\),\.\.\.\(extra\|\|\{\}\)\}/.test(h),'api manda las cabeceras de más (If-Match)');
+});
+test('LHB-31 (Codex ronda 1): de quién es lo guardado se anota antes de la red: si la primera pasada falla y luego entra otra cuenta, lo de la primera no se sube a la segunda',async()=>{
+ const a=await ENG28();
+ try{
+  const P=DEV28(a,'user_a');P.seed({...DOC28,diario:[{id:'dA',fecha:'2026-10-20',nota:'privada de A'}]});
+  P.net.status={GET:503};let r=await P.sync('entrar');assert.equal(r.fail,'get-503');
+  assert.equal(P.ls.get('lhb_mihoja_v1_owner'),'user_a','la dueña quedó anotada aunque la pasada falló');
+  P.net.status=null;P.st.acct='user_b';P.st.user='user_b';
+  r=await P.sync('entrar');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual((srv28(a,'user_b').doc.diario||[]).map(x=>x.id),[],'lo de A no llegó a la cuenta de B');
+  assert.deepEqual(JSON.parse(P.ls.get('lhb_mihoja_v1_de_user_a')).diario.map(x=>x.id),['dA'],'lo de A quedó apartado');
+  assert.equal(P.ls.get('lhb_mihoja_v1_owner'),'user_b');
+  /* si no se puede ni anotar la dueña, no se toca la red */
+  const Q=DEV28(a,'user_c');Q.seed(DOC28);Q.st.failKey='lhb_mihoja_v1_owner';Q.net.log.length=0;
+  r=await Q.sync('entrar');assert.equal(r.fail,'storage');assert.deepEqual(Q.net.log,[],'sin anotar la dueña no se pide nada');
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 1): si no se puede anotar lo sincronizado, la pasada falla, conserva la dueña y la siguiente no se fía de la base vieja',async()=>{
+ const a=await ENG28();
+ try{
+  const P=DEV28(a,'user_a');P.seed(DOC28);await P.sync('entrar');
+  P.edit(d=>{d.diario.push({id:'d2',fecha:'2026-10-21',nota:'x'})});
+  P.st.failKey='lhb_mihoja_v1_sync';let r=await P.eng.run('guardado');await new Promise(x=>setTimeout(x,20));
+  assert.equal(r.fail,'storage');assert.equal(P.eng.status().state,'error');assert.equal(P.ls.get('lhb_mihoja_v1_owner'),'user_a','la dueña sigue anotada');
+  P.st.failKey=null;
+  /* otro teléfono borra h1 mientras tanto; con la base dudosa nada se da por borrado: no se pierde nada */
+  const B=DEV28(a,'user_a');await B.sync();B.edit(d=>{d.humidor=[]});await B.fire();
+  r=await P.sync('reintento');assert.equal(r.ok,true,JSON.stringify(r));assert.ok(P.doc().diario.some(x=>x.id==='d2'),'lo escrito aquí no se pierde');assert.ok(P.doc().humidor.some(x=>x.id==='h1'),'con la base dudosa nada se da por borrado');
+  /* con la meta ya buena, la siguiente pasada vuelve a usar la base y respeta los borrados */
+  B.edit(d=>{d.diario=d.diario.filter(x=>x.id!=='d1')});await B.fire();await P.sync();assert.ok(!P.doc().diario.some(x=>x.id==='d1'),'el borrado de otro teléfono llega otra vez');
+  /* cambiar de cuenta tras el fallo no sube lo de A a B */
+  P.st.failKey='lhb_mihoja_v1_sync';P.edit(d=>{d.diario.push({id:'d3',fecha:'2026-10-22',nota:'y'})});await P.eng.run('guardado');await new Promise(x=>setTimeout(x,20));P.st.failKey=null;
+  P.st.acct='user_b';P.st.user='user_b';r=await P.sync('entrar');assert.equal(r.ok,true);assert.ok(!(srv28(a,'user_b').doc.diario||[]).some(x=>x.id==='d3'),'lo de A no llegó a B');
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 1): un reintento tras fallar la red al cambiar de cuenta no pisa lo apartado ni lo de la cuenta nueva; lo apartado nunca se sobrescribe',async()=>{
+ const a=await ENG28();
+ try{
+  const P=DEV28(a,'user_a');P.seed({...DOC28,diario:[{id:'dA',fecha:'2026-10-20',nota:'A'}]});await P.sync('entrar');
+  P.edit(d=>{d.diario.push({id:'dA2',fecha:'2026-10-21',nota:'sin subir'})});
+  P.st.acct='user_b';P.st.user='user_b';P.net.status={GET:503};
+  let r=await P.sync('entrar');assert.equal(r.fail,'get-503');
+  assert.deepEqual(P.doc().diario||[],[],'B empieza con Mi Hoja vacía');assert.equal(P.ls.get('lhb_mihoja_v1_owner'),'user_b');
+  P.edit(d=>{d.diario=[{id:'dB',fecha:'2026-10-22',nota:'de B'}]});
+  P.net.status=null;r=await P.sync('reintento');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(P.doc().diario.map(x=>x.id),['dB'],'lo de B sigue en B');assert.deepEqual(srv28(a,'user_b').doc.diario.map(x=>x.id),['dB']);
+  assert.deepEqual(JSON.parse(P.ls.get('lhb_mihoja_v1_de_user_a')).diario.map(x=>x.id).sort(),['dA','dA2'],'lo de A (con lo que no se había subido) sigue apartado');
+  /* ya hay una copia apartada de A: la próxima se guarda en otra llave */
+  P.st.acct='user_a';P.st.user='user_a';P.edit(d=>{d.diario=[{id:'dA3',fecha:'2026-10-23',nota:'otra vez A'}]});
+  P.st.acct='user_b';P.st.user='user_b';P.st.acct='user_a';P.eng.isolate();P.edit(d=>{d.diario=[{id:'dX',fecha:'2026-10-24',nota:'x'}]});P.st.acct='user_b';P.st.user='user_b';
+  assert.equal(P.eng.isolate(),true);
+  assert.deepEqual(JSON.parse(P.ls.get('lhb_mihoja_v1_de_user_a')).diario.map(x=>x.id).sort(),['dA','dA2'],'la copia apartada antes no se sobrescribió');
+  assert.ok(P.ls.get('lhb_mihoja_v1_de_user_a_2'),'la nueva copia apartada tiene su propia llave');
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 1): al cambiar de cuenta, Mi Hoja se aísla al momento (sin esperar la red) y una pasada reciente de otra cuenta no cuenta',async()=>{
+ const a=await ENG28();
+ try{
+  const P=DEV28(a,'user_a');P.seed(DOC28);await P.sync('entrar');P.net.log.length=0;
+  P.advance(5e3);P.st.acct='user_b';P.st.user='user_b';
+  assert.equal(P.eng.isolate(),true);assert.deepEqual(P.doc().humidor||[],[],'B ve su Mi Hoja vacía al instante');assert.deepEqual(P.net.log,[],'sin tocar la red');assert.equal(P.ls.get('lhb_mihoja_v1_owner'),'user_b');
+  P.st.acct='user_a';P.st.user='user_a';P.eng.isolate();P.advance(5e3);P.st.acct='user_b';P.st.user='user_b';
+  const r=await P.eng.run('mi-hoja',{minAge:20e3});assert.notEqual(r.skip,'reciente','la pasada de A hace poco no vale para B');await new Promise(x=>setTimeout(x,20));
+  /* sin cuenta o con la misma dueña, isolate no toca nada */
+  const S=DEV28(a,'user_a');S.st.acct=null;S.seed(DOC28);assert.equal(S.eng.isolate(),true);assert.deepEqual(S.doc().humidor.map(x=>x.id),['h1']);
+  const T=DEV28(a,'user_a');let locks=0;T.D.lock=f=>{locks++;return f()};T.seed(DOC28);await T.sync();assert.equal(locks,1,'la pasada corre dentro del candado entre pestañas');assert.equal(T.eng.isolate(),true);assert.deepEqual(T.doc().humidor.map(x=>x.id),['h1']);
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 1): si la cuenta cambia mientras una pasada espera la red, esa pasada no aplica nada ni anota nada',async()=>{
+ const a=await ENG28();
+ try{
+  const P=DEV28(a,'user_a');P.seed(DOC28);await P.sync('entrar');
+  P.edit(d=>{d.humidor.push({id:'hA',marca:'A',actualizado:'2026-10-25'})});
+  const orig=P.D.api;let swapped=false;
+  P.D.api=async(C,m,p,b,u,h)=>{const out=await orig(C,m,p,b,u,h);if(m==='PUT'&&!swapped){swapped=true;P.st.acct='user_b';P.st.user='user_b';P.eng.isolate();P.edit(d=>{d.humidor=[{id:'hB',marca:'B',actualizado:'2026-10-25'}]})}return out};
+  let r=await P.sync('guardado');assert.equal(r.skip,'other-account');
+  const meta=JSON.parse(P.ls.get('lhb_mihoja_v1_sync'));assert.equal(meta.sub,'user_b','la meta no vuelve a nombrar a A');
+  assert.deepEqual(P.doc().humidor.map(x=>x.id),['hB'],'lo de B sigue intacto');
+  P.D.api=orig;r=await P.sync('entrar');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(srv28(a,'user_b').doc.humidor.map(x=>x.id),['hB'],'a B le llega solo lo suyo');assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','hA'],'lo de A llegó a A');
+ }finally{a.done()}
+});
+test('LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada',()=>{
+ const {LHB_MERGE:X}=SYNC28();const E=o=>({schema:1,creado:'2026-10-01',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{},...o});
+ const base=JSON.parse('{"ratings":{"constructor":3,"toString":2}}');
+ let m;assert.doesNotThrow(()=>{m=X.merge(base,E({}),E({ratings:{constructor:3,toString:2}}))});assert.deepEqual(m.ratings,{},'lo que se quitó aquí y el otro no tocó se va, aunque se llame constructor');
+ assert.doesNotThrow(()=>{m=X.merge(null,JSON.parse('{"ratings":{"__proto__":{"x":1},"a":2},"pasaporte":{"artesanos":{"__proto__":"2026-10-01","b":"2026-10-02"}}}'),E({}))});
+ assert.deepEqual(m.ratings,{a:2});assert.deepEqual(m.pasaporte.artesanos,{b:'2026-10-02'});assert.equal(({}).x,undefined,'Object.prototype intacto');
+ m=X.merge(null,E({ratings:{constructor:5}}),E({ratings:{}}));assert.equal(m.ratings.constructor,5,'una llave llamada constructor se guarda como cualquier otra');
+});
+test('LHB-28 (Codex ronda 1): el servidor mira el tamaño antes de leer el JSON, topa también favoritos, sellos y estrellas, rechaza If-Match mal cerrado y responde 503 si D1 falla al revisar el perfil',async()=>{
+ const a=await API28();
+ try{
+  a.mk('user_a','ana_a');
+  const big=n=>Array.from({length:n},(_,i)=>'f'+i);
+  assert.equal((await a.put('user_a',{schema:1,doc:{favs:{cigarros:big(5001)}}},'0'))[0],413,'más de 5000 favoritos');
+  assert.equal((await a.put('user_a',{schema:1,doc:{favs:{cigarros:'x'}}},'0'))[0],400,'favoritos que no son lista');
+  assert.equal((await a.put('user_a',{schema:1,doc:{pasaporte:{lugares:Object.fromEntries(big(5001).map(k=>[k,'2026-10-01']))}}},'0'))[0],413,'más de 5000 sellos');
+  assert.equal((await a.put('user_a',{schema:1,doc:{ratings:Object.fromEntries(big(5001).map(k=>[k,3]))}},'0'))[0],413,'más de 5000 estrellas');
+  assert.equal((await a.put('user_a',{schema:1,doc:{favs:{cigarros:big(5000)}}},'0'))[0],200,'exactamente 5000 pasa');
+  let parsed=0;const huge=a.rq(await a.tok('user_a'),'x'.repeat(1000001),{match:'1'});const orig=huge.json;huge.json=async()=>{parsed++;return orig()};
+  let r=await a.M.onRequestPut({request:huge,env:a.env});assert.equal(r.status,413,'un cuerpo enorme se rechaza');assert.equal(parsed,0);
+  r=await a.M.onRequestPut({request:a.rq(await a.tok('user_a'),{schema:1,doc:DOC28},{match:'1',len:'5000000'}),env:a.env});assert.equal(r.status,413,'el Content-Length enorme se rechaza sin leer el cuerpo');
+  for(const m of ['"3','3"','"3 ','W/"3','""'])assert.deepEqual(await a.put('user_a',{schema:1,doc:DOC28},m),[428,{error:'if-match-required'}],'If-Match '+m);
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'"1"'))[0],200,'comillas bien cerradas');
+  const down={...a.env,DB:{prepare:sql=>sql.includes('FROM profiles')?{bind:()=>({first:async()=>{throw new Error('d1')}})}:a.env.DB.prepare(sql)}};
+  assert.deepEqual(await a.get('user_a',down),[503,{error:'unavailable'}]);assert.deepEqual(await a.put('user_a',{schema:1,doc:DOC28},'2',undefined,down),[503,{error:'unavailable'}]);
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja la copia en memoria por vieja cuando otra pestaña escribe, aparta lo de otra cuenta antes de leer y no cuenta como cambio lo que la app escribe sola',()=>{
+ const h=read('hoja.js').replace(/\r\n/g,'\n');
+ assert.ok(h.includes("getDoc:()=>(ST=load())"),'la sincronización lee del almacenamiento y no de la copia en memoria');
+ assert.ok(h.includes("window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null})"),'otra pestaña que escribe invalida la copia en memoria');
+ assert.ok(h.includes("const S=()=>{if(SYNC)SYNC.isolate();return ST||(ST=load())};"),'S aparta lo de otra cuenta antes de leer');
+ assert.ok(h.includes("s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}"),'la copia nueva o dañada que la app crea sola no cuenta como un cambio de la persona');
+ assert.ok(h.includes("function write(s,quiet){")&&h.includes("if(SYNC&&!quiet)SYNC.changed()"),'write acepta quiet');
+ assert.ok(h.includes("lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f()"),'una sola pasada entre pestañas');
+ assert.ok(h.includes("SYNC.isolate();SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja aísla antes de pintar');
 });

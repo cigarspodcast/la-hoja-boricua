@@ -29,11 +29,14 @@ function load(){const raw=localStorage.getItem(KEY);
  /* primera vez en v6: trae favoritos y estrellas de la versión anterior (vb_favs, vb_ratings); las llaves viejas no se borran */
  const s=DEF();const f=legacy('favs'),r=legacy('ratings');
  if(Array.isArray(f))s.favs.cigarros=f.filter(x=>typeof x==='string');if(r&&typeof r==='object'&&!Array.isArray(r))s.ratings={...r};
- s.migrado=(f||r)?'v5':'nuevo';write(s);return s}
+ s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}
 /* LHB-31: cada escritura avisa a la sincronización, que decide tras una pausa si algo de lo que viaja a la cuenta cambió */
 let SYNC=null;
-function write(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){toast('No hay espacio para guardar. Exporta un respaldo.');return false}if(SYNC)SYNC.changed();return true}
-const S=()=>ST||(ST=load());
+/* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
+function write(s,quiet){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){toast('No hay espacio para guardar. Exporta un respaldo.');return false}if(SYNC&&!quiet)SYNC.changed();return true}
+/* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
+const S=()=>{if(SYNC)SYNC.isolate();return ST||(ST=load())};
+window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null});
 function save(mut){const s=S();mut&&mut(s);s.cambios=(s.cambios||0)+1;write(s);return s}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
 /* ---------- favoritos y pasaporte ---------- */
@@ -156,7 +159,8 @@ function clerk(){if(clerkP)return clerkP;
 /* extra: cabeceras de más (If-Match en la sincronización) */
 async function api(C,method,path,body,uid,extra){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
 /* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
-SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)},getDoc:()=>S(),setDoc:d=>{ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)},getDoc:()=>(ST=load()),setDoc:d=>{ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+ lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),
  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),toast,
  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
@@ -260,7 +264,7 @@ const SUBS=[['humidor','Humidor'],['diario','Diario'],['pasaporte','Pasaporte'],
 const subnav=cur=>`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1><p><a class="lbtn" href="#/mihoja/editar" id="mhEdit">Editar perfil</a></p></header><nav class="subnav" aria-label="Mi Hoja">${SUBS.map(([k,n])=>`<a href="#/mihoja/${k}" ${k===cur?'aria-current="page"':''}>${n}</a>`).join('')}</nav>${backupBanner()}`;
 /* LHB-55: #/mihoja/editar abre el formulario de editar perfil por la misma puerta; al guardar (done) vuelve a Perfil */
 function vMiHoja(sub){requireAccount(()=>vMiHojaIn(sub),sub==='editar'?{edit:true}:undefined)}
-function vMiHojaIn(sub){sub=sub||'humidor';SYNC.run('mi-hoja',{minAge:20e3});if(sub==='editar'){location.hash='#/mihoja/perfil';return}if(sub==='perfil'){A.vPerfil();bindBackup();return}
+function vMiHojaIn(sub){sub=sub||'humidor';SYNC.isolate();SYNC.run('mi-hoja',{minAge:20e3});if(sub==='editar'){location.hash='#/mihoja/perfil';return}if(sub==='perfil'){A.vPerfil();bindBackup();return}
  ({humidor:vHumidor,diario:vDiario,pasaporte:vPasaporte,favoritos:vFavoritos}[sub]||vHumidor)();bindBackup()}
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);
  view.innerHTML=`${subnav('humidor')}

@@ -5,12 +5,15 @@
    Solo para quien tiene cuenta y perfil (401 sin sesión, 403 sin perfil). Privado de su dueño. */
 import { json } from '../_lib/auth.js';
 import { requireProfile } from '../_lib/profile.js';
-import { checkBody, revOf, shape } from '../_lib/mihoja.js';
+import { BODY_MAX, checkBody, revOf, shape } from '../_lib/mihoja.js';
 
 const current = db => db.prepare('SELECT doc, schema, rev, updated_at FROM mihoja WHERE user_id = ?1');
 
+// la revisión de sesión y perfil también toca D1: si falla, es un 503 y no una excepción
+const gate = async (request, env) => { try { return await requireProfile(request, env); } catch (e) { return json({ error: 'unavailable' }, 503); } };
+
 export async function onRequestGet({ request, env }) {
-  const g = await requireProfile(request, env);
+  const g = await gate(request, env);
   if (g instanceof Response) return g;
   try {
     const s = shape(await current(env.DB).bind(g.user.sub).first());
@@ -21,14 +24,21 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPut({ request, env }) {
-  const g = await requireProfile(request, env);
+  const g = await gate(request, env);
   if (g instanceof Response) return g;
   // solo JSON: un formulario de otro sitio no puede mandarlo sin preflight
   if (!/^application\/json\b/i.test(request.headers.get('Content-Type') || '')) return json({ error: 'bad-type' }, 415);
   const rev = revOf(request.headers.get('If-Match'));
   if (rev === null) return json({ error: 'if-match-required' }, 428);
+  // el tamaño se mira antes de leerlo como JSON
+  const len = Number(request.headers.get('Content-Length'));
+  if (len > BODY_MAX) return json({ error: 'too-big' }, 413);
   let body;
-  try { body = await request.json(); } catch (e) { return json({ error: 'bad-body' }, 400); }
+  try {
+    const text = await request.text();
+    if (text.length > BODY_MAX) return json({ error: 'too-big' }, 413);
+    body = JSON.parse(text);
+  } catch (e) { return json({ error: 'bad-body' }, 400); }
   const c = checkBody(body);
   if (c.error) return json({ error: c.error }, c.status);
   const me = g.user.sub, at = new Date().toISOString();

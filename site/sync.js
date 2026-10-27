@@ -45,8 +45,9 @@ function mergeSet(b,l,r){const B=new Set(b),Lset=new Set(l),Rset=new Set(r),out=
   if(inL&&inR)out.push(x);else if(!inB)out.push(x)}   /* en la base y en uno solo: lo quitó el otro */
  return out}
 /* mapas (pasaporte: id → fecha; estrellas: id → número). Si los dos cambiaron la misma llave: prefer 'local' gana lo de aquí; si no, el desempate fijo (la fecha más antigua; el valor mayor) */
+const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 function mergeMap(b,l,r,prefer,min){const out={};
- for(const k of new Set([...Object.keys(l),...Object.keys(r)])){const inL=k in l,inR=k in r,inB=k in b;
+ for(const k of new Set([...Object.keys(l),...Object.keys(r)])){if(k==='__proto__')continue;const inL=own(l,k),inR=own(r,k),inB=own(b,k);
   if(inL&&inR){const x=l[k],y=r[k];
    out[k]=clone(same(x,y)?x:inB&&same(x,b[k])?y:inB&&same(y,b[k])?x:prefer==='local'?x:min?(String(x)<=String(y)?x:y):(stable(x)>=stable(y)?x:y))}
   else if(inL){if(!inB||!same(l[k],b[k]))out[k]=clone(l[k])}
@@ -68,43 +69,55 @@ const hasData=d=>{d=std(d);return d.humidor.length+d.diario.length+KINDS.reduce(
 window.LHB_MERGE={merge,strip,canon,same,hasData,LOCAL_ONLY};
 
 /* ---------- el motor ---------- */
-const META='lhb_mihoja_v1_sync',KEY='lhb_mihoja_v1';
+const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',KEY='lhb_mihoja_v1';
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 window.LHB_SYNC=function(D){
- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,state={state:'idle',err:null};
+ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,state={state:'idle',err:null};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
  const writeMeta=m=>{try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
  const keep=d=>{const o={};for(const k of LOCAL_ONLY)if(d&&d[k]!==undefined)o[k]=d[k];return o};
  const set=(s,err)=>{state={state:s,err:err||null};if(D.onState){try{D.onState(state)}catch(e){}}};
  const parkKey=sub=>KEY+'_de_'+String(sub).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,60);
+ /* de quién es lo guardado en este teléfono: una llave aparte y chica, para saberlo sin leer la copia completa */
+ const ownerOf=()=>{let o=null;try{o=D.ls.get(OWNER)}catch(e){}if(typeof o==='string'&&o)return o;const m=readMeta();return m?m.sub:null};
+ const setOwner=uid=>{try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false}));return true}catch(e){return false}};
+ const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
+ const rawHasData=raw=>{try{return hasData(JSON.parse(raw))}catch(e){return true}};
+ /* Lo guardado era de otra cuenta: se aparta en una llave libre (nunca sobre otra copia apartada), Mi Hoja queda vacía y la dueña pasa a ser la nueva. Es síncrono: se llama antes de leer o escribir Mi Hoja, sin esperar a la red */
+ function isolate(){const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
+  const old=ownerOf();if(old===null||old===acc.sub)return true;
+  let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
+  if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return false;try{D.ls.set(k,raw)}catch(e){return false}}
+  applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
+  return !!ok&&setOwner(acc.sub)}
  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
  async function once(){
   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};
   let C;try{C=await D.clerk()}catch(e){return {skip:'offline'}}
   if(!C||!C.user||C.user.id!==acc.sub)return {skip:'other-account'};
-  const uid=acc.sub;let meta=readMeta();
-  /* lo guardado en este teléfono era de otra cuenta: se aparta (no se borra) y esta cuenta empieza con la suya */
-  if(meta&&meta.sub!==uid){
-   let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
-   if(raw!=null){try{D.ls.set(parkKey(meta.sub),raw)}catch(e){return {fail:'park'}}}
-   applying=true;let okEmpty;try{okEmpty=D.setDoc({})}finally{applying=false}
-   if(!okEmpty)return {fail:'park'};
-   meta=null}
-  const first=!meta;
+  const uid=acc.sub;
+  if(!isolate())return {fail:'park'};
+  /* de quién es lo guardado se anota antes de tocar la red: si esta primera pasada falla y luego entra otra cuenta, lo de esta no se sube a la otra */
+  if(ownerOf()===null&&!setOwner(uid))return {fail:'storage'};
+  const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid};
+  const meta=readMeta();
+  const first=!meta||!meta.at;
   for(let i=0;i<TRIES;i++){
    const e0=edits,local0=D.getDoc(),L=std(local0);
    let g;try{g=await D.api(C,'GET','/api/mihoja',null,uid)}catch(e){return {skip:'offline'}}
+   if(!alive())return {skip:'other-account'};
    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
    if(g.body.rev>0&&(!isObj(g.body.doc)||!(g.body.schema<=1)))return {fail:'schema'};
    const rev=g.body.rev,remote=rev>0?g.body.doc:null;
    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
    const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
-   const base=meta&&meta.base&&!wipe?meta.base:null;
+   const base=meta&&meta.base&&!wipe&&!staleBase?meta.base:null;
    const merged=remote?merge(base,L,remote):L;
    let newRev=rev,pushed=false;
    if(!remote||canon(merged)!==canon(remote)){
     let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev)})}catch(e){return {skip:'offline'}}
+    if(!alive())return {skip:'other-account'};
     if(p.status===409)continue;
     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
     newRev=p.body.rev;pushed=true}
@@ -112,10 +125,13 @@ window.LHB_SYNC=function(D){
    const now0=D.getDoc(),Ln=std(now0),quiet=canon(Ln)===canon(L);
    const final=quiet?merged:merge(L,Ln,merged);
    const full={...final,...keep(now0)};
+   if(!alive())return {skip:'other-account'};
    let wrote=true;
    if(canon(full)!==canon(Ln)){applying=true;try{wrote=D.setDoc(full)}finally{applying=false}}
    if(!wrote)return {fail:'storage'};
-   writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edits!==e0});if(edits===e0)dirty=false;
+   /* si no se puede anotar lo sincronizado, la próxima pasada no se fía de la base vieja (junta sin dar nada por borrado) */
+   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edits!==e0})){staleBase=true;return {fail:'storage'}}
+   staleBase=false;if(edits===e0)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
    const pulled=!!remote&&canon(merged)!==canon(L);
    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');
@@ -126,10 +142,10 @@ window.LHB_SYNC=function(D){
  function retryLater(){if(retryT)D.clearTimer(retryT);const ms=RETRY[Math.min(fails,RETRY.length)-1]||RETRY[RETRY.length-1];retryT=D.setTimer(()=>{retryT=0;run('reintento')},ms)}
  /* una sola pasada a la vez; lo que se pide durante una pasada se atiende al terminar */
  function run(why,o){o=o||{};
-  if(o.minAge){const m=readMeta();if(m&&m.at&&D.nowMs()-new Date(m.at).getTime()<o.minAge)return Promise.resolve({skip:'reciente'})}
+  if(o.minAge){const m=readMeta(),a=D.acct();if(m&&a&&m.sub===a.sub&&m.at&&D.nowMs()-new Date(m.at).getTime()<o.minAge)return Promise.resolve({skip:'reciente'})}
   if(busy){again=true;return busy}
   busy=(async()=>{let r;try{
-    for(let n=0;n<3;n++){again=false;set('syncing');r=await once();if(!(r.ok&&again))break}
+    for(let n=0;n<3;n++){again=false;set('syncing');r=await (D.lock?D.lock(once):once());if(!(r.ok&&again))break}
     if(r.ok){fails=0;set('ok');if(retryT){D.clearTimer(retryT);retryT=0}if(again){again=false;schedule(DEBOUNCE,()=>run('pendiente'))}}
     else if(r.skip==='signed-out'||r.skip==='other-account'){set('off')}
     else{fails++;set(r.skip==='offline'?'offline':'error',r.fail||r.skip);retryLater()}
@@ -147,5 +163,5 @@ window.LHB_SYNC=function(D){
   D.listen('online',()=>run('en-linea'));
   D.listen('visible',()=>run('visible',{minAge:30e3}));
   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
- return {run,changed,start,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
+ return {run,changed,start,isolate,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
 })();
