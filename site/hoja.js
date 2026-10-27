@@ -274,7 +274,7 @@ function vPersonas(){
   if($('#psF')!==form||mine!==seq)return;
   if(r.status!==200||!Array.isArray(r.body.people)){say(r.status===400?'Escribe al menos 2 letras.':'No pudimos buscar. Intenta otra vez.');return}
   last=q;next=r.body.next||null;$('#psL').insertAdjacentHTML('beforeend',r.body.people.map(personRow).join(''));
-  const n=$('#psL').children.length;say(n?'':'No encontramos a nadie con ese nombre.');$('#psMore').hidden=!next};
+  const n=$('#psL').children.length;say(n||next?'':'No encontramos a nadie con ese nombre.');$('#psMore').hidden=!next};
  form.onsubmit=e=>{e.preventDefault();clearTimeout(timer);return run(false)};
  /* al teclear, lo que estaba en camino ya no vale: ni su respuesta ni su "Ver más" */
  $('#psQ').oninput=()=>{clearTimeout(timer);seq++;next=null;$('#psMore').hidden=true;timer=setTimeout(()=>run(false),350)};

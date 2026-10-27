@@ -1638,6 +1638,18 @@ test('LHB-57: una consulta corta, vacía, larga o rara se rechaza; % y _ valen c
   assert.equal(a.db.prepare('SELECT COUNT(*) n FROM profiles').get().n,5,'la tabla sigue entera');
  }finally{a.done()}
 });
+test('LHB-57 (Codex ronda 2): si la primera palabra reúne a muchos y nadie coincide con todo lo escrito, se revisa hasta el tope y next sigue desde ahí',async()=>{
+ const a=await API57();
+ try{
+  a.mk('u_yo','yo_mismo','Yolanda','Mora');
+  const ins=a.db.prepare("INSERT INTO profiles (user_id,handle,display_name,avatar_key,first_name,last_name,gender,birth_date,hidden,age_ok_at,created_at,updated_at) VALUES (?1,?2,'Ana Z.',NULL,'Ana','Zeta','F','1990-05-17',0,'2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z')");
+  a.db.exec('BEGIN');for(let i=0;i<1100;i++)ins.run('u_'+i,'p'+String(i).padStart(4,'0'));a.db.exec('COMMIT');
+  a.mk('u_fin','zzz_ultima','Ana','Qqq');
+  const r1=await a.find('u_yo','ana qq');assert.equal(r1[0],200);assert.deepEqual(r1[1],{people:[],next:'p0999'},'se revisaron 1000 sin hallar a nadie: sigue desde el último revisado');
+  const r2=await a.find('u_yo','ana qq',r1[1].next);assert.deepEqual(r2[1],{people:[{handle:'zzz_ultima',display_name:'Ana Q.',avatar_key:AV}],next:null},'la siguiente llamada la encuentra');
+  assert.equal(a.PL.SCANMAX,1000);assert.equal(a.PL.SCAN,100);
+ }finally{a.done()}
+});
 test('LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni saltar a nadie; exactamente 20 no promete otra página',async()=>{
  const a=await API57();
  try{
@@ -1673,7 +1685,14 @@ test('LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É:
   /* con más de seis letras fuera del ASCII, la inicial en mayúscula y todo en mayúscula también se encuentran */
   a.mk('u_lg','largo_x','Ñññññññáb','Zeta');a.mk('u_lg2','largo_y','ÑÑÑÑÑÑÑÁB','Zeta');
   assert.deepEqual(handles57(await a.find('u_yo','ñññññññá')),['largo_x','largo_y'],'minúscula escrita, inicial en mayúscula y todo en mayúscula guardados');
-  assert.equal(a.PL.patternsOf('ñññññá').length,64);assert.ok(a.PL.patternsOf('ñññññññá').length<=4);assert.deepEqual(a.PL.patternsOf('ana'),['ana%']);
+  /* un nombre largo con muchas letras con acento: lo escrito en minúsculas o con las mayúsculas guardadas encuentra lo mismo */
+  a.mk('u_mj','maria_j','María José','Ñúñez Álvarez Peña');
+  for(const q of ['María José Ñúñez Álvarez Peñ','maría josé ñúñez álvarez peñ','MARÍA JOSÉ ÑÚÑEZ ÁLVAREZ PEÑ','maría josé ñ'])assert.deepEqual(handles57(await a.find('u_yo',q)),['maria_j'],q);
+  assert.deepEqual(handles57(await a.find('u_yo','maría josé zz')),[],'todo lo escrito cuenta, no solo la primera palabra');assert.deepEqual(handles57(await a.find('u_yo','ñúñez álvarez peñ')),['maria_j'],'el apellido con varias palabras');
+  /* la ß y la ẞ son la misma letra; lo escrito con un acento suelto (NFD) es el mismo texto */
+  a.mk('u_ss','sara_s','ẞara','Gómez');assert.deepEqual(handles57(await a.find('u_yo','ßa')),['sara_s']);assert.deepEqual(handles57(await a.find('u_yo','ẞa')),['sara_s']);
+  assert.deepEqual(handles57(await a.find('u_yo','n\u0303and')),['nandu'],'ñ escrita como n y un tilde aparte');
+  assert.equal(a.PL.patternsOf('ñññññá').length,64);assert.equal(a.PL.stemOf('ñññññññá'),'ññññññ','el comienzo que reúne candidatos lleva a lo sumo 6 letras de dos formas');assert.equal(a.PL.patternsOf(a.PL.stemOf('ñññññññá')).length,64);assert.deepEqual(a.PL.patternsOf('ana'),['ana%']);assert.equal(a.PL.stemOf('ana mora'),'ana','solo la primera palabra');
   assert.deepEqual(a.PL.patternsOf('a_%').length,1,'% y _ siguen escapados');assert.deepEqual(a.PL.patternsOf('a_%'),['a\\_\\%%']);
  }finally{a.done()}
 });
@@ -1712,6 +1731,7 @@ test('LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo l
  await H.search('an');await H.more();assert.deepEqual(H.calls,['GET /api/people?q=an','GET /api/people?q=an&cursor=ana_mora']);assert.equal(H.$('#psL').n,2,'agrega, no reemplaza');assert.equal(H.$('#psMore').hidden,true,'sin siguiente se esconde');
  /* sin resultados y con error */
  H=PERSONAS_HARNESS(async()=>({status:200,body:{people:[],next:null}}));await H.search('zz');assert.match(H.$('#psH').textContent,/No encontramos a nadie/);
+ H=PERSONAS_HARNESS(async()=>({status:200,body:{people:[],next:'p0999'}}));await H.search('zz');assert.equal(H.$('#psH').textContent,'','sin nadie en esta tanda pero con más por revisar no dice que no hay nadie');assert.equal(H.$('#psMore').hidden,false);
  for(const r of [{status:500,body:{}},{status:0,body:{}},{status:403,body:{error:'no-profile'}},{status:200,body:{}}]){H=PERSONAS_HARNESS(async()=>r);await H.search('zz');assert.match(H.$('#psH').textContent,/No pudimos buscar/,JSON.stringify(r));assert.equal(H.$('#psL').n,0)}
  H=PERSONAS_HARNESS(async()=>{throw new Error('red')});await H.search('zz');assert.match(H.$('#psH').textContent,/No pudimos buscar/,'una excepción tampoco rompe');
  /* una respuesta vieja no pinta: la primera búsqueda contesta después de la segunda, y después de que otra pantalla ocupó este lugar */
