@@ -140,7 +140,8 @@ const CLERK=location.hostname==='lahojaboricua.com'?{pk:'pk_live_Y2xlcmsubGFob2p
 const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
 /* LHB-52: la llave nueva (cuenta2) deja sin valor lo guardado antes de pedir la identidad: un perfil guardado de antes ({sub,handle}) no abre Mi Hoja sin conexión ni por el camino rápido; clear() borra las dos */
-const acct={get:()=>A.LS.get('cuenta2',null),set:v=>A.LS.set('cuenta2',v),clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}}};
+/* LHB-51: al guardar o borrar la cuenta guardada se repinta la foto del encabezado */
+const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar()}};
 /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
 const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
 let clerkP=null;
@@ -221,6 +222,8 @@ function onboardingForm(submit,picture,mode,init){const marcas=[...new Set((D().
 const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture)=>onboardingForm(submit,picture,'edit',prof),toast,closeAll:closeSheetNow}});
 /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
 const requireAccount=(go,o)=>CUENTA.require(go,o);
+/* LHB-51: con una cuenta guardada, un poco después de abrir la app se confirma con Clerk que sigue siendo esa cuenta (si no, el encabezado vuelve a la estrella) */
+setTimeout(()=>{if(acct.get())CUENTA.reconcile()},2500);
 /* ---------- acciones que piden cuenta (LHB-48) ----------
    Corazón, sello, estrella y humidor se hacen solo con sesión y perfil; ver la página no pide nada. El argumento viaja como texto (también por sessionStorage al volver de Google) y se valida aquí. */
 const txt=v=>typeof v==='string'&&v.length<200;
