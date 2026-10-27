@@ -20,7 +20,8 @@ const retire=()=>{if(ob){ob=false;D.reroute()}};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
  C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;sip++;gen++;D.ui.closeAll();
-  if(!id){D.store.clear();D.intent.clear()}
+  /* LHB-51: lo guardado es de la cuenta anterior: al salir o al cambiar de cuenta se borra, para que el encabezado nunca muestre a una persona con la sesión de otra */
+  D.store.clear();if(!id)D.intent.clear();
   const p=pending;pending=null;const fl=failure;failure=null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}

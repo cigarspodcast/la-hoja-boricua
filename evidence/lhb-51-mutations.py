@@ -37,6 +37,7 @@ MUTS = [
     ('C2 cuenta: no se guarda el nombre publico', CU, "name:typeof p.display_name==='string'?p.display_name:''", "name:''"),
     ('C3 cuenta: al editar solo se guarda el @', CU, "if(!!C.user&&C.user.id===uid)cache(snap(uid,r.body.profile));", "if(!!C.user&&C.user.id===uid)cache({sub:uid,handle:r.body.profile.handle});"),
     ('C4 cuenta: se guarda de mas (la marca y la bio)', CU, "name:typeof p.display_name==='string'?p.display_name:'',", "name:typeof p.display_name==='string'?p.display_name:'',bio:p.bio,favorite_brand:p.favorite_brand,"),
+    ('C5 cuenta: al cambiar de cuenta no se borra lo guardado de la anterior', CU, "D.store.clear();if(!id)D.intent.clear();", "if(!id){D.store.clear();D.intent.clear()}"),
     ('H1 hoja: al guardar la cuenta no se repinta el encabezado', HO, "set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}", "set:v=>{A.LS.set('cuenta2',v)}"),
     ('H2 hoja: al salir no se repinta el encabezado', HO, "catch(e){}if(A.topAvatar)A.topAvatar()}};", "catch(e){}}};"),
     ('H3 app: Mi Hoja no recibe topAvatar', APP, "window.LHB_EXT({topAvatar,$,$$,", "window.LHB_EXT({$,$$,"),

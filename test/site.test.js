@@ -1651,3 +1651,9 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
  assert.match(read('sw.js'),/const VERSION='lhb-v55'/,'el shell nuevo se publica con otra versión del caché');
 });
+test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+ const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+ h.C.user={id:'user_a'};await h.A.require(h.go);await tick();assert.equal(h.D.store.get().sub,'user_a','la cuenta A queda guardada');
+ h.C.signIn('user_b');assert.equal(h.D.store.get(),null,'de A a B directo: lo de A se borra aunque nadie haya salido');
+ h.cache({sub:'user_b',handle:'beto',name:'Beto S.',avatar:''});h.C.signIn(null);assert.equal(h.D.store.get(),null,'al salir se borra');
+});
