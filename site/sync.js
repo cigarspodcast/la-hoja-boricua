@@ -123,7 +123,7 @@ window.LHB_SYNC=function(D){
    /* si la meta no se pudo anotar la vez pasada, vale lo que esta pestaña recuerda de esa pasada (si ya no lo recuerda, se junta sin dar nada por borrado) */
    /* ...salvo que otra pestaña ya anotó una meta más nueva que la de esa pasada: esa base es la buena */
    const memOk=staleBase&&!!mem&&mem.sub===uid&&!(meta&&meta.base&&meta.rev>mem.rev);
-   const base=meta&&meta.base&&!wipe&&(!staleBase||!memOk)?meta.base:memOk?mem.base:null;
+   const base=meta&&meta.base&&!wipe&&(!staleBase||!memOk)?meta.base:memOk&&!wipe?mem.base:null;
    const merged=remote?merge(base,L,remote):L;
    let newRev=rev,pushed=false;
    if(!remote||canon(merged)!==canon(remote)){

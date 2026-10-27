@@ -2264,6 +2264,17 @@ test('LHB-31 (Codex ronda 3): sin poder anotar la dueña no se guarda; la base r
   assert.equal(X.same(JSON.parse('{"a":{"__proto__":{"x":1}}}'),JSON.parse('{"a":{"__proto__":{"x":1}}}')),true);
  }finally{a.done()}
 });
+test('LHB-31 (Codex ronda 4): un teléfono que se quedó vacío por pérdida trae la cuenta aunque la pasada anterior no pudo anotar la meta',async()=>{
+ const a=await ENG28();
+ try{
+  const T=DEV28(a,'user_a');T.seed(DOC28);await T.sync('entrar');const B=DEV28(a,'user_a');await B.sync();
+  B.edit(d=>{d.humidor.push({id:'x1',marca:'X',actualizado:'2026-10-25'})});await B.fire();
+  T.st.failKey='lhb_mihoja_v1_sync';let r=await T.eng.run('trae');assert.equal(r.fail,'storage');T.st.failKey=null;
+  T.seed({schema:1,creado:'',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{}});
+  r=await T.sync('reintento');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(hid28(T.doc()),['h1','x1'],'lo vacío por pérdida no se toma por borrado: se trae la cuenta');assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','x1']);
+ }finally{a.done()}
+});
 test('LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada',()=>{
  const {LHB_MERGE:X}=SYNC28();const E=o=>({schema:1,creado:'2026-10-01',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{},...o});
  const base=JSON.parse('{"ratings":{"constructor":3,"toString":2}}');
@@ -2297,7 +2308,8 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
  assert.ok(h.includes("getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST}"),'la sincronización lee del almacenamiento y no de la copia en memoria');
  assert.ok(h.includes("window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null})"),'otra pestaña que escribe invalida la copia en memoria');
  assert.ok(h.includes("const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};"),'S aparta lo de otra cuenta antes de leer, no muestra lo de la otra si no pudo y solo confía en la copia en memoria si el texto guardado no cambió');
- assert.ok(h.includes("if(SYNC&&!SYNC.isolate()){toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}"),'write no escribe si no se pudo apartar lo de la otra cuenta');
+ assert.ok(h.includes("if(SYNC&&!SYNC.isolate()){ST=null;toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}"),'write no escribe si no se pudo apartar lo de la otra cuenta y suelta la copia en memoria');
+ assert.ok(h.includes("if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}")&&h.includes("STRAW=txt}catch(e){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}"),'una escritura rechazada suelta la copia en memoria, que ya traía el cambio rechazado');
  assert.ok(read('sync.js').includes('if(inIso)return true;'),'aislar dentro de aislar se corta (write llama a isolate y isolate escribe por setDoc)');
  assert.ok(h.includes("s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}"),'la copia nueva o dañada que la app crea sola no cuenta como un cambio de la persona');
  assert.ok(h.includes("function write(s,quiet){")&&h.includes("if(SYNC&&!quiet)SYNC.changed()"),'write acepta quiet');

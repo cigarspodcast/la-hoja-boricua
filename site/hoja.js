@@ -33,7 +33,7 @@ function load(){const raw=localStorage.getItem(KEY);
 /* LHB-31: cada escritura avisa a la sincronización, que decide tras una pausa si algo de lo que viaja a la cuenta cambió */
 let SYNC=null;
 /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
-function write(s,quiet){if(SYNC&&!SYNC.isolate()){toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){toast('No hay espacio para guardar. Exporta un respaldo.');return false}try{const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){toast('No hay espacio para guardar. Exporta un respaldo.');return false}if(SYNC&&!quiet)SYNC.changed();return true}
+function write(s,quiet){if(SYNC&&!SYNC.isolate()){ST=null;toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}try{const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}if(SYNC&&!quiet)SYNC.changed();return true}
 /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
 const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};
 window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null});
