@@ -23,7 +23,7 @@ MUTS = [
     ('M2 defaults: un publica que no es booleano se queda como llegó', HO, "if(typeof e.publica!=='boolean')e.publica=false;", 'if(e.publica===undefined)e.publica=false;'),
     ('M3 defaults: el día por defecto es hoy y no el de la fecha de la cata', HO, "e.consumido=typeof e.fecha==='string'&&okDay(e.fecha.slice(0,10))?e.fecha.slice(0,10):hoy();", 'e.consumido=hoy();'),
     ('M4 defaults: un día que no existe se acepta', HO, 'if(!okDay(e.consumido))', 'if(!e.consumido)'),
-    ('M5 okDay: el 31 de abril pasa por válido', HO, '&&d.getDate()===+v.slice(8,10)};', '};'),
+    ('M5 okDay: un día que desborda el mes (31 de abril) pasa por válido', HO, '&&d.getMonth()===+v.slice(5,7)-1&&d.getDate()===+v.slice(8,10)};', '};'),
     ('M6 defaults: la marca no se corta a 60', HO, "e.marca=typeof e.marca==='string'?e.marca.trim().slice(0,60):'';", "e.marca=typeof e.marca==='string'?e.marca.trim():'';"),
     ('M7 normalize: no pasa las entradas por los valores por defecto', HO, 'o.diario.forEach(entryDefaults);return o}', 'return o}'),
     ('M8 borrador: nace pública', HO, "foto:'',publica:false,consumido:hoy(),marca:'',inicio", "foto:'',publica:true,consumido:hoy(),marca:'',inicio"),
