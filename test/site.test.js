@@ -1649,6 +1649,34 @@ test('LHB-57: 20 por página con cursor, de la A a la Z por @, sin repetir ni sa
   assert.equal(paginas,3,'45 personas: 20, 20 y 5');assert.deepEqual(vistos,hs.slice().sort(),'de la A a la Z, sin repetir ni saltar');assert.ok(!vistos.includes('otro_xx'),'otro_xx no empieza por pers ni por @ ni por nombre ni por apellido');
  }catch(e){throw e}finally{a.done()}
 });
+test('LHB-57 (Codex ronda 1): el nombre público se arma con nombre e inicial aunque haya un display_name viejo con el apellido; sin nombre guardado no sale ninguno',async()=>{
+ const a=await API57();
+ try{
+  a.mk('u_yo','yo_mismo','Yolanda','Mora');a.mk('u_ana','ana_mora','Ana','Mora');a.mk('u_sin','sergio_b',null,null);
+  a.db.prepare("UPDATE profiles SET display_name='Ana Mora' WHERE user_id='u_ana'").run();
+  a.db.prepare("UPDATE profiles SET display_name='Sergio Báez' WHERE user_id='u_sin'").run();
+  const r=await a.find('u_yo','ana');assert.deepEqual(r[1].people,[{handle:'ana_mora',display_name:'Ana M.',avatar_key:AV}],'un display_name viejo con el apellido entero no sale');
+  const s=await a.find('u_yo','sergio');assert.deepEqual(s[1].people,[{handle:'sergio_b',display_name:null,avatar_key:AV}],'sin nombre y apellido guardados no hay nombre público: ni el viejo sale');
+  assert.ok(!JSON.stringify([r,s]).includes('Báez')&&!JSON.stringify([r,s]).includes('Mora'));
+ }finally{a.done()}
+});
+test('LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII',async()=>{
+ const a=await API57();
+ try{
+  a.mk('u_yo','yo_mismo','Yolanda','Mora');a.mk('u_alv','alvaro_p','Álvaro','Peña');a.mk('u_nan','nandu','Ñandú','Ñoño');a.mk('u_mix','mixto','ÁLvaro','PEÑA');a.mk('u_asc','ascii_x','Ana','Soto');
+  for(const q of ['ál','ÁL','Ál','álvaro','ÁLVARO','álvaro pe','ÁLVARO PEÑ'])assert.deepEqual(handles57(await a.find('u_yo',q)),['alvaro_p','mixto'],'nombre: '+q);
+  for(const q of ['peñ','PEÑ','Peñ','pEÑ'])assert.deepEqual(handles57(await a.find('u_yo',q)),['alvaro_p','mixto'],'apellido: '+q);
+  for(const q of ['ñand','ÑAND','Ñand','ñoñ','ÑOÑ'])assert.deepEqual(handles57(await a.find('u_yo',q)),['nandu'],q);
+  assert.deepEqual(handles57(await a.find('u_yo','ANA')),['ascii_x'],'lo ASCII sigue igual');
+  /* seis letras fuera del ASCII caben (64 formas); con más se prueba minúscula, mayúscula e inicial y no revienta */
+  assert.equal((await a.find('u_yo','ñññññá'))[0],200);assert.equal((await a.find('u_yo','ñññññññá'))[0],200);
+  /* con más de seis letras fuera del ASCII, la inicial en mayúscula y todo en mayúscula también se encuentran */
+  a.mk('u_lg','largo_x','Ñññññññáb','Zeta');a.mk('u_lg2','largo_y','ÑÑÑÑÑÑÑÁB','Zeta');
+  assert.deepEqual(handles57(await a.find('u_yo','ñññññññá')),['largo_x','largo_y'],'minúscula escrita, inicial en mayúscula y todo en mayúscula guardados');
+  assert.equal(a.PL.patternsOf('ñññññá').length,64);assert.ok(a.PL.patternsOf('ñññññññá').length<=4);assert.deepEqual(a.PL.patternsOf('ana'),['ana%']);
+  assert.deepEqual(a.PL.patternsOf('a_%').length,1,'% y _ siguen escapados');assert.deepEqual(a.PL.patternsOf('a_%'),['a\\_\\%%']);
+ }finally{a.done()}
+});
 /* la pantalla Personas de hoja.js corre tal cual sobre un DOM de mentira */
 function PERSONAS_HARNESS(apiFn){
  const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
@@ -1660,12 +1688,12 @@ function PERSONAS_HARNESS(apiFn){
   e.insertAdjacentHTML=(w,h)=>{e.list+=h;e.n+=(h.match(/<li /g)||[]).length};return e};
  const $=s=>els[s]||(els[s]=mkEl());
  const view={set innerHTML(h){els={};html=h}};
- const calls=[];const ctx={view,$,esc:s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),subnav:c=>'<nav>'+c+'</nav>',clerk:async()=>({}),
-  api:async(C,m,p)=>{calls.push(m+' '+p);return apiFn(p)},setTimeout:fn=>0,clearTimeout:()=>{}};
+ const calls=[],timers=[];const ctx={view,$,esc:s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),subnav:c=>'<nav>'+c+'</nav>',clerk:async()=>({}),
+  api:async(C,m,p)=>{calls.push(m+' '+p);return apiFn(p)},setTimeout:fn=>{timers.push(fn);return timers.length},clearTimeout:()=>{}};
  vm.createContext(ctx);vm.runInContext(code+';this.vPersonas=vPersonas;this.pqOk=pqOk;this.pqText=pqText;this.personRow=personRow',ctx);
  ctx.vPersonas();
  const search=async q=>{$('#psQ').value=q;return $('#psF').onsubmit({preventDefault(){}})};
- return {ctx,$,calls,search,html:()=>html,more:()=>$('#psMore').onclick(),remount:()=>ctx.vPersonas()}}
+ return {ctx,$,calls,timers,search,html:()=>html,more:()=>$('#psMore').onclick(),remount:()=>ctx.vPersonas(),type:q=>{$('#psQ').value=q;return $('#psQ').oninput()}}}
 test('LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo lo público, pide más con el cursor y no pinta respuestas viejas',async()=>{
  const AVP='https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ';
  const mkp=(h,n)=>({handle:h,display_name:n,avatar_key:AVP});
@@ -1696,6 +1724,21 @@ test('LHB-57: la pantalla Personas: pide 2 caracteres, escapa todo, pinta solo l
  assert.ok(!/<script|<img src=x/.test(fila),'todo escapado');assert.ok(!/evil\.example/.test(fila),'una foto que no es de Clerk no se carga');assert.match(fila,/>&lt;/);
  assert.match(H.ctx.personRow({handle:'ana_mora',display_name:null,avatar_key:null}),/>A<\/span>[\s\S]*<b>@ana_mora<\/b>/,'sin nombre público: la inicial del @ y el @');
 });
+test('LHB-57 (Codex ronda 1): la pantalla Personas: escribir descarta lo que iba en camino y su Ver más; un temporizador de otra pantalla no hace nada',async()=>{
+ const AVP='https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ';const mkp=(h,n)=>({handle:h,display_name:n,avatar_key:AVP});
+ /* escribo ana, escribo beto antes de la pausa, llega la respuesta de ana: no se pinta, Ver más no sale y el siguiente Ver más no lleva el cursor de ana */
+ let res1;const H=PERSONAS_HARNESS(async p=>p.includes('q=ana')?new Promise(r=>res1=r):{status:200,body:{people:[mkp('beto_x','Beto X.')],next:null}});
+ const s1=H.search('ana');await tick();H.type('beto');res1({status:200,body:{people:[mkp('ana_mora','Ana M.')],next:'ana_mora'}});await s1;
+ assert.equal(H.$('#psL').n,0,'la respuesta de ana no se pinta bajo beto');assert.equal(H.$('#psMore').hidden,true,'Ver más no aparece');
+ await H.more();assert.deepEqual(H.calls.filter(c=>c.includes('beto')),['GET /api/people?q=beto'],'y si se pide, sin el cursor de ana');
+ /* ana ya se pintó y tiene siguiente; se escribe beto y se pide Ver más antes de la pausa: no lleva el cursor de ana */
+ const J=PERSONAS_HARNESS(async()=>({status:200,body:{people:[mkp('ana_mora','Ana M.')],next:'ana_mora'}}));await J.search('ana');assert.equal(J.$('#psMore').hidden,false);
+ J.type('beto');assert.equal(J.$('#psMore').hidden,true,'al teclear, Ver más se esconde');await J.more();assert.ok(!J.calls.some(c=>c.includes('q=beto')&&c.includes('cursor')),'ni se pide con el cursor de otra búsqueda');
+ /* se escribe, no llega la pausa, se deja la pantalla; después se cumple la pausa: no pide nada ni falla */
+ const G=PERSONAS_HARNESS(async()=>({status:200,body:{people:[],next:null}}));
+ G.type('ana');assert.equal(G.timers.length,1);G.remount();G.$('#psQ').value='ana';const antes=G.calls.length;await G.timers[0]();assert.equal(G.calls.length,antes,'el temporizador de la pantalla anterior no busca');
+ G.ctx.view.innerHTML='<otra pantalla>';await G.timers[0]();assert.equal(G.calls.length,antes);
+});
 test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi Hoja, la ruta, el debounce, los estilos y el caché nuevo',()=>{
  const h=read('hoja.js').replace(/\r\n/g,'\n'),css=read('styles.css');
  assert.ok(h.includes("['favoritos','Favoritos'],['personas','Personas'],['perfil','Perfil']];"),'la pestaña Personas está en el submenú de Mi Hoja');
@@ -1706,7 +1749,8 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
- assert.ok(!/\bSELECT\b[^;`']*\b(birth_date|gender|last_name)\b/.test(lib.replace(/\/\*[\s\S]*?\*\//g,'').replace(/^\s*\/\/.*$/gm,'').replace(/'[^']*LIKE[^']*'/g,'')),'lo que se selecciona no incluye datos privados');
+ assert.ok(!/\bSELECT\b[^;`']*\b(birth_date|gender|email|display_name)\b/.test(lib.replace(/\/\*[\s\S]*?\*\//g,'').replace(/^\s*\/\/.*$/gm,'').replace(/'[^']*LIKE[^']*'/g,'')),'lo que se selecciona no incluye datos privados ni el display_name guardado');
+ assert.ok(lib.includes('display_name: r.first_name && r.last_name ? publicName(r.first_name, r.last_name) : null'),'el nombre público se arma aquí con nombre e inicial, nunca se copia lo guardado ni el apellido');
 });
 /* ===================== LHB-51: la foto y el nombre de la cuenta en el encabezado y en Perfil ===================== */
 /* app.js corre tal cual (de AV_HOST a topAvatar) sobre un DOM de mentira */

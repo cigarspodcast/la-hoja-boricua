@@ -266,7 +266,7 @@ function vPersonas(){
  <p class="hint" id="psH" aria-live="polite">Escribe al menos 2 letras.</p><ul class="people" id="psL"></ul><button class="lbtn" type="button" id="psMore" hidden>Ver más</button>`;
  const form=$('#psF');let seq=0,next=null,last='',timer=0;
  const say=m=>{$('#psH').textContent=m||''};
- const run=async more=>{const q=pqText($('#psQ').value);
+ const run=async more=>{if($('#psF')!==form)return;const q=pqText($('#psQ').value);
   if(!pqOk(q)){seq++;next=null;$('#psL').innerHTML='';$('#psMore').hidden=true;say('Escribe al menos 2 letras.');return}
   const mine=++seq;if(!more){next=null;$('#psL').innerHTML=''}$('#psMore').hidden=true;say('Buscando…');
   let r;try{const C=await clerk();r=await api(C,'GET','/api/people?q='+encodeURIComponent(q)+(more&&next?'&cursor='+encodeURIComponent(next):''))}catch(x){r={status:0,body:{}}}
@@ -276,7 +276,8 @@ function vPersonas(){
   last=q;next=r.body.next||null;$('#psL').insertAdjacentHTML('beforeend',r.body.people.map(personRow).join(''));
   const n=$('#psL').children.length;say(n?'':'No encontramos a nadie con ese nombre.');$('#psMore').hidden=!next};
  form.onsubmit=e=>{e.preventDefault();clearTimeout(timer);return run(false)};
- $('#psQ').oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>run(false),350)};
+ /* al teclear, lo que estaba en camino ya no vale: ni su respuesta ni su "Ver más" */
+ $('#psQ').oninput=()=>{clearTimeout(timer);seq++;next=null;$('#psMore').hidden=true;timer=setTimeout(()=>run(false),350)};
  $('#psMore').onclick=()=>run(true)}
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);
  view.innerHTML=`${subnav('humidor')}
