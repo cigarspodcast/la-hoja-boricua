@@ -1611,6 +1611,8 @@ test('LHB-56: la migración 0004 crea follows con llave del par, sin seguirse a 
   assert.deepEqual(cols.filter(c=>c.pk).map(c=>c.name).sort(),['followee_id','follower_id'],'la llave es el par');
   const idx=a.db.prepare('PRAGMA index_list(follows)').all().map(i=>i.name);assert.ok(idx.includes('follows_by_followee')&&idx.includes('follows_by_follower'),'índices por los dos lados');
   const ecols=a.db.prepare('PRAGMA table_info(follow_events)').all();assert.deepEqual(ecols.map(c=>c.name),['follower_id','created_at'],'el registro de seguidas nuevas');for(const c of ecols)assert.equal(c.notnull,1,c.name+' no admite null');assert.ok(a.db.prepare('PRAGMA index_list(follow_events)').all().map(i=>i.name).includes('follow_events_by_follower'));
+  /* Codex ronda 2: la fila y su registro nacen juntos (disparador), y no hay otra via */
+  assert.deepEqual(a.db.prepare("SELECT name FROM sqlite_master WHERE type='trigger'").all().map(r=>r.name),['follows_event'],'el disparador que anota cada seguir nuevo');
   const ins=(x,y)=>a.db.prepare("INSERT INTO follows (follower_id,followee_id,created_at) VALUES (?1,?2,'x')").run(x,y);
   ins('u1','u2');assert.throws(()=>ins('u1','u2'),/UNIQUE|constraint/i,'el mismo par no se repite');assert.doesNotThrow(()=>ins('u2','u1'),'el par al revés es otra fila');
   assert.throws(()=>ins('u1','u1'),/CHECK|constraint/i,'nadie se sigue a sí mismo ni por SQL');assert.throws(()=>ins('u1','nadie'),/FOREIGN|constraint/i,'ni se sigue a un perfil que no existe');
@@ -1710,9 +1712,8 @@ test('LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hec
  try{
   a.mk('u_ana','ana');a.freeze('2026-10-27T10:00:00.000Z');
   const FL=a.FL;assert.deepEqual([FL.FOLLOW_PER_HOUR,FL.FOLLOW_MAX],[60,5000],'los topes de prueba documentados');
-  const evt=(u,at)=>a.db.prepare('INSERT INTO follow_events (follower_id,created_at) VALUES (?1,?2)').run(u,at);
   const evs=u=>a.db.prepare('SELECT COUNT(*) n FROM follow_events WHERE follower_id=?1').get(u).n;
-  for(let i=0;i<60;i++){a.mk('u_p'+i,'persona'+String(i).padStart(2,'0'));a.fol('u_ana','u_p'+i,'2026-10-27T09:30:00.000Z');evt('u_ana','2026-10-27T09:30:00.000Z')}
+  for(let i=0;i<60;i++){a.mk('u_p'+i,'persona'+String(i).padStart(2,'0'));a.fol('u_ana','u_p'+i,'2026-10-27T09:30:00.000Z')}assert.equal(evs('u_ana'),60,'cada fila nueva anota un renglon (disparador)');
   a.mk('u_nueva','nueva');
   assert.deepEqual(await a.follow('u_ana','nueva'),[429,{error:'follow-rate'}],'60 en la última hora: el 61 espera');assert.equal(a.rows().filter(r=>r.followee_id==='u_nueva').length,0);assert.equal(evs('u_ana'),60,'un rechazo no anota nada');
   assert.deepEqual(await a.follow('u_ana','persona03'),[200,{following:true,followers:1}],'repetir uno ya hecho no gasta tope');assert.equal(evs('u_ana'),60,'ni anota');
@@ -1732,27 +1733,49 @@ test('LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hec
   assert.deepEqual(await a.follow('u_ana','masa4999'),[200,{following:true,followers:1}],'y repetir uno ya hecho sigue valiendo en el tope');
  }finally{a.done()}
 });
+/* un DB que, justo despues de preguntar si ya se seguia, deja pasar a un pedido competidor (lo que hace otro Worker a la vez) */
+const RACING56=(a,hook)=>({...a.env,DB:{prepare:s=>{const st=a.env.DB.prepare(s);if(!/SELECT 1 AS n FROM follows WHERE follower_id = \?1 AND followee_id = \?2/.test(s))return st;
+ return {bind:(...x)=>{const q=st.bind(...x);return {first:async()=>{const r=await q.first();if(hook){const h=hook;hook=null;h()}return r},all:q.all.bind(q),run:q.run.bind(q)}}}}}});
 test('LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura',async()=>{
  const a=await API56();
  try{
   a.mk('u_ana','ana');a.mk('u_nueva','nueva');a.mk('u_otra','otra');a.freeze('2026-10-27T10:00:00.000Z');
-  /* un DB que, justo despues de preguntar si ya se seguia, deja pasar a un pedido competidor (lo que hace otro Worker a la vez) */
-  const racing=hook=>({...a.env,DB:{prepare:s=>{const st=a.env.DB.prepare(s);if(!/SELECT 1 AS n FROM follows WHERE follower_id = \?1 AND followee_id = \?2/.test(s))return st;
-   return {bind:(...x)=>{const q=st.bind(...x);return {first:async()=>{const r=await q.first();if(hook){const h=hook;hook=null;h()}return r},all:q.all.bind(q),run:q.run.bind(q)}}}}}});
-  /* por hora: 59 anotadas y el competidor anota la 60 antes que este pedido */
-  for(let i=0;i<59;i++)a.db.prepare("INSERT INTO follow_events (follower_id,created_at) VALUES ('u_ana','2026-10-27T09:45:00.000Z')").run();
-  let r=await a.follow('u_ana','nueva',racing(()=>a.db.prepare("INSERT INTO follow_events (follower_id,created_at) VALUES ('u_ana','2026-10-27T09:59:59.000Z')").run()));
+  const prof=(u,h)=>a.db.prepare("INSERT INTO profiles (user_id,handle,age_ok_at,created_at,updated_at) VALUES (?1,?2,'x','x','x')").run(u,h);
+  /* por hora: 59 seguidas en la ultima hora y el competidor sigue a la 60 antes que este pedido */
+  for(let i=0;i<60;i++)prof('u_h'+i,'hora'+i);
+  for(let i=0;i<59;i++)a.fol('u_ana','u_h'+i,'2026-10-27T09:45:00.000Z');
+  let r=await a.follow('u_ana','nueva',RACING56(a,()=>a.fol('u_ana','u_h59','2026-10-27T09:59:59.000Z')));
   assert.deepEqual(r,[429,{error:'follow-rate'}],'el competidor tomó el ultimo cupo por hora: este no pasa');assert.equal(a.rows().filter(x=>x.followee_id==='u_nueva').length,0,'y no deja fila');
-  a.db.exec("DELETE FROM follow_events");
+  a.db.exec("DELETE FROM follows WHERE follower_id='u_ana'");a.db.exec("DELETE FROM follow_events");
   /* total: 4999 seguidas y el competidor sigue a la 5000 antes que este pedido */
-  for(let i=0;i<5000;i++){const u='u_m'+i;a.db.prepare("INSERT INTO profiles (user_id,handle,age_ok_at,created_at,updated_at) VALUES (?1,?2,'x','x','x')").run(u,'masa'+i);}
+  for(let i=0;i<5000;i++)prof('u_m'+i,'masa'+i);
   a.db.exec('BEGIN');for(let i=0;i<4999;i++)a.fol('u_ana','u_m'+i,'2026-10-20T00:00:00.000Z');a.db.exec('COMMIT');
-  r=await a.follow('u_ana','nueva',racing(()=>a.fol('u_ana','u_m4999','2026-10-27T09:59:59.000Z')));
+  r=await a.follow('u_ana','nueva',RACING56(a,()=>a.fol('u_ana','u_m4999','2026-10-27T09:59:59.000Z')));
   assert.deepEqual(r,[429,{error:'follow-cap'}],'el competidor tomó el ultimo lugar: este no pasa');assert.equal(a.db.prepare("SELECT COUNT(*) n FROM follows WHERE follower_id='u_ana'").get().n,5000,'nunca 5001');
   /* y si el competidor era el MISMO pedido (doble toque), el segundo es solo un seguir ya hecho */
   a.db.exec("DELETE FROM follows WHERE follower_id='u_ana'");a.db.exec("DELETE FROM follow_events");
-  r=await a.follow('u_ana','otra',racing(()=>a.fol('u_ana','u_otra','2026-10-27T09:59:59.000Z')));
+  r=await a.follow('u_ana','otra',RACING56(a,()=>a.fol('u_ana','u_otra','2026-10-27T09:59:59.000Z')));
   assert.deepEqual(r,[200,{following:true,followers:1}],'un doble toque no es un error');assert.equal(a.rows().filter(x=>x.followee_id==='u_otra').length,1);
+ }finally{a.done()}
+});
+test('LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora',async()=>{
+ const a=await API56();
+ try{
+  a.mk('u_ana','ana');a.mk('u_otra','otra');a.mk('u_nueva','nueva');a.freeze('2026-10-27T10:00:00.000Z');
+  const evs=()=>a.db.prepare("SELECT COUNT(*) n FROM follow_events WHERE follower_id='u_ana'").get().n;
+  /* dos pedidos iguales a la vez: un solo seguir y un solo renglon, y el segundo no es un error */
+  let r=await a.follow('u_ana','otra',RACING56(a,()=>a.fol('u_ana','u_otra','2026-10-27T09:59:59.000Z')));
+  assert.deepEqual(r,[200,{following:true,followers:1}],'el doble toque contesta bien');assert.equal(a.rows().filter(x=>x.followee_id==='u_otra').length,1);assert.equal(evs(),1,'un seguir, un renglon (el del competidor); el segundo pedido no anota otro');
+  assert.deepEqual(await a.follow('u_ana','otra'),[200,{following:true,followers:1}]);assert.equal(evs(),1,'repetirlo despues tampoco anota');
+  /* 5000 seguidas (las demas viejas) y 65 intentos rechazados por el tope total: no gastan cupo por hora */
+  for(let i=0;i<5000;i++)a.db.prepare("INSERT INTO profiles (user_id,handle,age_ok_at,created_at,updated_at) VALUES (?1,?2,'x','x','x')").run('u_m'+i,'masa'+i);
+  a.db.exec('BEGIN');for(let i=0;i<4999;i++)a.fol('u_ana','u_m'+i,'2026-10-20T00:00:00.000Z');a.db.exec('COMMIT');
+  a.db.exec("DELETE FROM follow_events WHERE created_at < '2026-10-27'");assert.equal(evs(),1,'queda el renglon de hoy');
+  for(let i=0;i<65;i++)assert.deepEqual(await a.follow('u_ana','nueva'),[429,{error:'follow-cap'}],'el tope total rechaza, intento '+i);
+  assert.equal(evs(),1,'65 rechazos por el tope total no anotaron nada');assert.equal(a.rows().filter(x=>x.followee_id==='u_nueva').length,0);
+  /* dejar de seguir a uno libera lugar en el tope total, y el seguir legitimo pasa (no hay follow-rate) */
+  assert.deepEqual(await a.unfollow('u_ana','masa0'),[200,{following:false,followers:0}]);
+  assert.deepEqual(await a.follow('u_ana','nueva'),[200,{following:true,followers:1}],'tras 65 rechazos un seguir legitimo pasa');assert.equal(evs(),2);
  }finally{a.done()}
 });
 test('LHB-56: borrar un perfil borra sus filas de los dos lados, y los conteos de los demás bajan con la tabla',async()=>{

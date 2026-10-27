@@ -14,9 +14,12 @@ CREATE TABLE follows (
 CREATE INDEX follows_by_followee ON follows (followee_id, created_at DESC);
 CREATE INDEX follows_by_follower ON follows (follower_id, created_at DESC);
 
--- un renglon por cada seguir NUEVO; dejar de seguir no lo borra, para que el tope por hora no se reinicie al dejar de seguir y volver a seguir. Se podan los de mas de una hora.
+-- un renglon por cada seguir NUEVO (lo anota el disparador de abajo, en la misma sentencia que inserta la fila); dejar de seguir no lo borra, para que el tope por hora no se reinicie al dejar de seguir y volver a seguir. Se podan los de mas de una hora.
 CREATE TABLE follow_events (
   follower_id TEXT NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
   created_at TEXT NOT NULL
 );
 CREATE INDEX follow_events_by_follower ON follow_events (follower_id, created_at);
+
+-- la fila y su registro nacen juntos o no nacen: un seguir rechazado o repetido no gasta cupo por hora
+CREATE TRIGGER follows_event AFTER INSERT ON follows BEGIN INSERT INTO follow_events (follower_id, created_at) VALUES (NEW.follower_id, NEW.created_at); END;

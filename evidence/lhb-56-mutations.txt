@@ -1,11 +1,11 @@
 baseline (0, [])
 M1 tabla: alguien puede seguirse a sí mismo (sin el CHECK) -> ROJO (bien) fail=1
       LHB-56: la migración 0004 crea follows con llave del par, sin seguirse a uno mismo, con índices por los dos lados y sin tocar lo que ya había
-M2 tabla: el mismo par se puede repetir (sin llave) -> ROJO (bien) fail=5
+M2 tabla: el mismo par se puede repetir (sin llave) -> ROJO (bien) fail=6
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
       LHB-56: la migración 0004 crea follows con llave del par, sin seguirse a uno mismo, con índices por los dos lados y sin tocar lo que ya había
       LHB-56: los conteos salen de la tabla y solo cuentan perfiles visibles; GET dice si yo lo sigo; nada privado sale en ninguna respuesta
-      LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
 M3 tabla: borrar a quien es seguido deja filas (sin cascada en followee_id) -> ROJO (bien) fail=1
       LHB-56: borrar un perfil borra sus filas de los dos lados, y los conteos de los demás bajan con la tabla
 M4 tabla: borrar a quien sigue deja filas (sin cascada en follower_id) -> ROJO (bien) fail=1
@@ -35,16 +35,17 @@ L9 reglas: cada persona de la lista trae la fecha en que la siguió -> ROJO (bie
       LHB-56: las listas van con cursor, las más nuevas primero, sin repetir ni saltar a nadie, solo con lo público y sin perfiles ocultos
 L10 reglas: un cursor malo se acepta como si no hubiera -> ROJO (bien) fail=1
       LHB-56: las listas van con cursor, las más nuevas primero, sin repetir ni saltar a nadie, solo con lo público y sin perfiles ocultos
-L11 reglas: ya hay bloqueos entre todos -> ROJO (bien) fail=4
+L11 reglas: ya hay bloqueos entre todos -> ROJO (bien) fail=5
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
       LHB-56: la regla de bloqueo ya está en su sitio (no hace nada hasta LHB-62), y el código no lee ni escribe nada privado
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
-      LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y cada rechazo no deja nada
 L12 reglas: el tope por hora es de 61 -> ROJO (bien) fail=2
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
-L13 reglas: el tope total es de 5001 -> ROJO (bien) fail=2
+L13 reglas: el tope total es de 5001 -> ROJO (bien) fail=3
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
 L14 reglas: una lista de un perfil oculto se entrega -> ROJO (bien) fail=1
       LHB-56: las listas van con cursor, las más nuevas primero, sin repetir ni saltar a nadie, solo con lo público y sin perfiles ocultos
@@ -52,47 +53,71 @@ L15 reglas: un @ que no es texto se toma por texto -> ROJO (bien) fail=1
       LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y cada rechazo no deja nada
 F1 seguir: uno puede seguirse a sí mismo -> ROJO (bien) fail=1
       LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y cada rechazo no deja nada
-F2 seguir: repetir un seguir ya hecho gasta tope -> ROJO (bien) fail=2
+F2 seguir: repetir un seguir ya hecho gasta tope -> ROJO (bien) fail=1
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
-      LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
 F3 seguir: el tope por hora no se revisa -> ROJO (bien) fail=2
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
-F4 seguir: el tope total no se revisa -> ROJO (bien) fail=2
+F4 seguir: el tope total no se revisa -> ROJO (bien) fail=5
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
+      LHB-56: los conteos salen de la tabla y solo cuentan perfiles visibles; GET dice si yo lo sigo; nada privado sale en ninguna respuesta
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
 F5 seguir: la ventana del tope es de diez horas -> ROJO (bien) fail=1
+      LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
+T1 tabla: sin el disparador nadie anota los seguir nuevos (el tope por hora no cuenta nada) -> ROJO (bien) fail=4
+      LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
+      LHB-56: la migración 0004 crea follows con llave del par, sin seguirse a uno mismo, con índices por los dos lados y sin tocar lo que ya había
+      LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
+T2 tabla: el disparador anota una fecha fija (la ventana nunca cuenta) -> ROJO (bien) fail=3
+      LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
+      LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
+T3 tabla: el disparador anota a quien es seguido y no a quien sigue -> ROJO (bien) fail=3
+      LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
+      LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
+F20 seguir: un rechazo siempre dice follow-rate (Codex ronda 2) -> ROJO (bien) fail=3
+      LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
+      LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
+F21 seguir: cada intento anota un renglon aunque se rechace o ya existiera (Codex ronda 2) -> ROJO (bien) fail=2
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
 M6 tabla: borrar un perfil deja su registro de seguidas (sin cascada en follow_events) -> ROJO (bien) fail=1
       LHB-56: borrar un perfil borra sus filas de los dos lados, y los conteos de los demás bajan con la tabla
 F13 seguir: el registro de seguidas viejas no se poda -> ROJO (bien) fail=1
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
-F14 seguir: el tope por hora se cuenta de las filas y no del registro (dejar de seguir lo reinicia, Codex ronda 1) -> ROJO (bien) fail=2
-      LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+F14 seguir: el tope por hora se cuenta de las filas y no del registro (dejar de seguir lo reinicia, Codex ronda 1) -> ROJO (bien) fail=1
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
-F15 seguir: el tope total no esta en la sentencia que inserta (Codex ronda 1) -> ROJO (bien) fail=2
+F15 seguir: la sentencia que inserta no lleva el tope total (Codex ronda 1) -> ROJO (bien) fail=3
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
-F16 seguir: el tope por hora no esta en la sentencia que anota (Codex ronda 1) -> ROJO (bien) fail=2
+F16 seguir: la sentencia que inserta no lleva el tope por hora (Codex ronda 1) -> ROJO (bien) fail=2
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
 F17 dejar de seguir: un perfil oculto que nunca se siguio se confirma con 200 (Codex ronda 1) -> ROJO (bien) fail=1
       LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y cada rechazo no deja nada
 F18 dejar de seguir: de un perfil oculto sale su conteo (Codex ronda 1) -> ROJO (bien) fail=1
       LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y cada rechazo no deja nada
-F19 seguir: un doble toque que llega a la vez se toma por tope -> ROJO (bien) fail=1
+F19 seguir: un doble toque que llega a la vez se toma por tope -> ROJO (bien) fail=2
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
 F6 seguir: el bloqueo no se pregunta -> ROJO (bien) fail=1
       LHB-56: la regla de bloqueo ya está en su sitio (no hace nada hasta LHB-62), y el código no lee ni escribe nada privado
 F7 seguir: acepta cualquier tipo de contenido -> ROJO (bien) fail=1
       LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y cada rechazo no deja nada
-F8 seguir: devuelve cuántas personas sigue la otra y no cuántas la siguen -> ROJO (bien) fail=3
+F8 seguir: devuelve cuántas personas sigue la otra y no cuántas la siguen -> ROJO (bien) fail=4
       LHB-56 (Codex ronda 1): los topes se cumplen aunque otro pedido de la misma cuenta llegue entre la revisión y la escritura
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
       LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y cada rechazo no deja nada
 F9 dejar de seguir: no se puede dejar de seguir a un perfil que se ocultó -> ROJO (bien) fail=1
       LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y cada rechazo no deja nada
-F10 dejar de seguir: borra la fila al revés -> ROJO (bien) fail=2
+F10 dejar de seguir: borra la fila al revés -> ROJO (bien) fail=3
+      LHB-56 (Codex ronda 2): un seguir repetido o rechazado por el tope total no gasta cupo por hora
       LHB-56: los topes de prueba: por hora y en total; repetir un seguir ya hecho no gasta tope; dejar de seguir no reinicia el tope; los de hace más de un
       LHB-56: seguir y dejar de seguir en SQLite real: una vía, idempotente, y cada rechazo no deja nada
 F11 estado: viewerFollows dice siempre que sí -> ROJO (bien) fail=1
@@ -100,5 +125,4 @@ F11 estado: viewerFollows dice siempre que sí -> ROJO (bien) fail=1
 F12 lista: seguidores y seguidos al revés -> ROJO (bien) fail=1
       LHB-56: las listas van con cursor, las más nuevas primero, sin repetir ni saltar a nadie, solo con lo público y sin perfiles ocultos
 restaurado (0, [])
-mutaciones: 40 sobrevivieron o con error: 0
-EXIT 0
+mutaciones: 45 sobrevivieron o con error: 0

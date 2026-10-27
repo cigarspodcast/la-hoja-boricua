@@ -34,17 +34,18 @@ export async function onRequestPost({ request, env }) {
     const since = new Date(now.getTime() - 3600e3).toISOString();
     // lo de mas de una hora ya no cuenta
     await env.DB.prepare('DELETE FROM follow_events WHERE follower_id = ?1 AND created_at <= ?2').bind(me, since).run();
-    // el tope por hora: UNA sentencia revisa y anota, asi dos pedidos a la vez no pasan los dos; dejar de seguir no borra el registro
-    const ev = await env.DB.prepare(
-      'INSERT INTO follow_events (follower_id, created_at) SELECT ?1, ?2 WHERE (SELECT COUNT(*) FROM follow_events WHERE follower_id = ?1 AND created_at > ?3) < ?4'
-    ).bind(me, now.toISOString(), since, FOLLOW_PER_HOUR).run();
-    if (!ev.meta.changes) return json({ error: 'follow-rate' }, 429);
-    // el tope total: UNA sentencia revisa e inserta
+    // los dos topes y la fila: UNA sentencia revisa e inserta, asi dos pedidos a la vez no pasan los dos; el disparador follows_event anota el seguir en el registro dentro de la misma sentencia,
+    // asi un seguir rechazado o repetido no gasta cupo, y dejar de seguir no borra el registro
     const ins = await env.DB.prepare(
-      'INSERT INTO follows (follower_id, followee_id, created_at) SELECT ?1, ?2, ?3 WHERE (SELECT COUNT(*) FROM follows WHERE follower_id = ?1) < ?4 ON CONFLICT(follower_id, followee_id) DO NOTHING'
-    ).bind(me, who.user_id, now.toISOString(), FOLLOW_MAX).run();
-    // sin fila nueva: o ya existia (otro pedido igual llego antes) o se llego al tope
-    if (!ins.meta.changes && !(await has())) return json({ error: 'follow-cap' }, 429);
+      'INSERT INTO follows (follower_id, followee_id, created_at) SELECT ?1, ?2, ?3 WHERE ' +
+      '(SELECT COUNT(*) FROM follow_events WHERE follower_id = ?1 AND created_at > ?4) < ?5 AND (SELECT COUNT(*) FROM follows WHERE follower_id = ?1) < ?6 ' +
+      'ON CONFLICT(follower_id, followee_id) DO NOTHING'
+    ).bind(me, who.user_id, now.toISOString(), since, FOLLOW_PER_HOUR, FOLLOW_MAX).run();
+    // sin fila nueva: o ya existia (otro pedido igual llego antes) o se llego a un tope
+    if (!ins.meta.changes && !(await has())) {
+      const h = await env.DB.prepare('SELECT COUNT(*) AS n FROM follow_events WHERE follower_id = ?1 AND created_at > ?2').bind(me, since).first();
+      return json({ error: h.n >= FOLLOW_PER_HOUR ? 'follow-rate' : 'follow-cap' }, 429);
+    }
   }
   return json({ following: true, followers: (await countsOf(env.DB, who.user_id)).followers });
 }
