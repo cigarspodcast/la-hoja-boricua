@@ -3808,6 +3808,10 @@ test('LHB-39: la página del diario muestra los números y los filtros; cambiar 
  /* volver a pintar la página (borrar una entrada, llega una sincronización) conserva la búsqueda */
  h.els.dqQ.value='tabaquero';h.els.dqQ.oninput();h.API.vDiario();assert.ok(h.html().includes('value="tabaquero"')&&h.html().includes('3 de 7 catas'),'la búsqueda sigue');
  assert.ok(/<option value="estrellas" selected>/.test(h.html()),'y el orden');
+ /* si se estaba escribiendo en la búsqueda, el foco vuelve a ella con el cursor al final; si no, no se le pone el foco */
+ const seen=[];h.els.dqQ.focus=o=>seen.push(['focus',o&&o.preventScroll]);h.els.dqQ.setSelectionRange=(a,b)=>seen.push(['sel',a,b]);
+ h.ctx.document.activeElement={id:'dqQ'};h.API.vDiario();assert.deepEqual(seen,[['focus',true],['sel',9,9]],'foco y cursor al final de "tabaquero"');
+ seen.length=0;h.ctx.document.activeElement={id:'otro'};h.API.vDiario();assert.deepEqual(seen,[],'otro foco: no se toca');h.ctx.document.activeElement=null;
  /* otra cuenta en el mismo teléfono no ve la búsqueda de la anterior */
  h.acctBox.v={sub:'u_b'};h.API.vDiario();assert.ok(!h.html().includes('value="tabaquero"')&&h.html().includes('7 de 7 catas'),'búsqueda limpia para otra cuenta');
  /* un diario vacío: los números (con los sellos) sí, los filtros no */

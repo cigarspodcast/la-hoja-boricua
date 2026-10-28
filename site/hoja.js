@@ -344,7 +344,7 @@ function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad
 const stars=n=>`<span class="stars-ro" role="img" aria-label="${tt('h.de5Estrellas',{a:n})}">${'★'.repeat(n)}<span>${'★'.repeat(5-n)}</span></span>`;
 /* LHB-39: los números de Mi Hoja y el diario con búsqueda, filtros y orden. Todo sale del documento de Mi Hoja; los sellos cuentan solo si están en el catálogo, igual que en el Pasaporte */
 const isEntry=e=>!!e&&typeof e==='object'&&!Array.isArray(e);
-const dfold=t=>String(t??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+const dfold=t=>String(t??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 const dday=e=>okDay(e.consumido)?e.consumido:String(e.fecha||'').slice(0,10);
 /* lo más anotado de un campo (capa, fortaleza): a igual cuenta, el primero en orden alfabético */
 const mostOf=(es,k)=>{const n=new Map();for(const e of es){const v=typeof e[k]==='string'?e[k].trim():'';if(v)n.set(v,(n.get(v)||0)+1)}let best=null;for(const [v,c] of n)if(!best||c>best.n||(c===best.n&&v.localeCompare(best.v,'es')<0))best={v,n:c};return best};
@@ -400,7 +400,7 @@ function vDiario(){const s=S(),q=dq(),all=s.diario.filter(isEntry),list=diaryFil
   const upd=()=>{const q=dq();q.q=$('#dqQ').value;q.st=$('#dqS').value;q.vis=$('#dqV').value;q.ord=$('#dqO').value;
    const all=S().diario.filter(isEntry),l=diaryFilter(all,q),box=$('#dList');box.innerHTML=l.map(dCard).join('');$('#dqN').textContent=dCount(l.length,all.length);bindDiario();A.hydrate(box)};
   $('#dqQ').oninput=upd;for(const id of ['#dqS','#dqV','#dqO'])$(id).onchange=upd;
-  if(foc){const x=$('#'+foc);if(x&&x.focus)x.focus({preventScroll:true})}}
+  if(foc){const x=$('#'+foc);if(x&&x.focus){x.focus({preventScroll:true});if(foc==='dqQ'&&x.setSelectionRange){const k=String(x.value||'').length;x.setSelectionRange(k,k)}}}}
  A.hydrate(view)}
 /* pasaporte */
 const BADGES=[{id:'primer',n:tt('h.primerSello'),d:tt('h.tuPrimerSello'),k:'total',m:1,c:'#8fd162'},
