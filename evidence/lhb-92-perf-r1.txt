@@ -1,0 +1,8 @@
+branch  run 1  LCP  2558 ms  CLS 0.004  FCP  1327  TBT   66  score 0.95  images before LCP 10 (136.6 KiB), card thumbs  2  LCP el ?
+branch  run 2  LCP  1816 ms  CLS 0.000  FCP  1066  TBT   50  score 0.98  images before LCP  5 ( 70.7 KiB), card thumbs  0  LCP el div#campo > div#cz > div.lay > img.campo-bg
+branch  run 3  LCP  2580 ms  CLS 0.000  FCP  1053  TBT  127  score 0.96  images before LCP 10 (136.6 KiB), card thumbs  2  LCP el div#campo > div#cz > div.lay > img.campo-bg
+branch  LCP median 2558 ms [1816 to 2580], CLS max 0.004, 3 runs
+prod    run 1  LCP  3179 ms  CLS 0.003  FCP  1624  TBT   48  score 0.84  images before LCP  5 ( 70.7 KiB), card thumbs  0  LCP el ?
+prod    run 2  LCP  3348 ms  CLS 0.000  FCP  1098  TBT  144  score 0.9  images before LCP 41 (271.5 KiB), card thumbs 33  LCP el div#campo > div#cz > div.lay > img.campo-bg
+prod    run 3  LCP  3045 ms  CLS 0.000  FCP  1167  TBT   88  score 0.92  images before LCP 10 (136.1 KiB), card thumbs  2  LCP el div#campo > div#cz > div.lay > img.campo-bg
+prod    LCP median 3179 ms [3045 to 3348], CLS max 0.003, 3 runs

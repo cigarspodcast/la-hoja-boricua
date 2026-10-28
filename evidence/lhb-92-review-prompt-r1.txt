@@ -1,0 +1,64 @@
+This brief supersedes evidence/lhb-92-review-brief-r1.txt, which was written before the measurement and describes a lazy-loading change that was then reverted; that earlier brief was never sent.
+
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-92-wt (branch lhb-92-lazy-cards). The diff below is origin/main..HEAD for test/site.test.js; site/ is identical to main.
+
+LHB-92 tried loading="lazy" on card images after the first grid row to lower simulated mobile LCP. Measured on one host (evidence/lhb-92-perf.txt), it halved the image requests before LCP and did not move LCP, so the site change was reverted and the ticket closes with the measurement. What remains are three test items carried to this ticket from earlier reviews:
+1. LHB-85 Codex r2: the LHB-85 sizes test compares SIZES_GRID / SIZES_MINI with frozen width measurements (evidence/lhb-85-slot-widths.txt). The new test pins the card CSS rules those widths came from: every rule whose selector is exactly .view, .grid, .card, .card .ph, ".card .ph img,.card .ph svg", .mini-row, .mini-row .card, .card .ph.has-foto, or .card .ph.has-foto img, compared in order to their current text, so a change there fails and forces a re-measure.
+2. LHB-93 Codex r1: the LHB-93 test checks the language switch min-width as CSS text, so a later override would pass it. The new test requires that exactly two rules mentioning .lang-switch set a width-affecting property (min-width, width, max-width, padding, font-size, font-family, letter-spacing, border): LHB-93's two, in order, with no !important.
+3. LHB-87 Codex r4: the LHB-87 r3 resize test's fake popup now records options.maxHeight inside update(), and the test asserts the value update() saw (81 after shrinking to 185, 320 after growing back), so an update() that runs before maxHeight is assigned fails.
+Evidence: lhb-92-tests-final.txt (245/245), lhb-92-mutations-final.out (7 of 7 red: mini card width, card padding, a new .card .ph rule, grid 4 columns, a min-width:0!important override, a later padding override, fitPop updating before the new height).
+
+Look for real defects: a pin or guard that misses a rule that actually changes the measured widths (for example a selector form the exact-match list does not cover, or a rule inside a media query or theme block), a guard that would fail on a harmless change in a way that blocks ordinary work without telling the reader what to do, the CSS comment stripping or rule regex mis-parsing this stylesheet, and tests that would pass on broken code.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main HEAD -- test/site.test.js =====
+diff --git a/test/site.test.js b/test/site.test.js
+index ec342ef..24da5bb 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -3915,13 +3915,39 @@ test('LHB-87 (Codex r2): la lista de un grupo cabe en el mapa: su alto con scrol
+ test('LHB-87 (Codex r3): con la lista abierta, si el mapa cambia de alto la lista toma el alto nuevo y se vuelve a acomodar',()=>{
+  const app=read('app.js');const pm=app.match(/const POP_FIXED=(\d+),popMaxH=h=>[^\n]*/),fp=app.match(/const fitPop=\(map,p\)=>[^\n]*/);assert.ok(pm&&fp,'popMaxH y fitPop en app.js');
+  const fitPop=new Function(pm[0]+'\n'+fp[0]+';return fitPop')();
+- const pop=()=>({options:{maxHeight:320},u:0,update(){this.u++}});let h=460;const map={open:new Set(),hasLayer(p){return this.open.has(p)},getSize:()=>({x:502,y:h})};
+- const p=pop();map.open.add(p);h=185;fitPop(map,p);assert.equal(p.options.maxHeight,81,'185 - 104');assert.equal(p.u,1,'y se vuelve a acomodar (update: layout, posición y autoPan)');
+- h=460;fitPop(map,p);assert.equal(p.options.maxHeight,320,'al crecer vuelve al tope');assert.equal(p.u,2);
++ const pop=()=>({options:{maxHeight:320},u:0,seen:null,update(){this.u++;this.seen=this.options.maxHeight}});let h=460;const map={open:new Set(),hasLayer(p){return this.open.has(p)},getSize:()=>({x:502,y:h})};
++ const p=pop();map.open.add(p);h=185;fitPop(map,p);assert.equal(p.options.maxHeight,81,'185 - 104');assert.equal(p.u,1,'y se vuelve a acomodar (update: layout, posición y autoPan)');assert.equal(p.seen,81,'update() ya ve el alto nuevo (LHB-92, de LHB-87 r4)');
++ h=460;fitPop(map,p);assert.equal(p.options.maxHeight,320,'al crecer vuelve al tope');assert.equal(p.u,2);assert.equal(p.seen,320,'y update() lo ve');
+  const shut=pop();fitPop(map,shut);assert.equal(shut.u,0,'una lista cerrada no se toca');assert.doesNotThrow(()=>fitPop(map,null),'sin lista todavía');
+  assert.ok(app.includes("map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));"),'cada cambio de tamaño del mapa la acomoda');
+  assert.ok(app.includes("==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)})"),'la lista abierta queda guardada');
+ });
++/* LHB-92 (de LHB-85 Codex r2): SIZES_GRID y SIZES_MINI salen de medir estas reglas; si cambian, hay que volver a medir */
++test('LHB-92: las reglas de la tarjeta que dieron las medidas de sizes siguen como se midieron',()=>{
++ const css=read('styles.css').replace(/\/\*[\s\S]*?\*\//g,'');const SEL=new Set(['.view','.grid','.card','.card .ph','.card .ph img,.card .ph svg','.mini-row','.mini-row .card','.card .ph.has-foto','.card .ph.has-foto img']);
++ const got=[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m=>[m[1].trim(),m[2]]).filter(([s])=>SEL.has(s)).map(([s,b])=>s+'{'+b+'}');
++ assert.deepEqual(got,[
++  '.view{flex:1;padding:14px calc(var(--sar) + 16px) calc(var(--tab-h) + var(--sab) + 28px) calc(var(--sal) + 16px);outline:none;max-width:760px;width:100%;margin:0 auto}',
++  '.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}',
++  '.grid{grid-template-columns:repeat(3,minmax(0,1fr))}',
++  '.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-decoration:none;display:flex;flex-direction:column;position:relative}',
++  '.card .ph{aspect-ratio:4/3;background:var(--card2);overflow:hidden}',
++  '.card .ph img,.card .ph svg{width:100%;height:100%;object-fit:cover;display:block}',
++  '.mini-row{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}',
++  '.mini-row .card{flex:none;width:140px}',
++  '.card{background:var(--card);padding:7px 7px 0}',
++  '.card .ph{border:5px solid var(--photo);border-bottom-width:12px;border-radius:3px;box-shadow:0 3px 10px rgba(0,0,0,.35);filter:sepia(.14) saturate(1.06) contrast(1.02)}',
++  '.card .ph.has-foto{background:#fff;filter:none;display:flex;align-items:center;justify-content:center}',
++  '.card .ph.has-foto img{object-fit:contain;width:100%;height:auto;aspect-ratio:2/1}'],'cambió una regla de la tarjeta: volver a medir (evidence/lhb-85-slot-widths.txt) y poner al día SIZES_GRID / SIZES_MINI');
++});
++/* LHB-92 (de LHB-93 Codex r1): ninguna otra regla le cambia el ancho reservado al selector de idioma */
++test('LHB-92: solo las dos reglas de LHB-93 fijan el ancho del selector de idioma',()=>{
++ const css=read('styles.css').replace(/\/\*[\s\S]*?\*\//g,'');
++ const w=[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(m=>/\.lang-switch\b/.test(m[1])&&/(^|;)\s*(min-width|width|max-width|padding|font-size|font-family|letter-spacing|border)\s*:/.test(m[2])).map(m=>m[1].trim()+'{'+m[2]+'}');
++ assert.equal(w.length,2,'reglas que tocan el ancho: '+w.join(' | '));
++ assert.ok(/^\.lang-switch\{height:36px;min-width:74px;/.test(w[0])&&w[1]==='.lang-switch{min-width:40px;padding:0 10px}','las de LHB-93, en ese orden');
++ assert.ok(w.every(r=>!r.includes('!important')),'sin !important');
++});
+ test('LHB-39 (Codex ronda 2): el foco anotado al llegar una sincronización no se usa después de irse a otra página ni con otra cuenta',()=>{
+  const win={};const g=HOJA38({D:CAT39,api:'dKeepFocus',win,ls:{lhb_mihoja_v1:JSON.stringify(DOC39())}});g.API.vDiario();
+  const seen=[];g.els.dqQ.focus=()=>seen.push('focus');g.els.dqQ.setSelectionRange=a=>seen.push(a);

@@ -1,0 +1,28 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-92-wt (branch lhb-92-lazy-cards). The diff below is origin/main..HEAD for the paths that matter.
+
+LHB-92: simulated mobile LCP of the home page (the splash background img.campo-bg, img/guagua/campo.webp) sits over 2500 ms. In the Lighthouse network log all 33 card thumbnails start before the observed LCP and share the slow link with it.
+The change:
+1. site/app.js: cigarCard(c,i). A card whose index is EAGER_CARDS (3) or more gets loading="lazy" on its img; the first 3 stay eager because .grid is 2 columns, and 3 from 620 px (styles.css). The grids call .map(cigarCard), which passes the index: the catalog (vCatalog), an artisan's vitolas, and the two Mi Hoja grids in hoja.js (.map(A.cigarCard)). The two mini rows (Mi Hoja profile) call cigarCard({...c,mini:true}) with no index, so they are lazy. width="600" height="300" stay on every img. Cache lhb-v82.
+2. test/site.test.js:
+   - an LHB-92 behaviour test that runs cigarCard with stubs and checks eager/lazy by index;
+   - a pin of the 12 card CSS rules that the LHB-85 sizes measurements depend on;
+   - a guard that only LHB-93's two rules set the language switch's width;
+   - a tightened LHB-87 r3 resize test (it now records the maxHeight that update() sees).
+   The last three are carried test items from earlier reviews.
+Evidence (evidence/):
+- lhb-92-tests.txt: 241/241.
+- lhb-92-tests-red.txt: red against main's app.js, only the new behaviour test.
+- lhb-92-mutations.py and the mutation output.
+- lhb-92-perf.txt: Lighthouse branch versus production, interleaved.
+
+Look for real defects:
+- a card that should be in the first screen loading late or visibly popping in (the splash covers the page while it loads; lazy images decide by layout distance, not visibility);
+- a grid whose first row is not cards 0 to 2;
+- a caller that passes a non-index second argument;
+- hydratePhotos or anything else that swaps a card img src and could break with loading=lazy;
+- the service worker or offline behaviour;
+- a layout shift when a lazy image arrives;
+- the CSS pin or switch guard being wrong about which rules matter, or passing on broken CSS;
+- tests that would pass on broken code.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
