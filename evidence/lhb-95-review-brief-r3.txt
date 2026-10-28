@@ -1,0 +1,19 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-95-wt (branch lhb-95-widths). The diff below is origin/main..HEAD. This is a TIER 1 review that has needed confirmation rounds. Round 1 (evidence/lhb-95-review-r1.txt): BLOCK, four findings. Round 2 (evidence/lhb-95-review-r2.txt): you concurred that findings 1 to 3 are fixed, and kept finding 4 open for one path: a browser launch that fails left the temporary profile behind.
+
+Ticket LHB-95: a check that renders the real page in headless Chrome and measures the card photo widths against their sizes attribute and the language switch's neighbours (tools/widths.mjs, no npm dependency). The default node --test run stays browser-free; the browser measurement runs with LHB_BROWSER=1.
+
+How the round 2 finding was taken:
+- cleanup() is defined before Chrome starts, and tolerates chrome being null.
+- spawn() now runs inside the protected try. A synchronous spawn failure is caught and ends as NO BROWSER (exit 2).
+- An 'error' event on the child sets launchFail. The DevToolsActivePort wait stops on it, and it ends as NO BROWSER (exit 2).
+- The gone promise resolves on 'exit' or 'error', so cleanup does not wait on a process that never started. Cleanup runs on every way out (the finally path at the end of the file, and the watchdog).
+- M13 in evidence/lhb-95-mutations.py is your reproduction: CHROME points at site/styles.css. It must give exit 2, a last line starting NO BROWSER, and no lhb95- profile left in the temporary folder. It is red: "rc 2, NO BROWSER: spawn EFTYPE".
+- evidence/lhb-95-m13-red-before.txt is the same run against the round 1 file (git HEAD c984b68). Node crashed on the unhandled 'error' with exit 1, and the temporary folder went from 0 to 1 lhb95- profiles.
+
+Evidence:
+- evidence/lhb-95-widths.txt: RESULT PASS 70 of 70 checks.
+- evidence/lhb-95-mutations.out: RESULT 13 of 13 mutations red (the round 1 run, 12 of 12, is -r1fix.out).
+- evidence/lhb-95-tests.txt: 260 pass, 1 skipped (the browser test). evidence/lhb-95-tests-browser.txt: 2 pass.
+- Claim window: 2026-10-28T20:43:53Z to 20:45:17Z.
+
+Check that the round 2 finding is fixed, and anything else in the diff. If your sandbox cannot create the temporary profile or start Chrome, say which claims you could not run. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

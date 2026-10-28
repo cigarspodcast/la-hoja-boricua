@@ -1,0 +1,10 @@
+✔ LHB-95: la herramienta mide en los anchos de la evidencia de LHB-85 y LHB-93, con la regla de LHB-85 (nunca por debajo, a lo sumo 3 px por encima) (3.2454ms)
+✔ LHB-95: anchos dibujados en Chrome: la foto de la tarjeta contra sizes y el cambio de idioma (solo con LHB_BROWSER=1) (4267.6091ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4360.7397

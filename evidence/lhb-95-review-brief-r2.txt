@@ -1,0 +1,34 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-95-wt (branch lhb-95-widths). The diff below is origin/main..HEAD. This is a TIER 1 review; your round 1 (evidence/lhb-95-review-r1.txt) was VERDICT BLOCK with four findings, and this round confirms the fixes.
+
+Ticket LHB-95. Static text guards over styles.css for rendered widths were tried and failed two review rounds (LHB-92). This ticket replaces them with a check that renders the real page in headless Chrome and measures it (tools/widths.mjs, no npm dependency).
+
+Pinned decisions:
+- Card image: measure the rendered width of the card image at the viewports in evidence/lhb-85-slot-widths.txt (320 to 1440). Assert SIZES_GRID / SIZES_MINI is never below it and at most 3 px over it.
+- Language switch: measure #langSwitch in both languages at 320, 360, 412 and 1024 px. Assert the swap moves its neighbours by under 1 px.
+- The default node --test run stays browser-free; the browser measurement runs with LHB_BROWSER=1.
+
+How each round 1 finding was taken:
+1. Neighbour movement was not measured.
+   - Every child of div.top-actions (the switch, search, menu, avatar) is measured on all four edges (left, top, right, bottom) for each reader, plus the container's own box. The check fails when any control or the container moves 1 px or more on any edge between the Spanish and the English reader.
+   - Mutation M8 is your example: html[lang="en"] .top-actions .icon-btn{transform:translateX(4px)}. It is red: "most: icon-btn 4 px".
+2. Image sampling missed width regressions.
+   - Every .grid .card .ph.has-foto img on the catalog page (33 at the time of measuring) is checked at each of the 14 viewports, each against its own sizes attribute; the check also needs at least 2 photos.
+   - The mini-row card is measured at all 14 viewports, not only 320 and 1024.
+   - M9 narrows cards from the third on (.grid .card:nth-child(n+3) ...); M10 is your 412 px mini-row example. Both are red.
+3. A hidden switch could satisfy the checks.
+   - Readiness and each measurement require the switch to be drawn: computed display not none, visibility visible, and a positive width and height. Every control in top-actions must also be drawn, and there must be at least 4.
+   - M11 is your example, #langSwitch{display:none}. It is red: the run fails because the switch is never drawn.
+4. A stalled browser command could hang and bypass cleanup.
+   - Every DevTools command has a 15 s deadline (CMD_MS). The socket's onclose fails every command still pending. The socket open and the /json fetches are bounded too.
+   - All measurement runs inside one try. The cleanup (close the socket, kill Chrome, wait for its exit up to 3 s, remove the temporary profile with retries) runs on every way out: the end, a failure, and a 90 s watchdog. The watchdog fires before the test's own 120 s spawnSync timeout.
+   - M12 makes the page stall when the viewport reaches 700 px (an infinite loop in a matchMedia listener). It is red: "no answer in 15000 ms: Runtime.evaluate".
+   - The mutation runner counts a run that leaves an lhb95- profile directory in the temp folder as NOT red, so M12 being red also shows the cleanup ran.
+   - A first version of M12 started its loop 2.5 s after load and survived, because no command was still waiting by then. It is kept in evidence/lhb-95-mutations-r1fix-first.out.
+
+Evidence:
+- evidence/lhb-95-widths.txt: RESULT PASS 70 of 70 checks on the merged branch (origin/main with LHB-40 and LHB-58 merged in).
+- evidence/lhb-95-mutations.out: RESULT 12 of 12 mutations red, after the merge. The run before the merge, also 12 of 12, is in -r1fix-premerge.out.
+- evidence/lhb-95-tests.txt: the full suite, 260 pass, 1 skipped (the browser test). evidence/lhb-95-tests-browser.txt: the two LHB-95 tests with LHB_BROWSER=1, 2 pass.
+- Measurement and mutation claim window: 2026-10-28T20:33:24Z to 20:34:49Z.
+
+Check that each round 1 finding is fixed, that the mutations prove the checks can fail, and anything else in the diff. If your shell cannot start Chrome (it could not in round 1, with EPERM on the temporary profile), say which claims you could not run. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
