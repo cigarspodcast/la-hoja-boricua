@@ -6,6 +6,31 @@ INICIO = ('La Hoja Boricua', HOST + '/')
 LUGARES = ('Cigar lounges en Puerto Rico', HOST + '/lugares/')
 ARTESANOS = ('Artesanos de cigarros en Puerto Rico', HOST + '/artesanos/')
 CIGARROS = ('Cigarros hechos por artesanos boricuas', HOST + '/cigarros/')
+# LHB-32: las páginas en inglés viven en /en/<sección>/, gemelas de las páginas en español
+EN = HOST + '/en'
+LUGARES_EN = ('Cigar lounges in Puerto Rico', EN + '/lugares/')
+ARTESANOS_EN = ('Cigar artisans in Puerto Rico', EN + '/artesanos/')
+CIGARROS_EN = ('Cigars made by Puerto Rican artisans', EN + '/cigarros/')
+
+def alternates(tail):
+    # tail: 'lugares/<id>' o 'lugares/'; el español es el x-default
+    es, en = f'{HOST}/{tail}', f'{EN}/{tail}'
+    return (('es', es), ('en', en), ('x-default', es))
+
+def alt_links(tail):
+    return ''.join(f'<link rel="alternate" hreflang="{l}" href="{u}">\n' for l, u in alternates(tail))
+
+def en_head(head):
+    # la cabecera de una página en /en/<sección>/: en inglés y un nivel más abajo
+    out = head.replace('<html lang="es-PR">', '<html lang="en">').replace('href="l.css"', 'href="../lugares/l.css"')
+    out = out.replace('href="../', 'href="../../').replace('>Abrir en la app<', '>Open in the app<')
+    assert out.count('href="../../') >= 2 and 'lang="en"' in out, 'en_head: la cabecera no tiene la forma esperada'
+    return out
+
+def fx(r, k):
+    # el inglés del registro si hay uno, si no el español (como fx() en site/app.js, LHB-30)
+    v = r.get(k + '_en')
+    return v if isinstance(v, str) and v.strip() else r.get(k)
 
 def ld(*objs):
     # un <script> por objeto; el principal va primero

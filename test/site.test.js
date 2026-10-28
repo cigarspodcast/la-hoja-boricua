@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v72'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v73'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -61,25 +61,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
- assert.match(sw,/const VERSION='lhb-v72'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+ assert.match(sw,/const VERSION='lhb-v73'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
 
 test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v72'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v73'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v72'/);
+ assert.match(sw,/const VERSION='lhb-v73'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v72'/);
+ assert.match(sw,/const VERSION='lhb-v73'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
@@ -105,12 +105,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v72'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v73'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v72'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v73'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -118,7 +118,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v72'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v73'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -135,7 +135,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v72/);});
+ assert.match(read('sw.js'),/lhb-v73/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -148,17 +148,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v72'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v73'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v72'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v73'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v72'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v73'/);});
 
-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v72'/);});
+test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v73'/);});
 
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
@@ -838,7 +838,8 @@ test('LHB-51: Perfil ya no guarda ni muestra una foto local de todo el teléfono
  const app=read('app.js');assert.ok(!app.includes("idb.put('perfil'")&&!app.includes("photoURL('perfil')")&&!app.includes('id="pCam"'),'ni se guarda ni se pide la foto local de Perfil');
 });
 test('LHB-42: llms.txt lista cada página del sitemap una vez; robots.txt deja pasar a todos los bots',()=>{
- const sm=[...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]);const tx=read('llms.txt').replace(/\r\n/g,'\n');
+ /* LHB-32: llms.txt lista las páginas en español; sus gemelas en inglés están en el sitemap con hreflang */
+ const sm=[...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]).filter(u=>!u.startsWith('https://lahojaboricua.com/en/'));const tx=read('llms.txt').replace(/\r\n/g,'\n');
  assert.ok(tx.startsWith('# La Hoja Boricua\n\n> '),'título y resumen');
  assert.deepEqual([...tx.matchAll(/^## (.+)$/gm)].map(m=>m[1]),['Secciones','Lugares','Artesanos','Cigarros'],'secciones H2');
  const links=[...tx.matchAll(/^- \[[^\]\n]+\]\((https:\/\/lahojaboricua\.com\/[^)\s]*)\)/gm)].map(m=>m[1]);
@@ -1216,7 +1217,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v72'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v73'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1463,7 +1464,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v72'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v73'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1641,7 +1642,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v72'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v73'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1888,7 +1889,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
- assert.match(read('sw.js'),/const VERSION='lhb-v72'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v73'/,'el shell nuevo se publica con otra versión del caché');
  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
@@ -2189,7 +2190,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\)\}/.test(hj),'guardar y borrar repintan el encabezado');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v72'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v73'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -2472,7 +2473,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
 });
 test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
- assert.match(read('sw.js'),/const VERSION='lhb-v72'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v73'/,'el shell nuevo se publica con otra versión del caché');
  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
@@ -3432,7 +3433,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
 });
 test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v72'/);
+ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v73'/);
  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
@@ -3453,4 +3454,114 @@ test('LHB-88: el nombre accesible del enlace de la marca es su texto visible',()
  assert.ok(!/aria-label=/.test(m[0].match(/^<a[^>]*>/)[0]),'sin aria-label distinto del texto que se ve');assert.match(m[1],/<img [^>]*alt=""/,'el logo es decorativo');
  const txt=m[1].replace(/<\/span><span/g,'</span> <span').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();assert.equal(txt,'La Hoja Boricua Hecho en Borinquen');
  for(const f of ['build_lugares.py','build_cigarros.py','build_artesanos.py']){const t=fs.readFileSync(path.join(__dirname,'..','tools',f),'utf8');assert.ok(t.includes('<a class="brand" href="../">La Hoja <em>Boricua</em></a>'),f+': la marca de las páginas fijas ya se nombra por su texto')}
+});
+/* LHB-32: las páginas fijas en inglés viven en /en/<sección>/, cada una gemela de una en español */
+const EN32={dirs:['lugares','artesanos','cigarros'],sec:{lugares:'Cigar lounges in Puerto Rico',artesanos:'Cigar artisans in Puerto Rico',cigarros:'Cigars made by Puerto Rican artisans'}};
+const esc32=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+const fx32=(r,k)=>{const e=r&&r[k+'_en'];return typeof e==='string'&&e.trim()?e:(r?r[k]:undefined)};
+const html32=d=>fs.existsSync(path.join(S,d))?fs.readdirSync(path.join(S,d)).filter(f=>f.endsWith('.html')).sort():[];
+test('LHB-32: cada página en inglés tiene su gemela en español y al revés; hreflang en ambas direcciones, x-default al español, canonical por idioma',()=>{
+ const H='https://lahojaboricua.com';const alt=(h,l)=>[...h.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)">/g)].filter(m=>m[1]===l).map(m=>m[2]);
+ let pairs=0;
+ for(const d of EN32.dirs){
+  const es=html32(d),en=html32('en/'+d);assert.ok(es.length>1,d);
+  assert.deepEqual(en,es,'las mismas páginas en /en/'+d+'/ que en /'+d+'/');
+  for(const f of es){const id=f.replace(/\.html$/,''),tail=d+'/'+(id==='index'?'':id),uES=H+'/'+tail,uEN=H+'/en/'+tail;
+   for(const [h,lang,canon,w] of [[read(d+'/'+f),'es-PR',uES,'es: '],[read('en/'+d+'/'+f),'en',uEN,'en: ']]){
+    assert.ok(h.includes('<html lang="'+lang+'">'),w+'lang '+tail);
+    assert.deepEqual([...h.matchAll(/<link rel="canonical" href="([^"]+)">/g)].map(m=>m[1]),[canon],w+'canonical de su idioma '+tail);
+    assert.deepEqual(alt(h,'es'),[uES],w+'hreflang es '+tail);assert.deepEqual(alt(h,'en'),[uEN],w+'hreflang en '+tail);assert.deepEqual(alt(h,'x-default'),[uES],w+'x-default al español '+tail);
+    assert.equal((h.match(/hreflang=/g)||[]).length,3,w+'solo esos tres '+tail);
+   }
+   pairs++;}
+ }
+ const n=JSON.parse(readD('places.json')).length+JSON.parse(readD('artesanos.json')).length+JSON.parse(readD('cigarros.json')).length+3;
+ assert.equal(pairs,n,'cada registro y cada índice, en los dos idiomas');
+ assert.deepEqual(fs.readdirSync(path.join(S,'en')).sort(),EN32.dirs.slice().sort(),'en /en/ solo las tres secciones');
+});
+test('LHB-32: sitemap bilingüe, cada página con sus alternativas',()=>{
+ const H='https://lahojaboricua.com';const sm=read('sitemap.xml');
+ assert.ok(sm.includes('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'),'espacio de nombres xhtml');
+ const U=[...sm.matchAll(/<url>([\s\S]*?)<\/url>/g)].map(m=>({loc:(m[1].match(/<loc>([^<]+)<\/loc>/)||[])[1],alt:[...m[1].matchAll(/<xhtml:link rel="alternate" hreflang="([^"]+)" href="([^"]+)"\/>/g)].map(x=>x[1]+' '+x[2])}));
+ const want=[H+'/'],pair=new Map();
+ for(const d of EN32.dirs)for(const f of html32(d)){const id=f.replace(/\.html$/,''),tail=d+'/'+(id==='index'?'':id);want.push(H+'/'+tail,H+'/en/'+tail);pair.set(H+'/'+tail,tail);pair.set(H+'/en/'+tail,tail);}
+ assert.equal(U.length,want.length,'una entrada por página');
+ assert.deepEqual(U.map(u=>u.loc).sort(),want.slice().sort(),'cada página en los dos idiomas, una vez, más el inicio');
+ for(const u of U){if(u.loc===H+'/'){assert.deepEqual(u.alt,[],'el inicio no tiene gemela');continue}
+  const t=pair.get(u.loc);assert.deepEqual(u.alt,['es '+H+'/'+t,'en '+H+'/en/'+t,'x-default '+H+'/'+t],'alternativas de '+u.loc);}
+});
+test('LHB-32: las páginas en inglés usan el inglés de los datos (o el español si falta), enlaces que existen y las reglas de las páginas en español',()=>{
+ const H='https://lahojaboricua.com';const lds=h=>[...h.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map(m=>JSON.parse(m[1]));
+ const data={lugares:JSON.parse(readD('places.json')),artesanos:JSON.parse(readD('artesanos.json')),cigarros:JSON.parse(readD('cigarros.json'))};
+ const APP={lugares:()=>'../../#/lugares',artesanos:id=>id==='index'?'../../#/artesanos':'../../#/a/'+id,cigarros:id=>id==='index'?'../../#/catalogo':'../../#/c/'+id};
+ const SPAN=['<dt>Tipo</dt>','<dt>Dirección</dt>','<dt>Horario</dt>','>Abrir en la app<','Cómo llegar (Google Maps)','>Sitio web<','Confirma horario y reglas','<h2>Más lugares en','<h2>Sus cigarros</h2>','Fortaleza: ','califícalo','Fuentes: ','Torcidos en Puerto Rico','<h2>Tiendas de cigarros</h2>','<h2>Lounges y lugares para fumar</h2>','cigarros en la guía','la guía de cigarros','Mapa y enlaces en','Enlaces y más en','de un artesano boricua','Cigarros artesanales','Artesanos de cigarros en Puerto Rico','Cigar lounges en Puerto Rico','Cigarros hechos por artesanos boricuas'];
+ for(const s of SPAN)assert.ok(EN32.dirs.some(d=>html32(d).some(f=>read(d+'/'+f).includes(s))),'la lista de textos en español sale de las páginas en español: '+s);
+ let n=0,shown=0;
+ for(const d of EN32.dirs)for(const f of html32('en/'+d)){
+  const h=read('en/'+d+'/'+f),id=f.replace(/\.html$/,''),w='en/'+d+'/'+f,canon=H+'/en/'+d+'/'+(id==='index'?'':id);n++;
+  for(const s of SPAN)assert.ok(!h.includes(s),w+': sin texto de plantilla en español: '+s);
+  for(const m of h.matchAll(/(?:href|src)="([^"]+)"/g)){const u=m[1];if(/^https?:/.test(u))continue;
+   const p=path.posix.normalize(path.posix.join('en',d,u.split('#')[0]));const file=(p==='.'||p.endsWith('/'))?path.posix.join(p,'index.html'):p;
+   assert.ok(!p.startsWith('..')&&fs.existsSync(path.join(S,file)),w+': el enlace '+u+' existe');
+   assert.ok(!/\.html$/.test(file)||file.startsWith('en/')||file==='index.html',w+': no enlaza a una página fija en español: '+u);}
+  assert.ok(h.includes('<a class="app" href="'+APP[d](id)+'">Open in the app</a>'),w+': abrir en la app');
+  const all=lds(h),bc=all.filter(o=>o['@type']==='BreadcrumbList');assert.equal(bc.length,1,w);const it=bc[0].itemListElement;
+  assert.equal(it[0].item,H+'/');assert.equal(it[1].item,H+'/en/'+d+'/');assert.equal(it[1].name,EN32.sec[d]);assert.equal(it[it.length-1].item,canon,w+': la última miga es la página');assert.equal(it.length,id==='index'?2:3,w);
+  assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(h)&&!/@[a-z0-9.-]+\.[a-z]{2,}|wa\.me|tel:/i.test(h),w+': sin teléfonos ni correos');
+  if(id==='index')continue;
+  const r=data[d].find(x=>x.id===id);assert.ok(r,w);const main=all[0];assert.equal(main.url,canon,w);assert.equal(main.name,r.nombre,w);
+  const claim=/\b(made|rolled) in (PR|Puerto Rico)/i.test(h);/* como la regla en español: "hecho a mano en PR" (Handmade in PR) en las notas no cuenta */
+  if(d==='lugares'){assert.ok(h.includes('<dd>'+esc32(fx32(r,'tipo'))+'</dd>'),w+': tipo');shown++;if(r.horario){assert.ok(h.includes('<dd>'+esc32(fx32(r,'horario'))+'</dd>'),w+': horario');shown++}assert.ok(!claim,w);}
+  if(d==='artesanos'){const t=(fx32(r,'tipo')||'').trim();if(t){assert.ok(h.includes('<p class="tag">'+esc32(t)),w+': tipo');shown++}
+   assert.equal(claim,!!(r.hecho_en_pr===true&&String(r.hecho_en_pr_fuente||'').trim()),w+': origen solo con fuente');
+   for(const c of data.cigarros.filter(c=>c.artesano_id===r.id))assert.ok(h.includes('href="../cigarros/'+c.id+'.html"'),w+' '+c.id);}
+  if(d==='cigarros'){const no=(fx32(r,'notas')||'').trim(),ca=(fx32(r,'capa')||'').trim();
+   if(no){assert.ok(h.includes('<p>'+esc32(no)+'</p>'),w+': notas');shown++}
+   if(ca){assert.ok(main.additionalProperty.some(p=>p.name==='Wrapper'&&p.value===ca),w+': capa');shown++}
+   assert.equal(main['@type'],'Product');assert.ok(!('offers' in main)&&!/precio|price|\$\s?\d/i.test(JSON.stringify(main)),w+': sin precios en JSON-LD');assert.ok(!claim,w);}
+ }
+ assert.equal(n,data.lugares.length+data.artesanos.length+data.cigarros.length+3,'cada página en inglés contada');
+ assert.ok(shown>=150,'campos traducidos a la vista (tipo y horario de lugares, tipo de artesanos, notas y capa de cigarros; 155 al 2026-10-28): '+shown);
+});
+/* LHB-32 (revisión adversarial): lo que queda de una página en inglés al quitarle los datos que no se traducen
+   (nombres, direcciones, pueblos, vitolas, enlaces), el inglés de los datos y el español que se muestra solo
+   cuando falta el inglés: texto visible, title, meta, alt y los textos del JSON-LD */
+const TR32=['tipo','historia','nota','donde_comprar','capa','notas','horario'];
+const ES32=/(^|[^\p{L}])(de|del|en|y|la|las|el|los|para|con|por|según|un|una|donde|dónde|cigarro|cigarros|artesano|artesanos|artesanales|lugar|lugares|tienda|tiendas|horario|dirección|fumar|guía|más|sus|abrir|ver|hecho|torcidos|confirma|antes|puedes|cómo|llegar|sitio|fuentes|fortaleza|capa|pueblo|tipo)(?=$|[^\p{L}])/iu;
+const leftover32=()=>{const keep=new Set(['La Hoja Boricua','Mi Hoja','Cigars Podcast']);const add=v=>{if(typeof v!=='string'||!v.trim())return;const s=v.trim();keep.add(s);keep.add(s.replace(/\.$/,''));const m=s.match(/^(.+?)\s*\((.+)\)$/);if(m){keep.add(m[1].trim());keep.add(m[2].trim());keep.add(m[1].trim()+', '+m[2].trim())}};
+ for(const f of ['places.json','artesanos.json','cigarros.json'])for(const r of JSON.parse(readD(f)))for(const [k,v] of Object.entries(r)){
+  if(TR32.includes(k)){const e=r[k+'_en'];if(!(typeof e==='string'&&e.trim()))add(v);continue}
+  if(k==='fortaleza')continue;/* Codex ronda 1: suave, media, fuerte se muestran como Mild, Medium, Full */
+  for(const x of [].concat(v))add(x);}
+ const K=[...keep].sort((a,b)=>b.length-a.length);const dec=s=>s.replace(/&quot;/g,'"').replace(/&#x27;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+ return h=>{const strs=[];const walk=o=>{if(typeof o==='string')strs.push(o);else if(o&&typeof o==='object')for(const k of Object.keys(o))if(!['@context','@type','url','item','image','logo','sameAs'].includes(k))walk(o[k])};
+  for(const m of h.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g))walk(JSON.parse(m[1]));
+  const body=h.replace(/<script[\s\S]*?<\/script>/g,' ');for(const m of body.matchAll(/(?:content|alt)="([^"]*)"/g))strs.push(dec(m[1]));
+  strs.push(dec(body.replace(/<head>[\s\S]*?<title>/,'<title>').replace(/<[^>]+>/g,' ')));
+  let t=strs.join(' \n ').replace(/\s+/g,' ');const low=t.toLowerCase();let out='',i=0;
+  const cut=new Array(t.length).fill(false);for(const k of K){const kl=k.toLowerCase();let j=low.indexOf(kl);while(j>=0){for(let x=j;x<j+kl.length;x++)cut[x]=true;j=low.indexOf(kl,j+kl.length)}}
+  for(;i<t.length;i++)out+=cut[i]?' ':t[i];return out.replace(/https?:\/\/\S+/g,' ')}};
+test('LHB-32: en una página en inglés no queda español fuera de los datos que no se traducen (título, meta, alt, texto, JSON-LD)',()=>{
+ const left=leftover32();let n=0,es=0;
+ for(const d of EN32.dirs){for(const f of html32('en/'+d)){const rest=left(read('en/'+d+'/'+f));const m=rest.match(ES32);assert.ok(!m,'en/'+d+'/'+f+': queda español: "'+(m&&rest.slice(Math.max(0,m.index-40),m.index+40).replace(/\s+/g,' '))+'"');n++}
+  for(const f of html32(d))if(ES32.test(left(read(d+'/'+f))))es++;}
+ assert.equal(n,html32('lugares').length+html32('artesanos').length+html32('cigarros').length,'cada página en inglés revisada');
+ assert.equal(es,n,'la misma revisión sí encuentra el español en cada página en español');
+ const P=JSON.parse(readD('places.json')),A=JSON.parse(readD('artesanos.json')),C=JSON.parse(readD('cigarros.json'));const desc=h=>h.match(/<meta name="description" content="([^"]*)">/)[1];
+ for(const p of P)assert.ok(desc(read('en/lugares/'+p.id+'.html')).startsWith(esc32(p.nombre+': '+fx32(p,'tipo').toLowerCase()+' in ')),'meta del lugar con su tipo en inglés '+p.id);
+ for(const a of A){const t=(fx32(a,'tipo')||'').trim();if(t)assert.ok(desc(read('en/artesanos/'+a.id+'.html')).startsWith(esc32(a.nombre+': '+t.toLowerCase()+((a.pueblo||'').trim()?' in ':', Puerto Rico'))),'meta del artesano con su tipo en inglés '+a.id)}
+ /* donde el inglés de un campo es otro, su español no aparece como palabras enteras en la página en inglés del registro */
+ const dec=s=>s.replace(/&quot;/g,'"').replace(/&#x27;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');let pairs=0;
+ for(const [d,rs] of [['lugares',P],['artesanos',A],['cigarros',C]])for(const r of rs){const page=left(read('en/'+d+'/'+r.id+'.html')).replace(/\s+/g,' ').toLowerCase();/* sin nombres ni datos que no se traducen: "Tabacalera" es un tipo y también parte de un nombre */
+  for(const k of TR32){const es=r[k],en=r[k+'_en'];if(!(typeof es==='string'&&es.trim()&&typeof en==='string'&&en.trim()))continue;const s=es.trim().replace(/\s+/g,' ').toLowerCase();if(s===en.trim().replace(/\s+/g,' ').toLowerCase())continue;pairs++;
+   assert.ok(!new RegExp('(^|[^\\p{L}])'+reEsc(s)+'(?=$|[^\\p{L}])','u').test(page),'en/'+d+'/'+r.id+': el español de '+k+' aparece: '+es.slice(0,60))}}
+ assert.ok(pairs>=150,'campos con un inglés distinto revisados: '+pairs);
+ for(const c of C){const ca=(fx32(c,'capa')||'').trim(),h=read('en/cigarros/'+c.id+'.html');if(ca)assert.ok(h.includes('<li>Wrapper: <span>'+esc32(ca)+'</span></li>'),'la capa visible en inglés '+c.id);
+  const st={suave:'Mild',media:'Medium',fuerte:'Full'}[c.fortaleza];if(c.fortaleza){assert.ok(st,'fortaleza conocida '+c.id);assert.ok(h.includes('<li>Strength: <span>'+st+'</span></li>'),'la fortaleza visible en inglés '+c.id);
+   const main=JSON.parse(h.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]);assert.ok(main.additionalProperty.some(p=>p.name==='Strength'&&p.value===st),'la fortaleza del JSON-LD en inglés '+c.id)}}
+});
+test('LHB-32: el service worker no guarda una página de /en/ como el shell ni la precarga',()=>{const sw=read('sw.js');
+ const nav=sw.replace(/\/\*[\s\S]*?\*\//g,'').split(/\r?\n/).filter(l=>l.includes("req.mode==='navigate'")).map(l=>l.replace(/\/\/.*$/,''));
+ assert.equal(nav.length,1,'una regla de navegación');assert.ok(/if\(r\.ok&&!r\.redirected&&[^{]*!url\.pathname\.startsWith\('\/en\/'\)[^{]*\)caches\.open\(VERSION\)\.then\(c=>c\.put\('\.\/',cp\)\)/.test(nav[0]),'/en/ fuera del shell, en la condición que guarda el shell');
+ assert.ok(!/'en\//.test(sw),'/en/ fuera del precache');
 });

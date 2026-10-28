@@ -1,0 +1,59 @@
+LHB-32 adversarial review, 2026-10-28, run on the owner's request by a separate Opus agent (read-only on the worktree;
+its experiments ran in a scratch git worktree and a WSL Ubuntu copy, both removed afterwards). It reviewed the
+uncommitted branch lhb-32-en-pages against d9a247c. Its verdict: BLOCK, for finding 1 only (a launch-timing decision,
+not a code defect). Findings as reported, with the disposition taken on each.
+
+1. BLOCKER (owner decision): merging this launches English publicly, ahead of the plan's own gates.
+   LHB-32 (E4) blocks LHB-36 (E6 "Launch English"), which is labeled owner-gate, is blocked by LHB-33 (E5 "Sergio
+   reviews the English text"), and states "Contract impact: the English version becomes public" and "Not mine: the
+   launch timing (owner)". site/i18n.js keeps ENABLED=false until E6. All 121 translated records are traduccion
+   "borrador". Once main deploys, the 124 English pages are served, listed in sitemap.xml (advertised by robots.txt)
+   and linked by hreflang from every Spanish page, so search engines can find them before LHB-36.
+   Mitigating, verified by the reviewer by sampling: the drafts are faithful; prices and numbers match the Spanish and
+   no "made in PR" claim is added.
+   Re-verified in Linear by the main session the same day: LHB-36 blockedBy [LHB-32, LHB-33], label owner-gate,
+   Contract impact and Not mine as quoted. LHB-32's own ticket says "Contract impact: new public URLs", which the plan
+   did not reconcile with LHB-36.
+   DISPOSITION: not a code change. Raised to the owner as the merge decision on the PR: merging publishes the English
+   drafts before LHB-33 and LHB-36. Merges already wait for the owner's "Merge #N".
+
+2. SHOULD-FIX: the "no Spanish template text" check was an exact-string denylist; 7 of 12 mutations stayed green
+   (place meta description with the Spanish type; visible Wrapper list with the Spanish capa; artisan meta description
+   with the Spanish type; logo alt "Logo de X"; the sw.js /en/ rule kept only in a comment; a reworded Spanish note and
+   a "Tipo:" label; a Spanish intro on en/lugares/index.html; a Spanish JSON-LD description on a place).
+   DISPOSITION: fixed. New test "LHB-32: en una página en inglés no queda español fuera de los datos que no se
+   traducen": it removes from each English page every data value that stays Spanish on purpose (names, addresses,
+   towns, vitolas, links), every English value, and the Spanish of a translated field only where its _en is missing,
+   then requires that no Spanish word is left in the title, meta, alt, visible text or JSON-LD strings; the same scan
+   must find Spanish on every Spanish page. Explicit checks added for the meta description type (places, artisans) and
+   the visible Wrapper line. The service worker test now requires the /en/ rule inside the condition that stores the
+   shell, with comments removed. The reviewer's mutations are M15 to M23 in evidence/lhb-32-mutations.py.
+   On the first run of M15 to M23, M15 (the Spanish "restaurante" in an English place meta description) stayed
+   green: the meta check was a substring test and "restaurant" is inside "restaurante". Fixed: the meta check now
+   matches "<name>: <English type> in", and a new rule requires that wherever a record's English value differs from
+   its Spanish, the Spanish does not appear as whole words on the record's English page (names and other values that
+   stay Spanish removed first). Final run: 23 of 23 mutations red, baseline and restored clean
+   (evidence/lhb-32-mutations.out).
+
+3. NOTE: /en/ itself is a 404 (no site/en/index.html; Pages serves the Spanish 404.html). Nothing links there.
+   DISPOSITION: left as is; out of the ticket's scope. Worth deciding with LHB-36.
+
+4. NOTE: English visitors land in the Spanish-only app ("Open in the app"), direccion has no _en, "Mi Hoja" stays.
+   DISPOSITION: consistent with LHB-30 (fx covers the same fields as app.js) and with ENABLED=false until E6. No change.
+
+5. NOTE: scope grew to cigarros (tools/build_cigarros.py, tools/schema.py helpers); 124 English URLs, sitemap 125 to 249.
+   DISPOSITION: kept. The pinned rule (every Spanish page carries hreflang to its twin) needs English twins for
+   /cigarros/; English artisan pages link to their cigars. Stated in the PR.
+
+6. NOTE (all judged acceptable by the reviewer): hreflang "es" with html lang "es-PR"; x-default equal to the es URL;
+   self-referencing canonical per language; sitemap xhtml:link form, reciprocal, namespace declared; the home page has
+   no twin; llms.txt stays Spanish-only; the sw.js /en/ rule is redundant today but harmless; lhb-v73; offline /en/
+   navigation falls back like the Spanish pages; PRICE_EN would miss "10 dollars" (only price in the data is "$10.85",
+   kept out of JSON-LD on both pages).
+
+Verified by the reviewer by running something: the 124 Spanish pages differ from d9a247c only by 3 added hreflang
+lines each; the generators reproduce site/ exactly in a fresh worktree; on WSL Ubuntu (Python 3.14.4) the CI step
+(three generators, git add --intent-to-add --all, git diff --exit-code) printed LINUX_GENERATOR_CHECK_CLEAN; 220/220
+tests at the time; data coverage (every record has tipo_en, every cigar notas_en, no blank or non-string _en);
+English links, assets, JSON-LD and stale-file cleanup. Reasoning only: Pages serving 404.html for /en/, and the
+indexing risk of the drafts.

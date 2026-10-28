@@ -1,0 +1,4 @@
+LHB-32 Codex round 1 finding: Spanish strength on an English cigar page. Scratch copy: C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua/ddfa8e87-aefe-452e-8857-30bbd7a1c261/scratchpad/mut32
+hoja-boricua English page shows Medium: True
+with Medium replaced by Media (visible and JSON-LD): ℹ fail 1 ['LHB-32: en una página en inglés no queda español fuera de los datos que no se traducen']
+restored: ℹ fail 0

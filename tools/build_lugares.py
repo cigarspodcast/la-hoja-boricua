@@ -10,6 +10,8 @@ P = json.load(open(os.path.join(ROOT, 'data', 'places.json'), encoding='utf-8'))
 e = lambda s: html.escape(str(s or ''), quote=True)
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from schema import ld, crumbs, same_as, INICIO, LUGARES, ARTESANOS, CIGARROS  # LHB-44
+from schema import alt_links, en_head, fx, LUGARES_EN  # LHB-32
+OUT_EN = os.path.join(SITE, 'en', 'lugares')
 SJ = {'Viejo San Juan', 'Santurce', 'Miramar', 'Condado', 'San Juan'}
 
 def municipio(p):
@@ -23,12 +25,12 @@ def pueblo_txt(p):
     m = re.match(r'(.+?)\s*\((.+)\)', p['pueblo'])
     return f'{m.group(1).strip()}, {m.group(2).strip()}' if m else p['pueblo']
 
-def etiqueta(p):
+def etiqueta(p, en=False):
     t = p['tipo'].lower()
     if p['categoria'] == 'lounge':
         if 'lounge' in t or 'cigar bar' in t: return 'Cigar lounge'
-        return 'Dónde fumar cigarros'
-    return 'Tienda de cigarros'
+        return 'Where to smoke cigars' if en else 'Dónde fumar cigarros'
+    return 'Cigar shop' if en else 'Tienda de cigarros'
 
 def schema_type(p):
     t = p['tipo'].lower()
@@ -44,7 +46,7 @@ HEAD = """<!doctype html>
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <link rel="canonical" href="{url}">
-<meta property="og:image" content="HOSTX/og.jpg">
+{alt}<meta property="og:image" content="HOSTX/og.jpg">
 <link rel="stylesheet" href="l.css">
 {ld}</head>
 <body>
@@ -56,12 +58,22 @@ FOOT = """</main>
 </body>
 </html>
 """
+HEAD_EN = en_head(HEAD)
+FOOT_EN = """</main>
+<footer><a href="./">Cigar lounges in Puerto Rico</a> · <a href="../../">La Hoja Boricua</a></footer>
+</body>
+</html>
+"""
 
-def page(p, vecinos):
-    pid = p['id']; url = f'{HOST}/lugares/{pid}'; nom = p['nombre']; pt = pueblo_txt(p); et = etiqueta(p)
-    title = f'{nom} · {et} en {pt}, Puerto Rico | La Hoja Boricua'
-    tipo = p['tipo']; dirc = (p.get('direccion') or '').strip()
-    desc = f'{nom}: {tipo.lower()} en {pt}, Puerto Rico.' + (f' Dirección: {dirc.rstrip(".")}.' if dirc else '') + ' Mapa y enlaces en La Hoja Boricua.'
+def page(p, vecinos, en=False):
+    pid = p['id']; url = f'{HOST}/{"en/" if en else ""}lugares/{pid}'; nom = p['nombre']; pt = pueblo_txt(p); et = etiqueta(p, en)
+    tipo = fx(p, 'tipo') if en else p['tipo']; dirc = (p.get('direccion') or '').strip()
+    if en:
+        title = f'{nom} · {et} in {pt}, Puerto Rico | La Hoja Boricua'
+        desc = f'{nom}: {tipo.lower()} in {pt}, Puerto Rico.' + (f' Address: {dirc.rstrip(".")}.' if dirc else '') + ' Map and links on La Hoja Boricua.'
+    else:
+        title = f'{nom} · {et} en {pt}, Puerto Rico | La Hoja Boricua'
+        desc = f'{nom}: {tipo.lower()} en {pt}, Puerto Rico.' + (f' Dirección: {dirc.rstrip(".")}.' if dirc else '') + ' Mapa y enlaces en La Hoja Boricua.'
     sameas = same_as(p)
     addr = {'@type': 'PostalAddress', 'addressLocality': municipio(p), 'addressRegion': 'PR'}
     if dirc:
@@ -72,22 +84,30 @@ def page(p, vecinos):
     if p.get('lat') is not None and not p.get('lat_lng_aprox'):
         obj['geo'] = {'@type': 'GeoCoordinates', 'latitude': p['lat'], 'longitude': p['lng']}
     if sameas: obj['sameAs'] = sameas
-    h = HEAD.format(title=e(title), desc=e(desc), url=url, ogt=e(f'{nom} · {pt}'), ld=ld(obj, crumbs(INICIO, LUGARES, (nom, url))))
+    hd = HEAD_EN if en else HEAD
+    h = hd.format(title=e(title), desc=e(desc), url=url, alt=alt_links(f'lugares/{pid}'), ogt=e(f'{nom} · {pt}'),
+                  ld=ld(obj, crumbs(INICIO, LUGARES_EN if en else LUGARES, (nom, url))))
     h += f'<h1>{e(nom)}</h1>\n<p class="tag">{e(et)} · {e(pt)}, Puerto Rico</p>\n'
-    verbo = 'disfrutar un cigarro' if p['categoria'] == 'lounge' else 'comprar cigarros'
-    blurb = f'{nom} es un lugar en {pt}, Puerto Rico, donde puedes {verbo}.'
-    h += f'<p>{e(blurb)}</p>\n<dl>\n<dt>Tipo</dt><dd>{e(tipo)}</dd>\n'
-    if dirc: h += f'<dt>Dirección</dt><dd>{e(dirc)}</dd>\n'
-    if p.get('horario'): h += f'<dt>Horario</dt><dd>{e(p["horario"])}</dd>\n'
+    if en:
+        verbo = 'enjoy a cigar' if p['categoria'] == 'lounge' else 'buy cigars'
+        blurb = f'{nom} is a place in {pt}, Puerto Rico, where you can {verbo}.'
+        L = ('Type', 'Address', 'Hours', 'Directions (Google Maps)', 'Website', 'Confirm hours and rules with the place before you go.', 'More places in')
+    else:
+        verbo = 'disfrutar un cigarro' if p['categoria'] == 'lounge' else 'comprar cigarros'
+        blurb = f'{nom} es un lugar en {pt}, Puerto Rico, donde puedes {verbo}.'
+        L = ('Tipo', 'Dirección', 'Horario', 'Cómo llegar (Google Maps)', 'Sitio web', 'Confirma horario y reglas con el lugar antes de ir.', 'Más lugares en')
+    h += f'<p>{e(blurb)}</p>\n<dl>\n<dt>{L[0]}</dt><dd>{e(tipo)}</dd>\n'
+    if dirc: h += f'<dt>{L[1]}</dt><dd>{e(dirc)}</dd>\n'
+    if p.get('horario'): h += f'<dt>{L[2]}</dt><dd>{e(fx(p, "horario") if en else p["horario"])}</dd>\n'
     h += '</dl>\n<p class="links">'
     links = []
-    if p.get('maps'): links.append(f'<a href="{e(p["maps"])}">Cómo llegar (Google Maps)</a>')
-    if p.get('web'): links.append(f'<a href="{e(p["web"])}">Sitio web</a>')
+    if p.get('maps'): links.append(f'<a href="{e(p["maps"])}">{L[3]}</a>')
+    if p.get('web'): links.append(f'<a href="{e(p["web"])}">{L[4]}</a>')
     if p.get('instagram'): links.append(f'<a href="{e(p["instagram"])}">Instagram</a>')
-    h += ' '.join(links) + '</p>\n<p class="note">Confirma horario y reglas con el lugar antes de ir.</p>\n'
+    h += ' '.join(links) + f'</p>\n<p class="note">{L[5]}</p>\n'
     if vecinos:
-        h += f'<h2>Más lugares en {e(municipio(p))}</h2>\n<ul>' + ''.join(f'<li><a href="{v["id"]}.html">{e(v["nombre"])}</a></li>' for v in vecinos) + '</ul>\n'
-    return h + FOOT
+        h += f'<h2>{L[6]} {e(municipio(p))}</h2>\n<ul>' + ''.join(f'<li><a href="{v["id"]}.html">{e(v["nombre"])}</a></li>' for v in vecinos) + '</ul>\n'
+    return h + (FOOT_EN if en else FOOT)
 
 def grupos(lst):
     g = {}
@@ -101,26 +121,39 @@ def grupos(lst):
         s += '</ul>\n'
     return s
 
+def index(L, V, en=False):
+    url = HOST + ('/en' if en else '') + '/lugares/'
+    if en:
+        desc = f'Guide to {len(L)} cigar lounges and places to smoke cigars in Puerto Rico: San Juan, Condado, Old San Juan, Ponce, Caguas and more. Address, map and links for each one.'
+        T = ('Cigar lounges in Puerto Rico', 'Cigar lounges in Puerto Rico · Where to smoke cigars | La Hoja Boricua',
+             f'{len(L)} lounges, bars and places to smoke cigars in Puerto Rico, by town. Further down, {len(V)} shops where you can buy cigars.',
+             'Lounges and places to smoke', 'Cigar shops', 'Cigar artisans in Puerto Rico')
+    else:
+        desc = f'Guía de {len(L)} cigar lounges y lugares para fumar cigarros en Puerto Rico: San Juan, Condado, Viejo San Juan, Ponce, Caguas y más. Dirección, mapa y enlaces de cada uno.'
+        T = ('Cigar lounges en Puerto Rico', 'Cigar lounges en Puerto Rico · Dónde fumar cigarros | La Hoja Boricua',
+             f'{len(L)} lounges, bares y lugares donde fumar cigarros en Puerto Rico, por pueblo. Más abajo, {len(V)} tiendas donde comprar cigarros.',
+             'Lounges y lugares para fumar', 'Tiendas de cigarros', 'Artesanos de cigarros en Puerto Rico')
+    items = {'@context': 'https://schema.org', '@type': 'ItemList', 'name': T[0],
+             'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'url': f'{url}{p["id"]}', 'name': p['nombre']} for i, p in enumerate(L)]}
+    h = (HEAD_EN if en else HEAD).format(title=T[1], desc=e(desc), url=url, alt=alt_links('lugares/'),
+                    ogt=T[0], ld=ld(items, crumbs(INICIO, LUGARES_EN if en else LUGARES)))
+    h += f'<h1>{T[0]}</h1>\n<p>{T[2]}</p>\n'
+    h += f'<h2>{T[3]}</h2>\n' + grupos(L) + f'<h2>{T[4]}</h2>\n' + grupos(V)
+    h += f'<p><a href="../artesanos/">{T[5]}</a></p>\n'
+    return h + (FOOT_EN if en else FOOT)
+
 def build():
-    os.makedirs(OUT, exist_ok=True)
-    for f in os.listdir(OUT):
-        if f.endswith('.html'): os.remove(os.path.join(OUT, f))
     by_mun = {}
     for p in P: by_mun.setdefault(municipio(p), []).append(p)
-    for p in P:
-        vec = [v for v in by_mun[municipio(p)] if v['id'] != p['id']][:3]
-        open(os.path.join(OUT, p['id'] + '.html'), 'w', encoding='utf-8').write(page(p, vec))
-    url = HOST + '/lugares/'
     L = [p for p in P if p['categoria'] == 'lounge']; V = [p for p in P if p['categoria'] != 'lounge']
-    desc = f'Guía de {len(L)} cigar lounges y lugares para fumar cigarros en Puerto Rico: San Juan, Condado, Viejo San Juan, Ponce, Caguas y más. Dirección, mapa y enlaces de cada uno.'
-    items = {'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'Cigar lounges en Puerto Rico',
-             'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'url': f'{HOST}/lugares/{p["id"]}', 'name': p['nombre']} for i, p in enumerate(L)]}
-    h = HEAD.format(title='Cigar lounges en Puerto Rico · Dónde fumar cigarros | La Hoja Boricua', desc=e(desc), url=url,
-                    ogt='Cigar lounges en Puerto Rico', ld=ld(items, crumbs(INICIO, LUGARES)))
-    h += f'<h1>Cigar lounges en Puerto Rico</h1>\n<p>{len(L)} lounges, bares y lugares donde fumar cigarros en Puerto Rico, por pueblo. Más abajo, {len(V)} tiendas donde comprar cigarros.</p>\n'
-    h += '<h2>Lounges y lugares para fumar</h2>\n' + grupos(L) + '<h2>Tiendas de cigarros</h2>\n' + grupos(V)
-    h += '<p><a href="../artesanos/">Artesanos de cigarros en Puerto Rico</a></p>\n'
-    open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(h + FOOT)
+    for out, en in ((OUT, False), (OUT_EN, True)):  # LHB-32: cada página en español y su gemela en inglés
+        os.makedirs(out, exist_ok=True)
+        for f in os.listdir(out):
+            if f.endswith('.html'): os.remove(os.path.join(out, f))
+        for p in P:
+            vec = [v for v in by_mun[municipio(p)] if v['id'] != p['id']][:3]
+            open(os.path.join(out, p['id'] + '.html'), 'w', encoding='utf-8').write(page(p, vec, en))
+        open(os.path.join(out, 'index.html'), 'w', encoding='utf-8').write(index(L, V, en))
     import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from build_artesanos import write_sitemap
     write_sitemap()
