@@ -1,0 +1,11 @@
+M1 one twin at 330 x 165                                       rc 1 fail 1 -> RED
+M2 one twin heavier than its large thumbnail (quality 100)     rc 1 fail 1 -> RED
+M3 one twin missing                                            rc 1 fail 1 -> RED
+M4 one twin left out of the precache                           rc 1 fail 1 -> RED
+M5 the card asks for the large thumbnail as src                rc 1 fail 1 -> RED
+M6 the card without the large candidate in srcset              rc 1 fail 1 -> RED
+M7 the card sizes says 100vw                                   rc 1 fail 1 -> RED
+M8 the gallery back to the large thumbnail                     rc 1 fail 1 -> RED
+M9 thumbS returns its input                                    rc 1 fail 1 -> RED
+baseline after restore: rc 0
+RESULT 9 of 9 mutations red
