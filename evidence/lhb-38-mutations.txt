@@ -1,0 +1,143 @@
+baseline (0, [])
+M1 defaults: una entrada de antes no recibe foto -> ROJO (bien) fail=2
+      LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos
+      LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
+M2 defaults: un publica que no es booleano se queda como llegó -> ROJO (bien) fail=1
+      LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
+M3 defaults: el día por defecto es hoy y no el de la fecha de la cata -> ROJO (bien) fail=3
+      LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
+      LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos
+      LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
+M4 defaults: un día que no existe se acepta -> ROJO (bien) fail=1
+      LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
+M5 okDay: un día que desborda el mes (31 de abril) pasa por válido -> ROJO (bien) fail=2
+      LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; p
+      LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
+M6 defaults: la marca no se corta a 60 -> ROJO (bien) fail=1
+      LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
+M7 normalize: no pasa las entradas por los valores por defecto -> ROJO (bien) fail=2
+      LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos
+      LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo d
+M8 borrador: nace pública -> ROJO (bien) fail=2
+      LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro", foto y pública, todo se guarda en el borrador
+      LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; p
+M9 cata nueva: no suelta la foto del borrador que se deja -> ROJO (bien) fail=3
+      LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo bor
+      LHB-38 (Codex ronda 4): el borrador guardado también cuenta como uso de la foto; lo pendiente se borra en cualquier anotación que funcione
+      LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M10 fotos: otra base que la de app.js -> ROJO (bien) fail=1
+      LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M11 formulario: el día admite fechas futuras -> ROJO (bien) fail=1
+      LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro", foto y pública, todo se guarda en el borrador
+M12 formulario: pide marca aunque el cigarro sea del catálogo -> ROJO (bien) fail=1
+      LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro", foto y pública, todo se guarda en el borrador
+M13 formulario: la casilla pública sale marcada siempre -> ROJO (bien) fail=1
+      LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro", foto y pública, todo se guarda en el borrador
+M14 formulario: un día futuro escrito se acepta -> ROJO (bien) fail=1
+      LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro", foto y pública, todo se guarda en el borrador
+M15 formulario: la marca no se guarda en el borrador -> ROJO (bien) fail=1
+      LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro", foto y pública, todo se guarda en el borrador
+M16 formulario: pública no se guarda en el borrador -> ROJO (bien) fail=1
+      LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro", foto y pública, todo se guarda en el borrador
+M17 foto: se achica a otra medida -> ROJO (bien) fail=1
+      LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M18 foto: acepta lo que no es imagen -> ROJO (bien) fail=1
+      LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M19 foto: la que llega tarde queda guardada -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+      LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M20 foto: cambiarla deja la anterior en el teléfono -> ROJO (bien) fail=1
+      LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M21 foto: quitarla no la borra del teléfono -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+      LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M22 foto: un fallo al guardar la da por puesta -> ROJO (bien) fail=1
+      LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M23 guardar: la entrada no lleva la foto -> ROJO (bien) fail=1
+      LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; p
+M24 guardar: la entrada siempre es privada -> ROJO (bien) fail=1
+      LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; p
+M25 guardar: un día futuro o malo se guarda tal cual -> ROJO (bien) fail=1
+      LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; p
+M26 guardar: un cigarro del catálogo también lleva marca -> ROJO (bien) fail=1
+      LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; p
+M27 guardar: la marca no se corta -> ROJO (bien) fail=1
+      LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; p
+M28 diario: se ve el día en que se anotó y no el que se fumó -> ROJO (bien) fail=1
+      LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
+M29 diario: la marca no se muestra -> ROJO (bien) fail=1
+      LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
+M30 diario: todas las tarjetas llevan foto -> ROJO (bien) fail=1
+      LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
+M31 diario: la casilla pública no refleja el estado -> ROJO (bien) fail=1
+      LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
+M32 diario: la casilla no cambia la entrada -> ROJO (bien) fail=1
+      LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
+M33 diario: cambiarla no marca la entrada como actualizada -> ROJO (bien) fail=1
+      LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
+M34 diario: borrar una entrada deja su foto -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+      LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto
+M35 respaldo: exportar no lleva los campos nuevos -> ROJO (bien) fail=1
+      LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos
+M36 respaldo: importar pierde foto y pública -> ROJO (bien) fail=1
+      LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos
+M37 respaldo: importar no pasa por los valores por defecto -> ROJO (bien) fail=1
+      LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos
+M38 esquema: sube a 2 (no es aditivo) -> ROJO (bien) fail=2
+      LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó
+      LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos
+M39 formulario: el botón de foto no cambia con foto -> ROJO (bien) fail=1
+      LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada 
+M40 foto: gana la que termina primero y no la última escogida -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+M41 foto: quitar no cancela la que se está achicando -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+M42 foto: la nueva reemplaza aunque el teléfono no la pueda anotar -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+M43 foto: quitar con el teléfono lleno borra la foto igual -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+M44 foto: una foto tardía vuelve a pintar la cata sobre otra página -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+      LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo bor
+M45 cata: reemplazar el borrador desde el catálogo deja su foto -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+M46 cata nueva: borra la foto del borrador antes de anotar el nuevo (Codex ronda 2) -> ROJO (bien) fail=3
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+      LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo bor
+      LHB-38 (Codex ronda 4): el borrador guardado también cuenta como uso de la foto; lo pendiente se borra en cualquier anotación que funcione
+M47 cata del catálogo: borra la foto del borrador antes de anotar el nuevo (Codex ronda 2) -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+M48 diario: borra la foto aunque el cambio no se pudo anotar (Codex ronda 2) -> ROJO (bien) fail=10
+      LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra l
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+      LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo bor
+      LHB-38 (Codex ronda 4): el borrador guardado también cuenta como uso de la foto; lo pendiente se borra en cualquier anotación que funcione
+M49 diario: si no se pudo anotar la entrada desaparece de la pantalla (Codex ronda 2) -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una
+M50 foto: se borra aunque una entrada del diario la usa (Codex ronda 3) -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo bor
+M51 foto: lo que no se pudo anotar no queda pendiente (Codex ronda 3) -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo bor
+      LHB-38 (Codex ronda 4): el borrador guardado también cuenta como uso de la foto; lo pendiente se borra en cualquier anotación que funcione
+M52 foto: lo pendiente se borra aunque ya la use una entrada (Codex ronda 3) -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo bor
+M53 foto: lo pendiente nunca se borra (Codex ronda 3) -> ROJO (bien) fail=2
+      LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo bor
+      LHB-38 (Codex ronda 4): el borrador guardado también cuenta como uso de la foto; lo pendiente se borra en cualquier anotación que funcione
+M54 foto: sin cuenta una foto tardía vuelve a pintar el formulario (Codex ronda 3) -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo bor
+M55 foto: el borrador guardado no cuenta como uso de la foto (Codex ronda 4) -> ROJO (bien) fail=1
+      LHB-38 (Codex ronda 4): el borrador guardado también cuenta como uso de la foto; lo pendiente se borra en cualquier anotación que funcione
+C1 estilos: una foto que no se encuentra deja un hueco -> ROJO (bien) fail=1
+      LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó
+C2 estilos: la foto sin tamaño -> ROJO (bien) fail=1
+      LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó
+V1 caché: el shell nuevo con la versión de antes -> ROJO (bien) fail=18
+      LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+restaurado (0, [])
+mutaciones: 58 sobrevivieron o con error: 0

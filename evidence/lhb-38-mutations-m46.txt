@@ -1,0 +1,4 @@
+baseline (0, [])
+M46 cata nueva: borra la foto del borrador antes de anotar el nuevo (Codex ronda 2) -> ROJO (bien) fail=2
+restaurado (0, [])
+mutaciones: 57 sobrevivieron o con error: 0

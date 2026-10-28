@@ -16,11 +16,20 @@ const firstURL=t=>{const m=String(t||'').match(/https?:\/\/[^\s·,]+/);return m?
 const KEY='lhb_mihoja_v1',SCHEMA=1;
 const DEF=()=>({schema:SCHEMA,creado:new Date().toISOString(),humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{cigarros:[],artesanos:[],lugares:[]},ratings:{},respaldo:null,cambios:0,recordarDespues:null,draft:null});
 const MIG={/* cuando cambie el formato: 1:o=>({...o,schema:2}) y KEY pasa a lhb_mihoja_v2 leyendo la v1 */};
+/* LHB-38: toda entrada del diario trae foto (llave de la foto de este teléfono), publica (solo tú la ves hasta que la hagas pública), consumido (el día en que se fumó) y marca (solo si el cigarro es "otro").
+   Las de antes los reciben aquí con su valor por defecto: la fecha de la cata es el día que se fumó. Es aditivo: no cambia el SCHEMA y no toca ningún otro campo. */
+const DAY=/^\d{4}-\d{2}-\d{2}$/;
+const okDay=v=>{if(typeof v!=='string'||!DAY.test(v))return false;const d=new Date(v+'T12:00:00');return !isNaN(d)&&d.getFullYear()===+v.slice(0,4)&&d.getMonth()===+v.slice(5,7)-1&&d.getDate()===+v.slice(8,10)};
+function entryDefaults(e){if(!e||typeof e!=='object'||Array.isArray(e))return e;
+ if(typeof e.foto!=='string')e.foto='';
+ if(typeof e.publica!=='boolean')e.publica=false;
+ if(!okDay(e.consumido))e.consumido=typeof e.fecha==='string'&&okDay(e.fecha.slice(0,10))?e.fecha.slice(0,10):hoy();
+ e.marca=typeof e.marca==='string'?e.marca.trim().slice(0,60):'';return e}
 function normalize(o){const d=DEF();o=o&&typeof o==='object'?o:{};
  for(const k of Object.keys(d))if(o[k]===undefined)o[k]=d[k];
  if(!o.pasaporte||typeof o.pasaporte!=='object')o.pasaporte={};if(!o.favs||typeof o.favs!=='object')o.favs={};
  for(const k of ['artesanos','cigarros','lugares']){if(!o.pasaporte[k]||typeof o.pasaporte[k]!=='object')o.pasaporte[k]={};if(!Array.isArray(o.favs[k]))o.favs[k]=[]}
- if(!Array.isArray(o.humidor))o.humidor=[];if(!Array.isArray(o.diario))o.diario=[];if(!o.ratings||typeof o.ratings!=='object')o.ratings={};return o}
+ if(!Array.isArray(o.humidor))o.humidor=[];if(!Array.isArray(o.diario))o.diario=[];if(!o.ratings||typeof o.ratings!=='object')o.ratings={};o.diario.forEach(entryDefaults);return o}
 function upgrade(o){o=o||{};if(!o.schema)o.schema=1;while(o.schema<SCHEMA&&MIG[o.schema])o=MIG[o.schema](o);return normalize(o)}
 const legacy=k=>{try{const v=localStorage.getItem('vb_'+k);return v==null?null:JSON.parse(v)}catch(e){return null}};
 let ST=null,STRAW=null;
@@ -30,10 +39,11 @@ function load(){const raw=localStorage.getItem(KEY);
  const s=DEF();const f=legacy('favs'),r=legacy('ratings');
  if(Array.isArray(f))s.favs.cigarros=f.filter(x=>typeof x==='string');if(r&&typeof r==='object'&&!Array.isArray(r))s.ratings={...r};
  s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}
+const PEND=[];/* LHB-38: fotos que no se pudieron borrar porque el cambio no se anotó; se borran en la próxima anotación que funcione, la que sea */
 /* LHB-31: cada escritura avisa a la sincronización, que decide tras una pausa si algo de lo que viaja a la cuenta cambió */
 let SYNC=null;
 /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
-function write(s,quiet){if(SYNC&&!SYNC.isolate()){ST=null;toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}if(SYNC&&!quiet)SYNC.changed(prev);return true}
+function write(s,quiet){if(SYNC&&!SYNC.isolate()){ST=null;toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
 /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
 const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};
 window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null});
@@ -327,14 +337,19 @@ const stars=n=>`<span class="stars-ro" role="img" aria-label="${n} de 5 estrella
 function vDiario(){const s=S();
  view.innerHTML=`${subnav('diario')}
  <a class="btn cta" href="#/cata">${VBArt.leaf('#8fd162','btn-leaf')}<span>Nueva cata guiada</span></a>
- ${s.diario.length?s.diario.map(d=>`<article class="dentry"><div class="dhead"><div><div class="t">${esc(d.nombre)}</div><div class="s">${fmtF(d.fecha)}${d.artesano?' · '+esc(d.artesano):''}</div></div>${stars(d.rating||0)}</div>
+ ${s.diario.length?s.diario.map(d=>`<article class="dentry"><div class="dhead"><div><div class="t">${esc(d.nombre)}</div><div class="s">${fmtF(d.consumido||d.fecha)}${d.artesano||d.marca?' · '+esc(d.artesano||d.marca):''}</div></div>${stars(d.rating||0)}</div>
+  ${d.foto?`<div class="dfoto" data-photo="${esc(d.foto)}" role="img" aria-label="Foto de la cata"></div>`:''}<label class="check dpub"><input type="checkbox" data-dpub="${esc(d.id)}" ${d.publica?'checked':''}> Pública</label>
   ${tagChips(d.tags||[])}${d.notas?`<p class="dnote">${esc(d.notas)}</p>`:''}
   <details><summary>Detalle de la cata</summary><dl class="dl">${[['Fortaleza',d.fortaleza],['Cuerpo',d.cuerpo],['Final',d.final],['Capa',d.capa],['Tiro',d.tiro],['Quemada',d.quemada]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}
   ${(d.pasos||[]).filter(p=>(p.tags&&p.tags.length)||p.nota).map(p=>`<dt>${esc(p.paso)}</dt><dd>${esc([(p.tags||[]).map(WN).join(', '),p.nota].filter(Boolean).join(' — '))}</dd>`).join('')}</dl>
   <div class="links">${d.cigarId&&A.cigarById(d.cigarId)?`<a class="lbtn" href="#/c/${encodeURIComponent(d.cigarId)}">Ver cigarro</a>`:''}<button class="lbtn ghost" type="button" data-ddel="${d.id}">Borrar entrada</button></div></details></article>`).join('')
  :`<div class="empty">Tu diario está vacío.<br>Haz una cata guiada y se guarda aquí.</div>`}
  ${backupPanel()}`;
- $$('[data-ddel]').forEach(b=>b.onclick=()=>{if(confirm('¿Borrar esta entrada del diario?')){save(s=>{s.diario=s.diario.filter(x=>x.id!==b.dataset.ddel)});vDiario();bindBackup()}})}
+ $$('[data-dpub]').forEach(b=>b.onchange=()=>{save(s=>{const x=s.diario.find(y=>y.id===b.dataset.dpub);if(x){x.publica=!!b.checked;x.actualizado=new Date().toISOString()}})});
+ $$('[data-ddel]').forEach(b=>b.onclick=()=>{if(confirm('¿Borrar esta entrada del diario?')){const x=S().diario.find(y=>y.id===b.dataset.ddel),s=S(),prev=s.diario;s.diario=prev.filter(y=>y.id!==b.dataset.ddel);s.cambios=(s.cambios||0)+1;
+  /* la foto se borra solo cuando el cambio ya quedó anotado en el teléfono; si no, la entrada y su foto se quedan */
+  if(write(s)){dropFoto(x)}else{s.diario=prev;s.cambios-=1}vDiario();bindBackup()}});
+ A.hydrate(view)}
 /* pasaporte */
 const BADGES=[{id:'primer',n:'Primer sello',d:'Tu primer sello',k:'total',m:1,c:'#8fd162'},
  {id:'catador',n:'Catador',d:'5 cigarros catados',k:'cigarros',m:5,c:'#ffd27a'},
@@ -401,14 +416,23 @@ const PASOS=[
  {id:'cuerpo',t:'Cuerpo',e:'El cuerpo es la densidad y el peso del humo en la boca, de ligero a completo, como la diferencia entre leche descremada y crema. Es distinto de la Fortaleza: un cigarro puede tener mucho cuerpo y Fortaleza media.'},
  {id:'final',t:'Final',e:'El final es lo que se queda en la boca después de soltar el humo: cuánto dura y qué sabor deja. Un buen final es limpio y agradable, sin amargor ni aspereza.',w:'final'},
  {id:'resumen',t:'Tu nota',e:'Ponle tu calificación y una nota corta. Todo se guarda en tu diario, en este teléfono.'}];
-const NEWDRAFT=(cid,nombre)=>({paso:0,cigarId:cid||'',nombre:nombre||'',capa:'',aspecto:[],tiro:'',quemadaIni:'',ceniza:'',quemada:'',largo:'',fortaleza:'',cuerpo:'',rating:0,notaFinal:'',sellar:true,tags:{aroma:[],tercio1:[],tercio2:[],tercio3:[],final:[]},notas:{},inicio:new Date().toISOString()});
+/* LHB-38: la foto de una cata va a la misma base de fotos del teléfono que las demás (vitola-boricua, fotos); app.js la abre para leerlas y hydrate() las pinta con data-photo */
+const FOTOS=(()=>{let p;const open=()=>p||(p=new Promise((res,rej)=>{const r=indexedDB.open('vitola-boricua',1);r.onupgradeneeded=()=>r.result.createObjectStore('fotos');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
+ const tx=(mode,fn)=>open().then(db=>new Promise((res,rej)=>{const t=db.transaction('fotos',mode);const q=fn(t.objectStore('fotos'));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error)}));
+ return{put:(k,v)=>tx('readwrite',s=>s.put(v,k)),del:k=>tx('readwrite',s=>s.delete(k)).catch(()=>{})}})();
+const NEWDRAFT=(cid,nombre)=>({paso:0,cigarId:cid||'',nombre:nombre||'',capa:'',aspecto:[],tiro:'',quemadaIni:'',ceniza:'',quemada:'',largo:'',fortaleza:'',cuerpo:'',rating:0,notaFinal:'',sellar:true,tags:{aroma:[],tercio1:[],tercio2:[],tercio3:[],final:[]},notas:{},foto:'',publica:false,consumido:hoy(),marca:'',inicio:new Date().toISOString()});
 let CD=null;
-function persistDraft(){const s=S();s.draft=CD;write(s)}
-function startCata(cid,nombre){CD=NEWDRAFT(cid,nombre);if(cid||nombre)CD.paso=1;persistDraft();if(location.hash!=='#/cata')location.hash='#/cata';else renderCata()}
+/* LHB-38 (Codex ronda 3): una foto se borra solo si nada la usa (ni el borrador de ahora ni una entrada del diario, por ejemplo una recuperada de un respaldo) y solo cuando el cambio ya quedó anotado; si no se pudo anotar, queda pendiente y se borra en la próxima anotación que sí funcione */
+const refd=k=>(CD&&CD.foto===k)||(S().draft&&S().draft.foto===k)||S().diario.some(e=>e&&e.foto===k);
+const dropFoto=(d,ok)=>{if(!d||!d.foto)return;if(ok===false){PEND.push(d.foto);return}if(!refd(d.foto))FOTOS.del(d.foto)};
+function persistDraft(){const s=S();s.draft=CD;return write(s)}
+/* LHB-38 (Codex ronda 1): sobre la foto de la cata manda la última acción. Cada escoger, quitar, empezar otra cata o cambiar de borrador sube fotoSeq; una foto que termina de achicarse con otro número, o con otro borrador, ya no vale y su archivo se borra */
+let fotoSeq=0;
+function startCata(cid,nombre){fotoSeq++;const old=S().draft;CD=NEWDRAFT(cid,nombre);if(cid||nombre)CD.paso=1;dropFoto(old,persistDraft());if(location.hash!=='#/cata')location.hash='#/cata';else renderCata()}
 function vCata(cid){const dr=S().draft;
  if(cid&&dr&&dr.paso>0&&dr.cigarId!==cid){const c=A.cigarById(cid);view.innerHTML=`<div class="cata"><div class="eyebrow">Cata guiada</div><h1>Tienes una cata <em>a medias</em></h1><p class="lead">${esc(dr.nombre||'Sin nombre')} va por el paso ${dr.paso} de ${PASOS.length-1}.</p><div class="stack"><button class="btn" id="cCont" type="button">Seguir con ${esc(dr.nombre||'esa cata')}</button><button class="btn secondary" id="cNew" type="button">Empezar ${esc(c?c.nombre:'otra')}</button></div></div>`;
   $('#cCont').onclick=()=>{CD=dr;location.hash='#/cata'};$('#cNew').onclick=()=>{startCata(cid,c?c.nombre:'')};return}
- if(cid&&(!dr||dr.cigarId!==cid)){const c=A.cigarById(cid);CD=NEWDRAFT(cid,c?c.nombre:'');CD.paso=1;persistDraft()}else CD=dr?normDraft(dr):NEWDRAFT();renderCata()}
+ if(cid&&(!dr||dr.cigarId!==cid)){fotoSeq++;const c=A.cigarById(cid);CD=NEWDRAFT(cid,c?c.nombre:'');CD.paso=1;dropFoto(dr,persistDraft())}else CD=dr?normDraft(dr):NEWDRAFT();renderCata()}
 const normDraft=d=>{const n=NEWDRAFT();return {...n,...d,tags:{...n.tags,...(d.tags||{})},notas:d.notas||{}}};
 const seg=(key,opts,cur,label)=>`<div class="seg wrap" role="group" aria-label="${label}">${opts.map(o=>`<button type="button" data-set="${key}" data-v="${esc(o)}" aria-pressed="${cur===o}">${esc(o)}</button>`).join('')}</div>`;
 const multi=(key,opts,cur,label)=>`<div class="chips wrapc" role="group" aria-label="${label}">${opts.map(o=>`<button type="button" class="chip" data-tog="${key}" data-v="${esc(o)}" aria-pressed="${cur.includes(o)}">${esc(o)}</button>`).join('')}</div>`;
@@ -427,6 +451,10 @@ function stepBody(p){const c=CD.cigarId&&A.cigarById(CD.cigarId);switch(p.id){
   <dl class="dl">${[['Capa',CD.capa],['Fortaleza',CD.fortaleza],['Cuerpo',CD.cuerpo],['Final',CD.largo]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${tagChips(all)||'<p class="hint">No marcaste sabores en la rueda.</p>'}</div>
   <div class="field"><label>Tu calificación</label><div class="stars" role="radiogroup" aria-label="Calificación">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="${n===CD.rating}" aria-label="${n} estrella${n>1?'s':''}" data-rate="${n}" class="${n<=CD.rating?'on':''}">★</button>`).join('')}</div></div>
   <div class="field"><label for="cnFinal">Nota final</label><textarea id="cnFinal" maxlength="600" rows="3" placeholder="¿Lo volverías a fumar? ¿Con qué lo acompañaste?">${esc(CD.notaFinal)}</textarea></div>
+  <div class="field"><label for="cFecha">Día en que lo fumaste</label><input id="cFecha" type="date" min="2000-01-01" max="${hoy()}" value="${esc(okDay(CD.consumido)&&CD.consumido<=hoy()?CD.consumido:hoy())}"></div>
+  ${!c?`<div class="field"><label for="cMarca">Marca (opcional)</label><input id="cMarca" maxlength="60" value="${esc(CD.marca||'')}" list="cMarcaL"><datalist id="cMarcaL">${[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es')).map(m=>`<option value="${esc(m)}">`).join('')}</datalist></div>`:''}
+  <div class="field"><label id="cFotoT">Tu foto (opcional)</label>${CD.foto?`<div class="dfoto" data-photo="${esc(CD.foto)}" role="img" aria-label="Foto de la cata"></div>`:''}<div class="ob-pic-row"><button class="lbtn" type="button" id="cFotoB">${CD.foto?'Cambiar foto':'Añadir foto'}</button>${CD.foto?'<button class="lbtn ghost" type="button" id="cFotoX">Quitar foto</button>':''}</div><input type="file" accept="image/*" id="cFotoF" class="sr" tabindex="-1"><p class="hint" id="cFotoH" aria-live="polite"></p></div>
+  <label class="check"><input type="checkbox" id="cPublica" ${CD.publica?'checked':''}> Hacer pública esta cata</label><p class="hint">Si no la haces pública, solo tú la ves.</p>
   ${c?`<label class="check"><input type="checkbox" id="cSellar" ${CD.sellar?'checked':''}> Sellar ${esc(c.nombre)} en mi Pasaporte</label>`:''}`}}}
 function renderCata(){const p=PASOS[CD.paso];const n=PASOS.length-1;
  view.innerHTML=`<div class="cata"><div class="cata-top"><a class="back" href="#/mihoja/diario">‹ Diario</a><span class="cata-n">${CD.paso===0?'Empieza aquí':`Paso ${CD.paso} de ${n}`}</span></div>
@@ -443,6 +471,24 @@ function renderCata(){const p=PASOS[CD.paso];const n=PASOS.length-1;
  $$('[data-note]').forEach(t=>t.oninput=()=>{CD.notas[t.dataset.note]=t.value;persistDraft()});
  $$('[data-rate]').forEach(b=>b.onclick=()=>{CD.rating=+b.dataset.rate;persistDraft();$$('[data-rate]').forEach(x=>{x.classList.toggle('on',+x.dataset.rate<=CD.rating);x.setAttribute('aria-checked',+x.dataset.rate===CD.rating)})});
  const nf=$('#cnFinal');if(nf)nf.oninput=()=>{CD.notaFinal=nf.value;persistDraft()};const sl=$('#cSellar');if(sl)sl.onchange=()=>{CD.sellar=sl.checked;persistDraft()};
+ /* LHB-38: día, marca, pública y foto de la cata; la foto se achica y se guarda en el teléfono al escogerla, y una foto que llega cuando el borrador ya no es ese se borra */
+ const cf=$('#cFecha');if(cf)cf.onchange=()=>{const v=okDay(cf.value)&&cf.value<=hoy()?cf.value:hoy();CD.consumido=v;cf.value=v;persistDraft()};
+ const cm=$('#cMarca');if(cm)cm.oninput=()=>{CD.marca=cm.value;persistDraft()};
+ const cp=$('#cPublica');if(cp)cp.onchange=()=>{CD.publica=cp.checked;persistDraft()};
+ const fb=$('#cFotoB'),ff=$('#cFotoF');if(fb&&ff){fb.onclick=()=>ff.click();
+  ff.onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;const h=$('#cFotoH');
+   if(!/^image\//.test(f.type)){if(h)h.textContent='Escoge una imagen.';return}
+   const mine=CD,my=++fotoSeq,key='dfoto_'+uid('');let ok=false;
+   try{const b=await A.resizeImage(f,1100,.8);await FOTOS.put(key,b);ok=true}catch(x){}
+   if(my!==fotoSeq||CD!==mine){if(ok)FOTOS.del(key);return}
+   const here=/^#\/cata/.test(location.hash)&&!!acct.get(),hint=m=>{const x=here&&$('#cFotoH');if(x)x.textContent=m};
+   if(!ok){hint('No pudimos guardar la foto. Intenta otra vez.');return}
+   const old=CD.foto;CD.foto=key;
+   if(!persistDraft()){CD.foto=old;FOTOS.del(key);hint('No hay espacio para guardar la foto.');return}
+   dropFoto({foto:old});
+   if(here){const y=scrollY;renderCata();scrollTo(0,y)}}}
+ const fx=$('#cFotoX');if(fx)fx.onclick=()=>{const old=CD.foto;fotoSeq++;CD.foto='';if(!persistDraft()){CD.foto=old;return}dropFoto({foto:old});const y=scrollY;renderCata();scrollTo(0,y)};
+ A.hydrate(view);
  const cc=$('#cCig'),co=$('#cOtro');if(cc){cc.onchange=()=>{if(cc.value)co.value=''};co.oninput=()=>{if(co.value)cc.value=''}}
  const go=d=>{CD.paso=Math.max(0,Math.min(n,CD.paso+d));persistDraft();renderCata();scrollTo(0,0)};
  $('#cNext').onclick=()=>{if(CD.paso===0){const v=cc.value,o=co.value.trim();if(!v&&!o){toast('Escoge o escribe el cigarro');return}const c=v&&A.cigarById(v);CD.cigarId=c?c.id:'';CD.nombre=c?c.nombre:o;go(1);return}
@@ -450,7 +496,7 @@ function renderCata(){const p=PASOS[CD.paso];const n=PASOS.length-1;
  const pv=$('#cPrev');if(pv)pv.onclick=()=>go(-1);const sk=$('#cSkip');if(sk)sk.onclick=()=>{CD.paso=n;persistDraft();renderCata();scrollTo(0,0)}}
 function saveCata(){if(!CD.rating){toast('Ponle de 1 a 5 estrellas');return}const c=CD.cigarId&&A.cigarById(CD.cigarId);
  const pasos=PASOS.slice(1,-1).map(p=>({paso:p.t,tags:p.w?CD.tags[p.w]:[],nota:(CD.notas[p.id]||'').trim()}));
- const e={id:uid('d'),fecha:new Date().toISOString(),cigarId:c?c.id:null,nombre:CD.nombre,artesano:c?A.artisanName(c):'',rating:CD.rating,notas:(CD.notaFinal||'').trim(),tags:allTags(),fortaleza:CD.fortaleza,cuerpo:CD.cuerpo,final:CD.largo,capa:CD.capa,tiro:CD.tiro,quemada:CD.quemada,aspecto:CD.aspecto,pasos,origen:'cata',actualizado:new Date().toISOString()};
+ const e={id:uid('d'),fecha:new Date().toISOString(),cigarId:c?c.id:null,nombre:CD.nombre,artesano:c?A.artisanName(c):'',rating:CD.rating,notas:(CD.notaFinal||'').trim(),tags:allTags(),fortaleza:CD.fortaleza,cuerpo:CD.cuerpo,final:CD.largo,capa:CD.capa,tiro:CD.tiro,quemada:CD.quemada,aspecto:CD.aspecto,pasos,origen:'cata',foto:CD.foto||'',publica:!!CD.publica,consumido:okDay(CD.consumido)&&CD.consumido<=hoy()?CD.consumido:hoy(),marca:c?'':String(CD.marca||'').trim().slice(0,60),actualizado:new Date().toISOString()};
  save(s=>{s.diario.unshift(e);if(c){s.ratings[c.id]=CD.rating;if(CD.sellar&&!s.pasaporte.cigarros[c.id])s.pasaporte.cigarros[c.id]=hoy()}s.draft=null});CD=null;
  toast('Cata guardada en tu diario ✓');location.hash='#/mihoja/diario'}
 /* ---------- maridajes (guía general, sin marcas) ---------- */

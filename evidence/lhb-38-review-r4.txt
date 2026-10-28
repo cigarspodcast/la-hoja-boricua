@@ -1,0 +1,100 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-38-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a17bfb-3398-7b41-8d94-6a9eafe55e5b
+--------
+user
+HARD RULES: You are an independent code reviewer. You REVIEW AND CHANGE NOTHING: edit no file, make no commit, run no git command that writes. Load no skill, plugin or template. Do not print file contents back. Your FIRST and ONLY message is the answer, ending with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+REPO: C:\Users\Owner\lhb-38-wt (a git worktree of La Hoja Boricua, vanilla JS PWA, Mi Hoja data lives in the phone's localStorage and photos in IndexedDB). Branch lhb-38-passport. Review the slice: git diff dab3764..HEAD (dab3764 is main). Tests: node --test test/site.test.js (the LHB-44 test needs Python and fails in your sandbox; not part of this slice). The tracker is not readable by you, so the contract is quoted in full.
+
+TICKET LHB-38 (P1 Passport entries: photo, public toggle, date, brand). Scope: the cata form and diary view in site/hoja.js, site/sw.js, tests (I also added a few lines to site/styles.css for the photo; say so if you think that is a defect). Contract impact: optional fields added to a diary record: foto (photo key), publica (boolean, default false), consumido (date, default today), marca (only when the cigar is "Otro"). Additive within schema 1: normalize() fills defaults; respaldo export and import carry the new fields. Pinned: Sergio's tasting steps, tags, fortaleza, cuerpo, final, capa, tiro, quemada and aspecto fields are unchanged, no new categories; the public toggle is on the form and on each diary card. Not mine: photo storage in the cloud (LHB-35); nothing is sent to a server here. Proof asked: tests that old records load with defaults and that export and import keep the new fields, each seen failing first (evidence/lhb-38-mutations.py, output evidence/lhb-38-mutations.txt; 57 mutations, all red (56 in one run plus M46, rewritten because it had become equivalent, in evidence/lhb-38-mutations-m46.txt); suite 128/128 in evidence/lhb-38-tests.txt).
+TIER 1 review: one round. Look for real defects only, ranked: (1) data loss or corruption of existing diary records or backups (normalize/entryDefaults, import merge, export), idempotence, invalid dates such as 30 February; (2) the form: the day field (no future dates), marca only for an Otro cigar, the draft persisted in localStorage including old drafts without the new fields, the photo flow (resize, IndexedDB put, replace, remove, a photo arriving after the draft changed, orphaned photos, failure paths); (3) the diary card: public toggle persistence, delete removing the photo, XSS in anything rendered (esc usage, data-photo attribute); (4) the service worker version bump and test pins; (5) tests that cannot fail; (6) no em-dash character in added lines (an escape sequence is fine). Mark anything you could not verify as NOT VERIFIED.
+ANSWER FORMAT. Numbered findings, each BLOCKING or ADVISORY, file and symbol, the concrete input or state that fails, expected versus actual. Then the single VERDICT line.
+
+
+ROUND 2. Round 1 (BLOCK) gave three BLOCKING findings and one ADVISORY, quoted shortened. (1) "photo replacement / persistDraft: with a persisted draft photo, replacing it while localStorage writes fail deletes the original blob while localStorage still references its key." (2) "photo completion handler: select a photo, navigate to the diary before resizing finishes; completion calls renderCata() and replaces the diary with the tasting form." (3) "photo selection / removal: select A then B with A finishing last, A overwrites B and deletes B's blob; a pending replacement also restores a photo after removal." (4, advisory) "vCata: attach a photo, return to step zero, start a catalog tasting; the replacement path bypasses startCata cleanup and leaves an unreferenced blob."
+Fixes: persistDraft now returns whether the write worked; a replacement keeps the old key and deletes the new blob if the draft cannot be written, and only deletes the old blob after the new key is saved; removal likewise keeps the photo if the change cannot be written. A module counter fotoSeq is raised by every pick, removal, new cata and draft replacement; a photo that finishes with another number or another draft is discarded and its blob deleted, so the last action wins. The re-render after a photo only happens when location.hash is still #/cata; otherwise the photo is attached to the draft quietly. vCata drops the abandoned draft's photo when it replaces the draft. New test 'LHB-38 (Codex ronda 1)...' reproduces each of your four cases; mutations M40 to M45 cover them and M9, M19 to M22 were re-anchored. Please re-check the whole slice again for anything else and report only real defects; if nothing blocks, give VERDICT: PASS.
+
+
+ROUND 3. Round 2 (BLOCK) gave one BLOCKING finding, quoted shortened: "startCata / vCata and vDiario deletion: photo-loss protection remains incomplete. Persist a draft or diary entry referencing an existing photo, make localStorage writes throw, then replace the draft or confirm diary deletion. Expected: retain the blob until the record change persists. Actual: the blob is deleted while localStorage retains its key." and one ADVISORY about a literal U+2014 inside evidence/lhb-38-review-r1.txt (your own captured transcript; raw review evidence is kept as captured, no application code or test has the character).
+Fix: startCata and vCata now delete the abandoned draft's photo only if persistDraft() succeeded for the new draft; the diary delete builds the new list, writes it, and only if the write succeeded deletes the photo; if the write fails the entry list and the change counter are restored. New test 'LHB-38 (Codex ronda 2)...' reproduces the three paths with a full phone and the success path; mutations M46 to M49 cover them and M9, M34, M45 were re-anchored (52 mutations, all red). Please re-check the whole slice again for anything else and report only real defects; if nothing blocks, give VERDICT: PASS.
+
+
+ROUND 4. Round 3 (BLOCK) gave two BLOCKING findings and one ADVISORY, shortened. (1) "dropFoto / startCata: a rated draft with photo K, writes fail, the cata is saved, a backup exported, writes restored, the backup imported, then another cata started: abandoning the draft deletes K's blob while the saved diary entry still references it." (2) "photo completion handler: start resizing a photo, receive a Clerk sign-out while at #/cata; completion calls renderCata() and replaces the sign-in gate with the editable form; it never checks the account." (3, advisory) "a failed replacement overwrote the in-memory draft reference, so a later successful write leaves the old blob unreferenced."
+Fixes: dropFoto(d, ok) now deletes a photo only when nothing uses it (refd: the current draft or any diary entry) and, when the change could not be written (ok false), queues the key in PEND; persistDraft flushes PEND after any successful write, again skipping keys in use. The photo completion handler re-renders only when location.hash is #/cata AND acct.get() (the saved account, cleared on sign-out) is present. Every deletion path (replace, remove, new cata, catalog cata, diary delete) goes through dropFoto. New test 'LHB-38 (Codex ronda 3)...' reproduces the three cases; mutations M50 to M54 cover them and eight earlier ones were re-anchored. Please re-check the whole slice again and report only real defects; if nothing blocks, give VERDICT: PASS.
+
+
+TOOL FALLBACK. The shell tool of your sandbox often fails to start on this host ("Failed to create unified exec process: helper_unknown_error: setup refresh had errors"). That is a transport problem, not a verdict: do not stop there. Use the JavaScript tool (node_repl) instead: require('fs') to read files, require('child_process').execFileSync to run git (for example execFileSync('git',['diff','dab3764..HEAD'],{cwd:'C:\\Users\\Owner\\lhb-38-wt'})) and to run the tests (execFileSync(process.execPath,['--test','test/site.test.js'],{cwd:...})). An attempt that read nothing is void: only if the JavaScript tool also fails, say exactly what you could not read, mark it NOT VERIFIED and answer VERDICT: BLOCK.
+
+2026-10-27T06:10:26.214232Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-27T06:10:29.115541Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] I’ll re-check the full slice and the prior failure paths without changing files.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git status --short; git diff --stat dab3764..HEAD; git diff dab3764..HEAD -- site/hoja.js site/sw.js site/styles.css' in C:\Users\Owner\lhb-38-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-27T06:10:33.626366Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The suite passed 127 of 128 tests; only the excluded LHB-44 test failed. I’m checking the photo cleanup paths beyond the supplied regressions.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Photo cleanup still misses a persisted draft when the cata has not been opened. I reproduced a successful diary deletion that removes the blob while the saved draft retains its key. I also reproduced an orphaned photo after a failed draft replacement followed by a successful diary write.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. [Certain] **BLOCKING**, [site/hoja.js:371](/C:/Users/Owner/lhb-38-wt/site/hoja.js:371), `refd / dropFoto`: the persisted draft is ignored when `CD` is null. Reproduced: attach photo K, make writes fail, save the cata, export, reload, restore writes, import the backup, then delete the diary entry before opening cata. Expected: retain K because the persisted draft still references it. Actual: K’s blob is deleted while the saved draft retains K.
+
+2. [Certain] **ADVISORY**, [site/hoja.js:373](/C:/Users/Owner/lhb-38-wt/site/hoja.js:373), `persistDraft / PEND`: replace a photographed draft while writes fail, restore writes, then toggle a diary card’s public checkbox. Expected: the successful write clears the abandoned photo. Actual: cleanup runs only through `persistDraft`; the blob remains unreferenced, and reloading loses its cleanup queue.
+
+[Certain] CONCUR with the prior corrections for diary references and sign-out rendering; their regression tests pass. The CSS additions support the requested photo feature.
+
+[Certain] Suite result: 127 passed; only the excluded LHB-44 test failed. Native-browser IndexedDB behavior and mutation re-execution are NOT VERIFIED.
+
+VERDICT: BLOCK
+tokens used
+79,151
+1. [Certain] **BLOCKING**, [site/hoja.js:371](/C:/Users/Owner/lhb-38-wt/site/hoja.js:371), `refd / dropFoto`: the persisted draft is ignored when `CD` is null. Reproduced: attach photo K, make writes fail, save the cata, export, reload, restore writes, import the backup, then delete the diary entry before opening cata. Expected: retain K because the persisted draft still references it. Actual: K’s blob is deleted while the saved draft retains K.
+
+2. [Certain] **ADVISORY**, [site/hoja.js:373](/C:/Users/Owner/lhb-38-wt/site/hoja.js:373), `persistDraft / PEND`: replace a photographed draft while writes fail, restore writes, then toggle a diary card’s public checkbox. Expected: the successful write clears the abandoned photo. Actual: cleanup runs only through `persistDraft`; the blob remains unreferenced, and reloading loses its cleanup queue.
+
+[Certain] CONCUR with the prior corrections for diary references and sign-out rendering; their regression tests pass. The CSS additions support the requested photo feature.
+
+[Certain] Suite result: 127 passed; only the excluded LHB-44 test failed. Native-browser IndexedDB behavior and mutation re-execution are NOT VERIFIED.
+
+VERDICT: BLOCK
