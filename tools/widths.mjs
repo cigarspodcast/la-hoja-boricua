@@ -43,14 +43,12 @@ const ORIGIN = 'http://127.0.0.1:' + server.address().port;
 
 if (!existsSync(CHROME)) { console.log('NO BROWSER at ' + CHROME); server.close(); process.exit(2); }
 const prof = await mkdtemp(join(tmpdir(), 'lhb95-'));
-const chrome = spawn(CHROME, ['--headless=new', '--remote-debugging-port=0', '--user-data-dir=' + prof, '--no-first-run', '--no-default-browser-check',
-  '--hide-scrollbars', '--force-device-scale-factor=1', 'about:blank'], { stdio: 'ignore' });
-const gone = new Promise(r => chrome.once('exit', r));
-let ws = null;
-// the browser and its profile go on every way out: the end, a failure, the watchdog
+// the browser starts inside the protected block below; a launch that fails (spawn throws, or an 'error' event) is NO BROWSER and still cleans up
+let chrome = null, gone = Promise.resolve(), launchFail = null, ws = null;
+// the browser and its profile go on every way out: the end, a failure, a failed launch, the watchdog
 const cleanup = async () => {
   try { ws && ws.close(); } catch (e) {}
-  try { chrome.kill(); } catch (e) {}
+  try { chrome && chrome.kill(); } catch (e) {}
   server.close();
   await Promise.race([gone, new Promise(r => setTimeout(r, 3000))]);
   for (let i = 0; i < 10; i++) { try { rmSync(prof, { recursive: true, force: true }); break; } catch (e) { await new Promise(r => setTimeout(r, 300)); } }
@@ -62,11 +60,18 @@ const out = [], bad = [];
 const check = (ok, line) => { out.push((ok ? 'PASS ' : 'FAIL ') + line); if (!ok) bad.push(line); };
 let code = 0;
 try {
+  try {
+    chrome = spawn(CHROME, ['--headless=new', '--remote-debugging-port=0', '--user-data-dir=' + prof, '--no-first-run', '--no-default-browser-check',
+      '--hide-scrollbars', '--force-device-scale-factor=1', 'about:blank'], { stdio: 'ignore' });
+  } catch (e) { console.log('NO BROWSER: ' + e.message); code = 2; throw null; }
+  gone = new Promise(r => { chrome.once('exit', r); chrome.once('error', r); });
+  chrome.once('error', e => { launchFail = e; });
   let port = null;
-  for (let i = 0; i < 100 && !port; i++) {
+  for (let i = 0; i < 100 && !port && !launchFail; i++) {
     await new Promise(r => setTimeout(r, 100));
     try { port = readFileSync(join(prof, 'DevToolsActivePort'), 'utf8').split(/\r?\n/)[0]; } catch (e) {}
   }
+  if (launchFail) { console.log('NO BROWSER: ' + launchFail.message); code = 2; throw null; }
   if (!port) { console.log('NO BROWSER: DevToolsActivePort never appeared'); code = 2; throw null; }
   const get = async u => (await fetch('http://127.0.0.1:' + port + u, { signal: AbortSignal.timeout(CMD_MS) })).json();
 

@@ -27,10 +27,11 @@ def profiles():
     return {n for n in os.listdir(tempfile.gettempdir()) if n.startswith('lhb95-')}
 
 
-def run():
+def run(env=None):
     # a run that leaves its browser profile behind did not clean up: that is a failure whatever the tool printed
     before = profiles()
-    r = subprocess.run(['node', TOOL, os.path.join(D, 'site')], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120)
+    r = subprocess.run(['node', TOOL, os.path.join(D, 'site')], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120,
+                       env=dict(os.environ, **env) if env else None)
     fails = [l for l in r.stdout.splitlines() if l.startswith('FAIL ')]
     left = profiles() - before
     if left:
@@ -68,6 +69,12 @@ for name, mut in M:
     finally:
         for rel, b in snap.items():
             open(os.path.join(D, rel), 'wb').write(b)
+# M13 (Codex r2): the browser path is a file that is not a program, so the launch fails after the profile exists.
+# It must end as NO BROWSER (exit 2) and leave no profile behind.
+rc, fails, last = run({'CHROME': os.path.join(D, 'site', 'styles.css')})
+ok = rc == 2 and last.startswith('NO BROWSER') and not any(l.startswith('LEFT BEHIND') for l in fails)
+red += ok
+print('%-48s rc %d, %s%s -> %s' % ('M13 Codex r2: the browser cannot launch', rc, last, ' (profile left)' if fails else '', 'RED' if ok else 'SURVIVED'), flush=True)
 rc, fails, last = run()
 print('baseline after restore: rc %d, %s' % (rc, last))
-print('RESULT %d of %d mutations red' % (red, len(M)))
+print('RESULT %d of %d mutations red' % (red, len(M) + 1))

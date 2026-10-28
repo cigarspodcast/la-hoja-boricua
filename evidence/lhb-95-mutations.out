@@ -38,5 +38,6 @@ M11 Codex r1: the switch hidden by CSS           rc 1 fails 1 -> RED
     FAIL the run itself: never: the switch drawn for Spanish
 M12 Codex r1: the page stalls (a command never answers) rc 1 fails 1 -> RED
     FAIL the run itself: no answer in 15000 ms: Runtime.evaluate
+M13 Codex r2: the browser cannot launch          rc 2, NO BROWSER: spawn EFTYPE -> RED
 baseline after restore: rc 0, RESULT PASS 70 of 70 checks
-RESULT 12 of 12 mutations red
+RESULT 13 of 13 mutations red
