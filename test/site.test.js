@@ -2353,7 +2353,7 @@ test('LHB-82 (Codex ronda 1): una foto pendiente que usa la copia apartada de ot
  const h=HOJA38({ls:{lhb_mihoja_v1:JSON.stringify(base),[park]:JSON.stringify({schema:1,humidor:[],ratings:{},diario:[],draft:{foto:'dfoto_park'}})}});
  h.store.set('dfoto_park',{blob:1});h.API.dropFoto({foto:'dfoto_park'},false);
  h.API.save();await tick();assert.equal(h.store.has('dfoto_park'),true,'la copia apartada de otra cuenta todavía la usa');
- h.ls.delete(park);h.API.save();await tick();assert.equal(h.store.has('dfoto_park'),false,'sin nadie que la use, la próxima anotación la borra');
+ h.ls.set(park,JSON.stringify({schema:1,humidor:[],ratings:{},diario:[],draft:{foto:'dfoto_park2'}}));h.API.save();await tick();assert.equal(h.store.has('dfoto_park'),false,'otra llave que solo empieza igual no la retiene (Codex ronda 2)');
 });
 test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto',async()=>{
  const now='2026-10-27T15:00:00.000Z';

@@ -40,8 +40,8 @@ function load(){const raw=localStorage.getItem(KEY);
  if(Array.isArray(f))s.favs.cigarros=f.filter(x=>typeof x==='string');if(r&&typeof r==='object'&&!Array.isArray(r))s.ratings={...r};
  s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}
 const PEND=[];/* LHB-38: fotos que no se pudieron borrar porque el cambio no se anotó; se borran en la próxima anotación que funcione, la que sea */
-/* LHB-82: la copia de otra cuenta que la sincronización apartó (KEY_de_<cuenta>) también cuenta como uso; si no se puede leer, se queda por si acaso */
-const parkedRef=k=>{try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n&&n.startsWith(KEY+'_de_')&&String(localStorage.getItem(n)).includes(k))return true}return false}catch(e){return true}};
+/* LHB-82: la copia de otra cuenta que la sincronización apartó (KEY_de_<cuenta>) también cuenta como uso (la llave exacta, entre comillas); si no se puede leer, se queda por si acaso */
+const parkedRef=k=>{try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n&&n.startsWith(KEY+'_de_')&&String(localStorage.getItem(n)).includes(JSON.stringify(k)))return true}return false}catch(e){return true}};
 /* LHB-31: cada escritura avisa a la sincronización, que decide tras una pausa si algo de lo que viaja a la cuenta cambió */
 let SYNC=null;
 /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
