@@ -3922,31 +3922,48 @@ test('LHB-87 (Codex r3): con la lista abierta, si el mapa cambia de alto la list
  assert.ok(app.includes("map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));"),'cada cambio de tamaño del mapa la acomoda');
  assert.ok(app.includes("==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)})"),'la lista abierta queda guardada');
 });
-/* LHB-92 (de LHB-85 Codex r2): SIZES_GRID y SIZES_MINI salen de medir estas reglas; si cambian, hay que volver a medir */
-test('LHB-92: las reglas de la tarjeta que dieron las medidas de sizes siguen como se midieron',()=>{
- const css=read('styles.css').replace(/\/\*[\s\S]*?\*\//g,'');const SEL=new Set(['.view','.grid','.card','.card .ph','.card .ph img,.card .ph svg','.mini-row','.mini-row .card','.card .ph.has-foto','.card .ph.has-foto img']);
- const got=[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m=>[m[1].trim(),m[2]]).filter(([s])=>SEL.has(s)).map(([s,b])=>s+'{'+b+'}');
- assert.deepEqual(got,[
-  '.view{flex:1;padding:14px calc(var(--sar) + 16px) calc(var(--tab-h) + var(--sab) + 28px) calc(var(--sal) + 16px);outline:none;max-width:760px;width:100%;margin:0 auto}',
-  '.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}',
-  '.grid{grid-template-columns:repeat(3,minmax(0,1fr))}',
-  '.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-decoration:none;display:flex;flex-direction:column;position:relative}',
-  '.card .ph{aspect-ratio:4/3;background:var(--card2);overflow:hidden}',
-  '.card .ph img,.card .ph svg{width:100%;height:100%;object-fit:cover;display:block}',
-  '.mini-row{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}',
-  '.mini-row .card{flex:none;width:140px}',
-  '.card{background:var(--card);padding:7px 7px 0}',
-  '.card .ph{border:5px solid var(--photo);border-bottom-width:12px;border-radius:3px;box-shadow:0 3px 10px rgba(0,0,0,.35);filter:sepia(.14) saturate(1.06) contrast(1.02)}',
-  '.card .ph.has-foto{background:#fff;filter:none;display:flex;align-items:center;justify-content:center}',
-  '.card .ph.has-foto img{object-fit:contain;width:100%;height:auto;aspect-ratio:2/1}'],'cambió una regla de la tarjeta: volver a medir (evidence/lhb-85-slot-widths.txt) y poner al día SIZES_GRID / SIZES_MINI');
+/* LHB-92 (Codex r1): las reglas de la hoja con su @media, y cuáles fijan el ancho de algo: la clase en el sujeto del selector, la regla suelta de un tipo (a, img, *...) o ese tipo dentro de la clase */
+const cssRules=css=>{css=css.replace(/\/\*[\s\S]*?\*\//g,'');const out=[],st=[];let i=0,pre='';
+ while(i<css.length){const ch=css[i];
+  if(ch==='{'){const p=pre.trim().replace(/\s+/g,' ');pre='';if(p.startsWith('@')){st.push(p);i++;continue}const e=css.indexOf('}',i);out.push({media:st.join(' '),sel:p,body:css.slice(i+1,e).trim()});i=e+1;continue}
+  if(ch==='}'){st.pop();pre='';i++;continue}
+  pre+=ch;i++}
+ return out};
+const BOX92=/(^|;)\s*(width|min-width|max-width|padding(-[a-z-]+)?|border(-[a-z-]+)?|margin(-[a-z-]+)?|box-sizing|display|flex(-[a-z-]+)?|grid(-[a-z-]+)?|gap|column-gap|aspect-ratio|position|font(-[a-z-]+)?|letter-spacing|word-spacing|white-space|text-transform|zoom|transform)\s*:/;
+const widthRules=(css,CLS,TYPES)=>{const subj=s=>s.trim().split(/\s*[>+~]\s*|\s+/).pop();
+ const hits=s=>{const u=subj(s),t=(u.match(/^(\*|[a-z]+)/)||[])[1],bare=/^(\*|[a-z]+)(:[\w-]+(\([^)]*\))?)*$/.test(s.trim());return CLS.test(u)||(TYPES.includes(t)&&(bare||CLS.test(s)))};
+ return cssRules(css).filter(r=>BOX92.test(r.body)&&r.sel.split(',').some(hits)).map(r=>(r.media?r.media+' ':'')+r.sel+'{'+r.body+'}')};
+/* LHB-92 (de LHB-85 Codex r2; Codex r1 de LHB-92): SIZES_GRID y SIZES_MINI salen de medir estas reglas; si cambia cualquiera que fije un ancho de la tarjeta, hay que volver a medir */
+test('LHB-92: las reglas que fijan el ancho de la tarjeta siguen como se midieron, con su @media',()=>{
+ assert.deepEqual(widthRules(read('styles.css'),/\.(card|ph|grid|mini-row|view)(?![\w-])/,['*','a','img','svg','div']),[
+  "*{box-sizing:border-box}",
+  "img{max-width:100%;display:block}",
+  ".view{flex:1;padding:14px calc(var(--sar) + 16px) calc(var(--tab-h) + var(--sab) + 28px) calc(var(--sal) + 16px);outline:none;max-width:760px;width:100%;margin:0 auto}",
+  ".grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
+  "@media(min-width:620px) .grid{grid-template-columns:repeat(3,minmax(0,1fr))}",
+  ".card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-decoration:none;display:flex;flex-direction:column;position:relative}",
+  ".card .ph{aspect-ratio:4/3;background:var(--card2);overflow:hidden}",
+  ".card .ph img,.card .ph svg{width:100%;height:100%;object-fit:cover;display:block}",
+  ".mini-row{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}",
+  ".mini-row::-webkit-scrollbar{display:none}",
+  ".mini-row .card{flex:none;width:140px}",
+  ".card{background:var(--card);padding:7px 7px 0}",
+  ".card .ph{border:5px solid var(--photo);border-bottom-width:12px;border-radius:3px;box-shadow:0 3px 10px rgba(0,0,0,.35);filter:sepia(.14) saturate(1.06) contrast(1.02)}",
+  ".card:nth-child(odd) .ph{transform:rotate(-.6deg)}",
+  ".card:nth-child(even) .ph{transform:rotate(.6deg)}",
+  ".card .ph.has-foto{background:#fff;filter:none;display:flex;align-items:center;justify-content:center}",
+  ".card .ph.has-foto img{object-fit:contain;width:100%;height:auto;aspect-ratio:2/1}"],'cambió una regla que fija el ancho de la tarjeta: volver a medir (evidence/lhb-85-slot-widths.txt) y poner al día SIZES_GRID / SIZES_MINI');
 });
-/* LHB-92 (de LHB-93 Codex r1): ninguna otra regla le cambia el ancho reservado al selector de idioma */
-test('LHB-92: solo las dos reglas de LHB-93 fijan el ancho del selector de idioma',()=>{
- const css=read('styles.css').replace(/\/\*[\s\S]*?\*\//g,'');
- const w=[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(m=>/\.lang-switch\b/.test(m[1])&&/(^|;)\s*(min-width|width|max-width|padding|font-size|font-family|letter-spacing|border)\s*:/.test(m[2])).map(m=>m[1].trim()+'{'+m[2]+'}');
- assert.equal(w.length,2,'reglas que tocan el ancho: '+w.join(' | '));
- assert.ok(/^\.lang-switch\{height:36px;min-width:74px;/.test(w[0])&&w[1]==='.lang-switch{min-width:40px;padding:0 10px}','las de LHB-93, en ese orden');
- assert.ok(w.every(r=>!r.includes('!important')),'sin !important');
+/* LHB-92 (de LHB-93 Codex r1; Codex r1 de LHB-92): ninguna regla nueva o cambiada le mueve el ancho al selector de idioma */
+test('LHB-92: las reglas que fijan el ancho del selector de idioma son las de LHB-93, completas',()=>{
+ assert.deepEqual(widthRules(read('styles.css'),/\.(lang-switch|ls-long|ls-short)(?![\w-])/,['*','button','span']),[
+  "*{box-sizing:border-box}",
+  "button,input,select,textarea{font:inherit;color:inherit}",
+  ".lang-switch{height:36px;min-width:74px;padding:0 12px;border-radius:18px;background:var(--card);border:1px solid var(--line);color:var(--cream);font:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;cursor:pointer}",
+  ".lang-switch .ls-short{display:none}",
+  "@media (max-width:399px) .lang-switch{min-width:40px;padding:0 10px}",
+  "@media (max-width:399px) .lang-switch .ls-long{display:none}",
+  "@media (max-width:399px) .lang-switch .ls-short{display:inline}"],'cambió una regla que fija el ancho del selector: volver a medir (evidence/lhb-93-switch-widths.txt) y poner al día los min-width');
 });
 test('LHB-39 (Codex ronda 2): el foco anotado al llegar una sincronización no se usa después de irse a otra página ni con otra cuenta',()=>{
  const win={};const g=HOJA38({D:CAT39,api:'dKeepFocus',win,ls:{lhb_mihoja_v1:JSON.stringify(DOC39())}});g.API.vDiario();

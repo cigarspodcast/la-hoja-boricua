@@ -1,0 +1,9 @@
+M16 Codex r1: grid breakpoint 620px to 720px     rc 0 fail 0 -> SURVIVED
+M17 Codex r1: .grid .card padding appended       rc 0 fail 0 -> SURVIVED
+M18 Codex r1: .lang-switch padding-left appended rc 0 fail 0 -> SURVIVED
+M19 Codex r1: min-width:0 inside the LHB-93 rule rc 0 fail 0 -> SURVIVED
+M20 a bare a rule with padding                   rc 0 fail 0 -> SURVIVED
+M21 letter-spacing on .ls-long                   rc 0 fail 0 -> SURVIVED
+M22 a media-wrapped card padding                 rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 3 (the LHB-92 tests and the LHB-87 r3 test)
+RESULT 1 of 7 mutations red

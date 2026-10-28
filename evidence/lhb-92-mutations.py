@@ -40,6 +40,13 @@ M = [
     ('M13 switch: min-width:0 !important appended', lambda: append('site/styles.css', '\n.lang-switch{min-width:0!important}\n')),
     ('M14 switch: a later padding override', lambda: append('site/styles.css', '\n.top-actions .lang-switch{padding:0 4px}\n')),
     ('M15 fitPop updates before the new height', lambda: edit('site/app.js', '{p.options.maxHeight=popMaxH(map.getSize().y);p.update()}', '{p.update();p.options.maxHeight=popMaxH(map.getSize().y)}')),
+    ('M16 Codex r1: grid breakpoint 620px to 720px', lambda: edit('site/styles.css', '@media(min-width:620px){.grid{', '@media(min-width:720px){.grid{')),
+    ('M17 Codex r1: .grid .card padding appended', lambda: append('site/styles.css', '\n.grid .card{padding:27px 27px 0}\n')),
+    ('M18 Codex r1: .lang-switch padding-left appended', lambda: append('site/styles.css', '\n.lang-switch{padding-left:80px}\n')),
+    ('M19 Codex r1: min-width:0 inside the LHB-93 rule', lambda: edit('site/styles.css', '.lang-switch{height:36px;min-width:74px;', '.lang-switch{height:36px;min-width:74px;min-width:0;')),
+    ('M20 a bare a rule with padding', lambda: append('site/styles.css', '\na{padding:2px}\n')),
+    ('M21 letter-spacing on .ls-long', lambda: append('site/styles.css', '\n.top-actions .ls-long{letter-spacing:.2em}\n')),
+    ('M22 a media-wrapped card padding', lambda: append('site/styles.css', '\n@media (max-width:399px){.card{padding:2px}}\n')),
 ]
 ONLY = sys.argv[3].split(',') if len(sys.argv) > 3 else None
 if ONLY:
@@ -59,5 +66,5 @@ for name, mut in M:
             open(os.path.join(D, rel), 'wb').write(b)
 r = subprocess.run(['node', '--test', '--test-timeout=60000', '--test-name-pattern=' + PAT, 'test/site.test.js'], cwd=D, capture_output=True, text=True, encoding='utf-8', errors='replace')
 n = re.findall(r'^ℹ pass (\d+)', r.stdout, re.M)
-print('baseline after restore: rc %d pass %s (the 3 LHB-92 tests and the LHB-87 r3 test)' % (r.returncode, n[-1] if n else '?'))
+print('baseline after restore: rc %d pass %s (the LHB-92 tests and the LHB-87 r3 test)' % (r.returncode, n[-1] if n else '?'))
 print('RESULT %d of %d mutations red' % (red, len(M)))
