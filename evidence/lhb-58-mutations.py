@@ -29,9 +29,16 @@ M = [
     ('N15 people rows do not link to the profile', H, '<a class="person-a" href="#/u/${encodeURIComponent(p.handle)}">', '<a class="person-a">'),
     ('N16 Perfil does not mount the profile', APP, " if(ac)EXT.profileOwn(ac);", ""),
     ('N17 no #/u/ route', APP, "u:()=>R.persona(id),", ""),
-    ('N18 your Resenas count taken from the server', H, "{...r.body.counts,resenas:d.resenas.length}", "r.body.counts"),
+    ('N18 your Resenas count waits for the server (Codex round 1)', H, "pfCounts({...(o.counts||{}),resenas:d.resenas.length},true,o.a.handle)", "pfCounts(o.counts,true,o.a.handle)"),
     ('N19 Editar perfil and the follow slot swapped', H, "<div class=\"pf-act\">${own?", "<div class=\"pf-act\">${!own?"),
     ('N20 the own view fetches another handle', H, "const r=await pfFetch(a.handle);const now=acct.get();", "const r=await pfFetch('x'+a.handle);const now=acct.get();"),
+    ('N21 a sync does not repaint your Perfil (Codex round 1)', H, "else if(location.hash==='#/mihoja/perfil')pfOwnSync()", ""),
+    ('N22 a sync resets the open tab (Codex round 1)', H, "o.cur=pfCur();pfOwnPaint(o)}", "o.cur='resenas';pfOwnPaint(o)}"),
+    ('N23 a sync repaints for another account (Codex round 1)', H, "if(!now||now.sub!==o.a.sub)return;o.cur=", "o.cur="),
+    ('N24 no keyboard on the tabs (Codex round 1)', H, "b.onkeydown=e=>{", "b.onkeydownX=e=>{"),
+    ('N25 every tab in the tab order (Codex round 1)', H, "b.setAttribute('tabindex',b.dataset.pftab===t?'0':'-1')", "b.setAttribute('tabindex','0')"),
+    ('N26 the arrow keys do not move the focus (Codex round 1)', H, "if(el&&el.focus)el.focus()", ""),
+    ('N27 the arrow keys stop at the ends (Codex round 1)', H, "order[(j+order.length)%order.length]", "order[Math.min(Math.max(j,0),order.length-1)]"),
 ]
 PAT = 'LHB-58|LHB-51|LHB-85: la tarjeta|LHB-27: cada clave'
 def run():

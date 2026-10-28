@@ -3012,7 +3012,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  assert.ok(/function write\(s,quiet\)\{if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
- assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
+ assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else if(location.hash==='#/mihoja/perfil')pfOwnSync()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
  assert.ok(h.includes("listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})}"),'el navegador avisa al volver la red y al ver la página');
  assert.ok(h.includes("setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)}"),'lo que llega se guarda por write, solo si la copia sigue igual a la que se leyó, y devuelve si se pudo');
  assert.ok(ix.indexOf('sync.js')>0&&ix.indexOf('sync.js')<ix.indexOf('hoja.js'),'sync.js carga antes que hoja.js');
@@ -3870,7 +3870,7 @@ test('LHB-39 (Codex ronda 1): con el filtro de pública o privada, cambiar la ca
  g.ctx.document.activeElement={id:'dqQ'};g.ctx.X.dKeepFocus();g.ctx.document.activeElement=null;g.API.vDiario();assert.deepEqual(seen,['focus',7],'vuelve el foco, con el cursor al final');
  seen.length=0;g.API.vDiario();assert.deepEqual(seen,[],'lo anotado vale una sola vez');
  g.els.dList.focus=()=>seen.push('lista');g.ctx.document.activeElement={id:'dList'};g.ctx.X.dKeepFocus();g.ctx.document.activeElement=null;g.API.vDiario();assert.deepEqual(seen,[],'si el foco estaba en otra parte (aunque esa parte vuelva a estar en la página), no se pone');
- const hj=read('hoja.js');assert.ok(hj.includes("contains('sheet-on')){dKeepFocus();A.route()}}"),'la sincronización anota el foco antes de pasar por la puerta');
+ const hj=read('hoja.js');assert.ok(hj.includes("contains('sheet-on')){dKeepFocus();A.route()}else if("),'la sincronización anota el foco antes de pasar por la puerta');
 });
 /* LHB-93: el selector de idioma sale en el primer pintado; wire() no le cambia el ancho */
 test('LHB-93: el selector sale en el primer pintado con el texto en español; wire() no le cambia el ancho',()=>{
@@ -4110,7 +4110,7 @@ function HOJA58(opts){opts=opts||{};
  const code=cut('const MES=','try{navigator.storage')+cut('const WHEEL=','const KW=')+src.match(/const tagChips=.*\n/)[0]+src.match(/const stars=n=>.*\n/)[0]+cut('/* ---------- perfil, pasaporte primero (LHB-58)','/* ---------- fin del perfil (LHB-58)');
  const ls=new Map(Object.entries(opts.ls||{}));const localStorage={getItem:k=>ls.has(k)?ls.get(k):null,setItem:(k,v)=>{ls.set(k,String(v))},removeItem:k=>{ls.delete(k)},key:i=>[...ls.keys()][i]??null,get length(){return ls.size}};
  const els={},stubs={};let html='';
- const mkEl=id=>{let h='';const attrs={};return {id,get innerHTML(){return h},set innerHTML(v){h=v},setAttribute(k,v){attrs[k]=String(v)},getAttribute:k=>attrs[k]??null}};
+ const mkEl=id=>{let h='';const attrs={};return {id,get innerHTML(){return h},set innerHTML(v){h=v},setAttribute(k,v){attrs[k]=String(v)},getAttribute:k=>attrs[k]??null,focus(){this.focused=(this.focused||0)+1}}};
  const all=()=>html+Object.values(els).map(e=>e.innerHTML).join('');
  /* pintar la vista otra vez quita sus nodos: un nodo viejo queda suelto, como en el navegador */
  const view={set innerHTML(h){html=h;for(const k of Object.keys(els))delete els[k]},get innerHTML(){return html}};
@@ -4128,7 +4128,7 @@ function HOJA58(opts){opts=opts||{};
   acct:{get:()=>acctBox.v},sheet:(h,l)=>sheets.push([h,l]),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,
   localStorage,navigator:{},location:loc,setTimeout:()=>0,JSON,Date};
  vm.createContext(ctx);
- vm.runInContext(code+';this.X={vPersona,profileOwn,pfPanel,pfHead,myResenas,pfEntry,isPublica,S}',ctx);
+ vm.runInContext(code+';this.X={vPersona,profileOwn,pfOwnSync:typeof pfOwnSync=="function"?pfOwnSync:undefined,pfPanel,pfHead,myResenas,pfEntry,isPublica,S}',ctx);
  return {X:ctx.X,ctx,els,stubs,fetches,sheets,log,loc,acctBox,html:()=>html,all,setReply:f=>{reply=f},tab:t=>stubs['pftab:'+t]};
 }
 const API58JSON=()=>({profile:{handle:'bea',display_name:'Bea S.',bio:'Fumo los domingos <script>x()</script>',favorite_brand:'Hoja Boricua',avatar_key:AV},
@@ -4199,4 +4199,39 @@ test('LHB-58: tu Perfil con otra cuenta en el mismo teléfono: lo que llega tard
  assert.ok(hs.includes('<a class="person-a" href="#/u/${encodeURIComponent(p.handle)}">'),'buscar personas lleva a su perfil');
  /* ningún texto del perfil vive escrito: todo sale de i18n.js en los dos idiomas */
  const T=I18N().T;for(const k of ['h.pfResenas','h.pfSeguidores','h.pfSiguiendo','h.pfMarcaFav','h.pfFotoDe','h.pfFavPrivados','h.pfNoDisponible','h.pfError'])assert.ok(T.es[k]&&T.en[k],k);
+});
+test('LHB-58 (Codex ronda 1): tu Perfil abierto se pinta otra vez cuando llega una sincronización, en la misma pestaña; con otra cuenta, no; la sincronización lo llama solo en Perfil',async()=>{
+ const sinPublicas={...DOC58(),diario:[{id:'d2',nombre:'Privada Mía',publica:false,consumido:'2026-05-02'}]};
+ const H=HOJA58({ls:{lhb_mihoja_v1:JSON.stringify(sinPublicas)},reply:()=>({status:200,body:{profile:{handle:'ana',bio:'Mi bio'},counts:{followers:2,following:5}}})});
+ H.ctx.view.innerHTML='<div class="pf-own" id="pfOwn"></div>';await H.X.profileOwn({sub:'u_a',handle:'ana',name:'Ana S.'});
+ assert.ok(H.all().includes('<li><b>0</b><span>Reseñas</span></li>'));H.tab('humidor').onclick();
+ /* llega de otro teléfono una cata pública: la Mi Hoja de este teléfono ya la tiene */
+ H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...sinPublicas,diario:[{id:'d9',nombre:'Llegó Pública',publica:true,consumido:'2026-06-01'},...sinPublicas.diario]}));
+ H.X.pfOwnSync();
+ assert.ok(H.all().includes('<li><b>1</b><span>Reseñas</span></li>'),'el número de reseñas se pone al día');assert.ok(H.all().includes('<p class="pf-bio">Mi bio</p>')&&H.all().includes('<li><b>2</b><span>Seguidores</span></li>'),'lo que llegó del servidor se queda');
+ assert.equal(H.tab('humidor').getAttribute('aria-selected'),'true','sigue en la pestaña que tenía abierta');assert.ok(H.els.pfPanel.innerHTML.includes('Robusto del humidor'));
+ H.tab('resenas').onclick();assert.ok(H.els.pfPanel.innerHTML.includes('Llegó Pública'),'y la reseña nueva está');
+ /* otra cuenta entró: no se pinta lo de la anterior; sin Perfil abierto: nada */
+ const antes=H.all();H.acctBox.v={sub:'u_b',handle:'beto'};H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify(DOC58()));H.X.pfOwnSync();assert.equal(H.all(),antes,'otra cuenta: no se repinta');
+ H.ctx.view.innerHTML='<div id="otra"></div>';H.acctBox.v={sub:'u_a',handle:'ana'};H.X.pfOwnSync();assert.equal(H.html(),'<div id="otra"></div>');
+ const hs=read('hoja.js').replace(/\r\n/g,'\n');assert.ok(hs.includes("{dKeepFocus();A.route()}else if(location.hash==='#/mihoja/perfil')pfOwnSync()}});"),'la sincronización repinta tu Perfil abierto');
+});
+test('LHB-58 (Codex ronda 1): si /api/u/<tu @> falla, tu número de reseñas sale igual de tu Mi Hoja; seguidores y siguiendo esperan',async()=>{
+ for(const reply of [()=>({status:503,body:{error:'unavailable'}}),()=>new Error('sin red')]){
+  const H=HOJA58({ls:{lhb_mihoja_v1:JSON.stringify(DOC58())},reply});H.ctx.view.innerHTML='<div class="pf-own" id="pfOwn"></div>';await H.X.profileOwn({sub:'u_a',handle:'ana',name:'Ana S.'});
+  assert.ok(H.all().includes('<li><b>1</b><span>Reseñas</span></li>'),'tu reseña pública cuenta');assert.ok(H.all().includes('<li><b>·</b><span>Seguidores</span></li>')&&H.all().includes('<li><b>·</b><span>Siguiendo</span></li>'));
+  assert.ok(H.all().includes('<b>Pública Mía</b>'),'y la pestaña sigue')}
+});
+test('LHB-58 (Codex ronda 1): las pestañas se manejan con el teclado: flechas, Inicio y Fin cambian la pestaña y el foco; solo la abierta está en el orden del tabulador',async()=>{
+ const H=HOJA58({reply:()=>({status:200,body:API58JSON()})});await H.X.vPersona('bea');const h=H.all();
+ assert.ok(h.includes('data-pftab="resenas" aria-controls="pfPanel" aria-selected="true" tabindex="0"')&&h.includes('data-pftab="pasaporte" aria-controls="pfPanel" aria-selected="false" tabindex="-1"'),'tabindex de entrada');
+ const key=(t,k)=>{let prevented=false;H.tab(t).onkeydown({key:k,preventDefault(){prevented=true}});return prevented};
+ const sel=()=>['resenas','pasaporte','favoritos'].filter(t=>H.tab(t).getAttribute('aria-selected')==='true');const tabi=()=>['resenas','pasaporte','favoritos'].map(t=>H.tab(t).getAttribute('tabindex'));
+ assert.ok(key('resenas','ArrowRight'));assert.deepEqual(sel(),['pasaporte']);assert.deepEqual(tabi(),['-1','0','-1']);assert.equal(H.els['pfT-pasaporte'].focused,1,'el foco va a la pestaña nueva');
+ key('pasaporte','End');assert.deepEqual(sel(),['favoritos']);key('favoritos','ArrowRight');assert.deepEqual(sel(),['resenas'],'después de la última vuelve a la primera');
+ key('resenas','ArrowLeft');assert.deepEqual(sel(),['favoritos'],'antes de la primera, la última; el Humidor de otra persona no está en la vuelta');key('favoritos','Home');assert.deepEqual(sel(),['resenas']);
+ assert.equal(key('resenas','a'),false,'otra tecla no hace nada');assert.deepEqual(sel(),['resenas']);
+ /* en tu vista la vuelta incluye el Humidor */
+ const O=HOJA58({ls:{lhb_mihoja_v1:JSON.stringify(DOC58())},reply:()=>({status:503,body:{}})});O.ctx.view.innerHTML='<div class="pf-own" id="pfOwn"></div>';await O.X.profileOwn({sub:'u_a',handle:'ana'});
+ O.tab('resenas').onkeydown({key:'End',preventDefault(){}});assert.equal(O.tab('humidor').getAttribute('aria-selected'),'true');
 });

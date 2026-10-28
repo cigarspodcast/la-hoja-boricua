@@ -181,7 +181,7 @@ SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage
  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),toast,
  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
- onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}}});
+ onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else if(location.hash==='#/mihoja/perfil')pfOwnSync()}});
 SYNC.start();
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
@@ -346,14 +346,14 @@ const myResenas=s=>(s.diario||[]).filter(isPublica).map(pfEntry).map((e,i)=>[e,i
 const pfNum=v=>Number.isInteger(v)&&v>=0?v:0;
 const pfIni=p=>{const w=String(p.display_name||'').split(/\s+/).filter(Boolean);const f=s=>[...s][0]||'';return (w.length?f(w[0])+(w.length>1?f(w[w.length-1]):''):f(p.handle||'')).toUpperCase()};
 /* conteos y botón: c null mientras llegan; tu vista lleva Editar perfil (LHB-55), la de otra persona deja el lugar del botón de seguir (LHB-60) */
-const pfCounts=(c,own,h)=>{const n=k=>c?pfNum(c[k]):'·';
+const pfCounts=(c,own,h)=>{const n=k=>c&&c[k]!=null?pfNum(c[k]):'·';
  return `<ul class="pf-counts" id="pfCounts"><li><b>${n('resenas')}</b><span>${tt('h.pfResenas')}</span></li><li><b>${n('followers')}</b><span>${tt('h.pfSeguidores')}</span></li><li><b>${n('following')}</b><span>${tt('h.pfSiguiendo')}</span></li></ul>
  <div class="pf-act">${own?`<a class="btn" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div>`}</div>`};
 const pfAbout=p=>`${p.bio?`<p class="pf-bio">${esc(p.bio)}</p>`:''}${p.favorite_brand?`<p class="pf-fav">${tt('h.pfMarcaFav')}: <b>${esc(p.favorite_brand)}</b></p>`:''}`;
 /* el encabezado de otra persona: su foto de Clerk o sus iniciales */
 function pfHead(p,c){const pic=typeof p.avatar_key==='string'&&p.avatar_key.startsWith(PF_IMG)?`<img src="${esc(p.avatar_key)}" alt="${tt('h.pfFotoDe',{a:'@'+esc(p.handle)})}" width="88" height="88">`:`<span aria-hidden="true">${esc(pfIni(p))}</span>`;
  return `<section class="pf-head"><div class="pf-pic" id="pfPic">${pic}</div><div class="pf-id"><h1 class="pf-n">${esc(p.display_name||('@'+p.handle))}</h1><div class="pf-h">@${esc(p.handle)}</div>${pfAbout(p)}</div></section>${pfCounts(c,false,p.handle)}`}
-const pfTabsHTML=(own,cur)=>`<div class="pf-tabs" role="tablist" aria-label="${tt('pf.title')}">${pfTabsFor(own).map(t=>`<button type="button" role="tab" id="pfT-${t}" data-pftab="${t}" aria-controls="pfPanel" aria-selected="${t===cur}">${tt(PF_NAME[t])}</button>`).join('')}</div><div id="pfPanel" role="tabpanel" aria-labelledby="pfT-${cur}"></div>`;
+const pfTabsHTML=(own,cur)=>`<div class="pf-tabs" role="tablist" aria-label="${tt('pf.title')}">${pfTabsFor(own).map(t=>`<button type="button" role="tab" id="pfT-${t}" data-pftab="${t}" aria-controls="pfPanel" aria-selected="${t===cur}" tabindex="${t===cur?0:-1}">${tt(PF_NAME[t])}</button>`).join('')}</div><div id="pfPanel" role="tabpanel" aria-labelledby="pfT-${cur}"></div>`;
 const pfResCard=(e,i)=>`<button type="button" class="pf-res" data-pfres="${i}"><b>${esc(e.nombre||tt('h.pfCigarro'))}</b>${e.rating?stars(e.rating):''}${e.consumido?`<small>${esc(fmtF(e.consumido))}</small>`:''}</button>`;
 const pfResSheet=e=>`<h2 class="sheet-h">${esc(e.nombre||tt('h.pfCigarro'))}</h2><p class="rsub">${[e.marca,e.artesano,e.consumido?fmtF(e.consumido):''].filter(Boolean).map(esc).join(' · ')}</p>${e.rating?stars(e.rating):''}${tagChips(e.tags)}${e.notas?`<p class="pf-notas">${esc(e.notas)}</p>`:''}`;
 /* el contenido de una pestaña, solo de d: { own, resenas, sellos, favorite_brand } y, para tu vista, favs (cigarros del catálogo) y humidor de tu Mi Hoja */
@@ -366,9 +366,12 @@ function pfPanel(tab,d){
  return ''}
 /* las pestañas: cambiar de una a otra no vuelve a pedir nada; una pestaña que no es de esta vista (el Humidor de otra persona) no se pinta */
 function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resenas';const panel=$('#pfPanel');if(!panel)return;panel.innerHTML=pfPanel(t,d);panel.setAttribute('aria-labelledby','pfT-'+t);
-  $$('[data-pftab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.pftab===t)));
+  $$('[data-pftab]').forEach(b=>{b.setAttribute('aria-selected',String(b.dataset.pftab===t));b.setAttribute('tabindex',b.dataset.pftab===t?'0':'-1')});
   $$('[data-pfres]').forEach(b=>b.onclick=()=>{const e=d.resenas[+b.dataset.pfres];if(e)sheet(pfResSheet(e),e.nombre||tt('h.pfCigarro'))});if(t==='favoritos'&&d.own)A.hydrate()};
- $$('[data-pftab]').forEach(b=>b.onclick=()=>paint(b.dataset.pftab));paint(cur)}
+ /* Codex ronda 1: las flechas, Inicio y Fin cambian de pestaña y llevan el foco, como pide role="tab" */
+ const order=pfTabsFor(d.own);
+ $$('[data-pftab]').forEach(b=>{b.onclick=()=>paint(b.dataset.pftab);b.onkeydown=e=>{const i=order.indexOf(b.dataset.pftab),j={ArrowRight:i+1,ArrowLeft:i-1,Home:0,End:order.length-1}[e.key];if(j===undefined||i<0)return;e.preventDefault();
+  const t=order[(j+order.length)%order.length];paint(t);const el=$('#pfT-'+t);if(el&&el.focus)el.focus()}});paint(cur)}
 /* GET /api/u/<handle>: pública, sin sesión */
 async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
 /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
@@ -384,17 +387,21 @@ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct
  const d={own:false,resenas:(Array.isArray(b.resenas)?b.resenas:[]).filter(e=>e&&typeof e==='object').map(pfEntry),sellos:b.counts.sellos,favorite_brand:b.profile.favorite_brand};
  el.innerHTML=pfHead(b.profile,b.counts)+pfTabsHTML(false,'resenas');pfBind(d,'resenas')}
 /* tu Perfil (app.js vPerfil pone la foto, el nombre y el @ de la cuenta guardada, LHB-51): aquí van la bio, la marca y los conteos de /api/u/<tu @>, Editar perfil y las pestañas, que leen tu Mi Hoja.
-   root es el lugar de Perfil donde va (#pfOwn); a es la cuenta guardada */
-async function profileOwn(a){const root=$('#pfOwn');if(!root||!a||typeof a.handle!=='string'||!PF_HANDLE.test(a.handle))return;
- const s=S();const d={own:true,resenas:myResenas(s),sellos:passCounts().c,favorite_brand:null,favs:s.favs.cigarros.map(A.cigarById).filter(Boolean),humidor:s.humidor};
- let cur='resenas';const paint=(p,c)=>{root.innerHTML=`<div id="pfAbout">${pfAbout(p)}</div>`+pfCounts(c,true,a.handle)+pfTabsHTML(true,cur);pfBind(d,cur)};
- paint({},null);
+   PFO es tu Perfil abierto: su lugar (#pfOwn), la cuenta, lo que llegó del servidor y la pestaña abierta. Codex ronda 1: cuando llega una sincronización se pinta otra vez con tu Mi Hoja nueva (pfOwnSync), en la misma pestaña */
+let PFO=null;
+const pfOwnData=()=>{const s=S();return {own:true,resenas:myResenas(s),sellos:passCounts().c,favorite_brand:null,favs:s.favs.cigarros.map(A.cigarById).filter(Boolean),humidor:s.humidor}};
+const pfCur=()=>{const sel=$$('[data-pftab]').find(b=>b.getAttribute('aria-selected')==='true');return sel?sel.dataset.pftab:'resenas'};
+/* tu número de reseñas sale enseguida de tu Mi Hoja; seguidores y siguiendo esperan al servidor */
+function pfOwnPaint(o){const d=pfOwnData();o.root.innerHTML=`<div id="pfAbout">${pfAbout(o.profile)}</div>`+pfCounts({...(o.counts||{}),resenas:d.resenas.length},true,o.a.handle)+pfTabsHTML(true,o.cur);pfBind(d,o.cur)}
+/* a es la cuenta guardada */
+async function profileOwn(a){const root=$('#pfOwn');PFO=null;if(!root||!a||typeof a.handle!=='string'||!PF_HANDLE.test(a.handle))return;
+ const o=PFO={root,a,profile:{},counts:null,cur:'resenas'};pfOwnPaint(o);
  const r=await pfFetch(a.handle);const now=acct.get();
- /* ya no está esta página, u otra cuenta entró mientras tanto: no se pinta */
- if($('#pfOwn')!==root||!now||now.sub!==a.sub)return;
+ /* ya no está esta página, se abrió otro Perfil, u otra cuenta entró mientras tanto: no se pinta */
+ if(PFO!==o||$('#pfOwn')!==root||!now||now.sub!==a.sub)return;
  if(r.status!==200||!r.body.profile||!r.body.counts)return;
- const sel=$$('[data-pftab]').find(b=>b.getAttribute('aria-selected')==='true');if(sel)cur=sel.dataset.pftab;
- paint(r.body.profile,{...r.body.counts,resenas:d.resenas.length})}
+ o.cur=pfCur();o.profile=r.body.profile;o.counts=r.body.counts;pfOwnPaint(o)}
+function pfOwnSync(){const o=PFO;if(!o||$('#pfOwn')!==o.root)return;const now=acct.get();if(!now||now.sub!==o.a.sub)return;o.cur=pfCur();pfOwnPaint(o)}
 /* ---------- fin del perfil (LHB-58) ---------- */
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);
  view.innerHTML=`${subnav('humidor')}
