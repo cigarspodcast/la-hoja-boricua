@@ -3664,3 +3664,20 @@ test('LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la a
  const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
  require('vm').runInNewContext(read('i18n.js'),{window:w});assert.equal(els[0].a.href,'en/lugares/');assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');
 });
+/* LHB-89: el diálogo de Clerk se nombra con su propio título mientras está abierto */
+test('LHB-89: nameClerkDialog apunta aria-labelledby del diálogo de Clerk a su título, y lo vuelve a apuntar si el título cambia',()=>{
+ const h=read('hoja.js');const src=h.match(/function nameClerkDialog\(doc\)\{[^\n]*\}return n\}/);assert.ok(src,'nameClerkDialog en hoja.js');
+ const el=(a={},kids={})=>({a:{...a},id:a.id||'',textContent:a.text||'',getAttribute(n){return this.a[n]===undefined?null:this.a[n]},setAttribute(n,v){this.a[n]=v},querySelector:s=>kids[s]||null});
+ const doc=list=>({querySelectorAll:s=>{assert.equal(s,'.cl-modalContent[role="dialog"]');return list}});
+ const name=new Function(src[0]+';return nameClerkDialog')();
+ const t1=el({text:'Entra a La Hoja Boricua'});const d=el({role:'dialog'},{'.cl-headerTitle':t1});
+ assert.equal(name(doc([d])),1);assert.ok(t1.id,'el título recibe un id');assert.equal(d.a['aria-labelledby'],t1.id,'el diálogo apunta a su título');
+ assert.equal(name(doc([d])),1);assert.equal(d.a['aria-labelledby'],t1.id,'sin cambios la segunda vez');
+ const t2=el({text:'Revisa tu correo'});const d2=el({role:'dialog'},{'.cl-headerTitle':t2});assert.equal(name(doc([d2])),1);assert.notEqual(t2.id,t1.id,'cada título su id');assert.equal(d2.a['aria-labelledby'],t2.id);
+ const own=el({id:'ya',text:'Hola'});const d3=el({role:'dialog'},{'.cl-headerTitle':own});name(doc([d3]));assert.equal(own.id,'ya','no pisa un id que ya tiene');assert.equal(d3.a['aria-labelledby'],'ya');
+ const empty=el({text:'   '});const d4=el({role:'dialog'},{'.cl-headerTitle':empty});assert.equal(name(doc([d4])),0);assert.equal(d4.a['aria-labelledby'],undefined,'un título vacío no da nombre');
+ const d5=el({role:'dialog'});assert.equal(name(doc([d5])),0,'sin título no apunta a nada');
+ const d6=el({role:'dialog','aria-label':'Clerk'},{'.cl-headerTitle':el({text:'X'})});assert.equal(name(doc([d6])),0);assert.equal(d6.a['aria-labelledby'],undefined,'si Clerk ya lo nombra, no se toca');
+ assert.ok(h.includes('openSignIn:C=>{C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href});watchClerkDialog()}'),'abrir la entrada vigila el diálogo');
+ assert.ok(/function watchClerkDialog\(\)\{if\(typeof MutationObserver!=='function'\)return;/.test(h)&&/mo\.observe\(document\.body,\{childList:true,subtree:true\}\)/.test(h)&&h.includes("else if(seen&&!document.querySelector('.cl-modalContent'))mo.disconnect()")&&h.includes('setTimeout(()=>mo.disconnect(),600000)'),'vigila mientras el diálogo existe y luego se suelta');
+});
