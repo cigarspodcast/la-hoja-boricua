@@ -1,0 +1,80 @@
+LHB-95 rendered widths, site C:\Users\Owner\lhb-95-wt\site, measured 2026-10-28T19:53Z in headless Chrome (Chrome/156.0.8078.48).
+Counting basis: getBoundingClientRect().width in CSS px, device scale 1, classic scrollbars hidden (clientWidth = viewport).
+
+card image (.grid .card .ph.has-foto img) against the sizes the card declares
+viewport  drawn   declared  over
+     320   112.6       115   2.4
+PASS grid 320: clientWidth 320 equals the viewport
+PASS grid 320: declared 115 is at or above drawn 112.6 by at most 3 px (over 2.4)
+     360   132.7       135   2.3
+PASS grid 360: clientWidth 360 equals the viewport
+PASS grid 360: declared 135 is at or above drawn 132.7 by at most 3 px (over 2.3)
+     375   140.2     142.5   2.3
+PASS grid 375: clientWidth 375 equals the viewport
+PASS grid 375: declared 142.5 is at or above drawn 140.2 by at most 3 px (over 2.3)
+     390   147.8       150   2.2
+PASS grid 390: clientWidth 390 equals the viewport
+PASS grid 390: declared 150 is at or above drawn 147.8 by at most 3 px (over 2.2)
+     412   158.8       161   2.2
+PASS grid 412: clientWidth 412 equals the viewport
+PASS grid 412: declared 161 is at or above drawn 158.8 by at most 3 px (over 2.2)
+     430   167.9       170   2.1
+PASS grid 430: clientWidth 430 equals the viewport
+PASS grid 430: declared 170 is at or above drawn 167.9 by at most 3 px (over 2.1)
+     500     203       205     2
+PASS grid 500: clientWidth 500 equals the viewport
+PASS grid 500: declared 205 is at or above drawn 203 by at most 3 px (over 2)
+     619   262.9     264.5   1.6
+PASS grid 619: clientWidth 619 equals the viewport
+PASS grid 619: declared 264.5 is at or above drawn 262.9 by at most 3 px (over 1.6)
+     620   162.8     164.6   1.8
+PASS grid 620: clientWidth 620 equals the viewport
+PASS grid 620: declared 164.6 is at or above drawn 162.8 by at most 3 px (over 1.8)
+     700   189.6       191   1.4
+PASS grid 700: clientWidth 700 equals the viewport
+PASS grid 700: declared 191 is at or above drawn 189.6 by at most 3 px (over 1.4)
+     759   209.4     210.5   1.1
+PASS grid 759: clientWidth 759 equals the viewport
+PASS grid 759: declared 210.5 is at or above drawn 209.4 by at most 3 px (over 1.1)
+     760   209.7       211   1.3
+PASS grid 760: clientWidth 760 equals the viewport
+PASS grid 760: declared 211 is at or above drawn 209.7 by at most 3 px (over 1.3)
+    1024   209.7       211   1.3
+PASS grid 1024: clientWidth 1024 equals the viewport
+PASS grid 1024: declared 211 is at or above drawn 209.7 by at most 3 px (over 1.3)
+    1440   209.7       211   1.3
+PASS grid 1440: clientWidth 1440 equals the viewport
+PASS grid 1440: declared 211 is at or above drawn 209.7 by at most 3 px (over 1.3)
+mini  320  114.6       116   1.4
+PASS mini row 320: SIZES_MINI 116 is at or above drawn 114.6 by at most 3 px (over 1.4)
+mini 1024  114.6       116   1.4
+PASS mini row 1024: SIZES_MINI 116 is at or above drawn 114.6 by at most 3 px (over 1.4)
+
+language switch (#langSwitch) and its neighbours (div.top-actions), Spanish reader (as shipped) and English reader (swapped after load)
+viewport  reader   text      width  switch.left  top-actions.left  scrollWidth
+     320  Spanish  EN         40.3        131.7             131.7          320
+PASS switch 320 Spanish: no sideways scroll (scrollWidth 320)
+     360  Spanish  EN         40.3        171.7             171.7          360
+PASS switch 360 Spanish: no sideways scroll (scrollWidth 360)
+     412  Spanish  English      74          190               190          412
+PASS switch 412 Spanish: no sideways scroll (scrollWidth 412)
+    1024  Spanish  English      74          802               802         1024
+PASS switch 1024 Spanish: no sideways scroll (scrollWidth 1024)
+     320  English  ES           40          132               132          320
+PASS switch 320 English: no sideways scroll (scrollWidth 320)
+     360  English  ES           40          172               172          360
+PASS switch 360 English: no sideways scroll (scrollWidth 360)
+     412  English  Español    74.1        189.9             189.9          412
+PASS switch 412 English: no sideways scroll (scrollWidth 412)
+    1024  English  Español    74.1        801.9             801.9         1024
+PASS switch 1024 English: no sideways scroll (scrollWidth 1024)
+PASS switch 320: the English swap moves the switch by 0.3 px and top-actions by 0.3 px (under 1 px)
+PASS switch 320: the label differs by reader (EN / ES)
+PASS switch 360: the English swap moves the switch by 0.3 px and top-actions by 0.3 px (under 1 px)
+PASS switch 360: the label differs by reader (EN / ES)
+PASS switch 412: the English swap moves the switch by 0.1 px and top-actions by 0.1 px (under 1 px)
+PASS switch 412: the label differs by reader (English / Español)
+PASS switch 1024: the English swap moves the switch by 0.1 px and top-actions by 0.1 px (under 1 px)
+PASS switch 1024: the label differs by reader (English / Español)
+
+RESULT PASS 46 of 46 checks

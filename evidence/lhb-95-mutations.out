@@ -1,0 +1,27 @@
+M1 the ticket example: card padding 9px          rc 1 fails 16 -> RED
+    FAIL grid 320: declared 115 is at or above drawn 108.6 by at most 3 px (over 6.4)
+    FAIL grid 360: declared 135 is at or above drawn 128.7 by at most 3 px (over 6.3)
+    FAIL grid 375: declared 142.5 is at or above drawn 136.2 by at most 3 px (over 6.3)
+M2 the ticket example: switch min-width 0        rc 1 fails 4 -> RED
+    FAIL switch 320: the English swap moves the switch by 2.1 px and top-actions by 2.1 px (under 1 px)
+    FAIL switch 360: the English swap moves the switch by 2.1 px and top-actions by 2.1 px (under 1 px)
+    FAIL switch 412: the English swap moves the switch by 3.8 px and top-actions by 3.8 px (under 1 px)
+M3 a media rule narrows the card at 412          rc 1 fails 1 -> RED
+    FAIL grid 412: declared 161 is at or above drawn 142.9 by at most 3 px (over 18.1)
+M4 SIZES_GRID below the drawn width (blurry)     rc 1 fails 3 -> RED
+    FAIL grid 760: declared 205 is at or above drawn 209.7 by at most 3 px (over -4.7)
+    FAIL grid 1024: declared 205 is at or above drawn 209.7 by at most 3 px (over -4.7)
+    FAIL grid 1440: declared 205 is at or above drawn 209.7 by at most 3 px (over -4.7)
+M5 SIZES_GRID far above the drawn width          rc 1 fails 8 -> RED
+    FAIL grid 320: declared 130 is at or above drawn 112.6 by at most 3 px (over 17.4)
+    FAIL grid 360: declared 150 is at or above drawn 132.7 by at most 3 px (over 17.3)
+    FAIL grid 375: declared 157.5 is at or above drawn 140.2 by at most 3 px (over 17.3)
+M6 SIZES_MINI below the drawn width              rc 1 fails 2 -> RED
+    FAIL mini row 320: SIZES_MINI 110 is at or above drawn 114.6 by at most 3 px (over -4.6)
+    FAIL mini row 1024: SIZES_MINI 110 is at or above drawn 114.6 by at most 3 px (over -4.6)
+M7 the page scrolls sideways at 320              rc 1 fails 8 -> RED
+    FAIL switch 320 Spanish: no sideways scroll (scrollWidth 344)
+    FAIL switch 360 Spanish: no sideways scroll (scrollWidth 384)
+    FAIL switch 412 Spanish: no sideways scroll (scrollWidth 436)
+baseline after restore: rc 0, RESULT PASS 46 of 46 checks
+RESULT 7 of 7 mutations red

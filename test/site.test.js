@@ -3976,3 +3976,19 @@ test('LHB-94 (Codex r1): bienvenida, perfil guardado y perfil completo, en espa�
  assert.deepEqual(await run('en-US'),[T.en['cu.welcome'],T.en['cu.saved'],T.en['cu.done']],'en inglés');
  assert.deepEqual(await run('en-US'),['Welcome to Mi Hoja!','Profile saved.','Done, your profile is complete.']);
 });
+/* LHB-95: los anchos dibujados se miden en Chrome sin pantalla (tools/widths.mjs). La corrida de siempre no abre un navegador: la medición va con LHB_BROWSER=1 */
+test('LHB-95: la herramienta mide en los anchos de la evidencia de LHB-85 y LHB-93, con la regla de LHB-85 (nunca por debajo, a lo sumo 3 px por encima)',()=>{
+ const t=fs.readFileSync(path.join(__dirname,'..','tools','widths.mjs'),'utf8');
+ const ev=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-85-slot-widths.txt'),'utf8');
+ const vps=[...ev.matchAll(/^ {1,2}(\d{3,4}) {3,}\d+\.\d/gm)].map(m=>+m[1]);assert.equal(vps.length,14,'los 14 anchos de LHB-85');
+ assert.deepEqual(JSON.parse(t.match(/const GRID_W = (\[[^\]]*\])/)[1]),vps);
+ assert.deepEqual(JSON.parse(t.match(/const SWITCH_W = (\[[^\]]*\])/)[1]),[320,360,412,1024]);
+ assert.match(t,/over >= 0 && over <= 3/);assert.match(t,/ds < 1 && dt < 1/);
+ /* lo que la herramienta midió al cerrar LHB-95, leído hasta la última línea */
+ const w=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-95-widths.txt'),'utf8').trim().split(/\r?\n/);assert.match(w[w.length-1],/^RESULT PASS 46 of 46 checks$/);
+ const mu=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-95-mutations.out'),'utf8').trim().split(/\r?\n/);assert.equal(mu[mu.length-1],'RESULT 7 of 7 mutations red');
+});
+test('LHB-95: anchos dibujados en Chrome: la foto de la tarjeta contra sizes y el cambio de idioma (solo con LHB_BROWSER=1)',{skip:process.env.LHB_BROWSER==='1'?false:'sin LHB_BROWSER=1 no se abre un navegador'},()=>{
+ const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'..','tools','widths.mjs')],{encoding:'utf8',timeout:120000});
+ assert.equal(r.status,0,r.stdout+r.stderr);assert.match(r.stdout,/^RESULT PASS \d+ of \d+ checks$/m);assert.ok(!/^FAIL /m.test(r.stdout),r.stdout);
+});
