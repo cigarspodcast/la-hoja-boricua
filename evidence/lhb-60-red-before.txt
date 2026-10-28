@@ -1,0 +1,57 @@
+✖ LHB-60: seguir en el perfil de otra persona: el botón cambia y el conteo sube al instante; dejar de seguir lo baja; los conteos llevan a las listas (9.3067ms)
+✖ LHB-60: si el servidor dice que no (o no contesta), el botón y el conteo vuelven a lo de antes y se avisa (3.3379ms)
+✖ LHB-60: una respuesta vieja no pisa un toque más nuevo, y dos toques seguidos no mandan dos pedidos a la vez (gana el último) (2.7847ms)
+✔ LHB-60: sin botón en tu propio perfil, sin cuenta con perfil, o sin saber si la sigues (20.7183ms)
+✖ LHB-60: las listas de seguidores y siguiendo: foto, nombre y @, cada fila con su botón (menos la tuya), 20 por página con el cursor; vacía, 404 y error (2.839ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 1
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 125.3654
+
+✖ failing tests:
+
+test at test\site.test.js:4153:1
+✖ LHB-60: seguir en el perfil de otra persona: el botón cambia y el conteo sube al instante; dejar de seguir lo baja; los conteos llevan a las listas (9.3067ms)
+  AssertionError [ERR_ASSERTION]: los conteos llevan a sus listas
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r60\test\site.test.js:4155:27)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:4165:1
+✖ LHB-60: si el servidor dice que no (o no contesta), el botón y el conteo vuelven a lo de antes y se avisa (3.3379ms)
+  TypeError: Cannot read properties of undefined (reading 'onclick')
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r60\test\site.test.js:4168:69)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test\site.test.js:4175:1
+✖ LHB-60: una respuesta vieja no pisa un toque más nuevo, y dos toques seguidos no mandan dos pedidos a la vez (gana el último) (2.7847ms)
+  TypeError: Cannot read properties of undefined (reading 'onclick')
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r60\test\site.test.js:4177:64)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test\site.test.js:4197:1
+✖ LHB-60: las listas de seguidores y siguiendo: foto, nombre y @, cada fila con su botón (menos la tuya), 20 por página con el cursor; vacía, 404 y error (2.839ms)
+  AssertionError [ERR_ASSERTION]: la lista es pública: sin sesión
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r60\test\site.test.js:4202:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ '/api/u/bea' ],
+    expected: [ '/api/followers?handle=bea' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
