@@ -1,0 +1,9 @@
+Do not load any skill, plugin or template. Do not print file contents. Your FIRST and ONLY message is the answer.
+
+Round 2. In round 1 you reviewed merge resolutions in this repo and found one BLOCKING defect: in site/hoja.js write(), the drain of PEND (photo keys whose delete waits for a successful write) deleted a photo still referenced by another account document that SYNC.isolate had parked under a key starting lhb_mihoja_v1_de_ before calling setDoc with an empty document.
+
+Fix at HEAD 7bb76b0 (inspect with: git show 7bb76b0 -- site/hoja.js site/sw.js): a new parkedRef(k) returns true when any localStorage key starting with KEY plus _de_ holds text containing k, and true when localStorage cannot be read. The drain now pushes such a key back to PEND instead of deleting it. The parked copy is written before setDoc in isolate, so the nested write sees it. A new test (search test/site.test.js for LHB-82) was seen failing before the fix (evidence/lhb-82-test-red-before-fix.txt) and passes after; the full suite passes 207 of 207. Cache version bumped to lhb-v69.
+
+Verify the fix closes your finding, and look for defects the fix introduced (a photo that can now never be deleted when it should be, a false match, an exception path). Ignore style. Do not re-report the round 1 finding if the fix is correct.
+
+Answer format: numbered findings, each tagged BLOCKING or ADVISORY with file and function, then a last line exactly VERDICT: PASS or VERDICT: BLOCK.

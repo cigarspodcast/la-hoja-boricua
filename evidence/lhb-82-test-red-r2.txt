@@ -1,0 +1,25 @@
+✖ LHB-82 (Codex ronda 1): una foto pendiente que usa la copia apartada de otra cuenta no se borra al anotar; se borra cuando ya nadie la usa (24.5207ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 225.3687
+
+✖ failing tests:
+
+test at test\site.test.js:2355:1
+✖ LHB-82 (Codex ronda 1): una foto pendiente que usa la copia apartada de otra cuenta no se borra al anotar; se borra cuando ya nadie la usa (24.5207ms)
+  AssertionError [ERR_ASSERTION]: otra llave que solo empieza igual no la retiene (Codex ronda 2)
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-82-wt\test\site.test.js:2360:136)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }

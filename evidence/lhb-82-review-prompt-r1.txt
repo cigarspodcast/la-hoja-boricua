@@ -1,0 +1,11 @@
+Do not load any skill, plugin or template. Do not print file contents. Your FIRST and ONLY message is the answer.
+
+You review merge-conflict resolutions in the repo in your working folder (a vanilla JS PWA, site/, tested by test/site.test.js). Each of three feature branches had a passing review BEFORE main was merged into it; only the resolutions are under review now. Inspect them with: git show --cc SHA -- site/hoja.js site/sw.js test/site.test.js
+- 2d6a17f (live handle check): the LHB_CUENTA call keeps main hasLocal plus the branch check argument for the onboarding and edit forms; cache lhb-v66.
+- 3d21053 (people search): vMiHojaIn keeps main SYNC.isolate and SYNC.run plus the branch personas entry; cache lhb-v67.
+- 5daae76 (diary photos): write() is main version (SYNC.isolate, ensureOwner, try/catch storing STRAW, SYNC.changed) plus the branch drain of PEND, the list of photo keys whose delete waits for a successful write. Main drops the in-memory copy (ST=null) when a write is rejected, so a draft change that failed to save is lost and the SAVED draft keeps the old photo. New rule: during the drain a key still used only by the saved draft (not by a diary entry) is pushed back to PEND; a key used by nothing is deleted; other used keys are dropped from PEND. One test was changed to expect this. The test harness HOJA38 got window.addEventListener and LHB_MERGE so it can run main hoja.js.
+Merge order on main: 2d6a17f, then 3d21053, then 5daae76; main head 5d08e8f. Suite on main: 206 of 206 pass (I ran it; you need not).
+
+Find defects the resolutions introduced: lost behavior from either side, a photo deleted while still used, recursion or re-entry through S() or isolate inside write, a photo that can never be deleted, wrong cache version handling, a test edit that weakens what the branch originally proved. Ignore style.
+
+Answer format: numbered findings, each tagged BLOCKING or ADVISORY with file and function, then a last line exactly VERDICT: PASS or VERDICT: BLOCK.

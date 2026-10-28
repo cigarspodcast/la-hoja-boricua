@@ -1,0 +1,9 @@
+Do not load any skill, plugin or template. Do not print file contents. Your FIRST and ONLY message is the answer.
+
+Round 3. Round 2 gave VERDICT PASS with one ADVISORY: parkedRef in site/hoja.js used a substring match, so a parked copy referencing dfoto_park2 retained the unrelated pending key dfoto_park forever.
+
+Fix at HEAD aeb5bd6 (inspect with: git show aeb5bd6 -- site/hoja.js test/site.test.js): parkedRef now searches the parked text for the JSON-quoted key (JSON.stringify of k), so only an exact string value matches. The LHB-82 test now also sets the parked copy to reference only dfoto_park2 and expects dfoto_park to be deleted; that assertion was seen failing before the fix (evidence/lhb-82-test-red-r2.txt). Full suite 207 of 207 on this machine.
+
+Verify the advisory is closed and that the change introduced no defect (for example a reference that is stored but no longer matched). Ignore style.
+
+Answer format: numbered findings, each tagged BLOCKING or ADVISORY with file and function, or the words NO FINDINGS, then a last line exactly VERDICT: PASS or VERDICT: BLOCK.

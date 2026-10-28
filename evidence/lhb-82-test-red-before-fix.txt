@@ -1,0 +1,36 @@
+✔ LHB-38: las entradas de antes cargan con sus valores por defecto, sin perder nada; los valores válidos se respetan y los malos se corrigen; correrlo dos veces no cambia nada (22.807ms)
+✔ LHB-38: guardado en el teléfono y respaldo: lo de antes se carga con los valores por defecto, y exportar e importar llevan los cuatro campos nuevos (39.361ms)
+✔ LHB-38: guardar la cata: foto, pública, día y marca van a la entrada; la marca solo si el cigarro es "otro"; un día futuro o inválido se vuelve hoy; por defecto privada y de hoy (26.9075ms)
+✔ LHB-38: el formulario de la cata: día (no futuro), marca solo para "otro", foto y pública, todo se guarda en el borrador (17.1453ms)
+✔ LHB-38: la foto de la cata: se achica, se guarda en la base de fotos del teléfono con su llave, se puede cambiar y quitar, y los fallos no dejan nada a medias (28.9679ms)
+✔ LHB-38 (Codex ronda 1): sobre la foto manda la última acción; no se pierde la guardada; una foto tardía no cambia la página; empezar otra cata borra la foto abandonada (16.1022ms)
+✔ LHB-38 (Codex ronda 2): ninguna foto se borra antes de que el cambio quede anotado en el teléfono: empezar otra cata, cambiar de borrador y borrar una entrada (10.7752ms)
+✔ LHB-38 (Codex ronda 3): una foto que una entrada del diario usa no se borra; sin cuenta una foto tardía no reabre el formulario; lo que no se pudo borrar se borra en la próxima anotación (28.4049ms)
+✔ LHB-38 (Codex ronda 4): el borrador guardado también cuenta como uso de la foto; lo pendiente se borra en cualquier anotación que funcione (6.9552ms)
+✖ LHB-82 (Codex ronda 1): una foto pendiente que usa la copia apartada de otra cuenta no se borra al anotar; se borra cuando ya nadie la usa (13.6255ms)
+✔ LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la marca, y se puede hacer pública o privada; borrar una entrada borra su foto (4.3848ms)
+✔ LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó (2.1732ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 486.8484
+
+✖ failing tests:
+
+test at test\site.test.js:2355:1
+✖ LHB-82 (Codex ronda 1): una foto pendiente que usa la copia apartada de otra cuenta no se borra al anotar; se borra cuando ya nadie la usa (13.6255ms)
+  AssertionError [ERR_ASSERTION]: la copia apartada de otra cuenta todavía la usa
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-82-wt\test\site.test.js:2359:35)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
