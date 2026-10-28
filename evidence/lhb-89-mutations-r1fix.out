@@ -1,0 +1,16 @@
+M1 never sets aria-labelledby                    rc 1 fail 2 -> RED
+M2 looks for the wrong heading class             rc 1 fail 2 -> RED
+M3 names the dialog with an empty title          rc 1 fail 1 -> RED
+M4 overwrites a heading id it already has        rc 1 fail 1 -> RED
+M5 ignores a name Clerk already gave             rc 1 fail 2 -> RED
+M6 one id for every title                        rc 1 fail 1 -> RED
+M7 opening sign-in does not watch the dialog     rc 1 fail 1 -> RED
+M8 the watcher never lets go                     rc 1 fail 1 -> RED
+M9 disconnect right after observe (Codex r1)     rc 1 fail 1 -> RED
+M10 no first tick (an open dialog is never seen) rc 1 fail 1 -> RED
+M11 seen only when a dialog was named (r1 code)  rc 1 fail 1 -> RED
+M12 lets go while the dialog is still open       rc 1 fail 1 -> RED
+M13 the timeout never disconnects                rc 1 fail 1 -> RED
+M14 observes attributes too (feedback loop risk) rc 1 fail 1 -> RED
+baseline after restore: rc 0
+RESULT 14 of 14 mutations red

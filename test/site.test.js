@@ -3679,7 +3679,26 @@ test('LHB-89: nameClerkDialog apunta aria-labelledby del diálogo de Clerk a su 
  const d5=el({role:'dialog'});assert.equal(name(doc([d5])),0,'sin título no apunta a nada');
  const d6=el({role:'dialog','aria-label':'Clerk'},{'.cl-headerTitle':el({text:'X'})});assert.equal(name(doc([d6])),0);assert.equal(d6.a['aria-labelledby'],undefined,'si Clerk ya lo nombra, no se toca');
  assert.ok(h.includes('openSignIn:C=>{C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href});watchClerkDialog()}'),'abrir la entrada vigila el diálogo');
- assert.ok(/function watchClerkDialog\(\)\{if\(typeof MutationObserver!=='function'\)return;/.test(h)&&/mo\.observe\(document\.body,\{childList:true,subtree:true\}\)/.test(h)&&h.includes("else if(seen&&!document.querySelector('.cl-modalContent'))mo.disconnect()")&&h.includes('setTimeout(()=>mo.disconnect(),600000)'),'vigila mientras el diálogo existe y luego se suelta');
+});
+test('LHB-89: watchClerkDialog nombra el diálogo cuando Clerk lo monta después, sigue sus pasos y se suelta al cerrarse',()=>{
+ const h=read('hoja.js');const n=h.match(/function nameClerkDialog\(doc\)\{[^\n]*\}return n\}/),wsrc=h.match(/function watchClerkDialog\(\)\{[^\n]*/);assert.ok(n&&wsrc,'las dos funciones en hoja.js');
+ const el=(a={},kids={})=>({a:{...a},id:a.id||'',textContent:a.text||'',getAttribute(k){return this.a[k]===undefined?null:this.a[k]},setAttribute(k,v){this.a[k]=v},querySelector:s=>kids[s]||null});
+ const run=list=>{const env={list,mos:[],timers:[]};const document={body:{},querySelectorAll:s=>{assert.equal(s,'.cl-modalContent[role="dialog"]');return env.list},querySelector:s=>{assert.equal(s,'.cl-modalContent');return env.list[0]||null}};
+  class MO{constructor(cb){this.cb=cb;this.on=false;this.off=false;env.mos.push(this)}observe(t,o){assert.equal(t,document.body);assert.deepEqual(o,{childList:true,subtree:true});this.on=true}disconnect(){this.off=true}}
+  new Function('document','MutationObserver','setTimeout',n[0]+'\n'+wsrc[0]+'\nwatchClerkDialog()')(document,MO,(f,ms)=>env.timers.push([f,ms]));
+  env.mo=env.mos[0];env.fire=()=>{if(env.mo.on&&!env.mo.off)env.mo.cb([])};return env};
+ // Clerk monta el modal después de openSignIn: al principio no hay diálogo
+ const A=run([]);assert.equal(A.mos.length,1);assert.ok(A.mo.on&&!A.mo.off,'vigila mientras no hay diálogo todavía');A.fire();assert.ok(!A.mo.off,'no se suelta antes de ver el diálogo');
+ const t1=el({text:'Sign in to La Hoja Boricua'}),d1=el({role:'dialog'},{'.cl-headerTitle':t1});A.list.push(d1);A.fire();assert.ok(t1.id&&d1.a['aria-labelledby']===t1.id,'nombrado al montarse');
+ const t2=el({text:'Check your email'});d1.querySelector=s=>s==='.cl-headerTitle'?t2:null;A.fire();assert.ok(t2.id&&d1.a['aria-labelledby']===t2.id,'sigue el título del paso nuevo');assert.ok(!A.mo.off);
+ A.list.length=0;A.fire();assert.ok(A.mo.off,'se suelta cuando el diálogo se cierra');
+ assert.equal(A.timers.length,1);assert.equal(A.timers[0][1],600000,'y a los 10 minutos en todo caso');const B0=run([]);B0.timers[0][0]();assert.ok(B0.mo.off,'el plazo lo suelta');
+ // el diálogo ya estaba cuando empieza a vigilar
+ const t3=el({text:'Sign in'}),d3=el({role:'dialog'},{'.cl-headerTitle':t3});const B=run([d3]);assert.equal(d3.a['aria-labelledby'],t3.id,'nombrado de una vez');B.list.length=0;B.fire();assert.ok(B.mo.off,'se suelta al cerrarse aunque ya estuviera montado');
+ // si Clerk mismo lo nombra, no se toca y la vigilancia igual se suelta
+ const d4=el({role:'dialog','aria-label':'Clerk'},{'.cl-headerTitle':el({text:'X'})});const C=run([d4]);assert.equal(d4.a['aria-labelledby'],undefined);C.list.length=0;C.fire();assert.ok(C.mo.off,'se suelta también con un diálogo que Clerk nombra');
+ // sin MutationObserver no rompe
+ assert.doesNotThrow(()=>new Function('document','MutationObserver','setTimeout',n[0]+'\n'+wsrc[0]+'\nwatchClerkDialog()')({},undefined,()=>{}));
 });
 /* LHB-85: miniaturas a la medida que se dibujan: una gemela de 320 x 160 al lado de cada miniatura de 600 x 300 */
 const webpSize=f=>{const b=fs.readFileSync(f);assert.equal(b.toString('ascii',0,4)+b.toString('ascii',8,12),'RIFFWEBP',f);const k=b.toString('ascii',12,16);
