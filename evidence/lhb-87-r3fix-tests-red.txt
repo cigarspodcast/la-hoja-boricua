@@ -1,0 +1,27 @@
+✖ LHB-87 (Codex r3): con la lista abierta, si el mapa cambia de alto la lista toma el alto nuevo y se vuelve a acomodar (3.973ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 327.751
+
+✖ failing tests:
+
+test at test\site.test.js:3800:1
+✖ LHB-87 (Codex r3): con la lista abierta, si el mapa cambia de alto la lista toma el alto nuevo y se vuelve a acomodar (3.973ms)
+  AssertionError [ERR_ASSERTION]: popMaxH y fitPop en app.js
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-87-wt\test\site.test.js:3801:143)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
