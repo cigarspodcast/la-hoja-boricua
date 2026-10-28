@@ -1,0 +1,13 @@
+# LHB-88: accessibility of the branch preview
+
+Tool: Lighthouse 13.6.0 accessibility category (axe-core rules), mobile form factor, headless Chrome, one run per page.
+Page: https://a6cfbad2.la-hoja-boricua.pages.dev. The rule this ticket fixes is label-content-name-mismatch on header.topbar > a.brand.
+
+## /  (score 100)
+- label-content-name-mismatch: score 1, scoreDisplayMode binary, elements listed 0
+- every failing rule on this page: none
+
+## /#/lugares  (score 96)
+- label-content-name-mismatch: score 1, scoreDisplayMode binary, elements listed 0
+- every failing rule on this page: target-size (23)
+
