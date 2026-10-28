@@ -3756,6 +3756,7 @@ test('LHB-39: los números sobre un documento de prueba: catas, sellos por tipo 
  assert.deepEqual({...st.sellos},{artesanos:2,cigarros:1,lugares:3},'sellos por tipo, sin los ids que ya no están en el catálogo');
  assert.deepEqual(st.top.map(t=>[t.nombre,t.avg,t.n]),[['Yambú Toro',5,2],['Toro de la casa',5,1],['Ñame Corona',4,1]],'por promedio de estrellas; a igual promedio, el de más catas; tres como mucho; Monte Robusto (3.5) queda fuera');
  assert.ok(!st.top.some(t=>t.nombre==='Sin estrellas'),'una cata sin estrellas no entra en los mejor puntuados');
+ assert.deepEqual(h.ctx.X.diaryStats({diario:[E38({cigarId:'c9',nombre:'Nueve',rating:5}),E38({cigarId:'c9',nombre:'Nueve',rating:0})],pasaporte:{}},{}).top.map(x=>[x.avg,x.n]),[[5,1]],'ni baja el promedio de su cigarro');
  assert.deepEqual({...st.capa},{v:'Maduro',n:3},'la capa más anotada y cuántas veces');
  assert.deepEqual({...st.fortaleza},{v:'Media',n:3},'la fortaleza más anotada y cuántas veces');
  /* un documento vacío */

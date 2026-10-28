@@ -42,6 +42,8 @@ M = [
     ('M31 a filter change repaints the whole page', "box.innerHTML=l.map(dCard).join('');", "vDiario();"),
     ('M32 another account keeps the search', "if(DQ.who!==w)DQ={...DQ0(),who:w};", ""),
     ('M33 no message when nothing matches', "const dCount=(n,all)=>n?tt('h.dqN',{a:n,b:all}):tt('h.dqNada');", "const dCount=(n,all)=>tt('h.dqN',{a:n,b:all});"),
+    ('M34 focus does not come back after a repaint', "  if(foc){const x=$('#'+foc);", "  if(false){const x=$('#'+foc);"),
+    ('M35 the caret goes to the start', "x.setSelectionRange(k,k)", "x.setSelectionRange(0,0)"),
 ]
 CMD = ['node', '--test', '--test-timeout=60000', '--test-name-pattern=LHB-39', 'test/site.test.js']
 orig = open(P, 'rb').read()
