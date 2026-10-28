@@ -1,0 +1,330 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-95-wt (branch lhb-95-widths). The diff below is origin/main..HEAD. This is a TIER 1 review that has needed confirmation rounds. Round 1 (evidence/lhb-95-review-r1.txt): BLOCK, four findings. Round 2 (evidence/lhb-95-review-r2.txt): you concurred that findings 1 to 3 are fixed, and kept finding 4 open for one path: a browser launch that fails left the temporary profile behind.
+
+Ticket LHB-95: a check that renders the real page in headless Chrome and measures the card photo widths against their sizes attribute and the language switch's neighbours (tools/widths.mjs, no npm dependency). The default node --test run stays browser-free; the browser measurement runs with LHB_BROWSER=1.
+
+How the round 2 finding was taken:
+- cleanup() is defined before Chrome starts, and tolerates chrome being null.
+- spawn() now runs inside the protected try. A synchronous spawn failure is caught and ends as NO BROWSER (exit 2).
+- An 'error' event on the child sets launchFail. The DevToolsActivePort wait stops on it, and it ends as NO BROWSER (exit 2).
+- The gone promise resolves on 'exit' or 'error', so cleanup does not wait on a process that never started. Cleanup runs on every way out (the finally path at the end of the file, and the watchdog).
+- M13 in evidence/lhb-95-mutations.py is your reproduction: CHROME points at site/styles.css. It must give exit 2, a last line starting NO BROWSER, and no lhb95- profile left in the temporary folder. It is red: "rc 2, NO BROWSER: spawn EFTYPE".
+- evidence/lhb-95-m13-red-before.txt is the same run against the round 1 file (git HEAD c984b68). Node crashed on the unhandled 'error' with exit 1, and the temporary folder went from 0 to 1 lhb95- profiles.
+
+Evidence:
+- evidence/lhb-95-widths.txt: RESULT PASS 70 of 70 checks.
+- evidence/lhb-95-mutations.out: RESULT 13 of 13 mutations red (the round 1 run, 12 of 12, is -r1fix.out).
+- evidence/lhb-95-tests.txt: 260 pass, 1 skipped (the browser test). evidence/lhb-95-tests-browser.txt: 2 pass.
+- Claim window: 2026-10-28T20:43:53Z to 20:45:17Z.
+
+Check that the round 2 finding is fixed, and anything else in the diff. If your sandbox cannot create the temporary profile or start Chrome, say which claims you could not run. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main HEAD -- tools test/site.test.js evidence/lhb-95-mutations.py =====
+diff --git a/evidence/lhb-95-mutations.py b/evidence/lhb-95-mutations.py
+new file mode 100644
+index 0000000..8b98b03
+--- /dev/null
++++ b/evidence/lhb-95-mutations.py
+@@ -0,0 +1,80 @@
++"""LHB-95 proof: each mutation moves a rendered width on a scratch copy of site/, runs tools/widths.mjs against it, and
++must make it exit 1 with at least one FAIL line; the copy is restored after each. The unmutated copy must pass.
++usage: python evidence/lhb-95-mutations.py WORKTREE SCRATCH"""
++import os, re, shutil, subprocess, sys, tempfile
++
++WT, D = sys.argv[1], sys.argv[2]
++if os.path.exists(D):
++    shutil.rmtree(D)
++shutil.copytree(os.path.join(WT, 'site'), os.path.join(D, 'site'))
++TOOL = os.path.join(WT, 'tools', 'widths.mjs')
++FILES = ('site/styles.css', 'site/app.js')
++
++
++def edit(rel, old, new):
++    p = os.path.join(D, rel)
++    s = open(p, 'rb').read().decode('utf-8')
++    assert s.count(old) == 1, (rel, old, s.count(old))
++    open(p, 'wb').write(s.replace(old, new).encode('utf-8'))
++
++
++def append(rel, text):
++    p = os.path.join(D, rel)
++    open(p, 'ab').write(text.encode('utf-8'))
++
++
++def profiles():
++    return {n for n in os.listdir(tempfile.gettempdir()) if n.startswith('lhb95-')}
++
++
++def run(env=None):
++    # a run that leaves its browser profile behind did not clean up: that is a failure whatever the tool printed
++    before = profiles()
++    r = subprocess.run(['node', TOOL, os.path.join(D, 'site')], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120,
++                       env=dict(os.environ, **env) if env else None)
++    fails = [l for l in r.stdout.splitlines() if l.startswith('FAIL ')]
++    left = profiles() - before
++    if left:
++        fails.append('LEFT BEHIND a browser profile: ' + ', '.join(sorted(left)))
++    last = r.stdout.strip().splitlines()[-1] if r.stdout.strip() else '?'
++    return r.returncode, fails, last
++
++
++M = [
++    ('M1 the ticket example: card padding 9px', lambda: append('site/styles.css', '\n.card{padding:9px 9px 0}\n')),
++    ('M2 the ticket example: switch min-width 0', lambda: append('site/styles.css', '\n.lang-switch{min-width:0}\n')),
++    ('M3 a media rule narrows the card at 412', lambda: append('site/styles.css', '\n@media (min-width:400px) and (max-width:420px){.grid .card .ph img{width:90%}}\n')),
++    ('M4 SIZES_GRID below the drawn width (blurry)', lambda: edit('site/app.js', "const SIZES_GRID='(min-width:760px) 211px,", "const SIZES_GRID='(min-width:760px) 205px,")),
++    ('M5 SIZES_GRID far above the drawn width', lambda: edit('site/app.js', "calc(50vw - 45px)'", "calc(50vw - 30px)'")),
++    ('M6 SIZES_MINI below the drawn width', lambda: edit('site/app.js', "SIZES_MINI='116px'", "SIZES_MINI='110px'")),
++    ('M7 the page scrolls sideways at 320', lambda: append('site/styles.css', '\n.top-actions{margin-right:-40px}\n')),
++    ('M8 Codex r1: English moves the neighbours only', lambda: append('site/styles.css', '\nhtml[lang="en"] .top-actions .icon-btn{transform:translateX(4px)}\n')),
++    ('M9 Codex r1: a later photo card narrowed', lambda: append('site/styles.css', '\n.grid .card:nth-child(n+3) .ph.has-foto img{width:90%}\n')),
++    ('M10 Codex r1: a mini-row card widened at 412', lambda: append('site/styles.css', '\n@media(min-width:400px) and (max-width:420px){.mini-row .card{width:160px}}\n')),
++    ('M11 Codex r1: the switch hidden by CSS', lambda: append('site/styles.css', '\n#langSwitch{display:none}\n')),
++    ('M12 Codex r1: the page stalls (a command never answers)', lambda: append('site/app.js', "\nmatchMedia('(min-width:700px)').addEventListener('change',()=>{for(;;){}});\n")),
++]
++red = 0
++for name, mut in M:
++    snap = {rel: open(os.path.join(D, rel), 'rb').read() for rel in FILES}
++    try:
++        mut()
++        rc, fails, last = run()
++        # red, and cleaned up: a left-behind profile is not a pass for the mutation
++        ok = rc == 1 and len(fails) > 0 and not any(l.startswith('LEFT BEHIND') for l in fails)
++        red += ok
++        print('%-48s rc %d fails %d -> %s' % (name, rc, len(fails), 'RED' if ok else 'SURVIVED'), flush=True)
++        for l in fails[:3]:
++            print('    ' + l, flush=True)
++    finally:
++        for rel, b in snap.items():
++            open(os.path.join(D, rel), 'wb').write(b)
++# M13 (Codex r2): the browser path is a file that is not a program, so the launch fails after the profile exists.
++# It must end as NO BROWSER (exit 2) and leave no profile behind.
++rc, fails, last = run({'CHROME': os.path.join(D, 'site', 'styles.css')})
++ok = rc == 2 and last.startswith('NO BROWSER') and not any(l.startswith('LEFT BEHIND') for l in fails)
++red += ok
++print('%-48s rc %d, %s%s -> %s' % ('M13 Codex r2: the browser cannot launch', rc, last, ' (profile left)' if fails else '', 'RED' if ok else 'SURVIVED'), flush=True)
++rc, fails, last = run()
++print('baseline after restore: rc %d, %s' % (rc, last))
++print('RESULT %d of %d mutations red' % (red, len(M) + 1))
+diff --git a/test/site.test.js b/test/site.test.js
+index 584000d..aa93f79 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -3978,6 +3978,29 @@ test('LHB-94 (Codex r1): bienvenida, perfil guardado y perfil completo, en espa
+  assert.deepEqual(await run('en-US'),[T.en['cu.welcome'],T.en['cu.saved'],T.en['cu.done']],'en inglés');
+  assert.deepEqual(await run('en-US'),['Welcome to Mi Hoja!','Profile saved.','Done, your profile is complete.']);
+ });
++/* LHB-95: los anchos dibujados se miden en Chrome sin pantalla (tools/widths.mjs). La corrida de siempre no abre un navegador: la medición va con LHB_BROWSER=1 */
++test('LHB-95: la herramienta mide en los anchos de la evidencia de LHB-85 y LHB-93, con la regla de LHB-85 (nunca por debajo, a lo sumo 3 px por encima)',()=>{
++ const t=fs.readFileSync(path.join(__dirname,'..','tools','widths.mjs'),'utf8');
++ const ev=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-85-slot-widths.txt'),'utf8');
++ const vps=[...ev.matchAll(/^ {1,2}(\d{3,4}) {3,}\d+\.\d/gm)].map(m=>+m[1]);assert.equal(vps.length,14,'los 14 anchos de LHB-85');
++ assert.deepEqual(JSON.parse(t.match(/const GRID_W = (\[[^\]]*\])/)[1]),vps);
++ assert.deepEqual(JSON.parse(t.match(/const SWITCH_W = (\[[^\]]*\])/)[1]),[320,360,412,1024]);
++ assert.match(t,/over >= 0 && over <= 3/);assert.match(t,/ds < 1 && dt < 1/);
++ /* Codex r1: cada foto de la grilla y la fila mini en todos los anchos; cada control de top-actions en cada borde; el cambio de idioma se mide con el botón dibujado; cada orden al navegador tiene plazo */
++ assert.match(t,/querySelectorAll\('\.grid \.card \.ph\.has-foto img'\)/);assert.match(t,/for \(const w of GRID_W\) \{\r?\n    await size\(w\);\r?\n    const m = await js\(`\(\(\)=>\{const i=document\.getElementById\('lhb95mini'\)/);
++ assert.match(t,/mv\.every\(x => x\.d < 1\) && dbox < 1/);assert.match(t,/s\.display!=='none'&&s\.visibility==='visible'&&r\.width>0&&r\.height>0/);
++ assert.match(t,/const CMD_MS = 15000, WATCHDOG_MS = 90000;/);assert.ok(/WATCHDOG_MS/.test(t)&&90000<120000,'el perro guardián llega antes que el plazo de la prueba (120 s)');
++ /* lo que la herramienta midió al cerrar LHB-95, leído hasta la última línea */
++ const w=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-95-widths.txt'),'utf8').trim().split(/\r?\n/);assert.match(w[w.length-1],/^RESULT PASS 70 of 70 checks$/);
++ const mu=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-95-mutations.out'),'utf8').trim().split(/\r?\n/);assert.equal(mu[mu.length-1],'RESULT 13 of 13 mutations red');
++ /* Codex r2: el navegador arranca dentro del bloque que limpia; un arranque que falla es NO BROWSER (2) y no deja el perfil */
++ assert.match(t,/chrome\.once\('error', e => \{ launchFail = e; \}\);/);assert.ok(t.indexOf('chrome = spawn(')>t.indexOf('const cleanup = async'),'spawn va después de definir la limpieza');
++ const m13=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-95-m13-red-before.txt'),'utf8');assert.match(m13,/profiles in TEMP before 0 after 1/,'con el archivo de la ronda 1, el arranque fallido dejaba el perfil');
++});
++test('LHB-95: anchos dibujados en Chrome: la foto de la tarjeta contra sizes y el cambio de idioma (solo con LHB_BROWSER=1)',{skip:process.env.LHB_BROWSER==='1'?false:'sin LHB_BROWSER=1 no se abre un navegador'},()=>{
++ const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'..','tools','widths.mjs')],{encoding:'utf8',timeout:120000});
++ assert.equal(r.status,0,r.stdout+r.stderr);assert.match(r.stdout,/^RESULT PASS \d+ of \d+ checks$/m);assert.ok(!/^FAIL /m.test(r.stdout),r.stdout);
++});
+ /* LHB-40: el pasaporte público /u/<handle> en SQLite real: los perfiles de API56 (nombre Ana, apellido Secreta) y la Mi Hoja guardada en la tabla mihoja */
+ async function API40(){
+  const a=await API56();const U=await a.imp('u/[handle].js'),PP=await a.imp('_lib/passport.js');
+diff --git a/tools/widths.mjs b/tools/widths.mjs
+new file mode 100644
+index 0000000..d5e9ad8
+--- /dev/null
++++ b/tools/widths.mjs
+@@ -0,0 +1,181 @@
++/* LHB-95: rendered-width regression check. Serves site/ on a local port, opens it in headless Chrome over the DevTools protocol
++   (no npm dependency: Node's own WebSocket) and measures:
++   - the drawn width of EVERY catalog card photo (.grid .card .ph.has-foto img) at the LHB-85 viewports, and of a card in a
++     .mini-row at the same viewports, against the width SIZES_GRID / SIZES_MINI (site/app.js) declare there: never below it,
++     at most 3 px over;
++   - #langSwitch for a Spanish and an English reader at 320, 360, 412 and 1024 px: the switch is drawn (displayed, visible, with
++     a size), the swap the English reader gets after load moves div.top-actions and each control in it (the switch, search,
++     menu, avatar) by under 1 px on every edge, and the page never scrolls sideways.
++   Every DevTools command has a deadline, a closed socket fails what is pending, and a watchdog ends the run before the test's
++   own timeout, so the browser and its temporary profile are always removed.
++   Prints a table and one PASS or FAIL line per check, and exits 1 on any FAIL (2 when the browser cannot run).
++   usage: node tools/widths.mjs [SITE_DIR]   (env CHROME: the browser; default the usual Chrome install on Windows) */
++import { createServer } from 'node:http';
++import { readFile, mkdtemp } from 'node:fs/promises';
++import { existsSync, readFileSync, rmSync } from 'node:fs';
++import { spawn } from 'node:child_process';
++import { tmpdir } from 'node:os';
++import { join, resolve, extname, normalize } from 'node:path';
++
++const SITE = resolve(process.argv[2] || join(import.meta.dirname, '..', 'site'));
++const CHROME = process.env.CHROME || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
++const GRID_W = [320, 360, 375, 390, 412, 430, 500, 619, 620, 700, 759, 760, 1024, 1440];
++const SWITCH_W = [320, 360, 412, 1024];
++const CMD_MS = 15000, WATCHDOG_MS = 90000; // one DevTools command; the whole run (the test gives the tool 120 s)
++// what a mini-row card declares (the grid card's sizes is read from each rendered image)
++const MINI = (readFileSync(join(SITE, 'app.js'), 'utf8').match(/SIZES_MINI='([^']*)'/) || [])[1];
++if (!MINI) { console.log('FAIL SIZES_MINI not found in app.js'); process.exit(1); }
++const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json',
++  '.webp': 'image/webp', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
++
++// the site as Pages serves it, minus the service worker (its first install reloads the page in the middle of a measurement)
++const server = createServer(async (req, res) => {
++  let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
++  if (p === '/sw.js' || p.startsWith('/api/')) { res.writeHead(404); res.end(); return; }
++  if (p.endsWith('/')) p += 'index.html';
++  const f = normalize(join(SITE, p));
++  if (!f.startsWith(SITE)) { res.writeHead(403); res.end(); return; }
++  try { const b = await readFile(f); res.writeHead(200, { 'content-type': MIME[extname(f)] || 'application/octet-stream' }); res.end(b); }
++  catch (e) { res.writeHead(404); res.end(); }
++});
++await new Promise(ok => server.listen(0, '127.0.0.1', ok));
++const ORIGIN = 'http://127.0.0.1:' + server.address().port;
++
++if (!existsSync(CHROME)) { console.log('NO BROWSER at ' + CHROME); server.close(); process.exit(2); }
++const prof = await mkdtemp(join(tmpdir(), 'lhb95-'));
++// the browser starts inside the protected block below; a launch that fails (spawn throws, or an 'error' event) is NO BROWSER and still cleans up
++let chrome = null, gone = Promise.resolve(), launchFail = null, ws = null;
++// the browser and its profile go on every way out: the end, a failure, a failed launch, the watchdog
++const cleanup = async () => {
++  try { ws && ws.close(); } catch (e) {}
++  try { chrome && chrome.kill(); } catch (e) {}
++  server.close();
++  await Promise.race([gone, new Promise(r => setTimeout(r, 3000))]);
++  for (let i = 0; i < 10; i++) { try { rmSync(prof, { recursive: true, force: true }); break; } catch (e) { await new Promise(r => setTimeout(r, 300)); } }
++};
++const watchdog = setTimeout(async () => { console.log('FAIL the run itself: watchdog, no result after ' + WATCHDOG_MS / 1000 + ' s'); console.log('RESULT FAIL watchdog'); await cleanup(); process.exit(1); }, WATCHDOG_MS);
++const deadline = (p, ms, what) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('no answer in ' + ms + ' ms: ' + what)), ms))]);
++
++const out = [], bad = [];
++const check = (ok, line) => { out.push((ok ? 'PASS ' : 'FAIL ') + line); if (!ok) bad.push(line); };
++let code = 0;
++try {
++  try {
++    chrome = spawn(CHROME, ['--headless=new', '--remote-debugging-port=0', '--user-data-dir=' + prof, '--no-first-run', '--no-default-browser-check',
++      '--hide-scrollbars', '--force-device-scale-factor=1', 'about:blank'], { stdio: 'ignore' });
++  } catch (e) { console.log('NO BROWSER: ' + e.message); code = 2; throw null; }
++  gone = new Promise(r => { chrome.once('exit', r); chrome.once('error', r); });
++  chrome.once('error', e => { launchFail = e; });
++  let port = null;
++  for (let i = 0; i < 100 && !port && !launchFail; i++) {
++    await new Promise(r => setTimeout(r, 100));
++    try { port = readFileSync(join(prof, 'DevToolsActivePort'), 'utf8').split(/\r?\n/)[0]; } catch (e) {}
++  }
++  if (launchFail) { console.log('NO BROWSER: ' + launchFail.message); code = 2; throw null; }
++  if (!port) { console.log('NO BROWSER: DevToolsActivePort never appeared'); code = 2; throw null; }
++  const get = async u => (await fetch('http://127.0.0.1:' + port + u, { signal: AbortSignal.timeout(CMD_MS) })).json();
++
++  // one page target over the DevTools protocol
++  const list = await get('/json/list');
++  ws = new WebSocket(list.find(t => t.type === 'page').webSocketDebuggerUrl);
++  await deadline(new Promise((ok, no) => { ws.onopen = ok; ws.onerror = no; }), CMD_MS, 'the DevTools socket');
++  let seq = 0; const wait = new Map(), events = [];
++  ws.onmessage = m => { const d = JSON.parse(m.data); if (d.id && wait.has(d.id)) { const w = wait.get(d.id); wait.delete(d.id); clearTimeout(w.t); d.error ? w.no(new Error(JSON.stringify(d.error))) : w.ok(d.result); } else if (d.method) events.push(d); };
++  // a closed socket fails every command still waiting, instead of leaving it pending forever
++  ws.onclose = () => { for (const [id, w] of wait) { wait.delete(id); clearTimeout(w.t); w.no(new Error('the DevTools socket closed')); } };
++  const cdp = (method, params = {}) => new Promise((ok, no) => {
++    if (ws.readyState !== WebSocket.OPEN) { no(new Error('the DevTools socket is closed: ' + method)); return; }
++    const id = ++seq;
++    const t = setTimeout(() => { if (wait.delete(id)) no(new Error('no answer in ' + CMD_MS + ' ms: ' + method)); }, CMD_MS);
++    wait.set(id, { ok, no, t }); ws.send(JSON.stringify({ id, method, params }));
++  });
++  const js = async expr => { const r = await cdp('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw new Error(expr.slice(0, 80) + ': ' + JSON.stringify(r.exceptionDetails).slice(0, 300)); return r.result.value; };
++  await cdp('Page.enable'); await cdp('Runtime.enable');
++  let langScript = null, navs = 0;
++  // a new viewport width on the loaded page: the media queries apply as on a load at that width; two frames for layout
++  const size = async width => { await cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false }); await js('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true))))'); };
++  const open = async (width, lang, hash) => {
++    await cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
++    if (langScript) await cdp('Page.removeScriptToEvaluateOnNewDocument', { identifier: langScript });
++    // a fresh reader: nothing remembered, the browser language decides (i18n.js), as for someone who opens the site the first time
++    langScript = (await cdp('Page.addScriptToEvaluateOnNewDocument', { source: `try{localStorage.clear()}catch(e){};Object.defineProperty(navigator,'language',{get:()=>${JSON.stringify(lang)}});Object.defineProperty(navigator,'languages',{get:()=>[${JSON.stringify(lang)}]});` })).identifier;
++    events.length = 0;
++    // a query that changes every time: a navigation that only changes the hash fires no load event
++    await cdp('Page.navigate', { url: ORIGIN + '/?lhb95=' + (++navs) + hash });
++    for (let i = 0; i < 200 && !events.some(e => e.method === 'Page.loadEventFired'); i++) await new Promise(r => setTimeout(r, 50));
++    await js('document.fonts.ready.then(()=>true)');
++  };
++  const until = async (expr, what) => { for (let i = 0; i < 100; i++) { if (await js(expr)) return; await new Promise(r => setTimeout(r, 100)); } throw new Error('never: ' + what); };
++  // the width the sizes attribute declares at this viewport: the first media condition that holds, its length resolved by the browser
++  const DECL = `(s=>{for(const part of s.split(/,(?![^(]*\\))/)){const t=part.trim(),m=t.match(/^(\\([^)]*\\))\\s+(.+)$/);if(m&&!matchMedia(m[1]).matches)continue;const len=m?m[2]:t;const d=document.createElement('div');d.style.cssText='position:absolute;visibility:hidden;width:'+len;document.body.appendChild(d);const w=d.getBoundingClientRect().width;d.remove();return w}return null})`;
++  const r1 = x => Math.round(x * 10) / 10;
++
++  out.push('LHB-95 rendered widths, site ' + SITE + ', measured ' + new Date().toISOString().slice(0, 16) + 'Z in headless Chrome (' + (await get('/json/version')).Browser + ').');
++  out.push('Counting basis: getBoundingClientRect() in CSS px, device scale 1, classic scrollbars hidden (clientWidth = viewport).');
++  out.push('');
++  out.push('card photos (.grid .card .ph.has-foto img), every one on the catalog page, against the sizes each declares');
++  out.push('viewport  photos  drawn min-max   least over  most over');
++  await open(GRID_W[0], 'es-PR', '#/catalogo');
++  await until(`!!document.querySelector('.grid .card .ph.has-foto img')`, 'a catalog card with a photo');
++  for (const w of GRID_W) {
++    await size(w);
++    const m = await js(`(()=>{const a=[...document.querySelectorAll('.grid .card .ph.has-foto img')].map((i,k)=>({k,drawn:i.getBoundingClientRect().width,decl:${DECL}(i.getAttribute('sizes'))}));return {a,cw:document.documentElement.clientWidth}})()`);
++    const overs = m.a.map(i => i.decl - i.drawn), drawn = m.a.map(i => i.drawn);
++    const off = m.a.filter((i, k) => !(overs[k] >= 0 && overs[k] <= 3));
++    out.push(String(w).padStart(8) + String(m.a.length).padStart(8) + ('  ' + r1(Math.min(...drawn)) + '-' + r1(Math.max(...drawn))).padEnd(16) + String(r1(Math.min(...overs))).padStart(11) + String(r1(Math.max(...overs))).padStart(11));
++    check(m.cw === w, `grid ${w}: clientWidth ${m.cw} equals the viewport`);
++    // every photo: the declared width at or above the drawn width, by at most 3 px
++    check(m.a.length >= 2 && off.length === 0 && overs.every(over => over >= 0 && over <= 3), `grid ${w}: all ${m.a.length} photos declare at or above their drawn width by at most 3 px` + (off.length ? ` (off: ${off.map(i => 'photo ' + (i.k + 1) + ' drawn ' + r1(i.drawn) + ' declared ' + r1(i.decl)).join('; ')})` : ''));
++  }
++  // the mini row (Mi Hoja: my uploads, my favorites): a catalog card cloned into a .mini-row at the top of #view, as LHB-85 measured it
++  await js(`(()=>{const c=document.querySelector('.grid .card').cloneNode(true);c.querySelector('.ph.has-foto img').id='lhb95mini';const r=document.createElement('div');r.className='mini-row';r.appendChild(c);document.getElementById('view').prepend(r);return true})()`);
++  out.push('');
++  out.push('mini-row card photo against SIZES_MINI ' + MINI);
++  out.push('viewport   drawn  declared  over');
++  for (const w of GRID_W) {
++    await size(w);
++    const m = await js(`(()=>{const i=document.getElementById('lhb95mini');return {drawn:i.getBoundingClientRect().width,decl:${DECL}(${JSON.stringify(MINI)})}})()`);
++    const over = m.decl - m.drawn;
++    out.push(String(w).padStart(8) + String(r1(m.drawn)).padStart(8) + String(r1(m.decl)).padStart(10) + String(r1(over)).padStart(6));
++    check(over >= 0 && over <= 3, `mini row ${w}: SIZES_MINI ${r1(m.decl)} is at or above drawn ${r1(m.drawn)} by at most 3 px (over ${r1(over)})`);
++  }
++  out.push('');
++  out.push('language switch (#langSwitch) and its neighbours (div.top-actions and every control in it), Spanish reader (as shipped) and English reader (swapped after load)');
++  out.push('viewport  reader   text      width  height  switch.left  top-actions.left  controls  scrollWidth');
++  const got = {};
++  // drawn: displayed, visible, with a size; the attribute hidden alone says nothing about CSS
++  const SHOWN = `(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility==='visible'&&r.width>0&&r.height>0})`;
++  for (const [lang, name] of [['es-PR', 'Spanish'], ['en-US', 'English']]) {
++    await open(SWITCH_W[0], lang, '');
++    await until(`(()=>{const b=document.getElementById('langSwitch');return !!b&&!b.hidden&&${SHOWN}(b)})()`, 'the switch drawn for ' + name);
++    for (const w of SWITCH_W) {
++      await size(w);
++      const m = await js(`(()=>{const b=document.getElementById('langSwitch'),t=document.querySelector('.top-actions');const rb=b.getBoundingClientRect(),rt=t.getBoundingClientRect();const vis=[...b.children].filter(e=>getComputedStyle(e).display!=='none').map(e=>e.textContent).join('');const box=r=>({l:r.left,t:r.top,r:r.right,b:r.bottom});const kids=[...t.children].map(e=>({id:e.id||e.className,box:box(e.getBoundingClientRect()),shown:${SHOWN}(e)}));return {text:vis,width:rb.width,height:rb.height,shown:${SHOWN}(b),left:rb.left,tl:rt.left,tbox:box(rt),kids,sw:document.documentElement.scrollWidth}})()`);
++      (got[w] = got[w] || {})[name] = m;
++      out.push(String(w).padStart(8) + '  ' + name.padEnd(8) + ' ' + m.text.padEnd(9) + String(r1(m.width)).padStart(6) + String(r1(m.height)).padStart(8) + String(r1(m.left)).padStart(13) + String(r1(m.tl)).padStart(18) + String(m.kids.length).padStart(10) + String(m.sw).padStart(13));
++      check(m.sw === w, `switch ${w} ${name}: no sideways scroll (scrollWidth ${m.sw})`);
++      check(m.shown && m.kids.length >= 4 && m.kids.every(k => k.shown), `switch ${w} ${name}: the switch and all ${m.kids.length} controls in top-actions are drawn (switch ${r1(m.width)} x ${r1(m.height)} px)`);
++    }
++  }
++  const moved = (a, b) => Math.max(Math.abs(a.l - b.l), Math.abs(a.t - b.t), Math.abs(a.r - b.r), Math.abs(a.b - b.b));
++  for (const w of SWITCH_W) {
++    const g = got[w], ds = Math.abs(g.Spanish.left - g.English.left), dt = Math.abs(g.Spanish.tl - g.English.tl);
++    check(ds < 1 && dt < 1, `switch ${w}: the English swap moves the switch by ${r1(ds)} px and top-actions by ${r1(dt)} px (under 1 px)`);
++    // each neighbour on every edge, and the container's own box: a control can move without the switch or the container moving
++    const same = g.Spanish.kids.length === g.English.kids.length;
++    const mv = same ? g.Spanish.kids.map((k, i) => ({ id: k.id, d: moved(k.box, g.English.kids[i].box) })) : [];
++    const worst = mv.reduce((a, b) => (b.d > a.d ? b : a), { id: '-', d: 0 }), dbox = moved(g.Spanish.tbox, g.English.tbox);
++    check(same && mv.every(x => x.d < 1) && dbox < 1, `switch ${w}: every control in top-actions moves under 1 px on every edge (most: ${worst.id} ${r1(worst.d)} px; container ${r1(dbox)} px)`);
++    check(g.Spanish.text !== g.English.text, `switch ${w}: the label differs by reader (${g.Spanish.text} / ${g.English.text})`);
++  }
++} catch (e) {
++  if (e !== null) { out.push('FAIL the run itself: ' + (e && e.message)); bad.push('run'); }
++}
++clearTimeout(watchdog);
++if (code !== 2) {
++  out.push('');
++  out.push(bad.length ? 'RESULT FAIL ' + bad.length + ' of ' + out.filter(l => /^(PASS|FAIL) /.test(l)).length + ' checks' : 'RESULT PASS ' + out.filter(l => /^PASS /.test(l)).length + ' of ' + out.filter(l => /^PASS /.test(l)).length + ' checks');
++  console.log(out.join('\n'));
++}
++await cleanup();
++process.exit(code || (bad.length ? 1 : 0));

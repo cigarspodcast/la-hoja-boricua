@@ -4356,6 +4356,29 @@ test('LHB-34: el panel de la cuenta en Perfil: descargar (el respaldo de siempre
  /* descargar es el respaldo de siempre; una marca de borrado a medias se retoma al abrir */
  assert.match(read('hoja.js'),/\$\$\('#acctP \[data-exp\]'\)\.forEach\(b=>b\.onclick=exportar\)/);assert.match(read('hoja.js'),/if\(delMark\.get\(\)\)setTimeout\(resumeDelete,1500\);/);
 });
+/* LHB-95: los anchos dibujados se miden en Chrome sin pantalla (tools/widths.mjs). La corrida de siempre no abre un navegador: la medición va con LHB_BROWSER=1 */
+test('LHB-95: la herramienta mide en los anchos de la evidencia de LHB-85 y LHB-93, con la regla de LHB-85 (nunca por debajo, a lo sumo 3 px por encima)',()=>{
+ const t=fs.readFileSync(path.join(__dirname,'..','tools','widths.mjs'),'utf8');
+ const ev=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-85-slot-widths.txt'),'utf8');
+ const vps=[...ev.matchAll(/^ {1,2}(\d{3,4}) {3,}\d+\.\d/gm)].map(m=>+m[1]);assert.equal(vps.length,14,'los 14 anchos de LHB-85');
+ assert.deepEqual(JSON.parse(t.match(/const GRID_W = (\[[^\]]*\])/)[1]),vps);
+ assert.deepEqual(JSON.parse(t.match(/const SWITCH_W = (\[[^\]]*\])/)[1]),[320,360,412,1024]);
+ assert.match(t,/over >= 0 && over <= 3/);assert.match(t,/ds < 1 && dt < 1/);
+ /* Codex r1: cada foto de la grilla y la fila mini en todos los anchos; cada control de top-actions en cada borde; el cambio de idioma se mide con el botón dibujado; cada orden al navegador tiene plazo */
+ assert.match(t,/querySelectorAll\('\.grid \.card \.ph\.has-foto img'\)/);assert.match(t,/for \(const w of GRID_W\) \{\r?\n    await size\(w\);\r?\n    const m = await js\(`\(\(\)=>\{const i=document\.getElementById\('lhb95mini'\)/);
+ assert.match(t,/mv\.every\(x => x\.d < 1\) && dbox < 1/);assert.match(t,/s\.display!=='none'&&s\.visibility==='visible'&&r\.width>0&&r\.height>0/);
+ assert.match(t,/const CMD_MS = 15000, WATCHDOG_MS = 90000;/);assert.ok(/WATCHDOG_MS/.test(t)&&90000<120000,'el perro guardián llega antes que el plazo de la prueba (120 s)');
+ /* lo que la herramienta midió al cerrar LHB-95, leído hasta la última línea */
+ const w=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-95-widths.txt'),'utf8').trim().split(/\r?\n/);assert.match(w[w.length-1],/^RESULT PASS 70 of 70 checks$/);
+ const mu=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-95-mutations.out'),'utf8').trim().split(/\r?\n/);assert.equal(mu[mu.length-1],'RESULT 13 of 13 mutations red');
+ /* Codex r2: el navegador arranca dentro del bloque que limpia; un arranque que falla es NO BROWSER (2) y no deja el perfil */
+ assert.match(t,/chrome\.once\('error', e => \{ launchFail = e; \}\);/);assert.ok(t.indexOf('chrome = spawn(')>t.indexOf('const cleanup = async'),'spawn va después de definir la limpieza');
+ const m13=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-95-m13-red-before.txt'),'utf8');assert.match(m13,/profiles in TEMP before 0 after 1/,'con el archivo de la ronda 1, el arranque fallido dejaba el perfil');
+});
+test('LHB-95: anchos dibujados en Chrome: la foto de la tarjeta contra sizes y el cambio de idioma (solo con LHB_BROWSER=1)',{skip:process.env.LHB_BROWSER==='1'?false:'sin LHB_BROWSER=1 no se abre un navegador'},()=>{
+ const r=require('child_process').spawnSync(process.execPath,[path.join(__dirname,'..','tools','widths.mjs')],{encoding:'utf8',timeout:120000});
+ assert.equal(r.status,0,r.stdout+r.stderr);assert.match(r.stdout,/^RESULT PASS \d+ of \d+ checks$/m);assert.ok(!/^FAIL /m.test(r.stdout),r.stdout);
+});
 /* LHB-40: el pasaporte público /u/<handle> en SQLite real: los perfiles de API56 (nombre Ana, apellido Secreta) y la Mi Hoja guardada en la tabla mihoja */
 async function API40(){
  const a=await API56();const U=await a.imp('u/[handle].js'),PP=await a.imp('_lib/passport.js');
