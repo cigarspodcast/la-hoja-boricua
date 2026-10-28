@@ -1,6 +1,6 @@
 """LHB-92 mutation proof: each mutation breaks one thing on a scratch copy of the worktree, runs the LHB-92 tests and the
 LHB-87 (Codex r3) resize test, and must turn them red; the copy is restored after each.
-usage: python evidence/lhb-92-mutations.py WORKTREE SCRATCH"""
+usage: python evidence/lhb-92-mutations.py WORKTREE SCRATCH [M9,M10,...]"""
 import os, re, shutil, subprocess, sys
 
 WT, D = sys.argv[1], sys.argv[2]
@@ -41,6 +41,9 @@ M = [
     ('M14 switch: a later padding override', lambda: append('site/styles.css', '\n.top-actions .lang-switch{padding:0 4px}\n')),
     ('M15 fitPop updates before the new height', lambda: edit('site/app.js', '{p.options.maxHeight=popMaxH(map.getSize().y);p.update()}', '{p.update();p.options.maxHeight=popMaxH(map.getSize().y)}')),
 ]
+ONLY = sys.argv[3].split(',') if len(sys.argv) > 3 else None
+if ONLY:
+    M = [x for x in M if x[0].split()[0] in ONLY]
 red = 0
 for name, mut in M:
     snap = {rel: open(os.path.join(D, rel), 'rb').read() for rel in FILES}

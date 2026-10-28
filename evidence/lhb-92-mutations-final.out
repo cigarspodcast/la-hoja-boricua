@@ -1,0 +1,9 @@
+M9 pinned card CSS: mini card 150px              rc 1 fail 1 -> RED
+M10 pinned card CSS: card padding 9px            rc 1 fail 1 -> RED
+M11 pinned card CSS: a new .card .ph rule        rc 1 fail 1 -> RED
+M12 grid 4 columns from 620px                    rc 1 fail 1 -> RED
+M13 switch: min-width:0 !important appended      rc 1 fail 1 -> RED
+M14 switch: a later padding override             rc 1 fail 1 -> RED
+M15 fitPop updates before the new height         rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 3 (the 3 LHB-92 tests and the LHB-87 r3 test)
+RESULT 7 of 7 mutations red
