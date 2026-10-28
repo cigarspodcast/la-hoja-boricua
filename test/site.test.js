@@ -260,7 +260,7 @@ test('LHB-27: idioma por navigator.language, se recuerda (encendido en E6, LHB-3
  const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[]}};
  require('vm').runInNewContext(src.replace('const ENABLED=false;','const ENABLED=true;'),{window:w});
  assert.equal(w.LHB_I18N.lang,'en');assert.equal(w.document.documentElement.lang,'en');assert.equal(w.LHB_I18N.t('cig.notFound'),'We could not find that vitola.');
- const ix=read('index.html');assert.ok(/<button class="lang-switch" type="button" id="langSwitch" hidden><\/button>/.test(ix),'selector escondido');
+ const ix=read('index.html');assert.ok(ix.includes('<button class="lang-switch" type="button" id="langSwitch" lang="en" aria-label="English">'),'el selector está en el HTML (LHB-93: visible desde el primer pintado)');
  assert.ok(ix.indexOf('i18n.js')>0&&ix.indexOf('i18n.js')<ix.indexOf('app.js'),'i18n.js antes de app.js');assert.ok(read('sw.js').includes("'i18n.js'"),'i18n.js en el shell');
  assert.ok(!src.includes('\u2014'),'sin raya larga en i18n.js');
 });
@@ -292,7 +292,7 @@ test('LHB-29: art.js toma sus textos de i18n.js (cargado antes): en espa\u00f1ol
 test('LHB-29: index.html trae el espa\u00f1ol y marca cada texto con data-i18n o data-i18n-attr; en ingl\u00e9s i18n.js los cambia',()=>{
  const {T}=I18N();const {scan}=require('./i18n-scan.js');const ix=read('index.html');
  const body=ix.replace(/<noscript>[\s\S]*?<\/noscript>/g,'').replace(/<script[\s\S]*?<\/script>/g,'').replace(/<style[\s\S]*?<\/style>/g,'');
- const left=scan(body).filter(x=>!/^(text|attr): (La Hoja Boricua|Cigars Podcast|@cigarspodcast)$/.test(x));
+ const left=scan(body).filter(x=>!/^(text|attr): (La Hoja Boricua|Cigars Podcast|@cigarspodcast|English|EN)$/.test(x));// LHB-93: el selector trae el nombre del otro idioma en ese idioma; wire() lo pone, no T
  const marked=new Set();for(const m of ix.matchAll(/<(\w+)[^>]*\bdata-i18n="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/g)){assert.equal(T.es[m[2]],m[3],'es '+m[2]);marked.add('text: '+m[3].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim())}
  for(const m of ix.matchAll(/<[^>]*\bdata-i18n-attr="([^"]+)"[^>]*>/g))for(const p of m[1].split(';')){const [a,k]=p.split(':');const v=m[0].match(new RegExp('\\b'+a+'="([^"]*)"'))[1];assert.equal(T.es[k],v,'es '+k);marked.add('attr: '+v)}
  for(const x of left)assert.ok(marked.has(x)||[...marked].some(mk=>mk.includes(x.slice(x.indexOf(': ')+2))),'sin marcar: '+x);
@@ -3654,7 +3654,7 @@ test('LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la a
  assert.ok(!/\.lang-switch\{[^}]*display:/.test(css),'sin display: el atributo hidden la esconde');
  /* Codex r1: a 320 y 375 px el selector con el nombre entero empujaba la barra fuera de la pantalla (medido en el navegador, evidence/lhb-36-topbar-widths.txt) */
  assert.ok(css.includes('.lang-switch .ls-short{display:none}'),'la sigla escondida donde cabe el nombre');
- assert.ok(css.includes('@media (max-width:399px){.lang-switch{padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}'),'bajo 400 px, la sigla');
+ assert.ok(css.includes('@media (max-width:399px){.lang-switch{min-width:40px;padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}'),'bajo 400 px, la sigla (LHB-93: con su ancho reservado)');
  const nar=css.match(/@media \(max-width:359px\)\{\.brand-text\{([^}]*)\}\}/);assert.ok(nar,'bajo 360 px, la marca sin el texto');
  assert.ok(nar[1].includes('position:absolute')&&nar[1].includes('clip:rect(0 0 0 0)')&&!nar[1].includes('display:none'),'escondido a la vista, no al lector de pantalla: el enlace sigue con nombre (LHB-88)');
  const ix=read('index.html');const {T}=I18N();
@@ -3734,4 +3734,17 @@ test('LHB-90: el pie queda invisible mientras la vista está vacía, y es el her
  assert.ok(!/\.seo-foot\{[^}]*display:\s*none/.test(css)&&!/\.view:empty\+\.seo-foot\{[^}]*display/.test(css),'escondido a la vista, no quitado: los enlaces siguen en la página');
  const ix=read('index.html');assert.match(ix,/<main id="view" class="view" tabindex="-1"><\/main>\s*<footer class="seo-foot">/,'la vista empieza vacía y el pie la sigue de inmediato, así el selector + aplica');
  const app=read('app.js');assert.ok(/view\.innerHTML=/.test(app),'la app llena la vista, y entonces :empty deja de valer');
+});
+/* LHB-93: el selector de idioma sale en el primer pintado; wire() no le cambia el ancho */
+test('LHB-93: el selector sale en el primer pintado con el texto en español; wire() no le cambia el ancho',()=>{
+ const ix=read('index.html');const m=ix.match(/<button class="lang-switch"[^>]*>([\s\S]*?)<\/button>/);assert.ok(m,'el botón');
+ assert.ok(!/\shidden[\s>]/.test(m[0]),'no sale escondido');
+ const es=run36('es-PR',null);assert.equal(m[1],es.btn.innerHTML,'el HTML ya trae lo que wire() pone en español');assert.ok(m[0].includes('lang="'+es.btn.lang+'"')&&m[0].includes('aria-label="'+es.btn.a['aria-label']+'"'),'el mismo lang y nombre');
+ const btn={hidden:false,innerHTML:'x',a:{},setAttribute(n,v){this.a[n]=v}};const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:id=>id==='langSwitch'?btn:null,querySelectorAll:()=>[]}};
+ require('vm').runInNewContext(read('i18n.js').replace('const ENABLED=true;','const ENABLED=false;'),{window:w});assert.equal(btn.hidden,true,'con el selector apagado, wire() lo esconde');
+ // el ancho reservado cubre el nombre más ancho, medido (evidence/lhb-93-switch-widths.txt)
+ const css=read('styles.css');const L=Math.max(69.9,73.7),Sh=Math.max(39.9,37.7);
+ const a=css.match(/\.lang-switch\{height:36px;min-width:(\d+(?:\.\d+)?)px;/),b=css.match(/@media \(max-width:399px\)\{\.lang-switch\{min-width:(\d+(?:\.\d+)?)px;padding:0 10px\}/);assert.ok(a&&b,'min-width en las dos medidas');
+ assert.ok(+a[1]>=L&&+a[1]-L<2,'ancho largo '+a[1]);assert.ok(+b[1]>=Sh&&+b[1]-Sh<2,'ancho corto '+b[1]);
+ assert.ok(css.includes('*{box-sizing:border-box}'),'min-width cuenta borde y relleno, como la medida');
 });
