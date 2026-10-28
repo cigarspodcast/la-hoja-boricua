@@ -3673,14 +3673,22 @@ test('LHB-85: cada miniatura tiene su gemela de 320 x 160, más liviana, y las d
  const dir=path.join(S,'img','cigarros');const big=fs.readdirSync(dir).filter(n=>n.endsWith('_thumb.webp'));assert.ok(big.length>=36,'miniaturas: '+big.length);
  const sw=read('sw.js');
  for(const n of big){const s=n.replace('_thumb.webp','_thumb-s.webp');assert.ok(fs.existsSync(path.join(dir,s)),'falta '+s);
-  assert.deepEqual(webpSize(path.join(dir,s)),[320,160],s);const [w,h]=webpSize(path.join(dir,n));assert.ok(w>=320&&w===2*h,'la grande no es menor: '+n);
+  assert.deepEqual(webpSize(path.join(dir,s)),[320,160],s);assert.deepEqual(webpSize(path.join(dir,n)),[600,300],'la grande mide lo que dice el srcset (600w): '+n);
   assert.ok(fs.statSync(path.join(dir,s)).size<fs.statSync(path.join(dir,n)).size,'la gemela pesa menos: '+s);
   assert.ok(sw.includes("'img/cigarros/"+n+"'")&&sw.includes("'img/cigarros/"+s+"'"),'las dos precacheadas: '+n)}
  const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));for(const f of Object.values(F))for(const t of [f.thumb,...(f.galeria||[]).map(g=>g.thumb)])assert.ok(fs.existsSync(path.join(S,t.replace(/_thumb\.webp$/,'_thumb-s.webp'))),'gemela de '+t);
 });
 test('LHB-85: la tarjeta escoge con srcset y sizes; la galería usa la gemela',()=>{const app=read('app.js');
  assert.ok(app.includes("const thumbS=t=>String(t).replace(/_thumb\\.webp$/,'_thumb-s.webp');"),'thumbS');
- assert.ok(app.includes('<img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="(min-width:760px) 225px, (min-width:620px) calc(33vw - 28px), calc(50vw - 32px)"'),'tarjeta con srcset');
+ assert.ok(app.includes('<img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}"'),'tarjeta con srcset');
+ // el ancho dibujado, medido en el preview (evidence/lhb-85-slot-widths.txt): sizes nunca por debajo (borroso) ni más de 3 px por encima (descarga de más)
+ const S1=app.match(/const SIZES_GRID='([^']+)',SIZES_MINI='([^']+)';/);assert.ok(S1,'SIZES_GRID y SIZES_MINI');
+ const at=(sz,vw)=>{for(const part of sz.split(',').map(s=>s.trim())){const m=part.match(/^(?:\(min-width:(\d+)px\)\s+)?(.+)$/);if(m[1]&&vw<+m[1])continue;const v=m[2];let r;
+   if((r=v.match(/^(\d+(?:\.\d+)?)px$/)))return +r[1];if((r=v.match(/^calc\((\d+(?:\.\d+)?)vw - (\d+(?:\.\d+)?)px\)$/)))return vw*r[1]/100-r[2];throw new Error('sizes: '+v)}throw new Error('sin valor a '+vw)};
+ const grid={320:113.4,360:133.5,375:141.1,390:148.8,412:159.6,430:168.9,500:203.9,619:263.8,620:163.6,700:190.4,759:210.3,760:210.5,1024:210.5,1440:210.5};
+ for(const [vw,img] of Object.entries(grid)){const d=at(S1[1],+vw);assert.ok(d>=img&&d-img<=3,'tarjeta a '+vw+' px: sizes '+d+', dibujada '+img)}
+ for(const vw of [320,412,760,1440]){const d=at(S1[2],vw);assert.ok(d>=115.4&&d-115.4<=3,'mini-row a '+vw+' px: sizes '+d)}
+ assert.ok(/class="mini-row">\$\{ups\.map\(c=>cigarCard\(\{\.\.\.c,yours:true,mini:true\}\)\)/.test(app)&&/class="mini-row">\$\{favC\.map\(c=>cigarCard\(\{\.\.\.c,mini:true\}\)\)/.test(app),'las dos filas mini usan SIZES_MINI');
  assert.ok(app.includes('<img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy">'),'galería con la gemela');
  assert.ok(!/<img src="\$\{esc\([fg]\.thumb\)\}"/.test(app),'ninguna img pide la grande como src');
 });
