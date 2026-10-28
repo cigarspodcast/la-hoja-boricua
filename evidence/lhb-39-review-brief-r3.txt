@@ -1,0 +1,14 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/la-hoja-boricua/.claude/worktrees/pensive-stonebraker-3551c2 (branch claude/lhb-39-stats-diary-b6c7ed). This is round 3 of LHB-39, run because round 2 left one blocker open; it confirms that fix. origin/main (822fb62) is already merged in, so the diff below, origin/main..HEAD, holds only this branch's changes.
+
+LHB-39 is Mi Hoja stats and a searchable diary in #/mihoja/diario (site/hoja.js); the feature is described in evidence/lhb-39-review-brief-r1.txt, the round 1 fixes in lhb-39-review-brief-r2.txt. Round 2 (evidence/lhb-39-review-r2.txt) concurred that round 1's two findings were fixed and returned BLOCK on one new P2: the focus note DFOC, taken by dKeepFocus() when a sync arrives, was never invalidated, so after navigating away during the account gate, or after an account change, a later diary visit put focus into the search box.
+
+The fix (commit 7a266fc):
+- DFOC is now null or {id, who}: dKeepFocus() stores the focused search field's id (dqQ, dqS, dqV, dqO) with the account's sub (acct.get().sub), else null.
+- A window hashchange listener, registered beside the DFOC declaration (before SYNC.start()), sets DFOC=null, so any page change cancels the note. The sync path itself (onApplied: dKeepFocus(); A.route()) does not change the hash.
+- vDiario uses the note only when DFOC.who equals the current query's account (dq().who, which resets when the account changes), then clears it; otherwise it falls back to the live document.activeElement as before.
+- test/site.test.js: HOJA38 takes opts.win to capture window listeners; a new LHB-39 (Codex ronda 2) test covers navigation during the gate, an account change before the repaint, a note not left pending, and the round 1 case still working.
+Evidence: evidence/lhb-39-r2fix-tests-red.txt (the new test red on round 2's hoja.js), lhb-39-r2fix-tests.txt (243 of 243), lhb-39-mutations-r2fix.txt (43 of 43 red, G1 and G2 for the new rules).
+
+Confirm the round 2 finding is fixed and look for defects this fix introduces: the hashchange listener clearing the note in the legitimate sync path (does anything in A.route() or the account gate change location.hash), listener ordering against the router's own hashchange handling, a note taken signed out (who '') matching a signed-out diary render, a TDZ or ordering problem at load, and tests that would pass on broken code. Do not re-raise earlier items unless their fix is wrong.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
