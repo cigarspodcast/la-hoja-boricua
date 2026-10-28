@@ -13,10 +13,14 @@ LHB-58: the profile page, passport-first, and `GET /api/u/<handle>`.
 **Evidence** (runner output, in `evidence/`)
 - `lhb-58-tests-red.txt`: the new tests fail on the LHB-40 base.
 - `lhb-58-r1fix-tests-red.txt`: the round 1 tests fail before the fix.
-- `lhb-58-r1fix-tests.txt`: suite 257 of 257.
-- `lhb-58-mutations-r1fix.txt`: 27 of 27 mutations red. The first run's two survivors are kept in `lhb-58-mutations-r0.txt`.
+- `lhb-58-r2fix-tests-red.txt`: the round 2 tests fail before the fix.
+- `lhb-58-r2fix-tests.txt`: suite 259 of 259.
+- `lhb-58-mutations-r2fix2.txt`: 32 of 32 mutations red. Earlier runs are kept: `lhb-58-mutations-r0.txt` (two survivors, tests strengthened), `lhb-58-mutations-r1fix.txt` (27 of 27) and `lhb-58-mutations-r2fix.txt` (one anchor had moved).
 - `lhb-58-local-render.txt`: `wrangler pages dev` with a seeded local D1, covering the endpoint and the `#/u/` view at 375 px.
-- Codex TIER 2: round 1 BLOCK (`lhb-58-review-r1.txt`, three findings, all fixed); round 2 in `lhb-58-review-r2.txt`.
+- Codex TIER 2:
+  - round 1 BLOCK (`lhb-58-review-r1.txt`, three findings, all fixed);
+  - round 2 BLOCK (`lhb-58-review-r2.txt`: a sync did not repaint your Perfil at `#/perfil`; a repaint lost the focus; both fixed);
+  - round 3 **PASS** (`lhb-58-review-r3.txt`), with two nonblocking P3 findings filed to Backlog.
 - Also: `lhb-40-production.txt`, LHB-40's production read-back.
 
 Owner check still open: your own picture and name in the header and in Perfil, on the preview, signed in.
