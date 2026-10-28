@@ -1,0 +1,10 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-47-wt (branch lhb-47-ai-baseline). The branch adds two files under evidence/ and changes nothing the site serves.
+
+LHB-47 asks for an AI visibility baseline: 20 fixed questions run on web search, recording whether La Hoja Boricua appears or is cited, with Cloudflare's AI crawler visit counts beside it, one dated file per month with the counting basis stated, and the monthly re-check scheduled.
+
+1. evidence/lhb-47-ai-visibility-2026-10.txt: the first reading (0 of 20), with the counting basis, the hit definition, and the crawler counts recorded as NOT MEASURED (the API token lacks zone Analytics Read). The re-check is a dated Linear ticket, not a scheduled job, by an owner ruling against time-based executions.
+2. evidence/lhb-47-ai-bots.py: a script that queries the Cloudflare GraphQL Analytics API (httpRequestsAdaptiveGroups by userAgent) for the zone and sums requests whose user agent contains a known AI crawler name. It has not yet run successfully, because of the missing permission.
+
+Look for real defects: in the script, a query that would undercount or overcount when the permission exists (the limit of 1000 user-agent groups, the requestSource filter excluding crawlers, the first-match break assigning a request to the wrong bot, the time window, the dataset's maximum query range for this plan), a crash on a valid response, or the token leaking into output; in the baseline file, a stated counting basis that does not match what is recorded, or a claim the file cannot support.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
