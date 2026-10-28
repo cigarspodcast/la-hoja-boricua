@@ -170,10 +170,18 @@ function vLugares(arg){if(arg==='ruta')state.lugMode='ruta';else if(state.lugMod
  $$('[data-cat]').forEach(b=>b.onclick=()=>{state.lugCat=b.dataset.cat;vLugares()});
  $('#fTown').onchange=e=>{state.lugTown=e.target.value;vLugares()};
  if(state.lugMode==='mapa')drawMap(ps)}
+/* LHB-83: Leaflet (script y estilo) se pide la primera vez que se abre un mapa, no al cargar la app.
+   Su estilo va antes de styles.css, como antes, para que styles.css siga mandando sobre .leaflet-* */
+let leafP=null;
+function needLeaflet(){if(window.L)return Promise.resolve(true);if(leafP)return leafP;
+ const tag=(t,a)=>new Promise(res=>{const e=Object.assign(document.createElement(t),a);e.onload=()=>res(e);e.onerror=()=>{e.remove();res(null)};document.head.insertBefore(e,t==='link'?document.querySelector('link[href="styles.css"]'):null)});
+ const css=document.querySelector('link[href="vendor-leaflet.css"]')?Promise.resolve():tag('link',{rel:'stylesheet',href:'vendor-leaflet.css'});
+ return leafP=Promise.all([tag('script',{src:'vendor-leaflet.js'}),css]).then(([s])=>{if(s&&window.L)return true;leafP=null;return false})}
 let rutaView=null;
 function drawRuta(){if(leafletMap){leafletMap.remove();leafletMap=null}const {ts}=EXT.ruta(),nu=EXT.rlit(),el=$('#map');if(!el)return;
  const off=why=>{el.innerHTML=`<div class="map-offline"><svg viewBox="0 -20 1000 370" role="img" aria-label="${tt('map.alt')}"><path class="isl" d="${ISLAND}"/>${ts.map(t=>{const[x,y]=proj(t.la,t.lo);return `<g class="rpt${t.on?' on':''}" data-town="${t.n}" transform="translate(${x.toFixed(0)} ${y.toFixed(0)})"><circle r="22" fill="transparent"/><circle r="${t.on?13:7}" class="${t.on?'gl':'dot'}"/></g>`}).join('')}</svg><span class="cap">${esc(why)}</span></div>`};
- if(!navigator.onLine||!window.L){off(tt('map.offTown'));return}
+ if(!navigator.onLine){off(tt('map.offTown'));return}
+ if(!window.L){needLeaflet().then(ok=>{if(!el.isConnected)return;if(ok)drawRuta();else off(tt('map.failTown'))});return}
  const map=L.map('map',{zoomControl:true,attributionControl:true,scrollWheelZoom:false});leafletMap=map;
  if(rutaView)map.setView(rutaView[0],rutaView[1]);else map.fitBounds([[17.95,-67.27],[18.52,-65.6]],{padding:[8,8]});
  map.on('moveend',()=>{rutaView=[map.getCenter(),map.getZoom()]});
@@ -185,8 +193,9 @@ function drawOffline(ps,why){const el=$('#map');if(!el)return;
  el.innerHTML=`<div class="map-offline"><svg viewBox="0 -20 1000 370" role="img" aria-label="${tt('map.alt')}"><path class="isl" d="${ISLAND}"/>${ps.filter(p=>p.lat&&p.lng).map((p,i)=>{const[x,y]=proj(p.lat,p.lng);return `<g class="offline-pin" data-i="${D.places.indexOf(p)}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="18" fill="transparent"/><path transform="translate(-15 -38) scale(.75)" d="M20 2 C 34 12 38 28 32 40 C 28 47 23 50 20 51 C 17 50 12 47 8 40 C 2 28 6 12 20 2Z" fill="${LEAFC[p.categoria]||LEAFC.lounge}" stroke="#2a1a12" stroke-width="5"/></g>`}).join('')}</svg><span class="cap">${esc(why)}</span></div>`;
  $$('.offline-pin',el).forEach(g=>g.onclick=()=>{const r=g.getBoundingClientRect(),hr=el.parentNode.getBoundingClientRect();leafBurst(el.parentNode,r.left-hr.left+r.width/2,r.top-hr.top,LEAFC[D.places[+g.dataset.i].categoria]);setTimeout(()=>{$('#placeCard').innerHTML=`<div class="row" style="display:block">${placeCard(D.places[+g.dataset.i])}</div>`},REDUCED?0:700)})}
 function drawMap(ps){if(leafletMap){leafletMap.remove();leafletMap=null}
- const mm=$('#mapMode');
- if(!navigator.onLine||!window.L){drawOffline(ps,tt('map.offPin'));return}
+ const mm=$('#mapMode'),el=$('#map');
+ if(!navigator.onLine){drawOffline(ps,tt('map.offPin'));return}
+ if(!window.L){if(el)needLeaflet().then(ok=>{if(!el.isConnected)return;if(ok)drawMap(ps);else drawOffline(ps,tt('map.failPin'))});return}
  const map=L.map('map',{zoomControl:true,attributionControl:true,scrollWheelZoom:false}).fitBounds([[17.92,-67.27],[18.52,-65.6]]);leafletMap=map;
  let errs=0,ok=0;const tl=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
  tl.on('tileload',()=>ok++);tl.on('tileerror',()=>{errs++;if(errs>6&&ok===0){map.remove();leafletMap=null;drawOffline(ps,tt('map.failPin'))}});

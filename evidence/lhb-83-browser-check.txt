@@ -1,0 +1,12 @@
+URL http://127.0.0.1:PORT/
+  requests to the local server: 130 ; Leaflet requests: ['/vendor-leaflet.js [empty]', '/vendor-leaflet.css [empty]']
+  leaflet-container in the DOM: False ; leaf-pin markers: 0 ; map-offline: False
+URL http://127.0.0.1:PORT/#/lugares
+  requests to the local server: 22 ; Leaflet requests: ['/vendor-leaflet.css [style]', '/vendor-leaflet.js [script]']
+  leaflet-container in the DOM: True ; leaf-pin markers: 41 ; map-offline: False
+
+Note: an earlier run of the same check, before Sec-Fetch-Dest was logged, showed home with 94 requests including
+vendor-leaflet.js and vendor-leaflet.css. The service worker registers on the load event (app.js) and precaches its
+SHELL, which still lists both files for offline use, so those were worker fetches after load; how far the precache
+gets inside the 10 s virtual time budget varies by run. On the map view, the [style] and [script] lines are the
+page's own on-demand requests (LHB-83 loader); the [empty] lines are the worker's precache.
