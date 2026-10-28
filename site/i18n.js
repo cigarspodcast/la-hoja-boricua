@@ -599,6 +599,9 @@ const T={es:{
  "h.cardCapa": "CAPA",
  "h.cardFortaleza": "FORTALEZA",
  "h.cardVitola": "VITOLA",
+ "h.miraLaCapaCon": "Mira la capa con buena luz: el color, el brillo de sus aceites, las venas y si es pareja. Pálpalo suave de la cabeza al pie; debe sentirse uniforme, sin partes blandas ni duras. El color de la capa no dice por sí solo cuánta Fortaleza tiene.",
+ "h.tuestaElPieCon": "Tuesta el pie con la llama cerca pero sin tocarlo, girando el cigarro hasta que el borde se vea parejo. Usa fósforo de madera, cedro o llama de butano; los encendedores de gasolina dejan olor. Las primeras caladas pueden ser más intensas.",
+ "h.o": "o",
  /* LHB-29: lo que se guarda en español (opciones de la cata, pasos, regiones); hoja.js lo muestra con lab() */
  "val.Suave": "Suave",
  "val.Suave a media": "Suave a media",
@@ -1264,6 +1267,9 @@ en:{
  "h.cardCapa": "WRAPPER",
  "h.cardFortaleza": "STRENGTH",
  "h.cardVitola": "VITOLA",
+ "h.miraLaCapaCon": "Look at the wrapper in good light: its color, the sheen of its oils, the veins and whether it is even. Feel it gently from head to foot; it should feel uniform, with no soft or hard spots. The color of the wrapper alone does not tell you how much Strength it has.",
+ "h.tuestaElPieCon": "Toast the foot with the flame close but not touching it, turning the cigar until the edge looks even. Use a wooden match, cedar or a butane flame; fluid lighters leave an odor. The first puffs can be more intense.",
+ "h.o": "or",
  /* LHB-29: lo que se guarda en español (opciones de la cata, pasos, regiones); hoja.js lo muestra con lab() */
  "val.Suave": "Mild",
  "val.Suave a media": "Mild to medium",

@@ -1,0 +1,127 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-83-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18147-b2aa-7f72-8749-8cb0295e1b29
+--------
+user
+You are reviewing one commit in this repository (La Hoja Boricua, a vanilla JS PWA in site/). Review only; do not edit files. Do not load or run any skills.
+
+Diff to review: git diff 0530ca3 042edb4 -- site test evidence/lhb-29-resolve-compare.js evidence/lhb-29-mutations.py
+
+What the change is meant to do (LHB-29, the second step of the English version):
+1. Every visible Spanish text in site/hoja.js moves into site/i18n.js T.es, word for word, with an English value in T.en under the same key; hoja.js calls tt('key') or tt('key',{a:...}). The language is fixed at load, so tt at module definition time is safe. i18n.js ENABLED stays false, so the live app keeps showing Spanish until a later ticket turns the switch on.
+2. Values the app STORES (tasting options such as capa, aspecto, tiro; the PASOS step titles saved in each journal entry; the region keys of REG) stay Spanish in the data, so a backup made before or after this change reads the same. The screen shows them through lab(v)=tt('val.'+v,null,v), which falls back to the stored value itself. The region select now carries value="<stored key>" so the onchange handler keeps reading the Spanish key while the option text can be translated.
+3. site/art.js: its 4 alt and aria-label texts go behind keys. i18n.js loads before art.js and hoja.js (deferred, in that order).
+4. site/index.html keeps its Spanish markup as the default, marked with data-i18n (innerHTML) or data-i18n-attr ("attribute:key"); i18n.js apply() swaps them only when the language is English, called from wire().
+5. Hand-made cases: plurals, the install hint, headings with <em>, the share card labels, the pairing strength range (the second end now prints fortLabel(key) lower-cased; in Spanish that is the key itself for every key used), and the events calendar day labels.
+6. Cache bumped to lhb-v71. Tests: test/i18n-resolve.js puts the Spanish back in place of each tt() call so the older text pins keep checking the shipped Spanish; the harnesses that run slices of hoja.js get the real tt and lab.
+
+Look for real defects: text that now renders differently in Spanish, a tt() key missing from either table or with different {variables}, a variable passed under the wrong name, a stored value that would now be saved translated, a lab() missing where a stored value is shown, apply() breaking the page or running in Spanish, a quoting or escaping change (for example a key value with an apostrophe or HTML inside an attribute), a template literal broken by the transform, a load-order problem, and tests that would pass on broken code. evidence/lhb-29-resolve-compare.txt lists every difference between main's hoja.js and the branch's hoja.js with tt() resolved; evidence/lhb-29-render-compare.txt is the rendered comparison in a browser.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+2026-10-28T06:52:05.766231Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-28T06:52:07.080160Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The main risk is a Spanish output or stored-data change hidden by the resolver. I’ll check the diff, translation tables, and harnesses against that contract without editing files or loading skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "Get-Content C:\\Users\\Owner\\Documents\\Codex\\PRE_ENGINE_CONTROL_METHODOLOGY.md; git status --short; git diff --stat 0530ca3 042edb4 -- site test evidence/lhb-29-resolve-compare.js evidence/lhb-29-mutations.py; git diff 0530ca3 042edb4 -- site/i18n.js site/art.js site/index.html site/sw.js" in C:\Users\Owner\lhb-83-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-28T06:52:15.070242Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The supplied browser comparison reached the sign-in gate for the private screens. It does not prove that the tasting, journal, or humidor renders correctly. I’m checking those paths and the resolver directly.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Two tasting instructions remain hard-coded in Spanish. The literal scanner skips them because each contains a semicolon, so the new coverage test passes despite the omissions. I’m checking the remaining paths for separate Spanish regressions before closing the review.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] **P2, blocking: visible tasting text remains outside the translation tables.**
+
+- **File/symbol:** [site/hoja.js:413](/C:/Users/Owner/lhb-83-wt/site/hoja.js:413), `PASOS[].e`. The visual and lighting instructions still contain literal Spanish: `e:'Mira la capa con buena luz…'` and `e:'Tuesta el pie…'`. With English enabled in memory, steps 1 and 3 show English headings followed by Spanish instructions. These descriptions are displayed, not stored, so the storage exception does not apply.
+- **File/symbol:** [site/hoja.js:446](/C:/Users/Owner/lhb-83-wt/site/hoja.js:446), `stepBody('cigarro')`. The separator remains `<div class="or">o</div>`, producing Spanish “o” between English choices.
+- **Test gap:** The new literal-coverage test passes because `i18n-scan.js` treats semicolons as code and requires two consecutive letters. It therefore misses both instruction paragraphs and the single-letter separator.
+
+Move these three texts into both tables and add coverage that catches them. This blocks the stated E2 extraction requirement despite `ENABLED=false`.
+
+[Certain] All seven targeted i18n tests passed; 565 literal-key calls had matching argument names. In-memory comparisons preserved Spanish across all 11 tasting steps, and English-mode saves retained Spanish data values.
+
+[Certain] Full-suite completion is **NOT VERIFIED**: the sandbox rejected Python execution with `EPERM`.
+
+VERDICT: BLOCK
+tokens used
+155,804
+[Certain] **P2, blocking: visible tasting text remains outside the translation tables.**
+
+- **File/symbol:** [site/hoja.js:413](/C:/Users/Owner/lhb-83-wt/site/hoja.js:413), `PASOS[].e`. The visual and lighting instructions still contain literal Spanish: `e:'Mira la capa con buena luz…'` and `e:'Tuesta el pie…'`. With English enabled in memory, steps 1 and 3 show English headings followed by Spanish instructions. These descriptions are displayed, not stored, so the storage exception does not apply.
+- **File/symbol:** [site/hoja.js:446](/C:/Users/Owner/lhb-83-wt/site/hoja.js:446), `stepBody('cigarro')`. The separator remains `<div class="or">o</div>`, producing Spanish “o” between English choices.
+- **Test gap:** The new literal-coverage test passes because `i18n-scan.js` treats semicolons as code and requires two consecutive letters. It therefore misses both instruction paragraphs and the single-letter separator.
+
+Move these three texts into both tables and add coverage that catches them. This blocks the stated E2 extraction requirement despite `ENABLED=false`.
+
+[Certain] All seven targeted i18n tests passed; 565 literal-key calls had matching argument names. In-memory comparisons preserved Spanish across all 11 tasting steps, and English-mode saves retained Spanish data values.
+
+[Certain] Full-suite completion is **NOT VERIFIED**: the sandbox rejected Python execution with `EPERM`.
+
+VERDICT: BLOCK

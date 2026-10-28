@@ -29,6 +29,9 @@ muts = [
     ('M11 art.js reads tt before i18n.js defines it', lambda: edit('art.js', 'const tt=window.LHB_I18N.t;', 'const tt=k=>k;')),
     ('M12 hoja.js uses tt without defining it', lambda: edit('hoja.js', 'const tt=window.LHB_I18N.t;', '')),
     ('M13 an unused key left in both tables', lambda: (edit('i18n.js', ' "ix.tabs": "Secciones",', ' "ix.tabs": "Secciones",\n "ix.sobra": "Sobra",'), edit('i18n.js', ' "ix.tabs": "Sections",', ' "ix.tabs": "Sections",\n "ix.sobra": "Extra",'))),
+    # Codex round 1: prose with a semicolon, and a lone "o" between tags, were invisible to the scan
+    ('M14 a tasting instruction with a semicolon written back in Spanish', lambda: edit('hoja.js', "e:tt('h.tuestaElPieCon')", "e:'Usa fósforo de madera, cedro o llama de butano; los encendedores de gasolina dejan olor.'")),
+    ('M15 the "o" separator written back in Spanish', lambda: edit('hoja.js', "<div class=\"or\">${tt('h.o')}</div>", '<div class="or">o</div>')),
 ]
 print('baseline', run())
 for name, f in muts:

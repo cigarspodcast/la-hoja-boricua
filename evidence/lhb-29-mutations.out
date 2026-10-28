@@ -12,4 +12,6 @@ M10 apply() touches the page in Spanish too -> ('1', ['LHB-29: index.html trae e
 M11 art.js reads tt before i18n.js defines it -> ('1', ['LHB-29: art.js toma sus textos de i18n.js (cargado antes): en español como antes, en inglés traducidos'])
 M12 hoja.js uses tt without defining it -> ('1', ['LHB-29: lo que se guarda sigue en español; cada opción de la cata, cada paso y cada región se muestra con lab() en los dos idiomas'])
 M13 an unused key left in both tables -> ('1', ['LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves'])
+M14 a tasting instruction with a semicolon written back in Spanish -> ('2', ['LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves', 'LHB-29: hoja.js y art.js no dejan texto en español escrito (antes: 561 y 4); en hoja.js quedan solo las excepciones anotadas'])
+M15 the "o" separator written back in Spanish -> ('1', ['LHB-29: hoja.js y art.js no dejan texto en español escrito (antes: 561 y 4); en hoja.js quedan solo las excepciones anotadas'])
 restored ('0', [])

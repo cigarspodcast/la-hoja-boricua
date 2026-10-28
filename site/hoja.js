@@ -104,7 +104,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 window.addEventListener('hashchange',closeSheet);
 const MENU=[['#/catalogo',tt('cat.eyebrow'),tt('h.lasVitolasHechasEn')],['#/artesanos',tt('arts.eyebrow'),tt('h.manosBoricuas')],['#/lugares',tt('lug.eyebrow'),tt('h.loungesYPuntosDe')],['#/eventos',tt('tile.ev'),tt('h.calendarioRsvpYHumo')],['#/mihoja',tt('h.miHoja'),tt('h.humidorDiarioPasaporteY')],['#/cata',tt('tile.cata'),tt('h.pasoAPasoCon')],['#/maridajes',tt('tile.mar'),tt('h.ronYCafeDe')],['#/podcast',tt('h.escuchaEnCigarsPodcast'),tt('h.lanzamientosResenasYCultura')],['#/buscar',tt('cat.search'),tt('h.enTodaLaApp')]];
 function openSheet(kind,arg){
- if(kind==='instalar'){const ios=arg==='ios'||arg==='ipad';sheet(`<h2 class="sheet-h">${tt('h.anadirATuPantalla')}</h2><p class="inst-p">${ios?`${tt('h.tocaElBoton')} <b>${tt('h.compartir')}</b> ${tt('h.subeYLuego',{a:arg==='ipad'?tt('h.arriba'):tt('h.abajo')})} <b>${tt('h.anadirAPantallaDe')}</b>.`:`${tt('h.abreElMenuDel')}<b>⋮</b> o <b>⋯</b>${tt('h.yToca')} <b>${tt('h.instalarApp')}</b> o <b>${tt('h.anadirAPantallaDe')}</b>.`}</p><button type="button" class="lbtn buy inst-ok" data-close>${tt('h.entendido')}</button>`,tt('h.anadirATuPantalla'));return}
+ if(kind==='instalar'){const ios=arg==='ios'||arg==='ipad';sheet(`<h2 class="sheet-h">${tt('h.anadirATuPantalla')}</h2><p class="inst-p">${ios?`${tt('h.tocaElBoton')} <b>${tt('h.compartir')}</b> ${tt('h.subeYLuego',{a:arg==='ipad'?tt('h.arriba'):tt('h.abajo')})} <b>${tt('h.anadirAPantallaDe')}</b>.`:`${tt('h.abreElMenuDel')}<b>⋮</b> ${tt('h.o')} <b>⋯</b>${tt('h.yToca')} <b>${tt('h.instalarApp')}</b> ${tt('h.o')} <b>${tt('h.anadirAPantallaDe')}</b>.`}</p><button type="button" class="lbtn buy inst-ok" data-close>${tt('h.entendido')}</button>`,tt('h.anadirATuPantalla'));return}
  if(kind==='menu'){sheet(`<h2 class="sheet-h">${tt('h.menu')}</h2><nav class="menu-list" aria-label="${tt('h.menu')}">${MENU.map(([h,t,s])=>`<a href="${h}" class="row"><div><div class="t">${t}</div><div class="s">${s}</div></div><span class="go">›</span></a>`).join('')}</nav>`,tt('h.menu'));return}
  if(kind==='plus'){sheet(`<h2 class="sheet-h">${tt('h.queQuieresHacer')}</h2><div class="menu-list">
   <a href="#/cata" class="row big"><span class="ico">${VBArt.leaf('#8fd162')}</span><div><div class="t">${tt('h.empezarUnaCataGuiada')}</div><div class="s">${tt('h.pasoAPasoSe')}</div></div></a>
@@ -410,9 +410,9 @@ const placeRow=p=>`<div class="row"><a class="rowlink" href="${esc(A.goLink(p))}
 const FORT5=['Suave','Suave a media','Media','Media a fuerte','Fuerte'];const CUER5=['Ligero','Ligero a medio','Medio','Medio a completo','Completo'];
 const PASOS=[
  {id:'cigarro',t:'Tu cigarro',e:tt('h.escogeElCigarroQue')},
- {id:'visual',t:'Visual y capa',e:'Mira la capa con buena luz: el color, el brillo de sus aceites, las venas y si es pareja. Pálpalo suave de la cabeza al pie; debe sentirse uniforme, sin partes blandas ni duras. El color de la capa no dice por sí solo cuánta Fortaleza tiene.'},
+ {id:'visual',t:'Visual y capa',e:tt('h.miraLaCapaCon')},
  {id:'aroma',t:'Aroma en frío',e:tt('h.antesDeEncenderHuele'),w:'aroma'},
- {id:'encendido',t:'Encendido',e:'Tuesta el pie con la llama cerca pero sin tocarlo, girando el cigarro hasta que el borde se vea parejo. Usa fósforo de madera, cedro o llama de butano; los encendedores de gasolina dejan olor. Las primeras caladas pueden ser más intensas.'},
+ {id:'encendido',t:'Encendido',e:tt('h.tuestaElPieCon')},
  {id:'tercio1',t:'Primer tercio',e:tt('h.fumaDespacioMasO'),w:'tercio1'},
  {id:'tercio2',t:'Segundo tercio',e:tt('h.aMitadDelCigarro'),w:'tercio2'},
  {id:'tercio3',t:'Tercer tercio',e:tt('h.elUltimoTercioSuele'),w:'tercio3'},
@@ -443,7 +443,7 @@ const multi=(key,opts,cur,label)=>`<div class="chips wrapc" role="group" aria-la
 const noteF=(id,ph)=>`<div class="field"><label for="cn_${id}">${tt('h.tusNotasOpcional')}</label><textarea id="cn_${id}" data-note="${id}" maxlength="400" rows="2" placeholder="${ph||tt('h.loQueSientesCon')}">${esc(CD.notas[id]||'')}</textarea></div>`;
 const allTags=()=>[...new Set(Object.values(CD.tags).flat())];
 function stepBody(p){const c=CD.cigarId&&A.cigarById(CD.cigarId);switch(p.id){
- case 'cigarro':return `<div class="field"><label for="cCig">${tt('h.delCatalogo')}</label><select id="cCig"><option value="">${tt('h.escoge')}</option>${cigarOptions(CD.cigarId)}</select></div><div class="or">o</div><div class="field"><label for="cOtro">${tt('h.escribeOtroCigarro')}</label><input id="cOtro" maxlength="70" value="${esc(!CD.cigarId?CD.nombre:'')}" placeholder="${tt('h.ejToroDeLa')}"></div>`;
+ case 'cigarro':return `<div class="field"><label for="cCig">${tt('h.delCatalogo')}</label><select id="cCig"><option value="">${tt('h.escoge')}</option>${cigarOptions(CD.cigarId)}</select></div><div class="or">${tt('h.o')}</div><div class="field"><label for="cOtro">${tt('h.escribeOtroCigarro')}</label><input id="cOtro" maxlength="70" value="${esc(!CD.cigarId?CD.nombre:'')}" placeholder="${tt('h.ejToroDeLa')}"></div>`;
  case 'visual':return `<div class="field"><label>${tt('h.colorDeLaCapa')}</label>${seg('capa',['Claro','Natural','Colorado','Maduro','Oscuro'],CD.capa,tt('h.colorDeLaCapa'))}</div><div class="field"><label>${tt('h.alOjoYAl')}</label>${multi('aspecto',['Aceitosa','Brillo sedoso','Venas finas','Venas marcadas','Pareja al tacto','Algo blanda','Algo dura'],CD.aspecto,tt('h.aspecto'))}</div>${noteF('visual')}`;
  case 'aroma':return `<p class="hint">${tt('h.tocaEnLaRueda')}</p>${wheel(CD.tags.aroma,'aroma')}<div class="field"><label>${tt('h.elTiroEnFrio')}</label>${seg('tiro',['Fácil','Justo','Apretado'],CD.tiro,tt('h.tiro'))}</div>${noteF('aroma')}`;
  case 'encendido':return `<div class="field"><label>${tt('h.comoPrendio')}</label>${seg('quemadaIni',['Parejo','Desigual','Costó prender'],CD.quemadaIni,tt('h.encendido'))}</div>${noteF('encendido',tt('h.primerasCaladasIntensidadSabores'))}`;
