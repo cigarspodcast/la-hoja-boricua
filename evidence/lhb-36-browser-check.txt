@@ -1,0 +1,15 @@
+LHB-36 browser check, 2026-10-28 about 13:27Z (09:27 UTC-4), in the desktop app's built-in browser, emulated phone
+viewport 375x812, on the branch preview https://lhb-36-launch-english.la-hoja-boricua.pages.dev/ (commit 7f046df,
+deployment 31ad8e5c, deploy success). The browser's language is English (en-US); no lhb_lang saved at first.
+
+1. First load, #/catalogo: the app is in English (title "La Hoja Boricua · Cigar lounges and Boricua cigars in Puerto Rico",
+   catalog heading "The Tobacco Route in Puerto Rico", filters "All strengths / Mild / Medium / Full"). The switch shows
+   "Español" in the top bar beside the search, menu and profile buttons, the same height as the round buttons, and the bar
+   fits at 375 px (screenshot taken, not committed).
+2. Clicked "Español": the page reloaded in Spanish. Read in the page: html lang "es-PR", switch text "English" with
+   lang "en", localStorage lhb_lang "es", heading "La Ruta del Tabaco en Puerto Rico", footer links
+   "lugares/ Cigar lounges en Puerto Rico" and "artesanos/ Artesanos de cigarros en Puerto Rico".
+3. Clicked "English": the page reloaded in English. Read in the page: html lang "en", switch text "Español",
+   lhb_lang "en", footer links "en/lugares/ Cigar lounges in Puerto Rico" and "en/artesanos/ Cigar artisans in Puerto Rico";
+   fetch("en/lugares/") returned 200.
+Counting basis: one browser, one viewport, three page states read with document queries.

@@ -1,0 +1,12 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-45-wt (branch lhb-36-launch-english).
+
+What the change is meant to do (LHB-36, E6, the public launch of the English version):
+1. site/i18n.js: ENABLED goes from false to true. The language follows navigator.language (en* gives English, everything else Spanish) unless the visitor chose one before (localStorage lhb_lang). The switch #langSwitch in the top bar becomes visible, shows the other language's name in that language with a matching lang attribute, and on click saves the choice and reloads.
+2. site/styles.css: a .lang-switch rule so the button matches the round top-bar buttons; it sets no display, so the hidden attribute still hides it where the flag is off.
+3. site/index.html: the home footer links to lugares/ and artesanos/ get data-i18n-attr="href:..." so that in English they go to en/lugares/ and en/artesanos/ (the English static pages from LHB-32, already in production).
+4. Cache lhb-v75. Tests: two new LHB-36 tests; older tests that assumed the flag off now switch it off by hand where they need the Spanish.
+evidence/lhb-36-mutations.out shows 8 mutations turning the suite red; evidence/lhb-36-browser-check.txt is a check in a real browser on the branch preview.
+
+Look for real defects: an English visitor stuck in Spanish or a Spanish visitor shown English; the switch not visible, not reachable, or overflowing the top bar at phone width; the choice not remembered or a reload loop; a crash where localStorage or navigator is missing (private mode, old browsers); a test harness that now runs in English by accident and so passes or fails for the wrong reason; Spanish text the English mode still shows on the home view that a key exists for; the service worker serving a stale i18n.js after the bump; tests that would pass on broken code.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
