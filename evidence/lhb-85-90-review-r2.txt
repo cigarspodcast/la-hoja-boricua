@@ -1,0 +1,527 @@
+2026-10-28T16:07:21.651922Z ERROR codex_models_manager::manager: failed to refresh available models: request timed out
+2026-10-28T16:07:21.750249Z ERROR codex_models_manager::manager: failed to refresh available models: request timed out
+2026-10-28T16:07:46.094935Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-90-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18344-09f8-7fd3-b33a-54ab5c86bbef
+--------
+user
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-90-wt (branch lhb-90-footer-shift, which carries lhb-85-thumbs merged in). The diff below is main..HEAD, so it covers two tickets that will merge back to back. This is round 2.
+
+Round 1 returned BLOCK on one finding: the catalog card sizes value (then "(min-width:760px) 225px, (min-width:620px) calc(33vw - 28px), calc(50vw - 32px)") declared 13 to 16 px more than the drawn image, ignored the 140 px .mini-row cards, and the test asserted the wrong string. Nonblocking: five large thumbnails were 420 x 210 under a 600w descriptor.
+
+The round 1 fix (commit ffef834, merged here):
+1. evidence/lhb-85-slot-widths.txt: the drawn width of the card image measured on the branch preview at 14 viewport widths (iframes, getBoundingClientRect, documentElement.clientWidth equal to the iframe width, so no classic scrollbar), plus a card cloned into a .mini-row (115.4 px at every width).
+2. site/app.js: SIZES_GRID='(min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)' and SIZES_MINI='116px'; cigarCard uses SIZES_MINI when c.mini, and both Mi Hoja mini rows (my uploads, my favorites) pass mini:true.
+3. tools/build_thumbs.py rewrites any large thumbnail that is not 600 x 300 from its full image (680 or 640 px wide); the five are now 600 x 300.
+4. test/site.test.js: the LHB-85 tests evaluate both sizes values at the measured widths and fail if a declared slot is under the drawn width or more than 3 px over it; every large thumbnail must be 600 x 300; both mini rows must pass mini:true.
+Proof: evidence/lhb-85-r1fix-tests-red.txt (red on the old code), lhb-85-r1fix-tests.txt (229/229 on lhb-85), lhb-85-mutations-r1fix.out (17 of 17 red), lhb-85-90-r1fix-tests.txt (230/230 here).
+
+The rest is unchanged from round 1. LHB-85: tools/build_thumbs.py writes a 320 x 160 twin (<name>_thumb-s.webp) beside each 600 x 300 thumbnail; app.js thumbS() maps a thumbnail to its twin; the card img uses src=twin and srcset "twin 320w, large 600w"; the cigar page gallery buttons (96 px) use the twin; sw.js precaches both sizes. LHB-90: site/styles.css .view:empty+.seo-foot{visibility:hidden}, so the footer is not painted high before the first view and then pushed down. Cache lhb-v78.
+
+Check that the round 1 finding is fixed, and look for real defects the fix introduced: a sizes value under the drawn width at some viewport (blurry) or a context the fix missed (any other place cigarCard is rendered, any other container width); the mini flag leaking into anything else cigarCard renders; a rewritten large thumbnail that is wrong (size, aspect, a broken or mismatched image); the offline catalog breaking; tests that would pass on broken code. Also any remaining issue from round 1 you consider blocking.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main HEAD -- site/app.js site/styles.css site/sw.js tools/build_thumbs.py test/site.test.js evidence/lhb-85-slot-widths.txt =====
+diff --git a/evidence/lhb-85-slot-widths.txt b/evidence/lhb-85-slot-widths.txt
+new file mode 100644
+index 0000000..c328a52
+--- /dev/null
++++ b/evidence/lhb-85-slot-widths.txt
+@@ -0,0 +1,47 @@
++LHB-85, Codex round 1 fix: the drawn width of the catalog card image, measured, and the sizes value derived from it.
++Measured 2026-10-28T16:00Z on the branch preview https://a3d741c8.la-hoja-boricua.pages.dev (lhb-90-footer-shift, which
++carries lhb-85 unchanged), in the built-in browser. Method: an iframe of the given width on /#/catalogo, 2.5 s after load,
++getBoundingClientRect().width of the first '.grid .card .ph.has-foto img'. documentElement.clientWidth equalled the iframe
++width at every width measured (no classic scrollbar), so vw in sizes and the iframe width are the same basis.
++The mini row (.mini-row, Mi Hoja: my uploads, my favorites) was measured by cloning a catalog card into a .mini-row
++prepended to #view: its card is fixed at 140 px, so the image is the same at every width.
++
++Counting basis: CSS pixels of the image box, one image per width (all cards in one grid are the same width).
++
++viewport  grid image  declared (new sizes)  declared (old sizes)
++  320       113.4        115.0                 128.0
++  360       133.5        135.0                 148.0
++  375       141.1        142.5                 155.5
++  390       148.8        150.0                 163.0
++  412       159.6        161.0                 174.0
++  430       168.9        170.0                 183.0
++  500       203.9        205.0                 218.0
++  619       263.8        264.5                 277.5
++  620       163.6        164.6                 176.6
++  700       190.4        191.0                 203.0
++  759       210.3        210.5                 222.5
++  760       210.5        211.0                 225.0
++ 1024       210.5        211.0                 225.0
++ 1440       210.5        211.0                 225.0
++mini row    115.4        116.0                 (the grid value, 128 to 277.5)
++
++New sizes, grid card: (min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)
++New sizes, mini row card: 116px
++Every declared value is at or above the measured width (never blurry) and at most 1.6 px above it.
++
++Candidate choice this gives (320w twin, 600w large): the browser needs declared x DPR source pixels.
++- DPR 2 phone at 412: 322 needed, so the 600w is chosen (the twin is 2 px short; the old value needed 348, also 600w).
++  At 375 and below the twin covers DPR 2 (285 needed at 375). Measured LCP and byte effects remain those in lhb-85-perf.txt
++  (Lighthouse mobile is 412 x 823 at DPR 1.75: 161 x 1.75 = 282, so the twin is chosen, as before).
++- Mini row at DPR 2: 232 needed, the twin; at DPR 3: 348, the large.
++
++Large candidates: five large thumbnails were 420 x 210 while the srcset called them 600w (galiz-spirit, villareno-surtido,
++monte-mistica-connecticut, monte-mistica-corojo, monte-mistica-maduro). tools/build_thumbs.py now rewrites any large
++thumbnail that is not 600 x 300 from its full image (680 x 340 or 640 x 320, so a downscale), and the test requires every
++large thumbnail to be 600 x 300.
++
++Bytes of the five rewritten large thumbnails (WebP q75, 600 x 300), against their full image:
++galiz-spirit 23904 (full 26324), villareno-surtido 21416 (full 20842), monte-mistica-connecticut 29496 (full 32164),
++monte-mistica-corojo 33624 (full 37046), monte-mistica-maduro 33384 (full 36432). Large set total 281786 -> 347340.
++The 320 x 160 twins rebuilt byte-identical (small total 132548 before and after). A large thumbnail is fetched only when
++the browser picks 600w (declared slot x DPR above 320) and by the service worker precache.
+diff --git a/site/app.js b/site/app.js
+index 2f2ce05..a67112e 100644
+--- a/site/app.js
++++ b/site/app.js
+@@ -1,6 +1,10 @@
+ (()=>{'use strict';
+ const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
++/* LHB-85: the 320 x 160 twin of a 600 x 300 thumbnail (tools/build_thumbs.py) */
++const thumbS=t=>String(t).replace(/_thumb\.webp$/,'_thumb-s.webp');
++// ancho dibujado de la imagen de la tarjeta, medido (evidence/lhb-85-slot-widths.txt); la fila mini (Mi Hoja) es de 140 px fijos
++const SIZES_GRID='(min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)',SIZES_MINI='116px';
+ const view=$('#view');const REDUCED_ALL=matchMedia('(prefers-reduced-motion: reduce)').matches;const VBArt=window.VBArt;const tt=window.LHB_I18N.t;
+ const LS={get(k,d){try{const v=localStorage.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){localStorage.setItem('vb_'+k,JSON.stringify(v))}};
+ /* ---------- IndexedDB for photos ---------- */
+@@ -68,7 +72,7 @@ const emptyCoqui=msg=>`<div class="empty">${VBArt.coqui('coqui-empty')}<div>${ms
+ /* ---------- cards ---------- */
+ const fotoOf=c=>(!c||c.yours||!window.LHB_FOTOS)?null:(window.LHB_FOTOS[c.id]||null);
+ async function hydratePhotos(root=view){for(const el of $$('[data-photo]',root)){const u=await photoURL(el.dataset.photo);if(u){el.innerHTML=`<img src="${u}" alt="">`}}}
+-function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(f.thumb)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
++function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+  ${favs.includes(c.id)?'<span class="fav-dot" aria-label="'+tt('card.fav')+'">♥</span>':''}
+  <div class="body"><div class="name">${esc(c.nombre)}</div><div class="meta">${esc(artisanName(c))}${c.pueblo?' · '+esc(c.pueblo):''}</div>
+  <div class="pills">${c.capa?`<span class="pill">${esc(fx(c,'capa'))}</span>`:''}${c.fortaleza?`<span class="pill f-${c.fortaleza}">${fortLabel(c.fortaleza)}</span>`:''}${c.yours?'<span class="pill yours">'+tt('card.yours')+'</span>':''}</div></div></a>`}
+@@ -90,7 +94,7 @@ function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.ca
+ function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="empty">${tt('cig.notFound')}</div>`;return}
+  const a=artisanById(c.artesano_id);const favs=EXT.S().favs.cigarros;const rat=EXT.S().ratings[c.id]||0;const isFav=favs.includes(c.id);
+  view.innerHTML=`<button class="back" data-back>${tt('back')}</button>
+- ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(g.thumb)}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
++ ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+  <div class="detail-head"><div><div class="eyebrow">${c.yours?tt('cig.byYou'):tt('cig.madePR')}</div><h1>${esc(c.nombre)}</h1></div>
+  <button class="fav-btn" id="fav" aria-pressed="${isFav}">${isFav?tt('cig.saved'):tt('cig.save')}</button></div>
+  <div class="specs"><div class="spec"><small>${tt('f.capa')}</small><span>${esc(fx(c,'capa')||tt('notPub'))}</span></div><div class="spec"><small>${tt('f.fortaleza')}</small><span>${c.fortaleza?fortLabel(c.fortaleza):tt('notPub')}</span></div>
+@@ -238,8 +242,8 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
+  <details class="edit"><summary>${tt('pf.favCapa')}</summary><form class="form" id="pForm">
+  <div class="field"><label for="pC">${tt('pf.favCapa')}</label><select id="pC"><option value="">\u2014</option>${['Claro','Connecticut','Natural','Colorado','Habano','Corojo','Criollo','Maduro','Oscuro'].map(x=>`<option ${p.capa===x?'selected':''}>${x}</option>`).join('')}</select></div>
+  <button class="btn" type="submit">${tt('pf.save')}</button></form></details>
+- <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
+- <div class="section-title"><h2>${tt('pf.myFavs')}</h2></div>${favC.length?`<div class="mini-row">${favC.map(cigarCard).join('')}</div>`:'<div class="empty">'+tt('pf.noFavs')+'</div>'}
++ <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
++ <div class="section-title"><h2>${tt('pf.myFavs')}</h2></div>${favC.length?`<div class="mini-row">${favC.map(c=>cigarCard({...c,mini:true})).join('')}</div>`:'<div class="empty">'+tt('pf.noFavs')+'</div>'}
+  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--gold);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
+  <p class="note">${tt('pf.note')}</p>`;
+  if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));
+diff --git a/site/styles.css b/site/styles.css
+index f9d982d..64f61c1 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -575,7 +575,11 @@ body.sheet-on{overflow:hidden}
+ .btn-add[hidden]{display:none}
+ .inst-p{font-size:16px;line-height:1.5;color:var(--cream);margin:0 0 18px}
+ .inst-ok{width:100%;font-size:16px}
+-.seo-foot{text-align:center;font-size:14px;margin-top:calc(-1 * (var(--tab-h) + var(--sab) + 18px));padding:0 16px calc(var(--tab-h) + var(--sab) + 18px)}.seo-foot a{color:var(--cream2)}
++.seo-foot{text-align:center;font-size:14px;margin-top:calc(-1 * (var(--tab-h) + var(--sab) + 18px));padding:0 16px calc(var(--tab-h) + var(--sab) + 18px)}
++/* LHB-90: until the app has drawn the first view, the footer would paint high on an empty page and be pushed down (CLS 0.12 to 0.21);
++   it stays invisible while the view is empty, so it appears already in place. Hidden, not removed: its links stay in the page for crawlers */
++.view:empty+.seo-foot{visibility:hidden}
++.seo-foot a{color:var(--cream2)}
+ /* LHB-49: foto de perfil en el onboarding */
+ .ob-pic{display:flex;flex-direction:column;gap:6px}
+ .ob-pic-t{font-size:13px;color:var(--cream2);font-weight:600;margin:0}
+diff --git a/site/sw.js b/site/sw.js
+index 7e0b89e..5683a3a 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,10 +1,10 @@
+-/* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas; fotos grandes se cachean al verlas */
+-const VERSION='lhb-v76';
++/* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
++const VERSION='lhb-v78';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+  'fonts/figtree.woff2','fonts/fraunces-normal-600.woff2','fonts/fraunces-italic-500.woff2','fonts/shrikhand.woff2',
+- 'img/hero/banner.webp','img/logos/jfc-hoja-boricua.webp','img/logos/don-rey-cigar.webp','img/logos/el-club-del-turro.webp','img/logos/don-collins.webp','img/logos/finca-neo-jibairo.webp','img/logos/willys-cigars.webp','img/logos/san-pedrito-cigars.webp','img/logos/yambo-cigars.webp','img/logos/el-chapu-pr.webp','img/logos/el-buho-ricamontes.webp','img/logos/cohoba-cigars.webp','img/logos/cigarros-caimito.webp','img/logos/tabacalera-la-trascendencia.webp','img/logos/pitirre-cigars.webp','img/logos/villareno-cigars.webp','img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp','img/cigarros/galiz-spirit_thumb.webp','img/cigarros/villareno-surtido_thumb.webp','img/cigarros/don-collins-corona-grande_thumb.webp','img/cigarros/don-collins-linea_thumb.webp','img/cigarros/hoja-boricua-gran-reserva_thumb.webp','img/cigarros/hoja-boricua_thumb.webp','img/cigarros/puerto-rico-965_thumb.webp','img/cigarros/turro-albizu-campos_thumb.webp','img/cigarros/turro-angel-david_thumb.webp','img/cigarros/turro-barber-pole_thumb.webp','img/cigarros/turro-cartucho_thumb.webp','img/cigarros/turro-deja-el-drama_thumb.webp','img/cigarros/turro-don-pepe_thumb.webp','img/cigarros/turro-el-turrito_thumb.webp','img/cigarros/turro-escopeta_thumb.webp','img/cigarros/turro-gallo-pinto_thumb.webp','img/cigarros/turro-hva-robusto_thumb.webp','img/cigarros/turro-lancero_thumb.webp','img/cigarros/turro-mamposteao_thumb.webp','img/cigarros/turro-naturola_thumb.webp','img/cigarros/turro-timber-blues_thumb.webp','img/cigarros/monte-mistica-connecticut_thumb.webp','img/cigarros/monte-mistica-corojo_thumb.webp','img/cigarros/monte-mistica-maduro_thumb.webp','img/cigarros/yambo-toro_thumb.webp','img/cigarros/yambo_a_oscuro_thumb.webp','img/cigarros/yambo_a_pareja_thumb.webp','img/cigarros/yambo_a_torpedo_thumb.webp','img/cigarros/willys-banda-negra-oro_thumb.webp','img/cigarros/willys-banda-azul-oro_thumb.webp','img/cigarros/willys-banda-azul-roja-oro_thumb.webp','img/cigarros/willys-banda-azul-coleta_thumb.webp','img/cigarros/willys-banda-azul-ovalada_thumb.webp','img/cigarros/willys-tripa-corta_thumb.webp','img/cigarros/san-pedrito-linea_thumb.webp','img/cigarros/san-pedrito-barber-pole_thumb.webp'];
++ 'img/hero/banner.webp','img/logos/jfc-hoja-boricua.webp','img/logos/don-rey-cigar.webp','img/logos/el-club-del-turro.webp','img/logos/don-collins.webp','img/logos/finca-neo-jibairo.webp','img/logos/willys-cigars.webp','img/logos/san-pedrito-cigars.webp','img/logos/yambo-cigars.webp','img/logos/el-chapu-pr.webp','img/logos/el-buho-ricamontes.webp','img/logos/cohoba-cigars.webp','img/logos/cigarros-caimito.webp','img/logos/tabacalera-la-trascendencia.webp','img/logos/pitirre-cigars.webp','img/logos/villareno-cigars.webp','img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp','img/cigarros/galiz-spirit_thumb.webp','img/cigarros/villareno-surtido_thumb.webp','img/cigarros/don-collins-corona-grande_thumb.webp','img/cigarros/don-collins-linea_thumb.webp','img/cigarros/hoja-boricua-gran-reserva_thumb.webp','img/cigarros/hoja-boricua_thumb.webp','img/cigarros/puerto-rico-965_thumb.webp','img/cigarros/turro-albizu-campos_thumb.webp','img/cigarros/turro-angel-david_thumb.webp','img/cigarros/turro-barber-pole_thumb.webp','img/cigarros/turro-cartucho_thumb.webp','img/cigarros/turro-deja-el-drama_thumb.webp','img/cigarros/turro-don-pepe_thumb.webp','img/cigarros/turro-el-turrito_thumb.webp','img/cigarros/turro-escopeta_thumb.webp','img/cigarros/turro-gallo-pinto_thumb.webp','img/cigarros/turro-hva-robusto_thumb.webp','img/cigarros/turro-lancero_thumb.webp','img/cigarros/turro-mamposteao_thumb.webp','img/cigarros/turro-naturola_thumb.webp','img/cigarros/turro-timber-blues_thumb.webp','img/cigarros/monte-mistica-connecticut_thumb.webp','img/cigarros/monte-mistica-corojo_thumb.webp','img/cigarros/monte-mistica-maduro_thumb.webp','img/cigarros/yambo-toro_thumb.webp','img/cigarros/yambo_a_oscuro_thumb.webp','img/cigarros/yambo_a_pareja_thumb.webp','img/cigarros/yambo_a_torpedo_thumb.webp','img/cigarros/willys-banda-negra-oro_thumb.webp','img/cigarros/willys-banda-azul-oro_thumb.webp','img/cigarros/willys-banda-azul-roja-oro_thumb.webp','img/cigarros/willys-banda-azul-coleta_thumb.webp','img/cigarros/willys-banda-azul-ovalada_thumb.webp','img/cigarros/willys-tripa-corta_thumb.webp','img/cigarros/san-pedrito-linea_thumb.webp','img/cigarros/san-pedrito-barber-pole_thumb.webp','img/cigarros/galiz-spirit_thumb-s.webp','img/cigarros/villareno-surtido_thumb-s.webp','img/cigarros/don-collins-corona-grande_thumb-s.webp','img/cigarros/don-collins-linea_thumb-s.webp','img/cigarros/hoja-boricua-gran-reserva_thumb-s.webp','img/cigarros/hoja-boricua_thumb-s.webp','img/cigarros/puerto-rico-965_thumb-s.webp','img/cigarros/turro-albizu-campos_thumb-s.webp','img/cigarros/turro-angel-david_thumb-s.webp','img/cigarros/turro-barber-pole_thumb-s.webp','img/cigarros/turro-cartucho_thumb-s.webp','img/cigarros/turro-deja-el-drama_thumb-s.webp','img/cigarros/turro-don-pepe_thumb-s.webp','img/cigarros/turro-el-turrito_thumb-s.webp','img/cigarros/turro-escopeta_thumb-s.webp','img/cigarros/turro-gallo-pinto_thumb-s.webp','img/cigarros/turro-hva-robusto_thumb-s.webp','img/cigarros/turro-lancero_thumb-s.webp','img/cigarros/turro-mamposteao_thumb-s.webp','img/cigarros/turro-naturola_thumb-s.webp','img/cigarros/turro-timber-blues_thumb-s.webp','img/cigarros/monte-mistica-connecticut_thumb-s.webp','img/cigarros/monte-mistica-corojo_thumb-s.webp','img/cigarros/monte-mistica-maduro_thumb-s.webp','img/cigarros/yambo-toro_thumb-s.webp','img/cigarros/yambo_a_oscuro_thumb-s.webp','img/cigarros/yambo_a_pareja_thumb-s.webp','img/cigarros/yambo_a_torpedo_thumb-s.webp','img/cigarros/willys-banda-negra-oro_thumb-s.webp','img/cigarros/willys-banda-azul-oro_thumb-s.webp','img/cigarros/willys-banda-azul-roja-oro_thumb-s.webp','img/cigarros/willys-banda-azul-coleta_thumb-s.webp','img/cigarros/willys-banda-azul-ovalada_thumb-s.webp','img/cigarros/willys-tripa-corta_thumb-s.webp','img/cigarros/san-pedrito-linea_thumb-s.webp','img/cigarros/san-pedrito-barber-pole_thumb-s.webp'];
+ self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
+ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION&&k!=='vb-tiles').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+ self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const url=new URL(req.url);
+diff --git a/test/site.test.js b/test/site.test.js
+index 37098ef..80a0c4f 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v76'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v78'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,25 +61,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
+- assert.match(sw,/const VERSION='lhb-v76'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
++ assert.match(sw,/const VERSION='lhb-v78'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
+  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
+  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
+ 
+ test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v76'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v78'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
+  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ 
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v76'/);
++ assert.match(sw,/const VERSION='lhb-v78'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v76'/);
++ assert.match(sw,/const VERSION='lhb-v78'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
+  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
+@@ -105,12 +105,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v76'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v78'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v76'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v78'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -118,7 +118,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v76'/);});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v78'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -135,7 +135,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v76/);});
++ assert.match(read('sw.js'),/lhb-v78/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -148,17 +148,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v76'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v78'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v76'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v78'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v76'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v78'/);});
+ 
+-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v76'/);});
++test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v78'/);});
+ 
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+@@ -1217,7 +1217,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v76'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1464,7 +1464,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v76'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v78'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1642,7 +1642,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v76'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1889,7 +1889,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v76'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2190,7 +2190,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\)\}/.test(hj),'guardar y borrar repintan el encabezado');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v76'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2473,7 +2473,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v76'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3433,7 +3433,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v76'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v78'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -3664,3 +3664,38 @@ test('LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la a
+  const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
+  require('vm').runInNewContext(read('i18n.js'),{window:w});assert.equal(els[0].a.href,'en/lugares/');assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');
+ });
++/* LHB-85: miniaturas a la medida que se dibujan: una gemela de 320 x 160 al lado de cada miniatura de 600 x 300 */
++const webpSize=f=>{const b=fs.readFileSync(f);assert.equal(b.toString('ascii',0,4)+b.toString('ascii',8,12),'RIFFWEBP',f);const k=b.toString('ascii',12,16);
++ if(k==='VP8 ')return[b.readUInt16LE(26)&0x3fff,b.readUInt16LE(28)&0x3fff];
++ if(k==='VP8L')return[1+(((b[22]&0x3f)<<8)|b[21]),1+(((b[24]&0xf)<<10)|(b[23]<<2)|((b[22]&0xc0)>>6))];
++ if(k==='VP8X')return[1+b.readUIntLE(24,3),1+b.readUIntLE(27,3)];throw new Error('webp chunk '+k)};
++test('LHB-85: cada miniatura tiene su gemela de 320 x 160, más liviana, y las dos están en el precache',()=>{
++ const dir=path.join(S,'img','cigarros');const big=fs.readdirSync(dir).filter(n=>n.endsWith('_thumb.webp'));assert.ok(big.length>=36,'miniaturas: '+big.length);
++ const sw=read('sw.js');
++ for(const n of big){const s=n.replace('_thumb.webp','_thumb-s.webp');assert.ok(fs.existsSync(path.join(dir,s)),'falta '+s);
++  assert.deepEqual(webpSize(path.join(dir,s)),[320,160],s);assert.deepEqual(webpSize(path.join(dir,n)),[600,300],'la grande mide lo que dice el srcset (600w): '+n);
++  assert.ok(fs.statSync(path.join(dir,s)).size<fs.statSync(path.join(dir,n)).size,'la gemela pesa menos: '+s);
++  assert.ok(sw.includes("'img/cigarros/"+n+"'")&&sw.includes("'img/cigarros/"+s+"'"),'las dos precacheadas: '+n)}
++ const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));for(const f of Object.values(F))for(const t of [f.thumb,...(f.galeria||[]).map(g=>g.thumb)])assert.ok(fs.existsSync(path.join(S,t.replace(/_thumb\.webp$/,'_thumb-s.webp'))),'gemela de '+t);
++});
++test('LHB-85: la tarjeta escoge con srcset y sizes; la galería usa la gemela',()=>{const app=read('app.js');
++ assert.ok(app.includes("const thumbS=t=>String(t).replace(/_thumb\\.webp$/,'_thumb-s.webp');"),'thumbS');
++ assert.ok(app.includes('<img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}"'),'tarjeta con srcset');
++ // el ancho dibujado, medido en el preview (evidence/lhb-85-slot-widths.txt): sizes nunca por debajo (borroso) ni más de 3 px por encima (descarga de más)
++ const S1=app.match(/const SIZES_GRID='([^']+)',SIZES_MINI='([^']+)';/);assert.ok(S1,'SIZES_GRID y SIZES_MINI');
++ const at=(sz,vw)=>{for(const part of sz.split(',').map(s=>s.trim())){const m=part.match(/^(?:\(min-width:(\d+)px\)\s+)?(.+)$/);if(m[1]&&vw<+m[1])continue;const v=m[2];let r;
++   if((r=v.match(/^(\d+(?:\.\d+)?)px$/)))return +r[1];if((r=v.match(/^calc\((\d+(?:\.\d+)?)vw - (\d+(?:\.\d+)?)px\)$/)))return vw*r[1]/100-r[2];throw new Error('sizes: '+v)}throw new Error('sin valor a '+vw)};
++ const grid={320:113.4,360:133.5,375:141.1,390:148.8,412:159.6,430:168.9,500:203.9,619:263.8,620:163.6,700:190.4,759:210.3,760:210.5,1024:210.5,1440:210.5};
++ for(const [vw,img] of Object.entries(grid)){const d=at(S1[1],+vw);assert.ok(d>=img&&d-img<=3,'tarjeta a '+vw+' px: sizes '+d+', dibujada '+img)}
++ for(const vw of [320,412,760,1440]){const d=at(S1[2],vw);assert.ok(d>=115.4&&d-115.4<=3,'mini-row a '+vw+' px: sizes '+d)}
++ assert.ok(/class="mini-row">\$\{ups\.map\(c=>cigarCard\(\{\.\.\.c,yours:true,mini:true\}\)\)/.test(app)&&/class="mini-row">\$\{favC\.map\(c=>cigarCard\(\{\.\.\.c,mini:true\}\)\)/.test(app),'las dos filas mini usan SIZES_MINI');
++ assert.ok(app.includes('<img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy">'),'galería con la gemela');
++ assert.ok(!/<img src="\$\{esc\([fg]\.thumb\)\}"/.test(app),'ninguna img pide la grande como src');
++});
++/* LHB-90: el pie no se pinta arriba de una página vacía para luego bajar */
++test('LHB-90: el pie queda invisible mientras la vista está vacía, y es el hermano que sigue a la vista',()=>{
++ const css=read('styles.css');assert.ok(css.includes('.view:empty+.seo-foot{visibility:hidden}'),'regla del pie');
++ assert.ok(!/\.seo-foot\{[^}]*display:\s*none/.test(css)&&!/\.view:empty\+\.seo-foot\{[^}]*display/.test(css),'escondido a la vista, no quitado: los enlaces siguen en la página');
++ const ix=read('index.html');assert.match(ix,/<main id="view" class="view" tabindex="-1"><\/main>\s*<footer class="seo-foot">/,'la vista empieza vacía y el pie la sigue de inmediato, así el selector + aplica');
++ const app=read('app.js');assert.ok(/view\.innerHTML=/.test(app),'la app llena la vista, y entonces :empty deja de valer');
++});
+diff --git a/tools/build_thumbs.py b/tools/build_thumbs.py
+new file mode 100644
+index 0000000..b5cc6c9
+--- /dev/null
++++ b/tools/build_thumbs.py
+@@ -0,0 +1,41 @@
++"""LHB-85: write a small twin (<name>_thumb-s.webp, 320 x 160) beside every cigar thumbnail in site/img/cigarros.
++
++The catalog card draws a thumbnail about 160 px wide on a phone (2 columns) and up to about 264 px just below the 620 px
++breakpoint; the cigar page's gallery buttons draw it 96 px wide (measured: evidence/lhb-85-slot-widths.txt). The card picks
++between the small twin and the 600 x 300 thumbnail with srcset, so a phone downloads the small one and a wide or dense
++screen still gets the large one. 320 is twice the phone width, rounded up; it is never an upscale (every source is 640 px
++wide or more).
++The srcset calls the large thumbnail 600w, so a large thumbnail of any other size (five were 420 x 210) is rewritten here
++at 600 x 300 from the full image, which is 640 px wide or more.
++Source: the full image (<name>.webp) when it exists, else the existing thumbnail. Both are 2:1, so this is a plain resize.
++Run by hand after adding a cigar photo: python tools/build_thumbs.py. Not part of the CI rebuild (WebP bytes depend on
++the Pillow version, so a rebuild on another machine is not byte-stable)."""
++import glob, os
++from PIL import Image
++
++ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'site', 'img', 'cigarros')
++W, H = 320, 160
++LW, LH = 600, 300
++
++
++def build():
++    out = []
++    for t in sorted(glob.glob(os.path.join(ROOT, '*_thumb.webp'))):
++        src = t.replace('_thumb.webp', '.webp')
++        src = src if os.path.exists(src) else t
++        im = Image.open(src)
++        assert im.size[0] >= W and abs(im.size[0] / im.size[1] - 2) < 0.01, (src, im.size)
++        if Image.open(t).size != (LW, LH):
++            assert src != t and im.size[0] >= LW, ('no source to rebuild the large thumbnail', t, im.size)
++            im.convert('RGB').resize((LW, LH), Image.LANCZOS).save(t, 'WEBP', quality=75, method=6)
++        dst = t.replace('_thumb.webp', '_thumb-s.webp')
++        im.convert('RGB').resize((W, H), Image.LANCZOS).save(dst, 'WEBP', quality=75, method=6)
++        out.append((os.path.basename(t), os.path.getsize(t), os.path.basename(dst), os.path.getsize(dst)))
++    return out
++
++
++if __name__ == '__main__':
++    rows = build()
++    for a, sa, b, sb in rows:
++        print('%-44s %7d  %-46s %6d' % (a, sa, b, sb))
++    print('files %d | large total %d | small total %d' % (len(rows), sum(r[1] for r in rows), sum(r[3] for r in rows)))
+
+2026-10-28T16:07:46.707203Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-28T16:07:48.912637Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The recorded widths alone cannot prove every `cigarCard` context is covered. I’ll inspect the callers, CSS, assets, service worker and tests without editing files or loading skills.
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "Get-Location; git status --short; git branch --show-current; git diff --stat origin/main HEAD; Get-Content C:\\Users\\Owner\\Documents\\Codex\\PRE_ENGINE_CONTROL_METHODOLOGY.md -TotalCount 220" in C:\Users\Owner\lhb-90-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-28T16:08:07.456998Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The shell failed with `helper_unknown_error`; Node is working. I found six `cigarCard` call sites: four use `.grid`, and both `.mini-row` callers pass copied objects with `mini:true`. I’m checking the layout bounds, image bytes and offline behavior next.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+codex
+[Certain] The `mini` flag is read only when choosing `sizes`, and neither caller mutates the source object. The other four callers share the same grid rules. Browser setup has failed so far; I can check the CSS calculations and image decoding, but fresh browser measurements remain NOT VERIFIED.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The suite finished at 226/230. All three LHB-85/LHB-90 tests pass; the four SEO failures depend on Python, which the sandbox rejects with `EPERM`. The five rewritten thumbnails decode and visually match their full images.
+
+[Certain] I also found a nonblocking test gap: removing card padding in memory still leaves the slot tests green because they compare `sizes` with frozen measurements. Browser access has recovered, so I’m checking the current CSS directly.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] One nonblocking test gap remains; I found no defect requiring a merge block.
+
+- [Certain] **P3, nonblocking:** [test/site.test.js:3688](/C:/Users/Owner/lhb-90-wt/test/site.test.js:3688), LHB-85 slot test. Claim: sizes track drawn widths. Artifact: `const grid={320:113.4,...}` contains frozen measurements and never checks current CSS. Concrete reproduction: replacing `.card` padding `7px 7px 0` with `0` in memory enlarges the images while all three ticket tests remain green. Add layout-based verification when practical.
+
+[Certain] **CONCUR: the round 1 rejection is resolved.** All six `cigarCard` callers are covered: four grids and two mini rows. The mini callers copy their objects; executing `cigarCard` confirmed that `mini:true` changes only `sizes`. No missed container or undersized declaration was identified from the current CSS.
+
+[Certain] All 36 thumbnail pairs pass dimension checks. The five rewritten large images decode and visually match their full sources. The service-worker harness precached 115 resources and served all 79 checked offline requests successfully.
+
+[Certain] Validation: **226/230 tests passed**, including all LHB-85/LHB-90 tests. Four existing SEO tests failed because Python execution was denied with `EPERM`. Fresh comprehensive browser width measurements, candidate selection, CLS and browser offline behavior remain **NOT VERIFIED** because browser checks timed out. The offline harness is corroboration, not browser proof. No files were edited or skills loaded.
+
+VERDICT: PASS
+tokens used
+143,278
+[Certain] One nonblocking test gap remains; I found no defect requiring a merge block.
+
+- [Certain] **P3, nonblocking:** [test/site.test.js:3688](/C:/Users/Owner/lhb-90-wt/test/site.test.js:3688), LHB-85 slot test. Claim: sizes track drawn widths. Artifact: `const grid={320:113.4,...}` contains frozen measurements and never checks current CSS. Concrete reproduction: replacing `.card` padding `7px 7px 0` with `0` in memory enlarges the images while all three ticket tests remain green. Add layout-based verification when practical.
+
+[Certain] **CONCUR: the round 1 rejection is resolved.** All six `cigarCard` callers are covered: four grids and two mini rows. The mini callers copy their objects; executing `cigarCard` confirmed that `mini:true` changes only `sizes`. No missed container or undersized declaration was identified from the current CSS.
+
+[Certain] All 36 thumbnail pairs pass dimension checks. The five rewritten large images decode and visually match their full sources. The service-worker harness precached 115 resources and served all 79 checked offline requests successfully.
+
+[Certain] Validation: **226/230 tests passed**, including all LHB-85/LHB-90 tests. Four existing SEO tests failed because Python execution was denied with `EPERM`. Fresh comprehensive browser width measurements, candidate selection, CLS and browser offline behavior remain **NOT VERIFIED** because browser checks timed out. The offline harness is corroboration, not browser proof. No files were edited or skills loaded.
+
+VERDICT: PASS
