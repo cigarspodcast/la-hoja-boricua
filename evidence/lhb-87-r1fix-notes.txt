@@ -11,3 +11,12 @@ zooming tap must raise the zoom, and every place must end single or listed. Appr
 simulation lays out only the tapped group's places, not their new neighbours.
 Proof that it catches the defect: with tapGroup reduced to the round 1 rule (M13 in lhb-87-mutations-r1fix.py) and the
 unit assertions removed, the simulation alone fails: "un toque que acerca sube el zoom (536x185: 8 a 8)".
+
+Live read on the fix's preview (https://dbbf05c5.la-hoja-boricua.pages.dev/#/lugares, c20bd16), built-in browser with the
+viewport emulated at 536 x 400 so the map is 502 x 230 from load (map-wrap height is vh-based), about 17:00Z. The pane was
+hidden, which pauses Leaflet's animation frames; a screenshot after each tap let the zoom finish (an earlier read without
+that showed no change at all and was an instrument artifact, not a stall). Sequence, tapping the largest group each time:
+opening view groups 23,2,4,3,3,3 (3 single pins); tap 23 -> groups 20,2,2,3,2,2,2 (8 pins); tap 20 -> groups
+2,17,3,2,2,2,2 (11 pins, tiles at zoom 10); tap 17 (twice: the first read came before its zoom settled) -> tiles at zoom 11
+and a popup listing 17 place cards (.pop), starting "Don Rey Cigar (Viejo San Juan)", "Casa de Montecristo". So the group
+that would have stalled ends in a list. Not exercised live: the exact 536 x 185 size (CSS does not produce it at load).
