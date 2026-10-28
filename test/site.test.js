@@ -3804,7 +3804,7 @@ test('LHB-39: la página del diario muestra los números y los filtros; cambiar 
  h.els.dqQ.value='';h.els.dqS.value='5';h.els.dqS.onchange();assert.equal(h.els.dqN.textContent,'3 de 7 catas');
  h.els.dqV.value='pub';h.els.dqV.onchange();assert.equal(h.els.dqN.textContent,'2 de 7 catas');
  h.els.dqS.value='';h.els.dqV.value='';h.els.dqO.value='estrellas';h.els.dqO.onchange();assert.equal(h.els.dqN.textContent,'7 de 7 catas');
- assert.ok(h.els.dList.innerHTML.indexOf('Ñame Corona')<h.els.dList.innerHTML.indexOf('Monte Robusto')&&h.els.dList.innerHTML.indexOf('Monte Robusto')>0,'por estrellas');
+ assert.deepEqual([...h.els.dList.innerHTML.matchAll(/data-ddel="(\w+)"/g)].map(m=>m[1]),['e3','e1','e2','e4','e6','e5','e7'],'por estrellas');
  /* volver a pintar la página (borrar una entrada, llega una sincronización) conserva la búsqueda */
  h.els.dqQ.value='tabaquero';h.els.dqQ.oninput();h.API.vDiario();assert.ok(h.html().includes('value="tabaquero"')&&h.html().includes('3 de 7 catas'),'la búsqueda sigue');
  assert.ok(/<option value="estrellas" selected>/.test(h.html()),'y el orden');

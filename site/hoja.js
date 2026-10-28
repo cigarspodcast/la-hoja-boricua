@@ -342,21 +342,65 @@ function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad
  $$('[data-hdel]').forEach(b=>b.onclick=()=>{const h=S().humidor.find(x=>x.id===b.dataset.hdel);if(h&&confirm(`${tt('h.quitarDelHumidor2',{a:h.nombre})}`)){save(s=>{s.humidor=s.humidor.filter(x=>x.id!==h.id)});again()}});
  $$('[data-hcata]').forEach(b=>b.onclick=()=>{const h=S().humidor.find(x=>x.id===b.dataset.hcata);if(h)startCata(h.cigarId||'',h.nombre)})}
 const stars=n=>`<span class="stars-ro" role="img" aria-label="${tt('h.de5Estrellas',{a:n})}">${'★'.repeat(n)}<span>${'★'.repeat(5-n)}</span></span>`;
-function vDiario(){const s=S();
- view.innerHTML=`${subnav('diario')}
- <a class="btn cta" href="#/cata">${VBArt.leaf('#8fd162','btn-leaf')}<span>${tt('h.nuevaCataGuiada')}</span></a>
- ${s.diario.length?s.diario.map(d=>`<article class="dentry"><div class="dhead"><div><div class="t">${esc(d.nombre)}</div><div class="s">${fmtF(d.consumido||d.fecha)}${d.artesano||d.marca?' · '+esc(d.artesano||d.marca):''}</div></div>${stars(d.rating||0)}</div>
+/* LHB-39: los números de Mi Hoja y el diario con búsqueda, filtros y orden. Todo sale del documento de Mi Hoja; los sellos cuentan solo si están en el catálogo, igual que en el Pasaporte */
+const isEntry=e=>!!e&&typeof e==='object'&&!Array.isArray(e);
+const dfold=t=>String(t??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+const dday=e=>okDay(e.consumido)?e.consumido:String(e.fecha||'').slice(0,10);
+/* lo más anotado de un campo (capa, fortaleza): a igual cuenta, el primero en orden alfabético */
+const mostOf=(es,k)=>{const n=new Map();for(const e of es){const v=typeof e[k]==='string'?e[k].trim():'';if(v)n.set(v,(n.get(v)||0)+1)}let best=null;for(const [v,c] of n)if(!best||c>best.n||(c===best.n&&v.localeCompare(best.v,'es')<0))best={v,n:c};return best};
+/* los mejor puntuados: por cigarro (el del catálogo por su id; uno "otro" por su nombre), por el promedio de sus estrellas; a igual promedio, el de más catas */
+function topRated(es,max){const g=new Map();for(const e of es){const r=+e.rating;if(!(r>=1&&r<=5))continue;const k=e.cigarId?'c:'+e.cigarId:'n:'+dfold(e.nombre);if(k==='n:')continue;
+  const o=g.get(k)||{nombre:String(e.nombre||''),cigarId:e.cigarId||null,sum:0,n:0};o.sum+=r;o.n++;g.set(k,o)}
+ return [...g.values()].map(o=>({nombre:o.nombre,cigarId:o.cigarId,n:o.n,avg:o.sum/o.n})).sort((a,b)=>b.avg-a.avg||b.n-a.n||a.nombre.localeCompare(b.nombre,'es')).slice(0,max)}
+function diaryStats(s,d){const es=(s.diario||[]).filter(isEntry);const cat={artesanos:d.artesanos,cigarros:d.cigarros,lugares:d.places};const sellos={};
+ for(const k of Object.keys(cat)){const ok=new Set((cat[k]||[]).map(x=>x&&x.id));sellos[k]=Object.keys((s.pasaporte||{})[k]||{}).filter(id=>ok.has(id)).length}
+ return {catas:es.length,sellos,top:topRated(es,3),capa:mostOf(es,'capa'),fortaleza:mostOf(es,'fortaleza')}}
+/* q: texto (cada palabra tiene que estar en el nombre, la marca, el artesano o un sabor), st: estrellas exactas, vis: pub o priv, ord: fecha (el día que se fumó) o estrellas */
+const DQ0=()=>({q:'',st:'',vis:'',ord:'fecha'});
+function diaryFilter(list,q){const ws=dfold(q.q).split(' ').filter(Boolean),st=+q.st||0;
+ const out=list.filter(isEntry).filter(e=>{if(st&&(+e.rating||0)!==st)return false;if(q.vis==='pub'&&e.publica!==true)return false;if(q.vis==='priv'&&e.publica===true)return false;if(!ws.length)return true;
+  const hay=[e.nombre,e.marca,e.artesano,...(Array.isArray(e.tags)?e.tags.flatMap(t=>[t,WN(t)]):[])].map(dfold);return ws.every(w=>hay.some(h=>h.includes(w)))});
+ const byDay=(a,b)=>dday(b).localeCompare(dday(a))||String(b.fecha||'').localeCompare(String(a.fecha||''));
+ return out.sort(q.ord==='estrellas'?(a,b)=>(+b.rating||0)-(+a.rating||0)||byDay(a,b):byDay)}
+/* la búsqueda se queda mientras se usa la app, solo para la misma cuenta */
+let DQ={...DQ0(),who:''};
+const dq=()=>{const w=(acct.get()||{}).sub||'';if(DQ.who!==w)DQ={...DQ0(),who:w};return DQ};
+const dStats=st=>`<section class="dstats" aria-labelledby="dstH"><div class="section-title"><h2 id="dstH">${tt('h.stTusNumeros')}</h2></div>
+ <div class="dst-grid"><div class="stat"><b>${st.catas}</b><span>${tt('h.stCatas')}</span></div><div class="stat"><b>${st.sellos.artesanos}</b><span>${tt('h.stSellosArt')}</span></div><div class="stat"><b>${st.sellos.cigarros}</b><span>${tt('h.stSellosCig')}</span></div><div class="stat"><b>${st.sellos.lugares}</b><span>${tt('h.stSellosLug')}</span></div></div>
+ ${st.top.length?`<h3 class="dst-h">${tt('h.stMejores')}</h3><ol class="dst-top">${st.top.map(o=>`<li><span class="t">${esc(o.nombre)}</span><span class="s">★ ${o.avg.toFixed(1)} · ${o.n===1?tt('h.stUnaCata'):tt('h.stNCatas',{a:o.n})}</span></li>`).join('')}</ol>`:''}
+ ${st.capa||st.fortaleza?`<dl class="dl dst-most">${st.capa?`<dt>${tt('h.stCapa')}</dt><dd>${esc(lab(st.capa.v))} · ${st.capa.n===1?tt('h.stUnaCata'):tt('h.stNCatas',{a:st.capa.n})}</dd>`:''}${st.fortaleza?`<dt>${tt('h.stFortaleza')}</dt><dd>${esc(lab(st.fortaleza.v))} · ${st.fortaleza.n===1?tt('h.stUnaCata'):tt('h.stNCatas',{a:st.fortaleza.n})}</dd>`:''}</dl>`:''}</section>`;
+const opt=(v,cur,t)=>`<option value="${v}"${v===cur?' selected':''}>${t}</option>`;
+const dFilters=q=>`<form class="form dfilt" id="dqF" role="search" novalidate><div class="field"><label for="dqQ">${tt('h.dqBuscar')}</label><input id="dqQ" type="search" maxlength="60" autocomplete="off" spellcheck="false" value="${esc(q.q)}"></div>
+ <div class="dq-row"><div class="field"><label for="dqS">${tt('h.dqEstrellas')}</label><select id="dqS">${opt('',q.st,tt('h.dqTodas'))}${[5,4,3,2].map(n=>opt(String(n),q.st,tt('cig.stars',{n}))).join('')}${opt('1',q.st,tt('h.nEstrella',{n:1}))}</select></div>
+ <div class="field"><label for="dqV">${tt('h.dqVer')}</label><select id="dqV">${opt('',q.vis,tt('h.dqAmbas'))}${opt('pub',q.vis,tt('h.dqPublicas'))}${opt('priv',q.vis,tt('h.dqPrivadas'))}</select></div>
+ <div class="field"><label for="dqO">${tt('h.dqOrden')}</label><select id="dqO">${opt('fecha',q.ord,tt('h.dqRecientes'))}${opt('estrellas',q.ord,tt('h.dqMasEstrellas'))}</select></div></div></form>`;
+const dCount=(n,all)=>n?tt('h.dqN',{a:n,b:all}):tt('h.dqNada');
+const dCard=d=>`<article class="dentry"><div class="dhead"><div><div class="t">${esc(d.nombre)}</div><div class="s">${fmtF(d.consumido||d.fecha)}${d.artesano||d.marca?' · '+esc(d.artesano||d.marca):''}</div></div>${stars(d.rating||0)}</div>
   ${d.foto?`<div class="dfoto" data-photo="${esc(d.foto)}" role="img" aria-label="${tt('h.fotoDeLaCata')}"></div>`:''}<label class="check dpub"><input type="checkbox" data-dpub="${esc(d.id)}" ${d.publica?'checked':''}> ${tt('h.publica')}</label>
   ${tagChips(d.tags||[])}${d.notas?`<p class="dnote">${esc(d.notas)}</p>`:''}
   <details><summary>${tt('h.detalleDeLaCata')}</summary><dl class="dl">${[[tt('f.fortaleza'),d.fortaleza],[tt('h.cuerpo'),d.cuerpo],[tt('h.final'),d.final],[tt('f.capa'),d.capa],[tt('h.tiro'),d.tiro],[tt('h.quemada'),d.quemada]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(lab(v))}</dd>`).join('')}
-  ${(d.pasos||[]).filter(p=>(p.tags&&p.tags.length)||p.nota).map(p=>`<dt>${esc(lab(p.paso))}</dt><dd>${esc([(p.tags||[]).map(WN).join(', '),p.nota].filter(Boolean).join(' — '))}</dd>`).join('')}</dl>
-  <div class="links">${d.cigarId&&A.cigarById(d.cigarId)?`<a class="lbtn" href="#/c/${encodeURIComponent(d.cigarId)}">${tt('h.verCigarro')}</a>`:''}<button class="lbtn ghost" type="button" data-ddel="${d.id}">${tt('h.borrarEntrada')}</button></div></details></article>`).join('')
+  ${(d.pasos||[]).filter(p=>(p.tags&&p.tags.length)||p.nota).map(p=>`<dt>${esc(lab(p.paso))}</dt><dd>${esc([(p.tags||[]).map(WN).join(', '),p.nota].filter(Boolean).join(' \u2014 '))}</dd>`).join('')}</dl>
+  <div class="links">${d.cigarId&&A.cigarById(d.cigarId)?`<a class="lbtn" href="#/c/${encodeURIComponent(d.cigarId)}">${tt('h.verCigarro')}</a>`:''}<button class="lbtn ghost" type="button" data-ddel="${d.id}">${tt('h.borrarEntrada')}</button></div></details></article>`;
+function bindDiario(){
+ $$('[data-dpub]').forEach(b=>b.onchange=()=>{save(s=>{const x=s.diario.find(y=>isEntry(y)&&y.id===b.dataset.dpub);if(x){x.publica=!!b.checked;x.actualizado=new Date().toISOString()}})});
+ $$('[data-ddel]').forEach(b=>b.onclick=()=>{if(confirm(tt('h.borrarEstaEntradaDel'))){const x=S().diario.find(y=>isEntry(y)&&y.id===b.dataset.ddel),s=S(),prev=s.diario;s.diario=prev.filter(y=>!isEntry(y)||y.id!==b.dataset.ddel);s.cambios=(s.cambios||0)+1;
+  /* la foto se borra solo cuando el cambio ya quedó anotado en el teléfono; si no, la entrada y su foto se quedan */
+  if(write(s)){dropFoto(x)}else{s.diario=prev;s.cambios-=1}vDiario();bindBackup()}})}
+function vDiario(){const s=S(),q=dq(),all=s.diario.filter(isEntry),list=diaryFilter(all,q);
+ /* si la página se vuelve a pintar (borrar, sincronización) mientras se escribe en la búsqueda, el foco vuelve a su sitio */
+ const ae=document.activeElement,foc=ae&&/^dq[QSVO]$/.test(ae.id||'')?ae.id:'';
+ view.innerHTML=`${subnav('diario')}
+ <a class="btn cta" href="#/cata">${VBArt.leaf('#8fd162','btn-leaf')}<span>${tt('h.nuevaCataGuiada')}</span></a>
+ ${dStats(diaryStats(s,D()))}
+ ${all.length?`${dFilters(q)}<p class="hint" id="dqN" aria-live="polite">${dCount(list.length,all.length)}</p><div id="dList">${list.map(dCard).join('')}</div>`
  :`<div class="empty">${tt('h.tuDiarioEstaVacio')}<br>${tt('h.hazUnaCataGuiada')}</div>`}
  ${backupPanel()}`;
- $$('[data-dpub]').forEach(b=>b.onchange=()=>{save(s=>{const x=s.diario.find(y=>y.id===b.dataset.dpub);if(x){x.publica=!!b.checked;x.actualizado=new Date().toISOString()}})});
- $$('[data-ddel]').forEach(b=>b.onclick=()=>{if(confirm(tt('h.borrarEstaEntradaDel'))){const x=S().diario.find(y=>y.id===b.dataset.ddel),s=S(),prev=s.diario;s.diario=prev.filter(y=>y.id!==b.dataset.ddel);s.cambios=(s.cambios||0)+1;
-  /* la foto se borra solo cuando el cambio ya quedó anotado en el teléfono; si no, la entrada y su foto se quedan */
-  if(write(s)){dropFoto(x)}else{s.diario=prev;s.cambios-=1}vDiario();bindBackup()}});
+ bindDiario();
+ const f=$('#dqF');if(f){f.onsubmit=e=>{e.preventDefault()};
+  const upd=()=>{const q=dq();q.q=$('#dqQ').value;q.st=$('#dqS').value;q.vis=$('#dqV').value;q.ord=$('#dqO').value;
+   const all=S().diario.filter(isEntry),l=diaryFilter(all,q),box=$('#dList');box.innerHTML=l.map(dCard).join('');$('#dqN').textContent=dCount(l.length,all.length);bindDiario();A.hydrate(box)};
+  $('#dqQ').oninput=upd;for(const id of ['#dqS','#dqV','#dqO'])$(id).onchange=upd;
+  if(foc){const x=$('#'+foc);if(x&&x.focus)x.focus({preventScroll:true})}}
  A.hydrate(view)}
 /* pasaporte */
 const BADGES=[{id:'primer',n:tt('h.primerSello'),d:tt('h.tuPrimerSello'),k:'total',m:1,c:'#8fd162'},
