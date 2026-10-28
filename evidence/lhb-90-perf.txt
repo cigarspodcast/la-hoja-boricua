@@ -1,0 +1,37 @@
+# LHB-90: footer shift, 5 runs of the stacked preview (LHB-85 + LHB-90) beside production
+
+Tool: Lighthouse 13.6.0, mobile form factor, default simulated throttling, headless Chrome, this Windows host.
+Branch: https://e9d98075.la-hoja-boricua.pages.dev (deploy of lhb-90-footer-shift 4cff69b, which contains lhb-85-thumbs). Control: https://lahojaboricua.com/ (production, main 8412e0a).
+Runs: 8, one Lighthouse process each, order branch1, main1, branch2, main2, branch3, main3, branch4, branch5, under one host claim.
+Basis per run: cumulative-layout-shift numericValue and the layout-shifts audit items (score, node selector); LCP, FCP, SI are the simulated metrics; obs FCP is the observed first paint.
+
+perf-branch1   score  86 CLS 0.000 LCP  2480 FCP   980 SI  8063 | obs FCP 5152 | shifts: 0.000 header.topbar > a.brand > span.brand-text > span.brand-name
+perf-branch2   score  94 CLS 0.007 LCP  2626 FCP  1002 SI  2258 | obs FCP 993 | shifts: 0.007 body > div#app > header.topbar > div.top-actions
+perf-branch3   score  93 CLS 0.007 LCP  2630 FCP   997 SI  3003 | obs FCP 1473 | shifts: 0.007 body > div#app > header.topbar > div.top-actions
+perf-branch4   score  84 CLS 0.007 LCP  2702 FCP  1100 SI 21838 | obs FCP 14991 | shifts: 0.007 body > div#app > header.topbar > div.top-actions; 0.000 a.brand > span.brand-text > span.brand-name > em
+perf-branch5   score  94 CLS 0.007 LCP  2580 FCP   964 SI  1978 | obs FCP 727 | shifts: 0.007 body > div#app > header.topbar > div.top-actions; 0.000 a.brand > span.brand-text > span.brand-name > em
+perf-main1     score  75 CLS 0.206 LCP  3435 FCP  1035 SI  3840 | obs FCP 1957 | shifts: 0.206 body > div#app > footer.seo-foot
+perf-main2     score  79 CLS 0.140 LCP  3370 FCP  1120 SI  3499 | obs FCP 1676 | shifts: 0.140 body > div#app > footer.seo-foot
+perf-main3     score  79 CLS 0.210 LCP  3470 FCP  1070 SI  3738 | obs FCP 1812 | shifts: 0.210 body > div#app > footer.seo-foot
+
+Result: branch CLS 0.000, 0.007, 0.007, 0.007, 0.007 (5 of 5 under 0.1; no footer shift in any). Production CLS 0.206, 0.140, 0.210 (3 of 3, all footer.seo-foot).
+Simulated LCP median: branch 2626 ms [2480 to 2702]; production 3435 ms [3370 to 3470].
+Noted, not hidden: branch runs 1 and 4 had very late observed first paints (5152 and 14991 ms; run 4 SI 21838) while their simulated FCP stayed about 1 s: the headless first-frame race seen in LHB-84's diagnosis. A 0.007 shift of div.top-actions appears in 4 of 5 branch runs (the LHB-36 language switch un-hiding after load); far under 0.1, filed separately.
+Load beside the pass: none from this session (no Codex round, no mutation run, no browser use between the claim's open and close).
+
+## Host claim record
+
+# CLOSED: [touched 2026-10-28T15:49Z] no live run. Closed 2026-10-28T15:49:44Z. LHB lane, LHB-90 LHB-85 LHB-84
+
+Owner: Alfredo Medina
+Session: LHB-90/85/84 (builder)
+Root: C:\Users\Owner\lhb-90-wt
+Claimed at: 2026-10-28T15:41:39Z
+Expected window: 20 min from the claim time.
+Closes when: the runner process ends (finally rewrites line 1 CLOSED).
+
+## What this claim covers
+
+Lighthouse runs (8 mobile performance runs, the LHB-90 preview (5) and production interleaved). Performance is timing-sensitive, so other heavy work on this host would corrupt it.
+
+Runs: [('perf-branch1', 0, 36), ('perf-main1', 0, 30), ('perf-branch2', 0, 68), ('perf-main2', 0, 66), ('perf-branch3', 0, 43), ('perf-main3', 0, 74), ('perf-branch4', 0, 73), ('perf-branch5', 0, 89)]
