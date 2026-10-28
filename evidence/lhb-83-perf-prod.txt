@@ -1,0 +1,41 @@
+# LHB-83: production Lighthouse after the merge
+
+Tool: Lighthouse 13.6.0, mobile form factor and its default simulated throttling, headless Chrome, on this Windows host.
+After: https://lahojaboricua.com/ serving merge 667bcb2 (sw.js lhb-v70), 3 cold loads, one Lighthouse process each, under one host claim.
+Before: the same URL earlier the same night, before the merge (perf-main1..3 of evidence/lhb-83-perf.txt, run under its own claim).
+Same host and same Cloudflare analytics beacon on both sides, so this is the clean comparison. Figures: median [min to max] of 3 runs.
+
+metric | LHB-17 (production, earlier) | before merge (production) | after merge (production)
+--- | --- | --- | ---
+score | 87 [78 to 87] | 85 [83 to 88] | 89 [85 to 90]
+FCP | 999 ms [996 ms to 1005 ms] | 995 ms [973 ms to 995 ms] | 996 ms [972 ms to 999 ms]
+LCP | 3249 ms [3246 ms to 3255 ms] | 3245 ms [3223 ms to 3245 ms] | 2946 ms [2922 ms to 3024 ms]
+TBT | 151 ms [126 ms to 373 ms] | 156 ms [87 ms to 222 ms] | 150 ms [109 ms to 257 ms]
+CLS | 0.000 [0.000 to 0.145] | 0.000 [0.000 to 0.158] | 0.000 [0.000 to 0.000]
+Speed Index | 5371 ms [2847 ms to 5396 ms] | 5338 ms [3188 ms to 5463 ms] | 5361 ms [5360 ms to 5416 ms]
+TTFB (server response) | 110 ms [97 ms to 139 ms] | 86 ms [78 ms to 98 ms] | 89 ms [65 ms to 99 ms]
+TBT per run | n/a | 87, 156, 222 | 257, 150, 109
+scripts per run | n/a | 10 scripts / 160102 B, Leaflet yes; 10 scripts / 160062 B, Leaflet yes; 10 scripts / 160155 B, Leaflet yes | 9 scripts / 116332 B, Leaflet no; 9 scripts / 116345 B, Leaflet no; 9 scripts / 116335 B, Leaflet no
+
+## Accessibility after the merge (basis: one run per page)
+
+- /: score 100; label-content-name-mismatch score 1; failing rules: none
+- /#/lugares: score 96; label-content-name-mismatch score 1; failing rules: target-size (23)
+
+## Host claim record
+
+# CLOSED: [touched 2026-10-28T05:58Z] no live run. Closed 2026-10-28T05:58:56Z. LHB lane, LHB-83 LHB-88
+
+Owner: Alfredo Medina
+Session: LHB-83/88 (builder)
+Root: C:\Users\Owner\lhb-83-wt
+Claimed at: 2026-10-28T05:57:19Z
+Expected window: 15 min from the claim time.
+Closes when: the runner process ends (finally rewrites line 1 CLOSED).
+
+## What this claim covers
+
+Lighthouse runs (3 mobile performance runs and 2 accessibility runs of production after the LHB-83/88 merge). Performance is timing-sensitive, so other heavy work on this host would corrupt it.
+
+Runs: [('perf-prod1', 0, 24), ('perf-prod2', 0, 19), ('perf-prod3', 0, 16), ('a11y-prod-home', 0, 17), ('a11y-prod-lugares', 0, 17)]
+
