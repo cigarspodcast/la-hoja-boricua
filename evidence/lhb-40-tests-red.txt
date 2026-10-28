@@ -1,0 +1,122 @@
+✖ LHB-24: _routes.json manda solo /api/* (y desde LHB-40 /u/*) a Functions (9.4525ms)
+✖ LHB-40: el pasaporte público solo trae las catas marcadas públicas (publica === true) y solo los campos que se enseñan; nunca lo privado de Mi Hoja ni del perfil (118.579ms)
+✖ LHB-40: un perfil oculto o que no existe da el mismo 404; ocultarlo quita la página; sin base o con la base caída, 503 (98.2797ms)
+✖ LHB-40: etiquetas Open Graph y Twitter, noindex, follow, y todo texto escapado (una bio con <script>); Reportar manda un correo al contacto (106.3717ms)
+✖ LHB-40: /u/* va a Functions; el service worker nunca responde /u/ (siempre red, nunca el shell); la hoja de estilo vive fuera de /u/ (1.3688ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 499.698
+
+✖ failing tests:
+
+test at test\site.test.js:872:1
+✖ LHB-24: _routes.json manda solo /api/* (y desde LHB-40 /u/*) a Functions (9.4525ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:
+  
+  [
+    '/api/*'
+  ]
+  
+  should loosely deep-equal
+  
+  [
+    '/api/*',
+    '/u/*'
+  ]
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red40\test\site.test.js:873:35)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '/api/*' ],
+    expected: [ '/api/*', '/u/*' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3960:1
+✖ LHB-40: el pasaporte público solo trae las catas marcadas públicas (publica === true) y solo los campos que se enseñan; nunca lo privado de Mi Hoja ni del perfil (118.579ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red40\functions\u\[handle].js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red40\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914/26f104f2-e100-49e6-912b-3193fec0d946/scratchpad/red40/functions/u/%5Bhandle%5D.js'
+  }
+
+test at test\site.test.js:3985:1
+✖ LHB-40: un perfil oculto o que no existe da el mismo 404; ocultarlo quita la página; sin base o con la base caída, 503 (98.2797ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red40\functions\u\[handle].js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red40\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914/26f104f2-e100-49e6-912b-3193fec0d946/scratchpad/red40/functions/u/%5Bhandle%5D.js'
+  }
+
+test at test\site.test.js:4002:1
+✖ LHB-40: etiquetas Open Graph y Twitter, noindex, follow, y todo texto escapado (una bio con <script>); Reportar manda un correo al contacto (106.3717ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red40\functions\u\[handle].js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red40\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914/26f104f2-e100-49e6-912b-3193fec0d946/scratchpad/red40/functions/u/%5Bhandle%5D.js'
+  }
+
+test at test\site.test.js:4028:1
+✖ LHB-40: /u/* va a Functions; el service worker nunca responde /u/ (siempre red, nunca el shell); la hoja de estilo vive fuera de /u/ (1.3688ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:
+  
+  [
+    '/api/*'
+  ]
+  
+  should loosely deep-equal
+  
+  [
+    '/api/*',
+    '/u/*'
+  ]
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red40\test\site.test.js:4029:50)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '/api/*' ],
+    expected: [ '/api/*', '/u/*' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
