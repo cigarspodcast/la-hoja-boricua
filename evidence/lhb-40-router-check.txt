@@ -1,0 +1,27 @@
+LHB-40 router check after Codex round 1 (its NOT VERIFIED note: trailing slash and encoded handles at runtime). Captured 2026-10-28T19:31:23Z. Status codes from curl, no redirects followed.
+
+== http://127.0.0.1:8788
+/u/prueba_lhb 200 text/html; charset=utf-8  <title>@prueba_lhb en La Hoja Boricua
+/u/prueba_lhb/ 200 text/html; charset=utf-8  <title>@prueba_lhb en La Hoja Boricua
+/u/PRUEBA_LHB 200 text/html; charset=utf-8  <title>@prueba_lhb en La Hoja Boricua
+/u/%70rueba_lhb 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u/prueba_lhb%2F 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u/prueba_lhb/x 404 text/html; charset=utf-8  <title>Página no encontrada | La Hoja Boricua
+/u/ 404 text/html; charset=utf-8  <title>Página no encontrada | La Hoja Boricua
+/u 404 text/html; charset=utf-8  <title>Página no encontrada | La Hoja Boricua
+/u/oculto_lhb 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u/nadie_asi 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u.css 200 text/css; charset=utf-8  
+
+== https://claude-lhb-40-passport-page.la-hoja-boricua.pages.dev
+/u/prueba_lhb 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u/prueba_lhb/ 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u/PRUEBA_LHB 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u/%70rueba_lhb 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u/prueba_lhb%2F 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u/prueba_lhb/x 404 text/html; charset=utf-8  <title>Página no encontrada | La Hoja Boricua
+/u/ 404 text/html; charset=utf-8  <title>Página no encontrada | La Hoja Boricua
+/u 404 text/html; charset=utf-8  <title>Página no encontrada | La Hoja Boricua
+/u/oculto_lhb 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u/nadie_asi 404 text/html; charset=utf-8  <title>Perfil no encontrado | La Hoja Boricua
+/u.css 200 text/css; charset=utf-8  
