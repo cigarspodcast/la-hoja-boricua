@@ -3766,6 +3766,7 @@ test('LHB-90: el pie queda invisible mientras la vista está vacía, y es el her
 /* LHB-87 (Codex r1): tocar un grupo siempre adelanta: acerca a un zoom mayor o muestra la lista; nunca se queda igual */
 test('LHB-87: tocar grupos con los lugares de verdad, en mapas de varias medidas, siempre termina en pines sueltos o en una lista',()=>{
  const app=read('app.js');const t=app.match(/const tapGroup=\(z,fz,one\)=>[^\n]*/);assert.ok(t,'tapGroup en app.js');const {pinBox,groupPins}=pins87();const tapGroup=new Function(t[0]+';return tapGroup')();
+ const pm=app.match(/const POP_FIXED=(\d+),popMaxH=h=>[^\n]*/);assert.ok(pm,'popMaxH en app.js');const {POP_FIXED,popMaxH}=new Function(pm[0]+';return {POP_FIXED,popMaxH}')();
  assert.ok(app.includes("if(tapGroup(map.getZoom(),map.getBoundsZoom(b,false,L.point(96,96)),b.getNorthEast().equals(b.getSouthWest()))==='list')")&&app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})"),'el toque usa tapGroup con el mismo relleno que fitBounds (48 por lado, 96 en total)');
  assert.equal(tapGroup(9,9,false),'list','si el encuadre no acerca, la lista');assert.equal(tapGroup(9,8,false),'list');assert.equal(tapGroup(9,10,false),'zoom');assert.equal(tapGroup(16,19,false),'zoom','acerca hasta 17');
  assert.equal(tapGroup(17,19,false),'list');assert.equal(tapGroup(9,12,true),'list','todos en un sitio');
@@ -3779,5 +3780,16 @@ test('LHB-87: tocar grupos con los lugares de verdad, en mapas de varias medidas
    taps++;assert.ok(taps<500,'demasiados toques: '+W+'x'+H);const ps=mine.map(i=>P[i]);const one=ps.every(p=>p.lat===ps[0].lat&&p.lng===ps[0].lng);const fz=fit(ps,W,H,96,19);
    if(tapGroup(z,fz,one)==='list'){listed+=mine.length;mine.forEach(i=>seen.add(i));continue}
    const nz=Math.min(fz,17);assert.ok(nz>z,'un toque que acerca sube el zoom ('+W+'x'+H+': '+z+' a '+nz+')');visit(mine,nz)}};
-  visit(P.map((_,i)=>i),z0);assert.equal(seen.size,P.length,W+'x'+H+': todo lugar termina suelto o en una lista');assert.equal(single+listed,P.length)}
+  visit(P.map((_,i)=>i),z0);assert.equal(seen.size,P.length,W+'x'+H+': todo lugar termina suelto o en una lista');assert.equal(single+listed,P.length)
+  if(listed)assert.ok(popMaxH(H)+POP_FIXED<=H,W+'x'+H+': la lista cabe en el mapa ('+popMaxH(H)+' + '+POP_FIXED+')')}
+});
+test('LHB-87 (Codex r2): la lista de un grupo cabe en el mapa: su alto con scroll es el del mapa menos lo fijo del popup',()=>{
+ const app=read('app.js');const m=app.match(/const POP_FIXED=(\d+),popMaxH=h=>Math\.max\(60,Math\.min\(320,h-POP_FIXED\)\);/);assert.ok(m,'POP_FIXED y popMaxH');const POP_FIXED=+m[1];const popMaxH=h=>Math.max(60,Math.min(320,h-POP_FIXED));
+ assert.ok(app.includes("L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)}).setLatLng(at)"),'la lista usa el alto del mapa de ahora');
+ // lo fijo, sumado de las reglas que lo ponen
+ const css=read('styles.css'),v=read('vendor-leaflet.css'),vj=read('vendor-leaflet.js');
+ const cm=css.match(/\.leaflet-popup-content\{margin:(\d+)px (\d+)px\}/);assert.ok(cm,'margen del contenido');const wrap=v.match(/\.leaflet-popup-content-wrapper\{padding: (\d+)px;/),tip=v.match(/\.leaflet-popup-tip-container\{width: 40px;height: (\d+)px;position: absolute;left: 50%;margin-top: -(\d+)px;/),mb=v.match(/\.leaflet-popup\{position: absolute;text-align: center;margin-bottom: (\d+)px\}/);
+ assert.ok(wrap&&tip&&mb&&vj.includes('offset:[0,7]'),'las reglas de Leaflet que dan lo fijo');
+ assert.equal(2*+cm[1]+2*+wrap[1]+(+tip[1]-+tip[2])+(+mb[1])+7+16+16,POP_FIXED,'24 + 2 + 19 + 20 + 7 + 32');
+ for(const h of [185,230,300,360,460])assert.ok(popMaxH(h)+POP_FIXED<=h&&popMaxH(h)<=320,'mapa de '+h+' px');assert.equal(popMaxH(1000),320);assert.equal(popMaxH(120),60,'nunca menos de 60');
 });
