@@ -3966,7 +3966,7 @@ test('LHB-40: el pasaporte público solo trae las catas marcadas públicas (publ
   const p=await a.page('ana');assert.equal(p.status,200);
   for(const s of ['Toro Publico','Churchill Nuevo','nota publica\nsegunda linea','Don Ramón','madera','cacao','Marca Otra','Ana S.','@ana','3 mar 2026','1 abr 2026'])assert.ok(p.body.includes(s),'la página trae '+s);
   for(const s of [...PRIVADO40,...SECRETOS56])assert.ok(!p.body.includes(s),'la página nunca trae '+s);
-  for(const [n,l] of [[2,'catas públicas'],[2,'sellos de artesanos'],[1,'sellos de cigarros'],[0,'sellos de lugares']])assert.ok(p.body.includes('<li><b>'+n+'</b><span>'+l+'</span></li>'),'conteo '+l);
+  for(const [n,l] of [[2,'catas públicas'],[2,'sellos de artesanos'],[1,'sello de cigarros'],[0,'sellos de lugares']])assert.ok(p.body.includes('<li><b>'+n+'</b><span>'+l+'</span></li>'),'conteo '+l);
   /* la cuadrícula: tocar una cata abre su tarjeta (estrellas, sabores, notas) */
   assert.ok(p.body.includes('<a class="pp-cata" href="#cata-1"><b>Churchill Nuevo</b>')&&p.body.includes('<a class="pp-cata" href="#cata-2"><b>Toro Publico</b>'));
   const card=p.body.slice(p.body.indexOf('<article class="pp-card" id="cata-2"'));assert.ok(card.startsWith('<article'),'la tarjeta de la cata 2 existe');

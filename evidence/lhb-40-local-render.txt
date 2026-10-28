@@ -1,0 +1,110 @@
+LHB-40 local render, wrangler pages dev (workerd, wrangler 4.149.0) on a scratch copy of the branch with a seeded local D1 (profiles prueba_lhb visible, oculto_lhb hidden; Mi Hoja of prueba_lhb: two public entries, one private entry 'Corona privada' with notes 'PRIVADA no debe salir', a humidor item 'HUMIDOR PRIVADO'). Captured 2026-10-28T19:24:35Z.
+
+== GET /u/prueba_lhb
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Content-Type: text/html; charset=utf-8
+Cache-Control: no-store
+content-security-policy: default-src 'none'; style-src 'self'; img-src 'self' https://img.clerk.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+x-content-type-options: nosniff
+x-robots-tag: noindex, follow
+
+<!doctype html>
+<html lang="es-PR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>@prueba_lhb en La Hoja Boricua</title>
+<meta name="description" content="Fumador de prueba &lt;script&gt;alert(1)&lt;/script&gt; en Caguas.">
+<link rel="canonical" href="http://127.0.0.1:8788/u/prueba_lhb">
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content="La Hoja Boricua">
+<meta property="og:locale" content="es_PR">
+<meta property="og:title" content="@prueba_lhb en La Hoja Boricua">
+<meta property="og:description" content="Fumador de prueba &lt;script&gt;alert(1)&lt;/script&gt; en Caguas.">
+<meta property="og:url" content="http://127.0.0.1:8788/u/prueba_lhb">
+<meta property="og:image" content="http://127.0.0.1:8788/og.jpg">
+<meta property="og:image:alt" content="La Hoja Boricua">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="@prueba_lhb en La Hoja Boricua">
+<meta name="twitter:description" content="Fumador de prueba &lt;script&gt;alert(1)&lt;/script&gt; en Caguas.">
+<meta name="twitter:image" content="http://127.0.0.1:8788/og.jpg">
+<meta name="robots" content="noindex, follow">
+<link rel="stylesheet" href="/u.css">
+</head>
+<body>
+<header><a class="brand" href="/">La Hoja <em>Boricua</em></a><a class="app" href="/">Abrir la app</a></header>
+<main>
+<section class="pp-head"><span class="pp-av pp-ini" aria-hidden="true">PL</span><div><h1>Prueba L.</h1><p class="pp-h">@prueba_lhb</p><p class="pp-bio">Fumador de prueba &lt;script&gt;alert(1)&lt;/script&gt; en Caguas.</p><p class="pp-fav">Marca favorita: <b>Hoja Boricua</b></p></div></section>
+<ul class="pp-counts"><li><b>2</b><span>catas públicas</span></li><li><b>2</b><span>sellos de artesanos</span></li><li><b>1</b><span>sello de cigarros</span></li><li><b>1</b><span>sello de lugares</span></li></ul>
+<h2 id="catas">Catas públicas</h2>
+<ul class="pp-grid"><li><a class="pp-cata" href="#cata-1"><b>Hoja Boricua Gran Reserva</b><span class="pp-stars" role="img" aria-label="5 de 5 estrellas">★★★★★</span><small>20 oct 2026</small></a></li><li><a class="pp-cata" href="#cata-2"><b>Turro Mamposteao</b><span class="pp-stars" role="img" aria-label="4 de 5 estrellas">★★★★☆</span><small>15 oct 2026</small></a></li></ul>
+<article class="pp-card" id="cata-1" aria-labelledby="cata-1-t"><div class="pp-card-in"><a class="pp-x" href="#catas" aria-label="Cerrar">×</a><h3 id="cata-1-t">Hoja Boricua Gran Reserva</h3><p class="pp-sub">JFC Tobacco · 20 oct 2026</p><span class="pp-stars" role="img" aria-label="5 de 5 estrellas">★★★★★</span><ul class="pp-tags"><li>Madera</li><li>Cacao</li><li>Dulce</li></ul><p class="pp-notas">Tiro perfecto, ceniza firme.
+El segundo tercio se abrió en cacao.</p></div></article>
+<article class="pp-card" id="cata-2" aria-labelledby="cata-2-t"><div class="pp-card-in"><a class="pp-x" href="#catas" aria-label="Cerrar">×</a><h3 id="cata-2-t">Turro Mamposteao</h3><p class="pp-sub">El Club del Turro · 15 oct 2026</p><span class="pp-stars" role="img" aria-label="4 de 5 estrellas">★★★★☆</span><ul class="pp-tags"><li>Tierra</li><li>Especias</li></ul><p class="pp-notas">Fuerte y honesto.</p></div></article>
+</main>
+<footer><a href="mailto:sergio@cigarspodcast.com?subject=Reportar%20%40prueba_lhb&amp;body=http%3A%2F%2F127.0.0.1%3A8788%2Fu%2Fprueba_lhb">Reportar este perfil</a> · <a href="/privacidad">Privacidad</a> · <a href="/">La Hoja Boricua</a></footer>
+</body>
+</html>
+
+== GET /u/oculto_lhb
+HTTP/1.1 404 Not Found
+Transfer-Encoding: chunked
+Content-Type: text/html; charset=utf-8
+Cache-Control: no-store
+content-security-policy: default-src 'none'; style-src 'self'; img-src 'self' https://img.clerk.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+x-content-type-options: nosniff
+x-robots-tag: noindex, follow
+
+<!doctype html>
+<html lang="es-PR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perfil no encontrado | La Hoja Boricua</title>
+<meta name="robots" content="noindex, follow">
+<link rel="stylesheet" href="/u.css">
+</head>
+<body>
+<header><a class="brand" href="/">La Hoja <em>Boricua</em></a><a class="app" href="/">Abrir la app</a></header>
+<main>
+<h1>Este perfil no está disponible</h1>
+<p class="tag">Puede que el enlace esté viejo o que la persona lo haya quitado.</p>
+<p><a href="/">Ir a La Hoja Boricua</a></p>
+</main>
+<footer><a href="/">La Hoja Boricua</a></footer>
+</body>
+</html>
+
+== GET /u/nadie_asi
+HTTP/1.1 404 Not Found
+Transfer-Encoding: chunked
+Content-Type: text/html; charset=utf-8
+Cache-Control: no-store
+content-security-policy: default-src 'none'; style-src 'self'; img-src 'self' https://img.clerk.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+x-content-type-options: nosniff
+x-robots-tag: noindex, follow
+
+<!doctype html>
+<html lang="es-PR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perfil no encontrado | La Hoja Boricua</title>
+<meta name="robots" content="noindex, follow">
+<link rel="stylesheet" href="/u.css">
+</head>
+<body>
+<header><a class="brand" href="/">La Hoja <em>Boricua</em></a><a class="app" href="/">Abrir la app</a></header>
+<main>
+<h1>Este perfil no está disponible</h1>
+<p class="tag">Puede que el enlace esté viejo o que la persona lo haya quitado.</p>
+<p><a href="/">Ir a La Hoja Boricua</a></p>
+</main>
+<footer><a href="/">La Hoja Boricua</a></footer>
+</body>
+</html>
+
+== private strings in /u/prueba_lhb (expect 0):
+0
+== browser at 375 px: innerWidth 375, scrollWidth 375 (no horizontal scroll); #cata-1 opens the card (display flex, position fixed), the other card stays display none.

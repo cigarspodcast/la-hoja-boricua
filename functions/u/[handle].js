@@ -7,7 +7,7 @@ import { publicPassport } from '../_lib/passport.js';
 export const CONTACT = 'sergio@cigarspodcast.com'; // el contacto de privacidad.html
 const ROBOTS = 'noindex, follow';
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const KIND_LABEL = { artesanos: 'sellos de artesanos', cigarros: 'sellos de cigarros', lugares: 'sellos de lugares' };
+const KIND_LABEL = { artesanos: 'artesanos', cigarros: 'cigarros', lugares: 'lugares' };
 
 // todo texto que entra al HTML, en el cuerpo o en un atributo, pasa por aquí
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -63,7 +63,7 @@ export function renderPassport(v, origin) {
 
   const c = v.counts;
   main += '<ul class="pp-counts"><li><b>' + c.catas + '</b><span>' + (c.catas === 1 ? 'cata pública' : 'catas públicas') + '</span></li>' +
-    Object.keys(KIND_LABEL).map(k => '<li><b>' + c.sellos[k] + '</b><span>' + KIND_LABEL[k] + '</span></li>').join('') + '</ul>\n';
+    Object.keys(KIND_LABEL).map(k => '<li><b>' + c.sellos[k] + '</b><span>' + (c.sellos[k] === 1 ? 'sello' : 'sellos') + ' de ' + KIND_LABEL[k] + '</span></li>').join('') + '</ul>\n';
 
   main += '<h2 id="catas">Catas públicas</h2>\n';
   if (!v.catas.length) main += '<p class="pp-empty">Todavía no hay catas públicas.</p>\n';
