@@ -40,7 +40,8 @@ because the API token lacks the zone Analytics Read permission. Not worked aroun
 owner's. When the permission exists: CLOUDFLARE_API_TOKEN=... python evidence/lhb-47-ai-bots.py 30
 
 Context at this reading: the English twin pages (LHB-32) and the 22 guide pages (LHB-45) went live the same morning,
-so this baseline predates any crawl of them. Sitemap resubmission waits on LHB-6 (owner gate).
+hours before these searches. Whether any crawler had fetched them by 13:27Z is NOT VERIFIED (crawler requests were not
+measured, above). Sitemap resubmission waits on LHB-6 (owner gate).
 
 Re-check: monthly, the same 20 questions in the same order, written to evidence/lhb-47-ai-visibility-YYYY-MM.txt.
 Scheduled as a dated Linear ticket each month (the first: LHB-91, the 2026-11 reading, due 2026-11-30), not as a clock-run

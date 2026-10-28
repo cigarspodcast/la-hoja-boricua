@@ -1,0 +1,14 @@
+You are reviewing one branch in this repository (La Hoja Boricua). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-47-wt (branch lhb-47-ai-baseline). This is round 2. The branch adds files under evidence/ only.
+
+Round 1 (evidence/lhb-47-review-r1.txt) blocked on two findings:
+1. evidence/lhb-47-ai-bots.py took the top 1000 user agents of ALL traffic before filtering for crawlers, so a low-volume crawler could be silently dropped.
+2. evidence/lhb-47-ai-visibility-2026-10.txt said the baseline "predates any crawl" of the new pages, which nothing measured.
+
+The fixes:
+1. The crawler filter now runs in the query: filter is a variable of type ZoneHttpRequestsAdaptiveGroupsFilter_InputObject with an OR of userAgent_like '%<bot>%' terms, so the limit (now 10000) applies to crawler user agents only; a result that reaches the limit is refused with exit 3 and no counts.
+2. The baseline now says the crawl timing is NOT VERIFIED.
+3. evidence/lhb-47-ai-bots-run-r1fix.txt: the fixed script run against the live API reaches the authorization check (the token lacks Analytics Read), while two controls with a deliberately broken argument (a misspelled filter argument; a misspelled field inside OR) fail earlier, at argument parsing. That is offered as evidence the query and its filter validate.
+
+Check: is either round 1 defect still present? Is the parsing-before-authorization argument sound? Can the new script undercount, overcount (a user agent matching two bots), crash on a valid response, or leak the token? Does the baseline state anything it cannot support?
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
