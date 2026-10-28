@@ -1,0 +1,14 @@
+M1 a card title written in Spanish again       rc 1 fail 2 -> RED
+M2 a button label written in Spanish again     rc 1 fail 2 -> RED
+M3 tt always Spanish                           rc 1 fail 2 -> RED
+M4 an English key missing                      rc 1 fail 3 -> RED
+M5 English left in Spanish                     rc 1 fail 1 -> RED
+M6 the Spanish text changed                    rc 1 fail 1 -> RED
+M7 the space before the phone sentence lost    rc 1 fail 1 -> RED
+M8 a key misspelled in cuenta.js               rc 1 fail 3 -> RED
+M9 an unused key in both languages             rc 1 fail 2 -> RED
+M10 the English gate title in Spanish words    rc 1 fail 1 -> RED
+M11 Codex r1: only cu.saved stays Spanish      rc 1 fail 1 -> RED
+M12 the identity toast written in Spanish      rc 1 fail 3 -> RED
+baseline after restore: rc 0 pass 21
+RESULT 12 of 12 mutations red

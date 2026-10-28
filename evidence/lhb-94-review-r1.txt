@@ -1,0 +1,484 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-94-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a183d5-f7f0-7243-a7df-5a76f679c3a0
+--------
+user
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-94-wt (branch lhb-94-cuenta-i18n). The diff below is origin/main..HEAD for the paths that matter.
+
+LHB-94: with the app in English, the account gate (site/cuenta.js, which decides who can open Mi Hoja and shows its cards and notices) showed Spanish: "Entra para usar Mi Hoja", "Entrar o crear cuenta", "Necesitas conexión" and others. cuenta.js passed Spanish literals straight to D.ui.card / notice / toast, and the i18n scans (LHB-27, LHB-29) did not cover it.
+The change:
+1. site/cuenta.js: inside LHB_CUENTA(D), const tt=(k,v)=>window.LHB_I18N.t(k,v); every visible text goes through tt('cu.*'): the waiting card, the sign-in gate card (title, body, the optional sentence about data saved on this phone, the open-without-account sentence, the button), the no-connection card, the could-not-check card (two bodies), the retry label, the sign-in-again notice and its button, and the three toasts. The sentences of the gate body are joined with ' ' in code, as before.
+2. site/i18n.js: 20 cu.* keys in es (the exact previous Spanish) and en.
+3. test/site.test.js:
+   - CUENTA_HARNESS loads i18n.js before cuenta.js, as index.html does, and takes an optional browser language.
+   - The LHB-27 key test counts cuenta.js.
+   - A new LHB-94 test checks:
+     - the i18n scan of cuenta.js is empty;
+     - there is no label literal;
+     - each key is in both languages, translated;
+     - there are no unused cu.* keys;
+     - five rendered screens, in Spanish (exact old text) and English.
+   - Cache lhb-v83.
+Evidence:
+- lhb-94-tests-red.txt: red before the change, only the new test.
+- lhb-94-tests.txt: 244/244.
+- lhb-94-mutations.py: run separately.
+- Live on the preview in English: "Sign in to use Mi Hoja" and the English body and button.
+
+Look for real defects:
+- a visible string in cuenta.js still in Spanish, or one that reaches the UI some other way (an error code the UI shows raw, D.ui.onboarding / edit / identity texts);
+- tt called when window.LHB_I18N is missing (a page or test that loads cuenta.js without i18n.js), or at a time when the language could differ from the rest of the page;
+- English wording that is wrong or inconsistent with the rest of the English app ("Mi Hoja", "journal", "sign in");
+- the Spanish changed by accident (spacing, punctuation, the ellipsis);
+- the harness change altering what older cuenta.js tests prove;
+- tests that would pass on broken code.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main HEAD -- site/cuenta.js site/i18n.js site/sw.js test/site.test.js =====
+diff --git a/site/cuenta.js b/site/cuenta.js
+index 3ee4bff..4e5d640 100644
+--- a/site/cuenta.js
++++ b/site/cuenta.js
+@@ -5,6 +5,8 @@
+    - Cada respuesta pendiente se amarra al usuario, a la pantalla y a la operación que la pidió; si algo cambió, se ignora.
+    - Entrar desde cualquier página deja la página como está, y al terminar se hace la acción que el usuario empezó. */
+ window.LHB_CUENTA=function(D){'use strict';
++/* LHB-94: los textos salen de i18n.js (cargado antes), en el idioma de la app */
++const tt=(k,v)=>window.LHB_I18N.t(k,v);
+ const ACT=Object.create(null);let seq=0,sip=0,gen=0,hooked=false,lastId=null,pending=null,ob=false,failure=null,vis=0;
+ /* irse de una página termina todo lo que esa visita esperaba: volver después no revive una revisión ni una acción que quedó pendiente */
+ if(typeof D.onNav==='function')D.onNav(()=>{vis++;pending=null;failure=null;const it=D.intent.get();if(it&&it.from!==D.here())D.intent.clear()});
+@@ -32,19 +34,19 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
+   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
+   if(onMiHoja()||ob){ob=false;D.reroute()}
+   /* el aviso de error pedía salir y volver a entrar: al salir, la hoja se cierra con todo y su botón; se deja un botón nuevo para entrar y seguir con la acción */
+-  if(!id&&fl&&fl.from===D.here())D.ui.notice('Entra otra vez','Tu acción quedó pendiente. Entra para continuar.',{label:'Entrar',on:()=>go(fl.done,{...fl.o,resume:false})})})}
++  if(!id&&fl&&fl.from===D.here())D.ui.notice(tt('cu.again.h'),tt('cu.again.p'),{label:tt('cu.again.b'),on:()=>go(fl.done,{...fl.o,resume:false})})})}
+ /* una acción en sitio (corazón, sello, estrella, humidor) cuenta aparte de la puerta de una página: tocar un corazón no cancela el dibujo de Mi Hoja ni al revés; un cambio de cuenta cancela las dos */
+ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=vis,op=inp?++sip:++seq;if(inp){failure=null;/* un toque nuevo sustituye al anterior: lo guardado del anterior para volver de Google ya no vale (el nuevo guarda el suyo si hace falta) */if(!o.resume)D.intent.clear()}else ob=false;
+  const lv=(C,uid)=>op===(inp?sip:seq)&&vis===v0&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
+  const show=(h,p,b)=>{if(!inp&&op===seq)D.ui.card(h,p,b)};
+  /* un error nunca se esconde: sobre la página (en sitio) o en la tarjeta de Mi Hoja, siempre con reintento que conserva la acción */
+- const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:'Intentar otra vez',on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}else D.ui.card(h,p,b)};
+- show('Un momento…','Revisando tu cuenta.');
++ const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:tt('cu.retry'),on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}else D.ui.card(h,p,b)};
++ show(tt('cu.wait.h'),tt('cu.wait.p'));
+  let C;
+  try{C=await D.clerk()}catch(e){
+   if(op!==(inp?sip:seq)||vis!==v0||D.here()!==from)return;
+   if(D.store.get()&&!o.edit){D.intent.clear();retire();return done()}
+-  fail('Necesitas conexión',o.edit?'Para editar tu perfil necesitas conexión a internet.':'Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
++  fail(tt('cu.net.h'),o.edit?tt('cu.net.edit'):tt('cu.net.first'));return}
+  hook(C);
+  /* con el perfil de ese usuario ya guardado la acción en sitio no espera a la red ni depende de otro toque: solo se descarta si cambió la cuenta o la página */
+  if(inp?(gen!==g0||vis!==v0||D.here()!==from):!lv(C))return;
+@@ -58,7 +60,7 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
+   if(o.resume){D.intent.clear();return}
+   pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));
+   const open=()=>D.openSignIn(C);
+-  show('Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta.'+(D.hasLocal&&D.hasLocal()?' Lo que ya tienes guardado en este teléfono pasa a tu cuenta al entrar.':'')+' El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.',{label:'Entrar o crear cuenta',on:open});
++  show(tt('cu.gate.h'),tt('cu.gate.p')+(D.hasLocal&&D.hasLocal()?' '+tt('cu.gate.local'):'')+' '+tt('cu.gate.open'),{label:tt('cu.gate.b'),on:open});
+   open();return}
+  const uid=C.user.id;let r;
+  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
+@@ -69,10 +71,10 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
+  if(r.status===200&&r.body.profile&&o.edit){cache(snap(uid,r.body.profile));D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
+  if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));D.intent.clear();retire();return done()}
+  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
+- if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
++ if(r.status===401||r.status===403){D.store.clear();fail(tt('cu.check.h'),tt('cu.check.relog'));return}
+  const c=D.store.get();
+  if(c&&c.sub===uid&&!o.edit&&(r.status===0||r.status>=500)){D.intent.clear();retire();return done()}
+- fail('No pudimos revisar tu cuenta','Intenta otra vez en un momento.')}
++ fail(tt('cu.check.h'),tt('cu.check.later'))}
+ /* LHB-49: la foto de perfil es la de Clerk. Si la cuenta ya trae una (Google, Apple) viene puesta; si no, o si la persona quiere otra, la sube con setProfileImage.
+    Una foto de Clerk que no se subió ni se importó (la silueta de siempre) tiene hasImage en false y no cuenta. Sin foto no se manda el perfil. */
+ const CLERK_IMG='https://img.clerk.com/';
+@@ -127,7 +129,7 @@ function onboard(C,done,o,lv,uid){ob=true;
+   const same=!!C.user&&C.user.id===uid;
+   if(r.status===201){if(same)cache(snap(uid,r.body.profile));
+    if(!live())return {stale:true};
+-   settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
++   settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(!live())return {stale:true};
+   /* la respuesta se perdió pero el perfil sí se creó: se revisa de nuevo dentro de este mismo envío y, si sale bien, se termina igual que con un 201.
+      Si la revisión falla, el formulario sigue vivo para reintentar; no se anuncia éxito antes de tiempo. */
+@@ -136,7 +138,7 @@ function onboard(C,done,o,lv,uid){ob=true;
+    if(!live())return {stale:true};
+    /* LHB-52: el perfil que apareció tras el 409 sigue sin identidad: se completa antes de guardar nada o abrir Mi Hoja; este formulario ya no vale */
+    if(m.status===200&&m.body.profile&&m.body.needsIdentity===true){identify(C,done,o,lv,uid,m.body.profile);return {stale:true}}
+-   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
++   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
+    return {error:'recheck'}}
+   return {error:r.body.error||'generic'}};
+  /* un envío y una subida nunca corren a la vez: lo que se manda es la foto que se ve, y la que se sube no llega tarde a un perfil ya enviado */
+@@ -164,7 +166,7 @@ function edit(C,done,o,lv,uid,prof){ob=true;
+   let r;try{r=await D.api(C,'PUT','/api/profile',{...f,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
+   if(!live())return {stale:true};
+   if(r.status===200&&r.body.profile){if(!!C.user&&C.user.id===uid)cache(snap(uid,r.body.profile));
+-   settle();ob=false;D.intent.clear();D.ui.toast('Perfil guardado.');done();return {ok:true}}
++   settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.saved'));done();return {ok:true}}
+   return {error:r.body&&r.body.error||'generic'}};
+  D.ui.edit(prof,async f=>{
+   if(!live())return {stale:true};
+@@ -176,7 +178,7 @@ function identify(C,done,o,lv,uid,prof){ob=true;
+  /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, se vuelve a revisar */
+  D.store.clear();
+  const {live,settle}=guard(C,o,lv,uid);let sending=false;
+- const finish=()=>{cache(snap(uid,prof));settle();ob=false;D.intent.clear();D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();return {ok:true}};
++ const finish=()=>{cache(snap(uid,prof));settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.done'));if(o.inPlace)D.reroute();done();return {ok:true}};
+  const send=async f=>{
+   if(!live())return {stale:true};
+   let r;try{r=await D.api(C,'PUT','/api/profile',{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date},uid)}catch(e){r={status:0,body:{}}}
+diff --git a/site/i18n.js b/site/i18n.js
+index 135f8a0..4919cae 100644
+--- a/site/i18n.js
++++ b/site/i18n.js
+@@ -694,6 +694,26 @@ const T={es:{
+  "ix.footLugHref": "lugares/",
+  "ix.footArtHref": "artesanos/",
+  "ix.tabs": "Secciones",
++ "cu.wait.h": "Un momento…",
++ "cu.wait.p": "Revisando tu cuenta.",
++ "cu.gate.h": "Entra para usar Mi Hoja",
++ "cu.gate.p": "Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta.",
++ "cu.gate.local": "Lo que ya tienes guardado en este teléfono pasa a tu cuenta al entrar.",
++ "cu.gate.open": "El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.",
++ "cu.gate.b": "Entrar o crear cuenta",
++ "cu.net.h": "Necesitas conexión",
++ "cu.net.edit": "Para editar tu perfil necesitas conexión a internet.",
++ "cu.net.first": "Para entrar a Mi Hoja la primera vez necesitas conexión a internet.",
++ "cu.check.h": "No pudimos revisar tu cuenta",
++ "cu.check.relog": "Cierra la sesión y entra otra vez.",
++ "cu.check.later": "Intenta otra vez en un momento.",
++ "cu.retry": "Intentar otra vez",
++ "cu.again.h": "Entra otra vez",
++ "cu.again.p": "Tu acción quedó pendiente. Entra para continuar.",
++ "cu.again.b": "Entrar",
++ "cu.welcome": "¡Bienvenido a Mi Hoja!",
++ "cu.saved": "Perfil guardado.",
++ "cu.done": "Listo, tu perfil está completo.",
+  "ix.plus": "Nueva cata, añadir al humidor o subir cigarro"
+  },
+ en:{
+@@ -1387,6 +1407,26 @@ en:{
+  "ix.footLugHref": "en/lugares/",
+  "ix.footArtHref": "en/artesanos/",
+  "ix.tabs": "Sections",
++ "cu.wait.h": "One moment…",
++ "cu.wait.p": "Checking your account.",
++ "cu.gate.h": "Sign in to use Mi Hoja",
++ "cu.gate.p": "Your humidor, journal, passport and favorites stay with your account.",
++ "cu.gate.local": "What you already saved on this phone moves to your account when you sign in.",
++ "cu.gate.open": "The catalog, the artisans and the places stay open without an account.",
++ "cu.gate.b": "Sign in or create an account",
++ "cu.net.h": "You need a connection",
++ "cu.net.edit": "To edit your profile you need an internet connection.",
++ "cu.net.first": "To open Mi Hoja the first time you need an internet connection.",
++ "cu.check.h": "We could not check your account",
++ "cu.check.relog": "Sign out and sign in again.",
++ "cu.check.later": "Try again in a moment.",
++ "cu.retry": "Try again",
++ "cu.again.h": "Sign in again",
++ "cu.again.p": "Your action is still pending. Sign in to continue.",
++ "cu.again.b": "Sign in",
++ "cu.welcome": "Welcome to Mi Hoja!",
++ "cu.saved": "Profile saved.",
++ "cu.done": "Done, your profile is complete.",
+  "ix.plus": "New tasting, add to humidor or upload a cigar"
+  }};
+ // en* da inglés, todo lo demás español; la escogida se recuerda en localStorage (lhb_lang)
+diff --git a/site/sw.js b/site/sw.js
+index 759845e..d404792 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v82';
++const VERSION='lhb-v83';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+diff --git a/test/site.test.js b/test/site.test.js
+index ec342ef..eea9d5c 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v82'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v83'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,25 +61,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
+- assert.match(sw,/const VERSION='lhb-v82'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
++ assert.match(sw,/const VERSION='lhb-v83'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
+  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
+  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
+ 
+ test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v82'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v83'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
+  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ 
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v82'/);
++ assert.match(sw,/const VERSION='lhb-v83'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v82'/);
++ assert.match(sw,/const VERSION='lhb-v83'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
+  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
+@@ -105,12 +105,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v82'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v83'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v82'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v83'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -118,7 +118,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v82'/);});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v83'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -135,7 +135,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v82/);});
++ assert.match(read('sw.js'),/lhb-v83/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -148,17 +148,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v82'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v83'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v82'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v83'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v82'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v83'/);});
+ 
+-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v82'/);});
++test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v83'/);});
+ 
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+@@ -237,7 +237,7 @@ test('LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las
+  const {T}=I18N();const es=Object.keys(T.es).sort(),en=Object.keys(T.en).sort();assert.deepEqual(en,es,'mismas claves');
+  const used=new Set([...read('app.js').matchAll(/\btt\('([^']+)'/g)].map(m=>m[1]).filter(k=>k!=='fort.'));
+  /* LHB-29: también hoja.js y art.js (tt), index.html (data-i18n, data-i18n-attr) y cada val.* de un valor que hoja.js guarda (STORED) */
+- for(const f of ['hoja.js','art.js'])for(const m of read(f).matchAll(/\b(?:tt|LHB_I18N\.t)\('([^']+)'/g))if(m[1]!=='val.')used.add(m[1]);
++ for(const f of ['hoja.js','art.js','cuenta.js'])for(const m of read(f).matchAll(/\b(?:tt|LHB_I18N\.t)\('([^']+)'/g))if(m[1]!=='val.')used.add(m[1]);
+  const ixh=read('index.html');for(const m of ixh.matchAll(/data-i18n="([^"]+)"/g))used.add(m[1]);for(const m of ixh.matchAll(/data-i18n-attr="([^"]+)"/g))for(const p of m[1].split(';'))used.add(p.slice(p.indexOf(':')+1));
+  const st=STORED();for(const k of es)if(k.startsWith('val.')&&st.includes(k.slice(4)))used.add(k);
+  for(const f of ['suave','media','fuerte'])used.add('fort.'+f);for(const k of ['arts.nVitola','arts.nVitolas'])used.add(k);
+@@ -444,8 +444,9 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido,
+   assert.equal((await post(c,{handle:'sinfoto',...IDN,avatar_url:AV}))[0],201,'y el @ no se gastó con los rechazos');
+  }finally{globalThis.fetch=realFetch}
+ });
+-function CUENTA_HARNESS(over){
+- const vm=require('vm');const ctx={window:{}};vm.createContext(ctx);vm.runInContext(read('cuenta.js'),ctx);
++/* LHB-94: i18n.js va antes, como en index.html; sin idioma el navegador no dice nada y sale el español */
++function CUENTA_HARNESS(over,lang){
++ const vm=require('vm');const ctx={window:lang?{navigator:{language:lang}}:{}};vm.createContext(ctx);vm.runInContext(read('i18n.js'),ctx);vm.runInContext(read('cuenta.js'),ctx);
+  const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;const navL=[];
+  /* LHB-49: una cuenta de prueba sin hasImage explícito trae foto (la que Clerk importa de Google); las pruebas de la foto lo ponen en false */
+  let cu=null;const C={get user(){return cu},set user(v){cu=v&&v.hasImage===undefined?{hasImage:true,imageUrl:'https://img.clerk.com/test-'+v.id,...v}:v},addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
+@@ -1217,7 +1218,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v83'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1464,7 +1465,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v82'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v83'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1642,7 +1643,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v83'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1889,7 +1890,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v83'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2190,7 +2191,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\)\}/.test(hj),'guardar y borrar repintan el encabezado');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v83'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2473,7 +2474,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v83'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3433,7 +3434,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v82'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v83'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -3935,3 +3936,29 @@ test('LHB-39 (Codex ronda 2): el foco anotado al llegar una sincronización no s
+  /* sin irse y con la misma cuenta, sigue volviendo */
+  sync();g.API.vDiario();assert.deepEqual(seen,['focus',0],'el caso de la ronda 1 sigue bien');
+ });
++/* LHB-94: la puerta de la cuenta (cuenta.js) toma sus textos de i18n.js: en español como antes, en inglés traducidos */
++test('LHB-94: cuenta.js no deja texto en español escrito; cada texto sale de i18n.js en los dos idiomas',async()=>{
++ const {scan}=require('./i18n-scan.js');const cu=read('cuenta.js');const {T}=I18N();
++ assert.deepEqual(scan(cu),[],'texto en español escrito en cuenta.js');
++ assert.ok(!/label:'[^']*'/.test(cu),'las etiquetas de los botones también salen de i18n.js');
++ const keys=[...new Set([...cu.matchAll(/\btt\('(cu\.[\w.]+)'/g)].map(m=>m[1]))];assert.ok(keys.length>=18,'claves: '+keys.length);
++ for(const k of keys){assert.ok(typeof T.es[k]==='string'&&T.es[k].length,'es '+k);assert.ok(typeof T.en[k]==='string'&&T.en[k].length,'en '+k);assert.notEqual(T.en[k],T.es[k],'en traducido '+k)}
++ for(const k of Object.keys(T.es))if(k.startsWith('cu.'))assert.ok(keys.includes(k),'clave sin uso '+k);
++ assert.deepEqual(Object.keys(T.en).filter(k=>k.startsWith('cu.')).sort(),Object.keys(T.es).filter(k=>k.startsWith('cu.')).sort(),'las mismas claves en los dos');
++ // lo que ve la persona: la tarjeta de entrar, sin red, la cuenta que no se pudo revisar y el aviso de volver a entrar, en los dos idiomas
++ const run=async lang=>{const seen=[];const ui={card:(h,p,b)=>seen.push(['card',h,p,b&&b.label]),notice:(h,p,b)=>seen.push(['notice',h,p,b&&b.label]),closeAll:()=>{},toast:m=>seen.push(['toast',m]),onboarding:()=>{},identity:()=>{}};
++  const a=CUENTA_HARNESS({ui,hasLocal:()=>true},lang);await a.A.require(a.go);await tick();
++  const b=CUENTA_HARNESS({ui,clerk:async()=>{throw new Error('sin red')}},lang);await b.A.require(b.go);await tick();
++  const c=CUENTA_HARNESS({ui,api:async()=>({status:401,body:{}})},lang);c.C.user={id:'user_a'};await c.A.require(c.go);await tick();
++  const d=CUENTA_HARNESS({ui,api:async()=>{throw new Error('x')}},lang);d.nav('#/catalogo');d.C.user={id:'user_a'};await d.A.quick(d.go,{act:'fav'});await tick();d.C.signIn(null);await tick();
++  return seen.filter(x=>x[1]!==T.es['cu.wait.h']&&x[1]!==T.en['cu.wait.h'])};
++ const es=await run(null),en=await run('en-US');
++ assert.deepEqual(es,[['card','Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta. Lo que ya tienes guardado en este teléfono pasa a tu cuenta al entrar. El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.','Entrar o crear cuenta'],
++  ['card','Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.','Intentar otra vez'],
++  ['card','No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.','Intentar otra vez'],
++  ['notice','No pudimos revisar tu cuenta','Intenta otra vez en un momento.','Intentar otra vez'],
++  ['notice','Entra otra vez','Tu acción quedó pendiente. Entra para continuar.','Entrar']],'en español, los mismos textos de antes');
++ assert.equal(en.length,es.length,'las mismas pantallas en inglés');
++ for(let i=0;i<en.length;i++){assert.equal(en[i][0],es[i][0]);for(let j=1;j<4;j++){assert.ok(en[i][j]&&en[i][j]!==es[i][j],'en inglés: '+es[i][j]);assert.ok(!/[áéíóúñ¿¡]/i.test(en[i][j]),'sin letras del español en: '+en[i][j])}}
++ assert.equal(en[0][1],'Sign in to use Mi Hoja');
++});
+
+2026-10-28T18:46:48.799771Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-28T18:46:53.618343Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The new helper adds a dependency on `window.LHB_I18N`; I’ll check every load path and the downstream UI text, then run the suite if execution is available.
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\Users\Owner\lhb-94-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-28T18:46:59.431688Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The only production entry point found loads `i18n.js` before `cuenta.js`, and both use the same language selection, which changes by reloading the page. The downstream forms translate error codes through `OB_ERR` and use translated fallbacks for unknown codes. I’m checking whether the tests cover every changed message.
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] I found one nonblocking test gap: an in-memory mutation that returns Spanish for `cu.saved` still passes LHB-94. The current code renders all three success toasts correctly in both languages. The 56 relevant regression tests pass; the full suite has stalled during an unrelated LHB-56 test, so I cannot yet confirm 244/244.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The tests leave one translation regression undetected, although the current implementation renders it correctly.
+
+- **P3, nonblocking:** [test/site.test.js:3949](C:/Users/Owner/lhb-94-wt/test/site.test.js:3949), LHB-94 `run()`. The harness records `toast:m=>seen.push(['toast',m])`, but never triggers the success toasts. **Concrete failing scenario:** make `tt` return `T.es[k]` only for `cu.saved`. Saving a profile in English then displays “Perfil guardado.” I applied this mutation in memory; all 56 relevant tests still passed. Add rendered assertions for the three success toasts in both languages. **Blocks: No**, because the submitted code translates them correctly.
+
+[Certain] The 56 relevant regression tests pass. Additional runtime checks confirmed the waiting card, offline edit message and all three success toasts in both languages. Load order, downstream error translation, English terminology and preservation of the supplied Spanish text showed no defect.
+
+[Certain] Full-suite completion is **NOT VERIFIED**: output stalled after 133 passes during LHB-56. Host permissions also prevented terminating that runner. The reported preview result was not independently verified. No files were edited.
+
+VERDICT: PASS
+tokens used
+86,867
+[Certain] The tests leave one translation regression undetected, although the current implementation renders it correctly.
+
+- **P3, nonblocking:** [test/site.test.js:3949](C:/Users/Owner/lhb-94-wt/test/site.test.js:3949), LHB-94 `run()`. The harness records `toast:m=>seen.push(['toast',m])`, but never triggers the success toasts. **Concrete failing scenario:** make `tt` return `T.es[k]` only for `cu.saved`. Saving a profile in English then displays “Perfil guardado.” I applied this mutation in memory; all 56 relevant tests still passed. Add rendered assertions for the three success toasts in both languages. **Blocks: No**, because the submitted code translates them correctly.
+
+[Certain] The 56 relevant regression tests pass. Additional runtime checks confirmed the waiting card, offline edit message and all three success toasts in both languages. Load order, downstream error translation, English terminology and preservation of the supplied Spanish text showed no defect.
+
+[Certain] Full-suite completion is **NOT VERIFIED**: output stalled after 133 passes during LHB-56. Host permissions also prevented terminating that runner. The reported preview result was not independently verified. No files were edited.
+
+VERDICT: PASS
