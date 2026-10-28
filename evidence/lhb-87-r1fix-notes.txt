@@ -1,0 +1,13 @@
+LHB-87, Codex round 1 BLOCK and its fix (2026-10-28 about 16:50Z).
+Finding: with a short wide map (Codex's harness: 536 x 185), tapping a group could stall: fitBounds with 48 px padding a
+side cannot raise the zoom, and neither popup condition (zoom 17, all places on one spot) held, so the tap did nothing.
+Fix: tapGroup(z, fz, one) in site/app.js; the handler passes fz = map.getBoundsZoom(bounds, false, L.point(96,96)), the
+zoom fitBounds({padding:[48,48]}) would reach (Leaflet sums the top-left and bottom-right padding). A tap zooms only when
+min(fz,17) > z; otherwise it lists the group's places in the popup.
+Regression test (test/site.test.js, "tocar grupos con los lugares de verdad"): the real places, an opening zoom from the
+same fit as drawMap (padding 28 a side, max 11), Leaflet's getBoundsZoom rule re-implemented on Web Mercator (zoomSnap 1,
+floor), maps of 536x185, 360x300, 412x260, 800x420 and 1200x500; every group is tapped until it lists or splits, each
+zooming tap must raise the zoom, and every place must end single or listed. Approximation, stated: after a zoom the
+simulation lays out only the tapped group's places, not their new neighbours.
+Proof that it catches the defect: with tapGroup reduced to the round 1 rule (M13 in lhb-87-mutations-r1fix.py) and the
+unit assertions removed, the simulation alone fails: "un toque que acerca sube el zoom (536x185: 8 a 8)".

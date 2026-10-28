@@ -3763,3 +3763,21 @@ test('LHB-90: el pie queda invisible mientras la vista está vacía, y es el her
  const ix=read('index.html');assert.match(ix,/<main id="view" class="view" tabindex="-1"><\/main>\s*<footer class="seo-foot">/,'la vista empieza vacía y el pie la sigue de inmediato, así el selector + aplica');
  const app=read('app.js');assert.ok(/view\.innerHTML=/.test(app),'la app llena la vista, y entonces :empty deja de valer');
 });
+/* LHB-87 (Codex r1): tocar un grupo siempre adelanta: acerca a un zoom mayor o muestra la lista; nunca se queda igual */
+test('LHB-87: tocar grupos con los lugares de verdad, en mapas de varias medidas, siempre termina en pines sueltos o en una lista',()=>{
+ const app=read('app.js');const t=app.match(/const tapGroup=\(z,fz,one\)=>[^\n]*/);assert.ok(t,'tapGroup en app.js');const {pinBox,groupPins}=pins87();const tapGroup=new Function(t[0]+';return tapGroup')();
+ assert.ok(app.includes("if(tapGroup(map.getZoom(),map.getBoundsZoom(b,false,L.point(96,96)),b.getNorthEast().equals(b.getSouthWest()))==='list')")&&app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})"),'el toque usa tapGroup con el mismo relleno que fitBounds (48 por lado, 96 en total)');
+ assert.equal(tapGroup(9,9,false),'list','si el encuadre no acerca, la lista');assert.equal(tapGroup(9,8,false),'list');assert.equal(tapGroup(9,10,false),'zoom');assert.equal(tapGroup(16,19,false),'zoom','acerca hasta 17');
+ assert.equal(tapGroup(17,19,false),'list');assert.equal(tapGroup(9,12,true),'list','todos en un sitio');
+ const P=JSON.parse(readD('places.json')).filter(p=>p.lat&&p.lng);const X=p=>(p.lng+180)/360,Y=p=>{const la=p.lat*Math.PI/180;return (1-Math.log(Math.tan(la)+1/Math.cos(la))/Math.PI)/2};
+ // getBoundsZoom de Leaflet (zoomSnap 1): el zoom entero más alto en que el encuadre cabe en el mapa menos el relleno
+ const fit=(ps,W,H,pad,max)=>{const dx=Math.max(...ps.map(X))-Math.min(...ps.map(X)),dy=Math.max(...ps.map(Y))-Math.min(...ps.map(Y));if(!dx&&!dy)return max;const s=Math.min((W-pad)/(256*dx||1e-9),(H-pad)/(256*dy||1e-9));return Math.max(0,Math.min(max,Math.floor(Math.log2(s))))};
+ const lay=(ps,z)=>groupPins(ps.map((p,i)=>({x:X(p)*256*2**z,y:Y(p)*256*2**z,m:i})));
+ for(const [W,H] of [[536,185],[360,300],[412,260],[800,420],[1200,500]]){
+  const z0=fit(P,W,H,56,11);let taps=0,listed=0,single=0;const seen=new Set();
+  const visit=(idx,z)=>{for(const g of lay(idx.map(i=>P[i]),z)){const mine=g.ms.map(k=>idx[k]);if(mine.length===1){single++;seen.add(mine[0]);continue}
+   taps++;assert.ok(taps<500,'demasiados toques: '+W+'x'+H);const ps=mine.map(i=>P[i]);const one=ps.every(p=>p.lat===ps[0].lat&&p.lng===ps[0].lng);const fz=fit(ps,W,H,96,19);
+   if(tapGroup(z,fz,one)==='list'){listed+=mine.length;mine.forEach(i=>seen.add(i));continue}
+   const nz=Math.min(fz,17);assert.ok(nz>z,'un toque que acerca sube el zoom ('+W+'x'+H+': '+z+' a '+nz+')');visit(mine,nz)}};
+  visit(P.map((_,i)=>i),z0);assert.equal(seen.size,P.length,W+'x'+H+': todo lugar termina suelto o en una lista');assert.equal(single+listed,P.length)}
+});
