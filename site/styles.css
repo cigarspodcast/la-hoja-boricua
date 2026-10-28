@@ -635,5 +635,4 @@ body.sheet-on{overflow:hidden}
 .pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .pf-res{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:100px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;color:var(--cream);font:inherit;cursor:pointer}
 .pf-res b{overflow-wrap:anywhere}.pf-res small{color:var(--muted);margin-top:auto}
-.pf-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}.pf-tags span{background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13.5px}
 .pf-notas{margin:10px 0 0;white-space:pre-line;overflow-wrap:anywhere}

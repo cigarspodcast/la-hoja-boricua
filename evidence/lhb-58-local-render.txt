@@ -1,0 +1,18 @@
+LHB-58 local render, wrangler pages dev (workerd) on a copy of the branch with a seeded local D1 (prueba_lhb visible with two public entries and one private, oculto_lhb hidden, fan_lhb following prueba_lhb). Captured 2026-10-28T19:46:13Z.
+
+== GET /api/u/prueba_lhb
+HTTP/1.1 200 OK
+Content-Length: 676
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-store
+
+{"profile":{"handle":"prueba_lhb","display_name":"Prueba L.","bio":"Fumador de prueba <script>alert(1)</script> en Caguas.","favorite_brand":"Hoja Boricua","avatar_key":null},"counts":{"resenas":2,"followers":1,"following":0,"sellos":{"artesanos":2,"cigarros":1,"lugares":1}},"resenas":[{"nombre":"Hoja Boricua Gran Reserva","marca":"","artesano":"JFC Tobacco","rating":5,"tags":["Madera","Cacao","Dulce"],"notas":"Tiro perfecto, ceniza firme.\nEl segundo tercio se abrió en cacao.","consumido":"2026-10-20"},{"nombre":"Turro Mamposteao","marca":"","artesano":"El Club del Turro","rating":4,"tags":["Tierra","Especias"],"notas":"Fuerte y honesto.","consumido":"2026-10-15"}]}
+
+
+== GET /api/u/oculto_lhb
+{"error":"not-found"} 404
+== private strings in /api/u/prueba_lhb (expect 0):
+0
+
+== app #/u/prueba_lhb in the browser pane (English, the pane's language): header 'Prueba L. | @prueba_lhb | bio escaped (no script element) | Favorite brand: Hoja Boricua'; counts 2 Reviews, 1 Followers, 0 Following; tabs Reviews, Passport, Favorites (no Humidor); Passport tab 2 | 1 | 1 stamps; Favorites tab 'Their favorites are private.'; tapping a review opens the sheet with stars, tag chips and notes; at 375 px: scrollWidth 375, tabs 375/375, grid two columns.
+== not covered here: your own Perfil view needs a Clerk sign-in, which only the owner can do (Done-when: owner check on the preview).

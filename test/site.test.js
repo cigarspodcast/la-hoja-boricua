@@ -4107,7 +4107,7 @@ test('LHB-58: GET /api/u/<handle> trae solo lo público: el perfil, las reseñas
 function HOJA58(opts){opts=opts||{};
  const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
  const cut=(a,z)=>{const i=src.indexOf(a),j=src.indexOf(z,i);if(i<0||j<0)throw new Error('no está: '+a+' / '+z);return src.slice(i,j)};
- const code=cut('const MES=','try{navigator.storage')+src.match(/const stars=n=>.*\n/)[0]+cut('/* ---------- perfil, pasaporte primero (LHB-58)','/* ---------- fin del perfil (LHB-58)');
+ const code=cut('const MES=','try{navigator.storage')+cut('const WHEEL=','const KW=')+src.match(/const tagChips=.*\n/)[0]+src.match(/const stars=n=>.*\n/)[0]+cut('/* ---------- perfil, pasaporte primero (LHB-58)','/* ---------- fin del perfil (LHB-58)');
  const ls=new Map(Object.entries(opts.ls||{}));const localStorage={getItem:k=>ls.has(k)?ls.get(k):null,setItem:(k,v)=>{ls.set(k,String(v))},removeItem:k=>{ls.delete(k)},key:i=>[...ls.keys()][i]??null,get length(){return ls.size}};
  const els={},stubs={};let html='';
  const mkEl=id=>{let h='';const attrs={};return {id,get innerHTML(){return h},set innerHTML(v){h=v},setAttribute(k,v){attrs[k]=String(v)},getAttribute:k=>attrs[k]??null}};
@@ -4133,7 +4133,7 @@ function HOJA58(opts){opts=opts||{};
 }
 const API58JSON=()=>({profile:{handle:'bea',display_name:'Bea S.',bio:'Fumo los domingos <script>x()</script>',favorite_brand:'Hoja Boricua',avatar_key:AV},
  counts:{resenas:2,followers:3,following:4,sellos:{artesanos:5,cigarros:6,lugares:7}},
- resenas:[{nombre:'Toro de Bea',marca:'',artesano:'Casa X',rating:4,tags:['Madera'],notas:'muy bueno',consumido:'2026-03-03',foto:'foto_de_bea',publica:true,extra:'no sale'},
+ resenas:[{nombre:'Toro de Bea',marca:'',artesano:'Casa X',rating:4,tags:['madera'],notas:'muy bueno',consumido:'2026-03-03',foto:'foto_de_bea',publica:true,extra:'no sale'},
   /* lo que no tiene forma de reseña se rehace con la misma lista cerrada que el servidor (estrellas de 1 a 5, sabores en lista) */
   {nombre:'Rara',rating:9,tags:'no es lista',notas:7},null,'texto']});
 test('LHB-58: el perfil de otra persona (#/u/<handle>): foto, nombre, @, bio, marca y conteos de /api/u/; pestañas Reseñas, Pasaporte y Favoritos; el Humidor no está; tocar una reseña abre su tarjeta',async()=>{
@@ -4146,8 +4146,8 @@ test('LHB-58: el perfil de otra persona (#/u/<handle>): foto, nombre, @, bio, ma
  /* las pestañas: el Humidor solo lo ve su dueño; tampoco Editar perfil */
  assert.deepEqual([...h.matchAll(/data-pftab="([a-z]+)"/g)].map(m=>m[1]),['resenas','pasaporte','favoritos'],'sin Humidor en la vista de otra persona');assert.ok(!h.includes('pfEdit')&&!h.includes('#/mihoja/editar'),'ni Editar perfil');
  assert.ok(h.includes('<b>Toro de Bea</b>')&&!h.includes('foto_de_bea')&&!h.includes('no sale'),'la reseña con la lista cerrada de campos');
- assert.ok(h.includes('<button type="button" class="pf-res" data-pfres="1"><b>Rara</b></button>'),'la rara sale sin estrellas ni fecha');H.stubs['pfres:1'].onclick();assert.ok(H.sheets[0][0].includes('Rara')&&!H.sheets[0][0].includes('pf-tags')&&!H.sheets[0][0].includes('pf-notas'),'y su tarjeta, sin sabores ni notas que no son texto');H.sheets.length=0;
- H.stubs['pfres:0'].onclick();assert.equal(H.sheets.length,1);const sh=H.sheets[0][0];assert.ok(sh.includes('Toro de Bea')&&sh.includes('aria-label="4 de 5 estrellas"')&&sh.includes('<span>Madera</span>')&&sh.includes('muy bueno')&&sh.includes('Casa X'),'estrellas, sabores y notas');
+ assert.ok(h.includes('<button type="button" class="pf-res" data-pfres="1"><b>Rara</b></button>'),'la rara sale sin estrellas ni fecha');H.stubs['pfres:1'].onclick();assert.ok(H.sheets[0][0].includes('Rara')&&!H.sheets[0][0].includes('tchip')&&!H.sheets[0][0].includes('pf-notas'),'y su tarjeta, sin sabores ni notas que no son texto');H.sheets.length=0;
+ H.stubs['pfres:0'].onclick();assert.equal(H.sheets.length,1);const sh=H.sheets[0][0];assert.ok(sh.includes('Toro de Bea')&&sh.includes('aria-label="4 de 5 estrellas"')&&/<span class="tchip"[^>]*>Madera<\/span>/.test(sh)&&sh.includes('muy bueno')&&sh.includes('Casa X'),'estrellas, sabores y notas');
  H.tab('pasaporte').onclick();assert.ok(H.els.pfPanel.innerHTML.includes('<b>5</b><span>sellos de artesanos</span>')&&H.els.pfPanel.innerHTML.includes('<b>7</b><span>sellos de lugares</span>'));assert.equal(H.tab('pasaporte').getAttribute('aria-selected'),'true');assert.equal(H.tab('resenas').getAttribute('aria-selected'),'false');
  H.tab('favoritos').onclick();assert.ok(H.els.pfPanel.innerHTML.includes('Sus favoritos son privados.')&&H.els.pfPanel.innerHTML.includes('Hoja Boricua'),'sus listas de favoritos no salen');
  assert.equal(H.X.pfPanel('humidor',{own:false,resenas:[]}),'','el Humidor de otra persona no se pinta ni pidiéndolo');
