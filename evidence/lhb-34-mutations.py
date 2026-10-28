@@ -91,6 +91,8 @@ M = [
     ('M66 Codex r4: no fence check right before the store', lambda: edit(HO, "const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}", "const txt=JSON.stringify(s);")),
     ('M67 Codex r4: delete and resume not serialized', lambda: edit(HO, "const delLock=f=>typeof navigator", "const delLock=f=>f();const delLock0=f=>typeof navigator")),
     ('M68 Codex r4: the waiting resume uses the mark it read before its turn', lambda: (edit(HO, "async function resumeDelete(){if(!delMark.get())return;", "async function resumeDelete(){const m0=delMark.get();if(!m0)return;"), edit(HO, "const m=delMark.get();if(!m||!C", "const m=m0;if(!m||!C"))),
+    ('M69 Codex r5: a sign-out retry skips the check after new writes', lambda: edit(HO, "if(back!==null){outDone=false;SYNC.hold(false)}", "")),
+    ('M70 Codex r5: the retry checks again but leaves the sync held', lambda: edit(HO, "if(back!==null){outDone=false;SYNC.hold(false)}", "if(back!==null){outDone=false}")),
 ]
 red = 0
 ran = 0

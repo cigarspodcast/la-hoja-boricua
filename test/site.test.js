@@ -4130,7 +4130,7 @@ function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').
  dev.D.wait=async ms=>{log.push('espera '+ms);if(o.duringFence)await o.duringFence()};
  const C={user:o.clerkUser===undefined?{id:'user_a'}:o.clerkUser,signOut:async opt=>{log.push('signOut '+JSON.stringify(opt));if(o.signOutFails&&o.signOutFails-->0)throw new Error('sin red')}};
  const SYNC=o.afterSettled?{...dev.eng,settled:async x=>{const r=await dev.eng.settled(x);o.afterSettled();return r}}:dev.eng;
- const ctx={...TT(),SYNC,$,$$:()=>[],esc:s=>String(s),toast:m=>toasts.push(m),exportar:()=>log.push('exportar'),LHB_MERGE:dev.X,
+ const ctx={...TT(),SYNC,KEY:'lhb_mihoja_v1',$,$$:()=>[],esc:s=>String(s),toast:m=>toasts.push(m),exportar:()=>log.push('exportar'),LHB_MERGE:dev.X,
   /* o.markStore: la marca del borrado no se guarda ('throw': el almacenamiento está lleno; 'lost': no falla pero no queda) */
   localStorage:{getItem:k=>dev.ls.has(k)?dev.ls.get(k):null,setItem:(k,v)=>{if(k==='lhb_borrando'&&o.markStore==='throw')throw new Error('QuotaExceededError');if(k==='lhb_borrando'&&o.markStore==='lost')return;dev.ls.set(k,String(v))},removeItem:k=>dev.ls.delete(k)},
   acct:{get:()=>o.acct===undefined?{sub:'user_a',handle:'ana_a'}:o.acct,clear:()=>log.push('acct.clear')},intent:{clear:()=>log.push('intent.clear')},
@@ -4183,6 +4183,19 @@ test('LHB-34 (Codex r1): lo que se escribe entre la revisión y el borrado (aqu�
   await dev.sync();h=ACCT34(dev,{signOutFails:1});
   await h.X.salir();for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
   await h.X.salir();assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','signOut {"redirectUrl":"/"}','assign /']);
+ }finally{a.done()}});
+test('LHB-34 (Codex r5): cerrar la sesión falla, la valla caduca y se vuelve a escribir Mi Hoja: el reintento revisa otra vez; sin red no se sale, con red lo nuevo llega a la cuenta y luego se sale',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();const h=ACCT34(dev,{signOutFails:1});
+  await h.X.salir();for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(await dev.eng.run('x'),{skip:'held'},'sin pasadas tras el borrado');
+  /* la valla caduca, Mi Hoja abre otra vez con la cuenta guardada y se escribe algo nuevo */
+  dev.advance(11e3);dev.seed(DOC34());dev.edit(d=>d.humidor.push({id:'nuevo',marca:'z',actualizado:'2026-10-28'}));
+  dev.net.off=true;await h.X.salir();
+  assert.ok(hid28(dev.doc()).includes('nuevo'),'lo nuevo sigue en el teléfono');assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');
+  assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}'],'sin red no se vuelve a pedir la salida');
+  dev.net.off=false;await h.X.salir();
+  assert.ok(hid28(srv28(a,'user_a').doc).includes('nuevo'),'la cuenta tiene lo nuevo');for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado otra vez '+k);
+  assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','acct.clear','intent.clear','signOut {"redirectUrl":"/"}','assign /']);
  }finally{a.done()}});
 test('LHB-34 (Codex r2): otra pestaña escribe mientras se lee la copia que se revisa: no se sale; y cuando una pestaña sale, las otras sueltan su copia',async()=>{
  const a=await ENG28();const dev=DEV28(a,'user_a');try{

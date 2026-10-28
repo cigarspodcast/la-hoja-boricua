@@ -1,0 +1,4 @@
+M69 Codex r5: a sign-out retry skips the check after new writes rc 1 fail 1 -> RED
+M70 Codex r5: the retry checks again but leaves the sync held rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 23
+RESULT 2 of 2 mutations red

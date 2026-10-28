@@ -219,6 +219,8 @@ function bindAccount(){const a=acct.get();const out=$('#acOut'),del=$('#acDel'),
    para que un teléfono prestado no se quede con lo de nadie, y se cierra la sesión. Clerk se pide antes de revisar: entre la revisión y el borrado no hay esperas */
 async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
  try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.outFail'));return}
+  /* Codex r5: si después del borrado alguien volvió a escribir Mi Hoja (la valla ya caducó), el reintento revisa todo otra vez y las pasadas vuelven */
+  if(outDone){let back=null;try{back=localStorage.getItem(KEY)}catch(e){}if(back!==null){outDone=false;SYNC.hold(false)}}
   if(!outDone){const r=await SYNC.settled({backup:lastBackup});
    if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}
    if(!(await dropLocal(r.mark))){acMsg(tt('ac.pending'));return}
