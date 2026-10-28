@@ -1,0 +1,48 @@
+LHB-47 AI and search visibility baseline, 2026-10 (first reading)
+
+Taken 2026-10-28T13:27Z (09:27 UTC-4).
+
+Counting basis: 20 fixed questions (10 Spanish, 10 English), one engine (the Claude Code WebSearch tool, standard mode),
+one run per question, top results as returned (about 10 per question). A question counts as a HIT when any returned
+result URL is on lahojaboricua.com or the result text cites La Hoja Boricua the site; a mention of a cigar brand named
+"Hoja Boricua" is recorded separately as a NAME MENTION, not a hit.
+
+Result: 0 of 20 questions returned lahojaboricua.com. 0 of 20 cited the site. 2 of 20 carried a NAME MENTION of a
+different "Hoja Boricua" (a brand or trademark, not this site).
+
+ #  question                                         hit  note
+ 1  mejores cigarros puertorriqueños                 no
+ 2  dónde fumar cigarros en San Juan                 no
+ 3  cigar lounge en Viejo San Juan                   no
+ 4  artesanos de cigarros en Puerto Rico             no
+ 5  cigarros hechos en Puerto Rico                   no
+ 6  tabaquerías en Puerto Rico                       no
+ 7  dónde comprar cigarros en Caguas                 no
+ 8  torcedores de tabaco Puerto Rico                 no
+ 9  cigar lounge Ponce Puerto Rico                   no
+10  la ruta del tabaco Puerto Rico                   no
+11  where to smoke cigars in Old San Juan            no
+12  best cigar lounges in Puerto Rico                no
+13  Puerto Rican handmade cigars                     no
+14  cigar shops in San Juan Puerto Rico              no
+15  cigar makers in Puerto Rico                      no
+16  are cigars made in Puerto Rico                   no
+17  cigar bar Condado San Juan                       no
+18  where to buy cigars in Puerto Rico               no
+19  Puerto Rico cigar brands                         no   NAME MENTION: "Hoja Boricua" listed as a brand (aluxurylifestyle)
+20  La Hoja Boricua cigars                           no   NAME MENTION: HOJA BORICUA trademark of JFC Tobacco Corp.
+
+Sources that recur across the 20 result sets (the pages an answer engine currently draws on for this topic):
+The Cigar House, Frommer's, Wanderlog, Discover Puerto Rico, NBC News, Club Macanudo.
+
+AI crawler requests: NOT MEASURED. The Cloudflare GraphQL Analytics query (evidence/lhb-47-ai-bots.py) was refused
+because the API token lacks the zone Analytics Read permission. Not worked around; changing token permissions is the
+owner's. When the permission exists: CLOUDFLARE_API_TOKEN=... python evidence/lhb-47-ai-bots.py 30
+
+Context at this reading: the English twin pages (LHB-32) and the 22 guide pages (LHB-45) went live the same morning,
+so this baseline predates any crawl of them. Sitemap resubmission waits on LHB-6 (owner gate).
+
+Re-check: monthly, the same 20 questions in the same order, written to evidence/lhb-47-ai-visibility-YYYY-MM.txt.
+Scheduled as a dated Linear ticket each month (the first: LHB-91, the 2026-11 reading, due 2026-11-30), not as a clock-run
+session, per the owner's ruling "no time-based executions, resource-based only" (pre-contracts 3e7d497). Each
+reading's ticket files the next month's before it closes.
