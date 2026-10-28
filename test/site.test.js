@@ -31,7 +31,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v65'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v66'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -51,25 +51,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
- assert.match(sw,/const VERSION='lhb-v65'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+ assert.match(sw,/const VERSION='lhb-v66'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
 
 test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v65'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v66'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v65'/);
+ assert.match(sw,/const VERSION='lhb-v66'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v65'/);
+ assert.match(sw,/const VERSION='lhb-v66'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
@@ -95,12 +95,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v65'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=fs.readFileSync(path.join(S,'hoja.js'),'utf8');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v66'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v65'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v66'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -108,7 +108,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v65'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v66'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=read('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -125,7 +125,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v65/);});
+ assert.match(read('sw.js'),/lhb-v66/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -138,17 +138,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v65'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v66'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v65'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v66'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v65'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v66'/);});
 
-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v65'/);});
+test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v66'/);});
 
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
@@ -458,7 +458,7 @@ test('LHB-25: entrar desde una página pública y fallar la revisión muestra el
   const retry=h.notice();assert.equal(retry.label,'Intentar otra vez');retry.on();await tick();assert.deepEqual(h.log.filter(x=>x==='GO'),['GO'],'el reintento hace la acción exactamente una vez: '+why);}
  const k=CUENTA_HARNESS({clerk:async()=>{throw new Error('sin red')}});k.nav('#/c/yambo-toro');await k.A.require(k.go,{inPlace:true});await tick();assert.ok(k.log.includes('notice:Necesitas conexión')&&!k.log.some(x=>x.startsWith('card')),'sin conexión también se avisa en sitio');
  const m=CUENTA_HARNESS({api:async()=>({status:503,body:{}})});m.nav('#/mihoja');m.C.user={id:'user_a'};await m.A.require(m.go);await tick();assert.ok(m.log.includes('card:No pudimos revisar tu cuenta')&&!m.log.some(x=>x.startsWith('notice')),'en Mi Hoja el error va en la tarjeta, no en una hoja');
- assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,\'identity\'),edit:(prof,submit,picture)=>onboardingForm(submit,picture,\'edit\',prof),toast,closeAll:closeSheetNow}'),'hoja.js pasa el aviso sobre la página');
+ assert.ok(read('hoja.js').includes('ui:{card:accountCard,notice:accountNotice,onboarding:(submit,picture,check)=>onboardingForm(submit,picture,undefined,undefined,check),identity:submit=>onboardingForm(submit,null,\'identity\'),edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check),toast,closeAll:closeSheetNow}'),'hoja.js pasa el aviso sobre la página');
 });
 test('LHB-25: un reintento del usuario puede volver a abrir la hoja de entrar y la acción sigue viva',async()=>{
  let status=401;const h=CUENTA_HARNESS({api:async()=>({status,body:status===200?{profile:{handle:'ana'}}:{}})});h.nav('#/c/yambo-toro');
@@ -1013,11 +1013,13 @@ function FORM_HARNESS(picture,submit,resize,opts){opts=opts||{};
  const $=s=>s==='#obForm'?els.form:(els[s]||(els[s]=mkEl()));
  let html='';const view={set innerHTML(h){els={form:mkEl()};html=h}};
  const uploads=[];class FakeFile{constructor(parts,name,o){this.parts=parts;this.name=name;this.type=o&&o.type}}
- const ctx={view,$,A:{resizeImage:resize||(async f=>({blob:f.name}))},D:()=>({artesanos:[]}),esc:s=>s,document:{createElement:()=>({})},File:FakeFile};
+ const timers=[];let tid=0;
+ const ctx={view,$,A:{resizeImage:resize||(async f=>({blob:f.name}))},D:()=>({artesanos:[]}),esc:s=>s,document:{createElement:()=>({})},File:FakeFile,
+  setTimeout:(fn,ms)=>{timers.push({id:++tid,fn,ms});return tid},clearTimeout:id=>{const i=timers.findIndex(x=>x.id===id);if(i>=0)timers.splice(i,1)}};
  /* un reloj fijo para el formulario (new Date() sin argumentos); con argumentos, el Date de siempre */
  if(opts.now){const RD=Date;ctx.Date=class extends RD{constructor(...a){if(a.length)super(...a);else super(opts.now)}}}
  vm.createContext(ctx);vm.runInContext(code+';this.onboardingForm=onboardingForm;this.OB_ERR=OB_ERR;this.idProblem=idProblem',ctx);
- ctx.onboardingForm(submit,picture,opts.mode,opts.init);
+ ctx.onboardingForm(submit,picture,opts.mode,opts.init,opts.check);
  const pick=f=>ctx.$('#obPf').onchange({target:{files:[f],value:'x'}});
  /* send llena el formulario (nombre, apellido, género y fecha; el @ solo en el formulario nuevo) y lo envía; lo que no se da, se llena con una identidad válida */
  const send=(v={})=>{if(opts.mode!=='identity')ctx.$('#obH').value=v.handle===undefined?'ana':v.handle;
@@ -1025,7 +1027,10 @@ function FORM_HARNESS(picture,submit,resize,opts){opts=opts||{};
   const g=v.gender===undefined?'F':v.gender;ctx.$('#obGM').checked=g==='M';ctx.$('#obGF').checked=g==='F';ctx.$('#obD').value=v.birth===undefined?'1990-05-17':v.birth;
   return ctx.$('#obForm').onsubmit({preventDefault(){}})};
  const state=()=>({go:ctx.$('#obGo').disabled,pb:ctx.$('#obPb').disabled,err:ctx.$('#obErr').hidden?'':ctx.$('#obErr').textContent,hint:ctx.$('#obPh').textContent,img:ctx.$('#obPv').children[0]&&ctx.$('#obPv').children[0].src});
- return {ctx,$:ctx.$,pick,send,state,html:()=>html,idProblem:ctx.idProblem,remount:()=>ctx.onboardingForm(submit,picture,opts.mode,opts.init),OB:ctx.OB_ERR};
+ /* LHB-63: escribir en el @ y avanzar el reloj de mentira (fire corre el aviso pendiente, si lo hay) */
+ const type=v=>{ctx.$('#obH').value=v;ctx.$('#obH').oninput()};const fire=async()=>{const x=timers.shift();if(x)x.fn();await tick();return !!x};
+ const hs=()=>({text:ctx.$('#obHs').textContent,cls:ctx.$('#obHs').className});
+ return {ctx,$:ctx.$,pick,send,state,html:()=>html,idProblem:ctx.idProblem,remount:()=>ctx.onboardingForm(submit,picture,opts.mode,opts.init,opts.check),OB:ctx.OB_ERR,type,fire,hs,timers};
 }
 test('LHB-49: el formulario real sobre un DOM de mentira: la foto escogida se achica y se sube, y cada salida suelta los botones',async()=>{
  const AV2='https://img.clerk.com/eyJ0eXBlIjoidXBsb2FkMiJ9';
@@ -1100,11 +1105,11 @@ test('LHB-49: toda salida que da por buena la cuenta con perfil retira el formul
 });
 test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL',()=>{
  const h=read('hoja.js'),app=read('app.js'),css=read('styles.css'),cu=read('cuenta.js'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');
- assert.ok(h.includes('function onboardingForm(submit,picture,mode,init){'),'el formulario recibe la foto (y, desde LHB-52, el modo)');
+ assert.ok(h.includes('function onboardingForm(submit,picture,mode,init,check){'),'el formulario recibe la foto (y, desde LHB-52, el modo)');
  assert.ok(h.includes('<input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1">'),'solo imágenes');
  const i=h.indexOf('function onboardingForm'),form=h.slice(i,h.indexOf('\nconst CUENTA=',i));
  assert.ok(form.includes("A.resizeImage(f,512,.85)")&&form.includes("picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))"),'se achica antes de subir');
- const a=form.indexOf("picture.url())return err(OB_ERR['avatar-required'])");assert.ok(a>0&&a<form.indexOf('HANDLE_RE.test(h)'),'la foto se pide primero al enviar');
+ const a=form.indexOf("picture.url())return err(OB_ERR['avatar-required'])");assert.ok(a>0&&a<form.indexOf('HANDLE_RE.test(h))return err('),'la foto se pide primero al enviar');
  assert.ok(/id="obPb"/.test(form)&&form.includes("'Cambiar foto':'Elegir foto'")&&form.includes('Usamos la foto de tu cuenta'),'la foto de la cuenta se anuncia y se puede cambiar');
  for(const k of ['avatar-required','avatar-invalid','avatar-type','avatar-upload','avatar-busy'])assert.ok(h.includes("'"+k+"':'"),'mensaje de '+k);
  assert.ok(form.includes("let working=false;const busy=b=>{working=b;$('#obGo').disabled=b;const pb=$('#obPb');if(pb)pb.disabled=b};"),'una sola operación a la vez: el botón de foto y el de crear se apagan juntos');
@@ -1120,7 +1125,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v65'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v66'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1367,7 +1372,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v65'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v66'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1543,9 +1548,9 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(cu.includes('if(r.status===200&&r.body.profile&&o.edit){')&&cu.includes('if(D.store.get()&&!o.edit)')&&cu.includes('c&&c.sub===uid&&!o.edit&&'),'editar nunca se abre con lo guardado en el teléfono');
  assert.ok(h.includes('<a class="lbtn" href="#/mihoja/editar" id="mhEdit">Editar perfil</a>'),'el encabezado de Mi Hoja (y de Perfil) lleva el enlace a editar');
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
- assert.ok(h.includes('edit:(prof,submit,picture)=>onboardingForm(submit,picture,\'edit\',prof)'));
+ assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v65'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v66'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1874,7 +1879,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\)\}/.test(hj),'guardar y borrar repintan el encabezado');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v65'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v66'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -1907,6 +1912,178 @@ test('LHB-51 (Codex ronda 3): si al confirmar la cuenta lo guardado era de otra,
  h=mk('#/catalogo');await h.A.reconcile();assert.equal(h.D.store.get(),null);assert.equal(h.log.filter(x=>x==='reroute').length,0,'en otra página no se repinta nada');
  h=mk('#/mihoja/perfil');h.C.user={id:'user_a'};await h.A.reconcile();assert.equal(h.log.filter(x=>x==='reroute').length,0,'la misma cuenta no mueve nada');
 });
+
+/* ---------- LHB-63: el @ libre, mientras se escribe ---------- */
+async function API63(opts){opts=opts||{};
+ const a=await API52();if(!opts.sin0005)a.db.exec(a.mig('0005_handle_checks.sql'));
+ const H=await a.imp('api/handle.js');const tks={};const tk=async u=>tks[u]||(tks[u]=await a.tok(u));
+ const mk=(u,handle,hidden)=>a.db.prepare("INSERT INTO profiles (user_id,handle,display_name,age_ok_at,created_at,updated_at,hidden) VALUES (?1,?2,?3,'2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z',?4)").run(u,handle,handle,hidden?1:0);
+ const get=async(u,h,e)=>{const token=u?await tk(u):null;const r=await H.onRequestGet({request:{url:'https://x.test/api/handle'+(h===undefined?'':'?h='+encodeURIComponent(h)),headers:{get:k=>({Authorization:token?'Bearer '+token:null})[k]??null}},env:e||a.env});return [r.status,await r.json(),r.headers.get('Cache-Control')]};
+ const checks=u=>a.db.prepare('SELECT COUNT(*) n FROM handle_checks'+(u?" WHERE user_id='"+u+"'":'')).get().n;
+ return {...a,H,mk,get,checks}}
+test('LHB-63: la migración 0005 crea handle_checks con su índice y no toca lo que ya había',async()=>{
+ const a=await API52();
+ try{
+  const before=a.db.prepare("SELECT name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all().map(r=>({...r}));
+  a.db.exec(a.mig('0005_handle_checks.sql'));
+  const cols=a.db.prepare('PRAGMA table_info(handle_checks)').all();assert.deepEqual(cols.map(c=>c.name),['user_id','created_at']);for(const c of cols)assert.equal(c.notnull,1,c.name+' no admite null');
+  assert.ok(a.db.prepare('PRAGMA index_list(handle_checks)').all().map(i=>i.name).includes('handle_checks_by_user'));
+  assert.deepEqual(a.db.prepare('PRAGMA foreign_key_list(handle_checks)').all(),[],'sin llave a profiles: en el registro todavía no hay perfil');
+  const after=a.db.prepare("SELECT name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all().map(r=>({...r}));
+  assert.deepEqual(after.filter(r=>before.some(x=>x.name===r.name)),before,'lo anterior queda igual');assert.deepEqual(after.filter(r=>!before.some(x=>x.name===r.name)).map(r=>r.name).sort(),['handle_checks','handle_checks_by_user']);
+  assert.ok(!/\u2014/.test(a.mig('0005_handle_checks.sql')),'sin raya larga');
+ }finally{a.done()}
+});
+test('LHB-63: el @ libre, tomado, reservado o inválido, con las mismas reglas que al guardar; el tuyo sale libre; un perfil oculto cuenta como tomado',async()=>{
+ const a=await API63();
+ try{
+  a.mk('u_ana','ana');a.mk('u_oculta','callada',true);a.mk('u_bea','bea_77');
+  const R=async(h,u)=>{const [s,b,c]=await a.get(u||'u_bea',h);assert.equal(s,200,String(h));assert.equal(c,'no-store','la respuesta no se guarda (json() ya lo pone, una sola vez)');return b};
+  assert.deepEqual(await R('libre_99'),{available:true});
+  /* tomado, con cualquier mayúscula y con espacios de los lados (el servidor guarda minúscula y sin espacios) */
+  for(const h of ['ana','ANA','Ana','  ana  ','aNa\t'])assert.deepEqual(await R(h),{available:false,reason:'taken'},JSON.stringify(h));
+  /* un perfil oculto cuenta como tomado, y la respuesta es igual a la de uno visible */
+  assert.deepEqual(await R('callada'),await R('ana'),'oculto y visible contestan igual');
+  /* reservado: los de la lista, en cualquier mayúscula */
+  for(const h of ['admin','Admin','API','catalogo','perfil'])assert.deepEqual(await R(h),{available:false,reason:'reserved'},h);
+  /* inválido: corto, largo, con espacio o signos, con acentos, vacío, sin el parámetro */
+  for(const h of ['ab','a'.repeat(21),'a b','ana!','ñandu','ana-x','',' ','a.b'])assert.deepEqual(await R(h),{available:false,reason:'invalid'},JSON.stringify(h));
+  assert.deepEqual(await R(undefined),{available:false,reason:'invalid'},'sin parámetro');
+  assert.deepEqual(await R('abc'),{available:true},'3 caracteres: el mínimo');assert.deepEqual(await R('a'.repeat(20)),{available:true},'20: el máximo');
+  /* el @ que ya es tuyo sale libre, aunque lo escribas distinto; el de otro no */
+  assert.deepEqual(await R('bea_77','u_bea'),{available:true});assert.deepEqual(await R('BEA_77 ','u_bea'),{available:true});assert.deepEqual(await R('ana','u_bea'),{available:false,reason:'taken'});
+  /* mismo @ para quien no es dueño: tomado, y la respuesta no dice de quién */
+  const [,b]=await a.get('u_ana','bea_77');assert.deepEqual(Object.keys(b).sort(),['available','reason']);assert.ok(!JSON.stringify(b).includes('u_bea'));
+ }finally{a.done()}
+});
+test('LHB-63: sin sesión no se contesta; solo se exporta GET; sin base o sin la tabla de la migración 0005 no se inventa nada',async()=>{
+ const a=await API63();
+ try{
+  assert.deepEqual(Object.keys(a.H).sort(),['CHECKS_PER_MINUTE','onRequestGet'],'solo lectura: ni POST, ni PUT, ni DELETE');
+  assert.deepEqual((await a.get(null,'libre_99')).slice(0,2),[401,{error:'no-session'}]);
+  const r=await a.H.onRequestGet({request:{url:'https://x.test/api/handle?h=libre_99',headers:{get:k=>k==='Authorization'?'Bearer basura':null}},env:a.env});assert.equal(r.status,401,'una ficha inválida tampoco');
+  assert.deepEqual((await a.get('u_x','libre_99',{...a.env,DB:undefined})).slice(0,2),[503,{error:'no-db'}]);
+  assert.deepEqual((await a.get('u_x','libre_99',{CLERK_ISSUERS:''})).slice(0,2),[503,{error:'no-auth-config'}]);
+  /* un perfil NO hace falta: en el registro todavía no hay */
+  assert.deepEqual((await a.get('u_nuevo','libre_99')).slice(0,2),[200,{available:true}]);
+ }finally{a.done()}
+ const b=await API63({sin0005:true});
+ try{
+  const [s,body,c]=await b.get('u_x','libre_99');assert.deepEqual([s,body,c],[503,{error:'unavailable'},'no-store'],'sin la tabla: no disponible, nunca "libre" inventado');
+  assert.deepEqual((await b.get('u_x','ab')).slice(0,2),[200,{available:false,reason:'invalid'}],'lo que las reglas rechazan no necesita la base');
+ }finally{b.done()}
+});
+test('LHB-63: el tope por cuenta: 30 por minuto, lo que las reglas rechazan no gasta, cada cuenta el suyo, y el minuto se vence',async()=>{
+ const a=await API63();
+ try{
+  a.mk('u_ana','ana');a.freeze('2026-10-27T10:00:00.000Z');
+  assert.equal(a.H.CHECKS_PER_MINUTE,30,'el tope de prueba documentado');
+  for(let i=0;i<40;i++)assert.equal((await a.get('u_bea','!'+i)).at(0),200);/* '!0'.. no pasan las reglas: no gastan */
+  assert.equal(a.checks(),0,'lo que las reglas rechazan no escribe nada');
+  for(let i=0;i<30;i++)assert.deepEqual((await a.get('u_bea','libre'+i)).slice(0,2),[200,{available:true}],'revisión '+i);
+  assert.equal(a.checks('u_bea'),30);
+  assert.deepEqual((await a.get('u_bea','libre30')).slice(0,2),[429,{error:'handle-rate'}],'la 31 espera');assert.equal(a.checks('u_bea'),30,'un rechazo no anota nada');
+  assert.deepEqual((await a.get('u_bea','ab')).slice(0,2),[200,{available:false,reason:'invalid'}],'inválido sigue contestando aunque el tope esté lleno');
+  assert.deepEqual((await a.get('u_cami','libre30')).slice(0,2),[200,{available:true}],'otra cuenta tiene su propio tope');
+  /* a los 59 segundos todavía cuenta; pasado el minuto, se vencen y se podan */
+  a.freeze('2026-10-27T10:00:59.000Z');assert.equal((await a.get('u_bea','libre30')).at(0),429);
+  a.freeze('2026-10-27T10:01:01.000Z');assert.deepEqual((await a.get('u_bea','libre30')).slice(0,2),[200,{available:true}]);assert.equal(a.checks('u_bea'),1,'los de más de un minuto se podan y queda el nuevo');
+ }finally{a.done()}
+});
+test('LHB-63: revisar un @ no escribe ningún perfil ni toca uno que existe',async()=>{
+ const a=await API63();
+ try{
+  a.mk('u_ana','ana');a.mk('u_bea','bea_77');const snap=()=>JSON.stringify(a.db.prepare('SELECT * FROM profiles ORDER BY user_id').all());const antes=snap();
+  for(const h of ['ana','bea_77','libre_99','admin','ab'])await a.get('u_bea',h);await a.get('u_nuevo','libre_99');
+  assert.equal(snap(),antes,'ningún perfil cambió ni se creó');
+  const src=fs.readFileSync(path.join(__dirname,'..','functions','api','handle.js'),'utf8').replace(/\/\*[\s\S]*?\*\//,'');
+  assert.deepEqual([...src.matchAll(/\b(INSERT|UPDATE|DELETE)\b[^'"]*?\b(\w+)/g)].map(m=>m[1]+' '+m[2]).sort(),['DELETE FROM','INSERT INTO'].sort(),'solo escribe en su propio contador');
+  assert.ok(!/(INSERT INTO|UPDATE|DELETE FROM)\s+profiles/.test(src),'nunca escribe en profiles');
+ }finally{a.done()}
+});
+test('LHB-63: el formulario avisa mientras se escribe: lo inválido al instante y sin pedir; lo demás 400 ms después de la última tecla; Disponible, tomado y reservado',async()=>{
+ const asked=[];const ANS={v:{available:true}};
+ const f=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{check:async h=>{asked.push(h);return ANS.v}});
+ assert.match(f.html(),/<p class="hint" id="obHs" aria-live="polite"><\/p>/,'el aviso existe y se lee solo');
+ /* lo que las reglas rechazan: al instante, sin reloj ni pregunta */
+ f.type('an');assert.equal(f.hs().text,f.OB['handle-invalid']);assert.match(f.hs().cls,/hs-bad/);assert.equal(f.timers.length,0);assert.deepEqual(asked,[]);
+ f.type('ana!');assert.equal(f.hs().text,f.OB['handle-invalid']);assert.equal(f.timers.length,0,'tampoco pregunta');
+ /* uno válido: calla y pregunta 400 ms después, con el texto normalizado */
+ f.type('  Ana_9 ');assert.equal(f.hs().text,'','mientras espera no dice nada');assert.equal(f.timers.length,1);assert.equal(f.timers[0].ms,400);assert.deepEqual(asked,[]);
+ await f.fire();assert.deepEqual(asked,['ana_9'],'pregunta por el @ ya en minúscula y sin espacios');assert.equal(f.hs().text,'Disponible');assert.match(f.hs().cls,/hs-ok/);
+ ANS.v={available:false,reason:'taken'};f.type('ana');await f.fire();assert.equal(f.hs().text,f.OB['handle-taken']);assert.match(f.hs().cls,/hs-bad/);
+ ANS.v={available:false,reason:'reserved'};f.type('admin');await f.fire();assert.equal(f.hs().text,f.OB['handle-reserved']);
+ /* un aviso viejo se borra en cuanto se escribe otra cosa */
+ f.type('nuevo');assert.equal(f.hs().text,'','al seguir escribiendo el aviso anterior se quita');
+});
+test('LHB-63: el formulario espera a que se deje de escribir y solo pinta la respuesta a lo último escrito',async()=>{
+ const asked=[],gates=[];
+ const f=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{check:h=>{asked.push(h);const g=defer();gates.push(g);return g.p}});
+ /* tres teclas seguidas: un solo reloj, el último */
+ f.type('ana');f.type('anab');f.type('anabe');assert.equal(f.timers.length,1,'los relojes anteriores se cancelan');await f.fire();assert.deepEqual(asked,['anabe'],'se pregunta una vez, por lo último');
+ /* una respuesta tardía de un texto viejo no pisa lo nuevo, llegue antes o después */
+ f.type('uno');await f.fire();f.type('dos');await f.fire();assert.deepEqual(asked.slice(1),['uno','dos']);
+ gates[2].ok({available:false,reason:'taken'});await tick();assert.equal(f.hs().text,f.OB['handle-taken'],'la de dos (la última) se pinta');
+ gates[1].ok({available:true});await tick();assert.equal(f.hs().text,f.OB['handle-taken'],'la de uno llegó tarde y se descarta');
+ const g2=[];const f2=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{check:h=>{const g=defer();g2.push(g);return g.p}});
+ f2.type('uno');await f2.fire();f2.type('dos');await f2.fire();g2[0].ok({available:true});await tick();assert.equal(f2.hs().text,'','la de uno, antes que la de dos, tampoco se pinta');
+ g2[1].ok({available:true});await tick();assert.equal(f2.hs().text,'Disponible');
+ /* escribir algo inválido o borrar el campo con una pregunta en vuelo: la respuesta ya no se pinta */
+ const g3=[];const f3=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{check:h=>{const g=defer();g3.push(g);return g.p}});
+ f3.type('ana');await f3.fire();f3.type('');g3[0].ok({available:true});await tick();assert.equal(f3.hs().text,'','campo vacío: no se pinta');
+ f3.type('ana');await f3.fire();f3.type('a');g3[1].ok({available:true});await tick();assert.equal(f3.hs().text,f3.OB['handle-invalid'],'queda el aviso de lo inválido, no el "Disponible" viejo');
+ /* si otro formulario ocupó la pantalla, la respuesta vieja no le pinta nada */
+ const g4=[];const f4=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{check:h=>{const g=defer();g4.push(g);return g.p}});
+ f4.type('ana');await f4.fire();f4.remount();g4[0].ok({available:false,reason:'taken'});await tick();assert.equal(f4.hs().text,'','el formulario nuevo queda limpio');
+});
+test('LHB-63: el formulario nunca se bloquea por el aviso: fallos y respuestas raras no dicen nada, y Guardar sigue mandando (guardar revisa igual)',async()=>{
+ const AVX=AV;
+ for(const [quien,check] of [['lanza',async()=>{throw new Error('sin red')}],['null',async()=>null],['indefinida',async()=>undefined],['sin available',async()=>({reason:'taken'})],['available no booleano',async()=>({available:'yes'})],['razón rara',async()=>({available:false,reason:'otra'})],['sin razón',async()=>({available:false})]]){
+  const subs=[];const f=FORM_HARNESS({url:()=>AVX,upload:async()=>({url:AVX})},async v=>{subs.push(v);return {ok:true}},undefined,{check});
+  f.type('ana');await f.fire();assert.equal(f.hs().text,'',quien+': no dice nada');
+  await f.send({handle:'ana'});assert.equal(subs.length,1,quien+': Guardar manda');assert.equal(subs[0].handle,'ana');assert.deepEqual([f.state().go,f.state().pb],[false,false]);
+ }
+ /* aun diciendo "tomado" el formulario manda: la autoridad es el servidor (409) y muestra el mismo mensaje de siempre */
+ const subs=[];const f=FORM_HARNESS({url:()=>AVX,upload:async()=>({url:AVX})},async v=>{subs.push(v);return {error:'handle-taken'}},undefined,{check:async()=>({available:false,reason:'taken'})});
+ f.type('ana');await f.fire();assert.equal(f.hs().text,f.OB['handle-taken']);assert.deepEqual([f.state().go,f.state().pb],[false,false],'un @ tomado no apaga Guardar');await f.send({handle:'ana'});assert.equal(subs.length,1,'el aviso no reemplaza la revisión del servidor');assert.equal(f.state().err,f.OB['handle-taken']);
+ /* sin la pregunta (por ejemplo una cuenta sin conexión) escribir válido no falla ni deja relojes */
+ const g=FORM_HARNESS({url:()=>AVX,upload:async()=>({url:AVX})},async()=>({ok:true}));g.type('ana');assert.equal(g.timers.length,0);assert.equal(g.hs().text,'');
+});
+test('LHB-63: Editar perfil no marca tu @ de siempre, y sí revisa uno distinto; Completa tu perfil no tiene el aviso',async()=>{
+ const asked=[];const init={handle:'ana',first_name:'Ana',last_name:'Mora',gender:'F',birth_date:'1990-05-17',bio:'',favorite_brand:''};
+ const f=FORM_HARNESS({url:()=>AV,upload:async()=>({url:AV})},async()=>({ok:true}),undefined,{mode:'edit',init,check:async h=>{asked.push(h);return {available:true}}});
+ assert.match(f.html(),/id="obHs"/);
+ for(const v of ['ana','ANA','  Ana ']){f.type(v);assert.equal(f.timers.length,0,JSON.stringify(v)+': es el tuyo, no se pregunta');assert.equal(f.hs().text,'')}
+ f.type('bea');assert.equal(f.timers.length,1);await f.fire();assert.deepEqual(asked,['bea']);assert.equal(f.hs().text,'Disponible');
+ f.type('ana');assert.equal(f.hs().text,'','volver al tuyo quita el aviso');
+ const id=FORM_HARNESS({url:()=>null,upload:async()=>({})},async()=>({ok:true}),undefined,{mode:'identity',check:async()=>({available:true})});assert.ok(!id.html().includes('obHs'),'sin @ no hay aviso');
+});
+test('LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar perfil), y solo la contesta si la cuenta y la página siguen siendo las mismas',async()=>{
+ const calls=[];let resp={status:200,body:{available:true}};
+ const api=async(C,m,p,b)=>{calls.push(m+' '+p);if(p==='/api/me')return state.me;return resp};
+ const state={me:{status:200,body:{needsProfile:true}}};
+ let chk;const h=CUENTA_HARNESS({api});h.D.ui.onboarding=(s,pc,c)=>{chk=c};h.C.user={id:'user_a'};await h.A.require(h.go);await tick();
+ assert.equal(typeof chk,'function','el registro recibe la pregunta');
+ assert.deepEqual(await chk('ana_9'),{available:true});assert.ok(calls.includes('GET /api/handle?h=ana_9'));
+ assert.deepEqual(await chk('a b'),{available:true});assert.ok(calls.includes('GET /api/handle?h=a%20b'),'el texto va codificado');
+ for(const bad of [{status:429,body:{error:'handle-rate'}},{status:503,body:{error:'unavailable'}},{status:401,body:{}},{status:200,body:{}},{status:200,body:{available:'yes'}},{status:200,body:null}]){resp=bad;assert.equal(await chk('ana_9'),null,JSON.stringify(bad)+' no dice nada')}
+ resp=async()=>{throw new Error('x')};const api2=api;
+ /* sin conexión */
+ const off=CUENTA_HARNESS({api:async(C,m,p)=>{if(p==='/api/me')return {status:200,body:{needsProfile:true}};throw new Error('offline')}});let c2;off.D.ui.onboarding=(s,pc,c)=>{c2=c};off.C.user={id:'user_a'};await off.A.require(off.go);await tick();assert.equal(await c2('ana_9'),null);
+ /* cambió la cuenta: ni se pregunta */
+ resp={status:200,body:{available:true}};calls.length=0;h.C.signIn('user_b');assert.equal(await chk('ana_9'),null);assert.ok(!calls.some(x=>x.includes('/api/handle')),'otra cuenta: no se manda nada con la ficha de la anterior');
+ /* la respuesta llega cuando la cuenta ya cambió */
+ const gate=defer();const h2=CUENTA_HARNESS({api:async(C,m,p)=>p==='/api/me'?{status:200,body:{needsProfile:true}}:gate.p});let c3;h2.D.ui.onboarding=(s,pc,c)=>{c3=c};h2.C.user={id:'user_a'};await h2.A.require(h2.go);await tick();
+ const pend=c3('ana_9');await tick();h2.C.signIn('user_b');gate.ok({status:200,body:{available:true}});assert.equal(await pend,null,'una respuesta que llega con otra cuenta no se usa');
+ /* Editar perfil recibe la misma pregunta como cuarto argumento */
+ let chk4,pf;const h3=CUENTA_HARNESS({api:async(C,m,p)=>p==='/api/me'?{status:200,body:{profile:PROF55,needsIdentity:false}}:{status:200,body:{available:false,reason:'taken'}}});
+ h3.D.ui.edit=(p,s,pc,c)=>{pf=p;chk4=c};h3.C.user={id:'user_a',hasImage:true,imageUrl:AV};await h3.A.require(h3.go,{edit:true});await tick();
+ assert.equal(typeof chk4,'function','Editar perfil recibe la pregunta');assert.deepEqual(await chk4('bea_77'),{available:false,reason:'taken'});
+ /* hoja.js la reparte a los dos formularios */
+ const hj=fs.readFileSync(path.join(__dirname,'..','site','hoja.js'),'utf8').replace(/\r\n/g,'\n');
+ assert.ok(hj.includes("onboarding:(submit,picture,check)=>onboardingForm(submit,picture,undefined,undefined,check),"));assert.ok(hj.includes("edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,'edit',prof,check),"));
+});
+
 /* ===================== LHB-28 / LHB-31: Mi Hoja en la cuenta (servidor, juntar, motor) ===================== */
 async function API28(){
  const a=await API52();const M=await a.imp('api/mihoja.js'),ML=await a.imp('_lib/mihoja.js');

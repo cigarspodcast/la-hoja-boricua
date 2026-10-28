@@ -185,11 +185,11 @@ function idProblem(f,today){
  return ''}
 /* mode 'identity': un perfil que ya existía y solo le falta nombre, apellido, género y fecha de nacimiento ("Completa tu perfil"); sin foto, sin @, sin bio ni marca */
 /* mode 'edit' (LHB-55): el perfil de siempre editado de una vez, con lo guardado (init) puesto; es el mismo formulario y el mismo selector de foto que el del perfil nuevo, con "Guardar" y "Cancelar" */
-function onboardingForm(submit,picture,mode,init){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));const idm=mode==='identity';const edm=mode==='edit';const pf=init||{};const today=new Date().toISOString().slice(0,10);
+function onboardingForm(submit,picture,mode,init,check){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));const idm=mode==='identity';const edm=mode==='edit';const pf=init||{};const today=new Date().toISOString().slice(0,10);
  view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>${idm?'Completa tu <em>perfil</em>':edm?'Editar <em>perfil</em>':'Tu <em>perfil</em>'}</h1></header>
  <form class="form" id="obForm" novalidate>
  ${idm?'<p class="hint">Ahora pedimos tu nombre, tu apellido, tu género y tu fecha de nacimiento. Es un solo paso y no se repite.</p>':`<div class="ob-pic" role="group" aria-labelledby="obPt"><p class="ob-pic-t" id="obPt">Tu foto</p><div class="ob-pic-row"><span class="ob-pic-img" id="obPv"></span><button class="lbtn" type="button" id="obPb"></button></div><p class="hint" id="obPh" aria-live="polite"></p><input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1"></div>
- <div class="field"><label for="obH">Tu @ (nombre de usuario)</label><input id="obH" required minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="ej. tabaquero_pr"><p class="hint">De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.</p></div>`}
+ <div class="field"><label for="obH">Tu @ (nombre de usuario)</label><input id="obH" required minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="ej. tabaquero_pr"><p class="hint">De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.</p><p class="hint" id="obHs" aria-live="polite"></p></div>`}
  <div class="field"><label for="obFn">Tu nombre</label><input id="obFn" required maxlength="50" autocomplete="given-name"></div>
  <div class="field"><label for="obLn">Tu apellido</label><input id="obLn" required maxlength="50" autocomplete="family-name"></div>
  <div role="radiogroup" aria-labelledby="obGt"><p class="ob-pic-t" id="obGt">Tu género</p><label class="check"><input type="radio" name="obG" id="obGM" value="M"> Masculino</label><label class="check"><input type="radio" name="obG" id="obGF" value="F"> Femenino</label></div>
@@ -220,6 +220,19 @@ function onboardingForm(submit,picture,mode,init){const marcas=[...new Set((D().
   if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
   busy(false);if(r.error)return err(OB_ERR[r.error]||OB_ERR['avatar-upload']);
   own=true;showPic()};
+ /* LHB-63: mientras se escribe el @ se avisa si está libre. Lo que las reglas rechazan se dice al instante y sin pedir nada; lo demás se pregunta 400 ms después de la última tecla, y solo
+    la respuesta a lo último escrito se pinta (una tardía de un texto viejo se descarta). El @ que ya era tuyo no se marca. Sin conexión, con el tope o con cualquier fallo no se dice nada y Guardar no se bloquea: guardar revisa igual (409) */
+ let hseq=0,htm=0;const hsay=(m,ok)=>{const s=$('#obHs');if(!s)return;s.textContent=m||'';s.className=m?(ok?'hint hs-ok':'hint hs-bad'):'hint'};
+ $('#obH').oninput=()=>{hseq++;clearTimeout(htm);const my=hseq,h=$('#obH').value.trim().toLowerCase();
+  if(!h||(edm&&h===String(pf.handle||'').toLowerCase()))return hsay('');
+  if(!HANDLE_RE.test(h))return hsay(OB_ERR['handle-invalid']);
+  hsay('');if(!check)return;
+  htm=setTimeout(async()=>{let r;try{r=await check(h)}catch(x){r=null}
+   if(my!==hseq||$('#obForm')!==form)return;
+   if(r&&r.available===true)hsay('Disponible',true);
+   else if(r&&r.available===false&&r.reason==='taken')hsay(OB_ERR['handle-taken']);
+   else if(r&&r.available===false&&r.reason==='reserved')hsay(OB_ERR['handle-reserved']);
+   else hsay('')},400)};
  $('#obB').oninput=e=>{const n=$('#obBn');if(n)n.textContent=[...e.target.value].length}}
  form.onsubmit=async e=>{e.preventDefault();if(working)return;
   const f={first_name:$('#obFn').value.trim(),last_name:$('#obLn').value.trim(),gender:$('#obGM').checked?'M':$('#obGF').checked?'F':'',birth_date:$('#obD').value};
@@ -233,7 +246,7 @@ function onboardingForm(submit,picture,mode,init){const marcas=[...new Set((D().
   let r;try{r=await submit(idm?f:{handle:h,...f,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
   if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
   busy(false);if(r.error)err(OB_ERR[r.error]||(idm||edm?'No pudimos guardar tu perfil. Intenta otra vez.':'No pudimos crear tu perfil. Intenta otra vez.'))}}
-const CUENTA=window.LHB_CUENTA({clerk,api,hasLocal:()=>LHB_MERGE.hasData(S()),here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture)=>onboardingForm(submit,picture,'edit',prof),toast,closeAll:closeSheetNow}});
+const CUENTA=window.LHB_CUENTA({clerk,api,hasLocal:()=>LHB_MERGE.hasData(S()),here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:(submit,picture,check)=>onboardingForm(submit,picture,undefined,undefined,check),identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,'edit',prof,check),toast,closeAll:closeSheetNow}});
 /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
 const requireAccount=(go,o)=>CUENTA.require(go,o);
 /* LHB-51: con una cuenta guardada, un poco después de abrir la app se confirma con Clerk que sigue siendo esa cuenta (si no, el encabezado vuelve a la estrella) */
