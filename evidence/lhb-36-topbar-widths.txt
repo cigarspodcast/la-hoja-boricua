@@ -1,0 +1,41 @@
+LHB-36 top bar widths after the Codex r1 fix, 2026-10-28 about 13:36Z (09:36 UTC-4)
+
+Where: the desktop app's built-in browser, on the deployment of commit 741472d (https://19744e30.la-hoja-boricua.pages.dev,
+deploy success; a fresh origin, so no service-worker cache). Each row is a same-origin iframe of that width loading
+#/catalogo with localStorage lhb_lang set to the row's language, read 1.5 s after load.
+
+Counting basis: 8 widths x 2 languages = 16 page states. "text right" is the right edge of the visible brand text
+(a Range over .brand-name and .brand-sub), or of the logo where the wordmark is hidden; "controls left" is .top-actions;
+"avatar right" is #topAvatar; scrollW is document.documentElement.scrollWidth.
+
+lang width  switch shows       text right  controls left  clear gap  avatar right  scrollW
+en   320    ES (logo only)       50.0        134.3          84.3       304.0        320
+en   359    ES                  146.5        173.5          27.0       343.2        359
+en   360    ES                  146.5        174.3          27.8       344.0        360
+en   375    ES                  146.5        189.5          43.0       359.2        375
+en   390    ES                  146.5        204.7          58.2       374.4        390
+en   399    Español             146.5        177.5          31.0       383.2        399
+en   400    Español             146.5        178.3          31.8       384.0        400
+en   430    Español             146.5        208.7          62.2       414.4        430
+es   320    EN (logo only)       50.0        132.1          82.1       304.0        320
+es   359    EN                  146.5        171.3          24.8       343.2        359
+es   360    EN                  146.5        172.1          25.6       344.0        360
+es   375    EN                  146.5        187.3          40.8       359.2        375
+es   390    EN                  146.5        202.5          56.0       374.4        390
+es   399    English             146.5        181.3          34.8       383.2        399
+es   400    English             146.5        182.1          35.6       384.0        400
+es   430    English             146.5        212.5          66.0       414.4        430
+
+Note on the 359 and 399 rows: the iframes there rendered a fraction of a pixel wider than their nominal width (the avatar
+right edge, 16px inside the viewport, reads 343.2 and 383.2), so the max-width:359px and max-width:399px rules did not
+apply and those rows show the next layout up (wordmark at 359, full name at 399). Both still clear by 27.0px or more,
+which shows each layout fits a little below its breakpoint, so a fractional viewport width cannot fall into a gap.
+At every row the brand text and the controls do not touch, and scrollW equals the width (no sideways scroll). The
+topbar's computed right padding is 16px at every width; the avatar's right edge rounds to within 0.6px of it.
+
+Before the fix (Codex r1, and re-measured here at 320px on deployment 31ad8e5c): the switch read "Español" at 74px,
+.top-actions spanned 124.5 to 330.6 on a 320px viewport (profile button off screen) and the brand text ran to 146.5,
+past the controls' left edge.
+
+Accessible names: the switch's aria-label is the full name in every row (Español / English), and below 360px the
+wordmark is clipped from sight but still the brand link's text (the LHB-88 test reads it).
