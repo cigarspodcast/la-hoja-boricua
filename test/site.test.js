@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v79'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v82'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -61,25 +61,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
- assert.match(sw,/const VERSION='lhb-v79'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+ assert.match(sw,/const VERSION='lhb-v82'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
 
 test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v79'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v82'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v79'/);
+ assert.match(sw,/const VERSION='lhb-v82'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v79'/);
+ assert.match(sw,/const VERSION='lhb-v82'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
@@ -105,12 +105,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v79'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v82'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v79'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v82'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -118,7 +118,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v79'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v82'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -135,7 +135,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v79/);});
+ assert.match(read('sw.js'),/lhb-v82/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -148,17 +148,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v79'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v82'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v79'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v82'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v79'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v82'/);});
 
-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v79'/);});
+test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v82'/);});
 
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
@@ -260,7 +260,7 @@ test('LHB-27: idioma por navigator.language, se recuerda (encendido en E6, LHB-3
  const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[]}};
  require('vm').runInNewContext(src.replace('const ENABLED=false;','const ENABLED=true;'),{window:w});
  assert.equal(w.LHB_I18N.lang,'en');assert.equal(w.document.documentElement.lang,'en');assert.equal(w.LHB_I18N.t('cig.notFound'),'We could not find that vitola.');
- const ix=read('index.html');assert.ok(/<button class="lang-switch" type="button" id="langSwitch" hidden><\/button>/.test(ix),'selector escondido');
+ const ix=read('index.html');assert.ok(ix.includes('<button class="lang-switch" type="button" id="langSwitch" lang="en" aria-label="English">'),'el selector está en el HTML (LHB-93: visible desde el primer pintado)');
  assert.ok(ix.indexOf('i18n.js')>0&&ix.indexOf('i18n.js')<ix.indexOf('app.js'),'i18n.js antes de app.js');assert.ok(read('sw.js').includes("'i18n.js'"),'i18n.js en el shell');
  assert.ok(!src.includes('\u2014'),'sin raya larga en i18n.js');
 });
@@ -292,7 +292,7 @@ test('LHB-29: art.js toma sus textos de i18n.js (cargado antes): en espa\u00f1ol
 test('LHB-29: index.html trae el espa\u00f1ol y marca cada texto con data-i18n o data-i18n-attr; en ingl\u00e9s i18n.js los cambia',()=>{
  const {T}=I18N();const {scan}=require('./i18n-scan.js');const ix=read('index.html');
  const body=ix.replace(/<noscript>[\s\S]*?<\/noscript>/g,'').replace(/<script[\s\S]*?<\/script>/g,'').replace(/<style[\s\S]*?<\/style>/g,'');
- const left=scan(body).filter(x=>!/^(text|attr): (La Hoja Boricua|Cigars Podcast|@cigarspodcast)$/.test(x));
+ const left=scan(body).filter(x=>!/^(text|attr): (La Hoja Boricua|Cigars Podcast|@cigarspodcast|English|EN)$/.test(x));// LHB-93: el selector trae el nombre del otro idioma en ese idioma; wire() lo pone, no T
  const marked=new Set();for(const m of ix.matchAll(/<(\w+)[^>]*\bdata-i18n="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/g)){assert.equal(T.es[m[2]],m[3],'es '+m[2]);marked.add('text: '+m[3].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim())}
  for(const m of ix.matchAll(/<[^>]*\bdata-i18n-attr="([^"]+)"[^>]*>/g))for(const p of m[1].split(';')){const [a,k]=p.split(':');const v=m[0].match(new RegExp('\\b'+a+'="([^"]*)"'))[1];assert.equal(T.es[k],v,'es '+k);marked.add('attr: '+v)}
  for(const x of left)assert.ok(marked.has(x)||[...marked].some(mk=>mk.includes(x.slice(x.indexOf(': ')+2))),'sin marcar: '+x);
@@ -1217,7 +1217,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1464,7 +1464,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v79'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v82'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1642,7 +1642,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1889,7 +1889,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
- assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
@@ -2190,7 +2190,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\)\}/.test(hj),'guardar y borrar repintan el encabezado');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -2473,7 +2473,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
 });
 test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
- assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v82'/,'el shell nuevo se publica con otra versión del caché');
  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
@@ -3433,7 +3433,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
 });
 test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v79'/);
+ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v82'/);
  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
@@ -3654,7 +3654,7 @@ test('LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la a
  assert.ok(!/\.lang-switch\{[^}]*display:/.test(css),'sin display: el atributo hidden la esconde');
  /* Codex r1: a 320 y 375 px el selector con el nombre entero empujaba la barra fuera de la pantalla (medido en el navegador, evidence/lhb-36-topbar-widths.txt) */
  assert.ok(css.includes('.lang-switch .ls-short{display:none}'),'la sigla escondida donde cabe el nombre');
- assert.ok(css.includes('@media (max-width:399px){.lang-switch{padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}'),'bajo 400 px, la sigla');
+ assert.ok(css.includes('@media (max-width:399px){.lang-switch{min-width:40px;padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}'),'bajo 400 px, la sigla (LHB-93: con su ancho reservado)');
  const nar=css.match(/@media \(max-width:359px\)\{\.brand-text\{([^}]*)\}\}/);assert.ok(nar,'bajo 360 px, la marca sin el texto');
  assert.ok(nar[1].includes('position:absolute')&&nar[1].includes('clip:rect(0 0 0 0)')&&!nar[1].includes('display:none'),'escondido a la vista, no al lector de pantalla: el enlace sigue con nombre (LHB-88)');
  const ix=read('index.html');const {T}=I18N();
@@ -3663,6 +3663,34 @@ test('LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la a
  const els=[{a:{'data-i18n':'ix.footLug','data-i18n-attr':'href:ix.footLugHref',href:'lugares/'},innerHTML:'Cigar lounges en Puerto Rico'}];for(const e of els){e.getAttribute=n=>e.a[n];e.setAttribute=(n,v)=>{e.a[n]=v}}
  const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
  require('vm').runInNewContext(read('i18n.js'),{window:w});assert.equal(els[0].a.href,'en/lugares/');assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');
+});
+/* LHB-87: en el mapa ningún pin tapa a otro: los que se taparían van juntos en un grupo */
+const pins87=()=>{const app=read('app.js');const a=app.match(/const pinBox=\(x,y,n\)=>[^\n]*/),b=app.match(/function groupPins\(items\)\{[^\n]*return gs\}/);assert.ok(a&&b,'pinBox y groupPins en app.js');return new Function(a[0]+'\n'+b[0]+';return {pinBox,groupPins}')()};
+test('LHB-87: groupPins junta los pines que se tocan, hasta que ninguna caja toca a otra, y no pierde ni repite ninguno',()=>{const {pinBox,groupPins}=pins87();
+ const app=read('app.js');assert.ok(app.includes("iconSize:[26,34],iconAnchor:[13,32]")&&app.includes("iconSize:[36,36],iconAnchor:[18,18]"),'los íconos que se dibujan');
+ assert.deepEqual(pinBox(0,0,1),[-13,-32,13,2],'la caja de un pin es su ícono de 26 x 34 con la punta en el ancla');assert.deepEqual(pinBox(0,0,3),[-18,-18,18,18],'la de un grupo, su círculo de 36 centrado');
+ const apart=(a,b)=>a[2]+2<=b[0]||b[2]+2<=a[0]||a[3]+2<=b[1]||b[3]+2<=a[1];
+ const check=(items,why)=>{const gs=groupPins(items);const seen=gs.flatMap(g=>g.ms).sort((x,y)=>x-y);assert.deepEqual(seen,items.map(i=>i.m).sort((x,y)=>x-y),why+': cada pin una vez');
+  for(let i=0;i<gs.length;i++)for(let j=i+1;j<gs.length;j++)assert.ok(apart(pinBox(gs[i].x,gs[i].y,gs[i].ms.length),pinBox(gs[j].x,gs[j].y,gs[j].ms.length)),why+': cajas '+i+' y '+j+' se tocan');return gs};
+ assert.equal(check([{x:0,y:0,m:1},{x:100,y:0,m:2}],'lejos').length,2,'dos pines lejos siguen solos');
+ const g=check([{x:0,y:0,m:1},{x:10,y:5,m:2}],'cerca');assert.equal(g.length,1);assert.equal(g[0].ms.length,2,'dos pines encima, un grupo de 2');
+ assert.equal(check([{x:0,y:0,m:1},{x:0,y:0,m:2},{x:0,y:0,m:3}],'mismo sitio').length,1,'tres en el mismo sitio, un grupo');
+ assert.equal(check([{x:0,y:0,m:1},{x:28,y:0,m:2}],'justo al lado').length,2,'a 28 px (2 de aire) no se juntan');
+ assert.equal(check([{x:0,y:0,m:1},{x:27,y:0,m:2}],'casi al lado').length,1,'a 27 px se tocan: grupo');
+ /* los lugares de verdad, proyectados a píxeles como en el mapa de la isla (zoom 9) y más cerca (zoom 12) */
+ const L=JSON.parse(readD('places.json')).filter(p=>p.lat&&p.lng);assert.ok(L.length>=40,'lugares con coordenadas: '+L.length);
+ const px=(p,z)=>{const s=256*2**z,la=p.lat*Math.PI/180;return {x:(p.lng+180)/360*s,y:(1-Math.log(Math.tan(la)+1/Math.cos(la))/Math.PI)/2*s}};
+ for(const z of [9,12,15]){const gs=check(L.map((p,i)=>({...px(p,z),m:i})),'lugares a zoom '+z);if(z===9)assert.ok(gs.length<L.length,'a zoom 9 hay grupos')}
+});
+test('LHB-87: el mapa pinta grupos con su número, que acercan; la lista sigue teniendo todos los lugares',()=>{const app=read('app.js');
+ assert.ok(app.includes("map.on('zoomend',layout);"),'se reagrupa en cada zoom');assert.ok(/map\.setView\(pts\[0\],14\);layout\(\)\}/.test(app),'y al abrir');
+ assert.ok(app.includes("const mk=L.marker([p.lat,p.lng],{icon,title:p.nombre,keyboard:true});")&&!/const mk=L\.marker\([^;]*\.addTo\(map\)/.test(app),'los pines no van directo al mapa: los pone layout');
+ assert.ok(app.includes("if(g.ms.length===1){pins.addLayer(g.ms[0].mk);continue}"),'un pin solo es el pin de siempre');
+ assert.ok(app.includes("icon:L.divIcon({className:'pin-group',html:`<span>${n}</span>`,iconSize:[36,36],iconAnchor:[18,18]}),title:tt('map.group',{n}),keyboard:true"),'el grupo dice cuántos y se alcanza con el teclado');
+ assert.ok(app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})")&&app.includes("setContent(g.ms.map(m=>placeCard(m.p)).join(''))"),'tocar el grupo acerca, o muestra la lista si ya no se separan');
+ const {T}=I18N();assert.equal(T.es['map.group'],'{n} lugares aquí: acercar');assert.equal(T.en['map.group'],'{n} places here: zoom in');
+ assert.ok(app.includes('<div class="list" style="margin-top:12px">${ps.map(p=>')&&app.includes("if(state.lugMode==='mapa')drawMap(ps)}"),'la lista y el mapa salen del mismo ps: todo lugar del mapa está en la lista');
+ const css=read('styles.css');assert.ok(/\.pin-group span\{width:36px;height:36px;/.test(css),'el grupo mide 36 px (más de 24)');
 });
 /* LHB-89: el diálogo de Clerk se nombra con su propio título mientras está abierto */
 test('LHB-89: nameClerkDialog apunta aria-labelledby del diálogo de Clerk a su título, y lo vuelve a apuntar si el título cambia',()=>{
@@ -3840,4 +3868,57 @@ test('LHB-39 (Codex ronda 1): con el filtro de pública o privada, cambiar la ca
  seen.length=0;g.API.vDiario();assert.deepEqual(seen,[],'lo anotado vale una sola vez');
  g.els.dList.focus=()=>seen.push('lista');g.ctx.document.activeElement={id:'dList'};g.ctx.X.dKeepFocus();g.ctx.document.activeElement=null;g.API.vDiario();assert.deepEqual(seen,[],'si el foco estaba en otra parte (aunque esa parte vuelva a estar en la página), no se pone');
  const hj=read('hoja.js');assert.ok(hj.includes("contains('sheet-on')){dKeepFocus();A.route()}}"),'la sincronización anota el foco antes de pasar por la puerta');
+});
+/* LHB-93: el selector de idioma sale en el primer pintado; wire() no le cambia el ancho */
+test('LHB-93: el selector sale en el primer pintado con el texto en español; wire() no le cambia el ancho',()=>{
+ const ix=read('index.html');const m=ix.match(/<button class="lang-switch"[^>]*>([\s\S]*?)<\/button>/);assert.ok(m,'el botón');
+ assert.ok(!/\shidden[\s>]/.test(m[0]),'no sale escondido');
+ const es=run36('es-PR',null);assert.equal(m[1],es.btn.innerHTML,'el HTML ya trae lo que wire() pone en español');assert.ok(m[0].includes('lang="'+es.btn.lang+'"')&&m[0].includes('aria-label="'+es.btn.a['aria-label']+'"'),'el mismo lang y nombre');
+ const btn={hidden:false,innerHTML:'x',a:{},setAttribute(n,v){this.a[n]=v}};const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:id=>id==='langSwitch'?btn:null,querySelectorAll:()=>[]}};
+ require('vm').runInNewContext(read('i18n.js').replace('const ENABLED=true;','const ENABLED=false;'),{window:w});assert.equal(btn.hidden,true,'con el selector apagado, wire() lo esconde');
+ // el ancho reservado cubre el nombre más ancho, medido (evidence/lhb-93-switch-widths.txt)
+ const css=read('styles.css');const L=Math.max(69.9,73.7),Sh=Math.max(39.9,37.7);
+ const a=css.match(/\.lang-switch\{height:36px;min-width:(\d+(?:\.\d+)?)px;/),b=css.match(/@media \(max-width:399px\)\{\.lang-switch\{min-width:(\d+(?:\.\d+)?)px;padding:0 10px\}/);assert.ok(a&&b,'min-width en las dos medidas');
+ assert.ok(+a[1]>=L&&+a[1]-L<2,'ancho largo '+a[1]);assert.ok(+b[1]>=Sh&&+b[1]-Sh<2,'ancho corto '+b[1]);
+ assert.ok(css.includes('*{box-sizing:border-box}'),'min-width cuenta borde y relleno, como la medida');
+});
+/* LHB-87 (Codex r1): tocar un grupo siempre adelanta: acerca a un zoom mayor o muestra la lista; nunca se queda igual */
+test('LHB-87: tocar grupos con los lugares de verdad, en mapas de varias medidas, siempre termina en pines sueltos o en una lista',()=>{
+ const app=read('app.js');const t=app.match(/const tapGroup=\(z,fz,one\)=>[^\n]*/);assert.ok(t,'tapGroup en app.js');const {pinBox,groupPins}=pins87();const tapGroup=new Function(t[0]+';return tapGroup')();
+ const pm=app.match(/const POP_FIXED=(\d+),popMaxH=h=>[^\n]*/);assert.ok(pm,'popMaxH en app.js');const {POP_FIXED,popMaxH}=new Function(pm[0]+';return {POP_FIXED,popMaxH}')();
+ assert.ok(app.includes("if(tapGroup(map.getZoom(),map.getBoundsZoom(b,false,L.point(96,96)),b.getNorthEast().equals(b.getSouthWest()))==='list')")&&app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})"),'el toque usa tapGroup con el mismo relleno que fitBounds (48 por lado, 96 en total)');
+ assert.equal(tapGroup(9,9,false),'list','si el encuadre no acerca, la lista');assert.equal(tapGroup(9,8,false),'list');assert.equal(tapGroup(9,10,false),'zoom');assert.equal(tapGroup(16,19,false),'zoom','acerca hasta 17');
+ assert.equal(tapGroup(17,19,false),'list');assert.equal(tapGroup(9,12,true),'list','todos en un sitio');
+ const P=JSON.parse(readD('places.json')).filter(p=>p.lat&&p.lng);const X=p=>(p.lng+180)/360,Y=p=>{const la=p.lat*Math.PI/180;return (1-Math.log(Math.tan(la)+1/Math.cos(la))/Math.PI)/2};
+ // getBoundsZoom de Leaflet (zoomSnap 1): el zoom entero más alto en que el encuadre cabe en el mapa menos el relleno
+ const fit=(ps,W,H,pad,max)=>{const dx=Math.max(...ps.map(X))-Math.min(...ps.map(X)),dy=Math.max(...ps.map(Y))-Math.min(...ps.map(Y));if(!dx&&!dy)return max;const s=Math.min((W-pad)/(256*dx||1e-9),(H-pad)/(256*dy||1e-9));return Math.max(0,Math.min(max,Math.floor(Math.log2(s))))};
+ const lay=(ps,z)=>groupPins(ps.map((p,i)=>({x:X(p)*256*2**z,y:Y(p)*256*2**z,m:i})));
+ for(const [W,H] of [[536,185],[360,300],[412,260],[800,420],[1200,500]]){
+  const z0=fit(P,W,H,56,11);let taps=0,listed=0,single=0;const seen=new Set();
+  const visit=(idx,z)=>{for(const g of lay(idx.map(i=>P[i]),z)){const mine=g.ms.map(k=>idx[k]);if(mine.length===1){single++;seen.add(mine[0]);continue}
+   taps++;assert.ok(taps<500,'demasiados toques: '+W+'x'+H);const ps=mine.map(i=>P[i]);const one=ps.every(p=>p.lat===ps[0].lat&&p.lng===ps[0].lng);const fz=fit(ps,W,H,96,19);
+   if(tapGroup(z,fz,one)==='list'){listed+=mine.length;mine.forEach(i=>seen.add(i));continue}
+   const nz=Math.min(fz,17);assert.ok(nz>z,'un toque que acerca sube el zoom ('+W+'x'+H+': '+z+' a '+nz+')');visit(mine,nz)}};
+  visit(P.map((_,i)=>i),z0);assert.equal(seen.size,P.length,W+'x'+H+': todo lugar termina suelto o en una lista');assert.equal(single+listed,P.length)
+  if(listed)assert.ok(popMaxH(H)+POP_FIXED<=H,W+'x'+H+': la lista cabe en el mapa ('+popMaxH(H)+' + '+POP_FIXED+')')}
+});
+test('LHB-87 (Codex r2): la lista de un grupo cabe en el mapa: su alto con scroll es el del mapa menos lo fijo del popup',()=>{
+ const app=read('app.js');const m=app.match(/const POP_FIXED=(\d+),popMaxH=h=>Math\.max\(60,Math\.min\(320,h-POP_FIXED\)\);/);assert.ok(m,'POP_FIXED y popMaxH');const POP_FIXED=+m[1];const popMaxH=h=>Math.max(60,Math.min(320,h-POP_FIXED));
+ assert.ok(app.includes("L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)}).setLatLng(at)"),'la lista usa el alto del mapa de ahora');
+ // lo fijo, sumado de las reglas que lo ponen
+ const css=read('styles.css'),v=read('vendor-leaflet.css'),vj=read('vendor-leaflet.js');
+ const cm=css.match(/\.leaflet-popup-content\{margin:(\d+)px (\d+)px\}/);assert.ok(cm,'margen del contenido');const wrap=v.match(/\.leaflet-popup-content-wrapper\{padding: (\d+)px;/),tip=v.match(/\.leaflet-popup-tip-container\{width: 40px;height: (\d+)px;position: absolute;left: 50%;margin-top: -(\d+)px;/),mb=v.match(/\.leaflet-popup\{position: absolute;text-align: center;margin-bottom: (\d+)px\}/);
+ assert.ok(wrap&&tip&&mb&&vj.includes('offset:[0,7]'),'las reglas de Leaflet que dan lo fijo');
+ assert.equal(2*+cm[1]+2*+wrap[1]+(+tip[1]-+tip[2])+(+mb[1])+7+16+16,POP_FIXED,'24 + 2 + 19 + 20 + 7 + 32');
+ for(const h of [185,230,300,360,460])assert.ok(popMaxH(h)+POP_FIXED<=h&&popMaxH(h)<=320,'mapa de '+h+' px');assert.equal(popMaxH(1000),320);assert.equal(popMaxH(120),60,'nunca menos de 60');
+});
+test('LHB-87 (Codex r3): con la lista abierta, si el mapa cambia de alto la lista toma el alto nuevo y se vuelve a acomodar',()=>{
+ const app=read('app.js');const pm=app.match(/const POP_FIXED=(\d+),popMaxH=h=>[^\n]*/),fp=app.match(/const fitPop=\(map,p\)=>[^\n]*/);assert.ok(pm&&fp,'popMaxH y fitPop en app.js');
+ const fitPop=new Function(pm[0]+'\n'+fp[0]+';return fitPop')();
+ const pop=()=>({options:{maxHeight:320},u:0,update(){this.u++}});let h=460;const map={open:new Set(),hasLayer(p){return this.open.has(p)},getSize:()=>({x:502,y:h})};
+ const p=pop();map.open.add(p);h=185;fitPop(map,p);assert.equal(p.options.maxHeight,81,'185 - 104');assert.equal(p.u,1,'y se vuelve a acomodar (update: layout, posición y autoPan)');
+ h=460;fitPop(map,p);assert.equal(p.options.maxHeight,320,'al crecer vuelve al tope');assert.equal(p.u,2);
+ const shut=pop();fitPop(map,shut);assert.equal(shut.u,0,'una lista cerrada no se toca');assert.doesNotThrow(()=>fitPop(map,null),'sin lista todavía');
+ assert.ok(app.includes("map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));"),'cada cambio de tamaño del mapa la acomoda');
+ assert.ok(app.includes("==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)})"),'la lista abierta queda guardada');
 });

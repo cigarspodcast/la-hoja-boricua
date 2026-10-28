@@ -1,0 +1,18 @@
+LHB-93: the language switch's width with each label, measured on production (https://lahojaboricua.com/#/catalogo,
+main 8f127a0) in the built-in browser at 2026-10-28 about 16:47Z, after document.fonts reported "loaded" (Figtree 600 13px).
+Method: getBoundingClientRect().width of #langSwitch after setting its innerHTML to each label wire() writes.
+Counting basis: CSS pixels of the button box, border and padding included (styles.css *{box-sizing:border-box}).
+
+400 px and wider (full name, padding 0 12px):   "English" 69.9   "Espanol" (Español) 73.7
+under 400 px (code, padding 0 10px):            "EN" 39.9        "ES" 37.7
+empty (the button as main ships it, before wire() fills it): 25.6
+
+Before this change the button shipped hidden and empty; wire() (DOMContentLoaded, after the deferred scripts) un-hid it
+and filled it, so the 70 to 74 px button appeared after first paint and moved the controls beside it (Lighthouse: a 0.007
+shift of div.top-actions in 4 of 5 runs, evidence/lhb-90-perf.txt).
+After: index.html ships it visible with the Spanish-default content ("English" / "EN", lang en, aria-label English),
+which is exactly what wire() writes for a Spanish reader, so nothing changes for them; for an English reader wire()
+writes "Español" / "ES". min-width 74px (and 40px under 400 px) holds the wider of the two, so the swap does not move
+the neighbours. Visible change: a Spanish reader's button grows from 69.9 to 74 px at 400 px and wider; under 400 px it shows EN at
+39.9 px, which min-width 40 leaves as is. An English reader's button is unchanged at 400 px and wider (73.7 to 74).
+Under 400 px an English reader's ES grows from 37.7 to 40 px.

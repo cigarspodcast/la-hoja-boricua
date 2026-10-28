@@ -230,6 +230,10 @@ details.edit .form{padding:6px 0 14px}
 .leaf-pin{background:none;border:0}
 .leaf-pin svg{width:26px;height:34px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));transition:transform .2s}
 .leaf-pin:hover svg,.leaf-pin:focus svg{transform:scale(1.15)}
+/* LHB-87: varios lugares juntos, un círculo con su número (tocarlo acerca el mapa) */
+.pin-group{background:none;border:0}
+.pin-group span{width:36px;height:36px;box-sizing:border-box;border-radius:50%;display:grid;place-items:center;background:var(--flam);color:#fff;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);font:700 14px/1 var(--sans)}
+.pin-group:focus span,.pin-group:hover span{outline:2px solid var(--gold);outline-offset:2px}
 .volky-pin{background:none;border:0}
 .volky.mini{width:66px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
 .list-leaf{flex:none;width:22px}
@@ -275,11 +279,13 @@ h1 em,h2 em,.brand-name em,.splash-name em{font-style:normal;font-weight:400;col
 .icon-btn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:1px solid var(--line);color:var(--cream);text-decoration:none;padding:0;cursor:pointer}
 .icon-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 /* LHB-36: el selector de idioma, del alto de los botones redondos; sin display, el atributo hidden lo esconde */
-.lang-switch{height:36px;padding:0 12px;border-radius:18px;background:var(--card);border:1px solid var(--line);color:var(--cream);font:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;cursor:pointer}
+/* LHB-93: it ships visible with the Spanish-default label, so it is in the first paint; min-width holds the wider name
+   (Español 73.7 px, EN 39.9 px, measured) so wire() swapping the label for an English reader moves nothing */
+.lang-switch{height:36px;min-width:74px;padding:0 12px;border-radius:18px;background:var(--card);border:1px solid var(--line);color:var(--cream);font:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;cursor:pointer}
 /* below 400px the full name does not fit beside the brand: the switch shows the two-letter code (its aria-label keeps the name);
    below 360px the wordmark is hidden from sight but kept as the brand link's accessible name (LHB-88) */
 .lang-switch .ls-short{display:none}
-@media (max-width:399px){.lang-switch{padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}
+@media (max-width:399px){.lang-switch{min-width:40px;padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}
 @media (max-width:359px){.brand-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
 .top-actions{gap:8px}
 button.row{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}

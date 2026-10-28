@@ -1,0 +1,47 @@
+✔ LHB-87: groupPins junta los pines que se tocan, hasta que ninguna caja toca a otra, y no pierde ni repite ninguno (16.7526ms)
+✔ LHB-87: el mapa pinta grupos con su número, que acercan; la lista sigue teniendo todos los lugares (8.4987ms)
+✖ LHB-87: tocar grupos con los lugares de verdad, en mapas de varias medidas, siempre termina en pines sueltos o en una lista (2.3429ms)
+✖ LHB-87 (Codex r2): la lista de un grupo cabe en el mapa: su alto con scroll es el del mapa menos lo fijo del popup (0.5617ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 2
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 351.8755
+
+✖ failing tests:
+
+test at test\site.test.js:3771:1
+✖ LHB-87: tocar grupos con los lugares de verdad, en mapas de varias medidas, siempre termina en pines sueltos o en una lista (2.3429ms)
+  AssertionError [ERR_ASSERTION]: popMaxH en app.js
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-87-wt\test\site.test.js:3773:71)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3790:1
+✖ LHB-87 (Codex r2): la lista de un grupo cabe en el mapa: su alto con scroll es el del mapa menos lo fijo del popup (0.5617ms)
+  AssertionError [ERR_ASSERTION]: POP_FIXED y popMaxH
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-87-wt\test\site.test.js:3791:134)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

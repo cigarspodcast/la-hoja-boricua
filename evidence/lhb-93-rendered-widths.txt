@@ -1,0 +1,23 @@
+LHB-93: rendered geometry of the language switch on the branch preview, after Codex round 1 (PASS).
+Measured 2026-10-28 between about 17:41Z and 17:45Z in the built-in browser, emulated viewport, cache lhb-v81,
+https://lhb-93-switch-shift.la-hoja-boricua.pages.dev/ , after document.fonts.ready.
+Why: round 1 noted the LHB-93 test reads CSS text, not rendered boxes, and that 320/360 px rendering was NOT VERIFIED
+by the reviewer (no browser in its sandbox). This file is that rendered check. It is not a regression test.
+
+Counting basis: getBoundingClientRect of #langSwitch and div.top-actions, CSS px, rounded to 0.1;
+sw = document.documentElement.scrollWidth (equal to the viewport width means no horizontal page scroll).
+
+viewport  reader   html lang  button text  button width  top-actions left..right  sw
+320       English  en         ES           40.0          132.0..304.0             320
+320       Spanish  es-PR      EN           40.3          131.7..304.0             320
+360       Spanish  es-PR      EN           40.3          171.7..344.0             360
+412       Spanish  es-PR      English      74.0          190.0..396.0             412
+412       English  en         Espanol      74.1          189.9..396.0             412
+
+At 360 px the wordmark is shown (its text ends at x=159.7), 12 px left of the switch at 171.7.
+For an English reader the switch's swap (HTML ships the Spanish reader's EN / English) moves its neighbours by
+0.3 px under 400 px and 0.1 px at 412 px (the content is wider than the min-width by that much). Lighthouse on the
+branch (lhb-93-perf.txt) ran as a Spanish reader, where nothing is swapped.
+Accessible name and lang after the switch: Spanish reader aria-label English lang en; English reader aria-label
+Espanol (written with n-tilde on the page) lang es.
+Not covered: an actual screen reader announcement; a Figtree fallback-font first paint (fonts were loaded here).

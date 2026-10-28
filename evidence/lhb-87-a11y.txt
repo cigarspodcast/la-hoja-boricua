@@ -1,0 +1,23 @@
+LHB-87 Proof: Lighthouse 13.6.0 mobile accessibility of /#/lugares, the branch preview beside production.
+Run 2026-10-28 16:41 to 16:42Z under host claim lhb-87-a11y (PRODUCER), one Lighthouse process per row, headless Chrome.
+Branch: lhb-87-map-groups 637e20a (cache lhb-v80), deploy https://758536b3.la-hoja-boricua.pages.dev. Production: main 8f127a0 (lhb-v79).
+Counting basis: axe nodes per failing audit as Lighthouse reports them; weight is the audit's weight in the score.
+
+a11y-branch: https://758536b3.la-hoja-boricua.pages.dev/#/lugares, fetched 2026-10-28T16:41:19.436Z, final URL https://758536b3.la-hoja-boricua.pages.dev/#/lugares, accessibility score 100
+  target-size: score 1, mode binary, nodes 0
+a11y-prod: https://lahojaboricua.com/#/lugares, fetched 2026-10-28T16:41:57.506Z, final URL https://lahojaboricua.com/#/lugares, accessibility score 96
+  FAIL target-size (weight 7): 23 nodes
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 14px by 17px, should be at least 24px by 24px)   Ta
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 26px by 5px, should be at least 24px by 24px)   Tar
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 1px by 1px, should be at least 24px by 24px)   Targ
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 26px by 8px, should be at least 24px by 24px)   Tar
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 26px by 1px, should be at least 24px by 24px)   Tar
+  target-size: score 0, mode binary, nodes 23
+
+Result: target-size passes on the branch (0 nodes, accessibility score 100) and fails on production (23 map markers, 96).
+
+Live read on the same preview in the built-in browser (about 16:43Z): at the opening island view, 17 single pins and 7
+numbered groups (7, 6, 3, 2, 2, 2, 2), 41 places in all, each group titled "{n} places here: zoom in" with tabIndex 0.
+Tapping the group of 7 zoomed the map in (no popup); after the zoom, 39 single pins and 1 group of 2 (41 in all).
+A reload at the pane's wider width (about 800 px) opened the island view with numbered groups, one of 20 around San Juan,
+and the other pins single (read from a screenshot, not counted).

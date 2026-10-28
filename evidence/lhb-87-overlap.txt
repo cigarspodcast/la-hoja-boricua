@@ -1,0 +1,10 @@
+places with coordinates 41
+zoom  pins overlapping (before)  markers after grouping  groups  markers overlapping (after)
+   8                         39                       9       6                            0
+   9                         34                      15       7                            0
+  10                         28                      18       7                            0
+  11                         24                      24       7                            0
+  12                         24                      25       7                            0
+  13                         21                      28       7                            0
+  14                         11                      33       3                            0
+  15                          7                      37       2                            0

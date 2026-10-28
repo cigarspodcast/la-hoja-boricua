@@ -1,0 +1,11 @@
+M1 the button ships hidden again                         rc 1 fail 1 -> RED
+M2 the HTML label differs from what wire() writes        rc 1 fail 1 -> RED
+M3 the HTML short code differs                           rc 1 fail 1 -> RED
+M4 the HTML lang differs                                 rc 1 fail 1 -> RED
+M5 switched off, wire() leaves it visible                rc 1 fail 1 -> RED
+M6 min-width under the widest name (70px)                rc 1 fail 1 -> RED
+M7 min-width far over it (80px, a visible change)        rc 1 fail 1 -> RED
+M8 the short min-width under EN (36px)                   rc 1 fail 1 -> RED
+M9 no global border-box                                  rc 1 fail 1 -> RED
+baseline after restore: rc 0
+RESULT 9 of 9 mutations red

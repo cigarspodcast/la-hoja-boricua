@@ -1,0 +1,47 @@
+✖ LHB-87: groupPins junta los pines que se tocan, hasta que ninguna caja toca a otra, y no pierde ni repite ninguno (4.0068ms)
+✖ LHB-87: el mapa pinta grupos con su número, que acercan; la lista sigue teniendo todos los lugares (0.6377ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 188.8766
+
+✖ failing tests:
+
+test at test\site.test.js:3673:1
+✖ LHB-87: groupPins junta los pines que se tocan, hasta que ninguna caja toca a otra, y no pierde ni repite ninguno (4.0068ms)
+  AssertionError [ERR_ASSERTION]: pinBox y groupPins en app.js
+      at pins87 (C:\Users\Owner\lhb-87-wt\test\site.test.js:3672:165)
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-87-wt\test\site.test.js:3673:152)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3687:1
+✖ LHB-87: el mapa pinta grupos con su número, que acercan; la lista sigue teniendo todos los lugares (0.6377ms)
+  AssertionError [ERR_ASSERTION]: se reagrupa en cada zoom
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-87-wt\test\site.test.js:3688:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
