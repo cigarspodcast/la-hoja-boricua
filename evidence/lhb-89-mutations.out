@@ -1,0 +1,10 @@
+M1 never sets aria-labelledby                    rc 1 fail 1 -> RED
+M2 looks for the wrong heading class             rc 1 fail 1 -> RED
+M3 names the dialog with an empty title          rc 1 fail 1 -> RED
+M4 overwrites a heading id it already has        rc 1 fail 1 -> RED
+M5 ignores a name Clerk already gave             rc 1 fail 1 -> RED
+M6 one id for every title                        rc 1 fail 1 -> RED
+M7 opening sign-in does not watch the dialog     rc 1 fail 1 -> RED
+M8 the watcher never lets go                     rc 1 fail 1 -> RED
+baseline after restore: rc 0
+RESULT 8 of 8 mutations red
