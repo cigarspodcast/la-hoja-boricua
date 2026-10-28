@@ -1,0 +1,25 @@
+-- LHB-56: seguir a otras personas (estilo Instagram: una sola vía, sin aprobación). Una fila por par: follower_id sigue a followee_id.
+-- Los dos lados son user_id de profiles; si se borra un perfil, sus filas desaparecen de los dos lados (ON DELETE CASCADE). Los conteos se calculan de esta tabla, no se guardan.
+-- Nada se rellena: tabla nueva. 0001 a 0003 se quedan como se aplicaron.
+
+CREATE TABLE follows (
+  follower_id TEXT NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+  followee_id TEXT NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (follower_id, followee_id),
+  CHECK (follower_id <> followee_id)
+);
+
+-- quién me sigue (por fecha, la más nueva primero) y a quién sigo
+CREATE INDEX follows_by_followee ON follows (followee_id, created_at DESC);
+CREATE INDEX follows_by_follower ON follows (follower_id, created_at DESC);
+
+-- un renglon por cada seguir NUEVO (lo anota el disparador de abajo, en la misma sentencia que inserta la fila); dejar de seguir no lo borra, para que el tope por hora no se reinicie al dejar de seguir y volver a seguir. Se podan los de mas de una hora.
+CREATE TABLE follow_events (
+  follower_id TEXT NOT NULL REFERENCES profiles(user_id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX follow_events_by_follower ON follow_events (follower_id, created_at);
+
+-- la fila y su registro nacen juntos o no nacen: un seguir rechazado o repetido no gasta cupo por hora
+CREATE TRIGGER follows_event AFTER INSERT ON follows BEGIN INSERT INTO follow_events (follower_id, created_at) VALUES (NEW.follower_id, NEW.created_at); END;

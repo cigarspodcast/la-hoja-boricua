@@ -1,0 +1,15 @@
+baseline (0, [])
+G1 motor: un PUT sin respuesta no se recuerda -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 7): un PUT sin respuesta que sí llegó no hace que el teléfono borre lo que otro volvió a agregar; uno que no llegó no deshace un b
+G2 motor: con un PUT sin respuesta siempre se descarta la base (deshace borrados) -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 7): un PUT sin respuesta que sí llegó no hace que el teléfono borre lo que otro volvió a agregar; uno que no llegó no deshace un b
+G5 motor: tras aplicar no se limpia el PUT sin respuesta -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 7): un PUT sin respuesta que sí llegó no hace que el teléfono borre lo que otro volvió a agregar; uno que no llegó no deshace un b
+G1 puerta: el corazon de las tarjetas escribe sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+G2 puerta: el sello escribe sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+G5 puerta: la estrella escribe sin cuenta -> ROJO (bien) fail=1
+      LHB-48: corazón, sello, estrella, humidor, catar y subir pasan por la puerta; ver páginas no
+restaurado (0, [])
+mutaciones: 159 sobrevivieron o con error: 0

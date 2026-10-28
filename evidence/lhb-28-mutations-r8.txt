@@ -1,0 +1,24 @@
+baseline (0, [])
+E4 motor: no se usa la base y lo borrado vuelve -> ROJO (bien) fail=7
+      LHB-31 (Codex ronda 1): si no se puede anotar lo sincronizado, la pasada falla, conserva la dueña y la siguiente no se fía de la base vieja
+      LHB-31 (Codex ronda 2): lo borrado antes de recargar la página sigue siendo un borrado: la marca de pendiente está en la meta, no solo en la pestaña
+      LHB-31 (Codex ronda 2): lo que otra pestaña borra mientras esta espera la red queda marcado como pendiente y el borrado llega a la cuenta
+      LHB-31 (Codex ronda 3): sin poder anotar la dueña no se guarda; la base recordada no pisa una meta más nueva de otra pestaña; una llave __proto__ anid
+R3 motor: tras un fallo al anotar se sigue usando la base vieja -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 1): si no se puede anotar lo sincronizado, la pasada falla, conserva la dueña y la siguiente no se fía de la base vieja
+N4 motor: tras fallar la meta no se usa la base que la pestana recuerda -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 1): si no se puede anotar lo sincronizado, la pasada falla, conserva la dueña y la siguiente no se fía de la base vieja
+N6 hoja: escribir sigue aunque no se pudo apartar lo de la otra cuenta -> ROJO (bien) fail=2
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+      LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja la copia en memoria por vieja cuando otra pestaña escribe, aparta lo de otra
+N10 hoja: se guarda aunque no se pudo anotar la duena -> ROJO (bien) fail=2
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+      LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja la copia en memoria por vieja cuando otra pestaña escribe, aparta lo de otra
+N12 motor: la base recordada pisa una meta mas nueva de otra pestana -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 3): sin poder anotar la dueña no se guarda; la base recordada no pisa una meta más nueva de otra pestaña; una llave __proto__ anid
+N14 hoja: una escritura rechazada deja la copia en memoria con el cambio rechazado -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja la copia en memoria por vieja cuando otra pestaña escribe, aparta lo de otra
+N16 motor: un telefono vacio por perdida usa la base recordada y no trae la cuenta -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 4): un teléfono que se quedó vacío por pérdida trae la cuenta aunque la pasada anterior no pudo anotar la meta
+restaurado (0, [])
+mutaciones: 140 sobrevivieron o con error: 0
