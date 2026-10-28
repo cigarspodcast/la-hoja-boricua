@@ -1,0 +1,20 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and a D1 database). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/la-hoja-boricua/.claude/worktrees/lhb-40-58-profiles-5a5914 (branch claude/lhb-40-passport-page). origin/main is merged in, so the diff below, origin/main..HEAD (evidence/ excluded), holds only this branch's changes. This is Codex TIER 2, round 1 of LHB-40.
+
+LHB-40, "P3 Public passport page /u/<handle>". Ticket pins:
+- Shows avatar, display name, @handle, bio, favorite brand; counts (public catas, passport stamps by kind); a grid of public catas; tapping one opens a detail card (stars, tags, notes).
+- Reads only entries with `publica: true` from the stored Mi Hoja document (table mihoja, column doc, the client's JSON), plus the profile; never private data.
+- Open Graph and Twitter tags: title "@handle en La Hoja Boricua", image the first public photo or else the site's og.jpg (no on-the-fly image rendering).
+- noindex, follow at launch.
+- A hidden or missing profile returns 404; a "Reportar" link mails the contact address; profiles.hidden takes a page down.
+
+Builder decisions (recorded on the ticket): og:image is always og.jpg, because an entry's `foto` is a key into the phone's IndexedDB (no server photo exists until LHB-35); the public read is one function, functions/_lib/passport.js publicPassport(), which the next ticket (LHB-58, GET /api/u/<handle>) reuses, returning { uid, view } where uid is for the caller only and never sent; display name is first name plus last initial built at read time (publicName), null without both names; stamp counts count the stored stamp keys per kind (the app also checks them against the catalog; the server has none); the service worker never answers /u/ (network only); Reportar mails sergio@cigarspodcast.com (the contact in site/privacidad.html); the page is Spanish only; the stylesheet is site/u.css (outside /u/*). No JavaScript on the page; the detail card opens with :target. Responses carry cache-control no-store, X-Robots-Tag, and a CSP with default-src 'none'.
+
+Evidence (runner output): evidence/lhb-40-tests-red.txt (the new tests red on origin/main), evidence/lhb-40-tests-merged.txt (249 of 249 after merging main), evidence/lhb-40-mutations.txt (20 of 20 mutations red), evidence/lhb-40-local-render.txt (wrangler pages dev, seeded local D1: 200, 404 for hidden and missing, no private strings). Your sandbox cannot spawn Python (EPERM), so the full suite shows 4 fewer passes there; that is expected.
+
+Look for: any path by which a private entry, field or profile column reaches the HTML (or the view object a JSON endpoint would send); HTML or attribute injection (every interpolation; the mailto href; the avatar URL; og/twitter meta content; newline handling); a hidden profile still reachable or distinguishable from a missing one; routing problems (Pages Functions [handle].js params, _routes.json, /u/u.css-like collisions, trailing slash, encoded handles); the service worker change; D1 errors leaking; CSP blocking the page's own stylesheet or avatar; and tests that would pass on broken code.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run `node --test --test-timeout=60000 test/site.test.js`. The diff is embedded below so the review can proceed even without a shell.
+
+DIFF (git diff origin/main..HEAD -- . ':!evidence'):
