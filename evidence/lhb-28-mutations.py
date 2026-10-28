@@ -185,7 +185,7 @@ MUTS = [
     ('W10 hoja: el panel de respaldo no muestra el estado', HO, "${syncLine()}</section>", "</section>"),
     ('W11 hoja: el estado no se repinta al cambiar', HO, "onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},", ""),
     ('W12 hoja: el aviso de respaldo dice que todo vive solo en el telefono', HO, "Tus catas y tu humidor están en tu cuenta.", "Tus catas y tu humidor viven solo en este teléfono."),
-    ('W13 cache: el shell se publica con la version de antes', SW, "const VERSION='lhb-v59';", "const VERSION='lhb-v55';"),
+    ('W13 cache: el shell se publica con la version de antes', SW, "const VERSION='lhb-v65';", "const VERSION='lhb-v64';"),
     ('W14 hoja: api no manda las cabeceras de mas', HO, ",...(extra||{})}", "}"),
     ('W15 hoja: lo que llega no se guarda por write', HO, "ST=normalize(d);return write(ST)}", "ST=normalize(d);return true}"),
     # la puerta y el respaldo
