@@ -1,0 +1,7 @@
+baseline (0, [])
+P27 mayusculas: con muchas letras fuera del ASCII se prueba solo lo escrito -> ROJO (bien) fail=1
+      LHB-57 (Codex ronda 1): sin importar mayúsculas también para Á, ñ, É: cada combinación de las letras fuera del ASCII
+H15 pantalla: el temporizador de una pantalla ya cerrada sigue buscando -> ROJO (bien) fail=1
+      LHB-57 (Codex ronda 1): la pantalla Personas: escribir descarta lo que iba en camino y su Ver más; un temporizador de otra pantalla no hace nada
+restaurado (0, [])
+mutaciones: 45 sobrevivieron o con error: 0

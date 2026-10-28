@@ -273,12 +273,39 @@ Object.keys(ACTIONS).forEach(k=>CUENTA.register(k,arg=>ACTIONS[k](arg)));
 const gate=(act,arg,el)=>CUENTA.quick(()=>ACTIONS[act](arg,el),{inPlace:true,act,arg});
 setTimeout(()=>CUENTA.resume(),0);
 /* ---------- Mi Hoja ---------- */
-const SUBS=[['humidor','Humidor'],['diario','Diario'],['pasaporte','Pasaporte'],['favoritos','Favoritos'],['perfil','Perfil']];
+const SUBS=[['humidor','Humidor'],['diario','Diario'],['pasaporte','Pasaporte'],['favoritos','Favoritos'],['personas','Personas'],['perfil','Perfil']];
 const subnav=cur=>`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1><p><a class="lbtn" href="#/mihoja/editar" id="mhEdit">Editar perfil</a></p></header><nav class="subnav" aria-label="Mi Hoja">${SUBS.map(([k,n])=>`<a href="#/mihoja/${k}" ${k===cur?'aria-current="page"':''}>${n}</a>`).join('')}</nav>${backupBanner()}`;
 /* LHB-55: #/mihoja/editar abre el formulario de editar perfil por la misma puerta; al guardar (done) vuelve a Perfil */
 function vMiHoja(sub){requireAccount(()=>vMiHojaIn(sub),sub==='editar'?{edit:true}:undefined)}
 function vMiHojaIn(sub){sub=sub||'humidor';SYNC.isolate();SYNC.run('mi-hoja',{minAge:20e3});if(sub==='editar'){location.hash='#/mihoja/perfil';return}if(sub==='perfil'){A.vPerfil();bindBackup();return}
- ({humidor:vHumidor,diario:vDiario,pasaporte:vPasaporte,favoritos:vFavoritos}[sub]||vHumidor)();bindBackup()}
+ ({humidor:vHumidor,diario:vDiario,pasaporte:vPasaporte,favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)();bindBackup()}
+/* ---------- Personas (LHB-57): buscar a otras personas por @ o por nombre ---------- */
+const PQ_MIN=2;
+/* la misma regla que el servidor (functions/_lib/people.js): 2 caracteres o más, sin contar el @ de entrada */
+const pqText=q=>String(q==null?'':q).trim().replace(/^@/,'').replace(/\s+/g,' ');
+const pqOk=q=>[...pqText(q)].length>=PQ_MIN;
+const CLERK_IMG_URL='https://img.clerk.com/';
+/* una fila de resultado: solo lo público (nombre público y @) y la foto si es de Clerk; todo escapado */
+const personRow=p=>{const nm=p&&(p.display_name||('@'+p.handle))||'',ini=[...String(nm.replace(/^@/,''))][0]||'?',pic=p&&typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG_URL)?p.avatar_key:'';
+ return `<li class="person" data-handle="${esc(p.handle)}"><span class="ob-pic-img person-img" aria-hidden="true">${pic?`<img src="${esc(pic)}" alt="" loading="lazy">`:esc(ini.toUpperCase())}</span><span class="person-t"><b>${esc(nm)}</b><span class="s">@${esc(p.handle)}</span></span></li>`};
+function vPersonas(){
+ view.innerHTML=`${subnav('personas')}<form class="form" id="psF" role="search" novalidate><div class="field"><label for="psQ">Busca por @ o por nombre</label><input id="psQ" type="search" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ej. ana o @tabaquero_pr"></div><button class="btn" type="submit" id="psGo">Buscar</button></form>
+ <p class="hint" id="psH" aria-live="polite">Escribe al menos 2 letras.</p><ul class="people" id="psL"></ul><button class="lbtn" type="button" id="psMore" hidden>Ver más</button>`;
+ const form=$('#psF');let seq=0,next=null,last='',timer=0;
+ const say=m=>{$('#psH').textContent=m||''};
+ const run=async more=>{if($('#psF')!==form)return;const q=pqText($('#psQ').value);
+  if(!pqOk(q)){seq++;next=null;$('#psL').innerHTML='';$('#psMore').hidden=true;say('Escribe al menos 2 letras.');return}
+  const mine=++seq;if(!more){next=null;$('#psL').innerHTML=''}$('#psMore').hidden=true;say('Buscando…');
+  let r;try{const C=await clerk();r=await api(C,'GET','/api/people?q='+encodeURIComponent(q)+(more&&next?'&cursor='+encodeURIComponent(next):''))}catch(x){r={status:0,body:{}}}
+  /* una respuesta vieja (otra búsqueda, otra pantalla) no pinta nada */
+  if($('#psF')!==form||mine!==seq)return;
+  if(r.status!==200||!Array.isArray(r.body.people)){say(r.status===400?'Escribe al menos 2 letras.':'No pudimos buscar. Intenta otra vez.');return}
+  last=q;next=r.body.next||null;$('#psL').insertAdjacentHTML('beforeend',r.body.people.map(personRow).join(''));
+  const n=$('#psL').children.length;say(n||next?'':'No encontramos a nadie con ese nombre.');$('#psMore').hidden=!next};
+ form.onsubmit=e=>{e.preventDefault();clearTimeout(timer);return run(false)};
+ /* al teclear, lo que estaba en camino ya no vale: ni su respuesta ni su "Ver más" */
+ $('#psQ').oninput=()=>{clearTimeout(timer);seq++;next=null;$('#psMore').hidden=true;timer=setTimeout(()=>run(false),350)};
+ $('#psMore').onclick=()=>run(true)}
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);
  view.innerHTML=`${subnav('humidor')}
  <div class="hum-sum"><div class="stat"><b>${tot}</b><span>cigarros</span></div><div class="stat"><b>${s.humidor.length}</b><span>vitolas</span></div><button class="btn" type="button" data-sheet="humidor">+ Añadir</button></div>
