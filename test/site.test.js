@@ -318,7 +318,7 @@ test('LHB-30: cada campo descriptivo de artesanos, cigarros y lugares tiene su _
   if(skip.has(id)){assert.ok(!en.length&&!('traduccion' in r),id+': está en la lista sin traducir pero trae inglés');continue}
   if(!has.length)continue;
   assert.ok(['borrador','revisada'].includes(r.traduccion),id+': traduccion '+r.traduccion);
-  for(const k of has){const v=r[k+'_en'];assert.ok(typeof v==='string'&&v.trim(),id+': falta '+k+'_en');assert.ok(!v.includes('—'),id+': '+k+'_en con raya larga');f0++}
+  for(const k of has){const v=r[k+'_en'];assert.ok(typeof v==='string'&&v.trim(),id+': falta '+k+'_en');assert.ok(!v.includes('\u2014'),id+': '+k+'_en con raya larga');f0++}
   for(const k of ks)if(!has.includes(k))assert.ok(!(k+'_en' in r),id+': '+k+'_en sin '+k);
   n++;
  }
