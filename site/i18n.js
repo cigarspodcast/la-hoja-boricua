@@ -1353,7 +1353,7 @@ function t(k,v,fb){let s=T[lang][k];if(s==null)s=T.es[k];if(s==null)return fb!=n
 function set(l){try{w.localStorage.setItem('lhb_lang',l)}catch(e){}w.location.reload()}
 /* LHB-29: index.html trae el español; en inglés se cambia cada [data-i18n] (su HTML) y cada [data-i18n-attr] ("atributo:clave") */
 function apply(d){if(lang==='es')return;d.querySelectorAll('[data-i18n]').forEach(el=>{el.innerHTML=t(el.getAttribute('data-i18n'))});d.querySelectorAll('[data-i18n-attr]').forEach(el=>{for(const p of el.getAttribute('data-i18n-attr').split(';')){const i=p.indexOf(':');if(i>0)el.setAttribute(p.slice(0,i),t(p.slice(i+1)))}})}
-function wire(){apply(w.document);const b=w.document.getElementById('langSwitch');if(!b||!ENABLED)return;b.hidden=false;b.textContent=lang==='en'?'Español':'English';b.lang=lang==='en'?'es':'en';b.onclick=()=>set(lang==='en'?'es':'en')}
+function wire(){apply(w.document);const b=w.document.getElementById('langSwitch');if(!b||!ENABLED)return;b.hidden=false;const nm=lang==='en'?'Español':'English';b.innerHTML='<span class="ls-long">'+nm+'</span><span class="ls-short" aria-hidden="true">'+(lang==='en'?'ES':'EN')+'</span>';b.setAttribute('aria-label',nm);b.lang=lang==='en'?'es':'en';b.onclick=()=>set(lang==='en'?'es':'en')}
 if(w.document){if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',wire);else wire()}
 w.LHB_I18N={t,lang,set,pick,ENABLED,T,apply};
 })(window);

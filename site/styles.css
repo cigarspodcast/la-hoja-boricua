@@ -276,6 +276,11 @@ h1 em,h2 em,.brand-name em,.splash-name em{font-style:normal;font-weight:400;col
 .icon-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 /* LHB-36: el selector de idioma, del alto de los botones redondos; sin display, el atributo hidden lo esconde */
 .lang-switch{height:36px;padding:0 12px;border-radius:18px;background:var(--card);border:1px solid var(--line);color:var(--cream);font:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;cursor:pointer}
+/* below 400px the full name does not fit beside the brand: the switch shows the two-letter code (its aria-label keeps the name);
+   below 360px the wordmark is hidden from sight but kept as the brand link's accessible name (LHB-88) */
+.lang-switch .ls-short{display:none}
+@media (max-width:399px){.lang-switch{padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}
+@media (max-width:359px){.brand-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
 .top-actions{gap:8px}
 button.row{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
 .rowlink{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-decoration:none;color:inherit}
