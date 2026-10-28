@@ -1,0 +1,562 @@
+text: Favorito
+text: sabor
+text: Añadir a tu pantalla
+text: Compartir
+text: ⬆️ y luego
+text: “Añadir a pantalla de inicio”
+text: ) y toca
+text: “Instalar app”
+text: “Añadir a pantalla de inicio”
+text: Entendido
+text: Menú
+text: ¿Qué quieres hacer?
+text: Empezar una cata guiada
+text: Añadir al humidor
+text: Del catálogo o uno tuyo, con cantidad y fecha
+text: Subir una vitola
+text: Con foto, a tu catálogo personal
+text: Cigarro
+text: Escoge del catálogo…
+text: Otro (escribir)
+text: Nombre del cigarro
+text: Cantidad
+text: Fecha
+text: Nota (opcional)
+text: ¿Un respaldo?
+text: Tus catas y tu humidor están en tu cuenta. Si quieres, guarda también una copia en un archivo.
+text: Exportar ahora
+text: Luego
+text: Respaldo
+text: ⬇︎ Exportar respaldo
+text: ⬆︎ Importar respaldo
+text: Las fotos de tus subidas se quedan en este teléfono.
+text: Mi Hoja
+text: Lo
+text: tuyo
+text: Mi Hoja
+text: perfil
+text: perfil
+text: perfil
+text: Ahora pedimos tu nombre, tu apellido, tu género y tu fecha de nacimiento. Es un solo paso y no se repite.
+text: Tu foto
+text: Tu @ (nombre de usuario)
+text: De 3 a 20 letras (a-z), números o _. Lo pueden ver los demás.
+text: Tu nombre
+text: Tu apellido
+text: Tu género
+text: Masculino
+text: Femenino
+text: Tu fecha de nacimiento
+text: Tienes que tener 21 años o más. Tu fecha de nacimiento y tu género son privados: solo los ves tú. Los demás ven tu nombre con la inicial de tu apellido (por ejemplo, Ana M.) y tu @.
+text: Una descripción corta (opcional)
+text: Tu marca favorita (opcional)
+text: Lee qué guardamos y qué ven los demás en
+text: Privacidad y cuenta
+text: Cancelar
+text: Mi Hoja
+text: Lo
+text: tuyo
+text: Editar perfil
+text: Busca por @ o por nombre
+text: Buscar
+text: Escribe al menos 2 letras.
+text: Ver más
+text: cigarros
+text: vitolas
+text: desde
+text: Catar
+text: Editar
+text: Tu humidor está vacío.
+text: Añade cigarros del catálogo o uno tuyo.
+text: Nueva cata guiada
+text: Pública
+text: Detalle de la cata
+text: Ver cigarro
+text: Borrar entrada
+text: Tu diario está vacío.
+text: Haz una cata guiada y se guarda aquí.
+text: La Ruta
+text: del Tabaco
+text: de pueblos
+text: Sella artesanos, cigarros o lugares y su pueblo se enciende. Toca un pueblo para ver qué te falta.
+text: La Ruta del Tabaco
+text: de pueblos encendidos
+text: Ver mi Ruta del Tabaco →
+text: ¡Zona completa!
+text: ¡Wepa!
+text: de
+text: de
+text: Pasaporte
+text: Marca los artesanos que has probado, los cigarros que has catado y los lugares que has visitado. Toca para sellar.
+text: Insignias
+text: de
+text: Zona
+text: Ruta del Tabaco: todos sus pueblos
+text: Cigarros
+text: Toca ♡ en un cigarro para guardarlo.
+text: Artesanos
+text: Toca ♡ en el perfil de un artesano.
+text: Lugares
+text: Toca ♡ en un lugar de la lista o del mapa.
+text: · · Cómo llegar
+text: Cata guiada
+text: Tienes una cata
+text: a medias
+text: va por el paso de .
+text: Seguir con
+text: Empezar
+text: Tus notas (opcional)
+text: Del catálogo
+text: Escoge…
+text: Escribe otro cigarro
+text: Color de la capa
+text: Al ojo y al tacto
+text: Toca en la rueda los aromas que reconozcas.
+text: El tiro en frío
+text: ¿Cómo prendió?
+text: Toca los sabores que sientes en este tercio.
+text: Ceniza
+text: Quemada
+text: Referencia pública de este cigarro: . Lo que cuenta es lo que sientes tú.
+text: ¿Cuánto dura?
+text: ¿Qué sabor te deja?
+text: No marcaste sabores en la rueda.
+text: Tu calificación
+text: Nota final
+text: Día en que lo fumaste
+text: Marca (opcional)
+text: Tu foto (opcional)
+text: Quitar foto
+text: Hacer pública esta cata
+text: Si no la haces pública, solo tú la ves.
+text: Sellar en mi Pasaporte
+text: ‹ Diario
+text: Cata guiada
+text: ‹ Atrás
+text: Saltar a tu nota
+text: Guía general para disfrutar y aprender. Para adultos.
+text: humo
+text: ¿Qué vas a fumar?
+text: Fortaleza
+text: Perfil de sabor (toca uno o más)
+text: Ron
+text: Café
+text: Rones por estilo
+text: Café de Puerto Rico
+text: La mayor parte del café boricua se cultiva en las montañas del centro y el oeste, en pueblos como Yauco, Adjuntas, Jayuya, Lares, Utuado, Maricao, Las Marías y San Sebastián. El perfil cambia con la finca, la altura y el tueste, así que lee la bolsa. Para maridar, el tueste es la mejor guía.
+text: Reglas rápidas
+text: Intensidad con intensidad.
+text: Lo dulce calma la especia.
+text: Un añejo o un café acaramelado suaviza un cigarro pimentoso.
+text: Parecido o contraste.
+text: Busca un sabor en común, como cacao con cacao, o uno que lo complemente.
+text: Limpia el paladar.
+text: Un sorbo de agua entre caladas ayuda a notar los cambios.
+text: Escucha en Cigars Podcast
+text: Lanzamientos, reseñas y cultura del cigarro boricua.
+text: Escúchalo en Spotify
+text: @cigarspodcast
+text: Artículos
+text: Se abren en el sitio de Cigars Podcast (necesitas conexión).
+text: todo
+text: Buscar
+text: Región: todas
+text: Municipio: todos
+text: Toda Fortaleza
+text: resultado
+text: Cigarros
+text: Artesanos
+text: Lugares
+text: Eventos
+text: Nada con esa búsqueda.
+text: Añadir a calendario
+text: Cómo llegar
+text: El evento ancla
+text: Confirma tu asistencia (RSVP)
+text: Cata de las 5 PM: paga con ATH Móvil
+text: Copiar
+text: Añadir a calendario
+text: Cómo llegar
+text: No hay eventos próximos.
+text: Humo y Tambor
+text: Otros eventos
+text: Toca un día marcado para ver sus eventos.
+text: catas
+text: sin conexión
+text: Lista
+text: Calendario
+text: Próximos
+text: No hay actividades próximas.
+text: Tus sugerencias
+text: ＋ Sugerir actividad
+text: Actividad
+text: Fecha
+text: Hora
+text: Lugar
+text: Pueblo
+text: Enlace (IG o web)
+text: Guardar sugerencia
+text: Fuentes
+text: Las cuentas que esta lista sigue para actualizarse.
+text: Compartir ficha
+text: Preparando la imagen…
+text: Compartir
+text: Descargar PNG
+text: No pude crear la imagen.
+text: Pídelo directo
+text: Escríbele ›
+text: Catar
+text: Al humidor
+text: Compartir
+text: Maridaje sugerido
+text: Ron
+text: Café
+text: Ver la guía
+attr: favoritos
+attr: Rueda de sabores: toca los que sientas
+attr: Cerrar
+attr: Menú
+attr: Ej. Robusto que me regalaron
+attr: Menos
+attr: Más
+attr: Dónde lo compraste, para cuándo…
+attr: ej. tabaquero_pr
+attr: Mi Hoja
+attr: ej. ana o @tabaquero_pr
+attr: Ver
+attr: Uno menos de
+attr: Uno más de
+attr: Quitar del humidor
+attr: de 5 estrellas
+attr: Foto de la cata
+attr: Mapa de la Ruta del Tabaco: de pueblos encendidos
+attr: : de
+attr: % del pasaporte
+attr: Ej. Toro de la casa
+attr: Calificación
+attr: estrella
+attr: ¿Lo volverías a fumar? ¿Con qué lo acompañaste?
+attr: Foto de la cata
+attr: Fortaleza
+attr: Perfil de sabor
+attr: Buscar en toda la app…
+attr: Región
+attr: Municipio
+attr: Fortaleza
+attr: de : evento
+attr: Vista
+attr: Ej. Noche de cata
+attr: Ej. 7:00 PM
+attr: https://
+attr: Ficha de con el estilo de La Hoja Boricua
+call: No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.
+call: No hay espacio para guardar. Exporta un respaldo.
+call: No hay espacio para guardar. Exporta un respaldo.
+call: Copiado:
+call: ATH Móvil:
+call: Escoge o escribe el cigarro
+call: Respaldo descargado ✓
+call: Ese archivo no es un respaldo válido
+call: Ese archivo no es un respaldo de La Hoja Boricua
+call: 🏅 Nueva insignia:
+call: ¿Borrar esta entrada del diario?
+call: Escoge o escribe el cigarro
+call: Ponle de 1 a 5 estrellas
+call: Cata guardada en tu diario ✓
+call: Abre el archivo .ics para añadirlo a tu calendario
+call: Falta la actividad o la fecha
+call: Sugerencia guardada
+call: Enlace copiado
+call: Imagen descargada
+head: Maridajes
+head: Buscar
+head: Actividades
+str: Costo: pregunta al organizador
+str: Quitar de
+str: Guardar en
+str: Sellar pasaporte
+str: San Juan
+str: Bayamón
+str: Cataño
+str: Trujillo Alto
+str: Toa Baja
+str: Toa Alta
+str: Manatí
+str: Vega Baja
+str: Vega Alta
+str: Rincón
+str: Añasco
+str: Cabo Rojo
+str: San Germán
+str: San Sebastián
+str: Las Marías
+str: Sabana Grande
+str: Río Grande
+str: Canóvanas
+str: Loíza
+str: Las Piedras
+str: Aguas Buenas
+str: Comerío
+str: San Lorenzo
+str: Juana Díaz
+str: Santa Isabel
+str: Guánica
+str: Peñuelas
+str: Cacao / café
+str: café
+str: Catálogo
+str: Las vitolas hechas en PR
+str: Manos boricuas
+str: Lounges y puntos de venta
+str: Calendario, RSVP y Humo y Tambor
+str: Mi Hoja
+str: Humidor, diario, pasaporte y favoritos
+str: Cata guiada
+str: Paso a paso, con rueda de sabores
+str: Ron y café de Puerto Rico
+str: Escucha en Cigars Podcast
+str: Lanzamientos, reseñas y cultura
+str: En toda la app, con filtros
+str: Añadir a tu pantalla
+str: Menú
+str: Editar en tu humidor
+str: Añadir al humidor
+str: Guardar cambios
+str: Guardar en mi humidor
+str: Añadir al humidor
+str: Humidor actualizado
+str: La Hoja Boricua
+str: La Hoja Boricua
+str: Todavía no has hecho uno.
+str: Tu Mi Hoja está en tu cuenta.
+str: Sincronizando con tu cuenta…
+str: Sin conexión. Tus cambios quedan en este teléfono y pasan a tu cuenta al volver.
+str: No pudimos sincronizar con tu cuenta. Lo intentamos de nuevo en un rato.
+str: Mi Hoja se sincroniza con tu cuenta cuando hay conexión.
+str: Bearer
+str: Tu @ debe tener de 3 a 20 letras (a-z), números o _.
+str: Ese @ está reservado. Escoge otro.
+str: Ese @ ya lo tiene otra persona. Escoge otro.
+str: Escribe tu nombre.
+str: Tu nombre puede tener hasta 50 caracteres.
+str: Tu nombre tiene caracteres que no podemos usar.
+str: Escribe tu apellido.
+str: Tu apellido puede tener hasta 50 caracteres.
+str: Tu apellido tiene caracteres que no podemos usar.
+str: Escoge Masculino o Femenino.
+str: Escoge Masculino o Femenino.
+str: Escribe tu fecha de nacimiento.
+str: Esa fecha de nacimiento no es válida. Revísala.
+str: Esa fecha todavía no llega. Revisa tu fecha de nacimiento.
+str: La Hoja Boricua es para personas de 21 años o más. Todavía no puedes crear tu perfil.
+str: Tu perfil ya está completo.
+str: Espera a que termine lo que está en curso e intenta otra vez.
+str: La descripción puede tener hasta 160 caracteres.
+str: La marca puede tener hasta 60 caracteres.
+str: Tu perfil ya existe, pero no pudimos abrirlo. Intenta otra vez.
+str: Pon una foto para crear tu perfil.
+str: No pudimos usar esa foto. Escoge otra.
+str: Escoge un archivo de imagen, una foto.
+str: No pudimos subir la foto. Intenta otra vez.
+str: Espera a que termine lo que está en curso e intenta otra vez.
+str: Primero crea tu perfil.
+html: Completa tu
+html: Editar
+html: Tu
+str: Crear mi perfil
+str: Tu foto de perfil
+str: Cambiar foto
+str: Elegir foto
+str: Listo, esta es tu foto.
+str: Esta es tu foto de perfil. Puedes escoger otra.
+str: Usamos la foto de tu cuenta. Puedes escoger otra.
+str: Para crear tu perfil necesitas una foto. Escoge una de tu teléfono.
+str: hint hs-ok
+str: hint hs-bad
+str: No pudimos guardar tu perfil. Intenta otra vez.
+str: No pudimos crear tu perfil. Intenta otra vez.
+str: Quitar de
+str: Guardar en
+str: Sellado
+str: Sin sello
+str: Sellar pasaporte
+str: Sello puesto en tu pasaporte
+str: Sello quitado
+str: Escribe al menos 2 letras.
+str: Escribe al menos 2 letras.
+str: No pudimos buscar. Intenta otra vez.
+str: No encontramos a nadie con ese nombre.
+str: Tuyo ·
+str: Primer sello
+str: Tu primer sello
+str: 5 cigarros catados
+str: Amigo artesano
+str: 5 artesanos probados
+str: De jangueo
+str: 5 lugares visitados
+str: Paladar boricua
+str: 15 cigarros catados
+str: Isla recorrida
+str: 15 lugares visitados
+str: Medio pasaporte
+str: La mitad de todos los sellos
+str: Todos los artesanos
+str: Probaste a todos los artesanos
+str: ¡Completa!
+str: de
+str: · sellado
+str: · te falta
+str: Zona completa
+str: Zona completa
+str: Sellado
+str: Sin sello
+str: ¡Lograda!
+str: ¡Lograda!
+str: Suave a media
+str: Media a fuerte
+str: Ligero a medio
+str: Medio a completo
+str: Tu cigarro
+str: Escoge el cigarro que vas a catar. Busca un lugar tranquilo, sin olores fuertes, y ten agua a la mano para limpiar el paladar.
+str: Visual y capa
+str: Aroma en frío
+str: Antes de encender, huele la capa y el pie. Corta la cabeza y da una calada en frío, sin fuego: así pruebas el tiro y sientes los primeros sabores del tabaco.
+str: Primer tercio
+str: Fuma despacio, más o menos una calada por minuto, para que no se caliente. El humo no se inhala: el sabor se aprecia en la boca. Si sueltas un poco de humo por la nariz (retrohalación) vas a notar más aromas.
+str: Segundo tercio
+str: A mitad del cigarro muchas ligas cambian: puede aparecer más dulzor, más especia o más cuerpo. Anota si los sabores evolucionan o se mantienen, y fíjate en la ceniza y en que la quemada vaya pareja.
+str: Tercer tercio
+str: El último tercio suele ser más intenso y concentrado. Si se pone amargo o muy caliente, baja el ritmo. No hay que fumarlo hasta el final: termina cuando deje de disfrutarse.
+str: La Fortaleza es el efecto de la nicotina que sientes en el cuerpo, no el sabor. Va de suave a fuerte. Un cigarro oscuro no siempre tiene más Fortaleza.
+str: El cuerpo es la densidad y el peso del humo en la boca, de ligero a completo, como la diferencia entre leche descremada y crema. Es distinto de la Fortaleza: un cigarro puede tener mucho cuerpo y Fortaleza media.
+str: El final es lo que se queda en la boca después de soltar el humo: cuánto dura y qué sabor deja. Un buen final es limpio y agradable, sin amargor ni aspereza.
+str: Tu nota
+str: Ponle tu calificación y una nota corta. Todo se guarda en tu diario, en este teléfono.
+str: Sin nombre
+str: esa cata
+str: Lo que sientes, con tus palabras
+str: Color de la capa
+str: Brillo sedoso
+str: Venas finas
+str: Venas marcadas
+str: Pareja al tacto
+str: Algo blanda
+str: Algo dura
+str: Fácil
+str: Costó prender
+str: Primeras caladas: intensidad, sabores
+str: Necesitó retoque
+str: Largo del final
+str: Tu cigarro
+str: Cambiar foto
+str: Añadir foto
+str: Empieza aquí
+str: Guardar en mi diario
+str: Siguiente ›
+str: Escoge una imagen.
+str: No pudimos guardar la foto. Intenta otra vez.
+str: No hay espacio para guardar la foto.
+str: Ron blanco
+str: Ligero y limpio, filtrado después de añejarse. En Puerto Rico el ron se añeja por lo menos un año, incluso el blanco.
+str: Con cigarros suaves de capa clara o Connecticut: no tapa los sabores delicados. Mejor con hielo o en un trago sencillo.
+str: Ron dorado u oro
+str: Algo más de barrica: vainilla y caramelo suave.
+str: Con suaves a medios de capa natural o colorado. Acompaña notas de nuez, crema y madera.
+str: Ron añejo
+str: Varios años en roble: caramelo, vainilla, madera tostada y fruta seca.
+str: El maridaje clásico para medios a fuertes de capa habano o corojo: su dulzor equilibra la especia y la madera del tabaco.
+str: Ron muy añejo (reserva)
+str: Más denso y complejo: cuero, cacao y fruto seco.
+str: Para cigarros fuertes y capas maduro u oscuro, sin prisa. Sírvelo solo o con unas gotas de agua.
+str: Ron especiado (spiced)
+str: Contrasta con cigarros pimentosos y acompaña capas maduro con notas dulces. Con un cigarro muy suave, el azúcar puede cansar el paladar.
+str: Café de tueste claro
+str: Más acidez y notas de fruta o flor.
+str: Con cigarros suaves y cremosos, en la mañana.
+str: Café de tueste medio
+str: Balance entre dulzor, caramelo y nuez.
+str: El todoterreno: va con la mayoría de los cigarros medios.
+str: Café de tueste oscuro o espresso
+str: Con cigarros fuertes o maduro. Un cortadito o un colado bien cargado aguanta la intensidad.
+html: Ron, café y
+str: Guía general para acompañar un cigarro con ron y café de Puerto Rico. El gusto manda: prueba y anótalo en tu diario.
+str: Mockingbird: el Short Run de los 10 años de Blackbird
+str: Segovias de Estelí Habano Oscuro Lancero: 93 puntos
+str: Reseñas
+str: Monte & Mística: hecha a mano, con sello boricua
+str: El Pareo Musical
+str: Seis razones para degustar un buen cigarro
+str: El Amor es Amor
+str: Elegante de Boutique: Guía para el Cigar Lounge
+str: Más de Cigars Podcast ›
+str: Visitar Cigars Podcast ›
+html: Escucha en
+str: Lanzamientos, reseñas y cultura del cigarro en Puerto Rico.
+html: Busca en
+str: Cigarros, artesanos, lugares y eventos, con filtros por región, municipio y Fortaleza.
+str: · la Fortaleza filtra cigarros y artesanos
+str: Hora:
+str: La Hoja Boricua ·
+str: PRODID:-//La Hoja Boricua//ES
+str: mié
+str: sáb
+str: Sugerida por ti · pendiente de verificar
+str: Ver enlace
+str: Ver fuente
+html: Eventos y
+str: Lo que viene en la escena del cigarro en PR. Añádelo a tu calendario.
+str: 64px Shrikhand
+str: 600 36px Figtree
+str: 700 30px Figtree
+str: 64px Shrikhand
+str: 600 24px Figtree
+str: HECHO EN PUERTO RICO
+str: 600 20px Figtree
+str: · Foto de la línea
+str: 68px Shrikhand
+str: 56px Shrikhand
+str: 600 34px Figtree
+str: No publicada
+str: No publicada
+str: En verificación
+str: 700 20px Figtree
+str: 700 30px Figtree
+str: 700 30px Figtree
+str: 600 20px Figtree
+str: Prototipo \u2014 información pública, sujeta a verificación
+str: Compartir ficha
+str: Compartir enlace
+str: Copiar enlace
+str: por Instagram
+str: por Facebook
+str: en su tienda en línea
+str: por Instagram
+str: por Facebook
+str: en su sitio web
+str: y sus notas de
+tpl: Añadido: ×
+tpl: la-hoja-boricua-respaldo-.json
+tpl: Importado: + catas, + en humidor
+tpl: Último respaldo: .
+tpl: Tu Mi Hoja está en tu cuenta. Última vez: .
+tpl: https:///npm/@clerk/clerk-js@6/dist/clerk.browser.js
+tpl: https:///npm/@clerk/ui@1/dist/ui.browser.js
+tpl: ¿Se acabaron los ? Se quita del humidor.
+tpl: ¿Quitar del humidor?
+tpl: · te faltan
+tpl: de
+tpl: de
+tpl: Paso de
+tpl: DTSTART:
+tpl: DTEND:
+tpl: RSVP: · ATH Móvil
+tpl: UID:@lahojaboricua.sites.tab.bot
+tpl: DTSTAMP:
+tpl: SUMMARY:
+tpl: LOCATION:
+tpl: DESCRIPTION:
+tpl: URL:
+tpl: la-hoja-boricua-.png
+tpl: · La Hoja Boricua
+tpl: · La Hoja Boricua
+TOTAL 561

@@ -1,0 +1,85 @@
+# LHB-29: lo que test/i18n-scan.js todavía encuentra en site/hoja.js, a propósito.
+# Nombres de pueblos (REG), marcas, clases (hint hs-ok/bad), fuentes del canvas, campos del calendario (ICS),
+# nombres de archivo y URL, y lo que se guarda en español (opciones de la cata y títulos de PASOS, que se muestran con lab()).
+# Una línea por aparición, en el orden del scan. Un texto nuevo en español en hoja.js rompe la prueba.
+text: @cigarspodcast
+attr: https://
+str: San Juan
+str: Bayamón
+str: Cataño
+str: Trujillo Alto
+str: Toa Baja
+str: Toa Alta
+str: Manatí
+str: Vega Baja
+str: Vega Alta
+str: Rincón
+str: Añasco
+str: Cabo Rojo
+str: San Germán
+str: San Sebastián
+str: Las Marías
+str: Sabana Grande
+str: Río Grande
+str: Canóvanas
+str: Loíza
+str: Las Piedras
+str: Aguas Buenas
+str: Comerío
+str: San Lorenzo
+str: Juana Díaz
+str: Santa Isabel
+str: Guánica
+str: Peñuelas
+str: La Hoja Boricua
+str: La Hoja Boricua
+str: Bearer
+str: hint hs-ok
+str: hint hs-bad
+str: Suave a media
+str: Media a fuerte
+str: Ligero a medio
+str: Medio a completo
+str: Tu cigarro
+str: Visual y capa
+str: Aroma en frío
+str: Primer tercio
+str: Segundo tercio
+str: Tercer tercio
+str: Tu nota
+str: Brillo sedoso
+str: Venas finas
+str: Venas marcadas
+str: Pareja al tacto
+str: Algo blanda
+str: Algo dura
+str: Fácil
+str: Costó prender
+str: Necesitó retoque
+str: La Hoja Boricua ·
+str: PRODID:-//La Hoja Boricua//ES
+str: 64px Shrikhand
+str: 600 36px Figtree
+str: 700 30px Figtree
+str: 64px Shrikhand
+str: 600 24px Figtree
+str: 600 20px Figtree
+str: 68px Shrikhand
+str: 56px Shrikhand
+str: 600 34px Figtree
+str: 700 20px Figtree
+str: 700 30px Figtree
+str: 700 30px Figtree
+str: 600 20px Figtree
+tpl: la-hoja-boricua-respaldo-.json
+tpl: https:///npm/@clerk/clerk-js@6/dist/clerk.browser.js
+tpl: https:///npm/@clerk/ui@1/dist/ui.browser.js
+tpl: DTSTART:
+tpl: DTEND:
+tpl: UID:@lahojaboricua.sites.tab.bot
+tpl: DTSTAMP:
+tpl: SUMMARY:
+tpl: LOCATION:
+tpl: DESCRIPTION:
+tpl: URL:
+tpl: la-hoja-boricua-.png
