@@ -1,0 +1,48 @@
+# LHB-83: mobile performance of / with Leaflet off the first load
+
+Tool: Lighthouse 13.6.0, mobile form factor and its default simulated throttling, headless Chrome, on this Windows host.
+Branch: https://a6cfbad2.la-hoja-boricua.pages.dev (Cloudflare Pages preview of the LHB-83/88 commit). Control: https://lahojaboricua.com/ (production, main before this change).
+Runs: 3 cold loads of each, interleaved branch, main, branch, main, branch, main, one Lighthouse process each, under one host claim.
+Figures: median of the 3 runs with min and max. Script counts are per run, from Lighthouse network-requests (basis: requests of resourceType Script).
+Caveat: the preview is served from *.pages.dev and production from the custom domain, both by Cloudflare Pages; the control run on the same day is the fair comparison, LHB-17 is shown for reference.
+
+metric | LHB-17 (production, earlier) | main today (production) | branch (preview)
+--- | --- | --- | ---
+score | 87 [78 to 87] | 85 [83 to 88] | 89 [79 to 90]
+FCP | 999 ms [996 ms to 1005 ms] | 995 ms [973 ms to 995 ms] | 1048 ms [985 ms to 1051 ms]
+LCP | 3249 ms [3246 ms to 3255 ms] | 3245 ms [3223 ms to 3245 ms] | 2562 ms [2485 ms to 2711 ms]
+TBT | 151 ms [126 ms to 373 ms] | 156 ms [87 ms to 222 ms] | 195 ms [188 ms to 452 ms]
+CLS | 0.000 [0.000 to 0.145] | 0.000 [0.000 to 0.158] | 0.000 [0.000 to 0.158]
+Speed Index | 5371 ms [2847 ms to 5396 ms] | 5338 ms [3188 ms to 5463 ms] | 5338 ms [2419 ms to 5388 ms]
+TTFB (server response) | 110 ms [97 ms to 139 ms] | 86 ms [78 ms to 98 ms] | 82 ms [58 ms to 83 ms]
+scripts | 10 scripts, 160108 bytes transferred (run 3) | 10 scripts, 160102 bytes transferred, Leaflet requested: ['vendor-leaflet.js']; 10 scripts, 160062 bytes transferred, Leaflet requested: ['vendor-leaflet.js']; 10 scripts, 160155 bytes transferred, Leaflet requested: ['vendor-leaflet.js'] | 8 scripts, 105946 bytes transferred, Leaflet requested: no; 8 scripts, 105622 bytes transferred, Leaflet requested: no; 8 scripts, 105786 bytes transferred, Leaflet requested: no
+leaflet css | n/a | requested; requested; requested | not requested; not requested; not requested
+
+## Reading (written after the runs; basis: the same 6 JSON reports)
+
+- Leaflet is off the first load: vendor-leaflet.js and vendor-leaflet.css were requested in 3 of 3 main runs and 0 of 3 branch runs.
+- Script count 10 to 8 is TWO removals, only one of them this change: vendor-leaflet.js (44414 bytes transferred in main run 2) and
+  static.cloudflareinsights.com/beacon.min.js (10478 bytes), the Cloudflare Web Analytics beacon, which the production custom domain
+  injects and the *.pages.dev preview does not. So about 44 KB of the roughly 54 KB script drop is this change; the rest is the host.
+- LCP: median 3245 ms on main and 2562 ms on the branch, ranges not overlapping (main 3223 to 3245, branch 2485 to 2711). Score median 85 to 89.
+- TBT did NOT improve: main runs 87, 156, 222 ms; branch runs 195, 188, 452 ms (main-thread work 2.2 s vs 2.5 s in run 2). The cause is not
+  established; the beacon's absence would lower branch TBT, not raise it. FCP is flat (995 vs 1048 ms) and Speed Index is equal (5338 ms).
+- The clean measurement is a rerun on production after merge (same host, beacon on both sides).
+
+## Host claim record
+
+# CLOSED: [touched 2026-10-28T05:49Z] no live run. Closed 2026-10-28T05:49:10Z. LHB lane, LHB-83 LHB-88
+
+Owner: Alfredo Medina
+Session: LHB-83/88 (builder)
+Root: C:\Users\Owner\lhb-83-wt
+Claimed at: 2026-10-28T05:46:13Z
+Expected window: 25 min from the claim time.
+Closes when: the runner process ends (finally rewrites line 1 CLOSED).
+
+## What this claim covers
+
+Lighthouse runs (6 mobile performance runs, branch preview and production interleaved; 2 accessibility runs). Performance is timing-sensitive, so other heavy work on this host would corrupt it.
+
+Runs: [('perf-branch1', 0, 45), ('perf-main1', 0, 17), ('perf-branch2', 0, 19), ('perf-main2', 0, 18), ('perf-branch3', 0, 20), ('perf-main3', 0, 22), ('a11y-branch-home', 0, 18), ('a11y-branch-lugares', 0, 15)]
+

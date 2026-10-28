@@ -1,0 +1,11 @@
+You are reviewing one commit in this repository (La Hoja Boricua, a vanilla JS PWA in site/). Review only; do not edit files. Do not load or run any skills.
+
+Diff to review: git diff 07d33cc a879af8 -- site/app.js site/index.html site/sw.js test/site.test.js
+
+What the change is meant to do:
+1. LHB-83: the home page must not request vendor-leaflet.js or vendor-leaflet.css. The first time a map view opens (drawMap for Lugares, drawRuta for the Ruta del Tabaco), app.js needLeaflet() adds the script and the stylesheet once, the stylesheet before styles.css (styles.css overrides .leaflet-* rules at equal specificity), and the map is drawn after both arrive. A failed load shows the existing offline sketch plus the list, and the next entry to a map view retries. Offline: both files stay in the sw.js SHELL, and offline the app already draws the sketch without Leaflet. Cache bumped to lhb-v70.
+2. LHB-88: the topbar brand link's accessible name must contain its visible text ("La Hoja Boricua" plus "Hecho en Borinquen"); the aria-label "La Hoja Boricua, inicio" was removed.
+
+Look for real defects: a map that never draws or draws twice, a callback that draws into a view the person already left, a race between mode switches (mapa, lista, ruta) while the script is loading, a stylesheet order problem, a promise that can hang, a retry that duplicates tags, anything that breaks offline use after a first visit, and tests that would pass on broken code. Read app.js around vLugares, drawRuta, drawMap and the service worker registration as needed.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

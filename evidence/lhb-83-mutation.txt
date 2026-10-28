@@ -1,0 +1,6 @@
+MUTANT stylesheet appended last (after styles.css): rc 1, ['ℹ fail 1'], ['AssertionError [ERR_ASSERTION]: el estilo de Leaflet va antes de styles.css, que lo ajusta']
+MUTANT Codex r1 P1: stylesheet result ignored: rc 1, ['ℹ fail 1'], ['AssertionError [ERR_ASSERTION]: si el estilo no llega, el mapa no se dibuja']
+MUTANT Codex r1 P2: drawRuta gates on window.L: rc 1, ['ℹ fail 1'], ['AssertionError [ERR_ASSERTION]: drawRuta espera a que Leaflet esté listo (script y estilo)']
+MUTANT Codex r1 P2: drawMap gates on window.L: rc 1, ['ℹ fail 1'], ['AssertionError [ERR_ASSERTION]: drawMap espera a que Leaflet esté listo (script y estilo)']
+MUTANT a failed script is requested again although it loaded: rc 1, ['ℹ fail 1'], ['AssertionError [ERR_ASSERTION]: el script que sí llegó no se pide otra vez']
+restored: True

@@ -1,0 +1,19 @@
+✖ LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega (4.429ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 147.7628
+
+✖ failing tests:
+
+test at test\site.test.js:3346:1
+✖ LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega (4.429ms)
+  ReferenceError: leafOK is not defined
+      at Object.ready (evalmachine.<anonymous>:6:17)
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-83-wt\test\site.test.js:3356:61)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)

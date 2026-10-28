@@ -1,0 +1,83 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-83-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18101-0cc4-7d72-8eb0-5c7dc12cfc70
+--------
+user
+You are reviewing one commit in this repository (La Hoja Boricua, a vanilla JS PWA in site/). Review only; do not edit files. Do not load or run any skills.
+
+Diff to review: git diff 07d33cc a879af8 -- site/app.js site/index.html site/sw.js test/site.test.js
+
+What the change is meant to do:
+1. LHB-83: the home page must not request vendor-leaflet.js or vendor-leaflet.css. The first time a map view opens (drawMap for Lugares, drawRuta for the Ruta del Tabaco), app.js needLeaflet() adds the script and the stylesheet once, the stylesheet before styles.css (styles.css overrides .leaflet-* rules at equal specificity), and the map is drawn after both arrive. A failed load shows the existing offline sketch plus the list, and the next entry to a map view retries. Offline: both files stay in the sw.js SHELL, and offline the app already draws the sketch without Leaflet. Cache bumped to lhb-v70.
+2. LHB-88: the topbar brand link's accessible name must contain its visible text ("La Hoja Boricua" plus "Hecho en Borinquen"); the aria-label "La Hoja Boricua, inicio" was removed.
+
+Look for real defects: a map that never draws or draws twice, a callback that draws into a view the person already left, a race between mode switches (mapa, lista, ruta) while the script is loading, a stylesheet order problem, a promise that can hang, a retry that duplicates tags, anything that breaks offline use after a first visit, and tests that would pass on broken code. Read app.js around vLugares, drawRuta, drawMap and the service worker registration as needed.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+2026-10-28T05:34:56.215099Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-28T05:34:58.282580Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The main risk is a stale load callback drawing after a view or mode change. I’ll inspect the exact diff and surrounding lifecycle code, without edits or skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "Get-Content -LiteralPath 'C:\\Users\\Owner\\Documents\\Codex\\PRE_ENGINE_CONTROL_METHODOLOGY.md'" in C:\Users\Owner\lhb-83-wt
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git diff 07d33cc a879af8 -- site/app.js site/index.html site/sw.js test/site.test.js' in C:\Users\Owner\lhb-83-wt
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git status --short; git rev-parse HEAD; Get-ChildItem -Force -Name' in C:\Users\Owner\lhb-83-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-28T05:35:03.995227Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+2026-10-28T05:35:03.995237Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+2026-10-28T05:35:03.995992Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The loader ignores stylesheet failure, and `window.L` can bypass a stylesheet that is still loading. View replacement does disconnect the old map element, so stale callbacks appear guarded. I’m checking concrete failure sequences and the tests next.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The VM checks reproduced both defects: a stylesheet error still reports success and never retries, and switching modes after JavaScript loads draws before CSS arrives. Both new tests pass despite these failures. With both assets pending, switching views produced only one draw after success.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. [Certain] **P1, blocking: CSS failure is reported as success and never retried.** [site/app.js:179](/C:/Users/Owner/lhb-83-wt/site/app.js:179), `needLeaflet()`: `then(([s])=>{if(s&&window.L)return true` ignores the stylesheet result. If CSS errors and JavaScript succeeds, the loader returns `true`, so both map functions draw without Leaflet CSS instead of showing the sketch. Subsequent entries bypass loading because `window.L` exists, leaving the stylesheet permanently missing. Require successful readiness of both assets and allow failed CSS to retry.
+
+2. [Certain] **P2, blocking: switching modes bypasses pending CSS.** [site/app.js:184](/C:/Users/Owner/lhb-83-wt/site/app.js:184), `drawRuta()`, and [site/app.js:198](/C:/Users/Owner/lhb-83-wt/site/app.js:198), `drawMap()`: both await loading only under `if(!window.L)`. Reproduction: open mapa, let JavaScript finish while CSS remains pending, then switch to ruta. Ruta draws immediately without CSS. The loader’s own `if(window.L)return Promise.resolve(true)` has the same readiness error. Gate drawing on both assets being ready.
+
+[Certain] Both new tests pass despite these defects. The LHB-83 test completes CSS before testing script outcomes and checks map callbacks through string assertions, leaving CSS failure and mode-switch timing untested. Both failures were reproduced using the actual functions in a Node VM. Browser rendering is NOT VERIFIED. No files were edited.
+
+VERDICT: BLOCK
+tokens used
+70,196
+1. [Certain] **P1, blocking: CSS failure is reported as success and never retried.** [site/app.js:179](/C:/Users/Owner/lhb-83-wt/site/app.js:179), `needLeaflet()`: `then(([s])=>{if(s&&window.L)return true` ignores the stylesheet result. If CSS errors and JavaScript succeeds, the loader returns `true`, so both map functions draw without Leaflet CSS instead of showing the sketch. Subsequent entries bypass loading because `window.L` exists, leaving the stylesheet permanently missing. Require successful readiness of both assets and allow failed CSS to retry.
+
+2. [Certain] **P2, blocking: switching modes bypasses pending CSS.** [site/app.js:184](/C:/Users/Owner/lhb-83-wt/site/app.js:184), `drawRuta()`, and [site/app.js:198](/C:/Users/Owner/lhb-83-wt/site/app.js:198), `drawMap()`: both await loading only under `if(!window.L)`. Reproduction: open mapa, let JavaScript finish while CSS remains pending, then switch to ruta. Ruta draws immediately without CSS. The loader’s own `if(window.L)return Promise.resolve(true)` has the same readiness error. Gate drawing on both assets being ready.
+
+[Certain] Both new tests pass despite these defects. The LHB-83 test completes CSS before testing script outcomes and checks map callbacks through string assertions, leaving CSS failure and mode-switch timing untested. Both failures were reproduced using the actual functions in a Node VM. Browser rendering is NOT VERIFIED. No files were edited.
+
+VERDICT: BLOCK

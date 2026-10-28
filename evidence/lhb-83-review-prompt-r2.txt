@@ -1,0 +1,13 @@
+You are reviewing one change in this repository (La Hoja Boricua, a vanilla JS PWA in site/). Review only; do not edit files. Do not load or run any skills.
+
+Diff to review: git diff 07d33cc a934fb4 -- site/app.js site/index.html site/sw.js test/site.test.js
+Round 1 of this review (evidence/lhb-83-review-r1.txt) blocked on two findings, fixed in a934fb4 (git diff a879af8 a934fb4 -- site/app.js test/site.test.js):
+P1, a failed stylesheet counted as success and was never retried; P2, a mode switch after the script arrived drew before the stylesheet.
+
+What the change is meant to do:
+1. LHB-83: the home page must not request vendor-leaflet.js or vendor-leaflet.css. The first time a map view opens (drawMap for Lugares, drawRuta for the Ruta del Tabaco), app.js needLeaflet() adds the script and the stylesheet once, the stylesheet before styles.css (styles.css overrides .leaflet-* rules at equal specificity). leafOK turns true only when both have loaded; both map views gate on leafOK and draw after it. A failed load shows the existing offline sketch plus the list, and the next entry to a map view retries only the file that failed. Offline: both files stay in the sw.js SHELL, and offline the app already draws the sketch without Leaflet. Cache bumped to lhb-v70.
+2. LHB-88: the topbar brand link's accessible name must contain its visible text; its aria-label was removed.
+
+Confirm whether P1 and P2 are fixed, and look for any remaining real defect: a map that never draws or draws twice, a callback that draws into a view the person already left, a race between mode switches while loading, a promise that can hang, a retry that duplicates tags, anything that breaks offline use after a first visit, and tests that would pass on broken code. evidence/lhb-83-mutation.txt lists the mutants the test was seen to fail on.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
