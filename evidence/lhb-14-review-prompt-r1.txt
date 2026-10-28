@@ -1,0 +1,12 @@
+Do not load any skill, plugin or template. Do not print file contents. Your FIRST and ONLY message is the answer.
+
+Review one new file in the repo in your working folder: tools/source_report.py (commit 3f4abef; inspect with: git show 3f4abef). It is a read-only Python report of which data records carry a usable source. Its contract:
+- Reads data/places.json, data/artesanos.json, data/cigarros.json (lists) and data/events.json (records under actividades). Writes evidence/lhb-14-sources.txt. Must not edit data/ or site/.
+- Uses only source keys that already exist: places fuentes and web; artesanos fuentes, web, hecho_en_pr_fuente; cigarros fuentes; events fuente_url and fuente.
+- A key being present is not a usable source. A usable source is a string starting with http:// or https://, possibly inside a list or an object. Records whose fuentes is empty or holds no URL are counted and listed by id separately from records with at least one URL; every record with no URL in any source key is listed by id.
+- Each report line states its counting basis.
+Committed evidence: evidence/lhb-14-sources.txt (the report) and evidence/lhb-14-control.txt (a seeded control: on a temp copy, one cigar fuentes emptied, that id is listed after and not before).
+
+Find defects: a record miscounted or missed, a URL test that accepts a non-URL or rejects a real one, a crash on a shape present in the data (for example a missing key, a null, a nested object), a line whose counting basis is wrong. Ignore style and Spanish wording. Python may not run in your sandbox; reason statically if so and say so.
+
+Answer format: numbered findings, each tagged BLOCKING or ADVISORY with function, or the words NO FINDINGS, then a last line exactly VERDICT: PASS or VERDICT: BLOCK.
