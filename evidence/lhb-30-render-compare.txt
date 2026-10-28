@@ -1,0 +1,40 @@
+LHB-30 rendered-output comparison, measured 2026-10-28 between about 11:31Z and 11:37Z in the desktop app's built-in browser.
+
+Before: https://lahojaboricua.com/ (main c398c0b)
+After:  https://lhb-30-english-data.la-hoja-boricua.pages.dev/ (branch lhb-30-english-data 14dc5c7; sw.js lhb-v72; bundle with the _en fields)
+The preview build of the branch's first commit, 453bcec, failed while Cloudflare cloned the repository
+("RPC failed; curl 16 Error in the HTTP2 framing layer ... early EOF", read from the Pages deployment log);
+the next push, 14dc5c7, built and deployed.
+
+1. Spanish, unchanged
+Method: the same script ran in both tabs. For each view it set location.hash, waited 700 ms, cloned #view, emptied #map,
+and took innerHTML length and the first 8 bytes of its SHA-256 ("raw"); "normalized" is the same view with the value
+attributes removed from the #fCapa options. For the cigar and artisan pages, every id in window.VB_DATA was opened and
+the per-page raw hashes were joined in data order and hashed again ("set").
+
+view            before raw               after raw                normalized (both)          same
+#/catalogo      49503:1ba3d7d83aa903f2   50180:4dc4620b37f5afb5   49494:e2c8a81c3cbe70d8     once normalized
+#/artesanos     23711:3a8d1e680df24635   23711:3a8d1e680df24635                              yes
+#/lugares       93610:517556d8cccc615c   93610:517556d8cccc615c   (map emptied)              yes
+lista           92380:16f74eacc8f49d8d   92380:16f74eacc8f49d8d                              yes
+#/buscar        106436:25d14aee6447caf7  106436:25d14aee6447caf7                             yes
+#/eventos       32318:33ede2ca1137c2a3   32318:33ede2ca1137c2a3                              yes
+48 cigar pages  set cc22cbbdbe5e0143     set cc22cbbdbe5e0143                                yes
+32 artisan pgs  set 49407a72104daf98     set 49407a72104daf98                                yes
+
+#/catalogo differs by 677 characters, the deliberate value="..." on each capa filter option (the option text is the
+display label through fx(); the value keeps the stored Spanish capa that the filter compares). With every value attribute
+removed from #fCapa's options in both tabs, both views measure 49494:e2c8a81c3cbe70d8.
+Counting basis: 6 views plus 80 record pages (48 + 32); all identical, the catalog once its option values are removed.
+
+2. English, shown where the data has it
+In the preview tab only, window.LHB_I18N.lang was set to 'en' in the page (ENABLED stays false in the shipped code, so
+no visitor sees this), a few views were rendered, and lang was set back to 'es':
+  #/a/jfc-hoja-boricua  town line: "Mayagüez · Cigar maker"
+                        story: "A Mayagüez factory that grew out of Good Times Smoke Shop (1986), one of the island's first smoke shops. ..."
+                        where to buy: the address and link, unchanged (names, addresses and links are not translated)
+  #/c/hoja-boricua      notes: "100% Puerto Rican long filler, Dominican binder. Mild to medium according to the shop; ..."
+  #/catalogo            capa filter: value "Barber Pole: Habano Ecuador y Connecticut" shown as "Barber Pole: Habano Ecuador and Connecticut"
+  #/lugares (list)      types: "Restaurant", "Tobacco shop / Lounge"
+Interface labels around them ("Dónde comprar", "ubicación aprox.") stay Spanish here because the interface language is
+read once at load; switching it is E6.
