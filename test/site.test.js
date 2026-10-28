@@ -3342,17 +3342,20 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
 test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
  assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v70'/);
- const a=js.indexOf('let leafP=null;'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
- const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
- const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b),ctx);const need=ctx.needLeaflet;
- const scripts=()=>els.filter(e=>e.tag==='script'),links=()=>els.filter(e=>e.tag==='link'&&e!==app);
- const p1=need(),p2=need();assert.equal(p1,p2,'una sola carga aunque se pida dos veces');
- assert.ok(els.indexOf(links()[0])<els.indexOf(app),'el estilo de Leaflet va antes de styles.css, que lo ajusta');
- assert.equal(scripts().length,1);assert.equal(scripts()[0].src,'vendor-leaflet.js');assert.equal(links().length,1);assert.equal(links()[0].href,'vendor-leaflet.css');assert.equal(links()[0].rel,'stylesheet');
- links()[0].onload();scripts()[0].onerror();assert.equal(await p1,false,'si no llega, el mapa no se dibuja');assert.equal(scripts().length,0,'el script fallido se quita');
- const p3=need();assert.notEqual(p3,p1,'tras un fallo, la próxima entrada lo intenta otra vez');assert.equal(links().length,1,'el estilo no se repite');
- w.L={};scripts()[0].onload();assert.equal(await p3,true);assert.equal(await need(),true);assert.equal(scripts().length,1,'con Leaflet ya cargado no se pide otra vez');
- for(const f of ['drawRuta','drawMap']){const s=js.indexOf('function '+f+'('),body=js.slice(s,js.indexOf('\nfunction ',s+1));assert.ok(body.includes('needLeaflet().then('),f+' pide Leaflet si falta');assert.ok(!body.includes('!navigator.onLine||!window.L'),f+' ya no se rinde si Leaflet no vino con la portada')}
+ const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+ const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+  const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+  return {need:ctx.needLeaflet,ready:ctx.ready,w,app,els,scripts:()=>els.filter(e=>e.tag==='script'),links:()=>els.filter(e=>e.tag==='link'&&e!==app)}};
+ let k=mk();const p1=k.need(),p2=k.need();assert.equal(p1,p2,'una sola carga aunque se pida dos veces');
+ assert.ok(k.els.indexOf(k.links()[0])<k.els.indexOf(k.app),'el estilo de Leaflet va antes de styles.css, que lo ajusta');
+ assert.equal(k.scripts().length,1);assert.equal(k.scripts()[0].src,'vendor-leaflet.js');assert.equal(k.links().length,1);assert.equal(k.links()[0].href,'vendor-leaflet.css');assert.equal(k.links()[0].rel,'stylesheet');
+ k.w.L={};k.scripts()[0].onload();await null;assert.equal(k.ready(),false,'con el script pero sin el estilo, todavía no está listo');assert.equal(k.need(),p1,'quien pida ahora espera la misma carga (cambiar de modo no dibuja sin estilo)');
+ k.links()[0].onerror();assert.equal(await p1,false,'si el estilo no llega, el mapa no se dibuja');assert.equal(k.ready(),false);assert.equal(k.links().length,0,'el estilo fallido se quita');
+ const p3=k.need();assert.notEqual(p3,p1,'tras un fallo, la próxima entrada lo intenta otra vez');assert.equal(k.scripts().length,1,'el script que sí llegó no se pide otra vez');assert.equal(k.links().length,1,'el estilo se pide otra vez');
+ k.links()[0].onload();assert.equal(await p3,true);assert.equal(k.ready(),true);assert.equal(await k.need(),true);assert.equal(k.scripts().length,1);assert.equal(k.links().length,1,'listo: no se pide nada más');
+ k=mk();const q1=k.need();k.links()[0].onload();k.scripts()[0].onerror();assert.equal(await q1,false,'si el script no llega, el mapa no se dibuja');assert.equal(k.scripts().length,0,'el script fallido se quita');
+ const q2=k.need();assert.equal(k.links().length,1,'el estilo que sí llegó no se repite');assert.equal(k.scripts().length,1);k.w.L={};k.scripts()[0].onload();assert.equal(await q2,true);assert.equal(k.ready(),true);
+ for(const f of ['drawRuta','drawMap']){const s=js.indexOf('function '+f+'('),body=js.slice(s,js.indexOf('\nfunction ',s+1));assert.ok(body.includes('if(!leafOK){')&&body.includes('needLeaflet().then('),f+' espera a que Leaflet esté listo (script y estilo)');assert.ok(!body.includes('window.L'),f+' no mira window.L, que llega antes que el estilo')}
  assert.ok(js.includes("if(ok)drawRuta();else off(tt('map.failTown'))")&&js.includes("if(ok)drawMap(ps);else drawOffline(ps,tt('map.failPin'))"),'si Leaflet no llega, queda el mapa sin conexión y la lista');
 });
 test('LHB-88: el nombre accesible del enlace de la marca es su texto visible',()=>{const ix=read('index.html');const m=ix.match(/<a class="brand"[^>]*>([\s\S]*?)<\/a>/);assert.ok(m,'enlace de la marca');

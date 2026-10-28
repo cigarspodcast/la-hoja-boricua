@@ -171,17 +171,17 @@ function vLugares(arg){if(arg==='ruta')state.lugMode='ruta';else if(state.lugMod
  $('#fTown').onchange=e=>{state.lugTown=e.target.value;vLugares()};
  if(state.lugMode==='mapa')drawMap(ps)}
 /* LHB-83: Leaflet (script y estilo) se pide la primera vez que se abre un mapa, no al cargar la app.
-   Su estilo va antes de styles.css, como antes, para que styles.css siga mandando sobre .leaflet-* */
-let leafP=null;
-function needLeaflet(){if(window.L)return Promise.resolve(true);if(leafP)return leafP;
+   Su estilo va antes de styles.css, como antes, para que styles.css siga mandando sobre .leaflet-*.
+   Listo (leafOK) solo cuando llegaron los dos; si uno falla, la próxima entrada pide solo ese otra vez */
+let leafP=null,leafOK=false;
+function needLeaflet(){if(leafOK)return Promise.resolve(true);if(leafP)return leafP;
  const tag=(t,a)=>new Promise(res=>{const e=Object.assign(document.createElement(t),a);e.onload=()=>res(e);e.onerror=()=>{e.remove();res(null)};document.head.insertBefore(e,t==='link'?document.querySelector('link[href="styles.css"]'):null)});
- const css=document.querySelector('link[href="vendor-leaflet.css"]')?Promise.resolve():tag('link',{rel:'stylesheet',href:'vendor-leaflet.css'});
- return leafP=Promise.all([tag('script',{src:'vendor-leaflet.js'}),css]).then(([s])=>{if(s&&window.L)return true;leafP=null;return false})}
+ return leafP=Promise.all([window.L||tag('script',{src:'vendor-leaflet.js'}),document.querySelector('link[href="vendor-leaflet.css"]')||tag('link',{rel:'stylesheet',href:'vendor-leaflet.css'})]).then(([s,c])=>{leafP=null;return leafOK=!!(s&&c&&window.L)})}
 let rutaView=null;
 function drawRuta(){if(leafletMap){leafletMap.remove();leafletMap=null}const {ts}=EXT.ruta(),nu=EXT.rlit(),el=$('#map');if(!el)return;
  const off=why=>{el.innerHTML=`<div class="map-offline"><svg viewBox="0 -20 1000 370" role="img" aria-label="${tt('map.alt')}"><path class="isl" d="${ISLAND}"/>${ts.map(t=>{const[x,y]=proj(t.la,t.lo);return `<g class="rpt${t.on?' on':''}" data-town="${t.n}" transform="translate(${x.toFixed(0)} ${y.toFixed(0)})"><circle r="22" fill="transparent"/><circle r="${t.on?13:7}" class="${t.on?'gl':'dot'}"/></g>`}).join('')}</svg><span class="cap">${esc(why)}</span></div>`};
  if(!navigator.onLine){off(tt('map.offTown'));return}
- if(!window.L){needLeaflet().then(ok=>{if(!el.isConnected)return;if(ok)drawRuta();else off(tt('map.failTown'))});return}
+ if(!leafOK){needLeaflet().then(ok=>{if(!el.isConnected)return;if(ok)drawRuta();else off(tt('map.failTown'))});return}
  const map=L.map('map',{zoomControl:true,attributionControl:true,scrollWheelZoom:false});leafletMap=map;
  if(rutaView)map.setView(rutaView[0],rutaView[1]);else map.fitBounds([[17.95,-67.27],[18.52,-65.6]],{padding:[8,8]});
  map.on('moveend',()=>{rutaView=[map.getCenter(),map.getZoom()]});
@@ -195,7 +195,7 @@ function drawOffline(ps,why){const el=$('#map');if(!el)return;
 function drawMap(ps){if(leafletMap){leafletMap.remove();leafletMap=null}
  const mm=$('#mapMode'),el=$('#map');
  if(!navigator.onLine){drawOffline(ps,tt('map.offPin'));return}
- if(!window.L){if(el)needLeaflet().then(ok=>{if(!el.isConnected)return;if(ok)drawMap(ps);else drawOffline(ps,tt('map.failPin'))});return}
+ if(!leafOK){if(el)needLeaflet().then(ok=>{if(!el.isConnected)return;if(ok)drawMap(ps);else drawOffline(ps,tt('map.failPin'))});return}
  const map=L.map('map',{zoomControl:true,attributionControl:true,scrollWheelZoom:false}).fitBounds([[17.92,-67.27],[18.52,-65.6]]);leafletMap=map;
  let errs=0,ok=0;const tl=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'}).addTo(map);
  tl.on('tileload',()=>ok++);tl.on('tileerror',()=>{errs++;if(errs>6&&ok===0){map.remove();leafletMap=null;drawOffline(ps,tt('map.failPin'))}});
