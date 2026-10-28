@@ -6,6 +6,7 @@ INICIO = ('La Hoja Boricua', HOST + '/')
 LUGARES = ('Cigar lounges en Puerto Rico', HOST + '/lugares/')
 ARTESANOS = ('Artesanos de cigarros en Puerto Rico', HOST + '/artesanos/')
 CIGARROS = ('Cigarros hechos por artesanos boricuas', HOST + '/cigarros/')
+GUIAS = ('Guías de cigarros en Puerto Rico', HOST + '/guias/')  # LHB-45: solo en español
 # LHB-32: las páginas en inglés viven en /en/<sección>/, gemelas de las páginas en español
 EN = HOST + '/en'
 LUGARES_EN = ('Cigar lounges in Puerto Rico', EN + '/lugares/')
