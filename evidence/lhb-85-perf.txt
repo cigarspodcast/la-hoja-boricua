@@ -1,0 +1,43 @@
+# LHB-85 / LHB-86: mobile performance of / with thumbnail twins (LHB-85) beside production (control)
+
+Tool: Lighthouse 13.6.0, mobile form factor and its default simulated throttling (DPR 1.75, 412 px wide), headless Chrome, on this Windows host.
+Branch: https://a3d741c8.la-hoja-boricua.pages.dev (Cloudflare Pages preview of the LHB-85 commit). Control: https://lahojaboricua.com/ (production, main).
+Runs: 3 cold loads of each, interleaved branch, main, branch, main, branch, main, one Lighthouse process each, under one host claim.
+Figures: median [min to max] of the 3 runs. Byte figures are Lighthouse transferSize per request (basis: network-requests).
+
+metric | LHB-17 (production, before LHB-83) | main today | branch (LHB-85)
+--- | --- | --- | ---
+score | 87 [78 to 87] | 83 [80 to 90] | 85 [84 to 89]
+FCP | 999 [996 to 1005] | 1121 [1094 to 1377] | 1550 [1017 to 1607]
+LCP | 3249 [3246 to 3255] | 3327 [3269 to 3359] | 2621 [2057 to 2812]
+SI | 5371 [2847 to 5396] | 4084 [3105 to 4521] | 3044 [2504 to 9497]
+CLS | 0.000 [0.000 to 0.145] | 0.000 [0.000 to 0.156] | 0.145 [0.141 to 0.206]
+img_wasted | Est savings of 253 KiB | 164185 [164185 to 164185] | 12083 [12083 to 33856]
+img_flagged | n/a | 19 [19 to 19] | 2 [2 to 3]
+
+## Per run
+
+main1: score 83, FCP 1121, LCP 3359, SI 4521, CLS 0.000 | image delivery: Est savings of 160 KiB, 19 images flagged | render blocking: none (FCP savings 0 ms) from styles.css | cigar thumbnails fetched: 0 small (0 B), 33 large (286837 B) | 41 images, 420017 B transferred
+main2: score 90, FCP 1377, LCP 3327, SI 3105, CLS 0.000 | image delivery: Est savings of 160 KiB, 19 images flagged | render blocking: Est savings of 50 ms (FCP savings 50 ms) from styles.css | cigar thumbnails fetched: 0 small (0 B), 33 large (280428 B) | 41 images, 412973 B transferred
+main3: score 80, FCP 1094, LCP 3269, SI 4084, CLS 0.156 | image delivery: Est savings of 160 KiB, 19 images flagged | render blocking: Est savings of 0 ms (FCP savings 0 ms) from styles.css | cigar thumbnails fetched: 0 small (0 B), 33 large (286874 B) | 41 images, 419892 B transferred
+branch1: score 89, FCP 1550, LCP 2812, SI 3044, CLS 0.145 | image delivery: Est savings of 33 KiB, 3 images flagged | render blocking: Est savings of 100 ms (FCP savings 100 ms) from styles.css | cigar thumbnails fetched: 33 small (145028 B), 0 large (0 B) | 41 images, 278495 B transferred
+branch2: score 84, FCP 1607, LCP 2057, SI 9497, CLS 0.141 | image delivery: Est savings of 12 KiB, 2 images flagged | render blocking: Est savings of 90 ms (FCP savings 100 ms) from styles.css | cigar thumbnails fetched: 33 small (145049 B), 0 large (0 B) | 41 images, 278773 B transferred
+branch3: score 85, FCP 1017, LCP 2621, SI 2504, CLS 0.206 | image delivery: Est savings of 12 KiB, 2 images flagged | render blocking: Est savings of 80 ms (FCP savings 100 ms) from styles.css | cigar thumbnails fetched: 33 small (145051 B), 0 large (0 B) | 41 images, 278721 B transferred
+
+## Host claim record
+
+# CLOSED: [touched 2026-10-28T14:07Z] no live run. Closed 2026-10-28T14:07:30Z. LHB lane, LHB-85 LHB-86
+
+Owner: Alfredo Medina
+Session: LHB-85/86 (builder)
+Root: C:\Users\Owner\lhb-85-wt
+Claimed at: 2026-10-28T14:05:07Z
+Expected window: 20 min from the claim time.
+Closes when: the runner process ends (finally rewrites line 1 CLOSED).
+
+## What this claim covers
+
+Lighthouse runs (6 mobile performance runs, the LHB-85 preview and production interleaved). Performance is timing-sensitive, so other heavy work on this host would corrupt it.
+
+Runs: [('perf-branch1', 0, 18), ('perf-main1', 0, 25), ('perf-branch2', 0, 30), ('perf-main2', 0, 20), ('perf-branch3', 0, 21), ('perf-main3', 0, 26)]
+
