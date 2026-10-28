@@ -1,0 +1,21 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and a D1 database). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/la-hoja-boricua/.claude/worktrees/lhb-40-58-profiles-5a5914 (branch claude/lhb-58-profile-page). origin/main (8040f99) is merged in, so the diff below, origin/main..HEAD (evidence/ excluded), holds only this branch's changes. This is Codex TIER 2, round 2 of LHB-58, run because round 1 returned BLOCK.
+
+The ticket, its pins and the builder decisions are in evidence/lhb-58-review-brief-r1.txt; round 1's review is evidence/lhb-58-review-r1.txt. Round 1 findings:
+1. P2 BLOCKING: your own Perfil tabs kept a snapshot; the sync callback onApplied excluded #/mihoja/perfil, so data arriving from another phone did not show until revisiting.
+2. P3: with /api/u/<your @> failing, your review count stayed at the placeholder.
+3. P3: the role="tab" buttons had no arrow-key navigation or roving tabindex.
+
+The fix (commit d04a096, all in site/hoja.js plus tests):
+- PFO holds your open Perfil (its #pfOwn node, the account, what the server returned, the open tab). pfOwnPaint(o) rebuilds the data from your Mi Hoja (pfOwnData) every time it paints. profileOwn resets PFO, paints at once, fetches, and repaints only if PFO, the #pfOwn node and the account are still the same.
+- pfOwnSync() repaints your open Perfil with your current Mi Hoja, keeping the open tab (pfCur reads aria-selected) and what the server returned, and does nothing if #pfOwn is gone or another account is signed in. onApplied now calls it: `{dKeepFocus();A.route()}else if(location.hash==='#/mihoja/perfil')pfOwnSync()` (the list pages still go through the router as before; the two existing pins of that line in the tests were updated).
+- pfCounts shows each count as soon as it has a value; your review count comes from your Mi Hoja in every paint, followers and following wait for the server.
+- Tabs: tabindex 0 on the open tab and -1 on the others (in the HTML and on every paint); onkeydown on each tab: ArrowRight, ArrowLeft (wrapping), Home and End select the tab and move the focus to it; other keys do nothing. Another person's view cycles through its three tabs only.
+Evidence: evidence/lhb-58-r1fix-tests-red.txt (the three new tests and the updated pin red before the fix), evidence/lhb-58-r1fix-tests.txt (257 of 257), evidence/lhb-58-mutations-r1fix.txt (27 of 27 red, N18 and N21 to N27 for the round 1 rules).
+
+Confirm each round 1 finding is fixed, and look for defects the fix introduces: pfOwnSync running while a sheet is open or during the account gate; PFO left pointing at a Perfil that was replaced (vPerfil repaint after saving Capa favorita, sign out, account change); a repaint losing focus or the tab while the person is using the keyboard; the keyboard handler on another person's view; the review count on the first paint versus after the fetch; and tests that would pass on broken code. Do not re-raise earlier items unless their fix is wrong.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run `node --test --test-timeout=60000 test/site.test.js`. Your sandbox cannot spawn Python (EPERM), so the full suite shows 4 fewer passes there; that is expected. The diff is embedded below so the review can proceed even without a shell.
+
+DIFF (git diff origin/main..HEAD -- . ':!evidence'):
