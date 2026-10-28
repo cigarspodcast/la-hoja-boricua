@@ -30,3 +30,20 @@ about 17:10Z: a group list popup of 23 place cards; content clientHeight 126 (= 
 wrapper spans y 347.0 to 499.0 inside the map's 337.0 to 567.4; after scrolling the content to its end, the last card's
 last link spans y 408.6 to 444.6, inside both the content box (bottom 486.0) and the map. So every card's links are
 reachable. A 126 px window over 23 cards is a narrow scroll; the list view (Lista) shows every place in full.
+
+Codex round 3 BLOCK (evidence/lhb-87-review-r3.txt): the list popup's cap was computed once, at the tap; resizing the map
+with the list open (a phone turned) left the old cap and clipped it. Fix (469ff16): fitPop(map, p) sets maxHeight from
+popMaxH(map.getSize().y) and calls p.update() (Leaflet's DivOverlay.update: content, layout with the current maxHeight,
+position, then _adjustPan) while the list is still open; drawMap keeps the list as listPop and runs fitPop on map
+'resize'. Round 3's nonblocking P3, kept as is: POP_FIXED 104 is conservative (the tip sits partly in the 20 px margin),
+so it errs toward a shorter list, and the 60 px floor can still overflow on maps under about 90 px, which the CSS
+(.map-wrap min(58vh,460px) / min(46vh,360px)) reaches only on viewports under about 200 px tall.
+Live read on its preview (https://034e202f.la-hoja-boricua.pages.dev/#/lugares), about 17:28Z, map scrolled into view so
+Leaflet's frames run (the pane was hidden): viewport 536 x 400 (map 230): taps 23 -> 20 -> 17 -> 7 -> a group of 2 at
+one spot, whose tap opened a list popup of 2 cards, content 126 px, wrapper y 127 to 279 inside the map's 85 to 315.
+Then, with the popup open, the viewport was set to 536 x 330: map 190, content 86 px (= 190 - 104), wrapper y 112 to 224
+inside the map's 70 to 260. So the open list refits to the new height.
+Observation, not a defect claim: in an earlier pass I tapped a group again while its zoom animation was frozen by the
+hidden pane; the popup then opened at the group's pre-zoom spot and ended above the map once the zoom finished
+(wrapper 282 to 434, map 337 to 567). With frames running, Leaflet's zoom animation lasts about 250 ms; whether a tap in
+that window can do this for a person is NOT VERIFIED.
