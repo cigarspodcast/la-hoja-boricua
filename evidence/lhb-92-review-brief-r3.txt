@@ -1,0 +1,19 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-92-wt (branch lhb-92-lazy-cards). The diff below is origin/main..HEAD for test/site.test.js; site/ is identical to main. This is round 3.
+
+History:
+- LHB-92's lazy-loading change did not move LCP (evidence/lhb-92-perf.txt) and was reverted.
+- Rounds 1 and 2 (evidence/lhb-92-review-r1.txt, -r2.txt) blocked on static CSS-text guards for the card and language switch widths. Each round found new escapes: @media, descendant selectors, longhands, then ID/attribute/:is() selectors, logical properties, ancestor rules and quoted braces.
+- After two cycles the blocker was escalated on the ticket. The decision (Linear LHB-92 comment of 2026-10-28T18:46Z): a static guard over the stylesheet enumerates an open set and cannot be made complete, so both guards are REMOVED, and a rendered-width regression check is filed as its own backlog ticket for when the test run has a headless browser.
+
+What remains is one change: the LHB-87 resize test ("LHB-87 (Codex r3)"). Its fake popup's update() now records options.maxHeight, and the test asserts the value update() saw: 81 after the map shrinks to 185 px, 320 after it grows back. A fitPop that calls update() before assigning maxHeight now fails; before, it passed. This was a P3 from LHB-87's Codex round 4, and both earlier LHB-92 rounds concurred it works.
+Evidence:
+- lhb-92-tests-r2fix.txt: 243/243.
+- The M15 mutation (fitPop updating before the new height), red on this tree and green on main's test, follows as lhb-92-mutations-r2fix.out.
+
+Check:
+- that removing the guards leaves no dead helper, no reference to them, and no test that depended on them;
+- that the remaining change is correct and cannot pass on broken code;
+- anything else in the diff.
+Also say whether you consider the round 2 findings resolved by removing the guards (with the rendered check tracked separately), or still blocking this branch.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
