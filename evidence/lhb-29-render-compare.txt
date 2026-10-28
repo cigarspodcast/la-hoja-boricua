@@ -1,0 +1,48 @@
+LHB-29 rendered-output comparison, measured 2026-10-28 between about 06:49Z and 06:51Z in the desktop app's built-in browser.
+
+Before: https://lahojaboricua.com/ (main 0530ca3; T.es has 136 keys)
+After:  https://lhb-29-english.la-hoja-boricua.pages.dev/ (branch lhb-29-english 042edb4; T.es has 660 keys)
+
+Method: the same script ran in both tabs. "shell" is document.title, the splash name (innerHTML), splash sub, brand sub,
+the tab bar text, every aria-label outside #view, and the footer text, joined. For each route it set location.hash,
+waited 1100 ms, cloned #view, emptied #map (Leaflet tiles vary by load), and recorded innerHTML length and the first
+8 bytes of its SHA-256.
+
+route                  before                     after                      same
+lang                   es-PR                      es-PR                      yes
+shell                  293:46c5c49e42f9a79c       293:46c5c49e42f9a79c       yes
+#/                     49503:1ba3d7d83aa903f2     49503:1ba3d7d83aa903f2     yes
+#/cata                 385:ab25d428be15f8e4       385:ab25d428be15f8e4       yes (sign-in gate)
+#/podcast              7728:8a41949ebafd1fab      7728:8a41949ebafd1fab      yes
+#/maridajes            6832:0dc01803ff8f4fd1      6832:0dc01803ff8f4fd1      yes
+#/eventos              32318:33ede2ca1137c2a3     32318:33ede2ca1137c2a3     yes
+#/buscar               106354:f21759c4f1722a61    106436:5107e695bb8a1c6c    no, see below
+#/mihoja               385:ab25d428be15f8e4       385:ab25d428be15f8e4       yes (sign-in gate)
+#/mihoja/diario        385:ab25d428be15f8e4       385:ab25d428be15f8e4       yes (sign-in gate)
+#/mihoja/humidor       385:ab25d428be15f8e4       385:ab25d428be15f8e4       yes (sign-in gate)
+#/mihoja/pasaporte     385:ab25d428be15f8e4       385:ab25d428be15f8e4       yes (sign-in gate)
+#/mihoja/favoritos     385:ab25d428be15f8e4       385:ab25d428be15f8e4       yes (sign-in gate)
+#/mihoja/perfil        385:ab25d428be15f8e4       385:ab25d428be15f8e4       yes (sign-in gate)
+#/mihoja/personas      385:ab25d428be15f8e4       385:ab25d428be15f8e4       yes (sign-in gate)
+#/lugares/ruta         7298:6ced77f185fb6a81      7298:6ced77f185fb6a81      yes
+#/catalogo             49503:1ba3d7d83aa903f2     49503:1ba3d7d83aa903f2     yes
+#/c/yambo-toro         6178:67347aa9ced43e36      6178:67347aa9ced43e36      yes
+#/artesanos            23711:4c5ec31e0c45bb36     23711:4c5ec31e0c45bb36     yes
+#/a/yambo-cigars       3994:c54f59573fa3f67e      3994:c54f59573fa3f67e      yes
+#/lugares (map empty)  93610:08757c099f9e6d6a     93610:08757c099f9e6d6a     yes
+#/perfil               385:ab25d428be15f8e4       385:ab25d428be15f8e4       yes (sign-in gate)
+
+#/buscar differs by 82 characters, the deliberate value="..." on the six region options (the option text is the
+display label through lab(); the value keeps the stored Spanish key):
+  before: <option>Metro</option><option>Norte</option>... <option>Sur</option>
+  after:  <option value="Metro">Metro</option><option value="Norte">Norte</option>... <option value="Sur">Sur</option>
+With every value attribute removed from #gReg's options in both tabs, both views measure 106345:e3d12efb945bf921.
+
+21 of 22 rows identical, and the 22nd identical once the region values are removed (counting basis: the 22 rows above,
+html lang excluded). Console errors on the preview: none.
+
+Not covered here: the views behind the sign-in gate (the guided tasting, the journal, the humidor, the passport,
+favorites, the profile and People) render the same 385-byte gate on both sides, so this browser check does not reach
+them. Their Spanish is covered by evidence/lhb-29-resolve-compare.txt (hoja.js with every tt() put back in Spanish,
+against main: 45 differences, all deliberate) and by the suite's harnesses, which run those views with the real tt().
+Toasts and the share card are not in #view; the resolve-compare covers their source.
