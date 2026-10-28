@@ -3664,3 +3664,31 @@ test('LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la a
  const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
  require('vm').runInNewContext(read('i18n.js'),{window:w});assert.equal(els[0].a.href,'en/lugares/');assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');
 });
+/* LHB-87: en el mapa ningún pin tapa a otro: los que se taparían van juntos en un grupo */
+const pins87=()=>{const app=read('app.js');const a=app.match(/const pinBox=\(x,y,n\)=>[^\n]*/),b=app.match(/function groupPins\(items\)\{[^\n]*return gs\}/);assert.ok(a&&b,'pinBox y groupPins en app.js');return new Function(a[0]+'\n'+b[0]+';return {pinBox,groupPins}')()};
+test('LHB-87: groupPins junta los pines que se tocan, hasta que ninguna caja toca a otra, y no pierde ni repite ninguno',()=>{const {pinBox,groupPins}=pins87();
+ const app=read('app.js');assert.ok(app.includes("iconSize:[26,34],iconAnchor:[13,32]")&&app.includes("iconSize:[36,36],iconAnchor:[18,18]"),'los íconos que se dibujan');
+ assert.deepEqual(pinBox(0,0,1),[-13,-32,13,2],'la caja de un pin es su ícono de 26 x 34 con la punta en el ancla');assert.deepEqual(pinBox(0,0,3),[-18,-18,18,18],'la de un grupo, su círculo de 36 centrado');
+ const apart=(a,b)=>a[2]+2<=b[0]||b[2]+2<=a[0]||a[3]+2<=b[1]||b[3]+2<=a[1];
+ const check=(items,why)=>{const gs=groupPins(items);const seen=gs.flatMap(g=>g.ms).sort((x,y)=>x-y);assert.deepEqual(seen,items.map(i=>i.m).sort((x,y)=>x-y),why+': cada pin una vez');
+  for(let i=0;i<gs.length;i++)for(let j=i+1;j<gs.length;j++)assert.ok(apart(pinBox(gs[i].x,gs[i].y,gs[i].ms.length),pinBox(gs[j].x,gs[j].y,gs[j].ms.length)),why+': cajas '+i+' y '+j+' se tocan');return gs};
+ assert.equal(check([{x:0,y:0,m:1},{x:100,y:0,m:2}],'lejos').length,2,'dos pines lejos siguen solos');
+ const g=check([{x:0,y:0,m:1},{x:10,y:5,m:2}],'cerca');assert.equal(g.length,1);assert.equal(g[0].ms.length,2,'dos pines encima, un grupo de 2');
+ assert.equal(check([{x:0,y:0,m:1},{x:0,y:0,m:2},{x:0,y:0,m:3}],'mismo sitio').length,1,'tres en el mismo sitio, un grupo');
+ assert.equal(check([{x:0,y:0,m:1},{x:28,y:0,m:2}],'justo al lado').length,2,'a 28 px (2 de aire) no se juntan');
+ assert.equal(check([{x:0,y:0,m:1},{x:27,y:0,m:2}],'casi al lado').length,1,'a 27 px se tocan: grupo');
+ /* los lugares de verdad, proyectados a píxeles como en el mapa de la isla (zoom 9) y más cerca (zoom 12) */
+ const L=JSON.parse(readD('places.json')).filter(p=>p.lat&&p.lng);assert.ok(L.length>=40,'lugares con coordenadas: '+L.length);
+ const px=(p,z)=>{const s=256*2**z,la=p.lat*Math.PI/180;return {x:(p.lng+180)/360*s,y:(1-Math.log(Math.tan(la)+1/Math.cos(la))/Math.PI)/2*s}};
+ for(const z of [9,12,15]){const gs=check(L.map((p,i)=>({...px(p,z),m:i})),'lugares a zoom '+z);if(z===9)assert.ok(gs.length<L.length,'a zoom 9 hay grupos')}
+});
+test('LHB-87: el mapa pinta grupos con su número, que acercan; la lista sigue teniendo todos los lugares',()=>{const app=read('app.js');
+ assert.ok(app.includes("map.on('zoomend',layout);"),'se reagrupa en cada zoom');assert.ok(/map\.setView\(pts\[0\],14\);layout\(\)\}/.test(app),'y al abrir');
+ assert.ok(app.includes("const mk=L.marker([p.lat,p.lng],{icon,title:p.nombre,keyboard:true});")&&!/const mk=L\.marker\([^;]*\.addTo\(map\)/.test(app),'los pines no van directo al mapa: los pone layout');
+ assert.ok(app.includes("if(g.ms.length===1){pins.addLayer(g.ms[0].mk);continue}"),'un pin solo es el pin de siempre');
+ assert.ok(app.includes("icon:L.divIcon({className:'pin-group',html:`<span>${n}</span>`,iconSize:[36,36],iconAnchor:[18,18]}),title:tt('map.group',{n}),keyboard:true"),'el grupo dice cuántos y se alcanza con el teclado');
+ assert.ok(app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})")&&app.includes("setContent(g.ms.map(m=>placeCard(m.p)).join(''))"),'tocar el grupo acerca, o muestra la lista si ya no se separan');
+ const {T}=I18N();assert.equal(T.es['map.group'],'{n} lugares aquí: acercar');assert.equal(T.en['map.group'],'{n} places here: zoom in');
+ assert.ok(app.includes('<div class="list" style="margin-top:12px">${ps.map(p=>')&&app.includes("if(state.lugMode==='mapa')drawMap(ps)}"),'la lista y el mapa salen del mismo ps: todo lugar del mapa está en la lista');
+ const css=read('styles.css');assert.ok(/\.pin-group span\{width:36px;height:36px;/.test(css),'el grupo mide 36 px (más de 24)');
+});

@@ -230,6 +230,10 @@ details.edit .form{padding:6px 0 14px}
 .leaf-pin{background:none;border:0}
 .leaf-pin svg{width:26px;height:34px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));transition:transform .2s}
 .leaf-pin:hover svg,.leaf-pin:focus svg{transform:scale(1.15)}
+/* LHB-87: varios lugares juntos, un círculo con su número (tocarlo acerca el mapa) */
+.pin-group{background:none;border:0}
+.pin-group span{width:36px;height:36px;box-sizing:border-box;border-radius:50%;display:grid;place-items:center;background:var(--flam);color:#fff;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);font:700 14px/1 var(--sans)}
+.pin-group:focus span,.pin-group:hover span{outline:2px solid var(--gold);outline-offset:2px}
 .volky-pin{background:none;border:0}
 .volky.mini{width:66px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
 .list-leaf{flex:none;width:22px}
