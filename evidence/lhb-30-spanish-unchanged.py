@@ -19,6 +19,6 @@ for f, ks in TR.items():
     ident = sum(1 for r in new for k in ks if r.get(k + '_en') is not None and r[k + '_en'] == r[k])
     print('%-10s records %3d  Spanish identical: %s  key order kept: %s  fields %3d  with _en %3d  borrador %3d  _en equal to Spanish %d' % (f, len(new), same, order, fields, done, trans, ident))
     tot[0] += len(new); tot[1] += fields; tot[2] += done; tot[3] += trans
-    if not same:
+    if not (same and order):  # Codex round 1: a reorder of the Spanish keys also fails
         sys.exit(1)
 print('TOTAL records %d, fields %d, with _en %d, records marked borrador %d' % tuple(tot))
