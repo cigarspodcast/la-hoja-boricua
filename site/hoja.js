@@ -308,7 +308,7 @@ const pqOk=q=>[...pqText(q)].length>=PQ_MIN;
 const CLERK_IMG_URL='https://img.clerk.com/';
 /* una fila de resultado: solo lo público (nombre público y @) y la foto si es de Clerk; todo escapado */
 const personRow=p=>{const nm=p&&(p.display_name||('@'+p.handle))||'',ini=[...String(nm.replace(/^@/,''))][0]||'?',pic=p&&typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG_URL)?p.avatar_key:'';
- return `<li class="person" data-handle="${esc(p.handle)}"><span class="ob-pic-img person-img" aria-hidden="true">${pic?`<img src="${esc(pic)}" alt="" loading="lazy">`:esc(ini.toUpperCase())}</span><span class="person-t"><b>${esc(nm)}</b><span class="s">@${esc(p.handle)}</span></span></li>`};
+ return `<li class="person" data-handle="${esc(p.handle)}"><a class="person-a" href="#/u/${encodeURIComponent(p.handle)}"><span class="ob-pic-img person-img" aria-hidden="true">${pic?`<img src="${esc(pic)}" alt="" loading="lazy">`:esc(ini.toUpperCase())}</span><span class="person-t"><b>${esc(nm)}</b><span class="s">@${esc(p.handle)}</span></span></a></li>`};
 function vPersonas(){
  view.innerHTML=`${subnav('personas')}<form class="form" id="psF" role="search" novalidate><div class="field"><label for="psQ">${tt('h.buscaPorOPor')}</label><input id="psQ" type="search" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="${tt('h.ejAnaOTabaquero')}"></div><button class="btn" type="submit" id="psGo">${tt('cat.search')}</button></form>
  <p class="hint" id="psH" aria-live="polite">${tt('h.escribeAlMenos2')}</p><ul class="people" id="psL"></ul><button class="lbtn" type="button" id="psMore" hidden>${tt('ev.more')}</button>`;
@@ -327,6 +327,75 @@ function vPersonas(){
  /* al teclear, lo que estaba en camino ya no vale: ni su respuesta ni su "Ver más" */
  $('#psQ').oninput=()=>{clearTimeout(timer);seq++;next=null;$('#psMore').hidden=true;timer=setTimeout(()=>run(false),350)};
  $('#psMore').onclick=()=>run(true)}
+/* ---------- perfil, pasaporte primero (LHB-58) ---------- */
+/* el perfil de otra persona (#/u/<handle>) y el tuyo (Perfil): foto, nombre público, @, bio, marca favorita y conteos (reseñas, seguidores, siguiendo); luego las pestañas Reseñas, Pasaporte, Favoritos y Humidor (el Humidor solo lo ve su dueño).
+   Lo de otra persona sale solo de GET /api/u/<handle> (lo público, la misma lectura que la página /u/<handle>); nunca la foto local del teléfono ni nada privado. La fecha de nacimiento y el género no están aquí. */
+const PF_TABS=['resenas','pasaporte','favoritos','humidor'];
+const pfTabsFor=own=>own?PF_TABS:PF_TABS.filter(t=>t!=='humidor');
+const PF_NAME={resenas:'h.pfResenas',pasaporte:'h.pasaporte',favoritos:'pf.favs',humidor:'h.humidor'};
+const PF_HANDLE=/^[a-z0-9_]{3,20}$/;
+const PF_IMG='https://img.clerk.com/';
+/* "reseñas" son las catas que su dueño marcó públicas: publica tiene que ser true, no basta con algo que parezca verdad (la misma regla que el servidor) */
+const isPublica=e=>!!e&&typeof e==='object'&&!Array.isArray(e)&&e.publica===true;
+const pfTxt=(v,n)=>typeof v==='string'?[...v.trim()].slice(0,n).join(''):'';
+/* lo que se enseña de una reseña: la misma lista cerrada que publicEntry en functions/_lib/passport.js */
+const pfEntry=e=>({nombre:pfTxt(e.nombre,80),marca:pfTxt(e.marca,60),artesano:pfTxt(e.artesano,80),rating:Number.isInteger(e.rating)&&e.rating>=1&&e.rating<=5?e.rating:0,
+ tags:(Array.isArray(e.tags)?e.tags:[]).map(t=>pfTxt(t,40)).filter(Boolean).slice(0,30),notas:pfTxt(e.notas,1000),consumido:okDay(e.consumido)?e.consumido:null});
+/* tus reseñas, de tu Mi Hoja en este teléfono: las públicas, la más reciente primero (por el día en que se fumó; a igual día, el orden del diario) */
+const myResenas=s=>(s.diario||[]).filter(isPublica).map(pfEntry).map((e,i)=>[e,i]).sort((a,b)=>(b[0].consumido||'').localeCompare(a[0].consumido||'')||a[1]-b[1]).map(x=>x[0]);
+const pfNum=v=>Number.isInteger(v)&&v>=0?v:0;
+const pfIni=p=>{const w=String(p.display_name||'').split(/\s+/).filter(Boolean);const f=s=>[...s][0]||'';return (w.length?f(w[0])+(w.length>1?f(w[w.length-1]):''):f(p.handle||'')).toUpperCase()};
+/* conteos y botón: c null mientras llegan; tu vista lleva Editar perfil (LHB-55), la de otra persona deja el lugar del botón de seguir (LHB-60) */
+const pfCounts=(c,own,h)=>{const n=k=>c?pfNum(c[k]):'·';
+ return `<ul class="pf-counts" id="pfCounts"><li><b>${n('resenas')}</b><span>${tt('h.pfResenas')}</span></li><li><b>${n('followers')}</b><span>${tt('h.pfSeguidores')}</span></li><li><b>${n('following')}</b><span>${tt('h.pfSiguiendo')}</span></li></ul>
+ <div class="pf-act">${own?`<a class="btn" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div>`}</div>`};
+const pfAbout=p=>`${p.bio?`<p class="pf-bio">${esc(p.bio)}</p>`:''}${p.favorite_brand?`<p class="pf-fav">${tt('h.pfMarcaFav')}: <b>${esc(p.favorite_brand)}</b></p>`:''}`;
+/* el encabezado de otra persona: su foto de Clerk o sus iniciales */
+function pfHead(p,c){const pic=typeof p.avatar_key==='string'&&p.avatar_key.startsWith(PF_IMG)?`<img src="${esc(p.avatar_key)}" alt="${tt('h.pfFotoDe',{a:'@'+esc(p.handle)})}" width="88" height="88">`:`<span aria-hidden="true">${esc(pfIni(p))}</span>`;
+ return `<section class="pf-head"><div class="pf-pic" id="pfPic">${pic}</div><div class="pf-id"><h1 class="pf-n">${esc(p.display_name||('@'+p.handle))}</h1><div class="pf-h">@${esc(p.handle)}</div>${pfAbout(p)}</div></section>${pfCounts(c,false,p.handle)}`}
+const pfTabsHTML=(own,cur)=>`<div class="pf-tabs" role="tablist" aria-label="${tt('pf.title')}">${pfTabsFor(own).map(t=>`<button type="button" role="tab" id="pfT-${t}" data-pftab="${t}" aria-controls="pfPanel" aria-selected="${t===cur}">${tt(PF_NAME[t])}</button>`).join('')}</div><div id="pfPanel" role="tabpanel" aria-labelledby="pfT-${cur}"></div>`;
+const pfResCard=(e,i)=>`<button type="button" class="pf-res" data-pfres="${i}"><b>${esc(e.nombre||tt('h.pfCigarro'))}</b>${e.rating?stars(e.rating):''}${e.consumido?`<small>${esc(fmtF(e.consumido))}</small>`:''}</button>`;
+const pfResSheet=e=>`<h2 class="sheet-h">${esc(e.nombre||tt('h.pfCigarro'))}</h2><p class="rsub">${[e.marca,e.artesano,e.consumido?fmtF(e.consumido):''].filter(Boolean).map(esc).join(' · ')}</p>${e.rating?stars(e.rating):''}${e.tags.length?`<div class="pf-tags">${e.tags.map(t=>`<span>${esc(lab(t))}</span>`).join('')}</div>`:''}${e.notas?`<p class="pf-notas">${esc(e.notas)}</p>`:''}`;
+/* el contenido de una pestaña, solo de d: { own, resenas, sellos, favorite_brand } y, para tu vista, favs (cigarros del catálogo) y humidor de tu Mi Hoja */
+function pfPanel(tab,d){
+ if(tab==='resenas')return d.resenas.length?`${d.own?`<p class="hint">${tt('h.pfSoloPublicas')}</p>`:''}<div class="pf-grid">${d.resenas.map(pfResCard).join('')}</div>`:`<div class="empty">${d.own?tt('h.pfSinResenasTuyas'):tt('h.pfSinResenas')}</div>`;
+ if(tab==='pasaporte'){const s=d.sellos||{};return `<div class="stats"><div class="stat"><b>${pfNum(s.artesanos)}</b><span>${tt('h.stSellosArt')}</span></div><div class="stat"><b>${pfNum(s.cigarros)}</b><span>${tt('h.stSellosCig')}</span></div><div class="stat"><b>${pfNum(s.lugares)}</b><span>${tt('h.stSellosLug')}</span></div></div>${d.own?`<p><a class="lbtn" href="#/mihoja/pasaporte">${tt('h.pfVerPasaporte')}</a></p>`:''}`}
+ if(tab==='favoritos'){if(!d.own)return `${d.favorite_brand?`<p class="pf-fav">${tt('h.pfMarcaFav')}: <b>${esc(d.favorite_brand)}</b></p>`:''}<div class="empty">${tt('h.pfFavPrivados')}</div>`;
+  return `${d.favs.length?`<div class="mini-row">${d.favs.map(c=>A.cigarCard({...c,mini:true})).join('')}</div>`:`<div class="empty">${tt('pf.noFavs')}</div>`}<p><a class="lbtn" href="#/mihoja/favoritos">${tt('h.pfVerFavoritos')}</a></p>`}
+ if(tab==='humidor'&&d.own)return `${d.humidor.length?`<div class="list">${d.humidor.map(x=>`<div class="row"><div><div class="t">${esc(x.nombre||'')}</div>${x.artesano?`<div class="s">${esc(x.artesano)}</div>`:''}</div><span class="count">${pfNum(+x.cantidad)}</span></div>`).join('')}</div>`:`<div class="empty">${tt('h.tuHumidorEstaVacio')}</div>`}<p><a class="lbtn" href="#/mihoja/humidor">${tt('h.pfVerHumidor')}</a></p>`;
+ return ''}
+/* las pestañas: cambiar de una a otra no vuelve a pedir nada; una pestaña que no es de esta vista (el Humidor de otra persona) no se pinta */
+function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resenas';const panel=$('#pfPanel');if(!panel)return;panel.innerHTML=pfPanel(t,d);panel.setAttribute('aria-labelledby','pfT-'+t);
+  $$('[data-pftab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.pftab===t)));
+  $$('[data-pfres]').forEach(b=>b.onclick=()=>{const e=d.resenas[+b.dataset.pfres];if(e)sheet(pfResSheet(e),e.nombre||tt('h.pfCigarro'))});if(t==='favoritos'&&d.own)A.hydrate()};
+ $$('[data-pftab]').forEach(b=>b.onclick=()=>paint(b.dataset.pftab));paint(cur)}
+/* GET /api/u/<handle>: pública, sin sesión */
+async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
+/* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
+async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();
+ if(h&&me&&typeof me==='object'&&me.handle===h){location.hash='#/mihoja/perfil';return}
+ view.innerHTML=`<div class="pf" id="pfX"><p class="hint">${tt('h.pfCargando')}</p></div>`;const el=$('#pfX');
+ if(!PF_HANDLE.test(h)){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
+ const r=await pfFetch(h);
+ /* una respuesta que llega cuando ya se fue de la página no pinta nada */
+ if($('#pfX')!==el)return;
+ if(r.status===404){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
+ const b=r.body;if(r.status!==200||!b.profile||typeof b.profile!=='object'||!b.counts||typeof b.counts!=='object'){el.innerHTML=`<div class="empty">${tt('h.pfError')}</div>`;return}
+ const d={own:false,resenas:(Array.isArray(b.resenas)?b.resenas:[]).filter(e=>e&&typeof e==='object').map(pfEntry),sellos:b.counts.sellos,favorite_brand:b.profile.favorite_brand};
+ el.innerHTML=pfHead(b.profile,b.counts)+pfTabsHTML(false,'resenas');pfBind(d,'resenas')}
+/* tu Perfil (app.js vPerfil pone la foto, el nombre y el @ de la cuenta guardada, LHB-51): aquí van la bio, la marca y los conteos de /api/u/<tu @>, Editar perfil y las pestañas, que leen tu Mi Hoja.
+   root es el lugar de Perfil donde va (#pfOwn); a es la cuenta guardada */
+async function profileOwn(a){const root=$('#pfOwn');if(!root||!a||typeof a.handle!=='string'||!PF_HANDLE.test(a.handle))return;
+ const s=S();const d={own:true,resenas:myResenas(s),sellos:passCounts().c,favorite_brand:null,favs:s.favs.cigarros.map(A.cigarById).filter(Boolean),humidor:s.humidor};
+ let cur='resenas';const paint=(p,c)=>{root.innerHTML=`<div id="pfAbout">${pfAbout(p)}</div>`+pfCounts(c,true,a.handle)+pfTabsHTML(true,cur);pfBind(d,cur)};
+ paint({},null);
+ const r=await pfFetch(a.handle);const now=acct.get();
+ /* ya no está esta página, u otra cuenta entró mientras tanto: no se pinta */
+ if($('#pfOwn')!==root||!now||now.sub!==a.sub)return;
+ if(r.status!==200||!r.body.profile||!r.body.counts)return;
+ const sel=$$('[data-pftab]').find(b=>b.getAttribute('aria-selected')==='true');if(sel)cur=sel.dataset.pftab;
+ paint(r.body.profile,{...r.body.counts,resenas:d.resenas.length})}
+/* ---------- fin del perfil (LHB-58) ---------- */
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);
  view.innerHTML=`${subnav('humidor')}
  <div class="hum-sum"><div class="stat"><b>${tot}</b><span>${tt('h.cigarros')}</span></div><div class="stat"><b>${s.humidor.length}</b><span>${tt('h.vitolas')}</span></div><button class="btn" type="button" data-sheet="humidor">${tt('h.anadir')}</button></div>
@@ -752,7 +821,7 @@ function cigarExtras(c){const pr=pairing(c);const real=!c.yours;
  ${podBlock('c',c.id)}`}
 const placeActions=p=>`<div class="pl-act">${favBtn('lugares',p.id,'sm')}${stampBtn('lugares',p.id,'sm')}</div>`;
 function setRating(id,n){save(s=>{if(!n||s.ratings[id]===n)delete s.ratings[id];else s.ratings[id]=n})}
-return {requireAccount,gate,accountGen:CUENTA.gen,registerAction:CUENTA.register,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
- routes:{mihoja:vMiHoja,cata:cid=>requireAccount(()=>vCata(cid),{fast:true}),maridajes:vMaridajes,podcast:vPodcast,buscar:vBuscar,eventos:vEventos,actividades:vEventos},
+return {profileOwn,requireAccount,gate,accountGen:CUENTA.gen,registerAction:CUENTA.register,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
+ routes:{mihoja:vMiHoja,persona:vPersona,cata:cid=>requireAccount(()=>vCata(cid),{fast:true}),maridajes:vMaridajes,podcast:vPodcast,buscar:vBuscar,eventos:vEventos,actividades:vEventos},
  _test:{HANDLE_RE,CLERK,icsFor,parseHora,pairing,pideloLink,cardBlob,badgeIds,passCounts,load,KEY}};
 };
