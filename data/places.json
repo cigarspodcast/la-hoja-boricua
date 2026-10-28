@@ -3,6 +3,7 @@
     "id": "dragonfly-levittown",
     "nombre": "DragonFly Cigar Lounge",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "Toa Baja (Levittown)",
     "direccion": "2748 Ave. Boulevard, Levittown, Toa Baja, PR",
@@ -15,12 +16,14 @@
     "fuentes": [
       "https://www.instagram.com/dragonfly_cigarlounge/",
       "/home/user/tab/files/resena_segovia_artesano/fuentes.md"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "vaca-brava-caguas",
     "nombre": "Vaca Brava Caguas",
     "tipo": "Restaurante",
+    "tipo_en": "Restaurant",
     "categoria": "lounge",
     "pueblo": "Caguas",
     "direccion": "The Yard at Bairoa, 190 Ave. Bairoa, Caguas, PR",
@@ -32,12 +35,14 @@
     "fuentes": [
       "https://humoytambor.com",
       "https://www.instagram.com/vacabravapr/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-rey-viejo-san-juan",
     "nombre": "Don Rey Cigar (Viejo San Juan)",
     "tipo": "Tabaquería / Lounge",
+    "tipo_en": "Tobacco shop / Lounge",
     "categoria": "venta",
     "pueblo": "Viejo San Juan",
     "direccion": "101 Calle Juan Antonio Corretjer, San Juan, PR 00901",
@@ -49,12 +54,14 @@
     "lat_lng_aprox": false,
     "fuentes": [
       "https://www.donreycigar.com/locations"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-rey-santurce",
     "nombre": "Don Rey Cigar (Santurce)",
     "tipo": "Tabaquería / Lounge",
+    "tipo_en": "Tobacco shop / Lounge",
     "categoria": "lounge",
     "pueblo": "Santurce (San Juan)",
     "direccion": "1348 Calle Roberts, Santurce, San Juan, PR 00907",
@@ -66,12 +73,14 @@
     "lat_lng_aprox": false,
     "fuentes": [
       "https://www.donreycigar.com/locations"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-rey-guaynabo",
     "nombre": "Don Rey Cigar (Guaynabo)",
     "tipo": "Tabaquería / Lounge",
+    "tipo_en": "Tobacco shop / Lounge",
     "categoria": "lounge",
     "pueblo": "Guaynabo",
     "direccion": "100 Avenida San Patricio, Pueblo Viejo, Guaynabo, PR 00968",
@@ -83,12 +92,14 @@
     "lat_lng_aprox": false,
     "fuentes": [
       "https://www.donreycigar.com/locations"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-rey-bayamon",
     "nombre": "Don Rey Cigar (Bayamón)",
     "tipo": "Tabaquería / Lounge",
+    "tipo_en": "Tobacco shop / Lounge",
     "categoria": "venta",
     "pueblo": "Bayamón",
     "direccion": "Plaza de Mercado, Bayamón, PR 00961",
@@ -100,12 +111,14 @@
     "lat_lng_aprox": true,
     "fuentes": [
       "https://www.donreycigar.com/locations"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-rey-caguas",
     "nombre": "Don Rey Cigar (Caguas)",
     "tipo": "Tabaquería / Lounge",
+    "tipo_en": "Tobacco shop / Lounge",
     "categoria": "venta",
     "pueblo": "Caguas",
     "direccion": "Calle Ramón Emeterio Betances, Caguas, PR 00725",
@@ -118,12 +131,14 @@
     "fuentes": [
       "https://www.donreycigar.com/locations",
       "https://www.visitacaguas.com/don-rey-cigars-en"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-rey-humacao",
     "nombre": "Don Rey Cigar (Humacao)",
     "tipo": "Tabaquería / Lounge",
+    "tipo_en": "Tobacco shop / Lounge",
     "categoria": "venta",
     "pueblo": "Humacao",
     "direccion": "Palmas Inn Rd, Candelero Abajo, Humacao, PR 00791",
@@ -135,12 +150,14 @@
     "lat_lng_aprox": true,
     "fuentes": [
       "https://www.donreycigar.com/locations"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-rey-luquillo",
     "nombre": "Don Rey Cigar (Luquillo)",
     "tipo": "Tabaquería / Lounge",
+    "tipo_en": "Tobacco shop / Lounge",
     "categoria": "venta",
     "pueblo": "Luquillo",
     "direccion": "Calle Fernández García, Luquillo, PR 00773",
@@ -152,12 +169,14 @@
     "lat_lng_aprox": true,
     "fuentes": [
       "https://www.donreycigar.com/locations"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "entre-humos-san-patricio",
     "nombre": "Entre Humos San Patricio",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "Guaynabo",
     "direccion": "San Patricio Town Center, 1400 Calle Tabonuco, Local 1, Guaynabo, PR 00968",
@@ -169,12 +188,14 @@
     "lat_lng_aprox": false,
     "fuentes": [
       "https://entrehumos.com/en/pages/our-locations"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "club-macanudo-palmas",
     "nombre": "Club Macanudo Puerto Rico",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "Humacao",
     "direccion": "Palmas del Mar Yacht Club, 370 Harbour Drive, Humacao, PR 00791",
@@ -186,12 +207,14 @@
     "fuentes": [
       "https://www.clubmacanudo.com/locations/puerto-rico/",
       "https://entrehumos.com/en/pages/our-locations"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "pegadizo-fajardo",
     "nombre": "Pegadizo Cigar Lounge",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "Fajardo",
     "direccion": "Carr. 987 km 4.8 (al lado del Texaco), Fajardo, PR",
@@ -204,12 +227,14 @@
     "fuentes": [
       "https://www.pegadizocigarlounge.com/",
       "https://www.instagram.com/pegadizocigar/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "casa-de-montecristo-vsj",
     "nombre": "Casa de Montecristo",
     "tipo": "Lounge / Bar",
+    "tipo_en": "Lounge / Bar",
     "categoria": "lounge",
     "pueblo": "Viejo San Juan",
     "direccion": "201 Calle del Cristo, San Juan, PR 00901",
@@ -222,12 +247,14 @@
     "fuentes": [
       "https://www.casademontecristopr.com/",
       "https://www.instagram.com/casademontecristopr/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-collins-vsj",
     "nombre": "Don Collins Cigars",
     "tipo": "Tabaquería / Lounge",
+    "tipo_en": "Tobacco shop / Lounge",
     "categoria": "venta",
     "pueblo": "Viejo San Juan",
     "direccion": "59 Calle del Cristo, San Juan, PR 00901",
@@ -241,12 +268,14 @@
       "https://www.don-collins.com/",
       "https://www.frommers.com/destinations/san-juan/shopping/don-collins-cigars/",
       "https://www.instagram.com/doncollinspr/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "finca-neo-jibairo",
     "nombre": "Finca Neo Jibairo",
     "tipo": "Bar y tabaquería en finca",
+    "tipo_en": "Bar and tobacco shop on a farm",
     "categoria": "venta",
     "pueblo": "Río Grande",
     "direccion": "Carr. 187 Km 28.6, Río Grande, PR 00745",
@@ -260,12 +289,14 @@
       "https://fincaneojibairo.com/about-us",
       "https://www.amcigars.com/post/puerto-rico-top-5-cigar-lounges",
       "https://www.instagram.com/fincaneojibairo/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "kuros-condado",
     "nombre": "Kuros Smoke Lounge",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "Condado (San Juan)",
     "direccion": "1056 Ashford Ave, Suite 1, Condado, San Juan, PR 00907",
@@ -276,12 +307,14 @@
     "lat_lng_aprox": true,
     "fuentes": [
       "https://www.kurospr.com/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "habanacuba-san-juan",
     "nombre": "Habanacuba Cigar, Wines & Spirits",
     "tipo": "Tabaquería",
+    "tipo_en": "Tobacco shop",
     "categoria": "venta",
     "pueblo": "San Juan",
     "direccion": "Ave. San Patricio #638, San Juan, PR 00920",
@@ -292,12 +325,14 @@
     "lat_lng_aprox": false,
     "fuentes": [
       "https://habanacubacigar.com/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "juana-diaz-cigars",
     "nombre": "Juana Díaz Cigars",
     "tipo": "Tabaquería / Cigar bar",
+    "tipo_en": "Tobacco shop / Cigar bar",
     "categoria": "lounge",
     "pueblo": "Juana Díaz",
     "direccion": "9 Calle Tomás Carrión Maduro, Juana Díaz, PR 00795",
@@ -310,12 +345,14 @@
     "fuentes": [
       "https://juanadiazcigars.company.site/",
       "https://www.instagram.com/juanadiazcigars/p/DetsqCqx0Jl/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "conquistador-cigar-bar",
     "nombre": "Cigar Bar – El Conquistador Resort",
     "tipo": "Bar de hotel",
+    "tipo_en": "Hotel bar",
     "categoria": "lounge",
     "pueblo": "Fajardo",
     "direccion": "1000 El Conquistador Ave, Fajardo, PR 00738",
@@ -327,12 +364,14 @@
     "fuentes": [
       "https://www.conquistadorresort.com/dining/cigar-bar",
       "https://www.amcigars.com/post/puerto-rico-top-5-cigar-lounges"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "mother-earth-cigars",
     "nombre": "Mother Earth Cigars",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "San Juan",
     "direccion": "Condominio Darlington, 1007 Ave. Muñoz Rivera, San Juan, PR",
@@ -345,12 +384,14 @@
     "fuentes": [
       "https://sites.google.com/view/motherearthcigars",
       "https://www.instagram.com/motherearthcigars/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "good-times-mayaguez",
     "nombre": "Good Times Smoke Shop",
     "tipo": "Tabaquería",
+    "tipo_en": "Tobacco shop",
     "categoria": "venta",
     "pueblo": "Mayagüez",
     "direccion": "74 Calle McKinley Oeste, Mayagüez, PR 00680",
@@ -361,12 +402,14 @@
     "lat_lng_aprox": false,
     "fuentes": [
       "http://www.jfctobacco.com/locations"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "ciudad-senorial-ponce",
     "nombre": "Ciudad Señorial Cigar Lounge",
     "tipo": "Lounge / Coctelería",
+    "tipo_en": "Lounge / Cocktail bar",
     "categoria": "lounge",
     "pueblo": "Ponce",
     "direccion": "Calle Estrella esq. Calle León, Ponce, PR 00730",
@@ -378,12 +421,14 @@
     "fuentes": [
       "https://www.instagram.com/ciudadsenorialcigar/",
       "https://www.tripadvisor.com/Attraction_Review-g147323-d33268870-Reviews-Ciudad_Senorial_Cigar_Lounge-Ponce_Puerto_Rico.html"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "tabaco-y-puros-ponce",
     "nombre": "Tabaco & Puros Cigar Lounge (Juana Díaz Cigars en Ponce)",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "Ponce",
     "direccion": "Hotel Meliá, centro histórico de Ponce, PR",
@@ -394,12 +439,14 @@
     "lat_lng_aprox": false,
     "fuentes": [
       "https://www.instagram.com/juanadiazcigars/p/DesZNkqtH-A/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "green-zone-rincon",
     "nombre": "Green Zone Smoke Shop",
     "tipo": "Tabaquería",
+    "tipo_en": "Tobacco shop",
     "categoria": "venta",
     "pueblo": "Rincón",
     "direccion": "43 Calle Muñoz Rivera Oeste, Suite 2, Rincón, PR 00677",
@@ -410,12 +457,14 @@
     "lat_lng_aprox": true,
     "fuentes": [
       "https://www.instagram.com/greenzone_smokeshop/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "612-c-lounge-arecibo",
     "nombre": "612 C. Lounge",
     "tipo": "Lounge / Bar",
+    "tipo_en": "Lounge / Bar",
     "categoria": "lounge",
     "pueblo": "Arecibo",
     "direccion": "Ave. Rotarios #171, Arecibo, PR 00612",
@@ -427,12 +476,14 @@
     "fuentes": [
       "https://www.instagram.com/612clounge/",
       "https://www.facebook.com/612C.lounge/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "condado-cigar-lounge",
     "nombre": "Condado Cigar Lounge",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "Condado (San Juan)",
     "direccion": "1108 Ave. Magdalena, Ste D, San Juan, PR 00907",
@@ -445,12 +496,14 @@
       "https://www.instagram.com/condadocigarlounge/",
       "https://www.yelp.com/biz/condado-cigar-lounge-san-juan",
       "https://www.tripadvisor.com/Restaurant_Review-g147319-d26367653-Reviews-Condado_Cigar_Lounge-Puerto_Rico.html"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "the-cigar-house-vsj",
     "nombre": "The Cigar House",
     "tipo": "Tabaquería / Lounge",
+    "tipo_en": "Tobacco shop / Lounge",
     "categoria": "venta",
     "pueblo": "Viejo San Juan",
     "direccion": "257 Calle Fortaleza, San Juan, PR 00901",
@@ -462,12 +515,14 @@
       "https://www.facebook.com/thecigarhouse/",
       "https://www.yelp.com/biz/the-cigar-house-old-san-juan",
       "https://www.tripadvisor.com/Attraction_Review-g147320-d2420331-Reviews-The_Cigar_House-San_Juan_Puerto_Rico.html"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "jj-cigar-lounge-isabela",
     "nombre": "JJ Cigar Lounge",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "Isabela",
     "direccion": "7024 Ave. Agustín Ramos Calero, Isabela, PR 00662",
@@ -479,12 +534,14 @@
     "fuentes": [
       "https://www.instagram.com/jjcigarlounge/",
       "https://www.tripadvisor.com/Attraction_Review-g609120-d27125642-Reviews-JJ_Cigar_Lounge-Isabela_Puerto_Rico.html"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "bar-la-unidad-miramar",
     "nombre": "Bar La Unidad",
     "tipo": "Bar (speakeasy) con cigar lounge",
+    "tipo_en": "Bar (speakeasy) with a cigar lounge",
     "categoria": "lounge",
     "pueblo": "Miramar (San Juan)",
     "direccion": "562 Calle Cuevillas, Miramar, San Juan, PR 00907",
@@ -498,12 +555,14 @@
       "https://www.instagram.com/barlaunidad/",
       "https://www.tripadvisor.com/Attraction_Review-g147320-d9735138-Reviews-Bar_La_Unidad-San_Juan_Puerto_Rico.html",
       "https://www.facebook.com/barlaunidad/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "la-turreria-bayamon",
     "nombre": "La Turrería",
     "tipo": "Lounge y tabaquería (El Club del Turro)",
+    "tipo_en": "Lounge and tobacco shop (El Club del Turro)",
     "categoria": "lounge",
     "pueblo": "Bayamón",
     "direccion": "76 Calle Dr. Santiago Veve, Bayamón, PR 00961",
@@ -516,12 +575,14 @@
       "https://www.instagram.com/laturreria/",
       "https://www.instagram.com/laturreria/p/DerulL2Jf69/",
       "https://www.tripadvisor.es/Attraction_Review-g1020017-d27143116-Reviews-La_Turreria-Bayamon_Puerto_Rico.html"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "la-sibarita-condado",
     "nombre": "La Sibarita Condado",
     "tipo": "Cigar & cocktail lounge (speakeasy)",
+    "tipo_en": "Cigar & cocktail lounge (speakeasy)",
     "categoria": "lounge",
     "pueblo": "Condado (San Juan)",
     "direccion": "1106 Ashford Ave, 2do piso, San Juan, PR 00907",
@@ -532,12 +593,14 @@
     "lat_lng_aprox": true,
     "fuentes": [
       "https://www.instagram.com/lasibarita_condado/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "el-chapu-tienda",
     "nombre": "El Chapu PR · La Tienda",
     "tipo": "Punto de venta (tienda y taller)",
+    "tipo_en": "Point of sale (shop and workshop)",
     "categoria": "venta",
     "pueblo": "Toa Alta",
     "direccion": "Carr. 829, Toa Alta",
@@ -548,12 +611,14 @@
     "fuentes": [
       "https://www.instagram.com/el.chapu.pr_la.tienda/",
       "https://www.facebook.com/rafytw/posts/el-chapu-pr-la-tienda-carr-829-toa-alta/10242280313201422/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "falto-mayaguez",
     "nombre": "Falto Cigars · La Garita Cigar Company",
     "tipo": "Tienda / punto de venta",
+    "tipo_en": "Shop / point of sale",
     "categoria": "venta",
     "pueblo": "Mayagüez",
     "direccion": "",
@@ -566,12 +631,14 @@
     "fuentes": [
       "https://www.faltocigars.com/",
       "https://www.instagram.com/tabacalera_falto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "jl-cigars-lounge-coamo",
     "nombre": "JL Cigars Lounge",
     "tipo": "Lounge y tienda del artesano",
+    "tipo_en": "Lounge and the artisan's shop",
     "categoria": "lounge",
     "pueblo": "Coamo",
     "direccion": "Cerca de la plaza de Coamo (dirección exacta en verificación)",
@@ -583,16 +650,19 @@
     "fuentes": [
       "https://www.facebook.com/jlcigarrospuertorrico/",
       "https://www.instagram.com/jl_cigars_artesanos/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "el-chalet-aguadilla",
     "nombre": "El Chalet",
     "tipo": "Cigar bar / Lounge",
+    "tipo_en": "Cigar bar / Lounge",
     "categoria": "lounge",
     "pueblo": "Aguadilla",
     "direccion": "Carr. 110 km 30.1, Aguadilla, PR",
     "horario": "Abierto de 3PM a 2AM (en verificación)",
+    "horario_en": "Open 3 PM to 2 AM (being verified)",
     "instagram": "https://www.instagram.com/elchalet_pr/",
     "maps": "https://www.google.com/maps/search/?api=1&query=El%20Chalet%20Carr.%20110%20km%2030.1%20Aguadilla%20Puerto%20Rico",
     "lat": 18.504141,
@@ -602,12 +672,14 @@
       "https://www.instagram.com/elchalet_pr/",
       "https://www.tripadvisor.com/ShowUserReviews-g580452-d4014709-r447903722-Cigar_Chalet-Aguadilla_Puerto_Rico.html",
       "https://www.openstreetmap.org/node/5969448268"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-paco-1932",
     "nombre": "Don Paco 1932 Cigar Bar",
     "tipo": "Lounge",
+    "tipo_en": "Lounge",
     "categoria": "lounge",
     "pueblo": "Guayama",
     "direccion": "Calle Calimano #1 Sur, Guayama",
@@ -616,12 +688,14 @@
     "lat": 17.9842,
     "lng": -66.1137,
     "lat_lng_aprox": true,
-    "fuentes": []
+    "fuentes": [],
+    "traduccion": "borrador"
   },
   {
     "id": "timber-blues",
     "nombre": "Timber & Blues",
     "tipo": "Bar",
+    "tipo_en": "Bar",
     "categoria": "lounge",
     "pueblo": "Aguadilla",
     "direccion": "Calle Ramón E. Betances 34, Aguadilla",
@@ -630,12 +704,14 @@
     "lat": 18.4282,
     "lng": -67.1543,
     "lat_lng_aprox": true,
-    "fuentes": []
+    "fuentes": [],
+    "traduccion": "borrador"
   },
   {
     "id": "scryer-rum",
     "nombre": "Scryer Rum Barrelhouse & Rooftop",
     "tipo": "Bar",
+    "tipo_en": "Bar",
     "categoria": "lounge",
     "pueblo": "Viejo San Juan",
     "direccion": "259 Calle Tetuán, Viejo San Juan",
@@ -644,12 +720,14 @@
     "lat": 18.4646,
     "lng": -66.1163,
     "lat_lng_aprox": true,
-    "fuentes": []
+    "fuentes": [],
+    "traduccion": "borrador"
   },
   {
     "id": "vc-lounge",
     "nombre": "VC Lounge (Condado Vanderbilt)",
     "tipo": "Bar",
+    "tipo_en": "Bar",
     "categoria": "lounge",
     "pueblo": "Condado (San Juan)",
     "direccion": "1055 Ave. Ashford, Condado",
@@ -658,12 +736,14 @@
     "lat": 18.4573,
     "lng": -66.0681,
     "lat_lng_aprox": true,
-    "fuentes": []
+    "fuentes": [],
+    "traduccion": "borrador"
   },
   {
     "id": "la-factoria",
     "nombre": "La Factoría",
     "tipo": "Bar",
+    "tipo_en": "Bar",
     "categoria": "lounge",
     "pueblo": "Viejo San Juan",
     "direccion": "148 Calle San Sebastián, Viejo San Juan",
@@ -672,12 +752,14 @@
     "lat": 18.4659,
     "lng": -66.1171,
     "lat_lng_aprox": true,
-    "fuentes": []
+    "fuentes": [],
+    "traduccion": "borrador"
   },
   {
     "id": "the-cave",
     "nombre": "The Cave: Cuban Cuisine & Cocktails",
     "tipo": "Bar",
+    "tipo_en": "Bar",
     "categoria": "lounge",
     "pueblo": "Viejo San Juan",
     "direccion": "Calle San Francisco esq., Plaza de Armas, Viejo San Juan",
@@ -686,6 +768,7 @@
     "lat": 18.4655,
     "lng": -66.1166,
     "lat_lng_aprox": true,
-    "fuentes": []
+    "fuentes": [],
+    "traduccion": "borrador"
   }
 ]

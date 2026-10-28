@@ -5,6 +5,7 @@
     "artesano_id": "jfc-hoja-boricua",
     "pueblo": "Mayagüez",
     "capa": "Sumatra (Indonesia)",
+    "capa_en": "Sumatra (Indonesia)",
     "fortaleza": "media",
     "vitolas": [
       "Corona",
@@ -13,10 +14,12 @@
       "Churchill"
     ],
     "notas": "Tripa larga 100% puertorriqueña, capote dominicano. De suave a media según la tienda; notas de especias sutiles y madera ahumada.",
+    "notas_en": "100% Puerto Rican long filler, Dominican binder. Mild to medium according to the shop; notes of subtle spice and smoked wood.",
     "fuentes": [
       "https://shopjfctobacco.com/products/hoja-boricua",
       "http://www.jfctobacco.com/premiumcigars"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "hoja-boricua-gran-reserva",
@@ -24,12 +27,15 @@
     "artesano_id": "jfc-hoja-boricua",
     "pueblo": "Mayagüez",
     "capa": "Corojo (Nicaragua)",
+    "capa_en": "Corojo (Nicaragua)",
     "fortaleza": "fuerte",
     "vitolas": [],
     "notas": "Tripa de hoja puertorriqueña de Comerío con Olor dominicano. JFC lo llama 'el cigarro más fuerte de Puerto Rico'.",
+    "notas_en": "A filler of Puerto Rican leaf from Comerío with Dominican Olor. JFC calls it 'the strongest cigar in Puerto Rico'.",
     "fuentes": [
       "http://www.jfctobacco.com/premiumcigars"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "puerto-rico-965",
@@ -42,10 +48,12 @@
       "Robusto"
     ],
     "notas": "Cigarro puertorriqueño de JFC, suave, con sabor a cedro constante y ceniza blanca firme.",
+    "notas_en": "A Puerto Rican cigar from JFC, mild, with a steady cedar flavor and a firm white ash.",
     "fuentes": [
       "http://www.jfctobacco.com/premiumcigars",
       "https://humoytabaco.com/2024/03/20/hoja-boricua-puerto-rico-965/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-albizu-campos",
@@ -53,15 +61,18 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Connecticut",
+    "capa_en": "Connecticut",
     "fortaleza": "suave",
     "vitolas": [
       "Robusto",
       "Toro"
     ],
     "notas": "Capote Corojo y tripa Criollo de Finca Neo Jibairo. Tributo a Don Pedro; humo cremoso.",
+    "notas_en": "Corojo binder and a Criollo filler from Finca Neo Jibairo. A tribute to Don Pedro; creamy smoke.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-pedro-albizu-campos-robusto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-mamposteao",
@@ -69,14 +80,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Picadura puertorriqueña",
+    "capa_en": "Puerto Rican short filler",
     "fortaleza": "media",
     "vitolas": [
       "Robusto 5 x 50"
     ],
     "notas": "Capa, capote y tripa de Puerto Rico. Notas de limón, madera ahumada y pimienta.",
+    "notas_en": "Wrapper, binder and filler from Puerto Rico. Notes of lemon, smoked wood and pepper.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-mamposteao-robusto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-cartucho",
@@ -84,14 +98,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Habano 2000",
+    "capa_en": "Habano 2000",
     "fortaleza": "fuerte",
     "vitolas": [
       "Cartucho 4.25\" x 30/60"
     ],
     "notas": "Capote Corojo y tripa 100% Corojo puertorriqueño de Finca Neo Jibairo; molde propio. Madera ahumada, café negro y pimienta.",
+    "notas_en": "Corojo binder and a 100% Puerto Rican Corojo filler from Finca Neo Jibairo; its own mold. Smoked wood, black coffee and pepper.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-cartucho/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-deja-el-drama",
@@ -99,14 +116,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Nicaragua (capote Habano)",
+    "capa_en": "Nicaragua (Habano binder)",
     "fortaleza": "suave",
     "vitolas": [
       "Robusto 5 x 50"
     ],
     "notas": "Tripa de Puerto Rico y República Dominicana. Notas dulces de chocolate y frutas frescas. Suave a media.",
+    "notas_en": "Filler from Puerto Rico and the Dominican Republic. Sweet notes of chocolate and fresh fruit. Mild to medium.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/es/tienda/el-club-del-turro-deja-el-drama-robusto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-collins-linea",
@@ -123,9 +143,11 @@
       "Pirámide"
     ],
     "notas": "Cigarros hechos a mano con tabaco puertorriqueño; el 5-pack trae uno de cada vitola.",
+    "notas_en": "Handmade cigars with Puerto Rican tobacco; the 5-pack has one of each vitola.",
     "fuentes": [
       "https://www.don-collins.com/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "la-altura",
@@ -133,16 +155,19 @@
     "artesano_id": "tabaco-la-altura",
     "pueblo": "Lares",
     "capa": "Hoja de Lares",
+    "capa_en": "Lares leaf",
     "fortaleza": null,
     "vitolas": [
       "Robusto 6 x 52",
       "Corona (medidas en verificación)"
     ],
     "notas": "Tabaco 100% cultivado y procesado en Lares. No hay ficha técnica publicada; la fortaleza no está publicada.",
+    "notas_en": "Tobacco 100% grown and processed in Lares. No spec sheet published; the Strength is not published.",
     "fuentes": [
       "https://www.facebook.com/tabaco.la.altura/videos/i-felt-compelled-to-write-a-short-review-of-the-robusto-52x6-i-cant-tell-you-how/363312163053408/",
       "https://www.facebook.com/tabaco.la.altura/posts/en-la-altura-degustando-un-corona-puro-tabaco-puertorrique%C3%B1o-felices-fumadas/623174177294787/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "monte-mistica-corojo",
@@ -150,14 +175,17 @@
     "artesano_id": "molina-lopez",
     "pueblo": "Caguas",
     "capa": "Corojo",
+    "capa_en": "Corojo",
     "fortaleza": "media",
     "vitolas": [
       "Robusto 5 x 50"
     ],
     "notas": "Capote de Indonesia y tripa nicaragüense con Piloto Cubano y ligero de Ecuador. Desde $12.35 en Entre Humos.",
+    "notas_en": "Indonesian binder and a Nicaraguan filler with Piloto Cubano and Ecuadorian ligero. From $12.35 at Entre Humos.",
     "fuentes": [
       "https://cigardojo.com/2026/10/liz-lopez-returns-with-molina-lopez-tabacalera/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "monte-mistica-maduro",
@@ -165,12 +193,15 @@
     "artesano_id": "molina-lopez",
     "pueblo": "Caguas",
     "capa": "San Andrés (maduro)",
+    "capa_en": "San Andrés (maduro)",
     "fortaleza": "media",
     "vitolas": [],
     "notas": "Capa San Andrés sobre tabacos nicaragüenses.",
+    "notas_en": "San Andrés wrapper over Nicaraguan tobaccos.",
     "fuentes": [
       "https://cigardojo.com/2026/10/liz-lopez-returns-with-molina-lopez-tabacalera/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "monte-mistica-connecticut",
@@ -178,12 +209,15 @@
     "artesano_id": "molina-lopez",
     "pueblo": "Caguas",
     "capa": "Connecticut (Ecuador)",
+    "capa_en": "Connecticut (Ecuador)",
     "fortaleza": "media",
     "vitolas": [],
     "notas": "Tabacos de Indonesia, Nicaragua y República Dominicana, con ligero.",
+    "notas_en": "Tobaccos from Indonesia, Nicaragua and the Dominican Republic, with ligero.",
     "fuentes": [
       "https://cigardojo.com/2026/10/liz-lopez-returns-with-molina-lopez-tabacalera/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "galiz-spirit",
@@ -196,10 +230,12 @@
       "Robusto"
     ],
     "notas": "Robusto con boquilla dulce saborizada; tabacos de Nicaragua y Ecuador. El Ron Añejo usa ron puertorriqueño. Desde $10.85.",
+    "notas_en": "A robusto with a sweet flavored tip; tobaccos from Nicaragua and Ecuador. The Ron Añejo uses Puerto Rican rum. From $10.85.",
     "fuentes": [
       "https://cigardojo.com/2026/10/liz-lopez-returns-with-molina-lopez-tabacalera/",
       "https://www.instagram.com/entrehumos/p/Def_259FavU/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-rey-linea",
@@ -210,9 +246,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Cigarros hechos a mano en Puerto Rico; unos 22 estilos y sabores según VisitaCaguas. Nombres de vitolas no confirmados.",
+    "notas_en": "Cigars handmade in Puerto Rico; about 22 styles and flavors according to VisitaCaguas. Vitola names not confirmed.",
     "fuentes": [
       "https://www.visitacaguas.com/don-rey-cigars-en"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-libertad",
@@ -223,9 +261,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Nuevo cigarro inspirado en Blanca Canales y la Revolución Nacionalista de Jayuya de 1950. Se presenta el 30 de octubre de 2026 en Jayuya; liga no publicada.",
+    "notas_en": "A new cigar inspired by Blanca Canales and the 1950 Nationalist uprising in Jayuya. It launches on October 30, 2026 in Jayuya; blend not published.",
     "fuentes": [
       "https://www.instagram.com/laturreria/p/DemIkUwxaMf/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "willys-tripa-corta",
@@ -236,9 +276,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Cigarros 100% hechos a mano en PR; en IG muestra torcido de tripa corta (oct 2026). Nombres de líneas no confirmados.",
+    "notas_en": "Cigars 100% handmade in PR; on IG he shows short-filler rolling (Oct 2026). Line names not confirmed.",
     "fuentes": [
       "https://www.instagram.com/willyscigars/reel/Det9tMTxojx/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "willys-banda-negra-oro",
@@ -249,9 +291,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "notas_en": "Handmade in Puerto Rico. Photo from Willys Cigars (Oct 2026); name confirmed by Sergio; vitola and blend to be confirmed.",
     "fuentes": [
       "https://www.instagram.com/willyscigars/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "willys-banda-azul-oro",
@@ -262,9 +306,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "notas_en": "Handmade in Puerto Rico. Photo from Willys Cigars (Oct 2026); name confirmed by Sergio; vitola and blend to be confirmed.",
     "fuentes": [
       "https://www.instagram.com/willyscigars/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "willys-banda-azul-roja-oro",
@@ -275,9 +321,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "notas_en": "Handmade in Puerto Rico. Photo from Willys Cigars (Oct 2026); name confirmed by Sergio; vitola and blend to be confirmed.",
     "fuentes": [
       "https://www.instagram.com/willyscigars/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "willys-banda-azul-coleta",
@@ -288,9 +336,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "notas_en": "Handmade in Puerto Rico. Photo from Willys Cigars (Oct 2026); name confirmed by Sergio; vitola and blend to be confirmed.",
     "fuentes": [
       "https://www.instagram.com/willyscigars/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "willys-banda-azul-ovalada",
@@ -301,9 +351,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "notas_en": "Handmade in Puerto Rico. Photo from Willys Cigars (Oct 2026); name confirmed by Sergio; vitola and blend to be confirmed.",
     "fuentes": [
       "https://www.instagram.com/willyscigars/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "don-collins-corona-grande",
@@ -316,9 +368,11 @@
       "Corona Grande"
     ],
     "notas": "Su clásico suave, de hoja puertorriqueña pura y sabor terroso.",
+    "notas_en": "Their mild classic, all Puerto Rican leaf with an earthy flavor.",
     "fuentes": [
       "https://www.instagram.com/doncollinspr/p/Dej6esFj7Ze/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "mr-jony-torpedo",
@@ -326,14 +380,17 @@
     "artesano_id": "mr-jony-cigars",
     "pueblo": "Caguas",
     "capa": "Varias (Habano, Maduro, Connecticut…)",
+    "capa_en": "Several (Habano, Maduro, Connecticut…)",
     "fortaleza": null,
     "vitolas": [
       "Torpedo 6 x 52"
     ],
     "notas": "Capas: Habano, Broadleaf Maduro, Connecticut y Habano Ecuador; también Barber Pole (Connecticut + Maduro). Tripa nicaragüense y capote de Ecuador. Empezó con ligas de fortaleza alta y luego amplió a ligas más suaves (Humo Latino).",
+    "notas_en": "Wrappers: Habano, Broadleaf Maduro, Connecticut and Habano Ecuador; also Barber Pole (Connecticut + Maduro). Nicaraguan filler and an Ecuadorian binder. It started with full-strength blends and later added milder ones (Humo Latino).",
     "fuentes": [
       "https://humolatino.com/mr-jony-cigars-respeto-por-el-tabaco/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "san-pedrito-linea",
@@ -341,6 +398,7 @@
     "artesano_id": "san-pedrito-cigars",
     "pueblo": "Humacao",
     "capa": "Varias (7 capas)",
+    "capa_en": "Several (7 wrappers)",
     "fortaleza": null,
     "vitolas": [
       "5 x 32",
@@ -353,9 +411,11 @@
       "Toro 6 x 60"
     ],
     "notas": "Capas: Candela, Habano LS, Connecticut, Habano 2000, San Andrés Negro, Maduro y Barber Pole. Tripa con tabacos de Ecuador y Nicaragua; hojas de EE.UU., México, Brasil, Ecuador y Nicaragua (Humo Latino, ene 2025).",
+    "notas_en": "Wrappers: Candela, Habano LS, Connecticut, Habano 2000, San Andrés Negro, Maduro and Barber Pole. Filler with tobaccos from Ecuador and Nicaragua; leaves from the US, Mexico, Brazil, Ecuador and Nicaragua (Humo Latino, Jan 2025).",
     "fuentes": [
       "https://global.humolatino.com/san-pedrito-cigars-let-our-cigars-speak-for-puerto-rico/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "san-pedrito-barber-pole",
@@ -363,14 +423,17 @@
     "artesano_id": "san-pedrito-cigars",
     "pueblo": "Humacao",
     "capa": "Barber Pole",
+    "capa_en": "Barber Pole",
     "fortaleza": null,
     "vitolas": [
       "6 x 56"
     ],
     "notas": "Publicado en su IG el 28 ago 2026 (#hechoenpuertorico).",
+    "notas_en": "Posted on their IG on Aug 28, 2026 (#hechoenpuertorico).",
     "fuentes": [
       "https://www.instagram.com/sanpedritocigars/reel/Dcltlh9xMt6/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "villareno-box-pressed-san-andres",
@@ -378,14 +441,17 @@
     "artesano_id": "villareno-cigars",
     "pueblo": "Santa Isabel",
     "capa": "San Andrés (México)",
+    "capa_en": "San Andrés (Mexico)",
     "fortaleza": null,
     "vitolas": [
       "Box pressed"
     ],
     "notas": "Post de @lamboycigars (21 oct 2025): lo confecciona el maestro torcedor Delvis en Santa Isabel.",
+    "notas_en": "Post by @lamboycigars (Oct 21, 2025): made by master roller Delvis in Santa Isabel.",
     "fuentes": [
       "https://www.instagram.com/p/DQFXX-2kTOI/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "villareno-surtido",
@@ -403,9 +469,11 @@
       "Nub"
     ],
     "notas": "Surtido que vendía Puerto Rico Cigar Enthusiasts; la tienda online que lo citaba ya no abre. Dato de un resultado de búsqueda; sin verificar en la fuente.",
+    "notas_en": "An assortment sold by Puerto Rico Cigar Enthusiasts; the online shop that listed it no longer opens. From a search result; not verified at the source.",
     "fuentes": [
       "https://m.facebook.com/permalink.php?id=676844852785547&story_fbid=955871644882865"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "el-buho",
@@ -416,9 +484,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Cigarro insignia de Ricamontes Cigars ('Quema el búho', 'La sombra del búho'). No encontré capa, fortaleza ni vitolas públicas.",
+    "notas_en": "The flagship cigar of Ricamontes Cigars ('Quema el búho', 'La sombra del búho'). No public wrapper, Strength or vitolas found.",
     "fuentes": [
       "https://www.facebook.com/ricamontescigars/videos/quema-el-buho/877763389415082/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "el-chapu",
@@ -429,9 +499,11 @@
     "fortaleza": null,
     "vitolas": [],
     "notas": "Cigarro de la casa ('Degustación del Chapu', IG 2022).",
+    "notas_en": "The house cigar ('Degustación del Chapu', IG 2022).",
     "fuentes": [
       "https://www.instagram.com/elchapupr/p/CfFhl7fOHq4/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "yambo-toro",
@@ -439,16 +511,19 @@
     "artesano_id": "yambo-cigars",
     "pueblo": "",
     "capa": "Habano",
+    "capa_en": "Habano",
     "fortaleza": null,
     "vitolas": [
       "Toro 6 x 52 (box press)"
     ],
     "notas": "Capote Nicaragua; tripa Puerto Rico y Nicaragua (post de 2020). Notas que publican: cremoso, café, tierra, pimienta y madera. Lo describen de cuerpo medio a full. Dato de un resultado de búsqueda; sin verificar en la fuente.",
+    "notas_en": "Nicaraguan binder; Puerto Rican and Nicaraguan filler (2020 post). Notes they publish: creamy, coffee, earth, pepper and wood. They describe it as medium to full bodied. From a search result; not verified at the source.",
     "fuentes": [
       "https://www.instagram.com/p/CGO47lzHSFa/",
       "https://www.instagram.com/yambocigars/",
       "https://www.facebook.com/yambocigars/posts/yambo%CC%81-cigars-hand-made-robusto-6x52-box-press-cigars-from-puerto-rico-yambociga/1431461062100344/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "cohoba-toro-cameroon",
@@ -456,15 +531,18 @@
     "artesano_id": "cohoba-cigars",
     "pueblo": "Santa Isabel",
     "capa": "Cameroon",
+    "capa_en": "Cameroon",
     "fortaleza": null,
     "vitolas": [
       "Toro 6 x 52"
     ],
     "notas": "Capote Habano Cubano · tripa Criollo 98. Hecho a mano en PR según la marca. Anuncian “Rating 94”, sin decir de quién. La marca destaca la capa Cameroon “por su aroma único y su balance entre dulzura y especias”.",
+    "notas_en": "Cuban Habano binder · Criollo 98 filler. Handmade in PR, according to the brand. They advertise a “Rating 94” without saying whose. The brand highlights the Cameroon wrapper “for its unique aroma and its balance of sweetness and spice”.",
     "fuentes": [
       "https://www.instagram.com/p/DcmJaeihATE/",
       "https://www.instagram.com/p/DVzf9ekANBP/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-el-turrito",
@@ -472,14 +550,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "HVA (Habana Vuelta Abajo)",
+    "capa_en": "HVA (Habana Vuelta Abajo)",
     "fortaleza": "suave",
     "vitolas": [
       "Petit Corona 4\" x 37"
     ],
     "notas": "Capote dominicano; tripa San Andrés y Corojo de Puerto Rico. Hecho a mano en PR.",
+    "notas_en": "Dominican binder; San Andrés and Puerto Rican Corojo filler. Handmade in PR.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-el-turrito/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-hva-robusto",
@@ -487,14 +568,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Habano Vuelta Abajo (HVA)",
+    "capa_en": "Habano Vuelta Abajo (HVA)",
     "fortaleza": "suave",
     "vitolas": [
       "Robusto 5\" x 50"
     ],
     "notas": "Capote Indonesia; tripa Puerto Rico.",
+    "notas_en": "Indonesian binder; Puerto Rican filler.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-hva-robusto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-escopeta",
@@ -502,14 +586,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Habano Vuelta Abajo (HVA)",
+    "capa_en": "Habano Vuelta Abajo (HVA)",
     "fortaleza": "fuerte",
     "vitolas": [
       "Robusto 5\" x 50"
     ],
     "notas": "Capote Corojo; tripa Corojo puertorriqueño y Ligero dominicano.",
+    "notas_en": "Corojo binder; Puerto Rican Corojo and Dominican Ligero filler.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-escopeta-robusto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-lancero",
@@ -517,14 +604,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "HVA",
+    "capa_en": "HVA",
     "fortaleza": "media",
     "vitolas": [
       "Lancero 7\" x 38"
     ],
     "notas": "Capote Olor Dominicano; tripa Corojo Ligero de PR y Viso Corojo dominicano.",
+    "notas_en": "Dominican Olor binder; PR Corojo Ligero and Dominican Corojo Viso filler.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-lancero/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-don-pepe",
@@ -532,14 +622,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Sumatra",
+    "capa_en": "Sumatra",
     "fortaleza": "media",
     "vitolas": [
       "Torpedo 7\" x 54"
     ],
     "notas": "Capote Nicaragua; tripa Corojo de Finca Neo Jibairo. Colaboración con el Restaurante Don Pepe. Fortaleza según la ficha: suave a media.",
+    "notas_en": "Nicaraguan binder; Corojo filler from Finca Neo Jibairo. A collaboration with Restaurante Don Pepe. Strength on its spec sheet: mild to medium.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-don-pepe-torpedo/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-gallo-pinto",
@@ -547,14 +640,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Sumatra",
+    "capa_en": "Sumatra",
     "fortaleza": "suave",
     "vitolas": [
       "Robusto 5\" x 50"
     ],
     "notas": "Capote Viso nicaragüense; tripa Corojo de Puerto Rico. Colaboración con Orquesta Macabeo.",
+    "notas_en": "Nicaraguan Viso binder; Puerto Rican Corojo filler. A collaboration with Orquesta Macabeo.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-gallo-pinto-robusto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-angel-david",
@@ -562,14 +658,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Connecticut",
+    "capa_en": "Connecticut",
     "fortaleza": "suave",
     "vitolas": [
       "Robusto 5\" x 50"
     ],
     "notas": "Capote Viso dominicano; tripa Corojo de Puerto Rico.",
+    "notas_en": "Dominican Viso binder; Puerto Rican Corojo filler.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-angeldavid-robusto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-timber-blues",
@@ -577,14 +676,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Habano Ecuador",
+    "capa_en": "Habano Ecuador",
     "fortaleza": "media",
     "vitolas": [
       "Robusto 5\" x 50"
     ],
     "notas": "Capote Nicaragua; tripa Seco San Andrés y Ligero de Puerto Rico. Colaboración con Timber and Blues. Fortaleza según la ficha: suave a media.",
+    "notas_en": "Nicaraguan binder; San Andrés Seco and Puerto Rican Ligero filler. A collaboration with Timber and Blues. Strength on its spec sheet: mild to medium.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-timber-blues-robusto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-naturola",
@@ -592,14 +694,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Habano 2000",
+    "capa_en": "Habano 2000",
     "fortaleza": "fuerte",
     "vitolas": [
       "Robusto 5\" x 50"
     ],
     "notas": "Capote República Dominicana; tripa Puerto Rico. Colaboración con Naturola. Fortaleza según la ficha: media a fuerte.",
+    "notas_en": "Dominican Republic binder; Puerto Rican filler. A collaboration with Naturola. Strength on its spec sheet: medium to full.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-naturola-robusto/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "turro-barber-pole",
@@ -607,14 +712,17 @@
     "artesano_id": "el-club-del-turro",
     "pueblo": "Río Grande",
     "capa": "Barber Pole: Habano Ecuador y Connecticut",
+    "capa_en": "Barber Pole: Habano Ecuador and Connecticut",
     "fortaleza": "fuerte",
     "vitolas": [
       "Torpedo 5.5\" x 52"
     ],
     "notas": "Capote Nicaragua; tripa Corojo de Finca Neo Jibairo. Colaboración con Dylan's Biergarten. Fortaleza según la ficha: media a fuerte.",
+    "notas_en": "Nicaraguan binder; Corojo filler from Finca Neo Jibairo. A collaboration with Dylan's Biergarten. Strength on its spec sheet: medium to full.",
     "fuentes": [
       "https://shop.fincaneojibairo.com/shop/el-club-del-turro-barber-pole/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "cohoba-senor-de-los-cielos",
@@ -622,14 +730,17 @@
     "artesano_id": "cohoba-cigars",
     "pueblo": "Santa Isabel",
     "capa": "San Andrés",
+    "capa_en": "San Andrés",
     "fortaleza": null,
     "vitolas": [
       "Toro Gordo 6 x 60"
     ],
     "notas": "Capa y capote San Andrés · tripa Criollo 98. Según la marca: “Carácter. Tradición. Elevación.”",
+    "notas_en": "San Andrés wrapper and binder · Criollo 98 filler. In the brand's words: “Character. Tradition. Elevation.”",
     "fuentes": [
       "https://www.instagram.com/p/DaX2LS6RnkV/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "cohoba-robusto-maduro",
@@ -637,14 +748,17 @@
     "artesano_id": "cohoba-cigars",
     "pueblo": "Santa Isabel",
     "capa": "San Andrés",
+    "capa_en": "San Andrés",
     "fortaleza": null,
     "vitolas": [
       "Robusto"
     ],
     "notas": "Capa San Andrés maduro. La marca lo describe intenso y equilibrado, con notas de chocolate amargo, café tostado y un dulzor natural.",
+    "notas_en": "San Andrés maduro wrapper. The brand describes it as intense and balanced, with notes of dark chocolate, roasted coffee and a natural sweetness.",
     "fuentes": [
       "https://www.instagram.com/p/DZ5H57Ux22v/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "cohoba-maduro-torpedo",
@@ -652,14 +766,17 @@
     "artesano_id": "cohoba-cigars",
     "pueblo": "Santa Isabel",
     "capa": "Habano",
+    "capa_en": "Habano",
     "fortaleza": null,
     "vitolas": [
       "Torpedo 5 x 52"
     ],
     "notas": "Capa Habano sobre tripa Criollo 98, según una reseña publicada en Instagram.",
+    "notas_en": "Habano wrapper over a Criollo 98 filler, according to a review posted on Instagram.",
     "fuentes": [
       "https://www.instagram.com/p/Dayq43oNGCO/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "cohoba-nano-double-wrapper",
@@ -667,13 +784,16 @@
     "artesano_id": "cohoba-cigars",
     "pueblo": "Santa Isabel",
     "capa": "San Andrés y Connecticut",
+    "capa_en": "San Andrés and Connecticut",
     "fortaleza": null,
     "vitolas": [],
     "notas": "Capa doble en espiral (barber pole) de San Andrés y Connecticut. Los que lo han reseñado destacan su tiro fácil y una ceniza firme.",
+    "notas_en": "A double spiral (barber pole) wrapper of San Andrés and Connecticut. Reviewers point to its easy draw and firm ash.",
     "fuentes": [
       "https://www.instagram.com/p/DawGWbHtdgJ/",
       "https://www.instagram.com/p/DbtlLwNGh9s/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "el-roble-robusto-signature",
@@ -681,15 +801,18 @@
     "artesano_id": "tabacos-el-roble",
     "pueblo": "Isabela",
     "capa": "Natural",
+    "capa_en": "Natural",
     "fortaleza": null,
     "vitolas": [
       "Robusto"
     ],
     "notas": "Capa natural con la liga Signature de la casa. 100% hecho a mano en Isabela.",
+    "notas_en": "Natural wrapper with the house Signature blend. 100% handmade in Isabela.",
     "fuentes": [
       "https://www.instagram.com/p/CdOzviqugSb/",
       "https://m.facebook.com/Palaciolasarenas/photos/-a-la-venta-selecci%C3%B3n-de-cigarros-hechos-por-tabacos-el-roble-100-hecho-a-mano-e/535057388627319/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "el-roble-fumita",
@@ -697,13 +820,16 @@
     "artesano_id": "tabacos-el-roble",
     "pueblo": "Isabela",
     "capa": "Dos tonos",
+    "capa_en": "Two-tone",
     "fortaleza": null,
     "vitolas": [],
     "notas": "Capa de dos tonos y liga añeja, preservada con melaza y ron caña. Hecho a mano en Isabela.",
+    "notas_en": "Two-tone wrapper and an aged blend, preserved with molasses and cane rum. Handmade in Isabela.",
     "fuentes": [
       "https://www.instagram.com/p/CdOzviqugSb/",
       "https://m.facebook.com/Palaciolasarenas/photos/-a-la-venta-selecci%C3%B3n-de-cigarros-hechos-por-tabacos-el-roble-100-hecho-a-mano-e/535057388627319/"
-    ]
+    ],
+    "traduccion": "borrador"
   },
   {
     "id": "el-roble-corona-gorda-small-batch",
@@ -711,13 +837,16 @@
     "artesano_id": "tabacos-el-roble",
     "pueblo": "Isabela",
     "capa": "Madura",
+    "capa_en": "Maduro",
     "fortaleza": null,
     "vitolas": [
       "Corona Gorda"
     ],
     "notas": "Edición limitada de solo 200, en reposo hasta diciembre. Mezcla de Puerto Rico, República Dominicana, Nicaragua y Ecuador con capa madura.",
+    "notas_en": "A limited edition of only 200, resting until December. A blend from Puerto Rico, the Dominican Republic, Nicaragua and Ecuador with a maduro wrapper.",
     "fuentes": [
       "https://www.instagram.com/p/Deb7WxZESIu/"
-    ]
+    ],
+    "traduccion": "borrador"
   }
 ]
