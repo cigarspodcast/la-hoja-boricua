@@ -1,0 +1,46 @@
+# LHB-18: accessibility audit of https://lahojaboricua.com
+
+Tool: Lighthouse 13.6.0 accessibility category, mobile form factor, headless Chrome, one run per page. Its accessibility audits are axe-core rules run by Lighthouse,
+so each failing audit id below is an axe-core rule id. A separate standalone axe-core run was not made.
+Contrast is checked against the page as it renders (the app is dark only, color-scheme: dark).
+Mi Hoja (#/mihoja) requires sign-in, so the audit sees the signed-out view (the sign-in prompt), not the signed-in screens.
+Counts: per page, per failing rule, the number of elements Lighthouse lists for it (basis: details.items).
+
+## /  (score 100)
+- label-content-name-mismatch: 1 element(s). Elements with visible text labels do not have matching accessible names.
+    body > div#app > header.topbar > a.brand | Fix any of the following:   Text inside the element is not included in the accessible name
+
+## /lugares/vc-lounge  (score 100)
+- no failing rule
+
+## /artesanos/don-collins  (score 100)
+- no failing rule
+
+## /#/lugares  (score 96)
+- target-size: 23 element(s). Touch targets do not have sufficient size or spacing.
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 14px by 17px, should be at least 24px by 24px)   Target has insufficient space to its close
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 26px by 5px, should be at least 24px by 24px)   Target has insufficient space to its closes
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 1px by 1px, should be at least 24px by 24px)   Target has insufficient space to its closest
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 26px by 8px, should be at least 24px by 24px)   Target has insufficient space to its closes
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 26px by 1px, should be at least 24px by 24px)   Target has insufficient space to its closes
+    div#map > div.leaflet-pane > div.leaflet-pane > div.leaflet-marker-icon | Fix any of the following:   Target has insufficient size because it is partially obscured (smallest space is 4px by 34px, should be at least 24px by 24px)   Target has insufficient space to its closes
+- label-content-name-mismatch: 1 element(s). Elements with visible text labels do not have matching accessible names.
+    body > div#app > header.topbar > a.brand | Fix any of the following:   Text inside the element is not included in the accessible name
+
+## /#/mihoja  (score 96)
+- aria-dialog-name: 1 element(s). Elements with `role="dialog"` or `role="alertdialog"` do not have accessible names.
+    body > div#:r7: > div.cl-modalBackdrop > div.cl-modalContent | Fix any of the following:   aria-label attribute does not exist or is empty   aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty   El
+
+## Totals by rule (basis: elements summed over the 5 pages)
+
+- target-size: 23
+- label-content-name-mismatch: 2
+- aria-dialog-name: 1
+
+## Findings (each becomes its own Backlog ticket)
+
+1. target-size, 23 elements on /#/lugares: the map markers (div.leaflet-marker-icon) overlap, so the free target area of many is below 24 by 24 px (as small as 1 by 1 px). Basis: a11y-app-lugares run.
+2. label-content-name-mismatch, 1 element on each of / and /#/lugares: the brand link a.brand in header.topbar has visible text that is not part of its accessible name. Lighthouse scored both pages anyway (100 and 96); the rule is in the run but not weighted. Basis: a11y-home and a11y-app-lugares runs.
+3. aria-dialog-name, 1 element on /#/mihoja: the Clerk sign-in modal (div.cl-modalContent, role dialog) has no accessible name. The modal is Clerk's component, so the fix may be a Clerk option, or a label added after it mounts. Basis: a11y-app-mihoja run.
+No contrast failures were found on the five pages in the dark theme (color-contrast passed on each).
+Not covered: the signed-in Mi Hoja screens (no session in the audit), and a standalone axe-core run.
