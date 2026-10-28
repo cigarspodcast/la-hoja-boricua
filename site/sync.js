@@ -55,6 +55,12 @@ function mergeMap(b,l,r,prefer,min){const out={};
  return out}
 const KNOWN=['schema','creado','humidor','diario','pasaporte','favs','ratings'];
 const extras=d=>{const o={};for(const k of Object.keys(d))if(!KNOWN.includes(k))o[k]=d[k];return o};
+/* lo que las dos copias tenían: es la base cuando no hay una guardada pero se sabe cómo estaba este teléfono antes de su primera edición (la semilla). Lo que la persona quitó de lo que estaba en las dos es un borrado suyo; lo que estaba en una sola es algo agregado */
+function meet(a,b){const x=std(a),y=std(b),out={schema:x.schema,creado:x.creado,humidor:[],diario:[],pasaporte:{},favs:{},ratings:{}};
+ for(const k of ['humidor','diario']){const ids=new Set(y[k].map(r=>r.id));out[k]=x[k].filter(r=>ids.has(r.id)).map(clone)}
+ for(const k of KINDS){out.pasaporte[k]={};for(const key of Object.keys(x.pasaporte[k]))if(key!=='__proto__'&&own(y.pasaporte[k],key))out.pasaporte[k][key]=clone(x.pasaporte[k][key]);const f=new Set(y.favs[k]);out.favs[k]=x.favs[k].filter(v=>f.has(v))}
+ for(const key of Object.keys(x.ratings))if(key!=='__proto__'&&own(y.ratings,key))out.ratings[key]=clone(x.ratings[key]);
+ return out}
 function merge(base,local,remote,o){const prefer=o&&o.prefer,b=std(base),l=std(local),r=std(remote),out={};
  out.schema=Math.max(l.schema,r.schema);
  out.creado=[l.creado,r.creado].filter(Boolean).sort()[0]||'';
@@ -66,13 +72,13 @@ function merge(base,local,remote,o){const prefer=o&&o.prefer,b=std(base),l=std(l
  Object.assign(out,mergeMap(extras(b),extras(l),extras(r),prefer,false));
  return out}
 const hasData=d=>{d=std(d);return d.humidor.length+d.diario.length+KINDS.reduce((n,k)=>n+Object.keys(d.pasaporte[k]).length+d.favs[k].length,0)+Object.keys(d.ratings).length>0};
-window.LHB_MERGE={merge,strip,canon,same,hasData,LOCAL_ONLY};
+window.LHB_MERGE={merge,strip,canon,same,hasData,meet,LOCAL_ONLY};
 
 /* ---------- el motor ---------- */
 const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_seq',KEY='lhb_mihoja_v1';
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 window.LHB_SYNC=function(D){
- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,mem=null,state={state:'idle',err:null};
+ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,mem=null,state={state:'idle',err:null};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
  const writeMeta=m=>{try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
  /* un contador chico compartido entre pestañas: cada escritura de la persona lo sube, y una pasada sabe si alguien escribió (aquí o en otra pestaña) mientras esperaba la red */
@@ -126,7 +132,10 @@ window.LHB_SYNC=function(D){
    /* si la meta no se pudo anotar la vez pasada, vale lo que esta pestaña recuerda de esa pasada (si ya no lo recuerda, se junta sin dar nada por borrado) */
    /* ...salvo que otra pestaña ya anotó una meta más nueva que la de esa pasada: esa base es la buena */
    const memOk=staleBase&&!!mem&&mem.sub===uid&&!(meta&&meta.base&&meta.rev>mem.rev);
-   const base=meta&&meta.base&&!wipe&&(!staleBase||!memOk)?meta.base:memOk&&!wipe?mem.base:null;
+   /* si lo subido no se pudo aplicar aquí, ninguna base recordada ni guardada vale hasta que una pasada termine completa (voided): se junta sin dar nada por borrado */
+   /* sin base guardada, la semilla (cómo estaba este teléfono antes de la primera edición de la persona) da una: lo que quitó de lo que estaba también en la cuenta es borrado suyo */
+   const base0=meta&&meta.base&&!wipe&&(!staleBase||!memOk)?meta.base:memOk&&!wipe?mem.base:null;
+   const base=voided?null:base0||(remote&&meta&&isObj(meta.seed)&&!wipe?meet(meta.seed,remote):null);
    const merged=remote?merge(base,L,remote):L;
    let newRev=rev,pushed=false;
    if(!remote||canon(merged)!==canon(remote)){
@@ -141,14 +150,16 @@ window.LHB_SYNC=function(D){
    const full={...final,...keep(now0)};
    if(!alive())return {skip:'other-account'};
    let wrote=true;
-   if(canon(full)!==canon(Ln)){applying=true;try{wrote=D.setDoc(full)}finally{applying=false}}
-   if(!wrote){if(pushed)poison();return {fail:'storage'}}
+   if(canon(full)!==canon(Ln)){applying=true;try{wrote=D.setDoc(full,canon(Ln))}finally{applying=false}}
+   /* otra pestaña guardó justo entre la lectura y la escritura: no se pisa, la pasada vuelve a empezar con lo nuevo */
+   if(wrote==='stale')continue;
+   if(!wrote){if(pushed){mem=null;voided=true;poison()}return {fail:'storage'}}
    /* si no se puede anotar lo sincronizado, la próxima pasada no se fía de la base vieja (junta sin dar nada por borrado) */
    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
    const edited=edits!==e0||readSeq()!==s0;
    mem={sub:uid,base:merged,rev:newRev};
    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}
-   staleBase=false;if(!edited)dirty=false;
+   staleBase=false;voided=false;if(!edited)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
    const pulled=!!remote&&canon(merged)!==canon(L);
    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');
@@ -171,11 +182,16 @@ window.LHB_SYNC=function(D){
    finally{busy=null}})();
   return busy}
  /* Mi Hoja se escribió: si lo que viaja cambió respecto a lo último sincronizado, se sincroniza tras una pausa corta */
- function changed(){if(applying)return;
+ function changed(prev){if(applying)return;
   edits++;dirty=true;bumpSeq();
   /* lo escrito pertenece a quien lo escribió, aunque la cuenta cambie antes de la primera pasada */
   ensureOwner();
-  {const m=readMeta();if(m&&!m.dirty){m.dirty=true;writeMeta(m)}}
+  /* sin base guardada, lo que había en este teléfono antes de esta primera edición queda como semilla (meta.seed) para la primera pasada */
+  {const acc=D.acct(),sub=acc&&typeof acc.sub==='string'?acc.sub:'';let m=readMeta(),ch=false;
+   if(sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false};ch=true}
+   if(m){if(!m.dirty){m.dirty=true;ch=true}
+    if(sub&&m.sub===sub&&!m.base&&!m.seed&&prev!=null){try{const p=JSON.parse(prev);if(isObj(p)){m.seed=std(p);ch=true}}catch(e){}}
+    if(ch)writeMeta(m)}}
   schedule(DEBOUNCE,()=>{const acc=D.acct();if(!acc)return;const m=readMeta();
    if(m&&m.sub===acc.sub&&m.base&&canon(D.getDoc())===canon(m.base)){dirty=false;if(m.dirty){delete m.dirty;writeMeta(m)}return}   /* volvió a ser igual: no hay nada que llevar */
    run('guardado')})}
