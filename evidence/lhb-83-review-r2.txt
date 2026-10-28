@@ -1,0 +1,100 @@
+2026-10-28T05:41:19.797871Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-83-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18106-e14c-71b2-8a7c-84458b2831c6
+--------
+user
+You are reviewing one change in this repository (La Hoja Boricua, a vanilla JS PWA in site/). Review only; do not edit files. Do not load or run any skills.
+
+Diff to review: git diff 07d33cc a934fb4 -- site/app.js site/index.html site/sw.js test/site.test.js
+Round 1 of this review (evidence/lhb-83-review-r1.txt) blocked on two findings, fixed in a934fb4 (git diff a879af8 a934fb4 -- site/app.js test/site.test.js):
+P1, a failed stylesheet counted as success and was never retried; P2, a mode switch after the script arrived drew before the stylesheet.
+
+What the change is meant to do:
+1. LHB-83: the home page must not request vendor-leaflet.js or vendor-leaflet.css. The first time a map view opens (drawMap for Lugares, drawRuta for the Ruta del Tabaco), app.js needLeaflet() adds the script and the stylesheet once, the stylesheet before styles.css (styles.css overrides .leaflet-* rules at equal specificity). leafOK turns true only when both have loaded; both map views gate on leafOK and draw after it. A failed load shows the existing offline sketch plus the list, and the next entry to a map view retries only the file that failed. Offline: both files stay in the sw.js SHELL, and offline the app already draws the sketch without Leaflet. Cache bumped to lhb-v70.
+2. LHB-88: the topbar brand link's accessible name must contain its visible text; its aria-label was removed.
+
+Confirm whether P1 and P2 are fixed, and look for any remaining real defect: a map that never draws or draws twice, a callback that draws into a view the person already left, a race between mode switches while loading, a promise that can hang, a retry that duplicates tags, anything that breaks offline use after a first visit, and tests that would pass on broken code. evidence/lhb-83-mutation.txt lists the mutants the test was seen to fail on.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+2026-10-28T05:41:20.085644Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-28T05:41:21.217936Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The two reported fixes need to hold across view changes and retries. I’ll inspect the diff, prior findings, and mutation evidence, then run the relevant checks the read-only sandbox permits.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "Get-Content C:\\Users\\Owner\\Documents\\Codex\\PRE_ENGINE_CONTROL_METHODOLOGY.md; git status --short; git diff 07d33cc a934fb4 -- site/app.js site/index.html site/sw.js test/site.test.js; Get-Content evidence/lhb-83-review-r1.txt; Get-Content evidence/lhb-83-mutation.txt" in C:\Users\Owner\lhb-83-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-28T05:41:29.281226Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -NoProfile -Command pwd in C:\Users\Owner\lhb-83-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-28T05:41:36.822190Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Both fixes are present: CSS failure keeps `leafOK` false, and both map functions wait on `leafOK`. The new tests exercise failed-asset retries, but check the map callbacks only as text. I’ll test those callbacks through view changes next.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Both changed tests pass. The full suite reports 208 passes and one failure: LHB-44 cannot start Python in this sandbox, and the baseline reproduces that failure. Mode changes replace the map element, so I’m checking that old load callbacks stay inactive and only the current view draws.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+codex
+[Certain] The actual map functions passed 640 VM sequences covering mode changes, load order, failures, and retries. Additional checks passed for leaving the view and going offline while loading. One nonblocking test gap remains: removing both stale-element guards still lets the new tests pass.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] **P3, nonblocking: stale-callback protection lacks behavioral coverage.** [test/site.test.js:3358](/C:/Users/Owner/lhb-83-wt/test/site.test.js:3358), LHB-83 test: assertions such as `body.includes('needLeaflet().then(')` inspect text without executing map callbacks. Removing both `if(!el.isConnected)return` guards still passes both new tests. That mutant draws twice when mapa → ruta happens during loading. Add a behavioral assertion that only the current view draws once. **Does not block:** the guards are present and worked in independent VM checks.
+
+[Certain] **CONCUR, prior P1 fixed.** [site/app.js:179](/C:/Users/Owner/lhb-83-wt/site/app.js:179), `needLeaflet()`: `leafOK=!!(s&&c&&window.L)` requires both assets. CSS failure returns false, removes the failed link, shows the fallback, and retries CSS without duplicating the successful script.
+
+[Certain] **CONCUR, prior P2 fixed.** [site/app.js:184](/C:/Users/Owner/lhb-83-wt/site/app.js:184), `drawRuta()`, and [site/app.js:198](/C:/Users/Owner/lhb-83-wt/site/app.js:198), `drawMap()`: both gate on `if(!leafOK)`. Switching modes after JavaScript arrives waits for CSS and draws only the current view.
+
+[Certain] No remaining merge-blocking defect found. Independent VM checks passed 640 load-order, mode-switch, failure, and retry sequences, plus navigation and offline transitions. Stylesheet order, retained SHELL assets, `lhb-v70`, and LHB-88 markup match the requested behavior.
+
+[Certain] Tests: **208 passed, 1 failed**. LHB-44 cannot start Python (`EPERM`); the baseline reproduces that failure. Browser rendering and actual offline reload are **NOT VERIFIED**. No files were edited or skills loaded.
+
+VERDICT: PASS
+tokens used
+86,554
+[Certain] **P3, nonblocking: stale-callback protection lacks behavioral coverage.** [test/site.test.js:3358](/C:/Users/Owner/lhb-83-wt/test/site.test.js:3358), LHB-83 test: assertions such as `body.includes('needLeaflet().then(')` inspect text without executing map callbacks. Removing both `if(!el.isConnected)return` guards still passes both new tests. That mutant draws twice when mapa → ruta happens during loading. Add a behavioral assertion that only the current view draws once. **Does not block:** the guards are present and worked in independent VM checks.
+
+[Certain] **CONCUR, prior P1 fixed.** [site/app.js:179](/C:/Users/Owner/lhb-83-wt/site/app.js:179), `needLeaflet()`: `leafOK=!!(s&&c&&window.L)` requires both assets. CSS failure returns false, removes the failed link, shows the fallback, and retries CSS without duplicating the successful script.
+
+[Certain] **CONCUR, prior P2 fixed.** [site/app.js:184](/C:/Users/Owner/lhb-83-wt/site/app.js:184), `drawRuta()`, and [site/app.js:198](/C:/Users/Owner/lhb-83-wt/site/app.js:198), `drawMap()`: both gate on `if(!leafOK)`. Switching modes after JavaScript arrives waits for CSS and draws only the current view.
+
+[Certain] No remaining merge-blocking defect found. Independent VM checks passed 640 load-order, mode-switch, failure, and retry sequences, plus navigation and offline transitions. Stylesheet order, retained SHELL assets, `lhb-v70`, and LHB-88 markup match the requested behavior.
+
+[Certain] Tests: **208 passed, 1 failed**. LHB-44 cannot start Python (`EPERM`); the baseline reproduces that failure. Browser rendering and actual offline reload are **NOT VERIFIED**. No files were edited or skills loaded.
+
+VERDICT: PASS
