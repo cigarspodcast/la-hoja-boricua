@@ -8,6 +8,7 @@
 - [Cigar lounges en Puerto Rico](https://lahojaboricua.com/lugares/): 28 lounges y 13 tiendas, por pueblo
 - [Artesanos de cigarros en Puerto Rico](https://lahojaboricua.com/artesanos/): 32 artesanos, torcedores y tabacaleras
 - [Cigarros hechos por artesanos boricuas](https://lahojaboricua.com/cigarros/): 48 cigarros con capa, fortaleza y vitolas
+- [Guías de cigarros en Puerto Rico](https://lahojaboricua.com/guias/): 21 preguntas y respuestas hechas con los datos de la guía
 
 ## Lugares
 
@@ -138,3 +139,27 @@
 - [Willys Cigars · Robusto](https://lahojaboricua.com/cigarros/willys-banda-azul-roja-oro): de Willys Cigars
 - [Willys Cigars · Shorty](https://lahojaboricua.com/cigarros/willys-banda-azul-oro): de Willys Cigars
 - [Yambó Toro Box Press](https://lahojaboricua.com/cigarros/yambo-toro): de Yambó Cigars, capa Habano
+
+## Guías
+
+- [¿Dónde fumar cigarros en San Juan?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-san-juan): 15 lugares
+- [¿Dónde fumar cigarros en Aguadilla?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-aguadilla): 2 lugares
+- [¿Dónde fumar cigarros en Arecibo?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-arecibo): 1 lugar
+- [¿Dónde fumar cigarros en Bayamón?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-bayamon): 2 lugares
+- [¿Dónde fumar cigarros en Caguas?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-caguas): 2 lugares
+- [¿Dónde fumar cigarros en Coamo?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-coamo): 1 lugar
+- [¿Dónde fumar cigarros en Fajardo?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-fajardo): 2 lugares
+- [¿Dónde fumar cigarros en Guayama?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-guayama): 1 lugar
+- [¿Dónde fumar cigarros en Guaynabo?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-guaynabo): 2 lugares
+- [¿Dónde fumar cigarros en Humacao?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-humacao): 2 lugares
+- [¿Dónde fumar cigarros en Isabela?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-isabela): 1 lugar
+- [¿Dónde fumar cigarros en Juana Díaz?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-juana-diaz): 1 lugar
+- [¿Dónde fumar cigarros en Luquillo?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-luquillo): 1 lugar
+- [¿Dónde fumar cigarros en Mayagüez?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-mayaguez): 2 lugares
+- [¿Dónde fumar cigarros en Ponce?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-ponce): 2 lugares
+- [¿Dónde fumar cigarros en Rincón?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-rincon): 1 lugar
+- [¿Dónde fumar cigarros en Río Grande?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-rio-grande): 1 lugar
+- [¿Dónde fumar cigarros en Toa Alta?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-toa-alta): 1 lugar
+- [¿Dónde fumar cigarros en Toa Baja?](https://lahojaboricua.com/guias/donde-fumar-cigarros-en-toa-baja): 1 lugar
+- [¿Qué es un cigarro hecho en Puerto Rico?](https://lahojaboricua.com/guias/que-es-un-cigarro-hecho-en-puerto-rico)
+- [¿Qué artesanos de cigarros hay en cada pueblo de Puerto Rico?](https://lahojaboricua.com/guias/artesanos-de-cigarros-por-pueblo)

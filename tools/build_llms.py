@@ -34,8 +34,15 @@ def build():
         if c.get('fortaleza') in FORT: bits.append(f'fortaleza {FORT[c["fortaleza"]]}')
         bits = [b for b in bits if b]
         out.append(f'- [{one(c["nombre"])}]({HOST}/cigarros/{c["id"]})' + (': ' + ', '.join(bits) if bits else ''))
+    import build_guias  # LHB-45: las guías, con la misma lista que el sitemap
+    G = build_guias.pages(P); por = build_guias.por_municipio(P)
+    out[out.index('## Lugares') - 1:out.index('## Lugares') - 1] = [f'- [Guías de cigarros en Puerto Rico]({HOST}/guias/): {len(G)} preguntas y respuestas hechas con los datos de la guía']
+    out += ['', '## Guías', '']
+    for sl, q in G:
+        m = next((m for m in por if f'donde-fumar-cigarros-en-{build_guias.slug(m)}' == sl), None)
+        out.append(f'- [{q}]({HOST}/guias/{sl})' + (f': {len(por[m])} lugares' if m and len(por[m]) != 1 else ': 1 lugar' if m else ''))
     open(os.path.join(SITE, 'llms.txt'), 'w', encoding='utf-8', newline='\n').write('\n'.join(out) + '\n')
-    return len(P) + len(A) + len(C) + 4
+    return len(P) + len(A) + len(C) + 4 + len(G) + 1
 
 if __name__ == '__main__':
     print('llms.txt', build())

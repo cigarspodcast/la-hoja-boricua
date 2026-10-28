@@ -114,7 +114,9 @@ def write_sitemap():
     if C: tails += ['cigarros/'] + [f'cigarros/{c["id"]}' for c in C]
     # LHB-32: cada página en español y su gemela en inglés, las dos con sus alternativas hreflang
     alt = lambda t: ''.join(f'<xhtml:link rel="alternate" hreflang="{l}" href="{u}"/>' for l, u in alternates(t))
-    urls = [f'<url><loc>{HOST}/</loc></url>\n'] + [f'<url><loc>{HOST}/{t}</loc>{alt(t)}</url>\n' for t in tails] + [f'<url><loc>{HOST}/en/{t}</loc>{alt(t)}</url>\n' for t in tails]
+    import build_guias  # LHB-45: las guías son solo en español, sin alternativas
+    guias = ['guias/'] + [f'guias/{s}' for s, _ in build_guias.pages(P)]
+    urls = [f'<url><loc>{HOST}/</loc></url>\n'] + [f'<url><loc>{HOST}/{t}</loc>{alt(t)}</url>\n' for t in tails] + [f'<url><loc>{HOST}/{t}</loc></url>\n' for t in guias] + [f'<url><loc>{HOST}/en/{t}</loc>{alt(t)}</url>\n' for t in tails]
     sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + ''.join(urls) + '</urlset>\n'
     open(os.path.join(SITE, 'sitemap.xml'), 'w').write(sm)
     return len(urls)

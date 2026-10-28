@@ -155,6 +155,7 @@ def build():
             open(os.path.join(out, p['id'] + '.html'), 'w', encoding='utf-8').write(page(p, vec, en))
         open(os.path.join(out, 'index.html'), 'w', encoding='utf-8').write(index(L, V, en))
     import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import build_guias; build_guias.build()  # LHB-45: guías de preguntas y respuestas en site/guias/
     from build_artesanos import write_sitemap
     write_sitemap()
     open(os.path.join(SITE, 'robots.txt'), 'w').write(f'User-agent: *\nAllow: /\n\nSitemap: {HOST}/sitemap.xml\n')
