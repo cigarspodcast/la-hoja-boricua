@@ -3793,3 +3793,13 @@ test('LHB-87 (Codex r2): la lista de un grupo cabe en el mapa: su alto con scrol
  assert.equal(2*+cm[1]+2*+wrap[1]+(+tip[1]-+tip[2])+(+mb[1])+7+16+16,POP_FIXED,'24 + 2 + 19 + 20 + 7 + 32');
  for(const h of [185,230,300,360,460])assert.ok(popMaxH(h)+POP_FIXED<=h&&popMaxH(h)<=320,'mapa de '+h+' px');assert.equal(popMaxH(1000),320);assert.equal(popMaxH(120),60,'nunca menos de 60');
 });
+test('LHB-87 (Codex r3): con la lista abierta, si el mapa cambia de alto la lista toma el alto nuevo y se vuelve a acomodar',()=>{
+ const app=read('app.js');const pm=app.match(/const POP_FIXED=(\d+),popMaxH=h=>[^\n]*/),fp=app.match(/const fitPop=\(map,p\)=>[^\n]*/);assert.ok(pm&&fp,'popMaxH y fitPop en app.js');
+ const fitPop=new Function(pm[0]+'\n'+fp[0]+';return fitPop')();
+ const pop=()=>({options:{maxHeight:320},u:0,update(){this.u++}});let h=460;const map={open:new Set(),hasLayer(p){return this.open.has(p)},getSize:()=>({x:502,y:h})};
+ const p=pop();map.open.add(p);h=185;fitPop(map,p);assert.equal(p.options.maxHeight,81,'185 - 104');assert.equal(p.u,1,'y se vuelve a acomodar (update: layout, posición y autoPan)');
+ h=460;fitPop(map,p);assert.equal(p.options.maxHeight,320,'al crecer vuelve al tope');assert.equal(p.u,2);
+ const shut=pop();fitPop(map,shut);assert.equal(shut.u,0,'una lista cerrada no se toca');assert.doesNotThrow(()=>fitPop(map,null),'sin lista todavía');
+ assert.ok(app.includes("map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));"),'cada cambio de tamaño del mapa la acomoda');
+ assert.ok(app.includes("==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)})"),'la lista abierta queda guardada');
+});

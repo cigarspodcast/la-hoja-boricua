@@ -164,6 +164,8 @@ const tapGroup=(z,fz,one)=>one||z>=17||Math.min(fz,17)<=z?'list':'zoom';
 /* la lista cabe en el mapa (Codex r2): .map-wrap corta lo que sobra, así que el alto con scroll es el del mapa menos lo fijo del popup:
    márgenes del contenido 24, borde 2, punta 19, margen de abajo 20, offset 7 y autoPanPadding 16+16 = 104 px; entre 60 y 320 */
 const POP_FIXED=104,popMaxH=h=>Math.max(60,Math.min(320,h-POP_FIXED));
+/* si el mapa cambia de alto con la lista abierta (girar el teléfono), la lista toma el alto nuevo y se vuelve a acomodar (Codex r3) */
+const fitPop=(map,p)=>{if(p&&map.hasLayer(p)){p.options.maxHeight=popMaxH(map.getSize().y);p.update()}};
 function leafBurst(host,x,y,color){if(REDUCED||!host)return;const box=document.createElement('div');box.className='leaf-burst';box.style.left=x+'px';box.style.top=y+'px';
  const cols=[color||'#d9a75a','#d9a75a','#b9864a','#7fae55'];for(let i=0;i<9;i++){const s=document.createElement('span');const ang=(-160+i*(140/8))*Math.PI/180;const dist=38+Math.random()*34;
   s.style.setProperty('--dx',(Math.cos(ang)*dist).toFixed(0)+'px');s.style.setProperty('--dy',(Math.sin(ang)*dist).toFixed(0)+'px');s.style.setProperty('--fall',(46+Math.random()*40).toFixed(0)+'px');s.style.setProperty('--rot',((Math.random()*2-1)*540).toFixed(0)+'deg');s.style.animationDelay=(i*25)+'ms';
@@ -222,8 +224,8 @@ function drawMap(ps){if(leafletMap){leafletMap.remove();leafletMap=null}
  /* LHB-87: en cada zoom, los pines que se taparían van en un grupo con su número; tocarlo acerca el mapa, y si ya no se separan, muestra la lista */
  const layout=()=>{pins.clearLayers();for(const g of groupPins(mks.map(m=>{const q=map.latLngToLayerPoint(m.ll);return {x:q.x,y:q.y,m}}))){if(g.ms.length===1){pins.addLayer(g.ms[0].mk);continue}
   const n=g.ms.length,at=map.layerPointToLatLng([g.x,g.y]),c=L.marker(at,{icon:L.divIcon({className:'pin-group',html:`<span>${n}</span>`,iconSize:[36,36],iconAnchor:[18,18]}),title:tt('map.group',{n}),keyboard:true});
-  c.on('click',()=>{map.closePopup();const b=L.latLngBounds(g.ms.map(m=>m.ll));if(tapGroup(map.getZoom(),map.getBoundsZoom(b,false,L.point(96,96)),b.getNorthEast().equals(b.getSouthWest()))==='list')L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)}).setLatLng(at).setContent(g.ms.map(m=>placeCard(m.p)).join('')).openOn(map);else map.fitBounds(b,{padding:[48,48],maxZoom:17})});pins.addLayer(c)}};
- map.on('zoomend',layout);
+  c.on('click',()=>{map.closePopup();const b=L.latLngBounds(g.ms.map(m=>m.ll));if(tapGroup(map.getZoom(),map.getBoundsZoom(b,false,L.point(96,96)),b.getNorthEast().equals(b.getSouthWest()))==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)}).setLatLng(at).setContent(g.ms.map(m=>placeCard(m.p)).join('')).openOn(map);else map.fitBounds(b,{padding:[48,48],maxZoom:17})});pins.addLayer(c)}};
+ map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));
  const nb=$('#near');if(nb)nb.onclick=()=>{if(!navigator.geolocation){toast(tt('geo.none'));return}nb.textContent=tt('geo.searching');navigator.geolocation.getCurrentPosition(pos=>{nb.textContent=tt('lug.near');const ll=[pos.coords.latitude,pos.coords.longitude];const vi=L.divIcon({className:'volky-pin',html:VBArt.carro('mini'),iconSize:[66,43],iconAnchor:[33,40]});L.marker(ll,{icon:vi,title:tt('geo.here'),zIndexOffset:1000}).addTo(map).bindTooltip(tt('geo.here'));map.setView(ll,12)},()=>{nb.textContent=tt('lug.near');toast(tt('geo.err'))},{timeout:10000})};
  if(pts.length>1)map.fitBounds(pts,{padding:[28,28],maxZoom:state.lugTown?14:11});else if(pts.length===1)map.setView(pts[0],14);layout()}
 /* ---------- actividades ---------- */
