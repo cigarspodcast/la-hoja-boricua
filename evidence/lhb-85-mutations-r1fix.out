@@ -1,0 +1,19 @@
+M1 one twin at 330 x 165                                       rc 1 fail 1 -> RED
+M2 one twin heavier than its large thumbnail (quality 100)     rc 1 fail 1 -> RED
+M3 one twin missing                                            rc 1 fail 1 -> RED
+M4 one twin left out of the precache                           rc 1 fail 1 -> RED
+M5 the card asks for the large thumbnail as src                rc 1 fail 1 -> RED
+M6 the card without the large candidate in srcset              rc 1 fail 1 -> RED
+M7 the phone slot says 100vw                                   rc 1 fail 1 -> RED
+M8 the gallery back to the large thumbnail                     rc 1 fail 1 -> RED
+M9 thumbS returns its input                                    rc 1 fail 1 -> RED
+M10 the grid sizes back to the round 1 value                   rc 1 fail 1 -> RED
+M11 the phone slot 5 px under the drawn width (blurry)         rc 1 fail 1 -> RED
+M12 the 3-column slot 4 px too wide                            rc 1 fail 1 -> RED
+M13 the desktop slot back to 225px                             rc 1 fail 1 -> RED
+M14 the mini slot set to the desktop grid value                rc 1 fail 1 -> RED
+M15 the card ignores mini and always uses SIZES_GRID           rc 1 fail 1 -> RED
+M16 the favorites row without mini                             rc 1 fail 1 -> RED
+M17 one large thumbnail back to 420 x 210                      rc 1 fail 1 -> RED
+baseline after restore: rc 0
+RESULT 17 of 17 mutations red
