@@ -1,0 +1,40 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-34-wt (branch lhb-34-account). The diff below is origin/main..HEAD. This is round 3 of a TIER 2 review, which loops until there is no blocking finding. Your round 1 is in evidence/lhb-34-review-r1.txt (BLOCK, five findings) and your round 2 is in evidence/lhb-34-review-r2.txt (BLOCK, four findings).
+
+Ticket LHB-34, account page. Pinned decisions:
+- Delete needs typed confirmation and signs the user out everywhere.
+- Download reuses the existing respaldo JSON.
+- Sign-out removes this phone's local copy, but only after the server confirms it holds the latest rev. With unsynced changes, sign-out is blocked with "Sincroniza o descarga un respaldo primero".
+- A link to the privacy page.
+- Delete removes every row, the Mi Hoja document, R2 photos (none exist yet; LHB-35) and the Clerk user.
+
+How each round 2 finding was taken:
+1. Sign-out could erase a cross-tab edit read between the copy and the mark.
+   - site/sync.js settled() now reads the shared write counter and the raw stored text FIRST, and the document copy after: `const seq=readSeq(),raw=markNow().raw,d=D.getDoc(),mark={raw,seq};`. Every check runs on that copy.
+   - If another tab writes before the mark is read, the copy is the new text and the checks run on it. If it writes after the mark and before the copy, the copy is newer than the mark and forget(mark) sees a changed raw text and erases nothing. If it writes after settled(), forget(mark) refuses in the same way.
+   - A tab whose owner key is removed by another tab's sign-out holds sync, drops its in-memory state and goes home (a storage listener in site/hoja.js), so it cannot push its old copy back.
+2. A live session could write again after a successful delete.
+   - New migrations/0006_deleted_accounts.sql: a tombstone (id_hash TEXT PRIMARY KEY, deleted_at). id_hash is SHA-256 of 'lhb-deleted:' + the Clerk id (functions/_lib/account.js idHash), so no row holds the id after deletion.
+   - The delete batch writes the tombstone in the same batch as the deletes (INSERT ... ON CONFLICT DO NOTHING), and again in the second sweep.
+   - functions/api/profile.js: the create is one INSERT ... SELECT ... WHERE NOT EXISTS (SELECT 1 FROM deleted_accounts WHERE id_hash = ?12). When nothing is written, a tombstone answers 403 account-deleted, otherwise 409 profile-exists.
+   - functions/api/handle.js: the rate-log insert carries AND NOT EXISTS (... id_hash = ?5) in the same statement.
+   - Mi Hoja PUT already requires the profile in the same statement (round 1), so with the profile fenced it answers 403 no-profile.
+   - fencedRun falls back to the unfenced statement only on "no such table: deleted_accounts", so onboarding and @ checks keep working before the migration is applied. Delete itself answers 503 not-ready and deletes nothing while the table is missing, so no account can be deleted without the fence in place.
+   - Production D1 migrations are applied by the owner in this lane; the steps are posted on the ticket. Delete stays refused until then.
+3. A transient 503 abandoned the recovery of a half-finished delete.
+   - askDelete(C,sub,confirm,had): had is true when a delete was already under way (the mark existed before, or the resume path). With had, the mark is kept through any 4xx or 503 except confirm-mismatch, and sync stays held. Without had, a 4xx or 503 means nothing was deleted, so the mark is cleared. The mark is always cleared on 200.
+4. A failed final cleanup was reported as complete.
+   - The second sweep after the Clerk delete now answers 502 cleanup-failed when it throws. The client keeps its mark and resumes on the next load.
+
+Tests and evidence:
+- evidence/lhb-34-tests.txt: the full suite, 267/267.
+- evidence/lhb-34-mutations-r2fix.out: RESULT 47 of 47 mutations red. M38 to M47 are the round 2 fixes: read order in settled, profile fence, handle fence, no tombstone in the batch, no not-ready check, a swallowed last-sweep failure, a dropped mark after a half delete, the cross-tab listener, the tombstone holding the raw id, the tombstone counted as an unknown table.
+- An earlier run, evidence/lhb-34-mutations-r2fix-second.out, had 46 of 47: M38 then targeted a redundant re-read, which was removed, and M38 now targets the read order.
+- The new tests include: a token reused after a successful delete (profile POST 403, Mi Hoja PUT 403, no rows); a handle check paused before its insert across a completed delete (no row); a 502 then a reload where Clerk GET answers 500 (mark kept, sync held); a failed second sweep (502, mark kept); another tab's write between the mark and the copy (nothing erased).
+
+Check:
+- that each round 2 finding is fixed;
+- that the new tests cannot pass on broken code;
+- that the fixes did not break LHB-28 sync, LHB-63 handle checks or onboarding before 0006 is applied;
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

@@ -50,7 +50,7 @@ let SYNC=null;
    Codex ronda 2: irse a otra página lo borra, y con otra cuenta no vale */
 let DFOC=null;window.addEventListener('hashchange',()=>{DFOC=null});
 /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
-function write(s,quiet){if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
+function write(s,quiet){if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
 /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
 const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};
 window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null});
@@ -178,7 +178,7 @@ async function api(C,method,path,body,uid,extra){const t=await C.session.getToke
 /* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
 SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),
- now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),toast,
+ now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),wait:ms=>new Promise(r=>setTimeout(r,ms)),toast,
  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
  onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}}});
@@ -196,10 +196,11 @@ try{const k=sessionStorage.getItem('lhb_bye');if(k){sessionStorage.removeItem('l
    que nunca es un @: solo sirve si el perfil ya no está (functions/api/account.js); con el perfil entero el servidor dice que no y la marca se va sin borrar nada */
 const DELMARK='lhb_borrando';
 const delMark={get:()=>{try{const v=JSON.parse(localStorage.getItem(DELMARK));return v&&typeof v.sub==='string'?v:null}catch(e){return null}},
- set:sub=>{try{localStorage.setItem(DELMARK,JSON.stringify({sub}))}catch(e){}},clear:()=>{try{localStorage.removeItem(DELMARK)}catch(e){}}};
+ /* set dice si la marca quedó guardada (se lee de vuelta): sin ella un borrado a medias no se podría terminar, así que no se pide (Codex r3) */
+ set:sub=>{try{localStorage.setItem(DELMARK,JSON.stringify({sub}))}catch(e){return false}const v=delMark.get();return !!v&&v.sub===sub},clear:()=>{try{localStorage.removeItem(DELMARK)}catch(e){}}};
 /* se borra lo de esta cuenta en este teléfono: Mi Hoja y su sincronización (sync.js), la cuenta guardada y la acción a medias.
    Con mark (de SYNC.settled), solo si la copia sigue como se revisó; si alguien escribió desde entonces no se toca nada */
-const dropLocal=mark=>{if(!SYNC.forget(mark))return false;acct.clear();intent.clear();ST=null;STRAW=null;return true};
+const dropLocal=async mark=>{if(!(await SYNC.forget(mark)))return false;acct.clear();intent.clear();ST=null;STRAW=null;return true};
 async function signOutClerk(C){await C.signOut({redirectUrl:'/'});location.assign('/')}
 const typedOk=(a,v)=>String(v||'').trim().replace(/^@/,'').toLowerCase()===String(a.handle).toLowerCase();
 function accountPanel(){const a=acct.get();if(!a||!a.handle)return '';
@@ -220,7 +221,7 @@ async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
  try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.outFail'));return}
   if(!outDone){const r=await SYNC.settled({backup:lastBackup});
    if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}
-   if(!dropLocal(r.mark)){acMsg(tt('ac.pending'));return}
+   if(!(await dropLocal(r.mark))){acMsg(tt('ac.pending'));return}
    outDone=true;bye('out')}
   try{await signOutClerk(C)}catch(e){acMsg(tt('ac.outFail'))}}
  finally{acBusy=false}}
@@ -228,7 +229,7 @@ async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
    (el perfil sigue entero), o un 4xx o 503 de un primer pedido (had: ya había una marca de antes). Con una marca de antes, un error así puede ser pasajero
    (Clerk no contestó, la sesión venció) y el borrado a medias sigue pendiente: la marca se queda (Codex r2) */
 async function askDelete(C,sub,confirm,had){let r=null;try{r=await api(C,'DELETE','/api/account',{confirm},sub)}catch(e){r=null}
- if(r&&r.status===200){delMark.clear();dropLocal();bye('del');try{await signOutClerk(C)}catch(e){location.assign('/')}return r}
+ if(r&&r.status===200){delMark.clear();await dropLocal();bye('del');try{await signOutClerk(C)}catch(e){location.assign('/')}return r}
  if(r&&r.body&&r.body.error==='confirm-mismatch')delMark.clear();
  else if(!had&&r&&((r.status>=400&&r.status<500)||r.status===503))delMark.clear();
  return r}
@@ -236,7 +237,8 @@ async function askDelete(C,sub,confirm,had){let r=null;try{r=await api(C,'DELETE
    Si quedó a medias (502) o no se sabe (sin respuesta), la sincronización sigue parada y otro intento, con el mismo @ escrito, lo termina */
 async function borrar(a,typed){if(acBusy)return;acBusy=true;const del=$('#acDel');if(del)del.disabled=true;acMsg(tt('ac.del.wait'));
  try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.del.fail'));return}
-  await SYNC.hold(true);const had=!!delMark.get();delMark.set(a.sub);
+  await SYNC.hold(true);const had=!!delMark.get();
+  if(!delMark.set(a.sub)){if(!delMark.get())SYNC.hold(false);acMsg(tt('ac.del.store'));return}
   const r=await askDelete(C,a.sub,typed,had);
   if(r&&r.status===200)return;
   if(!delMark.get())SYNC.hold(false);

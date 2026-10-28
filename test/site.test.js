@@ -3011,7 +3011,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  const h=read('hoja.js').replace(/\r\n/g,'\n'),ix=read('index.html'),sw=read('sw.js');
  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
- assert.ok(/function write\(s,quiet\)\{if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
+ assert.ok(/function write\(s,quiet\)\{if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
@@ -4126,10 +4126,13 @@ function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').
  const i=src.indexOf('/* ---------- LHB-34:'),j=src.indexOf('function accountCard(',i);assert.ok(i>0&&j>i,'bloque LHB-34');
  const els={};const $=s=>{const id=s.slice(1);return els[id]||(els[id]={id,value:'',textContent:'',hidden:true,disabled:false})};
  const log=[],toasts=[],ss=new Map();dev.D.ls.remove=k=>dev.ls.delete(k);
+ /* la espera de la valla (sync.js forget): o.duringFence corre en medio, como otra pestaña que escribe antes de verla */
+ dev.D.wait=async ms=>{log.push('espera '+ms);if(o.duringFence)await o.duringFence()};
  const C={user:o.clerkUser===undefined?{id:'user_a'}:o.clerkUser,signOut:async opt=>{log.push('signOut '+JSON.stringify(opt));if(o.signOutFails&&o.signOutFails-->0)throw new Error('sin red')}};
  const SYNC=o.afterSettled?{...dev.eng,settled:async x=>{const r=await dev.eng.settled(x);o.afterSettled();return r}}:dev.eng;
  const ctx={...TT(),SYNC,$,$$:()=>[],esc:s=>String(s),toast:m=>toasts.push(m),exportar:()=>log.push('exportar'),LHB_MERGE:dev.X,
-  localStorage:{getItem:k=>dev.ls.has(k)?dev.ls.get(k):null,setItem:(k,v)=>dev.ls.set(k,String(v)),removeItem:k=>dev.ls.delete(k)},
+  /* o.markStore: la marca del borrado no se guarda ('throw': el almacenamiento está lleno; 'lost': no falla pero no queda) */
+  localStorage:{getItem:k=>dev.ls.has(k)?dev.ls.get(k):null,setItem:(k,v)=>{if(k==='lhb_borrando'&&o.markStore==='throw')throw new Error('QuotaExceededError');if(k==='lhb_borrando'&&o.markStore==='lost')return;dev.ls.set(k,String(v))},removeItem:k=>dev.ls.delete(k)},
   acct:{get:()=>o.acct===undefined?{sub:'user_a',handle:'ana_a'}:o.acct,clear:()=>log.push('acct.clear')},intent:{clear:()=>log.push('intent.clear')},
   clerk:async()=>{if(o.offlineClerk)throw new Error('sin red');return C},
   api:async(Cx,method,path,body,uid)=>{log.push([method,path,JSON.stringify(body),uid]);log.push('pasada '+JSON.stringify(await dev.eng.run('durante')));if(o.api)return o.api(body);return {status:200,body:{ok:true}}},
@@ -4194,6 +4197,52 @@ test('LHB-34 (Codex r2): otra pestaña escribe mientras se lee la copia que se r
   st[0]({key:'lhb_mihoja_v1_sync',oldValue:'x',newValue:null});st[0]({key:'lhb_mihoja_v1_owner',oldValue:null,newValue:'user_a'});assert.equal(h.X.st().x,1,'lo demás no cuenta');
   st[0]({key:'lhb_mihoja_v1_owner',oldValue:'user_a',newValue:null});
   assert.equal(h.X.st(),null);assert.ok(h.log.includes('assign /'));assert.deepEqual(await dev.eng.run('x'),{skip:'held'});
+ }finally{a.done()}});
+test('LHB-34 (Codex r3): otra pestaña escribe entre la última revisión y el borrado: la valla para a todos, se espera, se revisa otra vez; la valla se queda hasta que caduca',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();const F='lhb_mihoja_v1_saliendo';
+  /* la otra pestaña escribe antes de ver la valla: no se borra nada, la valla se quita y la sincronización vuelve */
+  const before=KEYS34.map(k=>dev.ls.get(k));let seen=null;let h=ACCT34(dev,{duringFence:async()=>{seen=[dev.eng.fenced(),await dev.eng.run('durante')];const d=dev.doc();d.humidor.push({id:'otra',marca:'y',actualizado:'2026-10-28'});dev.ls.set(dev.KEY,JSON.stringify(d))}});
+  await h.X.salir();
+  assert.deepEqual(seen,[true,{skip:'held'}],'mientras se espera, la valla está puesta y no corre ninguna pasada');assert.ok(h.log.includes('espera 1000'));
+  assert.ok(hid28(dev.doc()).includes('otra'),'lo de la otra pestaña sigue');assert.deepEqual(KEYS34.slice(1).map(k=>dev.ls.get(k)),before.slice(1),'la sincronización de este teléfono sigue como estaba');
+  assert.ok(!dev.ls.has(F),'la valla se quita');assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');assert.deepEqual(h.outs(),[]);
+  assert.notDeepEqual(await dev.eng.run('x'),{skip:'held'},'la sincronización no quedó parada');
+  /* sin nadie que escriba: se borra y la valla se queda; caduca a los 10 s */
+  await dev.sync();h=ACCT34(dev);await h.X.salir();
+  for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
+  assert.equal(dev.ls.get(F),String(dev.st.clock));assert.equal(dev.eng.fenced(),true);
+  dev.st.clock+=9999;assert.equal(dev.eng.fenced(),true);dev.st.clock+=2;assert.equal(dev.eng.fenced(),false,'caducó');
+ }finally{a.done()}});
+test('LHB-34 (Codex r3): con la valla puesta nadie escribe: ni hoja.js (Mi Hoja), ni el motor (la meta, el contador, la dueña); una valla vieja ya no frena',async()=>{
+ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/^function write\(s,quiet\)\{.*$/m)[0];
+ let F=true;const ls=new Map(),toasts=[],calls=[];
+ const ctx={...TT(),SYNC:{fenced:()=>F,isolate:()=>true,ensureOwner:()=>true,changed:p=>calls.push(p)},localStorage:{getItem:k=>ls.has(k)?ls.get(k):null,setItem:(k,v)=>ls.set(k,String(v))},toast:m=>toasts.push(m),KEY:'lhb_mihoja_v1',PEND:[]};
+ vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW=null;'+line+';this.W=write;this.st=()=>ST',ctx);
+ assert.equal(ctx.W({humidor:[]}),false);assert.ok(!ls.has('lhb_mihoja_v1'),'no se guardó');assert.equal(ctx.st(),null);assert.deepEqual(calls,[]);
+ assert.deepEqual(toasts,['Se está saliendo de la cuenta en este teléfono. Espera unos segundos e intenta otra vez.']);
+ F=false;assert.equal(ctx.W({humidor:[]}),true);assert.equal(ls.get('lhb_mihoja_v1'),'{"humidor":[]}');assert.equal(calls.length,1);
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();const V='lhb_mihoja_v1_saliendo';
+  const before=KEYS34.map(k=>dev.ls.get(k));dev.ls.set(V,String(dev.st.clock));
+  dev.eng.changed(null);assert.deepEqual(KEYS34.map(k=>dev.ls.get(k)),before,'ni la meta ni el contador');
+  dev.ls.delete('lhb_mihoja_v1_owner');dev.ls.delete('lhb_mihoja_v1_sync');assert.equal(dev.eng.ensureOwner(),false,'la dueña no se anota');assert.ok(!dev.ls.has('lhb_mihoja_v1_owner'));
+  /* una valla de hace más de 10 s (la pestaña que salía se cerró a medias) ya no frena */
+  dev.ls.set(V,String(dev.st.clock-10001));assert.equal(dev.eng.ensureOwner(),true);assert.equal(dev.ls.get('lhb_mihoja_v1_owner'),'user_a');
+  dev.eng.changed(null);assert.notEqual(dev.ls.get('lhb_mihoja_v1_seq'),before[3],'el contador sube');
+ }finally{a.done()}});
+test('LHB-34 (Codex r3): si la marca del borrado no se puede guardar, no se pide el borrado: la cuenta sigue entera y la sincronización vuelve',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  for(const markStore of ['throw','lost']){
+   const h=ACCT34(dev,{markStore});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
+   assert.ok(!h.log.some(x=>Array.isArray(x)),'no se pidió nada ('+markStore+')');
+   assert.equal(h.els.acMsg.textContent,'No pudimos guardar en este teléfono que el borrado empezó, así que no borramos nada. Libera espacio e intenta otra vez.');
+   assert.ok(!dev.ls.has('lhb_borrando'));assert.ok(dev.ls.has('lhb_mihoja_v1'));assert.equal((await dev.eng.run('x')).ok,true,'la sincronización vuelve');
+  }
+  /* con la marca de un borrado a medias de antes, la sincronización sigue parada */
+  dev.ls.set('lhb_borrando','{"sub":"user_a"}');const h=ACCT34(dev,{markStore:'throw'});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
+  assert.ok(!h.log.some(x=>Array.isArray(x)));assert.equal(dev.ls.get('lhb_borrando'),'{"sub":"user_a"}');assert.deepEqual(await dev.eng.run('x'),{skip:'held'});
  }finally{a.done()}});
 test('LHB-34 (Codex r2): con un borrado a medias pendiente, un error pasajero (503, 401) no quita la marca; un primer pedido rechazado sí',async()=>{
  const a=await ENG28();const dev=DEV28(a,'user_a');try{

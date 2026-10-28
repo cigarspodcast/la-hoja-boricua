@@ -76,20 +76,24 @@ window.LHB_MERGE={merge,strip,canon,same,stable,hasData,meet,LOCAL_ONLY};
 
 /* ---------- el motor ---------- */
 const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_seq',KEY='lhb_mihoja_v1';
+/* LHB-34 (Codex r3): la valla de salir. Mientras está puesta (y es de hace menos de FENCE_TTL), nadie escribe Mi Hoja ni su sincronización, ni esta pestaña ni otra.
+   forget la pone, espera FENCE_MS (lo que tarda en verse en las otras pestañas), revisa otra vez y borra. Caduca sola si la pestaña que sale se cierra a medias */
+const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 window.LHB_SYNC=function(D){
  let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
- const writeMeta=m=>{try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
+ const fenced=()=>{let t=0;try{t=parseInt(D.ls.get(FENCE),10)}catch(e){}return t>0&&D.nowMs()-t<FENCE_TTL};
+ const writeMeta=m=>{if(fenced())return false;try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
  /* un contador chico compartido entre pestañas: cada escritura de la persona lo sube, y una pasada sabe si alguien escribió (aquí o en otra pestaña) mientras esperaba la red */
  const readSeq=()=>{try{const n=parseInt(D.ls.get(SEQ),10);return n>0?n:0}catch(e){return 0}};
- const bumpSeq=()=>{try{D.ls.set(SEQ,String(readSeq()+1))}catch(e){}};
+ const bumpSeq=()=>{if(fenced())return;try{D.ls.set(SEQ,String(readSeq()+1))}catch(e){}};
  const keep=d=>{const o={};for(const k of LOCAL_ONLY)if(d&&d[k]!==undefined)o[k]=d[k];return o};
  const set=(s,err)=>{state={state:s,err:err||null};if(D.onState){try{D.onState(state)}catch(e){}}};
  const parkKey=sub=>KEY+'_de_'+String(sub).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,60);
  /* de quién es lo guardado en este teléfono: una llave aparte y chica, para saberlo sin leer la copia completa */
  const ownerOf=()=>{let o=null;try{o=D.ls.get(OWNER)}catch(e){}if(typeof o==='string'&&o)return o;const m=readMeta();return m?m.sub:null};
- const setOwner=uid=>{try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false}));return true}catch(e){return false}};
+ const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false}));return true}catch(e){return false}};
  /* antes de guardar lo que escribe la persona hay que poder anotar de quién es; si no se puede, no se guarda */
  const ensureOwner=()=>{const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;if(ownerOf()!==null)return true;return setOwner(acc.sub)};
  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
@@ -220,8 +224,19 @@ window.LHB_SYNC=function(D){
  /* LHB-34: mientras se sale o se borra la cuenta no corre ninguna pasada (una a destiempo volvería a llevar Mi Hoja a la cuenta). hold(true) espera la que esté corriendo */
  function hold(on){held=!!on;if(on){if(timer){D.clearTimer(timer);timer=0}if(retryT){D.clearTimer(retryT);retryT=0}}return held&&busy?busy.then(()=>{},()=>{}):Promise.resolve()}
  /* LHB-34: se borra Mi Hoja de este teléfono y lo que se sabía de su sincronización (al salir o al borrar la cuenta). Las copias apartadas de otras cuentas se quedan.
-    Con mark (de settled), solo si la copia sigue igual que cuando se revisó; si no, no toca nada y devuelve false. La revisión y el borrado van sin esperas entre los dos */
- function forget(mark){if(mark){const now=markNow();if(now.raw!==mark.raw||now.seq!==mark.seq)return false}
+    Con mark (de settled), solo si la copia sigue igual que cuando se revisó; si no, no toca nada y devuelve false.
+    Codex r3: otra pestaña puede escribir entre la última revisión y el borrado, así que con mark primero se pone la valla (nadie escribe), se espera a que
+    las otras pestañas la vean y se revisa otra vez; lo que alguien alcanzó a escribir antes de verla cambia la marca y no se borra nada.
+    La valla se queda puesta hasta que caduca: una pestaña que todavía no se enteró de la salida no vuelve a escribir la copia vieja */
+ const same=mark=>{const now=markNow();return now.raw===mark.raw&&now.seq===mark.seq};
+ async function forget(mark){
+  if(mark){if(!same(mark))return false;
+   /* tampoco corre una pasada de esta pestaña mientras tanto; si no se borra, vuelve */
+   await hold(true);
+   const back=()=>{try{D.ls.remove(FENCE)}catch(e){}hold(false);return false};
+   try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
+   await D.wait(FENCE_MS);
+   if(!same(mark))return back()}
   hold(true);mem=null;unk=null;dirty=false;let ok=true;
   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
   set('off');return ok}
@@ -229,5 +244,5 @@ window.LHB_SYNC=function(D){
   D.listen('online',()=>run('en-linea'));
   D.listen('visible',()=>run('visible',{minAge:30e3}));
   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
- return {run,changed,start,isolate,ensureOwner,settled,hold,forget,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
+ return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
 })();
