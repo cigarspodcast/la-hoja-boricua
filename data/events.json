@@ -1,246 +1,260 @@
 {
- "actualizado": "2026-10-26T21:04:51Z",
- "nota": "Lista mantenida a mano en el prototipo; un trabajo programado puede reescribir este archivo.",
- "actividades": [
-  {
-   "id": "entre-humos-barrilito-2026-10-23",
-   "titulo": "El Arte del Maridaje: Ron del Barrilito + cigarros",
-   "fecha": "2026-10-23",
-   "hora": "1:00–3:00 PM",
-   "lugar": "Entre Humos San Patricio",
-   "pueblo": "Guaynabo",
-   "precio": "$100 + IVU por persona",
-   "enlace": "https://www.instagram.com/entrehumos/p/DergBVptYPJ/",
-   "fuente": "@entrehumos",
-   "fuente_url": "https://www.instagram.com/entrehumos/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Entre%20Humos%20San%20Patricio%20Town%20Center%20Guaynabo%20Puerto%20Rico",
-   "detalle": "Entre Humos presenta una cata maridada de Ron del Barrilito 3, 4 y 5 Estrellas con los cigarros OpusX The Lost City y Sencillo Platinum by Prometheus. $100 + IVU por persona, reservas por Eventbrite (enlace en su perfil); cupos limitados."
-  },
-  {
-   "id": "humo-y-tambor-2",
-   "titulo": "Humo y Tambor 2",
-   "fecha": "2026-10-24",
-   "hora": "5:00 PM cata y concurso ($25) · 7:00 PM plena gratis",
-   "lugar": "Vaca Brava (The Yard at Bairoa)",
-   "pueblo": "Caguas",
-   "precio": "Cata $25; desde las 7 PM gratis",
-   "enlace": "https://humoytambor.com",
-   "fuente": "@humoytambor",
-   "fuente_url": "https://www.instagram.com/humoytambor/reel/DemqwwwxAuM/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Vaca%20Brava%20190%20Ave.%20Bairoa%20Caguas%20Puerto%20Rico",
-   "detalle": "Humo & Tambor presenta su segunda edición en 190 Ave. Bairoa, Caguas. 5 PM: cata guiada de Blackbird con café de Hacienda La Tradición, bolsa con cortador y concurso de la ceniza más larga ($25, ATH Móvil /humoytambor). 7 PM: DJ Gury y plena con Fat Mazakot, gratis. Solo mayores de 21."
-  },
-  {
-   "id": "don-rey-mockingbird-2026-10-25",
-   "titulo": "Blackbird Mockingbird en Don Rey Cigar",
-   "fecha": "2026-10-25",
-   "enlace": "https://www.instagram.com/donreycigar/p/DeriaopxlTa/",
-   "fuente": "@donreycigar",
-   "fuente_url": "https://www.instagram.com/donreycigar/",
-   "detalle": "Don Rey Cigar celebra con Blackbird Cigar Co. la llegada del nuevo Mockingbird, con Jonas Santana de la marca. Habrá cócteles Old Fashioned y DJ en vivo."
-  },
-  {
-   "id": "turro-libertad-jayuya-2026-10-30",
-   "titulo": "Lanzamiento de LIBERTAD (El Club del Turro) + Riestra y Los Bohíques",
-   "fecha": "2026-10-30",
-   "lugar": "Naturola La Barra",
-   "pueblo": "Jayuya",
-   "enlace": "https://www.instagram.com/laturreria/p/DemIkUwxaMf/",
-   "fuente": "@laturreria / @elclubdelturro",
-   "fuente_url": "https://www.instagram.com/laturreria/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Naturola%20La%20Barra%20Jayuya%20Puerto%20Rico",
-   "detalle": "La Turrería presenta por primera vez LIBERTAD, cigarro inspirado en Blanca Canales y la Revolución Nacionalista de Jayuya de 1950, con una conversación sobre su confección. Cierra con música en vivo de Riestra y Los Bohíques en Naturola La Barra."
-  },
-  {
-   "id": "entre-humos-smoke-shadows-2026-10-30",
-   "titulo": "Smoke & Shadows: Halloween en Entre Humos",
-   "fecha": "2026-10-30",
-   "hora": "Desde las 7:00 PM",
-   "lugar": "Entre Humos San Patricio",
-   "pueblo": "Guaynabo",
-   "precio": "Reserva tu espacio con Entre Humos",
-   "enlace": "https://www.instagram.com/entrehumos/p/De-KX5yhWnW/",
-   "fuente": "@entrehumos",
-   "fuente_url": "https://www.instagram.com/entrehumos/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Entre%20Humos%20San%20Patricio%20Town%20Center%20Guaynabo%20Puerto%20Rico",
-   "detalle": "Entre Humos Cigar Emporium celebra Halloween con una noche de cigarros premium, cócteles especiales, descuentos en tragos con Chopin Vodka y Michter’s Bourbon y buena música. Dress code: All Black, máscaras opcionales; reserva tu espacio con el lounge."
-  },
-  {
-   "id": "612-halloween-2026-10-31",
-   "titulo": "Noche de Halloween en 612 C. Lounge",
-   "fecha": "2026-10-31",
-   "lugar": "612 C. Lounge",
-   "pueblo": "Arecibo",
-   "enlace": "https://www.instagram.com/612clounge/p/DepOZ6oJfR5/",
-   "fuente": "@612clounge",
-   "fuente_url": "https://www.instagram.com/612clounge/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=612%20C.%20Lounge%20Arecibo%20Puerto%20Rico",
-   "detalle": "612 C. Lounge celebra Halloween con una noche especial en su lounge de Arecibo; el disfraz es opcional."
-  },
-  {
-   "id": "kuros-halloween-2026-10-31",
-   "titulo": "Halloween con karaoke en Kuros",
-   "fecha": "2026-10-31",
-   "lugar": "Kuros Smoke Lounge, 1056 Ave. Ashford (Condado)",
-   "pueblo": "San Juan",
-   "enlace": "https://www.instagram.com/p/DeVDb9mCShm/",
-   "fuente": "@kurossmokeloungepr",
-   "fuente_url": "https://www.instagram.com/kurossmokeloungepr/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Kuros%20Smoke%20Lounge%201056%20Ave.%20Ashford%20San%20Juan%20Puerto%20Rico",
-   "detalle": "Kuros Smoke Lounge hace su noche de Halloween con karaoke toda la noche y un shot de la casa gratis para quien llegue disfrazado (mientras duren). Solo mayores de 21."
-  },
-  {
-   "id": "musa-morada-tarde-2026-11-01",
-   "titulo": "Una tarde para disfrutar en Musa Morada",
-   "fecha": "2026-11-01",
-   "hora": "2:00–7:00 PM",
-   "lugar": "Musa Morada",
-   "pueblo": "Aguas Buenas",
-   "precio": "Cupos limitados; reserva en lareservavip.co",
-   "enlace": "https://lareservavip.co",
-   "fuente": "La Reserva VIP",
-   "fuente_url": "https://lareservavip.co",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Musa%20Morada%20Aguas%20Buenas%20Puerto%20Rico",
-   "detalle": "Tarde en las montañas de Aguas Buenas con piano en vivo, paella de carnes hecha al momento, dos cigarros y barra abierta. Solo mayores de 21."
-  },
-  {
-   "id": "la-altura-taller-2026-11-07",
-   "titulo": "Taller: confección de cigarro artesanal",
-   "fecha": "2026-11-07",
-   "hora": "9:00 AM – 1:00 PM",
-   "lugar": "Centro Cultural 23 de Septiembre Inc.",
-   "pueblo": "Lares",
-   "enlace": "https://www.instagram.com/tabacolaaltura/p/DerJuvXxcJT/",
-   "fuente": "@tabacolaaltura",
-   "fuente_url": "https://www.instagram.com/tabacolaaltura/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Centro%20Cultural%2023%20de%20Septiembre%20Lares%20Puerto%20Rico",
-   "detalle": "Tabaco La Altura ofrece un taller práctico para aprender a confeccionar tu propio cigarro a mano, de la hoja al cigarro terminado. Espacios limitados; costo e inscripción por sus redes."
-  },
-  {
-   "id": "pegadizo-bolero-jazz-2026-11-24",
-   "titulo": "Cigarros a Tiempo de Bolero & Jazz",
-   "fecha": "2026-11-24",
-   "lugar": "Pegadizo Cigar Lounge, Carr. 987 km 4.8 (Las Croabas)",
-   "pueblo": "Fajardo",
-   "enlace": "https://www.instagram.com/p/DZu6Q4HRnyp/",
-   "fuente": "@pegadizocigar",
-   "fuente_url": "https://www.instagram.com/pegadizocigar/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Pegadizo%20Cigar%20Lounge%20Carr.%20987%20km%204.8%20Fajardo%20Puerto%20Rico",
-   "detalle": "Martes de bolero y jazz en vivo en Pegadizo Cigar Lounge: una noche de música, cigarros, gastronomía y conversación. Es parte de una serie que sigue el martes 1 de diciembre."
-  },
-  {
-   "id": "pegadizo-bolero-jazz-2026-12-01",
-   "titulo": "Cigarros a Tiempo de Bolero & Jazz",
-   "fecha": "2026-12-01",
-   "lugar": "Pegadizo Cigar Lounge, Carr. 987 km 4.8 (Las Croabas)",
-   "pueblo": "Fajardo",
-   "enlace": "https://www.instagram.com/p/DZu6Q4HRnyp/",
-   "fuente": "@pegadizocigar",
-   "fuente_url": "https://www.instagram.com/pegadizocigar/",
-   "maps": "https://www.google.com/maps/search/?api=1&query=Pegadizo%20Cigar%20Lounge%20Carr.%20987%20km%204.8%20Fajardo%20Puerto%20Rico",
-   "detalle": "Cierre de la serie de bolero y jazz en vivo en Pegadizo Cigar Lounge: música, cigarros, gastronomía y conversación en un martes de noche."
-  }
- ],
- "fuentes": [
-  {
-   "handle": "@humoytambor",
-   "url": "https://www.instagram.com/humoytambor/"
-  },
-  {
-   "handle": "@donreycigar",
-   "url": "https://www.instagram.com/donreycigar/"
-  },
-  {
-   "handle": "@entrehumos",
-   "url": "https://www.instagram.com/entrehumos/"
-  },
-  {
-   "handle": "@dragonfly_cigarlounge",
-   "url": "https://www.instagram.com/dragonfly_cigarlounge/"
-  },
-  {
-   "handle": "@pegadizocigar",
-   "url": "https://www.instagram.com/pegadizocigar/"
-  },
-  {
-   "handle": "@casademontecristopr",
-   "url": "https://www.instagram.com/casademontecristopr/"
-  },
-  {
-   "handle": "@doncollinspr",
-   "url": "https://www.instagram.com/doncollinspr/"
-  },
-  {
-   "handle": "@fincaneojibairo",
-   "url": "https://www.instagram.com/fincaneojibairo/"
-  },
-  {
-   "handle": "@elclubdelturro",
-   "url": "https://www.instagram.com/elclubdelturro/"
-  },
-  {
-   "handle": "@laturreria",
-   "url": "https://www.instagram.com/laturreria/"
-  },
-  {
-   "handle": "@tabacolaaltura",
-   "url": "https://www.instagram.com/tabacolaaltura/"
-  },
-  {
-   "handle": "@tabacalera_falto",
-   "url": "https://www.instagram.com/tabacalera_falto/"
-  },
-  {
-   "handle": "@willyscigars",
-   "url": "https://www.instagram.com/willyscigars/"
-  },
-  {
-   "handle": "@juanadiazcigars",
-   "url": "https://www.instagram.com/juanadiazcigars/"
-  },
-  {
-   "handle": "@ciudadsenorialcigar",
-   "url": "https://www.instagram.com/ciudadsenorialcigar/"
-  },
-  {
-   "handle": "@612clounge",
-   "url": "https://www.instagram.com/612clounge/"
-  },
-  {
-   "handle": "@jjcigarlounge",
-   "url": "https://www.instagram.com/jjcigarlounge/"
-  },
-  {
-   "handle": "@motherearthcigars",
-   "url": "https://www.instagram.com/motherearthcigars/"
-  },
-  {
-   "handle": "@condadocigarlounge",
-   "url": "https://www.instagram.com/condadocigarlounge/"
-  },
-  {
-   "handle": "@greenzone_smokeshop",
-   "url": "https://www.instagram.com/greenzone_smokeshop/"
-  },
-  {
-   "handle": "@barlaunidad",
-   "url": "https://www.instagram.com/barlaunidad/"
-  },
-  {
-   "handle": "@vacabravapr",
-   "url": "https://www.instagram.com/vacabravapr/"
-  },
-  {
-   "handle": "@lasibarita_condado",
-   "url": "https://www.instagram.com/lasibarita_condado/"
-  },
-  {
-   "handle": "@naturolalabarra",
-   "url": "https://www.instagram.com/naturolalabarra/"
-  },
-  {
-   "handle": "@kurossmokeloungepr",
-   "url": "https://www.instagram.com/kurossmokeloungepr/"
-  }
- ]
+  "actualizado": "2026-10-27T18:09:00Z",
+  "nota": "Lista mantenida a mano en el prototipo; un trabajo programado puede reescribir este archivo.",
+  "actividades": [
+    {
+      "id": "entre-humos-barrilito-2026-10-23",
+      "titulo": "El Arte del Maridaje: Ron del Barrilito + cigarros",
+      "fecha": "2026-10-23",
+      "hora": "1:00–3:00 PM",
+      "lugar": "Entre Humos San Patricio",
+      "pueblo": "Guaynabo",
+      "precio": "$100 + IVU por persona",
+      "enlace": "https://www.instagram.com/entrehumos/p/DergBVptYPJ/",
+      "fuente": "@entrehumos",
+      "fuente_url": "https://www.instagram.com/entrehumos/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Entre%20Humos%20San%20Patricio%20Town%20Center%20Guaynabo%20Puerto%20Rico",
+      "detalle": "Entre Humos presenta una cata maridada de Ron del Barrilito 3, 4 y 5 Estrellas con los cigarros OpusX The Lost City y Sencillo Platinum by Prometheus. $100 + IVU por persona, reservas por Eventbrite (enlace en su perfil); cupos limitados."
+    },
+    {
+      "id": "humo-y-tambor-2",
+      "titulo": "Humo y Tambor 2",
+      "fecha": "2026-10-24",
+      "hora": "5:00 PM cata y concurso ($25) · 7:00 PM plena gratis",
+      "lugar": "Vaca Brava (The Yard at Bairoa)",
+      "pueblo": "Caguas",
+      "precio": "Cata $25; desde las 7 PM gratis",
+      "enlace": "https://humoytambor.com",
+      "fuente": "@humoytambor",
+      "fuente_url": "https://www.instagram.com/humoytambor/reel/DemqwwwxAuM/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Vaca%20Brava%20190%20Ave.%20Bairoa%20Caguas%20Puerto%20Rico",
+      "detalle": "Humo & Tambor presenta su segunda edición en 190 Ave. Bairoa, Caguas. 5 PM: cata guiada de Blackbird con café de Hacienda La Tradición, bolsa con cortador y concurso de la ceniza más larga ($25, ATH Móvil /humoytambor). 7 PM: DJ Gury y plena con Fat Mazakot, gratis. Solo mayores de 21."
+    },
+    {
+      "id": "don-rey-mockingbird-2026-10-25",
+      "titulo": "Blackbird Mockingbird en Don Rey Cigar",
+      "fecha": "2026-10-25",
+      "enlace": "https://www.instagram.com/donreycigar/p/DeriaopxlTa/",
+      "fuente": "@donreycigar",
+      "fuente_url": "https://www.instagram.com/donreycigar/",
+      "detalle": "Don Rey Cigar celebra con Blackbird Cigar Co. la llegada del nuevo Mockingbird, con Jonas Santana de la marca. Habrá cócteles Old Fashioned y DJ en vivo."
+    },
+    {
+      "id": "turro-libertad-jayuya-2026-10-30",
+      "titulo": "Lanzamiento de LIBERTAD (El Club del Turro) + Riestra y Los Bohíques",
+      "fecha": "2026-10-30",
+      "lugar": "Naturola La Barra",
+      "pueblo": "Jayuya",
+      "enlace": "https://www.instagram.com/laturreria/p/DemIkUwxaMf/",
+      "fuente": "@laturreria / @elclubdelturro",
+      "fuente_url": "https://www.instagram.com/laturreria/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Naturola%20La%20Barra%20Jayuya%20Puerto%20Rico",
+      "detalle": "La Turrería presenta por primera vez LIBERTAD, cigarro inspirado en Blanca Canales y la Revolución Nacionalista de Jayuya de 1950, con una conversación sobre su confección. Cierra con música en vivo de Riestra y Los Bohíques en Naturola La Barra."
+    },
+    {
+      "id": "entre-humos-smoke-shadows-2026-10-30",
+      "titulo": "Smoke & Shadows: Halloween en Entre Humos",
+      "fecha": "2026-10-30",
+      "hora": "Desde las 7:00 PM",
+      "lugar": "Entre Humos San Patricio",
+      "pueblo": "Guaynabo",
+      "precio": "Reserva tu espacio con Entre Humos",
+      "enlace": "https://www.instagram.com/entrehumos/p/De-KX5yhWnW/",
+      "fuente": "@entrehumos",
+      "fuente_url": "https://www.instagram.com/entrehumos/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Entre%20Humos%20San%20Patricio%20Town%20Center%20Guaynabo%20Puerto%20Rico",
+      "detalle": "Entre Humos Cigar Emporium celebra Halloween con una noche de cigarros premium, cócteles especiales, descuentos en tragos con Chopin Vodka y Michter’s Bourbon y buena música. Dress code: All Black, máscaras opcionales; reserva tu espacio con el lounge."
+    },
+    {
+      "id": "612-halloween-2026-10-31",
+      "titulo": "Noche de Halloween en 612 C. Lounge",
+      "fecha": "2026-10-31",
+      "lugar": "612 C. Lounge",
+      "pueblo": "Arecibo",
+      "enlace": "https://www.instagram.com/612clounge/p/DepOZ6oJfR5/",
+      "fuente": "@612clounge",
+      "fuente_url": "https://www.instagram.com/612clounge/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=612%20C.%20Lounge%20Arecibo%20Puerto%20Rico",
+      "detalle": "612 C. Lounge celebra Halloween con una noche especial en su lounge de Arecibo; el disfraz es opcional."
+    },
+    {
+      "id": "kuros-halloween-2026-10-31",
+      "titulo": "Halloween con karaoke en Kuros",
+      "fecha": "2026-10-31",
+      "lugar": "Kuros Smoke Lounge, 1056 Ave. Ashford (Condado)",
+      "pueblo": "San Juan",
+      "enlace": "https://www.instagram.com/p/DeVDb9mCShm/",
+      "fuente": "@kurossmokeloungepr",
+      "fuente_url": "https://www.instagram.com/kurossmokeloungepr/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Kuros%20Smoke%20Lounge%201056%20Ave.%20Ashford%20San%20Juan%20Puerto%20Rico",
+      "detalle": "Kuros Smoke Lounge hace su noche de Halloween con karaoke toda la noche y un shot de la casa gratis para quien llegue disfrazado (mientras duren). Solo mayores de 21."
+    },
+    {
+      "id": "musa-morada-tarde-2026-11-01",
+      "titulo": "Una tarde para disfrutar en Musa Morada",
+      "fecha": "2026-11-01",
+      "hora": "2:00–7:00 PM",
+      "lugar": "Musa Morada",
+      "pueblo": "Aguas Buenas",
+      "precio": "Cupos limitados; reserva en lareservavip.com",
+      "enlace": "https://lareservavip.com/",
+      "fuente": "La Reserva VIP",
+      "fuente_url": "https://lareservavip.com/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Musa%20Morada%20Aguas%20Buenas%20Puerto%20Rico",
+      "detalle": "Tarde en las montañas de Aguas Buenas con piano en vivo, paella de carnes hecha al momento, dos cigarros y barra abierta. Solo mayores de 21."
+    },
+    {
+      "id": "la-altura-taller-2026-11-07",
+      "titulo": "Taller: confección de cigarro artesanal",
+      "fecha": "2026-11-07",
+      "hora": "9:00 AM – 1:00 PM",
+      "lugar": "Centro Cultural 23 de Septiembre Inc.",
+      "pueblo": "Lares",
+      "enlace": "https://www.instagram.com/tabacolaaltura/p/DerJuvXxcJT/",
+      "fuente": "@tabacolaaltura",
+      "fuente_url": "https://www.instagram.com/tabacolaaltura/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Centro%20Cultural%2023%20de%20Septiembre%20Lares%20Puerto%20Rico",
+      "detalle": "Tabaco La Altura ofrece un taller práctico para aprender a confeccionar tu propio cigarro a mano, de la hoja al cigarro terminado. Espacios limitados; costo e inscripción por sus redes."
+    },
+    {
+      "id": "pegadizo-bolero-jazz-2026-11-24",
+      "titulo": "Cigarros a Tiempo de Bolero & Jazz",
+      "fecha": "2026-11-24",
+      "lugar": "Pegadizo Cigar Lounge, Carr. 987 km 4.8 (Las Croabas)",
+      "pueblo": "Fajardo",
+      "enlace": "https://www.instagram.com/p/DZu6Q4HRnyp/",
+      "fuente": "@pegadizocigar",
+      "fuente_url": "https://www.instagram.com/pegadizocigar/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Pegadizo%20Cigar%20Lounge%20Carr.%20987%20km%204.8%20Fajardo%20Puerto%20Rico",
+      "detalle": "Martes de bolero y jazz en vivo en Pegadizo Cigar Lounge: una noche de música, cigarros, gastronomía y conversación. Es parte de una serie que sigue el martes 1 de diciembre."
+    },
+    {
+      "id": "chapu-pr-domingo-domino-2026-11-29",
+      "titulo": "Domingo de Dominó",
+      "fecha": "2026-11-29",
+      "hora": "Desde la 1:00 PM",
+      "lugar": "Carr. 829, al lado de Panadería Flor de España",
+      "pueblo": "Toa Alta",
+      "fuente": "El Chapu PR",
+      "fuente_url": "https://www.instagram.com/elchapupr/",
+      "enlace": "https://www.instagram.com/elchapupr/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Panader%C3%ADa%20Flor%20de%20Espa%C3%B1a%20Carr%20829%20Toa%20Alta%20Puerto%20Rico",
+      "detalle": "¡Ven, juega y gana! Una tarde de dominó con pitorro, charcutería y premios. Organiza El Chapu PR; auspicia Bad Company.",
+      "imagen": "img/eventos/domingo-domino-chapu-2026-11-29.webp"
+    },
+    {
+      "id": "pegadizo-bolero-jazz-2026-12-01",
+      "titulo": "Cigarros a Tiempo de Bolero & Jazz",
+      "fecha": "2026-12-01",
+      "lugar": "Pegadizo Cigar Lounge, Carr. 987 km 4.8 (Las Croabas)",
+      "pueblo": "Fajardo",
+      "enlace": "https://www.instagram.com/p/DZu6Q4HRnyp/",
+      "fuente": "@pegadizocigar",
+      "fuente_url": "https://www.instagram.com/pegadizocigar/",
+      "maps": "https://www.google.com/maps/search/?api=1&query=Pegadizo%20Cigar%20Lounge%20Carr.%20987%20km%204.8%20Fajardo%20Puerto%20Rico",
+      "detalle": "Cierre de la serie de bolero y jazz en vivo en Pegadizo Cigar Lounge: música, cigarros, gastronomía y conversación en un martes de noche."
+    }
+  ],
+  "fuentes": [
+    {
+      "handle": "@humoytambor",
+      "url": "https://www.instagram.com/humoytambor/"
+    },
+    {
+      "handle": "@donreycigar",
+      "url": "https://www.instagram.com/donreycigar/"
+    },
+    {
+      "handle": "@entrehumos",
+      "url": "https://www.instagram.com/entrehumos/"
+    },
+    {
+      "handle": "@dragonfly_cigarlounge",
+      "url": "https://www.instagram.com/dragonfly_cigarlounge/"
+    },
+    {
+      "handle": "@pegadizocigar",
+      "url": "https://www.instagram.com/pegadizocigar/"
+    },
+    {
+      "handle": "@casademontecristopr",
+      "url": "https://www.instagram.com/casademontecristopr/"
+    },
+    {
+      "handle": "@doncollinspr",
+      "url": "https://www.instagram.com/doncollinspr/"
+    },
+    {
+      "handle": "@fincaneojibairo",
+      "url": "https://www.instagram.com/fincaneojibairo/"
+    },
+    {
+      "handle": "@elclubdelturro",
+      "url": "https://www.instagram.com/elclubdelturro/"
+    },
+    {
+      "handle": "@laturreria",
+      "url": "https://www.instagram.com/laturreria/"
+    },
+    {
+      "handle": "@tabacolaaltura",
+      "url": "https://www.instagram.com/tabacolaaltura/"
+    },
+    {
+      "handle": "@tabacalera_falto",
+      "url": "https://www.instagram.com/tabacalera_falto/"
+    },
+    {
+      "handle": "@willyscigars",
+      "url": "https://www.instagram.com/willyscigars/"
+    },
+    {
+      "handle": "@juanadiazcigars",
+      "url": "https://www.instagram.com/juanadiazcigars/"
+    },
+    {
+      "handle": "@ciudadsenorialcigar",
+      "url": "https://www.instagram.com/ciudadsenorialcigar/"
+    },
+    {
+      "handle": "@612clounge",
+      "url": "https://www.instagram.com/612clounge/"
+    },
+    {
+      "handle": "@jjcigarlounge",
+      "url": "https://www.instagram.com/jjcigarlounge/"
+    },
+    {
+      "handle": "@motherearthcigars",
+      "url": "https://www.instagram.com/motherearthcigars/"
+    },
+    {
+      "handle": "@condadocigarlounge",
+      "url": "https://www.instagram.com/condadocigarlounge/"
+    },
+    {
+      "handle": "@greenzone_smokeshop",
+      "url": "https://www.instagram.com/greenzone_smokeshop/"
+    },
+    {
+      "handle": "@barlaunidad",
+      "url": "https://www.instagram.com/barlaunidad/"
+    },
+    {
+      "handle": "@vacabravapr",
+      "url": "https://www.instagram.com/vacabravapr/"
+    },
+    {
+      "handle": "@lasibarita_condado",
+      "url": "https://www.instagram.com/lasibarita_condado/"
+    },
+    {
+      "handle": "@naturolalabarra",
+      "url": "https://www.instagram.com/naturolalabarra/"
+    },
+    {
+      "handle": "@kurossmokeloungepr",
+      "url": "https://www.instagram.com/kurossmokeloungepr/"
+    }
+  ]
 }

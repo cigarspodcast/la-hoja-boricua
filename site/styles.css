@@ -281,6 +281,8 @@ button.row{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
 .count{font-size:13px;color:var(--cream2);font-weight:600}
 .hint{font-size:13.5px;color:var(--cream2);line-height:1.45;margin:8px 0}
 .hint a{color:var(--gold)}
+.hint.hs-ok{color:var(--gold);font-weight:600}
+.hint.hs-bad{color:var(--flam2);font-weight:600}
 .linkish{background:none;border:0;color:var(--gold);font-weight:600;font-size:14px;padding:10px 0;display:block;margin:4px auto 0;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .lbtn{cursor:pointer;color:var(--cream)}
 .lbtn.ghost{background:transparent}
@@ -576,3 +578,7 @@ body.sheet-on{overflow:hidden}
 .person-t{display:flex;flex-direction:column;min-width:0}
 .person-t b{font-weight:600;font-size:15.5px;overflow-wrap:anywhere}
 .person-t .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+
+/* Afiche de evento */
+.ev-flyer{display:block;width:min(100%,220px);height:auto;max-height:330px;object-fit:contain;object-position:left center;border-radius:10px;margin:10px 0}

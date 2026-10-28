@@ -1,0 +1,107 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-56-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a17b94-043b-78d2-8185-f6380c1af07f
+--------
+user
+HARD RULES: You are an independent code reviewer. You REVIEW AND CHANGE NOTHING: edit no file, make no commit, run no git command that writes. Load no skill, plugin or template. Do not print file contents back. Your FIRST and ONLY message is the answer, ending with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+REPO: C:\Users\Owner\lhb-56-wt (a git worktree of La Hoja Boricua, Cloudflare Pages Functions + D1 + Clerk, vanilla JS PWA). Branch lhb-56-follow. Review the slice: git diff 078952f..HEAD (078952f is main and already passed its own reviews; do not re-review it). Tests: node --test test/site.test.js (you may run it; node is on PATH). The tracker is not readable by you, so the contract is quoted here in full.
+
+TICKET LHB-56 CONTRACT (M6-S4 Follow backend: follows table, follow and unfollow, lists, counts).
+Scope (nothing else may change): migrations/0004_follows.sql, functions/api/follow.js, list endpoints (functions/api/followers.js, functions/api/following.js or one parameterised file), functions/_lib/ helpers, test/site.test.js, evidence/. No UI.
+Contract impact: a new follows table (follower_id, followee_id, created_at; primary key on the pair; indexes both ways). New endpoints, no change to existing ones. Account deletion (a later ticket, LHB-34) must remove both sides of every follow row (here: ON DELETE CASCADE and a real-SQLite test). No followers are listed for a hidden profile. Counts come from the table, never a stored number.
+Pinned decisions (owner, do not re-litigate): Follow is one-way with no approval step (Instagram style), not friends. Follow and unfollow are idempotent. A person cannot follow themselves or a hidden profile. A blocked pair cannot follow (blocks arrive in a later ticket; until then the check is a no-op that the later ticket completes). Lists are paginated with a cursor, newest first, returning public fields only (first name plus last initial, @handle, picture). Rate limit numbers are the owner call; ship a documented placeholder cap and say so (60 new follows per hour per account and 5000 in total, marked as test caps in functions/_lib/follow.js).
+Not mine: rate limit numbers; applying migration 0004 to production (owner click, another ticket); the UI (another ticket).
+Proof the ticket asks for: tests against real SQLite (node:sqlite) for each rule and each rejection, the delete cascade, counts, pagination, and that no private field (birth_date, gender, email, last name, user id) appears in any list; each test seen failing against a mutated source (evidence/lhb-56-mutations.py and its output evidence/lhb-56-mutations.txt).
+
+DESIGN IN BRIEF. POST /api/follow {handle} and DELETE /api/follow {handle} need a session and a profile (requireProfile), JSON only; GET /api/follow?handle= is public with an optional session and returns counts plus viewerFollows and self. GET /api/followers and /api/following?handle=&cursor= are public lists; the cursor is created_at~handle of the last row; ordering created_at DESC, handle DESC; page size 20 (fetches 21 to know if there is more). Hidden profiles are excluded from counts and lists and give 404 as a subject; unfollowing a profile that later became hidden is allowed. isBlocked() in functions/_lib/follow.js is a stub that returns false.
+
+REVIEW FOCUS. Find real defects only, ranked. Look hard at: (1) any path where birth_date, gender, first_name, last_name, email or the Clerk user_id reaches a response, the cursor or a log; (2) SQL: the string concatenation in listOf (the column names come from a fixed pair, confirm no request value can reach SQL text), the cursor comparison and tie handling, the LIMIT; (3) idempotency and races: two simultaneous follows, the ON CONFLICT clause, the had check then insert, the caps checked before insert (is the hourly count correct at the boundary, can a client bypass the cap with concurrent requests, is that acceptable for a placeholder cap); (4) authorization: can anyone follow or unfollow on behalf of another user, can a person without a profile follow, can the handle lookup be abused to enumerate hidden profiles (404 for hidden and for unknown must look the same); (5) counts versus lists consistency with hidden profiles; (6) the migration: foreign keys and cascade (D1 enforces foreign keys), the CHECK, the indexes matching the queries; (7) tests that cannot fail or assert the wrong thing, especially the cap tests and the pagination test; (8) scope: files changed outside the Scope list. Mark anything you could not verify as NOT VERIFIED rather than guessing.
+
+ANSWER FORMAT. Numbered findings, each: BLOCKING or ADVISORY, file and symbol, the concrete input or state that fails, expected versus actual. Then the single VERDICT line. If there is no blocking finding, say so plainly and give VERDICT: PASS.
+
+
+TOOL FALLBACK. The shell tool of your sandbox often fails to start on this host ("Failed to create unified exec process: helper_unknown_error: setup refresh had errors"). That is a transport problem, not a verdict: do not stop there. Use the JavaScript tool (node_repl) instead: require('fs') to read files, require('child_process').execFileSync to run git (for example execFileSync('git',['diff','078952f..HEAD'],{cwd:'C:\Users\Owner\lhb-56-wt'})) and to run the tests (execFileSync(process.execPath,['--test','test/site.test.js'],{cwd:...})). An attempt that read nothing is void: only if the JavaScript tool also fails, say exactly what you could not read, mark it NOT VERIFIED and answer VERDICT: BLOCK.
+
+
+ROUND 2. Round 1 gave four BLOCKING findings (quoted, shortened). (1) "onRequestDelete: An authenticated user who never followed a hidden profile can submit its handle and receive HTTP 200 plus its follower count. An unknown handle returns 404." (2) "onRequestPost: Unfollowing deletes the rows used to measure hourly activity. 61 distinct new follows were accepted within one frozen hour by unfollowing after each POST." (3) "Cap checks and insertion are separate operations. A controlled interleaving let two distinct requests both pass the checks, producing 61 hourly follows from 59 and 5,001 total follows from 4,999." (4) "The hourly-cap test removes one of its 60 recent follows before testing expiration, leaving 59, so a ten-hour window mutation survived."
+
+Fixes (HEAD of the branch, migration 0004 is still unapplied anywhere so it was extended in place): (1) targetOf now also returns hidden; DELETE on a hidden profile returns 404 not-found unless the caller really follows it, and when it does the answer is {following:false} with no follower count. (2) migration 0004 adds follow_events (follower_id with ON DELETE CASCADE, created_at; index by follower); every NEW follow records one event, unfollowing never deletes it, events older than the one-hour window are pruned; the hourly count comes from events. (3) the hourly gate is ONE statement (INSERT INTO follow_events ... SELECT ... WHERE count < cap) and the total cap is ONE statement (INSERT INTO follows ... SELECT ... WHERE count < cap ON CONFLICT DO NOTHING), with meta.changes read back; a missing new row with no existing follow is follow-cap, a missing new row where the pair now exists (double tap) is a normal 200. (4) the hourly test now has the full 60 events, checks 59 minutes (still counted) and 61 minutes (not counted), checks unfollow does not free a slot, and a new test injects a competing request between the check and the write for both caps. Mutations F13 to F19 and M6 cover each. Please check these closures in all paths, D1 semantics of one INSERT ... SELECT statement (D1 serializes writes per database), the migration, privacy of every response, and anything else still wrong. Report only real defects; if nothing blocks, give VERDICT: PASS.
+
+2026-10-27T04:17:47.343141Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-27T04:17:49.555497Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] Passing tests alone cannot establish that the four rejected paths are closed. I will inspect the corrected diff and mutation evidence, then run the repository tests without changing files.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git diff --name-status 078952f..HEAD; git status --short; git diff --stat 078952f..HEAD' in C:\Users\Owner\lhb-56-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-27T04:17:56.976184Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+2026-10-27T04:17:58.375455Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+2026-10-27T04:18:01.435234Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+2026-10-27T04:18:06.508549Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+2026-10-27T04:18:12.045740Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js (failed)
+2026-10-27T04:18:15.738231Z ERROR codex_core::tools::router: error=collab spawn failed: no thread with id: 01a17b94-2680-7cb2-b581-19de213e17af
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All eight LHB-56 tests pass. The full suite has one failure in unchanged LHB-44 code. The corrected POST path still records an hourly event before knowing whether it created a follow; I am checking failed inserts and simultaneous requests for the same pair.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Two defects are reproduced with real SQLite and the actual handlers: simultaneous requests for the same pair consume two hourly slots, and the second can return 429 at the hourly boundary; total-cap rejections also consume slots despite creating no follows. The four original reproductions appear closed, but these paths still violate the new-follow accounting contract.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Two blocking defects remain in the hourly accounting.
+
+1. **BLOCKING: [functions/api/follow.js:38](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:38), `onRequestPost`: concurrent duplicate follows consume extra slots and can return 429.** Reproduced with actual handlers and real SQLite: pause request A after its initial absent-pair lookup, complete request B for the same pair, then resume A. With an empty ledger, both return 200 but leave **two events for one follow**. Starting with 59 events, B returns 200 and A returns `429 follow-rate`. Expected: one new-follow event and an idempotent successful response for the duplicate. The existing double-tap test checks the follow row and response but misses event accounting and this boundary.
+
+2. **BLOCKING: [functions/api/follow.js:47](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:47), `onRequestPost`: total-cap rejections consume hourly slots.** Reproduced with 5,000 existing follows and zero recent events: 60 attempts to follow an additional profile all return `429 follow-cap`, yet leave 60 events. After unfollowing one existing profile, a legitimate replacement returns `429 follow-rate`, despite **zero successful new follows during the hour**. Expected: rejected inserts consume no new-follow allowance. The event commits before the follow insertion is rejected.
+
+[Certain] Prior closures: **1 CONCUR**, hidden-profile DELETE disclosure closed; **2 CONCUR**, unfollow no longer erases activity; **3 CONCUR**, the distinct-request cap overshoots are closed; **4 CONCUR**, the corrected window test retains 60 events and the evidence records the ten-hour mutation failing. The two findings above are additional paths.
+
+[Certain] All eight LHB-56 tests pass. The full suite passes 118/119; the LHB-44 failure at `test/site.test.js:277` also reproduces using the baseline test source. Changed files stay within scope. No additional privacy, SQL, pagination, authorization or cascade defect was found. Live D1 execution and mutation replay are **NOT VERIFIED**; the reproduced defects use serialized SQLite statements and unchanged handler code.
+
+VERDICT: BLOCK
+tokens used
+75,555
+[Certain] Two blocking defects remain in the hourly accounting.
+
+1. **BLOCKING: [functions/api/follow.js:38](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:38), `onRequestPost`: concurrent duplicate follows consume extra slots and can return 429.** Reproduced with actual handlers and real SQLite: pause request A after its initial absent-pair lookup, complete request B for the same pair, then resume A. With an empty ledger, both return 200 but leave **two events for one follow**. Starting with 59 events, B returns 200 and A returns `429 follow-rate`. Expected: one new-follow event and an idempotent successful response for the duplicate. The existing double-tap test checks the follow row and response but misses event accounting and this boundary.
+
+2. **BLOCKING: [functions/api/follow.js:47](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:47), `onRequestPost`: total-cap rejections consume hourly slots.** Reproduced with 5,000 existing follows and zero recent events: 60 attempts to follow an additional profile all return `429 follow-cap`, yet leave 60 events. After unfollowing one existing profile, a legitimate replacement returns `429 follow-rate`, despite **zero successful new follows during the hour**. Expected: rejected inserts consume no new-follow allowance. The event commits before the follow insertion is rejected.
+
+[Certain] Prior closures: **1 CONCUR**, hidden-profile DELETE disclosure closed; **2 CONCUR**, unfollow no longer erases activity; **3 CONCUR**, the distinct-request cap overshoots are closed; **4 CONCUR**, the corrected window test retains 60 events and the evidence records the ten-hour mutation failing. The two findings above are additional paths.
+
+[Certain] All eight LHB-56 tests pass. The full suite passes 118/119; the LHB-44 failure at `test/site.test.js:277` also reproduces using the baseline test source. Changed files stay within scope. No additional privacy, SQL, pagination, authorization or cascade defect was found. Live D1 execution and mutation replay are **NOT VERIFIED**; the reproduced defects use serialized SQLite statements and unchanged handler code.
+
+VERDICT: BLOCK

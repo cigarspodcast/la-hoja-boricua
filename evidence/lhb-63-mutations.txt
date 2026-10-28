@@ -1,0 +1,97 @@
+baseline (0, [])
+M1 tabla: sin el índice por cuenta -> ROJO (bien) fail=1
+      LHB-63: la migración 0005 crea handle_checks con su índice y no toca lo que ya había
+M2 tabla: created_at admite null -> ROJO (bien) fail=1
+      LHB-63: la migración 0005 crea handle_checks con su índice y no toca lo que ya había
+M3 tabla: user_id con llave a profiles (en el registro todavía no hay perfil) -> ROJO (bien) fail=3
+      LHB-63: el tope por cuenta: 30 por minuto, lo que las reglas rechazan no gasta, cada cuenta el suyo, y el minuto se vence
+      LHB-63: la migración 0005 crea handle_checks con su índice y no toca lo que ya había
+      LHB-63: sin sesión no se contesta; solo se exporta GET; sin base o sin la tabla de la migración 0005 no se inventa nada
+S1 api: sin sesión válida se contesta igual -> ROJO (bien) fail=1
+      LHB-63: sin sesión no se contesta; solo se exporta GET; sin base o sin la tabla de la migración 0005 no se inventa nada
+S2 api: sin base no se avisa -> ROJO (bien) fail=1
+      LHB-63: sin sesión no se contesta; solo se exporta GET; sin base o sin la tabla de la migración 0005 no se inventa nada
+S3 api: las reglas del @ no se aplican -> ROJO (bien) fail=3
+      LHB-63: el @ libre, tomado, reservado o inválido, con las mismas reglas que al guardar; el tuyo sale libre; un perfil oculto cuenta como tomado
+      LHB-63: el tope por cuenta: 30 por minuto, lo que las reglas rechazan no gasta, cada cuenta el suyo, y el minuto se vence
+      LHB-63: sin sesión no se contesta; solo se exporta GET; sin base o sin la tabla de la migración 0005 no se inventa nada
+S4 api: el @ se busca como llega, sin minúscula ni espacios -> ROJO (bien) fail=1
+      LHB-63: el @ libre, tomado, reservado o inválido, con las mismas reglas que al guardar; el tuyo sale libre; un perfil oculto cuenta como tomado
+S5 api: un perfil oculto cuenta como libre -> ROJO (bien) fail=1
+      LHB-63: el @ libre, tomado, reservado o inválido, con las mismas reglas que al guardar; el tuyo sale libre; un perfil oculto cuenta como tomado
+S6 api: tu propio @ sale tomado -> ROJO (bien) fail=1
+      LHB-63: el @ libre, tomado, reservado o inválido, con las mismas reglas que al guardar; el tuyo sale libre; un perfil oculto cuenta como tomado
+S7 api: la respuesta dice de quién es el @ -> ROJO (bien) fail=1
+      LHB-63: el @ libre, tomado, reservado o inválido, con las mismas reglas que al guardar; el tuyo sale libre; un perfil oculto cuenta como tomado
+S8 api: el tope no se revisa -> ROJO (bien) fail=1
+      LHB-63: el tope por cuenta: 30 por minuto, lo que las reglas rechazan no gasta, cada cuenta el suyo, y el minuto se vence
+S9 api: lo que las reglas rechazan también gasta tope -> ROJO (bien) fail=2
+      LHB-63: el tope por cuenta: 30 por minuto, lo que las reglas rechazan no gasta, cada cuenta el suyo, y el minuto se vence
+      LHB-63: sin sesión no se contesta; solo se exporta GET; sin base o sin la tabla de la migración 0005 no se inventa nada
+S10 api: la ventana del tope es de diez minutos -> ROJO (bien) fail=1
+      LHB-63: el tope por cuenta: 30 por minuto, lo que las reglas rechazan no gasta, cada cuenta el suyo, y el minuto se vence
+S11 api: lo viejo no se poda -> ROJO (bien) fail=2
+      LHB-63: el tope por cuenta: 30 por minuto, lo que las reglas rechazan no gasta, cada cuenta el suyo, y el minuto se vence
+      LHB-63: revisar un @ no escribe ningún perfil ni toca uno que existe
+S12 api: el tope es de todos juntos y no de cada cuenta -> ROJO (bien) fail=1
+      LHB-63: el tope por cuenta: 30 por minuto, lo que las reglas rechazan no gasta, cada cuenta el suyo, y el minuto se vence
+S13 api: el tope de prueba cambia de 30 a 300 -> ROJO (bien) fail=1
+      LHB-63: el tope por cuenta: 30 por minuto, lo que las reglas rechazan no gasta, cada cuenta el suyo, y el minuto se vence
+S14 api: si la base falla se dice que está libre -> ROJO (bien) fail=1
+      LHB-63: sin sesión no se contesta; solo se exporta GET; sin base o sin la tabla de la migración 0005 no se inventa nada
+S15 api: también contesta a POST -> ROJO (bien) fail=1
+      LHB-63: sin sesión no se contesta; solo se exporta GET; sin base o sin la tabla de la migración 0005 no se inventa nada
+C1 formulario: no espera a que se deje de escribir -> ROJO (bien) fail=1
+      LHB-63: el formulario avisa mientras se escribe: lo inválido al instante y sin pedir; lo demás 400 ms después de la última tecla; Disponible, tomado y
+C2 formulario: cada tecla deja su reloj vivo -> ROJO (bien) fail=1
+      LHB-63: el formulario espera a que se deje de escribir y solo pinta la respuesta a lo último escrito
+C3 formulario: pinta una respuesta vieja -> ROJO (bien) fail=1
+      LHB-63: el formulario espera a que se deje de escribir y solo pinta la respuesta a lo último escrito
+C4 formulario: pinta sobre otro formulario -> ROJO (bien) fail=1
+      LHB-63: el formulario espera a que se deje de escribir y solo pinta la respuesta a lo último escrito
+C5 formulario: lo inválido no se avisa -> ROJO (bien) fail=2
+      LHB-63: el formulario avisa mientras se escribe: lo inválido al instante y sin pedir; lo demás 400 ms después de la última tecla; Disponible, tomado y
+      LHB-63: el formulario espera a que se deje de escribir y solo pinta la respuesta a lo último escrito
+C6 formulario: lo inválido también se pregunta -> ROJO (bien) fail=2
+      LHB-63: el formulario avisa mientras se escribe: lo inválido al instante y sin pedir; lo demás 400 ms después de la última tecla; Disponible, tomado y
+      LHB-63: el formulario espera a que se deje de escribir y solo pinta la respuesta a lo último escrito
+C7 formulario: tu @ de siempre se pregunta y se marca -> ROJO (bien) fail=1
+      LHB-63: Editar perfil no marca tu @ de siempre, y sí revisa uno distinto; Completa tu perfil no tiene el aviso
+C8 formulario: se pregunta el texto sin normalizar -> ROJO (bien) fail=2
+      LHB-63: Editar perfil no marca tu @ de siempre, y sí revisa uno distinto; Completa tu perfil no tiene el aviso
+      LHB-63: el formulario avisa mientras se escribe: lo inválido al instante y sin pedir; lo demás 400 ms después de la última tecla; Disponible, tomado y
+C9 formulario: el tomado no se avisa -> ROJO (bien) fail=3
+      LHB-63: el formulario avisa mientras se escribe: lo inválido al instante y sin pedir; lo demás 400 ms después de la última tecla; Disponible, tomado y
+      LHB-63: el formulario espera a que se deje de escribir y solo pinta la respuesta a lo último escrito
+      LHB-63: el formulario nunca se bloquea por el aviso: fallos y respuestas raras no dicen nada, y Guardar sigue mandando (guardar revisa igual)
+C10 formulario: el reservado no se avisa -> ROJO (bien) fail=1
+      LHB-63: el formulario avisa mientras se escribe: lo inválido al instante y sin pedir; lo demás 400 ms después de la última tecla; Disponible, tomado y
+C11 formulario: una respuesta sin available se toma por libre -> ROJO (bien) fail=1
+      LHB-63: el formulario nunca se bloquea por el aviso: fallos y respuestas raras no dicen nada, y Guardar sigue mandando (guardar revisa igual)
+C12 formulario: un fallo de la pregunta no se atrapa -> ROJO (bien) fail=1
+      LHB-63: el formulario nunca se bloquea por el aviso: fallos y respuestas raras no dicen nada, y Guardar sigue mandando (guardar revisa igual)
+C13 formulario: el aviso no se anuncia -> ROJO (bien) fail=1
+      LHB-63: el formulario avisa mientras se escribe: lo inválido al instante y sin pedir; lo demás 400 ms después de la última tecla; Disponible, tomado y
+C14 formulario: un tomado apaga Guardar -> ROJO (bien) fail=1
+      LHB-63: el formulario nunca se bloquea por el aviso: fallos y respuestas raras no dicen nada, y Guardar sigue mandando (guardar revisa igual)
+C15 formulario: Editar perfil no recibe la pregunta -> ROJO (bien) fail=3
+      LHB-25: entrar desde una página pública y fallar la revisión muestra el error sobre la página y el reintento conserva la acción
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+      LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar perfil), y solo la contesta si la cuenta y la página siguen siendo las mism
+C16 formulario: el registro no recibe la pregunta -> ROJO (bien) fail=2
+      LHB-25: entrar desde una página pública y fallar la revisión muestra el error sobre la página y el reintento conserva la acción
+      LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar perfil), y solo la contesta si la cuenta y la página siguen siendo las mism
+U1 cuenta: se pregunta aunque la cuenta o la página ya cambiaron -> ROJO (bien) fail=1
+      LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar perfil), y solo la contesta si la cuenta y la página siguen siendo las mism
+U2 cuenta: una respuesta que llega con otra cuenta se usa -> ROJO (bien) fail=1
+      LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar perfil), y solo la contesta si la cuenta y la página siguen siendo las mism
+U3 cuenta: cualquier cuerpo 200 se da por respuesta -> ROJO (bien) fail=1
+      LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar perfil), y solo la contesta si la cuenta y la página siguen siendo las mism
+U4 cuenta: el texto va sin codificar -> ROJO (bien) fail=1
+      LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar perfil), y solo la contesta si la cuenta y la página siguen siendo las mism
+U5 cuenta: Editar perfil no recibe la pregunta -> ROJO (bien) fail=1
+      LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar perfil), y solo la contesta si la cuenta y la página siguen siendo las mism
+U6 cuenta: el registro no recibe la pregunta -> ROJO (bien) fail=1
+      LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar perfil), y solo la contesta si la cuenta y la página siguen siendo las mism
+restaurado (0, [])
+mutaciones: 40 sobrevivieron o con error: 0

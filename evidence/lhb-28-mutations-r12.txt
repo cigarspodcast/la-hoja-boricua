@@ -1,0 +1,7 @@
+baseline (0, [])
+N2 motor: la meta de otra cuenta sirve de base -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 2): si la dueña se anota y la meta no, la meta de otra cuenta no sirve de base y no borra nada de la cuenta nueva
+F9 motor: sin meta de esta cuenta la edicion no la crea para la semilla -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 6): quitar un corazón antes de la primera sincronización no se deshace; el que se quita en la cuenta tampoco vuelve; lo que solo e
+restaurado (0, [])
+mutaciones: 153 sobrevivieron o con error: 0

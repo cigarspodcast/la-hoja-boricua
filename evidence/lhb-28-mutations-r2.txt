@@ -1,0 +1,7 @@
+baseline (0, [])
+M8 juntar: al importar no gana lo de este telefono -> ROJO (bien) fail=1
+      LHB-28: juntar dos copias con la base: lo que solo uno agregó se queda; borrar sin tocar se va; borrar contra editar deja lo editado; los dos cambios 
+E32 motor: lo borrado mientras se sincroniza se toma por perdida -> ROJO (bien) fail=1
+      LHB-31: borrar la última entrada mientras se sincroniza también llega a la cuenta, y no se confunde con una pérdida
+restaurado (0, [])
+mutaciones: 100 sobrevivieron o con error: 0
