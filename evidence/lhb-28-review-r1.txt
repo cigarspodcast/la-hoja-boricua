@@ -1,0 +1,151 @@
+[Transcript kept as Codex wrote it, except that 1 em-dash character(s) were replaced by " - " to follow the repository rule; nothing else was changed.]
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-28-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a17d48-96f0-7c12-82fa-7810ed1cfb58
+--------
+user
+HARD RULES: You are an independent code reviewer. You REVIEW AND CHANGE NOTHING: edit no file, make no commit, run no git command that writes. Load no skill, plugin or template. Do not print file contents back. Your FIRST and ONLY message is the answer, ending with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+REPO: C:\Users\Owner\lhb-28-wt (a git worktree of La Hoja Boricua, Cloudflare Pages Functions + D1 + Clerk, vanilla JS PWA). Branch lhb-28-carryover. Review the slice: git diff dab3764..HEAD (dab3764 is main and already passed its own reviews; do not re-review it). Tests: node --test test/site.test.js (you may run it; node is on PATH; the LHB-44 test needs Python and fails in your sandbox, that one is not part of this slice). The tracker is not readable by you, so both contracts are quoted here in full. One branch carries both tickets because they share one engine (site/sync.js) and one server route; each is reported against its own contract below.
+
+TICKET LHB-28 CONTRACT (A7 Mi Hoja requires sign-in; carry over existing data).
+Scope: site/hoja.js (the #/mihoja view and the writers toggleFav, setRating, toggleStamp, saveCata, the humidor actions, exportar/importar), the favorite and star controls that site/app.js calls, functions/api/mihoja.js (first upload), site/sw.js (version bump), tests.
+Contract impact: Mi Hoja data now belongs to an account. A browser's existing lhb_mihoja_v1 copy is uploaded and merged into the account at first sign-in; the local copy is never deleted by this step. The respaldo file format is unchanged.
+Pinned decisions: (1) Signed out, #/mihoja shows only "Entrar" and "Crear cuenta"; if this phone already has Mi Hoja data, it says the data moves into the account on entry. (2) Signed out, tapping a favorite heart, a star, a passport stamp, "Nueva cata" or a humidor action opens the sign-in sheet; the action completes after sign-in (a half-written tasting stays in draft). (3) Catalog, Lugares, Eventos and the static pages stay open to everyone; only Mi Hoja and its actions need an account. (4) First sign-in merges local into the account with the importar() record-by-record rule (byId, actualizado/fecha), refactored so both use one function. (5) Signed in, Mi Hoja still works offline: the session is kept and changes queue until online. (6) Import and export move behind sign-in (people moving from tab.bot sign in, then import). (7) Release order: A7 merges to main only after a real email-link sign-in works on production (that is the owner's step, not part of this review).
+Proof: tests that, signed out, each listed writer opens sign-in and writes nothing (each seen failing with its gate removed); tests that first sign-in merges, not replaces (local only, account only, both); on the preview, an existing local Mi Hoja appears in the account after first sign-in, and a signed-out heart tap completes after sign-in (the preview part is the owner's step). Done-when: the above; Codex TIER 2. Not mine: sync between devices (that is LHB-31).
+What was already on main before this branch (LHB-25 and LHB-48, reviewed earlier): the sign-in door (requireAccount, gate, CUENTA.quick), the signed-out card, the actions registered for resuming after sign-in. This branch adds the server copy, the merge, the first-sign-in upload and the card sentence.
+
+TICKET LHB-31 CONTRACT (A10 Mi Hoja sync across devices).
+Scope: the sync module in site/hoja.js, functions/api/mihoja.js, site/sw.js (version bump), tests. (Deviation, reported: the sync module is its own file site/sync.js, loaded before hoja.js and listed in the service worker shell, so it can be tested without a DOM; hoja.js only wires it.)
+Contract impact: the server copy carries rev; a save sends If-Match, gets 409 on conflict, then the client merges with the same function as A7 and retries.
+Pinned decisions: Saves sync after a short pause, when the device comes back online, and when the app opens. The last write never silently overwrites another device's changes.
+Proof: tests for two devices, a conflict (409, merge, retry) and offline then online; a two-browser run on the preview showing a change on one reaching the other (the preview run is the owner's step). Done-when: the above; Codex TIER 2. Not mine: photos (A9; the foto keys sync as text, the image bytes stay on the phone).
+
+DESIGN IN BRIEF.
+Server: functions/api/mihoja.js and functions/_lib/mihoja.js on the existing table mihoja (migration 0002, no new migration). GET /api/mihoja returns { rev, schema, doc, updated_at } (no copy: rev 0, schema null, doc null). PUT { schema, doc } needs Content-Type JSON (415), If-Match with the rev the client saw (428 without or malformed), a valid body (400 bad-body, schema-unsupported when schema is not an integer 1; bad-doc; 413 too-big above 5000 entries per list or 900000 characters). If-Match 0 does INSERT ... ON CONFLICT(user_id) DO NOTHING; a positive rev does UPDATE ... SET rev = rev + 1 WHERE user_id = ?1 AND rev = ?5; zero changed rows returns 409 with the current copy. Both need requireProfile (401 no session, 403 no profile). D1 errors return 503, a row with unparseable JSON returns 500 corrupt.
+Merge: site/sync.js window.LHB_MERGE.merge(base, local, remote, {prefer}). base is the copy both sides had at the last sync. Records with id (humidor, diario): one side only, kept unless the base had it unchanged (then it was deleted by the other side); both sides, equal then kept; only one side changed relative to base then that side wins; both changed then the newer actualizado/fecha wins, then prefer local when asked (import), then the greater stable JSON, so merge(b,l,r) and merge(b,r,l) agree. favs are sets with base-aware removal; pasaporte maps take the earliest date; ratings take the greater value; unknown top-level keys travel; draft, cambios, respaldo, recordarDespues, migrado and sync are local-only and never travel. Import of a respaldo file uses the same function with base null and prefer local.
+Engine: window.LHB_SYNC(D) with every effect injected (storage, Clerk, fetch, timers, toast). once(): needs a signed-in account whose Clerk user matches the stored account; if the stored sync meta belongs to another account, the old local copy is parked under lhb_mihoja_v1_de_<sub> and Mi Hoja starts empty for the new account (nothing of the old account is uploaded); loop up to 4 times: GET, reject schema > 1, base = last synced copy unless the phone is empty while the base had data and nobody wrote since (then the emptiness is a loss, not a deletion, and the account copy is pulled), merge, PUT with If-Match unless the merged copy equals the remote, on 409 loop again with the new copy, then apply the result locally (3-way merge with anything written during the flight), write the sync meta { sub, rev, base, at, dirty }. run() is single-flight, up to 3 passes, retries with backoff 20 s, 40 s, 80 s, 160 s, 300 s; changed() (called by hoja.js write() after every save) debounces 2.5 s; start() listens for online and visible (30 s minimum age) and syncs 1.5 s after opening when an account is stored. hoja.js also calls SYNC.run when Mi Hoja opens (20 s minimum age) and shows a status line in the Respaldo panel; the backup banner text no longer says everything lives only on the phone.
+Tests: test/site.test.js, the blocks headed LHB-28 and LHB-31 (server on real SQLite through the existing API52 harness, merge unit and 400-case seeded property tests, engine tests with two fake phones against the real server code, wiring pins). Suite 140/140. Mutation proof: evidence/lhb-28-mutations.py, 100 mutations, each must turn at least one test red; output in evidence/lhb-28-mutations.txt shows 98 red and two survivors (M8, E32); both tests were strengthened and evidence/lhb-28-mutations-r2.txt shows them red, so 100 of 100.
+
+KNOWN LIMITS I AM REPORTING RATHER THAN HIDING. (a) Deletions are inferred from the base copy, so a local copy that is damaged but not empty (some records lost) would be read as the person deleting those records and the deletion would sync; only a completely empty phone with a non-empty base is treated as a loss. (b) The sync meta stores a full copy of the synced document (base), so Mi Hoja takes about twice the localStorage space; a full storage makes the pass fail with a status of error and leaves the data alone. (c) Photos: a record's foto key travels as text; the image bytes do not (A9). (d) Deleting the account must also delete the mihoja row; there is no foreign key, that cascade belongs to LHB-34. (e) No rate limit on PUT beyond the size caps. (f) The gate tests for the listed writers are source pins from LHB-48 plus the mutations G1 to G10 here (each gate removed turns a test red); there is no browser run. (g) The two-browser preview run, the signed-out heart tap after sign-in on the preview, and the real email-link sign-in on production are the owner's steps.
+
+REVIEW FOCUS. Find real defects only, ranked. (1) Data loss or resurrection: any sequence of two devices (add, edit, delete, offline, 409, interrupted pass, account switch, storage full) where a record, favorite, stamp, rating or diary entry is lost, duplicated or comes back after a deliberate delete; any case where the local copy is deleted or overwritten by this branch (the contract says the local copy is never deleted by the carry-over). (2) Privacy and auth: can one account read or write another account's row; is the user id always taken from the verified token; can the server copy leave by any route other than GET /api/mihoja; does the client ever upload an old account's data to a new account. (3) Concurrency: the rev check is one SQL statement, but is the engine safe against two passes at once, a pass overlapping an edit, a pass overlapping sign-out or account change, timers that outlive a state change. (4) The merge function: does it converge (merge(b,l,r) equal to merge(b,r,l)), is it idempotent, can it throw on strange documents (null, wrong types, keys like __proto__ or constructor), can it blow up in size. (5) The server: bad inputs, If-Match parsing, 409 body, error codes, the JSON size caps (are they enforced before an expensive parse), SQL. (6) The client wiring in site/hoja.js and site/cuenta.js: write() hooks, importar, the status line, the card sentence, onApplied repainting only when safe, esc of any value placed in HTML; scope: files changed outside the Scope list, the sw.js version and its pins. (7) Tests that cannot fail or assert the wrong thing, and mutations that do not really test what they claim. (8) Repository rules: no em-dash character (U+2014) in anything added. Mark anything you could not verify as NOT VERIFIED rather than guessing.
+
+ANSWER FORMAT. Numbered findings, each: BLOCKING or ADVISORY, file and symbol, the concrete input or state that fails, expected versus actual. Then the single VERDICT line. If there is no blocking finding, say so plainly and give VERDICT: PASS.
+
+TOOL FALLBACK. The shell tool of your sandbox often fails to start on this host ("Failed to create unified exec process: helper_unknown_error: setup refresh had errors"). That is a transport problem, not a verdict: do not stop there. Use the JavaScript tool (node_repl) instead: require('fs') to read files, require('child_process').execFileSync to run git (for example execFileSync('git',['diff','dab3764..HEAD'],{cwd:'C:\\Users\\Owner\\lhb-28-wt'})) and to run the tests (execFileSync(process.execPath,['--test','test/site.test.js'],{cwd:...})). An attempt that read nothing is void: only if the JavaScript tool also fails, say exactly what you could not read, mark it NOT VERIFIED and answer VERDICT: BLOCK.
+
+2026-10-27T12:14:38.314826Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-27T12:14:40.032706Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended  -  reactivate billing to use MCP.\"}")
+codex
+[Certain] The cross-account and concurrent-edit paths need direct verification; passing tests alone cannot establish those guarantees. I’ll inspect the scoped diff and run the permitted suite without changing files.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git diff --stat dab3764..HEAD' in C:\Users\Owner\lhb-28-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-27T12:14:50.715043Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] I reproduced an account-data leak when saving sync metadata fails: the engine reports success, then uploads the previous account’s local data after switching accounts. The suite passed 139 tests; the sole failure was the reported, out-of-slice LHB-44 test.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] I also reproduced data loss from two tabs sharing storage and from a failed account-switch retry overwriting the parked copy. I’m checking the remaining server and merge edge cases before ranking the findings.
+
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. **BLOCKING [Certain]** [site/sync.js:85](/C:/Users/Owner/lhb-28-wt/site/sync.js:85), `once`: ownership is recorded only after a successful sync. Reproduction: A’s first GET returns 503; A creates a private diary entry; switch to B and sync successfully. Actual: A’s entry uploads into B’s row because metadata is absent. Expected: A’s data remains associated with A despite the failed first pass.
+
+2. **BLOCKING [Certain]** [site/sync.js:118](/C:/Users/Owner/lhb-28-wt/site/sync.js:118), `once/writeMeta`: the metadata write’s failure is ignored. With quota exhausted only for the metadata write, sync returns success. On first sync, switching accounts subsequently uploads the previous account’s data. On later syncs, the stale base can resurrect an entry another device deliberately deleted. Expected: a storage error with preserved ownership and a consistent document/base pair.
+
+3. **BLOCKING [Certain]** [site/hoja.js:159](/C:/Users/Owner/lhb-28-wt/site/hoja.js:159), sync wiring, and [site/sync.js:103](/C:/Users/Owner/lhb-28-wt/site/sync.js:103), `once`: tabs share metadata but retain separate cached `ST` documents. Reproduction: two tabs cache the same document; another device adds an entry; tab 1 pulls it and advances shared metadata; tab 2 syncs its older cached document. Actual: tab 2 interprets the missing entry as a deletion and removes it from the server. Expected: the remote addition survives.
+
+4. **BLOCKING [Certain]** [site/sync.js:87](/C:/Users/Owner/lhb-28-wt/site/sync.js:87), account parking: resetting the document leaves the previous account’s metadata persisted until network success. Reproduction: A has an unsynced entry; switch to B; parking succeeds but GET returns 503; B adds an entry and retries. Actual: B’s document overwrites A’s parked copy, then is cleared. A’s unsynced entry and B’s new entry are both lost. Expected: retries preserve both accounts’ data.
+
+5. **BLOCKING [Certain]** [site/sync.js:129](/C:/Users/Owner/lhb-28-wt/site/sync.js:129), `run`, and [site/hoja.js:263](/C:/Users/Owner/lhb-28-wt/site/hoja.js:263), `vMiHojaIn`: the recency shortcut ignores account identity, and rendering does not await account isolation. Reproduction: sync A, switch to B within 20 seconds, open Mi Hoja. Actual: sync skips and B sees A’s local contents. A favorite added by B before isolation is later parked with A’s copy instead of reaching B. Expected: B sees and edits only B’s document.
+
+6. **BLOCKING [Certain]** [site/sync.js:112](/C:/Users/Owner/lhb-28-wt/site/sync.js:112), `once`: account identity is not revalidated after awaited requests. Reproduction: pause A’s successful PUT response, switch to B and save B’s entry, then release A’s response. Actual: the stale pass merges A’s result into B’s current document and writes metadata naming A; the following B pass parks the mixed document and clears B’s entry. Expected: account changes invalidate pending application and metadata updates.
+
+7. **ADVISORY [Certain]** [site/sync.js:46](/C:/Users/Owner/lhb-28-wt/site/sync.js:46), `mergeMap`: inherited properties participate in presence checks. A base containing an own `constructor` rating, deleted locally and unchanged remotely, makes merge throw a `SyntaxError`. Own `__proto__` keys also disappear. Expected: JSON keys are handled as own properties without throwing or silently dropping them.
+
+8. **ADVISORY [Certain]** [functions/api/mihoja.js:29](/C:/Users/Owner/lhb-28-wt/functions/api/mihoja.js:29), `onRequestPut`, and [functions/_lib/mihoja.js:20](/C:/Users/Owner/lhb-28-wt/functions/_lib/mihoja.js:20), `checkBody`: the size check occurs after the entire request is parsed and the document serialized. Favorite lists also bypass the 5,000-entry cap; 6,000 favorites are accepted. Expected: bounded admission before expensive parsing and the stated per-list limit.
+
+9. **ADVISORY [Certain]** [functions/_lib/mihoja.js:12](/C:/Users/Owner/lhb-28-wt/functions/_lib/mihoja.js:12), `revOf`: unmatched quotes such as `"3` and `3"` are accepted as revision 3. Expected: malformed `If-Match` returns 428.
+
+10. **ADVISORY [Certain]** [functions/api/mihoja.js:13](/C:/Users/Owner/lhb-28-wt/functions/api/mihoja.js:13), GET/PUT handlers: `requireProfile` runs outside the error handler. A D1 failure during its profile lookup escapes as an exception instead of returning the promised 503. Expected: D1 failures receive the documented response.
+
+[Certain] Verification: 139/140 tests passed; only the reported, out-of-slice LHB-44 test failed. Engine reproductions ran in memory with injected effects. No files were changed. No added U+2014 characters were found. Browser preview checks, production sign-in, and mutation re-execution are **NOT VERIFIED**.
+
+VERDICT: BLOCK
+tokens used
+139,161
+1. **BLOCKING [Certain]** [site/sync.js:85](/C:/Users/Owner/lhb-28-wt/site/sync.js:85), `once`: ownership is recorded only after a successful sync. Reproduction: A’s first GET returns 503; A creates a private diary entry; switch to B and sync successfully. Actual: A’s entry uploads into B’s row because metadata is absent. Expected: A’s data remains associated with A despite the failed first pass.
+
+2. **BLOCKING [Certain]** [site/sync.js:118](/C:/Users/Owner/lhb-28-wt/site/sync.js:118), `once/writeMeta`: the metadata write’s failure is ignored. With quota exhausted only for the metadata write, sync returns success. On first sync, switching accounts subsequently uploads the previous account’s data. On later syncs, the stale base can resurrect an entry another device deliberately deleted. Expected: a storage error with preserved ownership and a consistent document/base pair.
+
+3. **BLOCKING [Certain]** [site/hoja.js:159](/C:/Users/Owner/lhb-28-wt/site/hoja.js:159), sync wiring, and [site/sync.js:103](/C:/Users/Owner/lhb-28-wt/site/sync.js:103), `once`: tabs share metadata but retain separate cached `ST` documents. Reproduction: two tabs cache the same document; another device adds an entry; tab 1 pulls it and advances shared metadata; tab 2 syncs its older cached document. Actual: tab 2 interprets the missing entry as a deletion and removes it from the server. Expected: the remote addition survives.
+
+4. **BLOCKING [Certain]** [site/sync.js:87](/C:/Users/Owner/lhb-28-wt/site/sync.js:87), account parking: resetting the document leaves the previous account’s metadata persisted until network success. Reproduction: A has an unsynced entry; switch to B; parking succeeds but GET returns 503; B adds an entry and retries. Actual: B’s document overwrites A’s parked copy, then is cleared. A’s unsynced entry and B’s new entry are both lost. Expected: retries preserve both accounts’ data.
+
+5. **BLOCKING [Certain]** [site/sync.js:129](/C:/Users/Owner/lhb-28-wt/site/sync.js:129), `run`, and [site/hoja.js:263](/C:/Users/Owner/lhb-28-wt/site/hoja.js:263), `vMiHojaIn`: the recency shortcut ignores account identity, and rendering does not await account isolation. Reproduction: sync A, switch to B within 20 seconds, open Mi Hoja. Actual: sync skips and B sees A’s local contents. A favorite added by B before isolation is later parked with A’s copy instead of reaching B. Expected: B sees and edits only B’s document.
+
+6. **BLOCKING [Certain]** [site/sync.js:112](/C:/Users/Owner/lhb-28-wt/site/sync.js:112), `once`: account identity is not revalidated after awaited requests. Reproduction: pause A’s successful PUT response, switch to B and save B’s entry, then release A’s response. Actual: the stale pass merges A’s result into B’s current document and writes metadata naming A; the following B pass parks the mixed document and clears B’s entry. Expected: account changes invalidate pending application and metadata updates.
+
+7. **ADVISORY [Certain]** [site/sync.js:46](/C:/Users/Owner/lhb-28-wt/site/sync.js:46), `mergeMap`: inherited properties participate in presence checks. A base containing an own `constructor` rating, deleted locally and unchanged remotely, makes merge throw a `SyntaxError`. Own `__proto__` keys also disappear. Expected: JSON keys are handled as own properties without throwing or silently dropping them.
+
+8. **ADVISORY [Certain]** [functions/api/mihoja.js:29](/C:/Users/Owner/lhb-28-wt/functions/api/mihoja.js:29), `onRequestPut`, and [functions/_lib/mihoja.js:20](/C:/Users/Owner/lhb-28-wt/functions/_lib/mihoja.js:20), `checkBody`: the size check occurs after the entire request is parsed and the document serialized. Favorite lists also bypass the 5,000-entry cap; 6,000 favorites are accepted. Expected: bounded admission before expensive parsing and the stated per-list limit.
+
+9. **ADVISORY [Certain]** [functions/_lib/mihoja.js:12](/C:/Users/Owner/lhb-28-wt/functions/_lib/mihoja.js:12), `revOf`: unmatched quotes such as `"3` and `3"` are accepted as revision 3. Expected: malformed `If-Match` returns 428.
+
+10. **ADVISORY [Certain]** [functions/api/mihoja.js:13](/C:/Users/Owner/lhb-28-wt/functions/api/mihoja.js:13), GET/PUT handlers: `requireProfile` runs outside the error handler. A D1 failure during its profile lookup escapes as an exception instead of returning the promised 503. Expected: D1 failures receive the documented response.
+
+[Certain] Verification: 139/140 tests passed; only the reported, out-of-slice LHB-44 test failed. Engine reproductions ran in memory with injected effects. No files were changed. No added U+2014 characters were found. Browser preview checks, production sign-in, and mutation re-execution are **NOT VERIFIED**.
+
+VERDICT: BLOCK
