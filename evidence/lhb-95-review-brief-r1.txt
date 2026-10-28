@@ -1,0 +1,38 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-95-wt (branch lhb-95-widths). The diff below is origin/main..HEAD. This is a TIER 1 review: one round.
+
+Ticket LHB-95. Static text guards over styles.css for rendered widths were tried and failed two review rounds (LHB-92): every round found a new CSS escape. This ticket replaces them with a check that renders the real page and measures it.
+
+Pinned decisions:
+- Card image: measure the rendered width of the card image at the viewports in evidence/lhb-85-slot-widths.txt (320 to 1440). Assert SIZES_GRID / SIZES_MINI is never below it and at most 3 px over it.
+- Language switch: measure #langSwitch in both languages at 320, 360, 412 and 1024 px. Assert the swap moves its neighbours by under 1 px.
+- HYPOTHESIS: the default node --test run should stay browser-free.
+- Proof: the check shown failing first with a CSS change that moves a width (for example .card{padding:9px 9px 0} or .lang-switch{min-width:0}), then passing on main.
+
+What was built:
+- tools/widths.mjs:
+  - Serves site/ on 127.0.0.1 with a random port. /sw.js and /api/* answer 404: the first service-worker install reloads the page mid-measurement, and there is no backend.
+  - Starts headless Chrome with a temporary profile and drives it over the DevTools protocol through Node's built-in WebSocket, with no npm dependency.
+  - Loads the catalog once and resizes the viewport (Emulation.setDeviceMetricsOverride, then two animation frames) for each width.
+  - Resolves the declared width of each image's sizes attribute in the browser: the first media condition that matches, with its length measured on a probe div.
+  - Clones a card into .mini-row for SIZES_MINI.
+  - Loads the home page once per reader (navigator.language overridden, localStorage cleared) and resizes through the four switch widths.
+  - Exits 1 on any FAIL line and 2 when no browser can start.
+- test/site.test.js:
+  - A browser-free test pins the tool's viewport lists to the LHB-85 evidence rows and the four switch widths, keeps the 3 px and 1 px rules, and checks that the committed evidence ends in PASS.
+  - An opt-in test (LHB_BROWSER=1) runs the tool.
+- evidence:
+  - lhb-95-widths.txt: 46 of 46 on main's site.
+  - lhb-95-mutations.py and .out: 7 of 7 mutations red, including both ticket examples; the baseline passes after restore.
+  - lhb-95-tests.txt: 246 pass, 1 skipped.
+  - lhb-95-tests-browser.txt: 2 of 2 pass.
+
+Look hardest at:
+1. Does the measurement equal what a phone sees at that width? Consider resizing a loaded page versus loading at that width, device scale 1, hidden scrollbars, and fonts loaded.
+2. Can a regression slip through? Consider a selector that misses, a sizes value the probe resolves wrongly, or the first card not being representative.
+3. Can the tool pass when it measured nothing, or hang?
+4. Process and port cleanup: Chrome is spawned and killed; the temp profile is removed.
+5. Anything else in the diff.
+
+If Chrome cannot run in your sandbox, say so, and review the code and the committed evidence.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
