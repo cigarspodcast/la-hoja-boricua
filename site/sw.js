@@ -1,5 +1,5 @@
 /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
-const VERSION='lhb-v84';
+const VERSION='lhb-v85';
 const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
  'data/bundle.js',
  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
@@ -13,6 +13,8 @@ self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')retu
  if(url.origin!==location.origin)return;
  // cuentas (LHB-24): /api/ siempre va a la red, nunca al caché
  if(url.pathname.startsWith('/api/'))return;
+ // pasaporte público (LHB-40): /u/ siempre va a la red, nunca se guarda como el shell de la app
+ if(url.pathname.startsWith('/u/'))return;
  // data: network first (fresh events), fall back to cache
  if(url.pathname.includes('/data/')){e.respondWith(fetch(req).then(r=>{if(r.ok){const cp=r.clone();caches.open(VERSION).then(c=>c.put(req,cp))}return r}).catch(()=>caches.match(req,{ignoreSearch:true})));return}
  // navigations: app shell
