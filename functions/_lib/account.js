@@ -13,15 +13,34 @@ export const USER_TABLES = [
 ];
 // lo de SQLite, D1 y wrangler, que no guarda datos de nadie
 export const INTERNAL = n => /^(sqlite_|_cf_)/.test(n) || n === 'd1_migrations';
+// LHB-34 (Codex r2): las cuentas borradas (migrations/0006_deleted_accounts.sql). La tabla se conoce y no se borra: guarda un hash, nunca el id
+export const TOMB = 'deleted_accounts';
+export async function idHash(sub) {
+  const b = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('lhb-deleted:' + sub)));
+  return [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+const noTomb = e => /no such table: deleted_accounts/i.test(String(e && e.message));
+// Una escritura con la valla de las cuentas borradas en la misma sentencia (fenced, que termina con el hash como último parámetro).
+// Sin la tabla todavía (0006 sin aplicar) va la misma escritura sin valla: así nada se rompe antes de la migración, y borrar no corre sin ella
+export async function fencedRun(db, fenced, plain, args, hash) {
+  try { return await db.prepare(fenced).bind(...args, hash).run(); }
+  catch (e) { if (!noTomb(e)) throw e; return db.prepare(plain).bind(...args).run(); }
+}
+// ¿esta cuenta se borró? false también sin la tabla
+export async function wasDeleted(db, hash) {
+  try { return !!(await db.prepare('SELECT 1 AS n FROM deleted_accounts WHERE id_hash = ?1').bind(hash).first()); }
+  catch (e) { if (noTomb(e)) return false; throw e; }
+}
 
-// { present: [tablas de la lista que existen], unknown: [tablas que la lista no conoce] }
+// { present: [tablas de la lista que existen], unknown: [tablas que la lista no conoce], tomb: ¿existe deleted_accounts? }
 export async function userTables(db) {
   const r = await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").bind().all();
   const names = ((r && r.results) || []).map(x => x.name).filter(n => !INTERNAL(n));
   const known = new Map(USER_TABLES);
   return {
     present: USER_TABLES.filter(([t]) => names.includes(t)),
-    unknown: names.filter(n => !known.has(n)).sort(),
+    unknown: names.filter(n => !known.has(n) && n !== TOMB).sort(),
+    tomb: names.includes(TOMB),
   };
 }
 

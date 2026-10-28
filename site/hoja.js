@@ -224,17 +224,20 @@ async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
    outDone=true;bye('out')}
   try{await signOutClerk(C)}catch(e){acMsg(tt('ac.outFail'))}}
  finally{acBusy=false}}
-/* el pedido de borrar. 200: se borra lo de este teléfono y se cierra la sesión. Lo que el servidor contesta sin haber borrado nada (4xx, 503) quita la marca */
-async function askDelete(C,sub,confirm){let r=null;try{r=await api(C,'DELETE','/api/account',{confirm},sub)}catch(e){r=null}
+/* el pedido de borrar. 200: se borra lo de este teléfono y se cierra la sesión. La marca se quita si el servidor dice que no borró nada: confirm-mismatch
+   (el perfil sigue entero), o un 4xx o 503 de un primer pedido (had: ya había una marca de antes). Con una marca de antes, un error así puede ser pasajero
+   (Clerk no contestó, la sesión venció) y el borrado a medias sigue pendiente: la marca se queda (Codex r2) */
+async function askDelete(C,sub,confirm,had){let r=null;try{r=await api(C,'DELETE','/api/account',{confirm},sub)}catch(e){r=null}
  if(r&&r.status===200){delMark.clear();dropLocal();bye('del');try{await signOutClerk(C)}catch(e){location.assign('/')}return r}
- if(r&&((r.status>=400&&r.status<500)||r.status===503))delMark.clear();
+ if(r&&r.body&&r.body.error==='confirm-mismatch')delMark.clear();
+ else if(!had&&r&&((r.status>=400&&r.status<500)||r.status===503))delMark.clear();
  return r}
 /* borrar: el servidor borra la base y el usuario de Clerk (functions/api/account.js). Mientras tanto no corre ninguna pasada; si no se borró nada, vuelven.
    Si quedó a medias (502) o no se sabe (sin respuesta), la sincronización sigue parada y otro intento, con el mismo @ escrito, lo termina */
 async function borrar(a,typed){if(acBusy)return;acBusy=true;const del=$('#acDel');if(del)del.disabled=true;acMsg(tt('ac.del.wait'));
  try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.del.fail'));return}
-  await SYNC.hold(true);delMark.set(a.sub);
-  const r=await askDelete(C,a.sub,typed);
+  await SYNC.hold(true);const had=!!delMark.get();delMark.set(a.sub);
+  const r=await askDelete(C,a.sub,typed,had);
   if(r&&r.status===200)return;
   if(!delMark.get())SYNC.hold(false);
   acMsg(!r?tt('ac.del.fail'):r.status===502?tt('ac.del.half'):r.body&&r.body.error==='confirm-mismatch'?tt('ac.del.bad'):r.status===503?tt('ac.del.off'):tt('ac.del.fail'))}
@@ -243,10 +246,12 @@ async function borrar(a,typed){if(acBusy)return;acBusy=true;const del=$('#acDel'
 async function resumeDelete(){const m=delMark.get();if(!m)return;let C;try{C=await clerk()}catch(e){return}
  if(!C||!C.user||C.user.id!==m.sub)return;
  await SYNC.hold(true);
- const r=await askDelete(C,m.sub,'#fin');
+ const r=await askDelete(C,m.sub,'#fin',true);
  if(r&&r.status===200)return;
  if(!delMark.get())SYNC.hold(false);else if(r&&r.status===502)toast(tt('ac.del.half'))}
 if(delMark.get())setTimeout(resumeDelete,1500);
+/* otra pestaña salió de la cuenta o la borró (sync.js forget quita el dueño): esta suelta su Mi Hoja en memoria, para no volver a escribirla, y abre de nuevo */
+window.addEventListener('storage',e=>{if(e.key==='lhb_mihoja_v1_owner'&&e.oldValue&&e.newValue===null){SYNC.hold(true);ST=null;STRAW=null;location.assign('/')}});
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}

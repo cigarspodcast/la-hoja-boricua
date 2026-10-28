@@ -5,9 +5,11 @@
    Antes de borrar nada se revisa todo lo que puede fallar: la sesión, la base, la llave de Clerk (CLERK_SECRET_KEY), JSON, la confirmación, que la base no tenga
    tablas que la lista no conoce y que la llave sea de la instancia de esta sesión: Clerk tiene que conocer a este usuario con esa llave (GET /v1/users/{id}).
    Después se borra la base, de una vez (batch), luego Clerk, y la base otra vez por si algo escribió mientras tanto. Si Clerk falla, la respuesta lo dice
-   (502 clerk-failed) y otro intento termina el trabajo: borrar lo ya borrado no hace nada. */
+   (502 clerk-failed) y otro intento termina el trabajo: borrar lo ya borrado no hace nada. Si el último barrido falla, también es 502 (cleanup-failed).
+   Codex r2: el mismo batch anota la cuenta como borrada (deleted_accounts, solo un hash del id); crear un perfil y anotar una revisión de @ miran esa
+   tabla en la misma sentencia, así que una sesión que todavía vive no vuelve a crear nada. Sin esa tabla (migración 0006 sin aplicar) no se borra nada: 503 not-ready. */
 import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
-import { userTables, deletes, clerkKey, clerkUser, deleteClerkUser } from '../_lib/account.js';
+import { userTables, deletes, clerkKey, clerkUser, deleteClerkUser, idHash } from '../_lib/account.js';
 
 export async function onRequestDelete({ request, env }, fetchFn) {
   if (!tokenOf(request)) return json({ error: 'no-session' }, 401);
@@ -31,19 +33,24 @@ export async function onRequestDelete({ request, env }, fetchFn) {
   }
   if (!typed || (p && typed !== String(p.handle).toLowerCase())) return json({ error: 'confirm-mismatch' }, 400);
   if (t.unknown.length) return json({ error: 'unknown-table' }, 503);
+  if (!t.tomb) return json({ error: 'not-ready' }, 503);
   // la llave tiene que ser de la instancia que firmó esta sesión: con la de otra, Clerk no conoce al usuario.
   // Sin perfil y sin usuario en Clerk es un borrado que ya terminó en Clerk (la respuesta se perdió): solo falta barrer la base
   const known = await clerkUser(key, user.sub, fetchFn);
   if (known === null) return json({ error: 'clerk-unavailable' }, 503);
   if (!known && p) return json({ error: 'clerk-mismatch' }, 503);
-  const sweep = () => env.DB.batch(deletes(env.DB, t.present, user.sub));
+  const hash = await idHash(user.sub);
+  const sweep = () => env.DB.batch([
+    env.DB.prepare('INSERT INTO deleted_accounts (id_hash, deleted_at) VALUES (?1, ?2) ON CONFLICT(id_hash) DO NOTHING').bind(hash, new Date().toISOString()),
+    ...deletes(env.DB, t.present, user.sub),
+  ]);
   try {
     await sweep();
   } catch (e) {
     return json({ error: 'unavailable' }, 503);
   }
   if (known && !(await deleteClerkUser(key, user.sub, fetchFn))) return json({ error: 'clerk-failed' }, 502);
-  // lo que una sesión todavía viva escribió mientras se borraba Clerk (Mi Hoja ya no puede: su PUT pide el perfil en la misma sentencia)
-  try { await sweep(); } catch (e) {}
+  // lo que alguna escritura dejó mientras se borraba Clerk; si este barrido falla, el borrado no está terminado y otro intento lo termina
+  try { await sweep(); } catch (e) { return json({ error: 'cleanup-failed' }, 502); }
   return json({ ok: true });
 }

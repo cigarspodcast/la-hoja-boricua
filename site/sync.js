@@ -208,7 +208,8 @@ window.LHB_SYNC=function(D){
     Una cata a medias no viaja ni va en el respaldo: con una, no. Devuelve { ok, via, mark } o { ok: false, why }.
     mark es la copia tal como se revisó (el texto guardado y el contador compartido): forget(mark) solo borra si nadie escribió desde entonces, aquí o en otra pestaña */
  async function settled(o){o=o||{};let r;try{r=await run('salir')}catch(e){r={fail:'boom'}}
-  const d=D.getDoc(),mark=markNow();
+  /* Codex r2: la marca se lee ANTES que la copia que se revisa (el contador y el texto guardado, luego la copia): si otra pestaña escribe en medio, la marca ya no es la de ahora y forget no borra nada */
+  const seq=readSeq(),raw=markNow().raw,d=D.getDoc(),mark={raw,seq};
   if(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length)return {ok:false,why:'draft'};
   if(typeof o.backup==='string'&&canon(d)===o.backup)return {ok:true,via:'backup',mark};
   if(!r||!r.ok)return {ok:false,why:(r&&(r.fail||r.skip))||'fail'};

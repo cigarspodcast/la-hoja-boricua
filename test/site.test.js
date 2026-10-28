@@ -3982,7 +3982,7 @@ test('LHB-94 (Codex r1): bienvenida, perfil guardado y perfil completo, en espa�
 });
 /* LHB-34: borrar la cuenta (functions/api/account.js) en SQLite real con todas las migraciones, y salir de la cuenta (sync.js settled, hold y forget; hoja.js salir y borrar) */
 async function API34(opts){opts=opts||{};
- const a=await API56();if(opts.fk===false)a.db.exec('PRAGMA foreign_keys=OFF');if(!opts.sin0005)a.db.exec(a.mig('0005_handle_checks.sql'));
+ const a=await API56();if(opts.fk===false)a.db.exec('PRAGMA foreign_keys=OFF');if(!opts.sin0005)a.db.exec(a.mig('0005_handle_checks.sql'));if(!opts.sin0006)a.db.exec(a.mig('0006_deleted_accounts.sql'));
  const AC=await a.imp('api/account.js'),AL=await a.imp('_lib/account.js'),M=await a.imp('api/mihoja.js'),H=await a.imp('api/handle.js');
  /* D1 batch: todas o ninguna */
  const DB={prepare:a.DB.prepare,batch:async sts=>{a.db.exec('BEGIN');try{const out=[];for(const s of sts)out.push(await s.run());a.db.exec('COMMIT');return out}catch(e){a.db.exec('ROLLBACK');throw e}}};
@@ -4088,6 +4088,39 @@ test('LHB-34 (Codex r1): lo que se escribe mientras se borra no vuelve a crear f
   const tk=await a.tk('user_d');const r2=await a.H.onRequestGet({request:{url:'https://x.test/api/handle?h=nuevo_x',headers:{get:k=>({Authorization:'Bearer '+tk})[k]??null}},env:a.env});
   assert.equal(r.status,401);assert.equal(r2.status,200);assert.deepEqual(a.left('user_gone'),[],'la anotación vieja de otra cuenta se fue');
  }finally{a.done()}});
+const HASH34=u=>require('crypto').createHash('sha256').update('lhb-deleted:'+u).digest('hex');
+test('LHB-34 (Codex r2): una sesión que sigue viva después del borrado no vuelve a crear nada: ni perfil, ni Mi Hoja, ni revisión de @; la cuenta borrada se guarda como un hash',async()=>{
+ const a=await API34();try{
+  const tk=await a.tk('user_a');
+  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[200,{ok:true}]);
+  assert.deepEqual(a.db.prepare('SELECT id_hash FROM deleted_accounts').all().map(r=>r.id_hash),[HASH34('user_a')],'un hash, nunca el id');assert.deepEqual(a.left('user_a'),[]);
+  /* el mismo token de antes del borrado: crear el perfil otra vez */
+  assert.deepEqual(await a.post(tk,{handle:'ana_otra',...IDN,avatar_url:AV}),[403,{error:'account-deleted'}]);assert.deepEqual(a.left('user_a'),[],'sin perfil nuevo');
+  assert.deepEqual(await a.put('user_a',0),[403,{error:'no-profile'}],'Mi Hoja');assert.deepEqual(a.left('user_a'),[]);
+  const hreq=t=>({url:'https://x.test/api/handle?h=libre_x',headers:{get:k=>({Authorization:'Bearer '+t})[k]??null}});
+  assert.equal((await a.H.onRequestGet({request:hreq(tk),env:a.env})).status,429);assert.deepEqual(a.left('user_a'),[],'sin revisión de @');
+  /* una revisión de @ detenida justo antes de anotar; el borrado termina; la revisión sigue y no anota */
+  const tb=await a.tk('user_b');let go,reached;const gate=new Promise(r=>go=r),at=new Promise(r=>reached=r);
+  const paused={...a.env,DB:{batch:a.DB.batch,prepare:sql=>{const st=a.DB.prepare(sql);if(!/^INSERT INTO handle_checks/.test(sql))return st;return {bind:(...x)=>{const b=st.bind(...x);return {...b,run:async()=>{reached();await gate;return b.run()}}}}}}};
+  const pending=a.H.onRequestGet({request:hreq(tb),env:paused});await at;
+  assert.deepEqual(await a.del('user_b',{confirm:'beto_b'}),[200,{ok:true}]);go();assert.equal((await pending).status,429);assert.deepEqual(a.left('user_b'),[]);
+  /* las demás cuentas siguen igual: crear perfil y revisar @ */
+  const td=await a.tk('user_d');assert.equal((await a.post(td,{handle:'dani_d',...IDN,avatar_url:AV}))[0],201);assert.equal((await a.H.onRequestGet({request:hreq(td),env:a.env})).status,200);
+ }finally{a.done()}});
+test('LHB-34 (Codex r2): sin la migración 0006 no se borra nada (503 not-ready) y crear perfiles y revisar @ siguen como antes',async()=>{
+ const a=await API34({sin0006:true});try{
+  const before=a.all();assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[503,{error:'not-ready'}]);assert.deepEqual(a.all(),before);assert.deepEqual(a.clerkLog,[],'Clerk no se llama');
+  const td=await a.tk('user_d');assert.equal((await a.post(td,{handle:'dani_d',...IDN,avatar_url:AV}))[0],201);
+  assert.equal((await a.H.onRequestGet({request:{url:'https://x.test/api/handle?h=libre_x',headers:{get:k=>({Authorization:'Bearer '+td})[k]??null}},env:a.env})).status,200);
+  assert.deepEqual(await a.post(td,{handle:'dani_d',...IDN,avatar_url:AV}),[409,{error:'profile-exists'}]);
+ }finally{a.done()}});
+test('LHB-34 (Codex r2): si el último barrido falla, el borrado no está terminado (502 cleanup-failed) y otro intento lo termina',async()=>{
+ const a=await API34();try{
+  let n=0;const env={...a.env,DB:{prepare:a.DB.prepare,batch:async sts=>{if(++n===2)throw new Error('d1');return a.DB.batch(sts)}}};
+  a.onDelete(()=>a.db.prepare("INSERT INTO handle_checks (user_id,created_at) VALUES ('user_a','2026-10-28T10:05:00.000Z')").run());
+  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'},{env}),[502,{error:'cleanup-failed'}]);assert.deepEqual(a.left('user_a'),['handle_checks.user_id=1']);
+  a.setClerk({GET:404});assert.deepEqual(await a.del('user_a',{confirm:'#fin'}),[200,{ok:true}]);assert.deepEqual(a.left('user_a'),[]);
+ }finally{a.done()}});
 /* hoja.js: el bloque de la cuenta (salir y borrar) sobre el motor de verdad (sync.js) y un servidor de verdad en SQLite */
 function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
  const i=src.indexOf('/* ---------- LHB-34:'),j=src.indexOf('function accountCard(',i);assert.ok(i>0&&j>i,'bloque LHB-34');
@@ -4100,9 +4133,10 @@ function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').
   acct:{get:()=>o.acct===undefined?{sub:'user_a',handle:'ana_a'}:o.acct,clear:()=>log.push('acct.clear')},intent:{clear:()=>log.push('intent.clear')},
   clerk:async()=>{if(o.offlineClerk)throw new Error('sin red');return C},
   api:async(Cx,method,path,body,uid)=>{log.push([method,path,JSON.stringify(body),uid]);log.push('pasada '+JSON.stringify(await dev.eng.run('durante')));if(o.api)return o.api(body);return {status:200,body:{ok:true}}},
-  sessionStorage:{getItem:k=>ss.has(k)?ss.get(k):null,setItem:(k,v)=>ss.set(k,String(v)),removeItem:k=>ss.delete(k)},location:{assign:u=>log.push('assign '+u)},setTimeout:()=>0};
+  sessionStorage:{getItem:k=>ss.has(k)?ss.get(k):null,setItem:(k,v)=>ss.set(k,String(v)),removeItem:k=>ss.delete(k)},location:{assign:u=>log.push('assign '+u)},setTimeout:()=>0,
+  window:{addEventListener:(t,f)=>listeners.push([t,f])}};const listeners=[];
  vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW="x";'+src.slice(i,j)+';this.X={salir,borrar,resumeDelete,accountPanel,bindAccount,setBackup:v=>{lastBackup=v},st:()=>ST}',ctx);
- return {X:ctx.X,els,log,toasts,ss,C,outs:()=>log.filter(x=>typeof x==='string'&&/^(signOut|assign|acct|intent)/.test(x))}}
+ return {X:ctx.X,els,log,toasts,ss,C,listeners,outs:()=>log.filter(x=>typeof x==='string'&&/^(signOut|assign|acct|intent)/.test(x))}}
 const DOC34=()=>({schema:1,creado:'2026-10-01T00:00:00.000Z',humidor:[{id:'h1',marca:'Don Rey',actualizado:'2026-10-02'}],diario:[],pasaporte:{},favs:{},ratings:{}});
 const KEYS34=['lhb_mihoja_v1','lhb_mihoja_v1_sync','lhb_mihoja_v1_owner','lhb_mihoja_v1_seq'];
 const OUT34=['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','assign /'];
@@ -4147,6 +4181,32 @@ test('LHB-34 (Codex r1): lo que se escribe entre la revisión y el borrado (aqu�
   await h.X.salir();for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
   await h.X.salir();assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','signOut {"redirectUrl":"/"}','assign /']);
  }finally{a.done()}});
+test('LHB-34 (Codex r2): otra pestaña escribe mientras se lee la copia que se revisa: no se sale; y cuando una pestaña sale, las otras sueltan su copia',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();const h=ACCT34(dev);
+  /* sin red y con un respaldo de lo de ahora: la otra pestaña escribe justo cuando se lee la copia */
+  dev.net.off=true;h.X.setBackup(dev.X.canon(dev.doc()));
+  const g=dev.D.getDoc;let arm=true;dev.D.getDoc=()=>{const d=g();if(arm){arm=false;const o=JSON.parse(dev.ls.get(dev.KEY));o.humidor.push({id:'otra',marca:'y',actualizado:'2026-10-28'});dev.ls.set(dev.KEY,JSON.stringify(o))}return d};
+  await h.X.salir();dev.D.getDoc=g;
+  assert.ok(hid28(dev.doc()).includes('otra'),'lo de la otra pestaña sigue');assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');assert.deepEqual(h.outs(),[]);
+  /* la otra pestaña: cuando esta quita el dueño, suelta su copia en memoria, para la sincronización y abre de nuevo */
+  const st=h.listeners.filter(([t])=>t==='storage').map(([,f])=>f);assert.equal(st.length,1);
+  st[0]({key:'lhb_mihoja_v1_sync',oldValue:'x',newValue:null});st[0]({key:'lhb_mihoja_v1_owner',oldValue:null,newValue:'user_a'});assert.equal(h.X.st().x,1,'lo demás no cuenta');
+  st[0]({key:'lhb_mihoja_v1_owner',oldValue:'user_a',newValue:null});
+  assert.equal(h.X.st(),null);assert.ok(h.log.includes('assign /'));assert.deepEqual(await dev.eng.run('x'),{skip:'held'});
+ }finally{a.done()}});
+test('LHB-34 (Codex r2): con un borrado a medias pendiente, un error pasajero (503, 401) no quita la marca; un primer pedido rechazado sí',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  for(const [st,err] of [[503,'clerk-unavailable'],[401,'no-session'],[503,'unavailable']]){
+   dev.ls.set('lhb_borrando','{"sub":"user_a"}');
+   let h=ACCT34(dev,{api:()=>({status:st,body:{error:err}})});await h.X.resumeDelete();assert.ok(dev.ls.has('lhb_borrando'),'al abrir: '+st+' '+err);assert.deepEqual(await dev.eng.run('x'),{skip:'held'});
+   h=ACCT34(dev,{api:()=>({status:st,body:{error:err}})});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');assert.ok(dev.ls.has('lhb_borrando'),'al tocar el botón: '+st+' '+err);
+  }
+  /* sin marca de antes, el mismo 503 es un primer pedido que no borró nada */
+  dev.ls.delete('lhb_borrando');const h=ACCT34(dev,{api:()=>({status:503,body:{error:'clerk-unavailable'}})});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
+  assert.ok(!dev.ls.has('lhb_borrando'));assert.equal((await dev.eng.run('x')).ok,true);
+ }finally{a.done()}});
 test('LHB-34: salir sin red pero con un respaldo recién descargado de lo de ahora; una cata a medias no deja salir',async()=>{
  const a=await ENG28();const dev=DEV28(a,'user_a');try{
   dev.seed(DOC34());await dev.sync();const h=ACCT34(dev);
@@ -4185,7 +4245,7 @@ test('LHB-34: borrar la cuenta desde el teléfono: sin pasadas mientras tanto; l
 test('LHB-34 (Codex r1): de punta a punta con el servidor de verdad: borrar a medias, perder la respuesta, volver a abrir la app y que se termine solo',async()=>{
  const a=await ENG28();const dev=DEV28(a,'user_a');try{
   dev.seed(DOC34());await dev.sync();
-  const AC=await a.imp('api/account.js');const DB={prepare:a.DB.prepare,batch:async sts=>{a.db.exec('BEGIN');try{for(const s of sts)await s.run();a.db.exec('COMMIT')}catch(e){a.db.exec('ROLLBACK');throw e}}};
+  a.db.exec(a.mig('0006_deleted_accounts.sql'));const AC=await a.imp('api/account.js');const DB={prepare:a.DB.prepare,batch:async sts=>{a.db.exec('BEGIN');try{for(const s of sts)await s.run();a.db.exec('COMMIT')}catch(e){a.db.exec('ROLLBACK');throw e}}};
   const env={...a.env,DB,CLERK_SECRET_KEY:'sk_test_abc'};const clerk={GET:200,DELETE:500},cl=[];let lose=false;
   const fetchFn=async(u,init)=>{cl.push(init.method);return new Response('{}',{status:clerk[init.method]})};
   const real=async body=>{const r=await AC.onRequestDelete({request:{headers:{get:h=>({Authorization:'Bearer '+(await0),'Content-Type':'application/json'})[h]??null},json:async()=>body},env},fetchFn);if(lose)throw new TypeError('sin red');return {status:r.status,body:await r.json()}};
