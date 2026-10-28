@@ -138,7 +138,7 @@ function download(blob,name){const u=URL.createObjectURL(blob);const a=document.
 function exportar(){const s=S();const data={app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:SCHEMA,exportado:new Date().toISOString(),url:APP_URL,
  mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacy('uploads')||[]}};
  download(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}),`la-hoja-boricua-respaldo-${hoy()}.json`);
- s.respaldo=new Date().toISOString();s.cambios=0;s.recordarDespues=null;write(s);toast(tt('h.respaldoDescargado'));if(location.hash.startsWith('#/mihoja'))setTimeout(()=>A.route(),300)}
+ s.respaldo=new Date().toISOString();s.cambios=0;s.recordarDespues=null;write(s);lastBackup=LHB_MERGE.canon(s);toast(tt('h.respaldoDescargado'));if(location.hash.startsWith('#/mihoja'))setTimeout(()=>A.route(),300)}
 const byId=(a,b,key='id')=>{const m=new Map(a.map(x=>[x[key],x]));for(const x of b){if(!x||!x[key])continue;const o=m.get(x[key]);if(!o||(x.actualizado||x.fecha||'')>(o.actualizado||o.fecha||''))m.set(x[key],x)}return [...m.values()]};
 function importar(file){const fr=new FileReader();fr.onload=()=>{let j;try{j=JSON.parse(fr.result)}catch(e){toast(tt('h.eseArchivoNoEs'));return}
  const m=j&&(j.mihoja||(Array.isArray(j.humidor)&&j));if(!m||(j.app&&j.app!=='La Hoja Boricua')){toast(tt('h.eseArchivoNoEs2'));return}
@@ -176,13 +176,54 @@ function clerk(){if(clerkP)return clerkP;
 /* extra: cabeceras de más (If-Match en la sincronización) */
 async function api(C,method,path,body,uid,extra){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
 /* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
-SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),
  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),toast,
  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
  onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}}});
 SYNC.start();
+/* ---------- LHB-34: la cuenta en Perfil: descargar los datos (el respaldo de siempre), salir y borrar la cuenta ---------- */
+/* el canon del último respaldo descargado en esta página: si Mi Hoja sigue igual, salir no pierde nada aunque no haya red */
+let lastBackup=null,acBusy=false,acRetry=null;
+const acMsg=t=>{const el=$('#acMsg');if(el){el.textContent=t;el.hidden=!t}};
+/* lo que queda de esta página después de salir o de borrar: el aviso para la página que abre después */
+const bye=k=>{try{sessionStorage.setItem('lhb_bye',k)}catch(e){}};
+try{const k=sessionStorage.getItem('lhb_bye');if(k){sessionStorage.removeItem('lhb_bye');setTimeout(()=>toast(k==='del'?tt('ac.del.done'):tt('ac.bye')),600)}}catch(e){}
+/* se borra lo de esta cuenta en este teléfono: Mi Hoja y su sincronización (sync.js), la cuenta guardada y la acción a medias */
+const dropLocal=()=>{SYNC.forget();acct.clear();intent.clear();ST=null;STRAW=null};
+async function signOutClerk(C){await C.signOut({redirectUrl:'/'});location.assign('/')}
+function accountPanel(){const a=acct.get();if(!a||!a.handle)return '';
+ return `<section class="acct-p" id="acctP"><div class="section-title"><h2>${tt('ac.h')}</h2></div>
+ <div class="links"><button class="lbtn" data-exp type="button">${tt('ac.download')}</button><button class="lbtn" type="button" id="acOut">${tt('ac.out')}</button></div>
+ <p class="hint" id="acMsg" role="status" aria-live="polite" hidden></p>
+ <details class="edit"><summary>${tt('ac.del.s')}</summary><p>${tt('ac.del.p')}</p>
+ <div class="field"><label for="acDelI">${tt('ac.del.l',{a:'@'+esc(a.handle)})}</label><input id="acDelI" autocapitalize="none" autocomplete="off" spellcheck="false"></div>
+ <button class="btn" type="button" id="acDel" disabled>${tt('ac.del.b')}</button></details>
+ <p class="hint">${tt('h.leeQueGuardamosY')} <a href="/privacidad">${tt('h.privacidadYCuenta')}</a>.</p></section>`}
+function bindAccount(){const a=acct.get();const out=$('#acOut'),del=$('#acDel'),inp=$('#acDelI');if(!a||!out)return;
+ out.onclick=salir;$$('#acctP [data-exp]').forEach(b=>b.onclick=exportar);
+ inp.oninput=()=>{del.disabled=!acRetry&&inp.value.trim().replace(/^@/,'').toLowerCase()!==String(a.handle).toLowerCase()};
+ del.onclick=()=>borrar(a,inp.value)}
+/* salir: solo si la cuenta tiene lo último de este teléfono (o lo de ahora está en un respaldo recién descargado). Entonces se borra Mi Hoja de este teléfono, para que un teléfono prestado no se quede con lo de nadie, y se cierra la sesión */
+async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
+ try{const r=await SYNC.settled({backup:lastBackup});
+  if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}
+  let C;try{C=await clerk()}catch(e){acMsg(tt('ac.outFail'));return}
+  await SYNC.hold(true);dropLocal();bye('out');
+  try{await signOutClerk(C)}catch(e){acMsg(tt('ac.outFail'))}}
+ finally{acBusy=false}}
+/* borrar: el servidor borra la base y el usuario de Clerk (functions/api/account.js); aquí, después, lo de este teléfono y la sesión.
+   Si la base se borró y Clerk no (502), otro intento lo termina: el perfil ya no está, así que la confirmación pasa a ser la palabra del servidor */
+async function borrar(a,typed){if(acBusy)return;acBusy=true;const del=$('#acDel');if(del)del.disabled=true;acMsg(tt('ac.del.wait'));
+ try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.del.fail'));return}
+  await SYNC.hold(true);
+  let r=null;try{r=await api(C,'DELETE','/api/account',{confirm:acRetry||typed},a.sub)}catch(e){r=null}
+  if(r&&r.status===200){dropLocal();bye('del');try{await signOutClerk(C)}catch(e){location.assign('/')}return}
+  if(r&&r.status===502){acRetry='borrar';acMsg(tt('ac.del.half'));return}
+  SYNC.hold(false);
+  acMsg(!r?tt('ac.del.fail'):r.body&&r.body.error==='confirm-mismatch'?tt('ac.del.bad'):r.status===503?tt('ac.del.off'):tt('ac.del.fail'))}
+ finally{acBusy=false;const d=$('#acDel'),i=$('#acDelI');if(d&&i)d.disabled=!acRetry&&i.value.trim().replace(/^@/,'').toLowerCase()!==String(a.handle).toLowerCase()}}
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}
@@ -752,7 +793,7 @@ function cigarExtras(c){const pr=pairing(c);const real=!c.yours;
  ${podBlock('c',c.id)}`}
 const placeActions=p=>`<div class="pl-act">${favBtn('lugares',p.id,'sm')}${stampBtn('lugares',p.id,'sm')}</div>`;
 function setRating(id,n){save(s=>{if(!n||s.ratings[id]===n)delete s.ratings[id];else s.ratings[id]=n})}
-return {requireAccount,gate,accountGen:CUENTA.gen,registerAction:CUENTA.register,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
+return {requireAccount,gate,accountGen:CUENTA.gen,registerAction:CUENTA.register,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,accountPanel,bindAccount,
  routes:{mihoja:vMiHoja,cata:cid=>requireAccount(()=>vCata(cid),{fast:true}),maridajes:vMaridajes,podcast:vPodcast,buscar:vBuscar,eventos:vEventos,actividades:vEventos},
  _test:{HANDLE_RE,CLERK,icsFor,parseHora,pairing,pideloLink,cardBlob,badgeIds,passCounts,load,KEY}};
 };

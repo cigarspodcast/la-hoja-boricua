@@ -78,7 +78,7 @@ window.LHB_MERGE={merge,strip,canon,same,stable,hasData,meet,LOCAL_ONLY};
 const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_seq',KEY='lhb_mihoja_v1';
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 window.LHB_SYNC=function(D){
- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,state={state:'idle',err:null};
+ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
  const writeMeta=m=>{try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
  /* un contador chico compartido entre pestañas: cada escritura de la persona lo sube, y una pasada sabe si alguien escribió (aquí o en otra pestaña) mientras esperaba la red */
@@ -177,6 +177,7 @@ window.LHB_SYNC=function(D){
  function retryLater(){if(retryT)D.clearTimer(retryT);const ms=RETRY[Math.min(fails,RETRY.length)-1]||RETRY[RETRY.length-1];retryT=D.setTimer(()=>{retryT=0;run('reintento')},ms)}
  /* una sola pasada a la vez; lo que se pide durante una pasada se atiende al terminar */
  function run(why,o){o=o||{};
+  if(held)return Promise.resolve({skip:'held'});
   if(o.minAge){const m=readMeta(),a=D.acct();if(m&&a&&m.sub===a.sub&&m.at&&D.nowMs()-new Date(m.at).getTime()<o.minAge)return Promise.resolve({skip:'reciente'})}
   if(busy){again=true;return busy}
   busy=(async()=>{let r;try{
@@ -202,9 +203,26 @@ window.LHB_SYNC=function(D){
   schedule(DEBOUNCE,()=>{const acc=D.acct();if(!acc)return;const m=readMeta();
    if(m&&m.sub===acc.sub&&m.base&&canon(D.getDoc())===canon(m.base)){dirty=false;if(m.dirty){delete m.dirty;writeMeta(m)}return}   /* volvió a ser igual: no hay nada que llevar */
    run('guardado')})}
+ /* LHB-34: ¿la cuenta tiene lo último de este teléfono? Una pasada, y sí solo si terminó bien, no queda nada pendiente y la copia es igual a lo sincronizado.
+    o.backup: el canon de un respaldo que la persona acaba de descargar; si la copia de ahora es esa, está a salvo en el archivo aunque no haya red.
+    Una cata a medias no viaja ni va en el respaldo: con una, no. Devuelve { ok, via } o { ok: false, why } */
+ async function settled(o){o=o||{};let r;try{r=await run('salir')}catch(e){r={fail:'boom'}}
+  const d=D.getDoc();
+  if(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length)return {ok:false,why:'draft'};
+  if(typeof o.backup==='string'&&canon(d)===o.backup)return {ok:true,via:'backup'};
+  if(!r||!r.ok)return {ok:false,why:(r&&(r.fail||r.skip))||'fail'};
+  const m=readMeta(),acc=D.acct();
+  if(dirty||!m||!acc||m.sub!==acc.sub||m.dirty||!m.base||canon(d)!==canon(m.base))return {ok:false,why:'pending'};
+  return {ok:true,via:'sync'}}
+ /* LHB-34: mientras se sale o se borra la cuenta no corre ninguna pasada (una a destiempo volvería a llevar Mi Hoja a la cuenta). hold(true) espera la que esté corriendo */
+ function hold(on){held=!!on;if(on){if(timer){D.clearTimer(timer);timer=0}if(retryT){D.clearTimer(retryT);retryT=0}}return held&&busy?busy.then(()=>{},()=>{}):Promise.resolve()}
+ /* LHB-34: se borra Mi Hoja de este teléfono y lo que se sabía de su sincronización (se llama al salir o al borrar la cuenta, después de hold). Las copias apartadas de otras cuentas se quedan */
+ function forget(){hold(true);mem=null;unk=null;dirty=false;let ok=true;
+  for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
+  set('off');return ok}
  function start(){
   D.listen('online',()=>run('en-linea'));
   D.listen('visible',()=>run('visible',{minAge:30e3}));
   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
- return {run,changed,start,isolate,ensureOwner,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
+ return {run,changed,start,isolate,ensureOwner,settled,hold,forget,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
 })();

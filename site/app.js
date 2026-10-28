@@ -262,8 +262,8 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
  <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
  <div class="section-title"><h2>${tt('pf.myFavs')}</h2></div>${favC.length?`<div class="mini-row">${favC.map(c=>cigarCard({...c,mini:true})).join('')}</div>`:'<div class="empty">'+tt('pf.noFavs')+'</div>'}
  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--gold);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
- <p class="note">${tt('pf.note')}</p>`;
- if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));
+ ${EXT.accountPanel()}<p class="note">${tt('pf.note')}</p>`;
+ if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));EXT.bindAccount();
  $('#pForm').onsubmit=e=>{e.preventDefault();LS.set('perfil',{nombre:p.nombre,capa:$('#pC').value});toast(tt('pf.saved'));vPerfil();topAvatar()};hydratePhotos()}
 /* sin una cuenta guardada el círculo es la estrella: la foto y el nombre locales son de todo el teléfono, y a quien acaba de entrar con otra cuenta no se le muestra la foto de otra persona */
 function topAvatar(){const el=$('#topAvatar');if(!el)return;const a=acctNow();if(a)paintAvatar(el,a,'');else el.innerHTML='<span>\u2606</span>'}
