@@ -1,0 +1,286 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-89-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18356-ac5b-7f00-9593-ae3f85280955
+--------
+user
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-89-wt (branch lhb-89-clerk-dialog). The diff below is origin/main..HEAD for the paths that matter.
+
+LHB-89: the Clerk sign-in modal (div.cl-modalContent, role dialog) has no accessible name (axe aria-dialog-name, /#/mihoja signed out). Clerk's documented openSignIn props have no option to name the dialog, so the branch names it from our side without restyling Clerk:
+1. site/hoja.js nameClerkDialog(doc): for each .cl-modalContent[role="dialog"] that has no aria-label, find its .cl-headerTitle; if the title has text, give it an id when it has none (lhb-clerk-title-N, never overwriting an existing id) and point the dialog's aria-labelledby at it. Returns the number named.
+2. watchClerkDialog(): a MutationObserver on document.body (childList, subtree) that re-runs nameClerkDialog on every DOM change, so the name follows Clerk's step changes (sign in, verify email); it disconnects once a dialog was seen and no .cl-modalContent remains, and after 10 minutes in any case.
+3. openSignIn calls C.openSignIn(...) then watchClerkDialog().
+4. site/sw.js lhb-v79 (the branch also merged main, which brought LHB-85 and LHB-90; those were reviewed and merged separately, so ignore them). test/site.test.js: one LHB-89 test runs nameClerkDialog on fake DOM nodes (named, idempotent, new title on a new step, keeps an existing id, empty title, no title, a dialog Clerk already labels) and checks the wiring.
+Evidence: evidence/lhb-89-tests-red.txt (red on main), lhb-89-mutations.out (8 of 8), lhb-89-tests.txt (231/231), lhb-89-a11y.txt (Lighthouse accessibility of /#/mihoja: aria-dialog-name passes on the preview and fails on production; the preview's other failure is Clerk's development-instance footer).
+
+Look for real defects: a case where the dialog ends up unnamed or wrongly named (a Clerk step whose heading is not .cl-headerTitle, two dialogs, a title that changes text without being replaced, a nested dialog), an observer that never disconnects or that loops (does setting the attribute or id trigger itself; childList only, but check), an observer that disconnects too early (the modal mounts asynchronously after openSignIn returns: seen is false until then), a performance cost on pages where the modal is open (the callback runs a querySelectorAll on every mutation), ids that could collide with anything else on the page, anything that changes Clerk's look or behaviour, and tests that would pass on broken code.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main HEAD -- site/hoja.js site/sw.js test/site.test.js =====
+diff --git a/site/hoja.js b/site/hoja.js
+index 58df63d..b4652a4 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -260,7 +260,11 @@ function onboardingForm(submit,picture,mode,init,check){const marcas=[...new Set
+   let r;try{r=await submit(idm?f:{handle:h,...f,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
+   if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
+   busy(false);if(r.error)err(OB_ERR[r.error]||(idm||edm?tt('h.noPudimosGuardarTu'):tt('h.noPudimosCrearTu')))}}
+-const CUENTA=window.LHB_CUENTA({clerk,api,hasLocal:()=>LHB_MERGE.hasData(S()),here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:(submit,picture,check)=>onboardingForm(submit,picture,undefined,undefined,check),identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,'edit',prof,check),toast,closeAll:closeSheetNow}});
++/* LHB-89: el diálogo de entrada de Clerk (div.cl-modalContent, role dialog) no tiene nombre accesible y Clerk no ofrece opción para darle uno;
++   mientras está abierto se nombra con su propio título (aria-labelledby), sin tocar su estilo. Clerk cambia el título al cambiar de paso: se vuelve a apuntar. */
++function nameClerkDialog(doc){let n=0;for(const d of doc.querySelectorAll('.cl-modalContent[role="dialog"]')){if(d.getAttribute('aria-label'))continue;const h=d.querySelector('.cl-headerTitle');if(!h||!String(h.textContent||'').trim())continue;if(!h.id)h.id='lhb-clerk-title-'+(nameClerkDialog.k=(nameClerkDialog.k||0)+1);if(d.getAttribute('aria-labelledby')!==h.id)d.setAttribute('aria-labelledby',h.id);n++}return n}
++function watchClerkDialog(){if(typeof MutationObserver!=='function')return;let seen=false;const mo=new MutationObserver(()=>{if(nameClerkDialog(document))seen=true;else if(seen&&!document.querySelector('.cl-modalContent'))mo.disconnect()});mo.observe(document.body,{childList:true,subtree:true});nameClerkDialog(document);setTimeout(()=>mo.disconnect(),600000)}
++const CUENTA=window.LHB_CUENTA({clerk,api,hasLocal:()=>LHB_MERGE.hasData(S()),here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>{C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href});watchClerkDialog()},ui:{card:accountCard,notice:accountNotice,onboarding:(submit,picture,check)=>onboardingForm(submit,picture,undefined,undefined,check),identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,'edit',prof,check),toast,closeAll:closeSheetNow}});
+ /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
+ const requireAccount=(go,o)=>CUENTA.require(go,o);
+ /* LHB-51: con una cuenta guardada, un poco después de abrir la app se confirma con Clerk que sigue siendo esa cuenta (si no, el encabezado vuelve a la estrella) */
+diff --git a/site/sw.js b/site/sw.js
+index 5683a3a..06397a2 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v78';
++const VERSION='lhb-v79';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+diff --git a/test/site.test.js b/test/site.test.js
+index 80a0c4f..81c2b24 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v78'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v79'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,25 +61,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
+- assert.match(sw,/const VERSION='lhb-v78'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
++ assert.match(sw,/const VERSION='lhb-v79'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
+  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
+  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
+ 
+ test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v78'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v79'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
+  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ 
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v78'/);
++ assert.match(sw,/const VERSION='lhb-v79'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v78'/);
++ assert.match(sw,/const VERSION='lhb-v79'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
+  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
+@@ -105,12 +105,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v78'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v79'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v78'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v79'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -118,7 +118,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v78'/);});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v79'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -135,7 +135,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v78/);});
++ assert.match(read('sw.js'),/lhb-v79/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -148,17 +148,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v78'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v79'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v78'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v79'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v78'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v79'/);});
+ 
+-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v78'/);});
++test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v79'/);});
+ 
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+@@ -1217,7 +1217,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1464,7 +1464,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v78'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v79'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1642,7 +1642,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1889,7 +1889,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2190,7 +2190,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\)\}/.test(hj),'guardar y borrar repintan el encabezado');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2473,7 +2473,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v78'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v79'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3433,7 +3433,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v78'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v79'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -3664,6 +3664,23 @@ test('LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la a
+  const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
+  require('vm').runInNewContext(read('i18n.js'),{window:w});assert.equal(els[0].a.href,'en/lugares/');assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');
+ });
++/* LHB-89: el diálogo de Clerk se nombra con su propio título mientras está abierto */
++test('LHB-89: nameClerkDialog apunta aria-labelledby del diálogo de Clerk a su título, y lo vuelve a apuntar si el título cambia',()=>{
++ const h=read('hoja.js');const src=h.match(/function nameClerkDialog\(doc\)\{[^\n]*\}return n\}/);assert.ok(src,'nameClerkDialog en hoja.js');
++ const el=(a={},kids={})=>({a:{...a},id:a.id||'',textContent:a.text||'',getAttribute(n){return this.a[n]===undefined?null:this.a[n]},setAttribute(n,v){this.a[n]=v},querySelector:s=>kids[s]||null});
++ const doc=list=>({querySelectorAll:s=>{assert.equal(s,'.cl-modalContent[role="dialog"]');return list}});
++ const name=new Function(src[0]+';return nameClerkDialog')();
++ const t1=el({text:'Entra a La Hoja Boricua'});const d=el({role:'dialog'},{'.cl-headerTitle':t1});
++ assert.equal(name(doc([d])),1);assert.ok(t1.id,'el título recibe un id');assert.equal(d.a['aria-labelledby'],t1.id,'el diálogo apunta a su título');
++ assert.equal(name(doc([d])),1);assert.equal(d.a['aria-labelledby'],t1.id,'sin cambios la segunda vez');
++ const t2=el({text:'Revisa tu correo'});const d2=el({role:'dialog'},{'.cl-headerTitle':t2});assert.equal(name(doc([d2])),1);assert.notEqual(t2.id,t1.id,'cada título su id');assert.equal(d2.a['aria-labelledby'],t2.id);
++ const own=el({id:'ya',text:'Hola'});const d3=el({role:'dialog'},{'.cl-headerTitle':own});name(doc([d3]));assert.equal(own.id,'ya','no pisa un id que ya tiene');assert.equal(d3.a['aria-labelledby'],'ya');
++ const empty=el({text:'   '});const d4=el({role:'dialog'},{'.cl-headerTitle':empty});assert.equal(name(doc([d4])),0);assert.equal(d4.a['aria-labelledby'],undefined,'un título vacío no da nombre');
++ const d5=el({role:'dialog'});assert.equal(name(doc([d5])),0,'sin título no apunta a nada');
++ const d6=el({role:'dialog','aria-label':'Clerk'},{'.cl-headerTitle':el({text:'X'})});assert.equal(name(doc([d6])),0);assert.equal(d6.a['aria-labelledby'],undefined,'si Clerk ya lo nombra, no se toca');
++ assert.ok(h.includes('openSignIn:C=>{C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href});watchClerkDialog()}'),'abrir la entrada vigila el diálogo');
++ assert.ok(/function watchClerkDialog\(\)\{if\(typeof MutationObserver!=='function'\)return;/.test(h)&&/mo\.observe\(document\.body,\{childList:true,subtree:true\}\)/.test(h)&&h.includes("else if(seen&&!document.querySelector('.cl-modalContent'))mo.disconnect()")&&h.includes('setTimeout(()=>mo.disconnect(),600000)'),'vigila mientras el diálogo existe y luego se suelta');
++});
+ /* LHB-85: miniaturas a la medida que se dibujan: una gemela de 320 x 160 al lado de cada miniatura de 600 x 300 */
+ const webpSize=f=>{const b=fs.readFileSync(f);assert.equal(b.toString('ascii',0,4)+b.toString('ascii',8,12),'RIFFWEBP',f);const k=b.toString('ascii',12,16);
+  if(k==='VP8 ')return[b.readUInt16LE(26)&0x3fff,b.readUInt16LE(28)&0x3fff];
+
+2026-10-28T16:27:42.846111Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-28T16:27:44.300284Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The test extracts `nameClerkDialog` but does not execute the observer lifecycle. I’ll inspect the branch and evidence, then check whether that leaves a concrete defect before merge.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\Users\Owner\lhb-89-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-28T16:27:53.829646Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+codex
+[Certain] Attribute and ID writes cannot retrigger this observer because it watches only `childList`. I found one cleanup gap: the initial naming call does not set `seen`, so a dialog mounted before the watcher starts can close without disconnecting the observer until the ten-minute timeout.
+
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. [Certain] **Nonblocking: an initially mounted dialog can leave its observer running after closure.** In [site/hoja.js:266](/C:/Users/Owner/lhb-89-wt/site/hoja.js:266), `watchClerkDialog` starts with `seen=false`, then calls `nameClerkDialog(document)` without recording its result. If the dialog already exists and closes before another child-list mutation, the removal callback sees `seen=false` and skips disconnecting. A controlled callback reproduction confirmed this; the ten-minute timeout still disconnects it. Initialize `seen` from the initial naming result.
+
+2. [Certain] **Nonblocking: the observer test passes with asynchronous naming completely disabled.** In [test/site.test.js:3682](/C:/Users/Owner/lhb-89-wt/test/site.test.js:3682), the LHB-89 test checks observer source strings without executing `watchClerkDialog`. I inserted `mo.disconnect()` immediately after `mo.observe(...)` in memory, and the unchanged test passed. That broken variant would leave an asynchronously mounted modal unnamed. Exercise mounting, heading replacement and closure through the observer callback.
+
+[Certain] The full site suite exited successfully. Attribute and ID changes cannot cause observer feedback because `attributes` is not observed. Files were unchanged.
+
+[Certain] Live Clerk step variants, nested-dialog behavior and browser performance remain **NOT VERIFIED**. I inspected the submitted Lighthouse evidence but did not rerun it. Neither finding establishes a defect that should block merge.
+
+VERDICT: PASS
+tokens used
+42,247
+1. [Certain] **Nonblocking: an initially mounted dialog can leave its observer running after closure.** In [site/hoja.js:266](/C:/Users/Owner/lhb-89-wt/site/hoja.js:266), `watchClerkDialog` starts with `seen=false`, then calls `nameClerkDialog(document)` without recording its result. If the dialog already exists and closes before another child-list mutation, the removal callback sees `seen=false` and skips disconnecting. A controlled callback reproduction confirmed this; the ten-minute timeout still disconnects it. Initialize `seen` from the initial naming result.
+
+2. [Certain] **Nonblocking: the observer test passes with asynchronous naming completely disabled.** In [test/site.test.js:3682](/C:/Users/Owner/lhb-89-wt/test/site.test.js:3682), the LHB-89 test checks observer source strings without executing `watchClerkDialog`. I inserted `mo.disconnect()` immediately after `mo.observe(...)` in memory, and the unchanged test passed. That broken variant would leave an asynchronously mounted modal unnamed. Exercise mounting, heading replacement and closure through the observer callback.
+
+[Certain] The full site suite exited successfully. Attribute and ID changes cannot cause observer feedback because `attributes` is not observed. Files were unchanged.
+
+[Certain] Live Clerk step variants, nested-dialog behavior and browser performance remain **NOT VERIFIED**. I inspected the submitted Lighthouse evidence but did not rerun it. Neither finding establishes a defect that should block merge.
+
+VERDICT: PASS
