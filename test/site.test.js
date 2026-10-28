@@ -2241,15 +2241,15 @@ function HOJA38(opts){opts=opts||{};
  const toasts=[],blobs=[],log=[];const acctBox={v:{sub:'u_a'}};
  const resized=[];
  const ctx={...TT(),window:{addEventListener(){}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
-  A:{D:()=>({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),cigarById:id=>id==='c1'?{id:'c1',nombre:'Yambú Toro'}:null,artisanName:c=>'Casa Yambú',allCigars:()=>[],
+  A:{D:()=>opts.D||({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),cigarById:id=>id==='c1'?{id:'c1',nombre:'Yambú Toro'}:null,artisanName:c=>'Casa Yambú',allCigars:()=>[],
    resizeImage:opts.resize||(async(f,max,q)=>{resized.push([max,q]);return {blob:1}}),hydrate:r=>log.push('hydrate'),route:()=>log.push('route')},
-  D:()=>({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),APP_URL:'https://x.test/',acct:{get:()=>acctBox.v},
+  D:()=>opts.D||({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),APP_URL:'https://x.test/',acct:{get:()=>acctBox.v},
   bindWheel:()=>{},tagChips:()=>'',subnav:()=>'',backupPanel:()=>'',bindBackup:()=>{},WN:x=>x,cigarOptions:()=>'',
   localStorage,indexedDB,navigator:{},location:{hash:''},scrollY:0,scrollTo:()=>{},confirm:()=>true,setTimeout:()=>0,
   URL:{createObjectURL:b=>{blobs.push(b);return 'blob:x'},revokeObjectURL:()=>{}},document:{createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}},
   FileReader:class{readAsText(f){this.result=f.__text;this.onload()}},Blob,JSON,Date:opts.now?class extends Date{constructor(...a){if(a.length)super(...a);else super(opts.now)}}:Date};
  vm.createContext(ctx);
- vm.runInContext(code+';this.API={okDay,entryDefaults,normalize,upgrade,load,S,save,write,hoy,exportar,importar,saveCata,renderCata,startCata,vDiario,stepBody,NEWDRAFT,FOTOS,PASOS,setCD:v=>{CD=v},getCD:()=>CD,persistDraft,vCata,dropFoto}',ctx);
+ vm.runInContext(code+';this.API={okDay,entryDefaults,normalize,upgrade,load,S,save,write,hoy,exportar,importar,saveCata,renderCata,startCata,vDiario,stepBody,NEWDRAFT,FOTOS,PASOS,setCD:v=>{CD=v},getCD:()=>CD,persistDraft,vCata,dropFoto}'+(opts.api?';this.X={'+opts.api+'}':''),ctx);/* LHB-39: opts.D es el catálogo; opts.api, lo de más que la prueba lee */
  return {API:ctx.API,ctx,ls,store,idbLog,els,lists,toasts,blobs,log,resized,acctBox,html:()=>html,set:(k,v)=>{ls.set(k,JSON.stringify(v))}};
 }
 const E38=(o)=>({id:'d1',fecha:'2026-03-04T02:00:00.000Z',cigarId:null,nombre:'Toro',artesano:'',rating:4,notas:'bien',tags:['madera'],origen:'cata',actualizado:'2026-03-04T02:00:00.000Z',...o});
@@ -3734,4 +3734,87 @@ test('LHB-90: el pie queda invisible mientras la vista está vacía, y es el her
  assert.ok(!/\.seo-foot\{[^}]*display:\s*none/.test(css)&&!/\.view:empty\+\.seo-foot\{[^}]*display/.test(css),'escondido a la vista, no quitado: los enlaces siguen en la página');
  const ix=read('index.html');assert.match(ix,/<main id="view" class="view" tabindex="-1"><\/main>\s*<footer class="seo-foot">/,'la vista empieza vacía y el pie la sigue de inmediato, así el selector + aplica');
  const app=read('app.js');assert.ok(/view\.innerHTML=/.test(app),'la app llena la vista, y entonces :empty deja de valer');
+});
+/* ===================== LHB-39: los números de Mi Hoja y el diario con búsqueda, filtros y orden ===================== */
+/* el catálogo de prueba: los sellos solo cuentan si el id está en el catálogo, igual que en el Pasaporte */
+const CAT39={artesanos:[{id:'a1',nombre:'Casa Yambú'},{id:'a2',nombre:'Tabaquero A'}],cigarros:[{id:'c1'},{id:'c2'},{id:'c3'}],places:[{id:'p1'},{id:'p2'},{id:'p3'}]};
+const DOC39=()=>({schema:1,humidor:[],ratings:{},
+ pasaporte:{artesanos:{a1:'2026-01-01',a2:'2026-01-02',viejo:'2025-01-01'},cigarros:{c1:'2026-02-01'},lugares:{p1:'2026-03-01',p2:'2026-03-02',p3:'2026-03-03',borrado:'2025-01-01'}},
+ diario:[
+  E38({id:'e1',cigarId:'c1',nombre:'Yambú Toro',artesano:'Casa Yambú',rating:5,capa:'Maduro',fortaleza:'Media',consumido:'2026-05-01',publica:true,tags:['madera','cacao']}),
+  E38({id:'e2',cigarId:'c1',nombre:'Yambú Toro',artesano:'Casa Yambú',rating:5,capa:'Maduro',fortaleza:'Fuerte',consumido:'2026-04-01',tags:['tierra']}),
+  E38({id:'e3',cigarId:null,nombre:'Toro de la casa',marca:'Cohiba',rating:5,capa:'Natural',fortaleza:'Media',consumido:'2026-06-01',publica:true,tags:['dulce']}),
+  E38({id:'e4',cigarId:'c2',nombre:'Monte Robusto',artesano:'Tabaquero A',rating:4,capa:'Maduro',fortaleza:'Suave',consumido:'2026-03-01',tags:[]}),
+  E38({id:'e5',cigarId:'c2',nombre:'Monte Robusto',artesano:'Tabaquero A',rating:3,capa:'Claro',fortaleza:'Media',consumido:'2026-02-01',tags:['especias']}),
+  E38({id:'e6',cigarId:'c3',nombre:'Ñame Corona',artesano:'Tabaquero A',rating:4,capa:'',fortaleza:'',consumido:'2026-01-15',tags:[]}),
+  E38({id:'e7',cigarId:null,nombre:'Sin estrellas',rating:0,capa:'Oscuro',fortaleza:'',consumido:'2026-01-10',tags:[]}),
+  null,'basura']});
+const H39=o=>HOJA38({D:CAT39,api:'diaryStats,diaryFilter,DQ0,getDQ:()=>DQ',...o,ls:{lhb_mihoja_v1:JSON.stringify(DOC39()),...((o||{}).ls||{})}});
+test('LHB-39: los números sobre un documento de prueba: catas, sellos por tipo (solo los del catálogo), los tres mejor puntuados, la capa y la fortaleza más anotadas',()=>{
+ const h=H39();const st=h.ctx.X.diaryStats(h.API.S(),CAT39);
+ assert.equal(st.catas,7,'siete catas: lo que no es una entrada no cuenta');
+ assert.deepEqual({...st.sellos},{artesanos:2,cigarros:1,lugares:3},'sellos por tipo, sin los ids que ya no están en el catálogo');
+ assert.deepEqual(st.top.map(t=>[t.nombre,t.avg,t.n]),[['Yambú Toro',5,2],['Toro de la casa',5,1],['Ñame Corona',4,1]],'por promedio de estrellas; a igual promedio, el de más catas; tres como mucho; Monte Robusto (3.5) queda fuera');
+ assert.ok(!st.top.some(t=>t.nombre==='Sin estrellas'),'una cata sin estrellas no entra en los mejor puntuados');
+ assert.deepEqual({...st.capa},{v:'Maduro',n:3},'la capa más anotada y cuántas veces');
+ assert.deepEqual({...st.fortaleza},{v:'Media',n:3},'la fortaleza más anotada y cuántas veces');
+ /* un documento vacío */
+ const e=h.ctx.X.diaryStats({diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}}},CAT39);
+ assert.deepEqual([e.catas,e.top.length,e.capa,e.fortaleza],[0,0,null,null]);assert.deepEqual({...e.sellos},{artesanos:0,cigarros:0,lugares:0});
+ /* empate de capa: gana la primera en orden alfabético, siempre la misma */
+ const t=h.ctx.X.diaryStats({diario:[E38({capa:'Natural'}),E38({capa:'Claro'})],pasaporte:{}},{});assert.equal(t.capa.v,'Claro');
+ /* un cigarro "otro" escrito distinto (mayúsculas, acentos, espacios) es el mismo cigarro */
+ const g=h.ctx.X.diaryStats({diario:[E38({nombre:'Toro de la Casa',rating:5}),E38({nombre:' toro de la casá ',rating:3})],pasaporte:{}},{});assert.deepEqual(g.top.map(x=>[x.avg,x.n]),[[4,2]]);
+});
+test('LHB-39: el diario se busca por nombre, marca, artesano y sabor (sin importar acentos ni mayúsculas), se filtra por estrellas y por pública o privada, y se ordena por fecha o por estrellas',()=>{
+ const h=H39();const F=(q)=>h.ctx.X.diaryFilter(h.API.S().diario,{...h.ctx.X.DQ0(),...q}).map(e=>e.id);
+ assert.deepEqual(F({}),['e3','e1','e2','e4','e5','e6','e7'],'por defecto: las más recientes primero, por el día que se fumó; sin lo que no es una entrada');
+ assert.deepEqual(F({q:'robusto'}),['e4','e5'],'por nombre');
+ assert.deepEqual(F({q:'cohiba'}),['e3'],'por marca');
+ assert.deepEqual(F({q:'casa yambu'}),['e1','e2'],'por artesano, sin acentos');
+ assert.deepEqual(F({q:'ÑAME'}),['e6'],'mayúsculas y la ñ');
+ assert.deepEqual(F({q:'cacao'}),['e1'],'por sabor (la llave del sabor)');
+ h.ctx.WN=x=>({cacao:'Cacao/Café',madera:'Wood'}[x]||x);
+ assert.deepEqual(F({q:'wood'}),['e1'],'por sabor (el nombre que se ve, en el idioma de la app)');assert.deepEqual(F({q:'cafe'}),['e1'],'y sin acentos');
+ assert.deepEqual(F({q:'cohiba toro'}),['e3'],'varias palabras: todas tienen que estar, en cualquier campo');
+ assert.deepEqual(F({q:'zzz'}),[],'nada coincide');
+ assert.deepEqual(F({st:'5'}),['e3','e1','e2'],'solo las de 5 estrellas');assert.deepEqual(F({st:'4'}),['e4','e6'],'exactamente 4');
+ assert.deepEqual(F({vis:'pub'}),['e3','e1'],'solo públicas');assert.deepEqual(F({vis:'priv'}),['e2','e4','e5','e6','e7'],'solo privadas');
+ assert.deepEqual(F({ord:'estrellas'}),['e3','e1','e2','e4','e6','e5','e7'],'por estrellas; a iguales estrellas, la más reciente primero');
+ assert.deepEqual(F({q:'tabaquero',st:'4',ord:'estrellas'}),['e4','e6'],'se combinan');
+ assert.deepEqual(h.API.S().diario.slice(0,3).map(e=>e.id),['e1','e2','e3'],'filtrar no reordena el diario guardado');
+});
+test('LHB-39: la página del diario muestra los números y los filtros; cambiar un filtro repinta solo la lista y su cuenta; la búsqueda de otra cuenta no se queda',()=>{
+ const h=H39();h.API.vDiario();const H=h.html();
+ assert.ok(H.includes('Tus números')&&H.includes('class="dstats"'),'el panel de números');
+ for(const s of ['<b>7</b><span>catas</span>','<b>2</b><span>sellos de artesanos</span>','<b>1</b><span>sellos de cigarros</span>','<b>3</b><span>sellos de lugares</span>'])assert.ok(H.includes(s),s);
+ assert.ok(H.includes('Los mejor puntuados')&&H.indexOf('Yambú Toro')<H.indexOf('Toro de la casa'),'los mejor puntuados en su orden');
+ assert.ok(H.includes('Capa más anotada')&&H.includes('Fortaleza más anotada'),'capa y fortaleza');
+ for(const id of ['dqQ','dqS','dqV','dqO','dqN','dList'])assert.ok(H.includes('id="'+id+'"'),id);
+ assert.ok(H.includes('role="search"'),'el formulario es de búsqueda');
+ assert.ok(H.includes('7 de 7 catas'),'la cuenta');assert.equal((H.match(/class="dentry"/g)||[]).length,7,'todas las tarjetas');
+ /* buscar: cambia la lista y la cuenta, no la página entera */
+ h.els.dqQ.value='robusto';h.els.dqS.value='';h.els.dqV.value='';h.els.dqO.value='fecha';
+ const page=h.html();h.els.dqQ.oninput();
+ assert.equal(h.html(),page,'la página no se vuelve a pintar (el cursor se queda en la búsqueda)');
+ assert.equal((h.els.dList.innerHTML.match(/class="dentry"/g)||[]).length,2,'dos tarjetas');assert.ok(h.els.dList.innerHTML.includes('Monte Robusto'));
+ assert.equal(h.els.dqN.textContent,'2 de 7 catas');
+ h.els.dqQ.value='zzz';h.els.dqQ.oninput();assert.ok(h.els.dqN.textContent.includes('Ninguna cata coincide'),'sin resultados se dice');
+ /* el filtro de estrellas y el orden también repintan */
+ h.els.dqQ.value='';h.els.dqS.value='5';h.els.dqS.onchange();assert.equal(h.els.dqN.textContent,'3 de 7 catas');
+ h.els.dqV.value='pub';h.els.dqV.onchange();assert.equal(h.els.dqN.textContent,'2 de 7 catas');
+ h.els.dqS.value='';h.els.dqV.value='';h.els.dqO.value='estrellas';h.els.dqO.onchange();assert.equal(h.els.dqN.textContent,'7 de 7 catas');
+ assert.ok(h.els.dList.innerHTML.indexOf('Ñame Corona')<h.els.dList.innerHTML.indexOf('Monte Robusto')&&h.els.dList.innerHTML.indexOf('Monte Robusto')>0,'por estrellas');
+ /* volver a pintar la página (borrar una entrada, llega una sincronización) conserva la búsqueda */
+ h.els.dqQ.value='tabaquero';h.els.dqQ.oninput();h.API.vDiario();assert.ok(h.html().includes('value="tabaquero"')&&h.html().includes('3 de 7 catas'),'la búsqueda sigue');
+ assert.ok(/<option value="estrellas" selected>/.test(h.html()),'y el orden');
+ /* otra cuenta en el mismo teléfono no ve la búsqueda de la anterior */
+ h.acctBox.v={sub:'u_b'};h.API.vDiario();assert.ok(!h.html().includes('value="tabaquero"')&&h.html().includes('7 de 7 catas'),'búsqueda limpia para otra cuenta');
+ /* un diario vacío: los números (con los sellos) sí, los filtros no */
+ const v=HOJA38({D:CAT39,ls:{lhb_mihoja_v1:JSON.stringify({...DOC39(),diario:[]})}});v.API.vDiario();
+ assert.ok(v.html().includes('Tu diario está vacío')&&v.html().includes('<b>3</b><span>sellos de lugares</span>')&&!v.html().includes('id="dqQ"'));
+ /* lo nuevo de la página va en los dos idiomas, sin texto suelto y sin raya larga */
+ const {T}=I18N();for(const k of ['h.stTusNumeros','h.stCatas','h.stSellosArt','h.stSellosCig','h.stSellosLug','h.stMejores','h.stCapa','h.stFortaleza','h.dqBuscar','h.dqN','h.dqNada','h.dqRecientes','h.dqMasEstrellas'])assert.ok(T.es[k]&&T.en[k]&&T.en[k]!==T.es[k],k);
+ const hj=read('hoja.js');const i=hj.indexOf('/* LHB-39');assert.ok(i>0);assert.ok(!/\u2014/.test(hj.slice(i,hj.indexOf('/* pasaporte */'))));
+ const css=read('styles.css');assert.ok(css.includes('.dstats{')&&css.includes('.dfilt'),'estilos');
 });
