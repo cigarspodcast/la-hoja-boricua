@@ -4112,7 +4112,8 @@ function HOJA58(opts){opts=opts||{};
  const els={},stubs={};let html='';
  const mkEl=id=>{let h='';const attrs={};return {id,get innerHTML(){return h},set innerHTML(v){h=v},setAttribute(k,v){attrs[k]=String(v)},getAttribute:k=>attrs[k]??null}};
  const all=()=>html+Object.values(els).map(e=>e.innerHTML).join('');
- const view={set innerHTML(h){html=h},get innerHTML(){return html}};
+ /* pintar la vista otra vez quita sus nodos: un nodo viejo queda suelto, como en el navegador */
+ const view={set innerHTML(h){html=h;for(const k of Object.keys(els))delete els[k]},get innerHTML(){return html}};
  const $=s=>{if(s[0]!=='#')return null;const id=s.slice(1);if(!all().includes('id="'+id+'"'))return null;return els[id]||(els[id]=mkEl(id))};
  /* los botones de pestaña y de reseña que hay ahora en la página; el mismo objeto por clave, como un nodo que se queda */
  const $$=s=>{const m=s.match(/^\[data-(pftab|pfres)\]$/);if(!m)return [];const out=[];
@@ -4131,18 +4132,21 @@ function HOJA58(opts){opts=opts||{};
  return {X:ctx.X,ctx,els,stubs,fetches,sheets,log,loc,acctBox,html:()=>html,all,setReply:f=>{reply=f},tab:t=>stubs['pftab:'+t]};
 }
 const API58JSON=()=>({profile:{handle:'bea',display_name:'Bea S.',bio:'Fumo los domingos <script>x()</script>',favorite_brand:'Hoja Boricua',avatar_key:AV},
- counts:{resenas:1,followers:3,following:4,sellos:{artesanos:5,cigarros:6,lugares:7}},
- resenas:[{nombre:'Toro de Bea',marca:'',artesano:'Casa X',rating:4,tags:['Madera'],notas:'muy bueno',consumido:'2026-03-03',foto:'foto_de_bea',publica:true,extra:'no sale'}]});
+ counts:{resenas:2,followers:3,following:4,sellos:{artesanos:5,cigarros:6,lugares:7}},
+ resenas:[{nombre:'Toro de Bea',marca:'',artesano:'Casa X',rating:4,tags:['Madera'],notas:'muy bueno',consumido:'2026-03-03',foto:'foto_de_bea',publica:true,extra:'no sale'},
+  /* lo que no tiene forma de reseña se rehace con la misma lista cerrada que el servidor (estrellas de 1 a 5, sabores en lista) */
+  {nombre:'Rara',rating:9,tags:'no es lista',notas:7},null,'texto']});
 test('LHB-58: el perfil de otra persona (#/u/<handle>): foto, nombre, @, bio, marca y conteos de /api/u/; pestañas Reseñas, Pasaporte y Favoritos; el Humidor no está; tocar una reseña abre su tarjeta',async()=>{
  const H=HOJA58({reply:u=>({status:200,body:API58JSON()})});
  await H.X.vPersona('BEA');const h=H.all();
  assert.deepEqual(H.fetches,['/api/u/bea'],'pide solo la lectura pública de esa persona');
  for(const s of ['<h1 class="pf-n">Bea S.</h1>','<div class="pf-h">@bea</div>','<p class="pf-bio">Fumo los domingos &lt;script&gt;x()&lt;/script&gt;</p>','Marca favorita: <b>Hoja Boricua</b>','<img src="'+AV+'" alt="Foto de @bea"',
-  '<li><b>1</b><span>Reseñas</span></li>','<li><b>3</b><span>Seguidores</span></li>','<li><b>4</b><span>Siguiendo</span></li>','<div class="pf-follow" id="pfFollow" data-handle="bea"></div>'])assert.ok(h.includes(s),'trae '+s);
+  '<li><b>2</b><span>Reseñas</span></li>','<li><b>3</b><span>Seguidores</span></li>','<li><b>4</b><span>Siguiendo</span></li>','<div class="pf-follow" id="pfFollow" data-handle="bea"></div>'])assert.ok(h.includes(s),'trae '+s);
  assert.ok(!/<script/.test(h),'la bio va escapada');
  /* las pestañas: el Humidor solo lo ve su dueño; tampoco Editar perfil */
  assert.deepEqual([...h.matchAll(/data-pftab="([a-z]+)"/g)].map(m=>m[1]),['resenas','pasaporte','favoritos'],'sin Humidor en la vista de otra persona');assert.ok(!h.includes('pfEdit')&&!h.includes('#/mihoja/editar'),'ni Editar perfil');
  assert.ok(h.includes('<b>Toro de Bea</b>')&&!h.includes('foto_de_bea')&&!h.includes('no sale'),'la reseña con la lista cerrada de campos');
+ assert.ok(h.includes('<button type="button" class="pf-res" data-pfres="1"><b>Rara</b></button>'),'la rara sale sin estrellas ni fecha');H.stubs['pfres:1'].onclick();assert.ok(H.sheets[0][0].includes('Rara')&&!H.sheets[0][0].includes('pf-tags')&&!H.sheets[0][0].includes('pf-notas'),'y su tarjeta, sin sabores ni notas que no son texto');H.sheets.length=0;
  H.stubs['pfres:0'].onclick();assert.equal(H.sheets.length,1);const sh=H.sheets[0][0];assert.ok(sh.includes('Toro de Bea')&&sh.includes('aria-label="4 de 5 estrellas"')&&sh.includes('<span>Madera</span>')&&sh.includes('muy bueno')&&sh.includes('Casa X'),'estrellas, sabores y notas');
  H.tab('pasaporte').onclick();assert.ok(H.els.pfPanel.innerHTML.includes('<b>5</b><span>sellos de artesanos</span>')&&H.els.pfPanel.innerHTML.includes('<b>7</b><span>sellos de lugares</span>'));assert.equal(H.tab('pasaporte').getAttribute('aria-selected'),'true');assert.equal(H.tab('resenas').getAttribute('aria-selected'),'false');
  H.tab('favoritos').onclick();assert.ok(H.els.pfPanel.innerHTML.includes('Sus favoritos son privados.')&&H.els.pfPanel.innerHTML.includes('Hoja Boricua'),'sus listas de favoritos no salen');
@@ -4156,6 +4160,10 @@ test('LHB-58: el perfil de otra persona: 404, error, @ imposible, el tuyo te lle
  H=HOJA58();await H.X.vPersona('a b');assert.deepEqual(H.fetches,[],'un @ imposible no se pide');assert.ok(H.all().includes('Este perfil no está disponible.'));
  H=HOJA58({acct:{sub:'u_a',handle:'ana'}});await H.X.vPersona('Ana');assert.equal(H.loc.hash,'#/mihoja/perfil','el tuyo es tu Perfil');assert.deepEqual(H.fetches,[]);
  let go;H=HOJA58({reply:()=>new Promise(r=>{go=r})});const p=H.X.vPersona('bea');await new Promise(r=>setImmediate(r));H.ctx.view.innerHTML='<div id="otra"></div>';go({status:200,body:API58JSON()});await p;assert.equal(H.html(),'<div id="otra"></div>','se fue a otra página: no se pinta');
+ /* mutación N12: la respuesta tardía de bea no cae en el perfil de cami, que ya se abrió */
+ const cami={...API58JSON(),profile:{handle:'cami',display_name:'Cami S.'},resenas:[{nombre:'Lancero de Cami',rating:3}]};
+ let goBea;H=HOJA58({reply:u=>u==='/api/u/bea'?new Promise(r=>{goBea=r}):{status:200,body:cami}});const pb=H.X.vPersona('bea');await new Promise(r=>setImmediate(r));await H.X.vPersona('cami');
+ assert.ok(H.all().includes('Lancero de Cami'));goBea({status:200,body:API58JSON()});await pb;assert.ok(!H.all().includes('Toro de Bea')&&H.all().includes('Lancero de Cami'),'lo de bea no se pinta en el perfil de cami');
 });
 const DOC58=()=>({schema:1,humidor:[{id:'h1',nombre:'Robusto del humidor',artesano:'Casa H',cantidad:3}],favs:{cigarros:['c2','no-existe'],artesanos:[],lugares:[]},ratings:{},pasaporte:{artesanos:{},cigarros:{},lugares:{}},
  diario:[{id:'d1',nombre:'Pública Mía',rating:5,tags:['cacao'],notas:'nota mía',publica:true,consumido:'2026-05-01',foto:'foto_mia'},{id:'d2',nombre:'Privada Mía',notas:'secreto mío',publica:false,consumido:'2026-05-02'},{id:'d3',nombre:'Casi Pública',publica:'true',consumido:'2026-05-03'},{id:'d4',nombre:'Sin Marca De Pública'},null]});
@@ -4170,6 +4178,8 @@ test('LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y 
  /* Reseñas: solo la pública; ni la privada ni las que solo parecen públicas */
  assert.ok(h.includes('<b>Pública Mía</b>'));for(const s of ['Privada Mía','secreto mío','Casi Pública','Sin Marca De Pública','foto_mia'])assert.ok(!h.includes(s),'nunca sale '+s);
  assert.deepEqual(H.X.myResenas(H.X.S()).map(e=>e.nombre),['Pública Mía']);
+ /* la regla misma, sin pasar por la carga (que ya deja publica en true o false): solo el booleano true */
+ assert.deepEqual(H.X.myResenas({diario:[{nombre:'Texto',publica:'true'},{nombre:'Uno',publica:1},{nombre:'Objeto',publica:{}},{nombre:'Si',publica:true},{nombre:'Falta'}]}).map(e=>e.nombre),['Si'],'publica tiene que ser true');
  H.tab('pasaporte').onclick();assert.ok(H.els.pfPanel.innerHTML.includes('<b>2</b><span>sellos de cigarros</span>')&&H.els.pfPanel.innerHTML.includes('href="#/mihoja/pasaporte"'),'tu pasaporte, contado como en la página del Pasaporte');
  H.tab('favoritos').onclick();assert.ok(H.els.pfPanel.innerHTML.includes('data-c="c2"')&&!H.els.pfPanel.innerHTML.includes('no-existe'),'tus favoritos del catálogo');
  H.tab('humidor').onclick();assert.ok(H.els.pfPanel.innerHTML.includes('Robusto del humidor')&&H.els.pfPanel.innerHTML.includes('<span class="count">3</span>'),'tu humidor');
