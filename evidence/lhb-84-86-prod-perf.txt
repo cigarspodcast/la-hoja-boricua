@@ -1,0 +1,32 @@
+Lighthouse 13.6.0 mobile (simulated throttling), 3 runs of https://lahojaboricua.com/ after LHB-85 and LHB-90 merged (main db980b7, deploy 731dc8e4, cache lhb-v78).
+Run under host claim LHB-84-lighthouse-prod (CORRUPTIBLE), opened and closed by the runner. Counting basis: one Lighthouse run per row; image bytes are transferSize from the network-requests audit.
+
+run 1 (2026-10-28T16:20:13.449Z): score 79 | FCP 970 | LCP 3220 | SI 2483 | TBT 537 | CLS 0.007
+  LCP element ? | layout shifts: body > div#app > header.topbar > div.top-actions 0.007
+  image delivery waste 93708 B | render-blocking Est savings of 30 ms (FCP saving 50 ms) | thumbnails 33 small 144250 B, 0 large 0 B | 41 images 277223 B
+run 2 (2026-10-28T16:20:39.078Z): score 85 | FCP 965 | LCP 2940 | SI 2568 | TBT 407 | CLS 0.007
+  LCP element ? | layout shifts: body > div#app > header.topbar > div.top-actions 0.007; a.brand > span.brand-text > span.brand-name > em 0.000
+  image delivery waste 65484 B | render-blocking Est savings of 40 ms (FCP saving 50 ms) | thumbnails 33 small 144434 B, 0 large 0 B | 41 images 277433 B
+run 3 (2026-10-28T16:21:01.543Z): score 84 | FCP 961 | LCP 3061 | SI 3150 | TBT 381 | CLS 0.007
+  LCP element ? | layout shifts: body > div#app > header.topbar > div.top-actions 0.007
+  image delivery waste 65484 B | render-blocking Est savings of 40 ms (FCP saving 50 ms) | thumbnails 33 small 144442 B, 0 large 0 B | 41 images 277415 B
+
+median score 84 [79 to 85]
+median FCP 965 [961 to 970]
+median LCP 3061 [2940 to 3220]
+median SI 2568 [2483 to 3150]
+median CLS 0.007 [0.007 to 0.007]
+median img_wasted 65484 [65484 to 93708]
+
+Before, same instrument and page (production at main 8412e0a, evidence/lhb-90-perf.txt, 3 runs interleaved with the preview,
+2026-10-28 earlier the same day): LCP 3435 [3370 to 3470], CLS 0.206, 0.140, 0.210 (all footer.seo-foot).
+After (this file): LCP 3061 [2940 to 3220], CLS 0.007 in 3 of 3 (only div.top-actions, LHB-93); no footer shift.
+Cigar thumbnails transferred: 33 large, about 287 KB, before; 33 twins, about 144 KB, now (0 large at this DPR).
+
+LHB-84 reading: simulated LCP of / is 3061 ms median in production, above the 2500 ms target. The splash is not the cause
+(LHB-84 comments: variants without the splash, its animation, masks or blur did not move it); LCP follows the bytes that
+share the slow-4G link before the LCP image. The next lever is LHB-92 (lazy-load card images below the first screen).
+Production also measures about 435 ms slower than the branch preview did (2626 ms median, lhb-90-perf.txt) for the same
+code; the cause is not established (the custom domain serves the production Clerk instance; previews use the dev one).
+LHB-86 reading: the render-blocking estimate on production is 30 to 40 ms (FCP saving 50 ms) in 3 of 3 runs, and FCP is
+961 to 970 ms, which is good (under 1800 ms). Not worth an inline-critical-CSS change.
