@@ -30,6 +30,8 @@ M = [
     ('M9 an unused key in both languages', lambda: (edit('site/i18n.js', ' "cu.retry": "Intentar otra vez",', ' "cu.retry": "Intentar otra vez",\r\n "cu.extra": "x",'),
                                                    edit('site/i18n.js', ' "cu.retry": "Try again",', ' "cu.retry": "Try again",\r\n "cu.extra": "y",'))),
     ('M10 the English gate title in Spanish words', lambda: edit('site/i18n.js', ' "cu.gate.h": "Sign in to use Mi Hoja",', ' "cu.gate.h": "Entrá para usar Mi Hoja",')),
+    ('M11 Codex r1: only cu.saved stays Spanish', lambda: edit('site/cuenta.js', "const tt=(k,v)=>window.LHB_I18N.t(k,v);", "const tt=(k,v)=>k==='cu.saved'?window.LHB_I18N.T.es[k]:window.LHB_I18N.t(k,v);")),
+    ('M12 the identity toast written in Spanish', lambda: edit('site/cuenta.js', "D.ui.toast(tt('cu.done'))", "D.ui.toast('Listo, tu perfil está completo.')")),
 ]
 red = 0
 for name, mut in M:

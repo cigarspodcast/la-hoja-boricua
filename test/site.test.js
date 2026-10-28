@@ -3962,3 +3962,17 @@ test('LHB-94: cuenta.js no deja texto en español escrito; cada texto sale de i1
  for(let i=0;i<en.length;i++){assert.equal(en[i][0],es[i][0]);for(let j=1;j<4;j++){assert.ok(en[i][j]&&en[i][j]!==es[i][j],'en inglés: '+es[i][j]);assert.ok(!/[áéíóúñ¿¡]/i.test(en[i][j]),'sin letras del español en: '+en[i][j])}}
  assert.equal(en[0][1],'Sign in to use Mi Hoja');
 });
+/* LHB-94 (Codex r1): los tres avisos de éxito salen en el idioma de la app: perfil nuevo, perfil editado e identidad completada */
+test('LHB-94 (Codex r1): bienvenida, perfil guardado y perfil completo, en español y en inglés',async()=>{
+ const {T}=I18N();
+ const run=async lang=>{const out=[];
+  const mk=(me,put)=>{let cb=null;const ui={card:()=>{},notice:()=>{},closeAll:()=>{},toast:m=>out.push(m),onboarding:f=>{cb=f},edit:(p,f)=>{cb=f},identity:f=>{cb=f}};
+   const h=CUENTA_HARNESS({ui,api:async(C,m)=>m==='GET'?me:put},lang);h.C.user={id:'user_a'};return {h,cb:()=>cb}};
+  const a=mk({status:200,body:{needsProfile:true}},{status:201,body:{profile:{handle:'ana'}}});await a.h.A.require(a.h.go);await tick();assert.equal(typeof a.cb(),'function','abre el perfil nuevo');assert.deepEqual(await a.cb()({handle:'ana'}),{ok:true});
+  const b=mk({status:200,body:{profile:{handle:'ana'}}},{status:200,body:{profile:{handle:'ana'}}});await b.h.A.require(b.h.go,{edit:true});await tick();assert.equal(typeof b.cb(),'function','abre editar');assert.deepEqual(await b.cb()({}),{ok:true});
+  const c=mk({status:200,body:{profile:{handle:'ana'},needsIdentity:true}},{status:200,body:{}});await c.h.A.require(c.h.go);await tick();assert.equal(typeof c.cb(),'function','abre completar la identidad');assert.deepEqual(await c.cb()({first_name:'A'}),{ok:true});
+  return out};
+ assert.deepEqual(await run(null),['¡Bienvenido a Mi Hoja!','Perfil guardado.','Listo, tu perfil está completo.'],'en español, como antes');
+ assert.deepEqual(await run('en-US'),[T.en['cu.welcome'],T.en['cu.saved'],T.en['cu.done']],'en inglés');
+ assert.deepEqual(await run('en-US'),['Welcome to Mi Hoja!','Profile saved.','Done, your profile is complete.']);
+});
