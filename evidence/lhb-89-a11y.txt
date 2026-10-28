@@ -1,0 +1,20 @@
+LHB-89 Proof: Lighthouse 13.6.0 mobile accessibility of /#/mihoja signed out, the branch preview beside production.
+Run 2026-10-28 16:25 to 16:26Z under host claim lhb-89-a11y (PRODUCER), one Lighthouse process per row, built-in headless Chrome, no sign-in.
+Branch: lhb-89-clerk-dialog b69bbf1, deploy https://301de8b8.la-hoja-boricua.pages.dev (Clerk development instance). Production: main 77b5175 (Clerk production instance).
+Counting basis: axe nodes per failing audit, as Lighthouse reports them; weight is the audit's weight in the accessibility score.
+
+a11y-branch: https://301de8b8.la-hoja-boricua.pages.dev/#/mihoja, fetched 2026-10-28T16:25:38.267Z, final URL https://301de8b8.la-hoja-boricua.pages.dev/#/mihoja, accessibility score 96
+  FAIL color-contrast (weight 7): 1 nodes
+    div.cl-internal-95w9vp > div.cl-internal-y44tp9 > div.cl-internal-114jbce > p.cl-internal-560t1i | Fix any of the following:   Element has insufficient color contrast of 2.05 (foreground color: #fbcbad, background color: #f36b16, font size: 9.0pt (12px), font
+  aria-dialog-name: score 1, mode binary, nodes 0
+a11y-prod: https://lahojaboricua.com/#/mihoja, fetched 2026-10-28T16:26:01.918Z, final URL https://lahojaboricua.com/#/mihoja, accessibility score 96
+  FAIL aria-dialog-name (weight 7): 1 nodes
+    body > div#:r7: > div.cl-modalBackdrop > div.cl-modalContent | Fix any of the following:   aria-label attribute does not exist or is empty   aria-labelledby attribute does not exist, references elements that do not exist or
+  aria-dialog-name: score 0, mode binary, nodes 1
+
+Result: aria-dialog-name passes on the branch (score 1, 0 nodes) and still fails on production (div.cl-modalContent, 1 node).
+The branch's one remaining failure, color-contrast on p.cl-internal-560t1i (#fbcbad on #f36b16, 12 px), is the text
+"Secured by" in Clerk's modal footer, which the development instance paints orange beside its "Development mode" label
+(read in the built-in browser on the preview at 16:27Z; the same dialog's aria-labelledby is lhb-clerk-title-1, text
+"Sign in to La Hoja Boricua"). Production, on the production instance, has no color-contrast failure. It is Clerk's
+component (Not mine: Clerk settings) and does not reach production.
