@@ -575,7 +575,11 @@ body.sheet-on{overflow:hidden}
 .btn-add[hidden]{display:none}
 .inst-p{font-size:16px;line-height:1.5;color:var(--cream);margin:0 0 18px}
 .inst-ok{width:100%;font-size:16px}
-.seo-foot{text-align:center;font-size:14px;margin-top:calc(-1 * (var(--tab-h) + var(--sab) + 18px));padding:0 16px calc(var(--tab-h) + var(--sab) + 18px)}.seo-foot a{color:var(--cream2)}
+.seo-foot{text-align:center;font-size:14px;margin-top:calc(-1 * (var(--tab-h) + var(--sab) + 18px));padding:0 16px calc(var(--tab-h) + var(--sab) + 18px)}
+/* LHB-90: until the app has drawn the first view, the footer would paint high on an empty page and be pushed down (CLS 0.12 to 0.21);
+   it stays invisible while the view is empty, so it appears already in place. Hidden, not removed: its links stay in the page for crawlers */
+.view:empty+.seo-foot{visibility:hidden}
+.seo-foot a{color:var(--cream2)}
 /* LHB-49: foto de perfil en el onboarding */
 .ob-pic{display:flex;flex-direction:column;gap:6px}
 .ob-pic-t{font-size:13px;color:var(--cream2);font-weight:600;margin:0}

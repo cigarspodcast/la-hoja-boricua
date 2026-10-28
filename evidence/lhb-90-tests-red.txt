@@ -1,0 +1,27 @@
+✖ LHB-90: el pie queda invisible mientras la vista está vacía, y es el hermano que sigue a la vista (6.2517ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 197.5141
+
+✖ failing tests:
+
+test at test\site.test.js:3692:1
+✖ LHB-90: el pie queda invisible mientras la vista está vacía, y es el hermano que sigue a la vista (6.2517ms)
+  AssertionError [ERR_ASSERTION]: regla del pie
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red90\test\site.test.js:3693:38)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
