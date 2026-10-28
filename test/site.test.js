@@ -3009,7 +3009,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  assert.ok(/function write\(s,quiet\)\{if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
- assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on'))A.route()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta');
+ assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
  assert.ok(h.includes("listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})}"),'el navegador avisa al volver la red y al ver la página');
  assert.ok(h.includes("setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)}"),'lo que llega se guarda por write, solo si la copia sigue igual a la que se leyó, y devuelve si se pudo');
  assert.ok(ix.indexOf('sync.js')>0&&ix.indexOf('sync.js')<ix.indexOf('hoja.js'),'sync.js carga antes que hoja.js');
@@ -3822,4 +3822,22 @@ test('LHB-39: la página del diario muestra los números y los filtros; cambiar 
  const {T}=I18N();for(const k of ['h.stTusNumeros','h.stCatas','h.stSellosArt','h.stSellosCig','h.stSellosLug','h.stMejores','h.stCapa','h.stFortaleza','h.dqBuscar','h.dqN','h.dqNada','h.dqRecientes','h.dqMasEstrellas'])assert.ok(T.es[k]&&T.en[k]&&T.en[k]!==T.es[k],k);
  const hj=read('hoja.js');const i=hj.indexOf('/* LHB-39');assert.ok(i>0);assert.ok(!/\u2014/.test(hj.slice(i,hj.indexOf('/* pasaporte */'))));
  const css=read('styles.css');assert.ok(css.includes('.dstats{')&&css.includes('.dfilt'),'estilos');
+});
+test('LHB-39 (Codex ronda 1): con el filtro de pública o privada, cambiar la casilla saca la entrada de la lista y corrige la cuenta; una sincronización devuelve el foco a la búsqueda aunque la puerta de la cuenta la quite',()=>{
+ const mk=()=>HOJA38({D:CAT39,api:'dKeepFocus',ls:{lhb_mihoja_v1:JSON.stringify(DOC39())}});const h=mk();h.API.vDiario();
+ const cb=(id,checked)=>({dataset:{dpub:id},checked,onchange:null});const ids=()=>[...h.els.dList.innerHTML.matchAll(/data-ddel="(\w+)"/g)].map(m=>m[1]);
+ h.els.dqQ.value='';h.els.dqS.value='';h.els.dqO.value='fecha';
+ h.lists['[data-dpub]']=[cb('e4',true)];h.els.dqV.value='priv';h.els.dqV.onchange();assert.equal(h.els.dqN.textContent,'5 de 7 catas');
+ h.lists['[data-dpub]'][0].onchange();assert.equal(h.API.S().diario.find(e=>e&&e.id==='e4').publica,true,'se guarda');
+ assert.equal(h.els.dqN.textContent,'4 de 7 catas','la cuenta baja');assert.deepEqual(ids(),['e2','e5','e6','e7'],'y la entrada sale de "Solo privadas"');
+ h.lists['[data-dpub]']=[cb('e4',false)];h.els.dqV.value='pub';h.els.dqV.onchange();assert.deepEqual(ids(),['e3','e1','e4']);
+ h.lists['[data-dpub]'][0].onchange();assert.equal(h.els.dqN.textContent,'2 de 7 catas');assert.deepEqual(ids(),['e3','e1'],'y sale de "Solo públicas"');
+ /* sin filtro de pública o privada la lista no se repinta (la casilla no pierde el foco) */
+ h.lists['[data-dpub]']=[cb('e4',true)];h.els.dqV.value='';h.els.dqV.onchange();const before=h.els.dList.innerHTML;h.els.dList.innerHTML='sin tocar';h.lists['[data-dpub]'][0].onchange();assert.equal(h.els.dList.innerHTML,'sin tocar');h.els.dList.innerHTML=before;
+ /* sincronización: el foco se anota antes de la puerta de la cuenta, que pinta su tarjeta y se lleva el buscador */
+ const g=mk();g.API.vDiario();g.els.dqQ.value='robusto';g.els.dqQ.oninput();const seen=[];g.els.dqQ.focus=()=>seen.push('focus');g.els.dqQ.setSelectionRange=a=>seen.push(a);
+ g.ctx.document.activeElement={id:'dqQ'};g.ctx.X.dKeepFocus();g.ctx.document.activeElement=null;g.API.vDiario();assert.deepEqual(seen,['focus',7],'vuelve el foco, con el cursor al final');
+ seen.length=0;g.API.vDiario();assert.deepEqual(seen,[],'lo anotado vale una sola vez');
+ g.els.dList.focus=()=>seen.push('lista');g.ctx.document.activeElement={id:'dList'};g.ctx.X.dKeepFocus();g.ctx.document.activeElement=null;g.API.vDiario();assert.deepEqual(seen,[],'si el foco estaba en otra parte (aunque esa parte vuelva a estar en la página), no se pone');
+ const hj=read('hoja.js');assert.ok(hj.includes("contains('sheet-on')){dKeepFocus();A.route()}}"),'la sincronización anota el foco antes de pasar por la puerta');
 });

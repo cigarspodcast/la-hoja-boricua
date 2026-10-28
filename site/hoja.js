@@ -46,6 +46,8 @@ const PEND=[];/* LHB-38: fotos que no se pudieron borrar porque el cambio no se 
 const parkedRef=k=>{try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n&&n.startsWith(KEY+'_de_')&&String(localStorage.getItem(n)).includes(JSON.stringify(k)))return true}return false}catch(e){return true}};
 /* LHB-31: cada escritura avisa a la sincronización, que decide tras una pausa si algo de lo que viaja a la cuenta cambió */
 let SYNC=null;
+/* LHB-39 (Codex ronda 1): el campo de la búsqueda del diario que tenía el foco cuando llegó una sincronización; la página del diario lo usa una vez */
+let DFOC='';
 /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
 function write(s,quiet){if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
 /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
@@ -178,7 +180,7 @@ SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage
  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),toast,
  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
- onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on'))A.route()}});
+ onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}}});
 SYNC.start();
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
@@ -381,14 +383,18 @@ const dCard=d=>`<article class="dentry"><div class="dhead"><div><div class="t">$
   <details><summary>${tt('h.detalleDeLaCata')}</summary><dl class="dl">${[[tt('f.fortaleza'),d.fortaleza],[tt('h.cuerpo'),d.cuerpo],[tt('h.final'),d.final],[tt('f.capa'),d.capa],[tt('h.tiro'),d.tiro],[tt('h.quemada'),d.quemada]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(lab(v))}</dd>`).join('')}
   ${(d.pasos||[]).filter(p=>(p.tags&&p.tags.length)||p.nota).map(p=>`<dt>${esc(lab(p.paso))}</dt><dd>${esc([(p.tags||[]).map(WN).join(', '),p.nota].filter(Boolean).join(' \u2014 '))}</dd>`).join('')}</dl>
   <div class="links">${d.cigarId&&A.cigarById(d.cigarId)?`<a class="lbtn" href="#/c/${encodeURIComponent(d.cigarId)}">${tt('h.verCigarro')}</a>`:''}<button class="lbtn ghost" type="button" data-ddel="${d.id}">${tt('h.borrarEntrada')}</button></div></details></article>`;
+/* el campo de la búsqueda con el foco, anotado antes de que la página pase por la puerta de la cuenta */
+function dKeepFocus(){const ae=document.activeElement;DFOC=ae&&/^dq[QSVO]$/.test(ae.id||'')?ae.id:''}
+/* repinta solo la lista y su cuenta con la búsqueda guardada */
+function dRefresh(){const box=$('#dList'),n=$('#dqN');if(!box||!n)return;const all=S().diario.filter(isEntry),l=diaryFilter(all,dq());box.innerHTML=l.map(dCard).join('');n.textContent=dCount(l.length,all.length);bindDiario();A.hydrate(box)}
 function bindDiario(){
- $$('[data-dpub]').forEach(b=>b.onchange=()=>{save(s=>{const x=s.diario.find(y=>isEntry(y)&&y.id===b.dataset.dpub);if(x){x.publica=!!b.checked;x.actualizado=new Date().toISOString()}})});
+ $$('[data-dpub]').forEach(b=>b.onchange=()=>{save(s=>{const x=s.diario.find(y=>isEntry(y)&&y.id===b.dataset.dpub);if(x){x.publica=!!b.checked;x.actualizado=new Date().toISOString()}});if(dq().vis)dRefresh()});
  $$('[data-ddel]').forEach(b=>b.onclick=()=>{if(confirm(tt('h.borrarEstaEntradaDel'))){const x=S().diario.find(y=>isEntry(y)&&y.id===b.dataset.ddel),s=S(),prev=s.diario;s.diario=prev.filter(y=>!isEntry(y)||y.id!==b.dataset.ddel);s.cambios=(s.cambios||0)+1;
   /* la foto se borra solo cuando el cambio ya quedó anotado en el teléfono; si no, la entrada y su foto se quedan */
   if(write(s)){dropFoto(x)}else{s.diario=prev;s.cambios-=1}vDiario();bindBackup()}})}
 function vDiario(){const s=S(),q=dq(),all=s.diario.filter(isEntry),list=diaryFilter(all,q);
  /* si la página se vuelve a pintar (borrar, sincronización) mientras se escribe en la búsqueda, el foco vuelve a su sitio */
- const ae=document.activeElement,foc=ae&&/^dq[QSVO]$/.test(ae.id||'')?ae.id:'';
+ const ae=document.activeElement,foc=DFOC||(ae&&/^dq[QSVO]$/.test(ae.id||'')?ae.id:'');DFOC='';
  view.innerHTML=`${subnav('diario')}
  <a class="btn cta" href="#/cata">${VBArt.leaf('#8fd162','btn-leaf')}<span>${tt('h.nuevaCataGuiada')}</span></a>
  ${dStats(diaryStats(s,D()))}
@@ -397,8 +403,7 @@ function vDiario(){const s=S(),q=dq(),all=s.diario.filter(isEntry),list=diaryFil
  ${backupPanel()}`;
  bindDiario();
  const f=$('#dqF');if(f){f.onsubmit=e=>{e.preventDefault()};
-  const upd=()=>{const q=dq();q.q=$('#dqQ').value;q.st=$('#dqS').value;q.vis=$('#dqV').value;q.ord=$('#dqO').value;
-   const all=S().diario.filter(isEntry),l=diaryFilter(all,q),box=$('#dList');box.innerHTML=l.map(dCard).join('');$('#dqN').textContent=dCount(l.length,all.length);bindDiario();A.hydrate(box)};
+  const upd=()=>{const q=dq();q.q=$('#dqQ').value;q.st=$('#dqS').value;q.vis=$('#dqV').value;q.ord=$('#dqO').value;dRefresh()};
   $('#dqQ').oninput=upd;for(const id of ['#dqS','#dqV','#dqO'])$(id).onchange=upd;
   if(foc){const x=$('#'+foc);if(x&&x.focus){x.focus({preventScroll:true});if(foc==='dqQ'&&x.setSelectionRange){const k=String(x.value||'').length;x.setSelectionRange(k,k)}}}}
  A.hydrate(view)}
