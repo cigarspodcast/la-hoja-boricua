@@ -1,0 +1,52 @@
+baseline (0, [])
+E4 motor: no se usa la base y lo borrado vuelve -> ROJO (bien) fail=10
+      LHB-31 (Codex ronda 1): si no se puede anotar lo sincronizado, la pasada falla, conserva la dueña y la siguiente no se fía de la base vieja
+      LHB-31 (Codex ronda 2): lo borrado antes de recargar la página sigue siendo un borrado: la marca de pendiente está en la meta, no solo en la pestaña
+      LHB-31 (Codex ronda 2): lo que otra pestaña borra mientras esta espera la red queda marcado como pendiente y el borrado llega a la cuenta
+      LHB-31 (Codex ronda 3): sin poder anotar la dueña no se guarda; la base recordada no pisa una meta más nueva de otra pestaña; una llave __proto__ anid
+E21 motor: lo que la sincronizacion escribe la vuelve a disparar -> ROJO (bien) fail=2
+      LHB-31 (Codex ronda 4): un teléfono que se quedó vacío por pérdida trae la cuenta aunque la pasada anterior no pudo anotar la meta
+      LHB-31: guardar en el teléfono sincroniza tras una pausa y una sola vez; lo que la propia sincronización escribe no la dispara otra vez, y sin cambios
+E31 motor: si el telefono no puede guardar lo traido se da por bueno -> ROJO (bien) fail=2
+      LHB-31 (Codex ronda 6): dos fallos seguidos sin recargar (meta, luego aplicar) no hacen que el teléfono borre en la cuenta lo que otro volvió a agrega
+      LHB-31: si el teléfono no puede guardar lo traído, lo dice y no marca la pasada como buena; lo escrito mientras se sincroniza se junta en vez de pisar
+E32 motor: lo borrado mientras se sincroniza se toma por perdida -> ROJO (bien) fail=2
+      LHB-31 (Codex ronda 2): lo que otra pestaña borra mientras esta espera la red queda marcado como pendiente y el borrado llega a la cuenta
+      LHB-31: borrar la última entrada mientras se sincroniza también llega a la cuenta, y no se confunde con una pérdida
+N8 motor: escribir no deja la marca de pendiente en la meta -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 2): lo borrado antes de recargar la página sigue siendo un borrado: la marca de pendiente está en la meta, no solo en la pestaña
+R3 motor: tras un fallo al anotar se sigue usando la base vieja -> ROJO (bien) fail=2
+      LHB-31 (Codex ronda 1): si no se puede anotar lo sincronizado, la pasada falla, conserva la dueña y la siguiente no se fía de la base vieja
+      LHB-31 (Codex ronda 6): dos fallos seguidos sin recargar (meta, luego aplicar) no hacen que el teléfono borre en la cuenta lo que otro volvió a agrega
+R25 hoja: write ignora quiet -> ROJO (bien) fail=2
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+      LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja la copia en memoria por vieja cuando otra pestaña escribe, aparta lo de otra
+F1 motor: si lo subido no se pudo aplicar, la base recordada sigue valiendo -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 6): dos fallos seguidos sin recargar (meta, luego aplicar) no hacen que el teléfono borre en la cuenta lo que otro volvió a agrega
+F2 motor: una pasada completa no devuelve la base (voided queda) -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 6): dos fallos seguidos sin recargar (meta, luego aplicar) no hacen que el teléfono borre en la cuenta lo que otro volvió a agrega
+F3 motor: la primera edicion no guarda la semilla -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 6): quitar un corazón antes de la primera sincronización no se deshace; el que se quita en la cuenta tampoco vuelve; lo que solo e
+F4 motor: sin base guardada no se usa la semilla -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 6): quitar un corazón antes de la primera sincronización no se deshace; el que se quita en la cuenta tampoco vuelve; lo que solo e
+F5 motor: una copia que cambio justo antes de aplicar se da por aplicada -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 6): si otra pestaña guarda justo antes de aplicar lo que llegó, no se pisa: la pasada vuelve a empezar y junta las dos cosas
+F6 motor: aplicar no pide que la copia siga igual a la leida -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 6): si otra pestaña guarda justo antes de aplicar lo que llegó, no se pisa: la pasada vuelve a empezar y junta las dos cosas
+F7 motor: la semilla se reescribe en cada edicion -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 6): quitar un corazón antes de la primera sincronización no se deshace; el que se quita en la cuenta tampoco vuelve; lo que solo e
+F8 motor: meet no se cuida de la llave __proto__ en las estrellas -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 6): quitar un corazón antes de la primera sincronización no se deshace; el que se quita en la cuenta tampoco vuelve; lo que solo e
+F9 motor: sin meta de esta cuenta la edicion no la crea para la semilla -> SOBREVIVIÓ fail=0
+F10 hoja: aplicar no compara con lo leido -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+F11 hoja: write no guarda lo que habia antes -> ROJO (bien) fail=2
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+      LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja la copia en memoria por vieja cuando otra pestaña escribe, aparta lo de otra
+W1 hoja: escribir Mi Hoja no avisa al motor -> ROJO (bien) fail=2
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+      LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja la copia en memoria por vieja cuando otra pestaña escribe, aparta lo de otra
+W15 hoja: lo que llega no se guarda por write -> ROJO (bien) fail=1
+      LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; hoja.js manda Mi Hoja por el juntador y avisa al motor en cada escritura
+restaurado (0, [])
+mutaciones: 153 sobrevivieron o con error: 1

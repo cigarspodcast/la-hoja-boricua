@@ -13,12 +13,21 @@ const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.
 /* misma lectura del hash que el router de app.js: #/mihoja, #mihoja, #/perfil/x, #perfil; también las páginas que escriben datos de la cuenta (#/cata y #/subir): al cambiar la cuenta se vuelven a pasar por la puerta */
 /* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
 const cache=v=>{try{D.store.set(v)}catch(e){}};
+/* LHB-51: lo guardado en el teléfono lleva solo lo público (nombre público y la foto de Clerk) para pintar el encabezado y Perfil; la foto solo vale si es de Clerk */
+const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='string'?p.display_name:'',avatar:typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG)?p.avatar_key:''});
 /* toda salida que da por buena la cuenta con perfil retira el formulario de perfil que siga abierto: quedó viejo y su respuesta tardía ya no corre su acción además de esta */
 const retire=()=>{if(ob){ob=false;D.reroute()}};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
+/* LHB-51: al abrir la app con una cuenta guardada, Clerk dice quién es: si es otra (o nadie) lo guardado se descarta; sin conexión se queda */
+async function reconcile(){const c0=D.store.get();if(!c0)return;let C;try{C=await D.clerk()}catch(e){return}hook(C);
+ /* si lo guardado era de otra cuenta y la persona está en Mi Hoja, lo que se pintó con ello (Perfil) se vuelve a pasar por la puerta */
+ if(!D.store.get()&&onMiHoja())D.reroute()}
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
+ /* LHB-51: lo guardado es de otra cuenta que la que Clerk dice (o de ninguna): se descarta ya, aunque luego /api/me falle */
+ {const c0=D.store.get();if(c0&&(!C.user||c0.sub!==C.user.id))D.store.clear()}
  C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;sip++;gen++;D.ui.closeAll();
-  if(!id){D.store.clear();D.intent.clear()}
+  /* LHB-51: lo guardado es de la cuenta anterior: al salir o al cambiar de cuenta se borra, para que el encabezado nunca muestre a una persona con la sesión de otra */
+  D.store.clear();if(!id)D.intent.clear();
   const p=pending;pending=null;const fl=failure;failure=null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}
@@ -49,7 +58,7 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
   if(o.resume){D.intent.clear();return}
   pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));
   const open=()=>D.openSignIn(C);
-  show('Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta. El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.',{label:'Entrar o crear cuenta',on:open});
+  show('Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta.'+(D.hasLocal&&D.hasLocal()?' Lo que ya tienes guardado en este teléfono pasa a tu cuenta al entrar.':'')+' El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.',{label:'Entrar o crear cuenta',on:open});
   open();return}
  const uid=C.user.id;let r;
  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
@@ -57,8 +66,8 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  /* LHB-52: un perfil de antes, sin nombre, apellido, género y fecha de nacimiento, completa su identidad antes de abrir nada; mientras tanto no se guarda para abrir sin conexión */
  if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
  /* LHB-55: editar el perfil pasa por la misma puerta y abre el formulario con lo que hay guardado; done corre al guardar */
- if(r.status===200&&r.body.profile&&o.edit){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
- if(r.status===200&&r.body.profile){cache({sub:uid,handle:r.body.profile.handle});D.intent.clear();retire();return done()}
+ if(r.status===200&&r.body.profile&&o.edit){cache(snap(uid,r.body.profile));D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
+ if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));D.intent.clear();retire();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
  if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
  const c=D.store.get();
@@ -116,7 +125,7 @@ function onboard(C,done,o,lv,uid){ob=true;
   if(!pic)return {error:'avatar-required'};
   let r;try{r=await D.api(C,'POST','/api/profile',{...f,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
   const same=!!C.user&&C.user.id===uid;
-  if(r.status===201){if(same)cache({sub:uid,handle:r.body.profile.handle});
+  if(r.status===201){if(same)cache(snap(uid,r.body.profile));
    if(!live())return {stale:true};
    settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
   if(!live())return {stale:true};
@@ -127,7 +136,7 @@ function onboard(C,done,o,lv,uid){ob=true;
    if(!live())return {stale:true};
    /* LHB-52: el perfil que apareció tras el 409 sigue sin identidad: se completa antes de guardar nada o abrir Mi Hoja; este formulario ya no vale */
    if(m.status===200&&m.body.profile&&m.body.needsIdentity===true){identify(C,done,o,lv,uid,m.body.profile);return {stale:true}}
-   if(m.status===200&&m.body.profile){cache({sub:uid,handle:m.body.profile.handle});settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}};
  /* un envío y una subida nunca corren a la vez: lo que se manda es la foto que se ve, y la que se sube no llega tarde a un perfil ya enviado */
@@ -147,7 +156,7 @@ function edit(C,done,o,lv,uid,prof){ob=true;
   if(!pic)return {error:'avatar-required'};
   let r;try{r=await D.api(C,'PUT','/api/profile',{...f,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
   if(!live())return {stale:true};
-  if(r.status===200&&r.body.profile){if(!!C.user&&C.user.id===uid)cache({sub:uid,handle:r.body.profile.handle});
+  if(r.status===200&&r.body.profile){if(!!C.user&&C.user.id===uid)cache(snap(uid,r.body.profile));
    settle();ob=false;D.intent.clear();D.ui.toast('Perfil guardado.');done();return {ok:true}}
   return {error:r.body&&r.body.error||'generic'}};
  D.ui.edit(prof,async f=>{
@@ -160,7 +169,7 @@ function identify(C,done,o,lv,uid,prof){ob=true;
  /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, se vuelve a revisar */
  D.store.clear();
  const {live,settle}=guard(C,o,lv,uid);let sending=false;
- const finish=()=>{cache({sub:uid,handle:prof.handle});settle();ob=false;D.intent.clear();D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();return {ok:true}};
+ const finish=()=>{cache(snap(uid,prof));settle();ob=false;D.intent.clear();D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();return {ok:true}};
  const send=async f=>{
   if(!live())return {stale:true};
   let r;try{r=await D.api(C,'PUT','/api/profile',{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date},uid)}catch(e){r={status:0,body:{}}}
@@ -185,4 +194,4 @@ function resume(){const it=D.intent.get();
  if(it&&it.from===D.here()&&!onMiHoja()&&typeof it.act==='string'&&typeof ACT[it.act]==='function'){const act=it.act,arg=typeof it.arg==='string'?it.arg:undefined;
   return quick(()=>ACT[act](arg),{resume:true,act,arg})}
  D.intent.clear()}
-return {require:go,quick,resume,gen:()=>gen,register:(name,fn)=>{ACT[name]=fn}}};
+return {require:go,reconcile,quick,resume,gen:()=>gen,register:(name,fn)=>{ACT[name]=fn}}};

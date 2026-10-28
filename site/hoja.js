@@ -23,15 +23,20 @@ function normalize(o){const d=DEF();o=o&&typeof o==='object'?o:{};
  if(!Array.isArray(o.humidor))o.humidor=[];if(!Array.isArray(o.diario))o.diario=[];if(!o.ratings||typeof o.ratings!=='object')o.ratings={};return o}
 function upgrade(o){o=o||{};if(!o.schema)o.schema=1;while(o.schema<SCHEMA&&MIG[o.schema])o=MIG[o.schema](o);return normalize(o)}
 const legacy=k=>{try{const v=localStorage.getItem('vb_'+k);return v==null?null:JSON.parse(v)}catch(e){return null}};
-let ST=null;
+let ST=null,STRAW=null;
 function load(){const raw=localStorage.getItem(KEY);
  if(raw){try{return upgrade(JSON.parse(raw))}catch(e){try{localStorage.setItem(KEY+'_danado_'+Date.now(),raw)}catch(_){}}}
  /* primera vez en v6: trae favoritos y estrellas de la versión anterior (vb_favs, vb_ratings); las llaves viejas no se borran */
  const s=DEF();const f=legacy('favs'),r=legacy('ratings');
  if(Array.isArray(f))s.favs.cigarros=f.filter(x=>typeof x==='string');if(r&&typeof r==='object'&&!Array.isArray(r))s.ratings={...r};
- s.migrado=(f||r)?'v5':'nuevo';write(s);return s}
-function write(s){try{localStorage.setItem(KEY,JSON.stringify(s));return true}catch(e){toast('No hay espacio para guardar. Exporta un respaldo.');return false}}
-const S=()=>ST||(ST=load());
+ s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}
+/* LHB-31: cada escritura avisa a la sincronización, que decide tras una pausa si algo de lo que viaja a la cuenta cambió */
+let SYNC=null;
+/* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
+function write(s,quiet){if(SYNC&&!SYNC.isolate()){ST=null;toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}if(SYNC&&!quiet)SYNC.changed(prev);return true}
+/* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
+const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};
+window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null});
 function save(mut){const s=S();mut&&mut(s);s.cambios=(s.cambios||0)+1;write(s);return s}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
 /* ---------- favoritos y pasaporte ---------- */
@@ -122,25 +127,26 @@ function importar(file){const fr=new FileReader();fr.onload=()=>{let j;try{j=JSO
  const m=j&&(j.mihoja||(Array.isArray(j.humidor)&&j));if(!m||(j.app&&j.app!=='La Hoja Boricua')){toast('Ese archivo no es un respaldo de La Hoja Boricua');return}
  const inc=upgrade(JSON.parse(JSON.stringify(m)));const cur=S();try{localStorage.setItem(KEY+'_antes_de_importar',JSON.stringify(cur))}catch(e){}
  const n0={d:cur.diario.length,h:cur.humidor.length};
- save(s=>{s.humidor=byId(s.humidor,inc.humidor);s.diario=byId(s.diario,inc.diario).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  for(const k of ['artesanos','cigarros','lugares']){s.pasaporte[k]={...inc.pasaporte[k],...s.pasaporte[k]};s.favs[k]=[...new Set([...s.favs[k],...inc.favs[k]])]}
-  s.ratings={...inc.ratings,...s.ratings}});
+ /* LHB-28: importar y la sincronización juntan con una sola función (site/sync.js): sin base, y lo de este teléfono gana si los dos cambiaron lo mismo */
+ save(s=>{const m=LHB_MERGE.merge(null,s,inc,{prefer:'local'});s.humidor=m.humidor;s.diario=m.diario;s.pasaporte=m.pasaporte;s.favs=m.favs;s.ratings=m.ratings});
  const x=j.extra||{};try{if(x.perfil&&!legacy('perfil'))localStorage.setItem('vb_perfil',JSON.stringify(x.perfil));
   if(Array.isArray(x.sugeridas)&&x.sugeridas.length)localStorage.setItem('vb_sugeridas',JSON.stringify(byId(legacy('sugeridas')||[],x.sugeridas)));
   if(Array.isArray(x.subidas)&&x.subidas.length)localStorage.setItem('vb_uploads',JSON.stringify(byId(legacy('uploads')||[],x.subidas)))}catch(e){}
  const s=S();toast(`Importado: +${s.diario.length-n0.d} catas, +${s.humidor.length-n0.h} en humidor`);A.route()};fr.readAsText(file)}
 function backupDue(){const s=S();const n=s.diario.length+s.humidor.length+Object.values(s.pasaporte).reduce((t,o)=>t+Object.keys(o).length,0);if(!n||!s.cambios)return false;
  if(s.recordarDespues&&new Date(s.recordarDespues)>new Date())return false;if(!s.respaldo)return s.cambios>=3;return (Date.now()-new Date(s.respaldo))/864e5>=14}
-const backupBanner=()=>backupDue()?`<div class="remind" role="note"><p><b>¿Un respaldo?</b> Tus catas y tu humidor viven solo en este teléfono. Guarda una copia por si cambias de cel.</p><div class="remind-b"><button class="lbtn" data-exp type="button">Exportar ahora</button><button class="lbtn ghost" data-snooze type="button">Luego</button></div></div>`:'';
-const backupPanel=()=>{const s=S();return `<section class="backup"><div class="section-title"><h2>Respaldo</h2></div><p class="lead" style="margin-top:-4px">Exporta un archivo con tu humidor, diario, pasaporte y favoritos. Para pasarlo a otro teléfono, impórtalo allá: importar suma, no borra.${s.respaldo?` Último respaldo: ${fmtF(s.respaldo)}.`:' Todavía no has hecho uno.'}</p>
- <div class="links"><button class="lbtn" data-exp type="button">⬇︎ Exportar respaldo</button><label class="lbtn" tabindex="0">⬆︎ Importar respaldo<input type="file" accept="application/json,.json" id="impF" class="sr"></label></div><p class="note" style="margin-top:6px">Las fotos de tus subidas se quedan en este teléfono.</p></section>`};
+const backupBanner=()=>backupDue()?`<div class="remind" role="note"><p><b>¿Un respaldo?</b> Tus catas y tu humidor están en tu cuenta. Si quieres, guarda también una copia en un archivo.</p><div class="remind-b"><button class="lbtn" data-exp type="button">Exportar ahora</button><button class="lbtn ghost" data-snooze type="button">Luego</button></div></div>`:'';
+const backupPanel=()=>{const s=S();return `<section class="backup"><div class="section-title"><h2>Respaldo</h2></div><p class="lead" style="margin-top:-4px">Exporta un archivo con tu humidor, diario, pasaporte y favoritos. Tu cuenta ya lleva Mi Hoja a tus otros teléfonos; el archivo es una copia más. Importar suma, no borra.${s.respaldo?` Último respaldo: ${fmtF(s.respaldo)}.`:' Todavía no has hecho uno.'}</p>
+ <div class="links"><button class="lbtn" data-exp type="button">⬇︎ Exportar respaldo</button><label class="lbtn" tabindex="0">⬆︎ Importar respaldo<input type="file" accept="application/json,.json" id="impF" class="sr"></label></div><p class="note" style="margin-top:6px">Las fotos de tus subidas se quedan en este teléfono.</p>${syncLine()}</section>`};
+const syncLine=()=>{const t=SYNC?SYNC.status():{state:'idle'};const m={ok:t.at?`Tu Mi Hoja está en tu cuenta. Última vez: ${fmtF(t.at)}.`:'Tu Mi Hoja está en tu cuenta.',syncing:'Sincronizando con tu cuenta…',offline:'Sin conexión. Tus cambios quedan en este teléfono y pasan a tu cuenta al volver.',error:'No pudimos sincronizar con tu cuenta. Lo intentamos de nuevo en un rato.'}[t.state]||'Mi Hoja se sincroniza con tu cuenta cuando hay conexión.';return `<p class="note" id="syncSt" aria-live="polite" style="margin-top:6px">${m}</p>`};
 function bindBackup(){$$('[data-exp]').forEach(b=>b.onclick=exportar);$$('[data-snooze]').forEach(b=>b.onclick=()=>{const s=S();s.recordarDespues=new Date(Date.now()+7*864e5).toISOString();write(s);b.closest('.remind').remove()});const f=$('#impF');if(f)f.onchange=e=>{const x=e.target.files&&e.target.files[0];if(x)importar(x);e.target.value=''}}
 /* ---------- cuenta (LHB-25): la lógica vive en cuenta.js; aquí Clerk, las pantallas y el perfil ---------- */
 const CLERK=location.hostname==='lahojaboricua.com'?{pk:'pk_live_Y2xlcmsubGFob2phYm9yaWN1YS5jb20k',fapi:'clerk.lahojaboricua.com'}:{pk:'pk_test_ZGFyaW5nLWVhZ2xlLTgzOTQuY2xlcmsuYWNjb3VudHMuZGV2JA',fapi:'daring-eagle-8394.clerk.accounts.dev'};
 const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
 /* LHB-52: la llave nueva (cuenta2) deja sin valor lo guardado antes de pedir la identidad: un perfil guardado de antes ({sub,handle}) no abre Mi Hoja sin conexión ni por el camino rápido; clear() borra las dos */
-const acct={get:()=>A.LS.get('cuenta2',null),set:v=>A.LS.set('cuenta2',v),clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}}};
+/* LHB-51: al guardar o borrar la cuenta guardada se repinta la foto del encabezado */
+const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar()}};
 /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
 const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
 let clerkP=null;
@@ -150,7 +156,16 @@ function clerk(){if(clerkP)return clerkP;
  clerkP=Promise.all([script(`https://${CLERK.fapi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`,CLERK.pk),script(`https://${CLERK.fapi}/npm/@clerk/ui@1/dist/ui.browser.js`)])
   .then(()=>window.Clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor}})).then(()=>window.Clerk).catch(e=>{clerkP=null;throw e});
  return clerkP}
-async function api(C,method,path,body,uid){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
+/* extra: cabeceras de más (If-Match en la sincronización) */
+async function api(C,method,path,body,uid,extra){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
+/* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
+SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+ lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),
+ now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),toast,
+ listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
+ /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
+ onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on'))A.route()}});
+SYNC.start();
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}
@@ -218,9 +233,11 @@ function onboardingForm(submit,picture,mode,init){const marcas=[...new Set((D().
   let r;try{r=await submit(idm?f:{handle:h,...f,bio:$('#obB').value,favorite_brand:$('#obM').value})}catch(x){r={error:'generic'}}
   if($('#obForm')!==form)return;if(!r||r.stale){busy(false);return}
   busy(false);if(r.error)err(OB_ERR[r.error]||(idm||edm?'No pudimos guardar tu perfil. Intenta otra vez.':'No pudimos crear tu perfil. Intenta otra vez.'))}}
-const CUENTA=window.LHB_CUENTA({clerk,api,here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture)=>onboardingForm(submit,picture,'edit',prof),toast,closeAll:closeSheetNow}});
+const CUENTA=window.LHB_CUENTA({clerk,api,hasLocal:()=>LHB_MERGE.hasData(S()),here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href}),ui:{card:accountCard,notice:accountNotice,onboarding:onboardingForm,identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture)=>onboardingForm(submit,picture,'edit',prof),toast,closeAll:closeSheetNow}});
 /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
 const requireAccount=(go,o)=>CUENTA.require(go,o);
+/* LHB-51: con una cuenta guardada, un poco después de abrir la app se confirma con Clerk que sigue siendo esa cuenta (si no, el encabezado vuelve a la estrella) */
+setTimeout(()=>{if(acct.get())CUENTA.reconcile()},2500);
 /* ---------- acciones que piden cuenta (LHB-48) ----------
    Corazón, sello, estrella y humidor se hacen solo con sesión y perfil; ver la página no pide nada. El argumento viaja como texto (también por sessionStorage al volver de Google) y se valida aquí. */
 const txt=v=>typeof v==='string'&&v.length<200;
@@ -247,7 +264,7 @@ const SUBS=[['humidor','Humidor'],['diario','Diario'],['pasaporte','Pasaporte'],
 const subnav=cur=>`<header class="mh-head"><div class="eyebrow">Mi Hoja</div><h1>Lo <em>tuyo</em></h1><p><a class="lbtn" href="#/mihoja/editar" id="mhEdit">Editar perfil</a></p></header><nav class="subnav" aria-label="Mi Hoja">${SUBS.map(([k,n])=>`<a href="#/mihoja/${k}" ${k===cur?'aria-current="page"':''}>${n}</a>`).join('')}</nav>${backupBanner()}`;
 /* LHB-55: #/mihoja/editar abre el formulario de editar perfil por la misma puerta; al guardar (done) vuelve a Perfil */
 function vMiHoja(sub){requireAccount(()=>vMiHojaIn(sub),sub==='editar'?{edit:true}:undefined)}
-function vMiHojaIn(sub){sub=sub||'humidor';if(sub==='editar'){location.hash='#/mihoja/perfil';return}if(sub==='perfil'){A.vPerfil();bindBackup();return}
+function vMiHojaIn(sub){sub=sub||'humidor';SYNC.isolate();SYNC.run('mi-hoja',{minAge:20e3});if(sub==='editar'){location.hash='#/mihoja/perfil';return}if(sub==='perfil'){A.vPerfil();bindBackup();return}
  ({humidor:vHumidor,diario:vDiario,pasaporte:vPasaporte,favoritos:vFavoritos}[sub]||vHumidor)();bindBackup()}
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);
  view.innerHTML=`${subnav('humidor')}
@@ -500,7 +517,7 @@ const evLine=(e,p)=>{const m=evMeta(e,p);return m?`<div class="s">${m}</div>`:''
 function evCard(e,pending){const d=A.evDate(e.fecha);const m={nombre:e.lugar||e.titulo,direccion:e.direccion||'',pueblo:e.pueblo,maps:e.maps,lat:e.lat,lng:e.lng};const src=e.enlace||e.fuente_url;
  return `<article class="ev ${pending?'pending':''}" id="ev-${esc(e.id)}"><div class="date">${d?`<small>${MES[d.getMonth()]}</small><b>${d.getDate()}</b><small>${DIAS[d.getDay()]}</small>`:'<b>?</b>'}</div><div style="min-width:0;flex:1">
  <div class="t">${esc(e.titulo)}</div>${evLine(e)}
- ${okv(e.detalle)?`<div class="s">${esc(scrub(e.detalle))}</div>`:''}
+ ${e.imagen?`<img class="ev-flyer" src="${esc(e.imagen)}" alt="${esc(e.titulo)}" width="480" height="600" loading="lazy">`:''} ${okv(e.detalle)?`<div class="s">${esc(scrub(e.detalle))}</div>`:''}
  <div class="src">${pending?'Sugerida por ti · pendiente de verificar':(e.fuente?`vía ${e.fuente_url?`<a href="${esc(e.fuente_url)}" target="_blank" rel="noopener">${esc(e.fuente)}</a>`:esc(e.fuente)}`:'')}</div>
  <div class="links">${src?A.linkBtn('web',src,pending?'Ver enlace':'Ver fuente'):''}${pending?'':`<button type="button" class="lbtn" data-ics="${esc(e.id)}">${CAL_ICO}Añadir a calendario</button>`}${(okv(e.lugar)||e.maps)?`<a class="lbtn go-map" href="${esc(A.goLink(m))}" target="_blank" rel="noopener">${A.ICON.map}Cómo llegar</a>`:''}</div></div></article>`}
 function anchorCard(e){const d=A.evDate(e.fecha);const m={nombre:e.lugar,pueblo:e.pueblo,maps:e.maps};

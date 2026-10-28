@@ -129,10 +129,6 @@ const T={es:{
  "pf.uploads": "Subidas",
  "pf.favs": "Favoritos",
  "pf.rated": "Calificadas",
- "pf.edit": "Editar perfil",
- "pf.name": "Nombre",
- "pf.namePh": "¿Cómo te llamas?",
- "pf.foto": "Foto",
  "pf.save": "Guardar perfil",
  "pf.myUploads": "Mis subidas",
  "pf.add": "+ Subir",
@@ -142,7 +138,6 @@ const T={es:{
  "pf.myRatings": "Mis calificaciones",
  "pf.noRatings": "Califica una vitola con estrellas.",
  "pf.fotoAlt": "Tu foto",
- "pf.fotoOk": "Foto actualizada",
  "pf.saved": "Perfil guardado",
  "inst.ok": "¡Instalada!"
  },
@@ -272,10 +267,6 @@ en:{
  "pf.uploads": "Uploads",
  "pf.favs": "Favorites",
  "pf.rated": "Rated",
- "pf.edit": "Edit profile",
- "pf.name": "Name",
- "pf.namePh": "What is your name?",
- "pf.foto": "Photo",
  "pf.save": "Save profile",
  "pf.myUploads": "My uploads",
  "pf.add": "+ Upload",
@@ -285,7 +276,6 @@ en:{
  "pf.myRatings": "My ratings",
  "pf.noRatings": "Rate a vitola with stars.",
  "pf.fotoAlt": "Your photo",
- "pf.fotoOk": "Photo updated",
  "pf.saved": "Profile saved",
  "inst.ok": "Installed!"
  }};
