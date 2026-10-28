@@ -2240,7 +2240,7 @@ function HOJA38(opts){opts=opts||{};
  const lists={};const $$=s=>lists[s]||[];
  const toasts=[],blobs=[],log=[];const acctBox={v:{sub:'u_a'}};
  const resized=[];
- const ctx={...TT(),window:{addEventListener(){}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
+ const ctx={...TT(),window:{addEventListener(t,f){if(opts.win)(opts.win[t]=opts.win[t]||[]).push(f)}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
   A:{D:()=>opts.D||({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),cigarById:id=>id==='c1'?{id:'c1',nombre:'Yambú Toro'}:null,artisanName:c=>'Casa Yambú',allCigars:()=>[],
    resizeImage:opts.resize||(async(f,max,q)=>{resized.push([max,q]);return {blob:1}}),hydrate:r=>log.push('hydrate'),route:()=>log.push('route')},
   D:()=>opts.D||({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),APP_URL:'https://x.test/',acct:{get:()=>acctBox.v},
@@ -3921,4 +3921,17 @@ test('LHB-87 (Codex r3): con la lista abierta, si el mapa cambia de alto la list
  const shut=pop();fitPop(map,shut);assert.equal(shut.u,0,'una lista cerrada no se toca');assert.doesNotThrow(()=>fitPop(map,null),'sin lista todavía');
  assert.ok(app.includes("map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));"),'cada cambio de tamaño del mapa la acomoda');
  assert.ok(app.includes("==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)})"),'la lista abierta queda guardada');
+});
+test('LHB-39 (Codex ronda 2): el foco anotado al llegar una sincronización no se usa después de irse a otra página ni con otra cuenta',()=>{
+ const win={};const g=HOJA38({D:CAT39,api:'dKeepFocus',win,ls:{lhb_mihoja_v1:JSON.stringify(DOC39())}});g.API.vDiario();
+ const seen=[];g.els.dqQ.focus=()=>seen.push('focus');g.els.dqQ.setSelectionRange=a=>seen.push(a);
+ const sync=()=>{g.ctx.document.activeElement={id:'dqQ'};g.ctx.X.dKeepFocus();g.ctx.document.activeElement=null};
+ /* la puerta de la cuenta todavía revisa y la persona se va al catálogo: la puerta no pinta el diario, y lo anotado se borra */
+ assert.ok((win.hashchange||[]).length>=1,'escucha los cambios de página');
+ sync();for(const f of win.hashchange)f();g.API.vDiario();assert.deepEqual(seen,[],'al volver más tarde, el buscador no recibe el foco');
+ /* cambia la cuenta antes de pintar: lo anotado era de la otra */
+ sync();g.acctBox.v={sub:'u_b'};g.API.vDiario();assert.deepEqual(seen,[],'otra cuenta no recibe el foco de la anterior');
+ seen.length=0;g.API.vDiario();assert.deepEqual(seen,[],'y no queda pendiente');
+ /* sin irse y con la misma cuenta, sigue volviendo */
+ sync();g.API.vDiario();assert.deepEqual(seen,['focus',0],'el caso de la ronda 1 sigue bien');
 });

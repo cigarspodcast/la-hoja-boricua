@@ -46,8 +46,9 @@ const PEND=[];/* LHB-38: fotos que no se pudieron borrar porque el cambio no se 
 const parkedRef=k=>{try{for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n&&n.startsWith(KEY+'_de_')&&String(localStorage.getItem(n)).includes(JSON.stringify(k)))return true}return false}catch(e){return true}};
 /* LHB-31: cada escritura avisa a la sincronización, que decide tras una pausa si algo de lo que viaja a la cuenta cambió */
 let SYNC=null;
-/* LHB-39 (Codex ronda 1): el campo de la búsqueda del diario que tenía el foco cuando llegó una sincronización; la página del diario lo usa una vez */
-let DFOC='';
+/* LHB-39 (Codex ronda 1): el campo de la búsqueda del diario que tenía el foco cuando llegó una sincronización, y de qué cuenta; la página del diario lo usa una vez.
+   Codex ronda 2: irse a otra página lo borra, y con otra cuenta no vale */
+let DFOC=null;window.addEventListener('hashchange',()=>{DFOC=null});
 /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
 function write(s,quiet){if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
 /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
@@ -384,7 +385,7 @@ const dCard=d=>`<article class="dentry"><div class="dhead"><div><div class="t">$
   ${(d.pasos||[]).filter(p=>(p.tags&&p.tags.length)||p.nota).map(p=>`<dt>${esc(lab(p.paso))}</dt><dd>${esc([(p.tags||[]).map(WN).join(', '),p.nota].filter(Boolean).join(' \u2014 '))}</dd>`).join('')}</dl>
   <div class="links">${d.cigarId&&A.cigarById(d.cigarId)?`<a class="lbtn" href="#/c/${encodeURIComponent(d.cigarId)}">${tt('h.verCigarro')}</a>`:''}<button class="lbtn ghost" type="button" data-ddel="${d.id}">${tt('h.borrarEntrada')}</button></div></details></article>`;
 /* el campo de la búsqueda con el foco, anotado antes de que la página pase por la puerta de la cuenta */
-function dKeepFocus(){const ae=document.activeElement;DFOC=ae&&/^dq[QSVO]$/.test(ae.id||'')?ae.id:''}
+function dKeepFocus(){const ae=document.activeElement;DFOC=ae&&/^dq[QSVO]$/.test(ae.id||'')?{id:ae.id,who:(acct.get()||{}).sub||''}:null}
 /* repinta solo la lista y su cuenta con la búsqueda guardada */
 function dRefresh(){const box=$('#dList'),n=$('#dqN');if(!box||!n)return;const all=S().diario.filter(isEntry),l=diaryFilter(all,dq());box.innerHTML=l.map(dCard).join('');n.textContent=dCount(l.length,all.length);bindDiario();A.hydrate(box)}
 function bindDiario(){
@@ -394,7 +395,8 @@ function bindDiario(){
   if(write(s)){dropFoto(x)}else{s.diario=prev;s.cambios-=1}vDiario();bindBackup()}})}
 function vDiario(){const s=S(),q=dq(),all=s.diario.filter(isEntry),list=diaryFilter(all,q);
  /* si la página se vuelve a pintar (borrar, sincronización) mientras se escribe en la búsqueda, el foco vuelve a su sitio */
- const ae=document.activeElement,foc=DFOC||(ae&&/^dq[QSVO]$/.test(ae.id||'')?ae.id:'');DFOC='';
+ const kept=DFOC&&DFOC.who===q.who?DFOC.id:'';DFOC=null;
+ const ae=document.activeElement,foc=kept||(ae&&/^dq[QSVO]$/.test(ae.id||'')?ae.id:'');
  view.innerHTML=`${subnav('diario')}
  <a class="btn cta" href="#/cata">${VBArt.leaf('#8fd162','btn-leaf')}<span>${tt('h.nuevaCataGuiada')}</span></a>
  ${dStats(diaryStats(s,D()))}
