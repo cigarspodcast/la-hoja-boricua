@@ -524,7 +524,7 @@ test('LHB-25: un formulario de perfil que quedó en pantalla tras cambiar de cue
  calls.length=0;assert.deepEqual(await submit({handle:'ana'}),{stale:true});assert.deepEqual(calls,[],'no se mandó el perfil de A a nombre de B');assert.ok(!h.log.includes('GO'));
  const ok=[];const g=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{ok.push(uid);return m==='GET'?{status:200,body:{needsProfile:true}}:{status:201,body:{profile:{handle:'ana'}}}}});
  let s2;g.D.ui.onboarding=s=>{s2=s};g.C.user={id:'user_a'};await g.A.require(g.go,{inPlace:true,act:'x'});await tick();await s2({handle:'ana'});assert.deepEqual(ok,['user_a','user_a'],'cada llamada de la cuenta lleva su usuario, para que el adaptador la ate a esa sesión');
- const hj=read('hoja.js');assert.match(hj,/async function api\(C,method,path,body,uid,extra\)\{const t=await C\.session\.getToken\(\);if\(uid&&\(!C\.user\|\|C\.user\.id!==uid\)\)throw new Error\('account-changed'\)/,'el adaptador se niega si la sesión ya es de otra cuenta');
+ const hj=read('hoja.js');assert.match(hj,/async function api\(C,method,path,body,uid,extra,go\)\{const t=await C\.session\.getToken\(\);if\(uid&&\(!C\.user\|\|C\.user\.id!==uid\)\)throw new Error\('account-changed'\)/,'el adaptador se niega si la sesión ya es de otra cuenta');
 });
 test('LHB-25: si el perfil se creó pero se perdió la respuesta, el reintento termina igual que un 201 y repinta la página de origen',async()=>{
  let gets=0,submit;const h=CUENTA_HARNESS({api:async(C,m)=>{if(m==='GET')return ++gets===1?{status:200,body:{needsProfile:true}}:{status:200,body:{profile:{handle:'ana'}}};return {status:409,body:{error:'profile-exists'}}}});
@@ -1473,7 +1473,7 @@ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca lo
 test('LHB-52: un perfil guardado de antes de pedir la identidad no abre Mi Hoja sin conexión ni por el camino rápido (la llave del almacenamiento cambió)',async()=>{
  const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/const acct=\{.*\};\n/)[0];
  const mem=new Map();const ls={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};
- const ctx={A:{LS:{get(k,d){try{const v=ls.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){ls.setItem('vb_'+k,JSON.stringify(v))}}},localStorage:ls};vm.createContext(ctx);vm.runInContext(line+';this.acct=acct',ctx);
+ const ctx={A:{LS:{get(k,d){try{const v=ls.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){ls.setItem('vb_'+k,JSON.stringify(v))}}},localStorage:ls,acctTell:()=>{}};vm.createContext(ctx);vm.runInContext(line+';this.acct=acct',ctx);
  /* lo que guardó la versión anterior: otra llave, y ya no se lee */
  ls.setItem('vb_cuenta',JSON.stringify({sub:'user_a',handle:'sergio'}));assert.equal(ctx.acct.get(),null,'el perfil guardado antes de LHB-52 no cuenta');
  ctx.acct.set({sub:'user_a',handle:'sergio'});assert.deepEqual(ctx.acct.get(),{sub:'user_a',handle:'sergio'},'lo nuevo sí se guarda y se lee');assert.ok(mem.has('vb_cuenta2'));
@@ -2189,7 +2189,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  assert.deepEqual(await o.submit(),{ok:true});assert.deepEqual(o.h.D.store.get(),{sub:'user_a',handle:'ana',name:'Bea S.',avatar:AV55},'tras editar, el teléfono guarda el nombre y la foto nuevos');
  /* hoja.js repinta el encabezado cuando se guarda o se borra lo guardado, y app.js se lo da */
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
- assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\)\}/.test(hj),'guardar y borrar repintan el encabezado');
+ assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
  assert.match(read('sw.js'),/const VERSION='lhb-v87'/,'el shell nuevo se publica con otra versión del caché');
 });
@@ -4154,7 +4154,8 @@ function HOJA58(opts){opts=opts||{};
  /* LHB-60: la sesión y el adaptador de la API con sesión (api(C,method,path,body,uid)); sin opts.api contesta 500 */
  const toasts=[],calls=[];
  const ctx={...TT(),window:{addEventListener(){}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
-  clerk:async()=>({user:{id:'u_a'}}),api:async(C,method,path,body,uid)=>{calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
+  /* opts.token: la llave de la sesión tarda; go es el de api() en hoja.js: con la llave ya puesta, si dice que no el pedido no sale */
+  clerk:async()=>({user:{id:'u_a'}}),acctW:new Set(),api:async(C,method,path,body,uid,extra,go)=>{if(opts.token)await opts.token(method);if(go&&!go())throw new Error('gone');calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
   A:{cigarById:id=>({c1:{id:'c1',nombre:'Yambú Toro'},c2:{id:'c2',nombre:'Don Collins'}})[id]||null,cigarCard:c=>'<a class="card" data-c="'+c.id+'">'+c.nombre+'</a>',hydrate:()=>log.push('hydrate'),route:()=>log.push('route')},
   acct:{get:()=>acctBox.v},sheet:(h,l)=>{ctx.lastFocus=foco.el;foco.el={id:'sheetPanel'};sheets.push([h,l])},lastFocus:null,document:{get activeElement(){return foco.el},body:{classList:{contains:k=>k==='sheet-on'&&foco.el.id==='sheetPanel'}}},dKeepFocus:()=>log.push('dKeepFocus'),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,
   localStorage,navigator:{},location:loc,setTimeout:()=>0,JSON,Date};
@@ -4166,7 +4167,7 @@ function HOJA58(opts){opts=opts||{};
 function FW60(o){o=o||{};const q=[];let inflight=0,most=0;
  const api=(method,path,body)=>{if(method==='GET')return o.get?o.get(path):{status:200,body:{viewerFollows:!!o.follows,followers:o.n??3}};
   inflight++;most=Math.max(most,inflight);return new Promise(r=>q.push({method,body,answer:x=>{inflight--;r(x)}}))};
- const H=HOJA58({acct:o.acct,reply:u=>u.startsWith('/api/u/')?{status:200,body:API58JSON()}:o.reply?o.reply(u):{status:404,body:{}},api});
+ const H=HOJA58({acct:o.acct,token:o.token,reply:u=>u.startsWith('/api/u/')?{status:200,body:API58JSON()}:o.reply?o.reply(u):{status:404,body:{}},api});
  const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
  return {H,q,tick,most:()=>most,btn:h=>H.els['fwB-'+h],count:()=>H.els.pfNFollowers&&H.els.pfNFollowers.textContent}}
 test('LHB-60: seguir en el perfil de otra persona: el botón cambia y el conteo sube al instante; dejar de seguir lo baja; los conteos llevan a las listas',async()=>{
@@ -4212,6 +4213,29 @@ test('LHB-60: sin botón en tu propio perfil, sin cuenta con perfil, o sin saber
  F=FW60({acct:null});await F.H.X.vPersona('bea');assert.ok(F.H.all().includes('<div class="pf-follow" id="pfFollow" data-handle="bea"></div>'),'sin cuenta guardada (sin perfil completo) no hay botón');assert.deepEqual(F.H.calls,[]);
  F=FW60({acct:{sub:'u_a'}});await F.H.X.vPersona('bea');assert.deepEqual(F.H.calls,[],'una cuenta sin @ tampoco');
  for(const g of [{status:401,body:{}},new Error('account-changed'),{status:200,body:{viewerFollows:null}}]){F=FW60({get:()=>g});await F.H.X.vPersona('bea');assert.ok(!F.btn('bea'),'sin saber si la sigues: '+JSON.stringify(g));}
+});
+test('LHB-60 (Codex r1): un pedido no sale si la página se fue mientras llegaba la llave; si la cuenta cambia o se va, el botón no se pone o se quita; cada confirmación repinta el conteo',async()=>{
+ assert.match(read('hoja.js'),/async function api\(C,method,path,body,uid,extra,go\)\{const t=await C\.session\.getToken\(\);if\(uid&&\(!C\.user\|\|C\.user\.id!==uid\)\)throw new Error\('account-changed'\);if\(go&&!go\(\)\)throw new Error\('gone'\);const r=await fetch\(/,'con la llave ya puesta, api() pregunta otra vez antes de mandar');
+ assert.match(read('hoja.js'),/const acctW=new Set\(\),acctTell=\(\)=>\{for\(const f of \[\.\.\.acctW\]\)f\(\)\};\r?\nconst acct=\{get:[^\n]*set:v=>\{A\.LS\.set\('cuenta2',v\);if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\},clear:[^\n]*if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}\};/,'guardar o borrar la cuenta avisa a los botones');
+ /* tocar Seguir y Dejar de seguir, y irse mientras la llave tarda: no sale nada */
+ let gate=null;let F=FW60({token:m=>m==='GET'?null:new Promise(r=>{gate=r})});await F.H.X.vPersona('bea');let b=F.btn('bea');
+ b.onclick();b.onclick();await F.tick();assert.ok(gate,'esperando la llave');F.H.ctx.view.innerHTML='<div id="otra"></div>';gate();await F.tick();
+ assert.deepEqual(F.H.calls.filter(c=>c[0]!=='GET'),[],'no sale el POST');assert.equal(F.q.length,0);assert.deepEqual(F.H.toasts,[]);
+ /* se fue de la página y el servidor dice que no a lo último: no avisa */
+ F=FW60();await F.H.X.vPersona('bea');b=F.btn('bea');b.onclick();await F.tick();F.H.ctx.view.innerHTML='<div id="otra"></div>';F.q.shift().answer({status:429,body:{error:'follow-rate'}});await F.tick();assert.deepEqual(F.H.toasts,[],'una página que ya no está no avisa');
+ /* la cuenta guardada se va, o es otra, mientras se pregunta si la sigues: no hay botón */
+ for(const later of [null,{sub:'u_b',handle:'beto'}]){let g=null;F=FW60({get:()=>new Promise(r=>{g=r})});const p=F.H.X.vPersona('bea');await F.tick();assert.ok(g,'preguntó');
+  F.H.acctBox.v=later;g({status:200,body:{viewerFollows:false,followers:3}});await p;await F.tick();assert.ok(!F.H.all().includes('fwB-bea'),'sin botón para '+JSON.stringify(later));}
+ /* con el botón puesto, salir u otra cuenta lo quitan; un botón suelto no manda nada */
+ for(const later of [null,{sub:'u_b',handle:'beto'}]){F=FW60();await F.H.X.vPersona('bea');assert.ok(F.H.all().includes('fwB-bea'));b=F.btn('bea');
+  F.H.acctBox.v=later;for(const f of [...F.H.ctx.acctW])f();assert.ok(!F.H.all().includes('fwB-bea'),'se quita para '+JSON.stringify(later));assert.equal(F.H.ctx.acctW.size,0);
+  b.onclick();await F.tick();assert.equal(F.q.length,0,'no manda nada');}
+ /* el que mira la cuenta se va solo cuando la página ya no está */
+ F=FW60();await F.H.X.vPersona('bea');assert.equal(F.H.ctx.acctW.size,1);F.H.ctx.view.innerHTML='<div id="otra"></div>';for(const f of [...F.H.ctx.acctW])f();assert.equal(F.H.ctx.acctW.size,0);
+ /* 3 seguidores: Seguir y Dejar de seguir; el servidor confirma el primero con 10: se ve 9 mientras va el segundo */
+ F=FW60();await F.H.X.vPersona('bea');b=F.btn('bea');b.onclick();b.onclick();await F.tick();F.q.shift().answer({status:200,body:{following:true,followers:10}});await F.tick();
+ assert.equal(F.q.length,1,'va el DELETE');assert.equal(F.count(),'9');assert.equal(b.textContent,'Seguir');
+ F.q.shift().answer({status:200,body:{following:false,followers:9}});await F.tick();assert.equal(F.count(),'9');
 });
 test('LHB-60: las listas de seguidores y siguiendo: foto, nombre y @, cada fila con su botón (menos la tuya), 20 por página con el cursor; vacía, 404 y error',async()=>{
  const P=(h,n)=>({handle:h,display_name:n,avatar_key:AV});const pages={'':{people:[P('cami','Cami S.'),P('ana','Ana S.'),P('dani','Dani R.')],next:'c1'},c1:{people:[P('eli','Eli M.'),P('cami','Cami S.')],next:null}};

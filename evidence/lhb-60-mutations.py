@@ -33,7 +33,14 @@ M = [
     ('N11 no more button', lambda: edit(HO, "say(seen.size?'':tt('h.fwNadie'));$('#fwMore').hidden=!next;", "say(seen.size?'':tt('h.fwNadie'));")),
     ('N12 the list routes ignored', lambda: edit(HO, "if((seg==='seguidores'||seg==='siguiendo')&&PF_HANDLE.test(h))return vFwList(h,seg==='seguidores'?'followers':'following');", "")),
     ('N13 the counts do not link', lambda: edit(HO, "<li><a href=\"${to('seguidores')}\">", "<li><a>")),
-    ('N14 a left page keeps sending', lambda: edit(HO, "   if(!live())return;\r\n   if(r.status===200&&r.body&&r.body.following===target)", "   if(r.status===200&&r.body&&r.body.following===target)")),
+    ('N14 a left page still answers (r1: the check is ok())', lambda: edit(HO, "   if(!ok())return;\r\n   if(r.status===200&&r.body&&r.body.following===target)", "   if(r.status===200&&r.body&&r.body.following===target)")),
+    ('N16 r1: the request does not ask again after the token', lambda: edit(HO, "{handle:h},sub,undefined,ok)", "{handle:h},sub)")),
+    ('N17 r1: api() ignores go', lambda: edit(HO, "if(go&&!go())throw new Error('gone');", "")),
+    ('N18 r1: the mount ignores an account change during the GET', lambda: edit(HO, "||!fwSame(a.sub)||r.status!==200", "||r.status!==200")),
+    ('N19 r1: a mounted button ignores sign-out', lambda: edit(HO, "acctW.add(w);", "")),
+    ('N20 r1: the account store does not tell the buttons', lambda: edit(HO, "if(A.topAvatar)A.topAvatar();acctTell()},clear:", "if(A.topAvatar)A.topAvatar()},clear:")),
+    ('N21 r1: a confirmation does not repaint the count', lambda: edit(HO, "st.n=r.body.followers;paint()}", "st.n=r.body.followers}")),
+    ('N22 r1: the watcher never leaves a gone page', lambda: edit(HO, "if(!live()||$('#'+id)!==box){acctW.delete(w);return}", "if(!live()||$('#'+id)!==box)return;")),
     ('N15 an empty list says nothing', lambda: edit(HO, "say(seen.size?'':tt('h.fwNadie'))", "say('')")),
 ]
 red = 0

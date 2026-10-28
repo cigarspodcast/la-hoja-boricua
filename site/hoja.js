@@ -163,7 +163,9 @@ const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
 /* LHB-52: la llave nueva (cuenta2) deja sin valor lo guardado antes de pedir la identidad: un perfil guardado de antes ({sub,handle}) no abre Mi Hoja sin conexión ni por el camino rápido; clear() borra las dos */
 /* LHB-51: al guardar o borrar la cuenta guardada se repinta la foto del encabezado */
-const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar()}};
+/* LHB-60 (Codex r1): acctW son los que miran la cuenta guardada (los botones de seguir); se les avisa al guardarla o borrarla */
+const acctW=new Set(),acctTell=()=>{for(const f of [...acctW])f()};
+const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar();acctTell()}};
 /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
 const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
 let clerkP=null;
@@ -173,8 +175,8 @@ function clerk(){if(clerkP)return clerkP;
  clerkP=Promise.all([script(`https://${CLERK.fapi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`,CLERK.pk),script(`https://${CLERK.fapi}/npm/@clerk/ui@1/dist/ui.browser.js`)])
   .then(()=>window.Clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor}})).then(()=>window.Clerk).catch(e=>{clerkP=null;throw e});
  return clerkP}
-/* extra: cabeceras de más (If-Match en la sincronización) */
-async function api(C,method,path,body,uid,extra){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
+/* extra: cabeceras de más (If-Match en la sincronización). go: si dice que no cuando ya está la llave, el pedido no sale (LHB-60: la página se fue mientras tanto) */
+async function api(C,method,path,body,uid,extra,go){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');if(go&&!go())throw new Error('gone');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
 /* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
 SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),
@@ -420,23 +422,27 @@ const meAcct=()=>{const a=acct.get();return a&&typeof a==='object'&&typeof a.sub
 const fwErr=e=>e==='follow-rate'?tt('h.fwRate'):e==='follow-cap'?tt('h.fwCap'):e==='blocked'||e==='not-found'||e==='self-follow'?tt('h.fwNo'):e==='no-profile'?tt('h.primeroCreaTuPerfil'):tt('h.fwFail');
 /* el botón. st es lo que el servidor confirmó ({on, n}: si la sigues y sus seguidores), want lo último que tocó la persona; se ve want, y el conteo es el confirmado más lo que falta confirmar.
    Los pedidos salen de uno en uno, así llegan en orden y gana el último toque: una respuesta solo cambia lo confirmado, nunca lo que se ve si hubo otro toque después.
-   Si el servidor dice que no (o no contesta) a lo último que se tocó, se vuelve a lo confirmado y se avisa */
-function followBtn(btn,h,st,live,onCount){let want=st.on,busy=false;
- const paint=()=>{if(!live())return;btn.textContent=want?tt('h.fwSiguiendo'):tt('h.fwSeguir');btn.setAttribute('aria-pressed',String(want));btn.classList.toggle('on',want);
+   Si el servidor dice que no (o no contesta) a lo último que se tocó, se vuelve a lo confirmado y se avisa.
+   Codex r1: ok() es la página y la cuenta que puso el botón; un pedido no sale si ya no están, ni cuando la llave llega tarde (api go), y cada confirmación repinta el conteo */
+const fwSame=sub=>{const m=meAcct();return !!m&&m.sub===sub};
+function followBtn(btn,h,st,live,onCount,sub){let want=st.on,busy=false;const ok=()=>live()&&fwSame(sub);
+ const paint=()=>{if(!ok())return;btn.textContent=want?tt('h.fwSiguiendo'):tt('h.fwSeguir');btn.setAttribute('aria-pressed',String(want));btn.classList.toggle('on',want);
   if(onCount&&st.n!=null)onCount(Math.max(0,st.n+(want===st.on?0:want?1:-1)))};
- const pump=async()=>{busy=true;try{while(want!==st.on){const target=want;let r;
-   try{const a=meAcct();if(!a)throw new Error('no-account');const C=await clerk();r=await api(C,target?'POST':'DELETE','/api/follow',{handle:h},a.sub)}catch(e){r={status:0,body:{}}}
-   if(!live())return;
-   if(r.status===200&&r.body&&r.body.following===target){st.on=target;if(Number.isInteger(r.body.followers))st.n=r.body.followers}
+ const pump=async()=>{busy=true;try{while(want!==st.on&&ok()){const target=want;let r;
+   try{const C=await clerk();if(!ok())return;r=await api(C,target?'POST':'DELETE','/api/follow',{handle:h},sub,undefined,ok)}catch(e){r={status:0,body:{}}}
+   if(!ok())return;
+   if(r.status===200&&r.body&&r.body.following===target){st.on=target;if(Number.isInteger(r.body.followers))st.n=r.body.followers;paint()}
    else if(want===target){want=st.on;toast(fwErr(r.body&&r.body.error))}}}
   finally{busy=false;paint()}};
  btn.onclick=()=>{want=!want;paint();if(!busy)pump()};paint()}
-/* pone el botón en la caja id, para una cuenta con perfil y otra persona: si ya la sigues lo dice GET /api/follow con la sesión; sin saberlo (sin sesión, sin red) no hay botón */
+/* pone el botón en la caja id, para una cuenta con perfil y otra persona: si ya la sigues lo dice GET /api/follow con la sesión; sin saberlo (sin sesión, sin red) no hay botón.
+   Codex r1: si la cuenta guardada cambió mientras se preguntaba, no se pone; y si cambia o se va después (salir, otra cuenta), el botón se quita */
 async function fwMount(id,h,live,onCount){const box=$('#'+id),a=meAcct();if(!box||!a||a.handle===h)return;
  let r;try{const C=await clerk();r=await api(C,'GET','/api/follow?handle='+encodeURIComponent(h),null,a.sub)}catch(e){r={status:0,body:{}}}
- if(!live()||$('#'+id)!==box||r.status!==200||!r.body||typeof r.body.viewerFollows!=='boolean')return;
+ if(!live()||$('#'+id)!==box||!fwSame(a.sub)||r.status!==200||!r.body||typeof r.body.viewerFollows!=='boolean')return;
  box.innerHTML=`<button class="btn fw-b" type="button" id="fwB-${h}"></button>`;
- followBtn($('#fwB-'+h),h,{on:r.body.viewerFollows,n:onCount&&Number.isInteger(r.body.followers)?r.body.followers:null},live,onCount)}
+ const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};acctW.add(w);
+ followBtn($('#fwB-'+h),h,{on:r.body.viewerFollows,n:onCount&&Number.isInteger(r.body.followers)?r.body.followers:null},live,onCount,a.sub)}
 /* las listas: foto, nombre público (nombre e inicial) y @ de cada persona, cada fila con su botón; 20 por página con el cursor del servidor. Son públicas: se piden sin sesión */
 async function vFwList(h,dir){
  view.innerHTML=`<div class="pf" id="fwX"><p><a class="lbtn" href="#/u/${encodeURIComponent(h)}">@${esc(h)}</a></p><h1 class="pf-n">${tt(dir==='followers'?'h.pfSeguidores':'h.pfSiguiendo')}</h1><ul class="people" id="fwL"></ul><p class="hint" id="fwH" aria-live="polite">${tt('h.pfCargando')}</p><button class="lbtn" type="button" id="fwMore" hidden>${tt('ev.more')}</button></div>`;

@@ -1,0 +1,34 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-60-wt (branch lhb-60-follow). The diff below is origin/main..HEAD. This is round 2, a confirm round after your round 1 BLOCK (evidence/lhb-60-review-r1.txt).
+
+Ticket LHB-60 (M6-S5), follow in the app. The ticket brief, pinned decisions and design are in evidence/lhb-60-review-brief-r1.txt and unchanged.
+
+How each round 1 finding was taken:
+1. A follow request could dispatch after navigation while the session token was pending. FIXED.
+   - site/hoja.js api() takes a 7th argument, go. Once the token is in hand (and after the existing account check), go() is asked; if it says no, api throws 'gone' and nothing is fetched.
+   - followBtn has ok() = the page is live AND the stored account is still the one that mounted the button (fwSame(sub)). The loop runs while want differs from st.on and ok(). It checks ok() after clerk(), passes ok as go, and checks ok() after the answer, before changing st or showing a message.
+2. Account changes did not invalidate follow buttons. FIXED.
+   - fwMount re-checks the stored account (fwSame(a.sub)) after the GET, before mounting.
+   - Next to acct in hoja.js: acctW (a Set of watchers) and acctTell(). acct.set and acct.clear call acctTell after A.topAvatar. Sign-out and an account switch go through acct.clear and acct.set (LHB-51, LHB-52).
+   - Each mounted button registers a watcher. If its page or box is gone, it removes itself. If the stored account is gone or different, it removes itself and empties the box.
+3. (P3) An intermediate confirmation did not repaint the count. FIXED: paint() after each confirmed answer.
+
+Tests:
+- The new test "LHB-60 (Codex r1)" covers:
+  - your token schedule (tap twice, leave the page while the token waits: no POST, no message);
+  - a refusal after leaving (no message);
+  - the account cleared, or switched, while the GET waits (no button);
+  - a mounted button removed on sign-out and on an account switch, and a stale button sending nothing;
+  - the watcher leaving with its page;
+  - your 3 / 10 / 9 count schedule;
+  - source assertions on api() and on acct.
+- The HOJA58 harness api stub now waits on an optional token and honors go, like the real adapter. Its context has acctW.
+- Two older tests pinned to source text were updated: the LHB-25 api regex now has go, and the LHB-52 acct line context gets acctTell. The LHB-51 assertion includes acctTell.
+
+Evidence:
+- evidence/lhb-60-tests.txt: 266 pass and 1 skipped (the LHB-95 browser test).
+- evidence/lhb-60-tests-r1fix-first.txt: the first run after the fix, 2 failures, which were the two source-pinned tests above. Kept.
+- evidence/lhb-60-mutations-r1fix.out: RESULT 22 of 22 mutations red. N16 to N22 are new, and N14 was retargeted to ok().
+- evidence/lhb-60-mutations-r1fix-first.out: the first run, in which N20 survived because the only assertion on acct.set was in an LHB-51 test outside the LHB-60 pattern; an LHB-60 source assertion was added. Kept.
+- evidence/lhb-60-red-before-r1.txt: the new test against the round 1 hoja.js, red.
+
+Check that the three findings are fixed, that the fixes did not break LHB-28 sync, LHB-51 header, LHB-52 identity, LHB-57 Personas or LHB-58 profile, and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
