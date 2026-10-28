@@ -1,0 +1,18 @@
+M1 two boxes touch only when they overlap (no 2 px of air)     rc 1 fail 1 -> RED
+M2 groupPins merges only one pass                              rc 1 fail 1 -> RED
+M3 a group box the size of a pin                               rc 1 fail 1 -> RED
+M4 the markers go straight to the map again                    rc 1 fail 1 -> RED
+M5 no regrouping on zoom                                       rc 1 fail 1 -> RED
+M6 no layout on open                                           rc 1 fail 1 -> RED
+M7 the group not reachable by keyboard                         rc 1 fail 1 -> RED
+M8 the group without its count                                 rc 1 fail 1 -> RED
+M9 tapping a group never shows the list                        rc 1 fail 1 -> RED
+M10 the English label missing                                  rc 1 fail 1 -> RED
+M12 the group icon drawn at 48 px while its box says 36        rc 1 fail 2 -> RED
+M13 tapGroup ignores the fit zoom (the round 1 behaviour)      rc 1 fail 1 -> RED
+M14 a fit zoom equal to the current one still zooms            rc 1 fail 1 -> RED
+M15 getBoundsZoom with half the fitBounds padding              rc 1 fail 1 -> RED
+M16 the handler no longer asks tapGroup                        rc 1 fail 1 -> RED
+M11 the group circle 20 px                                     rc 1 fail 1 -> RED
+baseline after restore: rc 0
+RESULT 16 of 16 mutations red
