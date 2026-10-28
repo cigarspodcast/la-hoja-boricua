@@ -1,0 +1,11 @@
+copy of C:/Users/Owner/lhb-45-wt at C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua/ddfa8e87-aefe-452e-8857-30bbd7a1c261/scratchpad/mut36
+baseline ('0', [])
+M1 the switch left off -> ('4', ['LHB-27: idioma por navigator.language, se recuerda (encendido en E6, LHB-36)', 'LHB-29: art.js toma sus textos de i18n.js (cargado antes): en español como antes, en inglés traducidos', 'LHB-36: el selector de idioma está encendido y visible; inglés para un navegador en inglés, español para los demás; la escogida se recuerda', 'LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la app lleva a las páginas en inglés cuando la app está en inglés'])
+M2 the switch shown without its lang attribute -> ('1', ['LHB-36: el selector de idioma está encendido y visible; inglés para un navegador en inglés, español para los demás; la escogida se recuerda'])
+M3 the switch names the current language instead of the other -> ('1', ['LHB-36: el selector de idioma está encendido y visible; inglés para un navegador en inglés, español para los demás; la escogida se recuerda'])
+M4 the choice is not remembered -> ('2', ['LHB-27: idioma por navigator.language, se recuerda (encendido en E6, LHB-36)', 'LHB-36: el selector de idioma está encendido y visible; inglés para un navegador en inglés, español para los demás; la escogida se recuerda'])
+M5 the switch style forces display and so ignores hidden -> ('1', ['LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la app lleva a las páginas en inglés cuando la app está en inglés'])
+M6 the switch has no style -> ('1', ['LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la app lleva a las páginas en inglés cuando la app está en inglés'])
+M7 the English footer keeps the Spanish link -> ('1', ['LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la app lleva a las páginas en inglés cuando la app está en inglés'])
+M8 the footer link is not marked for English -> ('3', ['LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves', 'LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la app lleva a las páginas en inglés cuando la app está en inglés', 'v40 SEO: páginas estáticas por artesano, índice y sitemap'])
+restored ('0', [])
