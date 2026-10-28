@@ -50,7 +50,7 @@ let SYNC=null;
    Codex ronda 2: irse a otra página lo borra, y con otra cuenta no vale */
 let DFOC=null;window.addEventListener('hashchange',()=>{DFOC=null});
 /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
-function write(s,quiet){if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
+function write(s,quiet){if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
 /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
 const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};
 window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null});
@@ -235,22 +235,26 @@ async function askDelete(C,sub,confirm,had){let r=null;try{r=await api(C,'DELETE
  return r}
 /* borrar: el servidor borra la base y el usuario de Clerk (functions/api/account.js). Mientras tanto no corre ninguna pasada; si no se borró nada, vuelven.
    Si quedó a medias (502) o no se sabe (sin respuesta), la sincronización sigue parada y otro intento, con el mismo @ escrito, lo termina */
+/* Codex r4: un borrado a la vez en todo el teléfono, esta página y las otras pestañas (Web Locks; sin ellas, en fila dentro de la página):
+   el botón y el que termina uno a medias no se cruzan, así la respuesta de uno no le quita la marca al que todavía espera la suya */
+let delQ=Promise.resolve();
+const delLock=f=>typeof navigator!=='undefined'&&navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_borrar',f):(delQ=delQ.then(f,f));
 async function borrar(a,typed){if(acBusy)return;acBusy=true;const del=$('#acDel');if(del)del.disabled=true;acMsg(tt('ac.del.wait'));
  try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.del.fail'));return}
-  await SYNC.hold(true);const had=!!delMark.get();
-  if(!delMark.set(a.sub)){if(!delMark.get())SYNC.hold(false);acMsg(tt('ac.del.store'));return}
-  const r=await askDelete(C,a.sub,typed,had);
-  if(r&&r.status===200)return;
-  if(!delMark.get())SYNC.hold(false);
-  acMsg(!r?tt('ac.del.fail'):r.status===502?tt('ac.del.half'):r.body&&r.body.error==='confirm-mismatch'?tt('ac.del.bad'):r.status===503?tt('ac.del.off'):tt('ac.del.fail'))}
+  await delLock(async()=>{await SYNC.hold(true);const had=!!delMark.get();
+   if(!delMark.set(a.sub)){if(!delMark.get())SYNC.hold(false);acMsg(tt('ac.del.store'));return}
+   const r=await askDelete(C,a.sub,typed,had);
+   if(r&&r.status===200)return;
+   if(!delMark.get())SYNC.hold(false);
+   acMsg(!r?tt('ac.del.fail'):r.status===502?tt('ac.del.half'):r.body&&r.body.error==='confirm-mismatch'?tt('ac.del.bad'):r.status===503?tt('ac.del.off'):tt('ac.del.fail'))})}
  finally{acBusy=false;const d=$('#acDel'),i=$('#acDelI');if(d&&i)d.disabled=!typedOk(a,i.value)}}
-/* al abrir la app con un borrado a medias de esta misma cuenta, se termina; con otra cuenta o sin sesión, la marca espera */
-async function resumeDelete(){const m=delMark.get();if(!m)return;let C;try{C=await clerk()}catch(e){return}
- if(!C||!C.user||C.user.id!==m.sub)return;
- await SYNC.hold(true);
- const r=await askDelete(C,m.sub,'#fin',true);
- if(r&&r.status===200)return;
- if(!delMark.get())SYNC.hold(false);else if(r&&r.status===502)toast(tt('ac.del.half'))}
+/* al abrir la app con un borrado a medias de esta misma cuenta, se termina; con otra cuenta o sin sesión, la marca espera. La marca se lee otra vez dentro del turno: otro pudo terminarlo */
+async function resumeDelete(){if(!delMark.get())return;let C;try{C=await clerk()}catch(e){return}
+ await delLock(async()=>{const m=delMark.get();if(!m||!C||!C.user||C.user.id!==m.sub)return;
+  await SYNC.hold(true);
+  const r=await askDelete(C,m.sub,'#fin',true);
+  if(r&&r.status===200)return;
+  if(!delMark.get())SYNC.hold(false);else if(r&&r.status===502)toast(tt('ac.del.half'))})}
 if(delMark.get())setTimeout(resumeDelete,1500);
 /* otra pestaña salió de la cuenta o la borró (sync.js forget quita el dueño): esta suelta su Mi Hoja en memoria, para no volver a escribirla, y abre de nuevo */
 window.addEventListener('storage',e=>{if(e.key==='lhb_mihoja_v1_owner'&&e.oldValue&&e.newValue===null){SYNC.hold(true);ST=null;STRAW=null;location.assign('/')}});

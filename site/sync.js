@@ -83,7 +83,8 @@ const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 window.LHB_SYNC=function(D){
  let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
- const fenced=()=>{let t=0;try{t=parseInt(D.ls.get(FENCE),10)}catch(e){}return t>0&&D.nowMs()-t<FENCE_TTL};
+ /* Codex r4: un reloj que se atrasa no hace eterna la valla; uno que se adelanta en medio de la espera lo cubre forget, que la vuelve a poner antes de revisar */
+ const fenced=()=>{let t=0;try{t=parseInt(D.ls.get(FENCE),10)}catch(e){}const d=D.nowMs()-t;return t>0&&d<FENCE_TTL&&d>-FENCE_TTL};
  const writeMeta=m=>{if(fenced())return false;try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
  /* un contador chico compartido entre pestañas: cada escritura de la persona lo sube, y una pasada sabe si alguien escribió (aquí o en otra pestaña) mientras esperaba la red */
  const readSeq=()=>{try{const n=parseInt(D.ls.get(SEQ),10);return n>0?n:0}catch(e){return 0}};
@@ -236,6 +237,7 @@ window.LHB_SYNC=function(D){
    const back=()=>{try{D.ls.remove(FENCE)}catch(e){}hold(false);return false};
    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
    await D.wait(FENCE_MS);
+   try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
    if(!same(mark))return back()}
   hold(true);mem=null;unk=null;dirty=false;let ok=true;
   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}

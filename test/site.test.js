@@ -3011,7 +3011,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  const h=read('hoja.js').replace(/\r\n/g,'\n'),ix=read('index.html'),sw=read('sw.js');
  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
- assert.ok(/function write\(s,quiet\)\{if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
+ assert.ok(/function write\(s,quiet\)\{if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else pfOwnSync()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
@@ -4213,15 +4213,22 @@ test('LHB-34 (Codex r3): otra pestaña escribe entre la última revisión y el b
   for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
   assert.equal(dev.ls.get(F),String(dev.st.clock));assert.equal(dev.eng.fenced(),true);
   dev.st.clock+=9999;assert.equal(dev.eng.fenced(),true);dev.st.clock+=2;assert.equal(dev.eng.fenced(),false,'caducó');
+  /* Codex r4: un reloj que se atrasa no la hace eterna; uno que se adelanta en medio de la espera no la deja vencida al borrar (se pone otra vez antes de revisar) */
+  dev.ls.set(F,String(dev.st.clock+5000));assert.equal(dev.eng.fenced(),true,'5 s en el futuro: todavía cuenta');dev.ls.set(F,String(dev.st.clock+10001));assert.equal(dev.eng.fenced(),false,'más de 10 s en el futuro: no cuenta');
+  const d3=DEV28(a,'user_a');d3.seed(DOC34());await d3.sync();h=ACCT34(d3,{duringFence:()=>{d3.st.clock+=20000}});await h.X.salir();
+  for(const k of KEYS34)assert.ok(!d3.ls.has(k),'borrado '+k);assert.equal(d3.ls.get(F),String(d3.st.clock),'la valla es de después de la espera');assert.equal(d3.eng.fenced(),true);
  }finally{a.done()}});
 test('LHB-34 (Codex r3): con la valla puesta nadie escribe: ni hoja.js (Mi Hoja), ni el motor (la meta, el contador, la dueña); una valla vieja ya no frena',async()=>{
  const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/^function write\(s,quiet\)\{.*$/m)[0];
- let F=true;const ls=new Map(),toasts=[],calls=[];
- const ctx={...TT(),SYNC:{fenced:()=>F,isolate:()=>true,ensureOwner:()=>true,changed:p=>calls.push(p)},localStorage:{getItem:k=>ls.has(k)?ls.get(k):null,setItem:(k,v)=>ls.set(k,String(v))},toast:m=>toasts.push(m),KEY:'lhb_mihoja_v1',PEND:[]};
+ let F=true,iso=0;const ls=new Map(),toasts=[],calls=[];
+ const ctx={...TT(),SYNC:{fenced:()=>F,isolate:()=>{iso++;return true},ensureOwner:()=>true,changed:p=>calls.push(p)},localStorage:{getItem:k=>ls.has(k)?ls.get(k):null,setItem:(k,v)=>ls.set(k,String(v))},toast:m=>toasts.push(m),KEY:'lhb_mihoja_v1',PEND:[]};
  vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW=null;'+line+';this.W=write;this.st=()=>ST',ctx);
- assert.equal(ctx.W({humidor:[]}),false);assert.ok(!ls.has('lhb_mihoja_v1'),'no se guardó');assert.equal(ctx.st(),null);assert.deepEqual(calls,[]);
+ assert.equal(ctx.W({humidor:[]}),false);assert.ok(!ls.has('lhb_mihoja_v1'),'no se guardó');assert.equal(ctx.st(),null);assert.deepEqual(calls,[]);assert.equal(iso,0,'con la valla ni se aparta nada');
  assert.deepEqual(toasts,['Se está saliendo de la cuenta en este teléfono. Espera unos segundos e intenta otra vez.']);
  F=false;assert.equal(ctx.W({humidor:[]}),true);assert.equal(ls.get('lhb_mihoja_v1'),'{"humidor":[]}');assert.equal(calls.length,1);
+ /* Codex r4: la valla se mira otra vez justo antes de guardar (después de apartar, anotar la dueña y armar el texto) */
+ let n=0;ctx.SYNC.fenced=()=>++n>1;ls.delete('lhb_mihoja_v1');toasts.length=0;
+ assert.equal(ctx.W({humidor:[1]}),false);assert.equal(n,2);assert.ok(!ls.has('lhb_mihoja_v1'));assert.equal(toasts.length,1);ctx.SYNC.fenced=()=>F;
  const a=await ENG28();const dev=DEV28(a,'user_a');try{
   dev.seed(DOC34());await dev.sync();const V='lhb_mihoja_v1_saliendo';
   const before=KEYS34.map(k=>dev.ls.get(k));dev.ls.set(V,String(dev.st.clock));
@@ -4230,6 +4237,25 @@ test('LHB-34 (Codex r3): con la valla puesta nadie escribe: ni hoja.js (Mi Hoja)
   /* una valla de hace más de 10 s (la pestaña que salía se cerró a medias) ya no frena */
   dev.ls.set(V,String(dev.st.clock-10001));assert.equal(dev.eng.ensureOwner(),true);assert.equal(dev.ls.get('lhb_mihoja_v1_owner'),'user_a');
   dev.eng.changed(null);assert.notEqual(dev.ls.get('lhb_mihoja_v1_seq'),before[3],'el contador sube');
+ }finally{a.done()}});
+test('LHB-34 (Codex r4): el botón y el que termina un borrado a medias van de a uno: la respuesta de uno no le quita la marca al otro, y el que espera lee la marca otra vez',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  /* una marca de antes (el pedido nunca llegó: el perfil sigue). Se toca el botón; mientras su pedido espera, la app termina "el de antes" */
+  dev.ls.set('lhb_borrando','{"sub":"user_a"}');let deleted=false,go=null;const sent=[];
+  const api=b=>{sent.push(b.confirm);if(b.confirm==='#fin')return deleted?{status:200,body:{ok:true}}:{status:400,body:{error:'confirm-mismatch'}};
+   return new Promise(r=>{go=()=>{deleted=true;r({status:502,body:{error:'clerk-failed'}})}})};
+  const h=ACCT34(dev,{api});const pb=h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
+  for(let i=0;i<50&&!go;i++)await new Promise(r=>setImmediate(r));assert.ok(go,'el pedido del botón espera');
+  const pr=h.X.resumeDelete();for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r));
+  assert.deepEqual(sent,['ana_a'],'el que termina espera su turno');
+  go();await pb;await pr;
+  assert.deepEqual(sent,['ana_a','#fin'],'luego termina lo que el botón dejó a medias');for(const k of [...KEYS34,'lhb_borrando'])assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
+  /* el que espera lee la marca otra vez: si el botón terminó, no manda nada */
+  const dev2=DEV28(a,'user_a');dev2.seed(DOC34());await dev2.sync();dev2.ls.set('lhb_borrando','{"sub":"user_a"}');const sent2=[];let go2=null;
+  const h2=ACCT34(dev2,{api:b=>{sent2.push(b.confirm);return b.confirm==='#fin'?{status:400,body:{error:'confirm-mismatch'}}:new Promise(r=>{go2=()=>r({status:200,body:{ok:true}})})}});
+  const qb=h2.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');for(let i=0;i<50&&!go2;i++)await new Promise(r=>setImmediate(r));const qr=h2.X.resumeDelete();go2();await qb;await qr;
+  assert.deepEqual(sent2,['ana_a'],'sin marca, el que esperaba no pide nada');assert.ok(!dev2.ls.has('lhb_borrando'));
  }finally{a.done()}});
 test('LHB-34 (Codex r3): si la marca del borrado no se puede guardar, no se pide el borrado: la cuenta sigue entera y la sincronización vuelve',async()=>{
  const a=await ENG28();const dev=DEV28(a,'user_a');try{
