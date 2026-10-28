@@ -1,0 +1,3 @@
+# LHB-30: registros que se quedan solo en español a propósito (colección/id, uno por línea).
+# La app muestra el español cuando no hay _en; esta lista hace explícito cuáles son.
+# Un registro nuevo sin _en hace fallar la prueba LHB-30 con su id: tradúcelo o anótalo aquí.

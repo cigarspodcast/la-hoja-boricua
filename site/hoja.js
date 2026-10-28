@@ -405,7 +405,7 @@ function vFavoritos(){const s=S(),d=D();const cs=s.favs.cigarros.map(A.cigarById
  <div class="section-title"><h2>${tt('lug.eyebrow')}</h2><span class="count">${ps.length}</span></div>${ps.length?`<div class="list">${ps.map(placeRow).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnUnLugar')+'</div>'}
  ${backupPanel()}`;A.hydrate()}
 const artRow=a=>`<div class="row"><a href="#/a/${encodeURIComponent(a.id)}" class="rowlink">${A.mono(a.nombre,42)}<div><div class="t">${esc(a.nombre)}</div><div class="s">${esc(a.pueblo||'')}${municipio(a.pueblo)?' · '+lab(region(municipio(a.pueblo))):''}</div></div></a>${favBtn('artesanos',a.id,'icon')}</div>`;
-const placeRow=p=>`<div class="row"><a class="rowlink" href="${esc(A.goLink(p))}" target="_blank" rel="noopener"><span class="list-leaf">${VBArt.leaf(p.categoria==='venta'?'#ffd27a':'#8fd162')}</span><div><div class="t">${esc(p.nombre)}</div><div class="s">${tt('h.comoLlegar',{a:esc(p.tipo||''),b:esc(p.pueblo||'')})}</div></div></a>${favBtn('lugares',p.id,'icon')}</div>`;
+const placeRow=p=>`<div class="row"><a class="rowlink" href="${esc(A.goLink(p))}" target="_blank" rel="noopener"><span class="list-leaf">${VBArt.leaf(p.categoria==='venta'?'#ffd27a':'#8fd162')}</span><div><div class="t">${esc(p.nombre)}</div><div class="s">${tt('h.comoLlegar',{a:esc(A.fx(p,'tipo')||''),b:esc(p.pueblo||'')})}</div></div></a>${favBtn('lugares',p.id,'icon')}</div>`;
 /* ---------- cata guiada ---------- */
 const FORT5=['Suave','Suave a media','Media','Media a fuerte','Fuerte'];const CUER5=['Ligero','Ligero a medio','Medio','Medio a completo','Completo'];
 const PASOS=[
@@ -563,9 +563,9 @@ function vBuscar(){const d=D();const munis=[...new Set([...d.artesanos.map(a=>a.
  <div class="chips" role="group" aria-label="${tt('f.fortaleza')}"><button class="chip" data-gf="" aria-pressed="${!qs.fort}">${tt('h.todaFortaleza')}</button>${A.FORT.map(f=>`<button class="chip" data-gf="${f}" aria-pressed="${qs.fort===f}">${A.fortLabel(f)}</button>`).join('')}</div>
  <div id="gres" aria-live="polite"></div>`;
  const run=()=>{const q=norm(qs.q).trim();const geo=p=>{const m=municipio(p);return(!qs.mun||m===qs.mun)&&(!qs.reg||region(m)===qs.reg)};const hit=arr=>!q||norm(arr.join(' ')).includes(q);
-  const cs=A.allCigars().filter(c=>hit([c.nombre,A.artisanName(c),c.pueblo,c.capa,c.notas,(c.vitolas||[]).join(' ')])&&geo(c.pueblo)&&(!qs.fort||c.fortaleza===qs.fort));
-  const as=d.artesanos.filter(a=>hit([a.nombre,a.pueblo,a.tipo,a.historia])&&geo(a.pueblo)&&(!qs.fort||A.allCigars().some(c=>c.artesano_id===a.id&&c.fortaleza===qs.fort)));
-  const ps=qs.fort?[]:d.places.filter(p=>hit([p.nombre,p.tipo,p.pueblo,p.direccion])&&geo(p.pueblo));
+  const cs=A.allCigars().filter(c=>hit([c.nombre,A.artisanName(c),c.pueblo,A.fq(c,'capa'),A.fq(c,'notas'),(c.vitolas||[]).join(' ')])&&geo(c.pueblo)&&(!qs.fort||c.fortaleza===qs.fort));
+  const as=d.artesanos.filter(a=>hit([a.nombre,a.pueblo,A.fq(a,'tipo'),A.fq(a,'historia')])&&geo(a.pueblo)&&(!qs.fort||A.allCigars().some(c=>c.artesano_id===a.id&&c.fortaleza===qs.fort)));
+  const ps=qs.fort?[]:d.places.filter(p=>hit([p.nombre,A.fq(p,'tipo'),p.pueblo,p.direccion])&&geo(p.pueblo));
   const today=new Date();today.setHours(0,0,0,0);const es=qs.fort?[]:(d.events.actividades||[]).filter(e=>{const x=A.evDate(e.fecha);return x&&x>=today&&hit([e.titulo,e.lugar,e.pueblo,e.detalle])&&((!qs.mun&&!qs.reg)||(e.pueblo&&geo(e.pueblo)))});
   const n=cs.length+as.length+ps.length+es.length;
   $('#gres').innerHTML=`<p class="count-line">${n===1?tt('h.nResultado',{n}):tt('h.nResultados',{n})}${qs.fort?tt('h.fortalezaFiltra'):''}</p>
@@ -668,7 +668,7 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
  else{try{x.drawImage(img,-380,-270,760,570)}catch(e){x.fillStyle='#7fb0ff';x.fillRect(-380,-270,760,570)}}x.restore();
  x.fillStyle='#f8f8f4';x.font='68px Shrikhand';x.textAlign='center';let y=960;const nl=wrap(x,c.nombre,W-140).slice(0,2);if(nl.length>1){x.font='56px Shrikhand';y=930}nl.forEach((l,i)=>x.fillText(l,W/2,y+i*68));y+= (nl.length-1)*68;
  x.font='600 34px Figtree';x.fillStyle='#dde3dc';x.fillText([A.artisanName(c),c.pueblo].filter(Boolean).join(' · '),W/2,y+56);x.textAlign='left';
- const vs=c.vitolas||[];const specs=[[tt('h.cardCapa'),(c.capa||tt('notPub')).replace(/\s*\(.*?\)/g,'')],[tt('h.cardFortaleza'),c.fortaleza?A.fortLabel(c.fortaleza):tt('notPub')],[tt('h.cardVitola'),vs.length?vs[0]+(vs.length>1?' +'+(vs.length-1):''):tt('h.enVerificacion')]];
+ const vs=c.vitolas||[];const specs=[[tt('h.cardCapa'),(A.fx(c,'capa')||tt('notPub')).replace(/\s*\(.*?\)/g,'')],[tt('h.cardFortaleza'),c.fortaleza?A.fortLabel(c.fortaleza):tt('notPub')],[tt('h.cardVitola'),vs.length?vs[0]+(vs.length>1?' +'+(vs.length-1):''):tt('h.enVerificacion')]];
  const bw=300,gap=24,bx=(W-bw*3-gap*2)/2,by=y+96;specs.forEach(([k,v],i)=>{const X=bx+i*(bw+gap);x.fillStyle='rgba(23,58,38,.92)';rr(x,X,by,bw,110,18);x.fill();x.strokeStyle='#2c5a3d';x.lineWidth=2;x.stroke();
   x.fillStyle='#8fb8ff';x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle='#f8f8f4';x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
  x.textAlign='center';x.fillStyle='#8fd162';x.font='700 30px Figtree';x.fillText('lahojaboricua.com',W/2,H-62);x.fillStyle='#b3c0b5';x.font='600 20px Figtree';x.fillText(tt('h.prototipoInformacionPublicaSujeta'),W/2,H-28);

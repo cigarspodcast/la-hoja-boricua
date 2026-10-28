@@ -1,0 +1,6 @@
+LHB-30 Spanish-unchanged check: data/*.json on the branch against c398c0b
+counting basis: records in each file; fields = non-empty targeted Spanish fields; translated = has traduccion and every such field has a non-empty _en
+artesanos  records  32  Spanish identical: True  key order kept: True  fields 112  with _en 112  borrador  32  _en equal to Spanish 1
+cigarros   records  48  Spanish identical: True  key order kept: True  fields  81  with _en  81  borrador  48  _en equal to Spanish 23
+places     records  41  Spanish identical: True  key order kept: True  fields  42  with _en  42  borrador  41  _en equal to Spanish 19
+TOTAL records 121, fields 235, with _en 235, records marked borrador 121
