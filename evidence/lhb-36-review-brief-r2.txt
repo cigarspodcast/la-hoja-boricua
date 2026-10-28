@@ -1,0 +1,13 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-45-wt (branch lhb-36-launch-english). This is round 2.
+
+Round 1 (evidence/lhb-36-review-r1.txt) blocked on one finding: the newly visible language switch #langSwitch broke the top bar at narrow phone widths (profile button off screen at 320px, switch overlapping the wordmark at 375px).
+
+The fix in commit 741472d:
+1. site/i18n.js wire(): the switch now holds two spans, .ls-long with the other language's full name and .ls-short (aria-hidden) with its two-letter code, and gets aria-label set to the full name.
+2. site/styles.css: .ls-short hidden by default; under max-width:399px the switch shows the code and hides the name; under max-width:359px .brand-text is clipped from sight (position:absolute, 1px, clip) but not display:none, so the brand link keeps its text as its accessible name (an earlier test, LHB-88, forbids an aria-label on that link).
+3. Cache lhb-v76; tests updated; evidence/lhb-36-r1fix-tests-red.txt shows the new assertions failing on the old code, evidence/lhb-36-r1fix-tests.txt 227/227.
+4. evidence/lhb-36-topbar-widths.txt: measured on the deployment of 741472d (https://19744e30.la-hoja-boricua.pages.dev) at 8 widths x 2 languages.
+
+Check: does the round 1 defect still occur at any phone width from 320 to 430px in either language (you may load the deployment URL above and measure, as round 1 did)? Is anything newly broken: the switch's accessible name versus its visible text (label in name), screen readers reading the brand at narrow widths, the switch in Spanish mode, the static /en/ pages, a test that passes on broken code? Any defect from round 1's original scope that the fix reopened.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

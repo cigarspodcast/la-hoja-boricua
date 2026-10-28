@@ -1,0 +1,51 @@
+✔ LHB-27: idioma por navigator.language, se recuerda (encendido en E6, LHB-36) (8.6181ms)
+✖ LHB-36: el selector de idioma está encendido y visible; inglés para un navegador en inglés, español para los demás; la escogida se recuerda (5.6484ms)
+✖ LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la app lleva a las páginas en inglés cuando la app está en inglés (0.8941ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 1
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 215.802
+
+✖ failing tests:
+
+test at test\site.test.js:3645:1
+✖ LHB-36: el selector de idioma está encendido y visible; inglés para un navegador en inglés, español para los demás; la escogida se recuerda (5.6484ms)
+  AssertionError [ERR_ASSERTION]: '' == '<span class="ls-long">Español</span><span class="ls-short" aria-hidden="true">ES</span>'
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-45-wt\test\site.test.js:3648:63)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at node:internal/test_runner/test:1305:31
+      at node:internal/process/task_queues:151:7
+      at AsyncResource.runInAsyncScope (node:async_hooks:227:14)
+      at AsyncResource.runMicrotask (node:internal/process/task_queues:148:8) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: '<span class="ls-long">Español</span><span class="ls-short" aria-hidden="true">ES</span>',
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3656:1
+✖ LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la app lleva a las páginas en inglés cuando la app está en inglés (0.8941ms)
+  AssertionError [ERR_ASSERTION]: la sigla escondida donde cabe el nombre
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-45-wt\test\site.test.js:3660:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

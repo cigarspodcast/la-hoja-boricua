@@ -1,8 +1,8 @@
 /* La Hoja Boricua · idiomas (LHB-27). Textos de la app: español (es) e inglés (en).
-   El español es el texto original, movido aquí sin cambios. El inglés es un borrador que revisa Sergio (E5).
-   ENABLED se queda en false hasta E6: mientras tanto la app es siempre en español y el selector sigue escondido. */
+   El español es el texto original, movido aquí sin cambios. El inglés sale sin revisión externa (decisión del dueño, 2026-10-28).
+   E6 (LHB-36): ENABLED encendido; el idioma sigue al navegador (en* da inglés) y el selector de arriba lo cambia y lo recuerda. */
 (function(w){'use strict';
-const ENABLED=false;
+const ENABLED=true;
 const T={es:{
  "proto.note": "<b>Prototipo</b> \u2014 información pública, sujeta a verificación.",
  "pf.note": "<b>Prototipo</b> \u2014 información pública, sujeta a verificación. Tus datos se guardan solo en este teléfono.",
@@ -668,6 +668,8 @@ const T={es:{
  "ix.searchAll": "Buscar en toda la app",
  "ix.footLug": "Cigar lounges en Puerto Rico",
  "ix.footArt": "Artesanos de cigarros en Puerto Rico",
+ "ix.footLugHref": "lugares/",
+ "ix.footArtHref": "artesanos/",
  "ix.tabs": "Secciones",
  "ix.plus": "Nueva cata, añadir al humidor o subir cigarro"
  },
@@ -1336,6 +1338,8 @@ en:{
  "ix.searchAll": "Search the whole app",
  "ix.footLug": "Cigar lounges in Puerto Rico",
  "ix.footArt": "Cigar artisans in Puerto Rico",
+ "ix.footLugHref": "en/lugares/",
+ "ix.footArtHref": "en/artesanos/",
  "ix.tabs": "Sections",
  "ix.plus": "New tasting, add to humidor or upload a cigar"
  }};
@@ -1349,7 +1353,7 @@ function t(k,v,fb){let s=T[lang][k];if(s==null)s=T.es[k];if(s==null)return fb!=n
 function set(l){try{w.localStorage.setItem('lhb_lang',l)}catch(e){}w.location.reload()}
 /* LHB-29: index.html trae el español; en inglés se cambia cada [data-i18n] (su HTML) y cada [data-i18n-attr] ("atributo:clave") */
 function apply(d){if(lang==='es')return;d.querySelectorAll('[data-i18n]').forEach(el=>{el.innerHTML=t(el.getAttribute('data-i18n'))});d.querySelectorAll('[data-i18n-attr]').forEach(el=>{for(const p of el.getAttribute('data-i18n-attr').split(';')){const i=p.indexOf(':');if(i>0)el.setAttribute(p.slice(0,i),t(p.slice(i+1)))}})}
-function wire(){apply(w.document);const b=w.document.getElementById('langSwitch');if(!b||!ENABLED)return;b.hidden=false;b.textContent=lang==='en'?'Español':'English';b.onclick=()=>set(lang==='en'?'es':'en')}
+function wire(){apply(w.document);const b=w.document.getElementById('langSwitch');if(!b||!ENABLED)return;b.hidden=false;const nm=lang==='en'?'Español':'English';b.innerHTML='<span class="ls-long">'+nm+'</span><span class="ls-short" aria-hidden="true">'+(lang==='en'?'ES':'EN')+'</span>';b.setAttribute('aria-label',nm);b.lang=lang==='en'?'es':'en';b.onclick=()=>set(lang==='en'?'es':'en')}
 if(w.document){if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',wire);else wire()}
 w.LHB_I18N={t,lang,set,pick,ENABLED,T,apply};
 })(window);
