@@ -1,0 +1,41 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-34-wt (branch lhb-34-account). The diff below is origin/main..HEAD. This is round 1 of a TIER 2 review: it loops until there is no blocking finding.
+
+Ticket LHB-34, account page. Pinned decisions:
+- Delete needs typed confirmation and signs the user out everywhere.
+- Download reuses the existing respaldo JSON format.
+- Sign-out removes this phone's local copy, but only after the server confirms it holds the latest rev. With unsynced changes, sign-out is blocked with "Sincroniza o descarga un respaldo primero".
+- A link to the privacy page.
+- Delete removes the profile, the Mi Hoja document, the R2 photos (none exist yet: profile photos are Clerk URLs; R2 is LHB-35) and the Clerk user (Clerk API with CLERK_SECRET_KEY).
+
+What was built:
+- functions/_lib/account.js:
+  - USER_TABLES, the closed list of tables and the columns that name a user.
+  - userTables, which reads sqlite_master; any table not in the list (other than SQLite, D1 and wrangler internals) makes the delete refuse.
+  - deletes, one DELETE per table.
+  - clerkKey, the secret must match the session's instance: sk_test_ for *.clerk.accounts.dev, sk_live_ otherwise.
+  - deleteClerkUser, which treats 200 or 404 as done.
+- functions/api/account.js onRequestDelete:
+  - First every check that can fail without changing anything: session, DB, key, JSON, the typed @ (or BORRAR once the profile is gone) and the table list.
+  - Then one D1 batch, then the Clerk delete.
+  - If Clerk fails: 502 clerk-failed, and a retry finishes.
+- site/sync.js:
+  - settled(o): a pass, then ok only if the pass is ok, nothing is dirty, the meta is clean and the copy equals the synced base. Or ok if o.backup equals the canon of the current copy. An unfinished draft always blocks.
+  - hold(on): no passes while signing out or deleting.
+  - forget(): removes the Mi Hoja key, sync meta, owner and seq.
+- site/hoja.js, the block after SYNC.start(): accountPanel, bindAccount, salir and borrar. Perfil (site/app.js vPerfil) renders and binds the panel.
+- i18n keys ac.* in es and en; cache lhb-v84.
+
+Evidence in the worktree:
+- evidence/lhb-34-tests.txt: the full suite, 255/255.
+- evidence/lhb-34-red-before.txt: the 10 LHB-34 tests against main's code, 10 of 10 fail.
+- evidence/lhb-34-mutations.out: 24 of 24 mutations red.
+
+Look hardest at:
+1. Can a delete leave any row naming the user, or delete another user's data? Consider follows on both sides, the follow_events trigger, D1 foreign keys, a table added later, and a partial failure.
+2. Can a delete run without the typed confirmation, without the right Clerk key, or across instances?
+3. Can sign-out remove local data the account does not hold? Consider a pass in flight, another tab, edits during the pass, offline, a failing PUT, the backup path and the draft.
+4. Can a sync pass after a delete or sign-out push Mi Hoja back to the server?
+5. Does the client behave right on each server answer (200, 400, 502, 503, network error)? Is the sign-out order safe (data cleared before Clerk navigates away)?
+6. Anything else in the diff, including the tests: can they pass on broken code, and do their fakes hide a real path?
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
