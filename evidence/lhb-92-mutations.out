@@ -1,0 +1,17 @@
+M1 no card is lazy                               rc 1 fail 1 -> RED
+M2 every card is lazy                            rc 1 fail 1 -> RED
+M3 the condition inverted                        rc 1 fail 1 -> RED
+M4 off by one (4 eager)                          rc 1 fail 1 -> RED
+M5 first row of 2, not 3                         rc 1 fail 1 -> RED
+M6 lazy img without its width and height         rc 1 fail 1 -> RED
+M7 the catalog grid drops the index              rc 1 fail 1 -> RED
+M8 a Mi Hoja grid drops the index                rc 1 fail 1 -> RED
+M9 pinned card CSS: mini card 150px              rc 1 fail 1 -> RED
+M10 pinned card CSS: card padding 9px            rc 1 fail 1 -> RED
+M11 pinned card CSS: a new .card .ph rule        rc 1 fail 1 -> RED
+M12 grid 4 columns from 620px                    rc 1 fail 2 -> RED
+M13 switch: min-width:0 !important appended      rc 1 fail 1 -> RED
+M14 switch: a later padding override             rc 1 fail 1 -> RED
+M15 fitPop updates before the new height         rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 4 (the 3 LHB-92 tests and the LHB-87 r3 test)
+RESULT 15 of 15 mutations red

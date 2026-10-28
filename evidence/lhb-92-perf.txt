@@ -1,0 +1,45 @@
+LHB-92: does loading="lazy" on card images after the first grid row move simulated mobile LCP of the home page?
+Answer: no. The change was reverted (forward commit); the ticket closes with this measurement (its Done-when, second branch).
+
+Instrument: Lighthouse 13.6.0, mobile, performance only, simulated throttling, headless Chrome, this host, each pass
+under a CORRUPTIBLE host claim (live-runs/LHB-92-corruptible.claim.md) with no PRODUCER open.
+Counting basis: LCP = audits.largest-contentful-paint.numericValue (simulated, ms). "Images before LCP" = network
+requests of type Image whose networkRequestTime is before observedLargestContentfulPaint (observed, unthrottled);
+"card thumbs" = those whose URL contains _thumb. LCP element = lcp-breakdown-insight selector.
+Summaries made by tool92/sum92.py from the JSON reports.
+
+PASS 1, 2026-10-28T18:20:24Z to 18:22:34Z: branch preview (f59b9f4f, lhb-v82, HEAD 890a380) interleaved with
+production (lahojaboricua.com, main 0fb344a with LHB-39, lhb-v82). Raw reports: evidence/lhb-92-lh-r1/.
+  branch     LCP median 2558 ms [1816 to 2580], CLS max 0.004, 3 runs; card thumbs before LCP 0 to 2
+  production LCP median 3179 ms [3045 to 3348], CLS max 0.003, 3 runs; card thumbs before LCP 0 to 33
+  This mixes the change with the preview/production host gap (about 435 ms measured on LHB-84/86 for identical code).
+
+PASS 2, 2026-10-28T18:24:57Z to 18:27:41Z: the same comparison on ONE host. Branch preview 116b02be (HEAD f451cd2,
+main merged in, lhb-v83) interleaved with main's preview 7ff44ebd (main 0fb344a, lhb-v82, no LHB-92 change; checked:
+its app.js has no EAGER_CARDS). In the rows below "prod" is main's PREVIEW, not production.
+  branch  run 1  LCP  2624 ms  CLS 0.000  FCP  1042  TBT  114  score 0.96  images before LCP 21 (171.9 KiB), card thumbs 13  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  branch  run 2  LCP  2733 ms  CLS 0.000  FCP  1083  TBT  115  score 0.95  images before LCP 21 (171.9 KiB), card thumbs 13  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  branch  run 3  LCP  2706 ms  CLS 0.000  FCP  1056  TBT   85  score 0.96  images before LCP 21 (172.1 KiB), card thumbs 13  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  branch  run 4  LCP  2692 ms  CLS 0.000  FCP  1042  TBT   90  score 0.96  images before LCP 21 (171.9 KiB), card thumbs 13  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  branch  run 5  LCP  2683 ms  CLS 0.000  FCP  1033  TBT  105  score 0.94  images before LCP 21 (172.0 KiB), card thumbs 13  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  branch  LCP median 2692 ms [2624 to 2733], CLS max 0.000, 5 runs
+  prod    run 1  LCP  1813 ms  CLS 0.000  FCP  1063  TBT   59  score 0.99  images before LCP  5 ( 70.7 KiB), card thumbs  0  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  prod    run 2  LCP  2433 ms  CLS 0.004  FCP  1137  TBT   72  score 0.97  images before LCP 41 (272.0 KiB), card thumbs 33  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  prod    run 3  LCP  2718 ms  CLS 0.000  FCP  1068  TBT  118  score 0.95  images before LCP 41 (272.0 KiB), card thumbs 33  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  prod    run 4  LCP  2612 ms  CLS 0.000  FCP  1101  TBT  111  score 0.96  images before LCP 41 (272.0 KiB), card thumbs 33  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  prod    run 5  LCP  2742 ms  CLS 0.000  FCP  1092  TBT   94  score 0.95  images before LCP 41 (272.0 KiB), card thumbs 33  LCP el div#campo > div#cz > div.lay > img.campo-bg
+  prod    LCP median 2612 ms [1813 to 2742], CLS max 0.004, 5 runs
+
+Reading:
+- On one host the change halves the image requests before LCP (41 to 21, 272 to 172 KiB) and LCP does not move:
+  branch 2692 ms [2624 to 2733] against main 2612 ms [1813 to 2742]. The pass 1 gain was the host gap.
+- 13 lazy thumbnails still load before LCP on the branch: Chrome loads lazy images within a distance of the viewport.
+- HYPOTHESIS (from LHB-84, untested here): LCP is set by when the splash paints img.campo-bg, not by link bandwidth.
+  The observed lcp-breakdown puts most of it in element render delay (about 640 to 1350 ms in earlier runs). The
+  splash's look and timing are the owner's (M7), so no further lever is taken in this ticket.
+- CLS stayed at or under 0.004 in all 16 runs.
+
+Kept and merged: the three carried test items (card CSS pin, language switch width guard, LHB-87 r3 update-order
+check). Mutation proof on the final tree: evidence/lhb-92-mutations-final.out, 7 of 7 red (its baseline label says
+"the 3 LHB-92 tests"; on the final tree that is 2 LHB-92 tests plus the LHB-87 r3 test, 3 passing). The full
+15-mutation run before the revert is evidence/lhb-92-mutations.out. Final suite: evidence/lhb-92-tests-final.txt.

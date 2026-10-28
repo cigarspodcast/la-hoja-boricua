@@ -1,0 +1,90 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-92-wt (branch lhb-92-lazy-cards). The diff below is origin/main..HEAD for test/site.test.js; site/ is identical to main. This is round 2.
+
+Context (round 1 brief, evidence/lhb-92-review-brief-r1-final.txt): LHB-92's lazy-loading change did not move LCP and was reverted; the branch carries three test items from earlier reviews: a pin of the card CSS that the LHB-85 `sizes` measurements depend on, a guard on the language switch width rules (LHB-93), and an LHB-87 resize test that now checks the maxHeight update() sees.
+
+Round 1 returned BLOCK with four P2 findings (evidence/lhb-92-review-r1.txt): the pin ignored @media conditions (a 620 to 720 px breakpoint change passed); it matched exact selectors only (.grid .card{padding} passed); the switch guard missed longhands (padding-left passed); and it checked only a prefix of the LHB-93 rule (min-width:0 inserted after it passed).
+The fix (commit 0141d81):
+- cssRules(css) parses the stylesheet with each rule's @media condition (comments stripped).
+- widthRules(css, CLS, TYPES) keeps every rule whose body sets a width-affecting property (BOX92: width, min/max-width, padding*, border*, margin*, box-sizing, display, flex*, grid*, gap, aspect-ratio, position, font*, letter/word-spacing, white-space, text-transform, zoom, transform) AND one of whose selectors either has a subject compound carrying a class in CLS, or is a bare type rule from TYPES (for example a, img, *), or has a TYPES subject with a CLS class in its ancestry.
+- Both tests compare the full list, in order, with the exact rule text including the @media prefix: 17 rules for the card (CLS card, ph, grid, mini-row, view; TYPES *, a, img, svg, div) and 7 for the switch (CLS lang-switch, ls-long, ls-short; TYPES *, button, span).
+Evidence:
+- lhb-92-tests-r1fix.txt: 245/245.
+- lhb-92-mutations-r1fix.out: 14 of 14 red. M16 to M19 are your four findings. M20 is a bare a{padding}, M21 letter-spacing on .ls-long, M22 a media-wrapped .card padding.
+- lhb-92-mutations-r1fix-before.out: the same M16 to M22 against the pre-fix tests, 1 of 7 red.
+
+Check that the four findings are fixed, and look for defects the fix introduced:
+- the parser mis-reading this stylesheet (nested @supports, @keyframes, strings or url() containing braces or commas);
+- a rule that changes those widths and still escapes, for example attribute selectors, :is()/:where(), or ID selectors;
+- the guard so broad that ordinary unrelated work fails it, and whether its message tells the reader what to do;
+- tests that would pass on broken code.
+Also anything from round 1 you now consider blocking.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main HEAD -- test/site.test.js =====
+diff --git a/test/site.test.js b/test/site.test.js
+index ec342ef..8018697 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -3915,13 +3915,56 @@ test('LHB-87 (Codex r2): la lista de un grupo cabe en el mapa: su alto con scrol
+ test('LHB-87 (Codex r3): con la lista abierta, si el mapa cambia de alto la lista toma el alto nuevo y se vuelve a acomodar',()=>{
+  const app=read('app.js');const pm=app.match(/const POP_FIXED=(\d+),popMaxH=h=>[^\n]*/),fp=app.match(/const fitPop=\(map,p\)=>[^\n]*/);assert.ok(pm&&fp,'popMaxH y fitPop en app.js');
+  const fitPop=new Function(pm[0]+'\n'+fp[0]+';return fitPop')();
+- const pop=()=>({options:{maxHeight:320},u:0,update(){this.u++}});let h=460;const map={open:new Set(),hasLayer(p){return this.open.has(p)},getSize:()=>({x:502,y:h})};
+- const p=pop();map.open.add(p);h=185;fitPop(map,p);assert.equal(p.options.maxHeight,81,'185 - 104');assert.equal(p.u,1,'y se vuelve a acomodar (update: layout, posición y autoPan)');
+- h=460;fitPop(map,p);assert.equal(p.options.maxHeight,320,'al crecer vuelve al tope');assert.equal(p.u,2);
++ const pop=()=>({options:{maxHeight:320},u:0,seen:null,update(){this.u++;this.seen=this.options.maxHeight}});let h=460;const map={open:new Set(),hasLayer(p){return this.open.has(p)},getSize:()=>({x:502,y:h})};
++ const p=pop();map.open.add(p);h=185;fitPop(map,p);assert.equal(p.options.maxHeight,81,'185 - 104');assert.equal(p.u,1,'y se vuelve a acomodar (update: layout, posición y autoPan)');assert.equal(p.seen,81,'update() ya ve el alto nuevo (LHB-92, de LHB-87 r4)');
++ h=460;fitPop(map,p);assert.equal(p.options.maxHeight,320,'al crecer vuelve al tope');assert.equal(p.u,2);assert.equal(p.seen,320,'y update() lo ve');
+  const shut=pop();fitPop(map,shut);assert.equal(shut.u,0,'una lista cerrada no se toca');assert.doesNotThrow(()=>fitPop(map,null),'sin lista todavía');
+  assert.ok(app.includes("map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));"),'cada cambio de tamaño del mapa la acomoda');
+  assert.ok(app.includes("==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)})"),'la lista abierta queda guardada');
+ });
++/* LHB-92 (Codex r1): las reglas de la hoja con su @media, y cuáles fijan el ancho de algo: la clase en el sujeto del selector, la regla suelta de un tipo (a, img, *...) o ese tipo dentro de la clase */
++const cssRules=css=>{css=css.replace(/\/\*[\s\S]*?\*\//g,'');const out=[],st=[];let i=0,pre='';
++ while(i<css.length){const ch=css[i];
++  if(ch==='{'){const p=pre.trim().replace(/\s+/g,' ');pre='';if(p.startsWith('@')){st.push(p);i++;continue}const e=css.indexOf('}',i);out.push({media:st.join(' '),sel:p,body:css.slice(i+1,e).trim()});i=e+1;continue}
++  if(ch==='}'){st.pop();pre='';i++;continue}
++  pre+=ch;i++}
++ return out};
++const BOX92=/(^|;)\s*(width|min-width|max-width|padding(-[a-z-]+)?|border(-[a-z-]+)?|margin(-[a-z-]+)?|box-sizing|display|flex(-[a-z-]+)?|grid(-[a-z-]+)?|gap|column-gap|aspect-ratio|position|font(-[a-z-]+)?|letter-spacing|word-spacing|white-space|text-transform|zoom|transform)\s*:/;
++const widthRules=(css,CLS,TYPES)=>{const subj=s=>s.trim().split(/\s*[>+~]\s*|\s+/).pop();
++ const hits=s=>{const u=subj(s),t=(u.match(/^(\*|[a-z]+)/)||[])[1],bare=/^(\*|[a-z]+)(:[\w-]+(\([^)]*\))?)*$/.test(s.trim());return CLS.test(u)||(TYPES.includes(t)&&(bare||CLS.test(s)))};
++ return cssRules(css).filter(r=>BOX92.test(r.body)&&r.sel.split(',').some(hits)).map(r=>(r.media?r.media+' ':'')+r.sel+'{'+r.body+'}')};
++/* LHB-92 (de LHB-85 Codex r2; Codex r1 de LHB-92): SIZES_GRID y SIZES_MINI salen de medir estas reglas; si cambia cualquiera que fije un ancho de la tarjeta, hay que volver a medir */
++test('LHB-92: las reglas que fijan el ancho de la tarjeta siguen como se midieron, con su @media',()=>{
++ assert.deepEqual(widthRules(read('styles.css'),/\.(card|ph|grid|mini-row|view)(?![\w-])/,['*','a','img','svg','div']),[
++  "*{box-sizing:border-box}",
++  "img{max-width:100%;display:block}",
++  ".view{flex:1;padding:14px calc(var(--sar) + 16px) calc(var(--tab-h) + var(--sab) + 28px) calc(var(--sal) + 16px);outline:none;max-width:760px;width:100%;margin:0 auto}",
++  ".grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}",
++  "@media(min-width:620px) .grid{grid-template-columns:repeat(3,minmax(0,1fr))}",
++  ".card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-decoration:none;display:flex;flex-direction:column;position:relative}",
++  ".card .ph{aspect-ratio:4/3;background:var(--card2);overflow:hidden}",
++  ".card .ph img,.card .ph svg{width:100%;height:100%;object-fit:cover;display:block}",
++  ".mini-row{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}",
++  ".mini-row::-webkit-scrollbar{display:none}",
++  ".mini-row .card{flex:none;width:140px}",
++  ".card{background:var(--card);padding:7px 7px 0}",
++  ".card .ph{border:5px solid var(--photo);border-bottom-width:12px;border-radius:3px;box-shadow:0 3px 10px rgba(0,0,0,.35);filter:sepia(.14) saturate(1.06) contrast(1.02)}",
++  ".card:nth-child(odd) .ph{transform:rotate(-.6deg)}",
++  ".card:nth-child(even) .ph{transform:rotate(.6deg)}",
++  ".card .ph.has-foto{background:#fff;filter:none;display:flex;align-items:center;justify-content:center}",
++  ".card .ph.has-foto img{object-fit:contain;width:100%;height:auto;aspect-ratio:2/1}"],'cambió una regla que fija el ancho de la tarjeta: volver a medir (evidence/lhb-85-slot-widths.txt) y poner al día SIZES_GRID / SIZES_MINI');
++});
++/* LHB-92 (de LHB-93 Codex r1; Codex r1 de LHB-92): ninguna regla nueva o cambiada le mueve el ancho al selector de idioma */
++test('LHB-92: las reglas que fijan el ancho del selector de idioma son las de LHB-93, completas',()=>{
++ assert.deepEqual(widthRules(read('styles.css'),/\.(lang-switch|ls-long|ls-short)(?![\w-])/,['*','button','span']),[
++  "*{box-sizing:border-box}",
++  "button,input,select,textarea{font:inherit;color:inherit}",
++  ".lang-switch{height:36px;min-width:74px;padding:0 12px;border-radius:18px;background:var(--card);border:1px solid var(--line);color:var(--cream);font:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;cursor:pointer}",
++  ".lang-switch .ls-short{display:none}",
++  "@media (max-width:399px) .lang-switch{min-width:40px;padding:0 10px}",
++  "@media (max-width:399px) .lang-switch .ls-long{display:none}",
++  "@media (max-width:399px) .lang-switch .ls-short{display:inline}"],'cambió una regla que fija el ancho del selector: volver a medir (evidence/lhb-93-switch-widths.txt) y poner al día los min-width');
++});
+ test('LHB-39 (Codex ronda 2): el foco anotado al llegar una sincronización no se usa después de irse a otra página ni con otra cuenta',()=>{
+  const win={};const g=HOJA38({D:CAT39,api:'dKeepFocus',win,ls:{lhb_mihoja_v1:JSON.stringify(DOC39())}});g.API.vDiario();
+  const seen=[];g.els.dqQ.focus=()=>seen.push('focus');g.els.dqQ.setSelectionRange=a=>seen.push(a);

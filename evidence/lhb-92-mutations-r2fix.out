@@ -1,0 +1,8 @@
+== branch tree (LHB-87 test tightened)
+M15 fitPop updates before the new height         rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 1 (the LHB-92 tests and the LHB-87 r3 test)
+RESULT 1 of 1 mutations red
+== main tree (LHB-87 test as merged)
+M15 fitPop updates before the new height         rc 0 fail 0 -> SURVIVED
+baseline after restore: rc 0 pass 1 (the LHB-92 tests and the LHB-87 r3 test)
+RESULT 0 of 1 mutations red

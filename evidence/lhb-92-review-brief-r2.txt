@@ -1,0 +1,22 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-92-wt (branch lhb-92-lazy-cards). The diff below is origin/main..HEAD for test/site.test.js; site/ is identical to main. This is round 2.
+
+Context (round 1 brief, evidence/lhb-92-review-brief-r1-final.txt): LHB-92's lazy-loading change did not move LCP and was reverted; the branch carries three test items from earlier reviews: a pin of the card CSS that the LHB-85 `sizes` measurements depend on, a guard on the language switch width rules (LHB-93), and an LHB-87 resize test that now checks the maxHeight update() sees.
+
+Round 1 returned BLOCK with four P2 findings (evidence/lhb-92-review-r1.txt): the pin ignored @media conditions (a 620 to 720 px breakpoint change passed); it matched exact selectors only (.grid .card{padding} passed); the switch guard missed longhands (padding-left passed); and it checked only a prefix of the LHB-93 rule (min-width:0 inserted after it passed).
+The fix (commit 0141d81):
+- cssRules(css) parses the stylesheet with each rule's @media condition (comments stripped).
+- widthRules(css, CLS, TYPES) keeps every rule whose body sets a width-affecting property (BOX92: width, min/max-width, padding*, border*, margin*, box-sizing, display, flex*, grid*, gap, aspect-ratio, position, font*, letter/word-spacing, white-space, text-transform, zoom, transform) AND one of whose selectors either has a subject compound carrying a class in CLS, or is a bare type rule from TYPES (for example a, img, *), or has a TYPES subject with a CLS class in its ancestry.
+- Both tests compare the full list, in order, with the exact rule text including the @media prefix: 17 rules for the card (CLS card, ph, grid, mini-row, view; TYPES *, a, img, svg, div) and 7 for the switch (CLS lang-switch, ls-long, ls-short; TYPES *, button, span).
+Evidence:
+- lhb-92-tests-r1fix.txt: 245/245.
+- lhb-92-mutations-r1fix.out: 14 of 14 red. M16 to M19 are your four findings. M20 is a bare a{padding}, M21 letter-spacing on .ls-long, M22 a media-wrapped .card padding.
+- lhb-92-mutations-r1fix-before.out: the same M16 to M22 against the pre-fix tests, 1 of 7 red.
+
+Check that the four findings are fixed, and look for defects the fix introduced:
+- the parser mis-reading this stylesheet (nested @supports, @keyframes, strings or url() containing braces or commas);
+- a rule that changes those widths and still escapes, for example attribute selectors, :is()/:where(), or ID selectors;
+- the guard so broad that ordinary unrelated work fails it, and whether its message tells the reader what to do;
+- tests that would pass on broken code.
+Also anything from round 1 you now consider blocking.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
