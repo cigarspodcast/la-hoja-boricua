@@ -274,6 +274,8 @@ h1 em,h2 em,.brand-name em,.splash-name em{font-style:normal;font-weight:400;col
 .tabbar a[aria-current]{color:var(--gold)}
 .icon-btn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:1px solid var(--line);color:var(--cream);text-decoration:none;padding:0;cursor:pointer}
 .icon-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+/* LHB-36: el selector de idioma, del alto de los botones redondos; sin display, el atributo hidden lo esconde */
+.lang-switch{height:36px;padding:0 12px;border-radius:18px;background:var(--card);border:1px solid var(--line);color:var(--cream);font:inherit;font-size:13px;font-weight:600;letter-spacing:.02em;cursor:pointer}
 .top-actions{gap:8px}
 button.row{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
 .rowlink{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-decoration:none;color:inherit}

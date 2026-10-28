@@ -1,0 +1,46 @@
+✖ LHB-36: el selector de idioma está encendido y visible; inglés para un navegador en inglés, español para los demás; la escogida se recuerda (2.5611ms)
+✖ LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la app lleva a las páginas en inglés cuando la app está en inglés (0.5922ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 93.0151
+
+✖ failing tests:
+
+test at test\site.test.js:3645:1
+✖ LHB-36: el selector de idioma está encendido y visible; inglés para un navegador en inglés, español para los demás; la escogida se recuerda (2.5611ms)
+  AssertionError [ERR_ASSERTION]: E6: encendido
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-45-wt\test\site.test.js:3646:35)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3656:1
+✖ LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la app lleva a las páginas en inglés cuando la app está en inglés (0.5922ms)
+  AssertionError [ERR_ASSERTION]: regla .lang-switch
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-45-wt\test\site.test.js:3657:84)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
