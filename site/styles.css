@@ -362,6 +362,20 @@ body.sheet-on{overflow:hidden}
 .dfoto{margin:8px 0}
 .dfoto:empty{display:none}
 .dfoto img{display:block;width:100%;max-height:260px;object-fit:cover;border-radius:12px}
+/* LHB-39: los números de Mi Hoja y los filtros del diario */
+.dstats{margin:16px 0 6px}
+.dst-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:439px){.dst-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.dst-h{font-size:15px;margin:14px 0 6px}
+.dst-top{margin:0;padding-left:22px}
+.dst-top li{margin:4px 0}
+.dst-top .t{font-weight:600}
+.dst-top .s{display:block;font-size:13px;color:var(--muted)}
+.dst-most{margin-top:12px}
+.dfilt{margin:14px 0 4px;gap:10px}
+.dq-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media(max-width:519px){.dq-row{grid-template-columns:1fr}}
+#dqN{margin:4px 0 10px}
 .dpub{margin:6px 0 0}
 .dentry summary{cursor:pointer;color:var(--gold);font-weight:600;font-size:14px;padding:6px 0}
 .dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:8px 0;font-size:14px}

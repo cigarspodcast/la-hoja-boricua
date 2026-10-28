@@ -1,0 +1,19 @@
+LHB-39 preview check, read in the built-in browser at 2026-10-28T17:46Z (UTC).
+Preview: https://f831cb20.la-hoja-boricua.pages.dev (deploy of ff26743; b8b84ef changes only tests and evidence).
+
+Signed out, #/mihoja/diario: the account card shows ("Entra para usar Mi Hoja", "Entrar o crear cuenta") and Clerk's
+sign-in dialog opens, as on main. No console errors. Not signed in (owner rule).
+Served hoja.js contains function diaryStats(; LHB_I18N has h.stTusNumeros ("Your numbers" in English) and h.dqBuscar.
+sw.js on the preview: VERSION='lhb-v79' (the bump is done at merge).
+
+Signed-in data could not be shown without signing in. For layout only, the deployed hoja.js region from
+"const stars=" to "/* pasaporte */" was run in the page with a three-entry fixture and stub storage (no localStorage
+write, no account), its vDiario output put into #view at 375x812 (mobile preset), the Clerk backdrop hidden:
+- stats tiles 2 by 2 (3 tastings, 0 artisan, 0 cigar, 0 place stamps), Top rated list with "5.0 · 1 tasting",
+  Most-logged wrapper Maduro, Most-logged strength Medium; filters stacked in one column; documentElement.scrollWidth 375
+  (no sideways scroll).
+- typing "cohiba" into #dqQ and firing input: "1 of 3 tastings", one card in #dList.
+The page was reloaded afterwards.
+
+Not verified: the view with a real signed-in account and its synced diary, photos in filtered cards (A.hydrate was a stub),
+and the Spanish rendering in the browser (the preview session runs in English; Spanish is covered by the suite).

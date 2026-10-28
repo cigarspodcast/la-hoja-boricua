@@ -1,0 +1,37 @@
+M1 catas count what is not an entry              rc 1 fail 2 -> RED
+M2 stamps not checked against the catalog        rc 1 fail 2 -> RED
+M3 stamps of one kind counted as another         rc 1 fail 2 -> RED
+M4 top not ordered by average                    rc 1 fail 1 -> RED
+M5 top average tie not broken by count           rc 1 fail 2 -> RED
+M6 top not capped at three                       rc 1 fail 1 -> RED
+M7 unrated catas in the top                      rc 1 fail 1 -> RED
+M8 an "otro" cigar keyed by its raw name         rc 1 fail 1 -> RED
+M9 most-logged ignores the count                 rc 1 fail 1 -> RED
+M10 most-logged tie goes the other way           rc 1 fail 1 -> RED
+M11 fortaleza reads the capa                     rc 1 fail 1 -> RED
+M12 search misses the marca                      rc 1 fail 1 -> RED
+M13 search misses the artesano                   rc 1 fail 2 -> RED
+M14 search misses the name                       rc 1 fail 2 -> RED
+M15 search misses the tags                       rc 1 fail 1 -> RED
+M16 search misses the shown tag name             rc 1 fail 1 -> RED
+M17 search keeps accents                         rc 1 fail 2 -> RED
+M18 search is case-sensitive                     rc 1 fail 3 -> RED
+M19 any word instead of every word               rc 1 fail 1 -> RED
+M20 stars filter is at-least, not exact          rc 1 fail 1 -> RED
+M21 public filter ignored                        rc 1 fail 2 -> RED
+M22 private filter ignored                       rc 1 fail 1 -> RED
+M23 date sort ignores the day smoked             rc 1 fail 2 -> RED
+M24 date sort oldest first                       rc 1 fail 2 -> RED
+M25 stars sort ignored                           rc 1 fail 2 -> RED
+M26 stars sort tie not by date                   rc 1 fail 2 -> RED
+M27 the stats panel is not shown                 rc 1 fail 1 -> RED
+M28 filters lose their state on repaint          rc 1 fail 1 -> RED
+M29 the count does not follow the filter         rc 1 fail 1 -> RED
+M30 typing in the search does nothing            rc 1 fail 1 -> RED
+M31 a filter change repaints the whole page      rc 1 fail 1 -> RED
+M32 another account keeps the search             rc 1 fail 1 -> RED
+M33 no message when nothing matches              rc 1 fail 1 -> RED
+M34 focus does not come back after a repaint     rc 1 fail 1 -> RED
+M35 the caret goes to the start                  rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 3
+RESULT 35 of 35 mutations red
