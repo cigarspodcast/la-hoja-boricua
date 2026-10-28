@@ -3531,6 +3531,7 @@ const ES32=/(^|[^\p{L}])(de|del|en|y|la|las|el|los|para|con|por|según|un|una|do
 const leftover32=()=>{const keep=new Set(['La Hoja Boricua','Mi Hoja','Cigars Podcast']);const add=v=>{if(typeof v!=='string'||!v.trim())return;const s=v.trim();keep.add(s);keep.add(s.replace(/\.$/,''));const m=s.match(/^(.+?)\s*\((.+)\)$/);if(m){keep.add(m[1].trim());keep.add(m[2].trim());keep.add(m[1].trim()+', '+m[2].trim())}};
  for(const f of ['places.json','artesanos.json','cigarros.json'])for(const r of JSON.parse(readD(f)))for(const [k,v] of Object.entries(r)){
   if(TR32.includes(k)){const e=r[k+'_en'];if(!(typeof e==='string'&&e.trim()))add(v);continue}
+  if(k==='fortaleza')continue;/* Codex ronda 1: suave, media, fuerte se muestran como Mild, Medium, Full */
   for(const x of [].concat(v))add(x);}
  const K=[...keep].sort((a,b)=>b.length-a.length);const dec=s=>s.replace(/&quot;/g,'"').replace(/&#x27;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
  return h=>{const strs=[];const walk=o=>{if(typeof o==='string')strs.push(o);else if(o&&typeof o==='object')for(const k of Object.keys(o))if(!['@context','@type','url','item','image','logo','sameAs'].includes(k))walk(o[k])};
@@ -3555,7 +3556,9 @@ test('LHB-32: en una página en inglés no queda español fuera de los datos que
   for(const k of TR32){const es=r[k],en=r[k+'_en'];if(!(typeof es==='string'&&es.trim()&&typeof en==='string'&&en.trim()))continue;const s=es.trim().replace(/\s+/g,' ').toLowerCase();if(s===en.trim().replace(/\s+/g,' ').toLowerCase())continue;pairs++;
    assert.ok(!new RegExp('(^|[^\\p{L}])'+reEsc(s)+'(?=$|[^\\p{L}])','u').test(page),'en/'+d+'/'+r.id+': el español de '+k+' aparece: '+es.slice(0,60))}}
  assert.ok(pairs>=150,'campos con un inglés distinto revisados: '+pairs);
- for(const c of C){const ca=(fx32(c,'capa')||'').trim();if(ca)assert.ok(read('en/cigarros/'+c.id+'.html').includes('<li>Wrapper: <span>'+esc32(ca)+'</span></li>'),'la capa visible en inglés '+c.id)}
+ for(const c of C){const ca=(fx32(c,'capa')||'').trim(),h=read('en/cigarros/'+c.id+'.html');if(ca)assert.ok(h.includes('<li>Wrapper: <span>'+esc32(ca)+'</span></li>'),'la capa visible en inglés '+c.id);
+  const st={suave:'Mild',media:'Medium',fuerte:'Full'}[c.fortaleza];if(c.fortaleza){assert.ok(st,'fortaleza conocida '+c.id);assert.ok(h.includes('<li>Strength: <span>'+st+'</span></li>'),'la fortaleza visible en inglés '+c.id);
+   const main=JSON.parse(h.match(/<script type="application\/ld\+json">(.*?)<\/script>/)[1]);assert.ok(main.additionalProperty.some(p=>p.name==='Strength'&&p.value===st),'la fortaleza del JSON-LD en inglés '+c.id)}}
 });
 test('LHB-32: el service worker no guarda una página de /en/ como el shell ni la precarga',()=>{const sw=read('sw.js');
  const nav=sw.replace(/\/\*[\s\S]*?\*\//g,'').split(/\r?\n/).filter(l=>l.includes("req.mode==='navigate'")).map(l=>l.replace(/\/\/.*$/,''));
