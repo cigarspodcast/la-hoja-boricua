@@ -1,0 +1,15 @@
+LHB-93 Proof: Lighthouse 13.6.0 mobile performance (simulated throttling), 3 runs of the branch preview interleaved with 3 of
+production as the control, under host claim LHB-93-lighthouse (CORRUPTIBLE), opened 2026-10-28T17:35:49Z, closed 17:37:48Z.
+Branch: lhb-93-switch-shift 3ff338d (cache lhb-v81), https://b8408842.la-hoja-boricua.pages.dev/. Production: main a713cf1 (lhb-v80).
+Counting basis: one Lighthouse run per row; shifts are the layout-shifts audit items (score, node selector).
+
+perf-branch1  17:36:00 score  94 CLS 0.000 LCP  2669 FCP  1066 | shifts: 0.000 header.topbar > a.brand > span.brand-text > span.brand-name
+perf-main1    17:36:21 score  85 CLS 0.004 LCP  3338 FCP  1160 | shifts: 0.004 div#splash > div.splash-inner > div.splash-name
+perf-branch2  17:36:41 score  93 CLS 0.000 LCP  2689 FCP  1084 | shifts: 0.000 header.topbar > a.brand > span.brand-text > span.brand-name; 0.000 div#app > nav.tabbar > a > span
+perf-main2    17:36:58 score  95 CLS 0.000 LCP  2837 FCP  1078 | shifts: 0.000 header.topbar > a.brand > span.brand-text > span.brand-name
+perf-branch3  17:37:16 score  94 CLS 0.000 LCP  2635 FCP  1034 | shifts: 0.000 header.topbar > a.brand > span.brand-text > span.brand-name; 0.000 ?
+perf-main3    17:37:36 score  89 CLS 0.007 LCP  3485 FCP  1235 | shifts: 0.007 body > div#app > header.topbar > div.top-actions
+
+Result: div.top-actions shifted in 0 of 3 branch runs (CLS 0.000 in all three; the only items are 0.000-score entries).
+Production in the same window: the 0.007 div.top-actions shift in 1 of 3 runs (main3), and a 0.004 splash-name shift in main1.
+Earlier production baseline: div.top-actions 0.007 in 4 of 5 runs (evidence/lhb-90-perf.txt) and 3 of 3 (evidence/lhb-84-86-prod-perf.txt).
