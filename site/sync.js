@@ -141,11 +141,14 @@ window.LHB_SYNC=function(D){
    const merged=remote?merge(base,L,remote):L;
    let newRev=rev,pushed=false;
    if(!remote||canon(merged)!==canon(remote)){
-    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev)})}catch(e){unk={sub:uid,rev};return {skip:'offline'}}
+    /* se anota antes de mandar: si la respuesta no llega, no se puede leer, o la cuenta cambia mientras tanto, el PUT pudo haber llegado. Solo una respuesta clara (409, otro error 4xx o un 200 con revisión) lo borra */
+    unk={sub:uid,rev};
+    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev)})}catch(e){return {skip:'offline'}}
+    if(p.status===409||(p.status<500&&p.status!==200))unk=null;
     if(!alive())return {skip:'other-account'};
     if(p.status===409)continue;
     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
-    newRev=p.body.rev;pushed=true}
+    unk=null;newRev=p.body.rev;pushed=true}
    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
    let now0,Ln,quiet,final,wrote=true;
    for(let k=0;k<4;k++){
@@ -159,10 +162,11 @@ window.LHB_SYNC=function(D){
    if(!wrote||wrote==='stale'){if(pushed){mem=null;voided=true;poison()}return {fail:wrote?'conflict':'storage'}}
    /* si no se puede anotar lo sincronizado, la próxima pasada no se fía de la base vieja (junta sin dar nada por borrado) */
    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
-   const edited=edits!==e0||readSeq()!==s0;
+   /* ...y lo que cambió en la copia mientras tanto (aunque el contador compartido no se haya podido escribir) */
+   const edited=edits!==e0||readSeq()!==s0||!quiet;
    mem={sub:uid,base:merged,rev:newRev};
    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}
-   staleBase=false;voided=false;unk=null;if(!edited)dirty=false;
+   staleBase=false;voided=false;if(unk&&unk.sub===uid)unk=null;if(!edited)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
    const pulled=!!remote&&canon(merged)!==canon(L);
    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');

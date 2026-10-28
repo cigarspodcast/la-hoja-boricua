@@ -1,0 +1,18 @@
+baseline (0, [])
+E33 motor: escribir no marca en memoria que la persona hizo un cambio -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 8): si la meta no se puede escribir, borrar lo último que había sigue siendo un borrado de la persona (la marca en memoria) y no u
+I1 motor: el PUT no se anota como incierto antes de mandarlo -> ROJO (bien) fail=2
+      LHB-31 (Codex ronda 7): un PUT sin respuesta que sí llegó no hace que el teléfono borre lo que otro volvió a agregar; uno que no llegó no deshace un b
+      LHB-31 (Codex ronda 8): un PUT que llegó pero cuya respuesta no se pudo leer, o cuya cuenta salió mientras volvía, no hace que el teléfono borre lo qu
+I2 motor: un 409 o un error claro no borra el PUT incierto (deshace borrados) -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 7): un PUT sin respuesta que sí llegó no hace que el teléfono borre lo que otro volvió a agregar; uno que no llegó no deshace un b
+I3 motor: lo que cambio en la copia durante la pasada no deja la marca de pendiente -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 8): si el contador compartido no se puede crear (almacenamiento lleno), lo que otra pestaña borró mientras esta esperaba la red si
+I4 motor: un 200 con revision no borra el PUT incierto -> ROJO (bien) fail=3
+      LHB-31 (Codex ronda 1): si no se puede anotar lo sincronizado, la pasada falla, conserva la dueña y la siguiente no se fía de la base vieja
+      LHB-31 (Codex ronda 3): sin poder anotar la dueña no se guarda; la base recordada no pisa una meta más nueva de otra pestaña; una llave __proto__ anid
+      LHB-31 (Codex ronda 6): dos fallos seguidos sin recargar (meta, luego aplicar) no hacen que el teléfono borre en la cuenta lo que otro volvió a agrega
+H5 motor: tras aplicar no se limpia el PUT sin respuesta -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 7): un PUT sin respuesta que sí llegó no hace que el teléfono borre lo que otro volvió a agregar; uno que no llegó no deshace un b
+restaurado (0, [])
+mutaciones: 162 sobrevivieron o con error: 0

@@ -1847,9 +1847,9 @@ function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();con
   getDoc:()=>rawDoc(),setDoc:(d,exp)=>{st.setDocs++;if(st.beforeApply){const f=st.beforeApply;st.beforeApply=null;f()}if(exp!==undefined&&win.LHB_MERGE.stable(rawDoc())!==exp)return 'stale';if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
-   net.log.push(method);if(net.status&&net.status[method])return {status:net.status[method],body:{}};
+   net.log.push(method);if(net.status&&net.status[method])return {status:net.status[method],body:{}};if(method==='GET'&&net.beforeGet){const f=net.beforeGet;net.beforeGet=null;await f()}
    if(method==='PUT'&&net.beforePut){const f=net.beforePut;net.beforePut=null;await f()}
-   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match']}),env:a.env});if(method==='PUT'&&net.dropAfterPut){net.dropAfterPut=false;throw new TypeError('sin red')}return {status:r.status,body:await r.json()}},
+   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match']}),env:a.env});if(method==='PUT'&&net.dropAfterPut){net.dropAfterPut=false;throw new TypeError('sin red')}if(method==='PUT'&&net.afterPut){const f=net.afterPut;net.afterPut=null;await f()}if(method==='PUT'&&net.badBody){net.badBody=false;return {status:r.status,body:{}}}return {status:r.status,body:await r.json()}},
   acct:()=>st.acct?{sub:st.acct}:null,now:()=>new Date(st.clock).toISOString(),nowMs:()=>st.clock,
   setTimer:(fn,ms)=>{const t={fn,ms,live:true};timers.push(t);return t},clearTimer:t=>{if(t)t.live=false},
   toast:m=>toasts.push(m),listen:(ev,fn)=>{handlers[ev]=fn},onState:s=>{st.states.push(s.state)},onApplied:()=>{st.applied++}};
@@ -2372,13 +2372,56 @@ test('LHB-31 (Codex ronda 7): un PUT sin respuesta que sí llegó no hace que el
   await B.sync();assert.deepEqual(B.doc().favs.artesanos,[]);B.edit(d=>{d.favs.artesanos=['a1']});await B.fire();assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1']);
   r=await A.eng.run('p2');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'lo que B volvió a agregar sigue en la cuenta');
   /* una pasada completa borra el recuerdo del PUT sin respuesta: más tarde, con la cuenta muy adelantada, un borrado normal sigue valiendo */
-  A.edit(d=>{d.favs.cigarros=['k1']});await A.sync();await B.sync();B.edit(d=>{d.ratings.r1=1});await B.fire();B.edit(d=>{d.ratings.r2=2});await B.fire();await A.sync();
+  B.edit(d=>{d.favs.cigarros=['k1']});await B.fire();await A.sync();B.edit(d=>{d.ratings.r1=1});await B.fire();B.edit(d=>{d.ratings.r2=2});await B.fire();
   A.edit(d=>{d.favs.cigarros=[]});r=await A.eng.run('p3');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.cigarros,[],'el borrado normal no se deshace por un recuerdo viejo');
   /* no llegó: el borrado sigue valiendo en el reintento */
   const C=DEV28(a,'user_a');C.seed(DOC28);await C.sync();
   C.edit(d=>{d.favs.cigarros=['k9']});await C.sync();
   C.edit(d=>{d.favs.cigarros=[]});C.net.beforePut=async()=>{throw new TypeError('sin red')};r=await C.eng.run('p1');assert.equal(r.skip,'offline');assert.deepEqual(srv28(a,'user_a').doc.favs.cigarros,['k9']);
   r=await C.eng.run('p2');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.cigarros,[],'el borrado que no llegó se sube en el reintento y no se deshace');
+  /* un 409 es una respuesta clara: no deja un PUT incierto que luego descarte la base */
+  const F=DEV28(a,'user_a'),G=DEV28(a,'user_a');F.seed(DOC28);await F.sync();await G.sync();F.edit(d=>{d.favs.lugares=['l1']});await F.sync();await G.sync();
+  F.edit(d=>{d.favs.lugares=[]});F.net.status={PUT:409};r=await F.eng.run('p1');assert.equal(r.fail,'conflict');F.net.status=null;
+  G.edit(d=>{d.ratings.q1=1});await G.fire();G.edit(d=>{d.ratings.q2=2});await G.fire();
+  r=await F.eng.run('p2');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.lugares,[],'el borrado sigue valiendo tras un 409 aunque la cuenta avance');
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 8): un PUT que llegó pero cuya respuesta no se pudo leer, o cuya cuenta salió mientras volvía, no hace que el teléfono borre lo que otro volvió a agregar',async()=>{
+ const a=await ENG28();
+ try{
+  for(const modo of ['cuerpo','salida']){
+   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
+   const rev0=srv28(a,'user_a').rev;
+   A.edit(d=>{d.favs.artesanos=[]});
+   if(modo==='cuerpo')A.net.badBody=true;else A.net.afterPut=async()=>{A.st.acct=null;A.st.user=null};
+   let r=await A.eng.run('p1');assert.ok(r.fail==='put-200'||r.skip==='other-account',modo+' '+JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],modo+': el PUT sí llegó');
+   await B.sync();B.edit(d=>{d.favs.artesanos=['a1']});await B.fire();assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1']);
+   A.st.acct='user_a';A.st.user='user_a';
+   r=await A.eng.run('p2');assert.equal(r.ok,true,modo+' '+JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],modo+': lo que B volvió a agregar sigue en la cuenta');
+   assert.ok(srv28(a,'user_a').rev>rev0);
+  }
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 8): si el contador compartido no se puede crear (almacenamiento lleno), lo que otra pestaña borró mientras esta esperaba la red sigue marcado como pendiente y el borrado llega a la cuenta',async()=>{
+ const a=await ENG28();
+ try{
+  const E={schema:1,creado:'2026-10-01T00:00:00.000Z',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:['a1'],cigarros:[],lugares:[]},ratings:{}};
+  const A=DEV28(a,'user_a');A.seed(E);await A.sync();assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1']);
+  const T=SYNC28().LHB_SYNC(A.D);
+  A.net.beforeGet=async()=>{A.st.failKey='lhb_mihoja_v1_seq';const prev=A.ls.get(A.KEY);const d=A.doc();d.favs.artesanos=[];A.ls.set(A.KEY,JSON.stringify(d));T.changed(prev)};
+  let r=await A.sync('trae');assert.equal(r.ok,true,JSON.stringify(r));
+  A.st.failKey=null;
+  r=await A.sync('otra');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'el borrado llegó a la cuenta');assert.deepEqual(A.doc().favs.artesanos,[],'y no volvió al teléfono');
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 8): si la meta no se puede escribir, borrar lo último que había sigue siendo un borrado de la persona (la marca en memoria) y no una pérdida que se vuelve a traer',async()=>{
+ const a=await ENG28();
+ try{
+  const E={schema:1,creado:'2026-10-01T00:00:00.000Z',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:['a1'],cigarros:[],lugares:[]},ratings:{}};
+  const P=DEV28(a,'user_a');P.seed(E);await P.sync();P.st.failKey='lhb_mihoja_v1_sync';
+  P.edit(d=>{d.favs.artesanos=[]});const r=await P.eng.run('borra');assert.equal(r.fail,'storage','la meta no se pudo anotar');
+  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'el borrado llegó a la cuenta');assert.deepEqual(P.doc().favs.artesanos,[],'y no se volvió a traer');
  }finally{a.done()}
 });
 test('LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada',()=>{

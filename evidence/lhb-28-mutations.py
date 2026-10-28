@@ -100,8 +100,8 @@ MUTS = [
     ('E29 motor: el reintento pendiente sigue despues de un exito', SY, "if(retryT){D.clearTimer(retryT);retryT=0}if(again)", "if(again)"),
     ('E30 motor: cada cambio abre otro temporizador', SY, "function schedule(ms,fn){if(timer)D.clearTimer(timer);", "function schedule(ms,fn){"),
     ('E31 motor: si el telefono no puede guardar lo traido se da por bueno', SY, "if(!wrote||wrote==='stale'){if(pushed){mem=null;voided=true;poison()}return {fail:wrote?'conflict':'storage'}}", ""),
-    ('E32 motor: lo borrado mientras se sincroniza se toma por perdida', SY, "at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}\n   staleBase=false;voided=false;unk=null;if(!edited)dirty=false;", "at:D.now(),dirty:false})){staleBase=true;poison();return {fail:'storage'}}\n   staleBase=false;voided=false;unk=null;dirty=false;"),
-    ('E33 motor: escribir no marca que la persona hizo un cambio', SY, "edits++;dirty=true;bumpSeq();", ""),
+    ('E32 motor: lo borrado mientras se sincroniza se toma por perdida', SY, "at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}\n   staleBase=false;voided=false;if(unk&&unk.sub===uid)unk=null;if(!edited)dirty=false;", "at:D.now(),dirty:false})){staleBase=true;poison();return {fail:'storage'}}\n   staleBase=false;voided=false;if(unk&&unk.sub===uid)unk=null;dirty=false;"),
+    ('E33 motor: escribir no marca en memoria que la persona hizo un cambio', SY, "edits++;dirty=true;bumpSeq();", "edits++;bumpSeq();"),
     ('N8 motor: escribir no deja la marca de pendiente en la meta', SY, "if(m){if(!m.dirty){m.dirty=true;ch=true}", "if(m){"),
     ('E34 motor: un error del servidor al leer se ignora', SY, "if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};", ""),
     # Codex ronda 1
@@ -115,6 +115,8 @@ MUTS = [
     # R8 (quitar la revision de cuenta justo antes de aplicar) NO esta en la lista: es un mutante equivalente. Entre la revision de despues de leer o de guardar y esa
     # no hay ningun await (solo getDoc, merge y canon, que son sincronos), y JavaScript no cambia de cuenta entre dos lineas sin await. Se deja la revision como defensa si alguien agrega un await ahi.
     # Medido en la ronda r3 (evidence/lhb-28-mutations-r3.txt): sobrevivio con fail=0.
+    # E33 se acotó a `dirty=true;`: quitar `edits++;` o `bumpSeq();` de changed() ya no se puede notar desde la ronda 8, porque `!quiet` (la copia cambió durante la pasada) y la marca de la meta cubren lo mismo.
+    # I5 (borrar el PUT incierto de otra cuenta) tampoco: al cambiar de cuenta el teléfono se aparta y la meta se reemplaza, así que la base de la cuenta que vuelve ya es nula con o sin ese recuerdo. Medidos en evidence/lhb-28-mutations-r15.txt: sobrevivieron con fail=0.
     ('R9 motor: una pasada reciente de otra cuenta vale', SY, "if(m&&a&&m.sub===a.sub&&m.at&&", "if(m&&a&&m.at&&"),
     ('R10 motor: las pestanas no comparten candado', SY, "r=await (D.lock?D.lock(once):once());", "r=await once();"),
     ('R11 juntar: las llaves heredadas cuentan como presentes', SY, "const inL=own(l,k),inR=own(r,k),inB=own(b,k);", "const inL=k in l,inR=k in r,inB=k in b;"),
@@ -136,7 +138,7 @@ MUTS = [
     # Codex ronda 2
     ('N1 motor: escribir no anota la duena si aun no habia', SY, "ensureOwner();", ""),
     ('N2 motor: la meta de otra cuenta sirve de base', SY, "meta=meta0&&meta0.sub===uid?meta0:null;", "meta=meta0;"),
-    ('N3 motor: lo que borra otra pestana no deja la marca de pendiente', SY, "const edited=edits!==e0||readSeq()!==s0;", "const edited=edits!==e0;"),
+    ('N3 motor: lo que borra otra pestana no deja la marca de pendiente', SY, "const edited=edits!==e0||readSeq()!==s0||!quiet;", "const edited=edits!==e0;"),
     ('N4 motor: tras fallar la meta no se usa la base que la pestana recuerda', SY, ":memOk&&!wipe?mem.base:null;", ":null;"),
     ('N5 motor: aislar dentro de aislar no se corta', SY, "if(inIso)return true;", ""),
     ('N6 hoja: escribir sigue aunque no se pudo apartar lo de la otra cuenta', HO, "if(SYNC&&!SYNC.isolate()){ST=null;toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}", ""),
@@ -150,14 +152,17 @@ MUTS = [
     ('N16 motor: un telefono vacio por perdida usa la base recordada y no trae la cuenta', SY, "memOk&&!wipe?mem.base:null;", "memOk?mem.base:null;"),
     ('N17 motor: tras fallar la meta no se tacha la base guardada', SY, "staleBase=true;poison();return {fail:'storage'}}", "staleBase=true;return {fail:'storage'}}"),
     ('N18 motor: una cata a medias no cuenta como algo que apartar', SY, "||(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length>0)", ""),
-    ('H1 motor: un PUT sin respuesta no se recuerda', SY, "catch(e){unk={sub:uid,rev};return {skip:'offline'}}", "catch(e){return {skip:'offline'}}"),
+    ('I1 motor: el PUT no se anota como incierto antes de mandarlo', SY, "    unk={sub:uid,rev};\n    let p;", "    let p;"),
+    ('I2 motor: un 409 o un error claro no borra el PUT incierto (deshace borrados)', SY, "if(p.status===409||(p.status<500&&p.status!==200))unk=null;", ""),
+    ('I3 motor: lo que cambio en la copia durante la pasada no deja la marca de pendiente', SY, "readSeq()!==s0||!quiet;", "readSeq()!==s0;"),
+    ('I4 motor: un 200 con revision no borra el PUT incierto', SY, "    unk=null;newRev=p.body.rev;pushed=true}", "    newRev=p.body.rev;pushed=true}"),
     ('H2 motor: con un PUT sin respuesta siempre se descarta la base (deshace borrados)', SY, "rev>=unk.rev+2)voided=true", "rev>=unk.rev)voided=true"),
     ('H3 motor: aplicar se intenta una sola vez', SY, "for(let k=0;k<4;k++){", "for(let k=0;k<1;k++){"),
     ('H4 motor: la comparacion de aplicar usa canon (sin el borrador)', SY, "wrote=D.setDoc(full,stable(now0))", "wrote=D.setDoc(full,canon(Ln))"),
-    ('H5 motor: tras aplicar no se limpia el PUT sin respuesta', SY, "voided=false;unk=null;", "voided=false;"),
+    ('H5 motor: tras aplicar no se limpia el PUT sin respuesta', SY, "voided=false;if(unk&&unk.sub===uid)unk=null;", "voided=false;"),
     ('H6 motor: lo leido de nuevo se junta con la base vieja en vez de con lo leido al inicio', SY, "final=quiet?merged:merge(L,Ln,merged);", "final=quiet?merged:merge(meta&&meta.base,Ln,merged);"),
     ('F1 motor: si lo subido no se pudo aplicar, la base recordada sigue valiendo', SY, "if(pushed){mem=null;voided=true;poison()}", "if(pushed){poison()}"),
-    ('F2 motor: una pasada completa no devuelve la base (voided queda)', SY, "staleBase=false;voided=false;unk=null;if(!edited)dirty=false;", "staleBase=false;unk=null;if(!edited)dirty=false;"),
+    ('F2 motor: una pasada completa no devuelve la base (voided queda)', SY, "staleBase=false;voided=false;if(unk&&unk.sub===uid)unk=null;if(!edited)dirty=false;", "staleBase=false;if(unk&&unk.sub===uid)unk=null;if(!edited)dirty=false;"),
     ('F3 motor: la primera edicion no guarda la semilla', SY, "m.seed=std(p);ch=true", "ch=true"),
     ('F4 motor: sin base guardada no se usa la semilla', SY, "||(remote&&meta&&isObj(meta.seed)&&!wipe?meet(meta.seed,remote):null)", ""),
     ('F5 motor: una copia que cambio justo antes de aplicar se da por aplicada', SY, "if(wrote!=='stale')break}", "break}"),
