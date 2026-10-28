@@ -20,3 +20,13 @@ opening view groups 23,2,4,3,3,3 (3 single pins); tap 23 -> groups 20,2,2,3,2,2,
 2,17,3,2,2,2,2 (11 pins, tiles at zoom 10); tap 17 (twice: the first read came before its zoom settled) -> tiles at zoom 11
 and a popup listing 17 place cards (.pop), starting "Don Rey Cigar (Viejo San Juan)", "Casa de Montecristo". So the group
 that would have stalled ends in a list. Not exercised live: the exact 536 x 185 size (CSS does not produce it at load).
+
+Codex round 2 BLOCK (evidence/lhb-87-review-r2.txt): the list popup's maxHeight 320 could exceed a short map, and
+.map-wrap clips overflow, so the last cards' links were unreachable. Fix (8a56c9a): popMaxH(h) = clamp(h - 104, 60, 320),
+104 = the popup's fixed chrome (content margins 24, wrapper 2, tip 19, popup margin 20, offset 7, autoPanPadding 32),
+summed from the CSS and Leaflet rules in the test; the list popup passes map.getSize().y.
+Live read on its preview (https://a722dd2f.la-hoja-boricua.pages.dev/#/lugares), viewport 536 x 400, map 502 x 230.4,
+about 17:10Z: a group list popup of 23 place cards; content clientHeight 126 (= 230 - 104), scrollHeight 4986; the popup
+wrapper spans y 347.0 to 499.0 inside the map's 337.0 to 567.4; after scrolling the content to its end, the last card's
+last link spans y 408.6 to 444.6, inside both the content box (bottom 486.0) and the map. So every card's links are
+reachable. A 126 px window over 23 cards is a narrow scroll; the list view (Lista) shows every place in full.
