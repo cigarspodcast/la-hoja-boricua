@@ -1,0 +1,90 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-56-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: none
+session id: 01a17b86-b0bf-75e0-8749-c24fbb809bdb
+--------
+user
+HARD RULES: You are an independent code reviewer. You REVIEW AND CHANGE NOTHING: edit no file, make no commit, run no git command that writes. Load no skill, plugin or template. Do not print file contents back. Your FIRST and ONLY message is the answer, ending with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+REPO: C:\Users\Owner\lhb-56-wt (a git worktree of La Hoja Boricua, Cloudflare Pages Functions + D1 + Clerk, vanilla JS PWA). Branch lhb-56-follow. Review the slice: git diff 078952f..HEAD (078952f is main and already passed its own reviews; do not re-review it). Tests: node --test test/site.test.js (you may run it; node is on PATH). The tracker is not readable by you, so the contract is quoted here in full.
+
+TICKET LHB-56 CONTRACT (M6-S4 Follow backend: follows table, follow and unfollow, lists, counts).
+Scope (nothing else may change): migrations/0004_follows.sql, functions/api/follow.js, list endpoints (functions/api/followers.js, functions/api/following.js or one parameterised file), functions/_lib/ helpers, test/site.test.js, evidence/. No UI.
+Contract impact: a new follows table (follower_id, followee_id, created_at; primary key on the pair; indexes both ways). New endpoints, no change to existing ones. Account deletion (a later ticket, LHB-34) must remove both sides of every follow row (here: ON DELETE CASCADE and a real-SQLite test). No followers are listed for a hidden profile. Counts come from the table, never a stored number.
+Pinned decisions (owner, do not re-litigate): Follow is one-way with no approval step (Instagram style), not friends. Follow and unfollow are idempotent. A person cannot follow themselves or a hidden profile. A blocked pair cannot follow (blocks arrive in a later ticket; until then the check is a no-op that the later ticket completes). Lists are paginated with a cursor, newest first, returning public fields only (first name plus last initial, @handle, picture). Rate limit numbers are the owner call; ship a documented placeholder cap and say so (60 new follows per hour per account and 5000 in total, marked as test caps in functions/_lib/follow.js).
+Not mine: rate limit numbers; applying migration 0004 to production (owner click, another ticket); the UI (another ticket).
+Proof the ticket asks for: tests against real SQLite (node:sqlite) for each rule and each rejection, the delete cascade, counts, pagination, and that no private field (birth_date, gender, email, last name, user id) appears in any list; each test seen failing against a mutated source (evidence/lhb-56-mutations.py and its output evidence/lhb-56-mutations.txt).
+
+DESIGN IN BRIEF. POST /api/follow {handle} and DELETE /api/follow {handle} need a session and a profile (requireProfile), JSON only; GET /api/follow?handle= is public with an optional session and returns counts plus viewerFollows and self. GET /api/followers and /api/following?handle=&cursor= are public lists; the cursor is created_at~handle of the last row; ordering created_at DESC, handle DESC; page size 20 (fetches 21 to know if there is more). Hidden profiles are excluded from counts and lists and give 404 as a subject; unfollowing a profile that later became hidden is allowed. isBlocked() in functions/_lib/follow.js is a stub that returns false.
+
+REVIEW FOCUS. Find real defects only, ranked. Look hard at: (1) any path where birth_date, gender, first_name, last_name, email or the Clerk user_id reaches a response, the cursor or a log; (2) SQL: the string concatenation in listOf (the column names come from a fixed pair, confirm no request value can reach SQL text), the cursor comparison and tie handling, the LIMIT; (3) idempotency and races: two simultaneous follows, the ON CONFLICT clause, the had check then insert, the caps checked before insert (is the hourly count correct at the boundary, can a client bypass the cap with concurrent requests, is that acceptable for a placeholder cap); (4) authorization: can anyone follow or unfollow on behalf of another user, can a person without a profile follow, can the handle lookup be abused to enumerate hidden profiles (404 for hidden and for unknown must look the same); (5) counts versus lists consistency with hidden profiles; (6) the migration: foreign keys and cascade (D1 enforces foreign keys), the CHECK, the indexes matching the queries; (7) tests that cannot fail or assert the wrong thing, especially the cap tests and the pagination test; (8) scope: files changed outside the Scope list. Mark anything you could not verify as NOT VERIFIED rather than guessing.
+
+ANSWER FORMAT. Numbered findings, each: BLOCKING or ADVISORY, file and symbol, the concrete input or state that fails, expected versus actual. Then the single VERDICT line. If there is no blocking finding, say so plainly and give VERDICT: PASS.
+
+
+TOOL FALLBACK. The shell tool of your sandbox often fails to start on this host ("Failed to create unified exec process: helper_unknown_error: setup refresh had errors"). That is a transport problem, not a verdict: do not stop there. Use the JavaScript tool (node_repl) instead: require('fs') to read files, require('child_process').execFileSync to run git (for example execFileSync('git',['diff','078952f..HEAD'],{cwd:'C:\Users\Owner\lhb-56-wt'})) and to run the tests (execFileSync(process.execPath,['--test','test/site.test.js'],{cwd:...})). An attempt that read nothing is void: only if the JavaScript tool also fails, say exactly what you could not read, mark it NOT VERIFIED and answer VERDICT: BLOCK.
+
+2026-10-27T04:03:11.756692Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-27T04:03:14.034296Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] I’ll review only the specified diff and run the authorized tests; any unavailable evidence will be marked NOT VERIFIED.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git diff --stat 078952f..HEAD' in C:\Users\Owner\lhb-56-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-27T04:03:19.755480Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All seven LHB-56 tests passed, but the committed mutation evidence records a surviving hourly-window mutation. The full suite also has one failure in an unchanged LHB-44 test; I’m checking the follow limits and hidden-profile responses directly.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. **BLOCKING [Certain]** [functions/api/follow.js:44](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:44), `onRequestDelete`: An authenticated user who never followed a hidden profile can submit its handle and receive HTTP 200 plus its follower count. An unknown handle returns 404. Reproduced against SQLite. Expected: preserve hidden-profile privacy while allowing existing follows to be removed. Actual: DELETE reveals hidden-profile existence and counts.
+
+2. **BLOCKING [Certain]** [functions/api/follow.js:34](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:34), `onRequestPost`: Unfollowing deletes the rows used to measure hourly activity. A SQLite reproduction accepted 61 distinct new follows within one frozen hour by unfollowing after each POST. Expected: reject the 61st new follow. Actual: unfollowing resets the effective rate counter.
+
+3. **BLOCKING [Certain]** [functions/api/follow.js:31](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:31), `onRequestPost`: Cap checks and insertion are separate operations. A controlled SQLite interleaving let two distinct requests both pass the checks, producing 61 hourly follows from 59 and 5,001 total follows from 4,999. Expected: enforce the documented caps under concurrency. Actual: both requests return 200. Placeholder numbers do not authorize bypassing enforcement. Production D1 execution is NOT VERIFIED.
+
+4. **BLOCKING [Certain]** [test/site.test.js:1705](/C:/Users/Owner/lhb-56-wt/test/site.test.js:1705), hourly-cap test, and `evidence/lhb-56-mutations.txt`, mutation F5: The required mutation proof fails. Changing the window from one hour to ten hours leaves the cap test green, independently reproduced using an in-memory mutation without editing files. The test removes one of its 60 recent follows before testing expiration, leaving only 59, so either window permits another follow. Expected: the incorrect window fails. Actual: the committed evidence records a survivor and exit 1.
+
+5. **ADVISORY [Certain]** `test/site.test.js`, full-suite execution: 117 of 118 tests passed, including all seven LHB-56 tests. The unchanged LHB-44 JSON-LD test failed at line 277 with an undefined-value `trim` error. Whether that failure predates this slice is NOT VERIFIED; it is not attributed to this change.
+
+VERDICT: BLOCK
+tokens used
+57,119
+1. **BLOCKING [Certain]** [functions/api/follow.js:44](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:44), `onRequestDelete`: An authenticated user who never followed a hidden profile can submit its handle and receive HTTP 200 plus its follower count. An unknown handle returns 404. Reproduced against SQLite. Expected: preserve hidden-profile privacy while allowing existing follows to be removed. Actual: DELETE reveals hidden-profile existence and counts.
+
+2. **BLOCKING [Certain]** [functions/api/follow.js:34](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:34), `onRequestPost`: Unfollowing deletes the rows used to measure hourly activity. A SQLite reproduction accepted 61 distinct new follows within one frozen hour by unfollowing after each POST. Expected: reject the 61st new follow. Actual: unfollowing resets the effective rate counter.
+
+3. **BLOCKING [Certain]** [functions/api/follow.js:31](/C:/Users/Owner/lhb-56-wt/functions/api/follow.js:31), `onRequestPost`: Cap checks and insertion are separate operations. A controlled SQLite interleaving let two distinct requests both pass the checks, producing 61 hourly follows from 59 and 5,001 total follows from 4,999. Expected: enforce the documented caps under concurrency. Actual: both requests return 200. Placeholder numbers do not authorize bypassing enforcement. Production D1 execution is NOT VERIFIED.
+
+4. **BLOCKING [Certain]** [test/site.test.js:1705](/C:/Users/Owner/lhb-56-wt/test/site.test.js:1705), hourly-cap test, and `evidence/lhb-56-mutations.txt`, mutation F5: The required mutation proof fails. Changing the window from one hour to ten hours leaves the cap test green, independently reproduced using an in-memory mutation without editing files. The test removes one of its 60 recent follows before testing expiration, leaving only 59, so either window permits another follow. Expected: the incorrect window fails. Actual: the committed evidence records a survivor and exit 1.
+
+5. **ADVISORY [Certain]** `test/site.test.js`, full-suite execution: 117 of 118 tests passed, including all seven LHB-56 tests. The unchanged LHB-44 JSON-LD test failed at line 277 with an undefined-value `trim` error. Whether that failure predates this slice is NOT VERIFIED; it is not attributed to this change.
+
+VERDICT: BLOCK
