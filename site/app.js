@@ -5,6 +5,8 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const thumbS=t=>String(t).replace(/_thumb\.webp$/,'_thumb-s.webp');
 // ancho dibujado de la imagen de la tarjeta, medido (evidence/lhb-85-slot-widths.txt); la fila mini (Mi Hoja) es de 140 px fijos
 const SIZES_GRID='(min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)',SIZES_MINI='116px';
+// LHB-92: solo la primera fila de una cuadrícula (3 columnas como mucho) pide su imagen al cargar; las demás esperan a acercarse
+const EAGER_CARDS=3;
 const view=$('#view');const REDUCED_ALL=matchMedia('(prefers-reduced-motion: reduce)').matches;const VBArt=window.VBArt;const tt=window.LHB_I18N.t;
 const LS={get(k,d){try{const v=localStorage.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){localStorage.setItem('vb_'+k,JSON.stringify(v))}};
 /* ---------- IndexedDB for photos ---------- */
@@ -72,7 +74,7 @@ const emptyCoqui=msg=>`<div class="empty">${VBArt.coqui('coqui-empty')}<div>${ms
 /* ---------- cards ---------- */
 const fotoOf=c=>(!c||c.yours||!window.LHB_FOTOS)?null:(window.LHB_FOTOS[c.id]||null);
 async function hydratePhotos(root=view){for(const el of $$('[data-photo]',root)){const u=await photoURL(el.dataset.photo);if(u){el.innerHTML=`<img src="${u}" alt="">`}}}
-function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+function cigarCard(c,i){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" ${i<EAGER_CARDS?'':'loading="lazy" '}decoding="async"></div>`:`<div class="ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
  ${favs.includes(c.id)?'<span class="fav-dot" aria-label="'+tt('card.fav')+'">♥</span>':''}
  <div class="body"><div class="name">${esc(c.nombre)}</div><div class="meta">${esc(artisanName(c))}${c.pueblo?' · '+esc(c.pueblo):''}</div>
  <div class="pills">${c.capa?`<span class="pill">${esc(fx(c,'capa'))}</span>`:''}${c.fortaleza?`<span class="pill f-${c.fortaleza}">${fortLabel(c.fortaleza)}</span>`:''}${c.yours?'<span class="pill yours">'+tt('card.yours')+'</span>':''}</div></div></a>`}
