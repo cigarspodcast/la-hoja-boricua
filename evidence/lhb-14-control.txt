@@ -1,0 +1,5 @@
+seeded control (LHB-14): temp copy of data/; script tools/source_report.py
+victim cigar id: hoja-boricua
+listed BEFORE seeding: False
+listed AFTER emptying its fuentes: True
+TOTAL after seeding: 1
