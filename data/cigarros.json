@@ -241,6 +241,71 @@
     ]
   },
   {
+    "id": "willys-banda-negra-oro",
+    "nombre": "Willys Cigars · Brilloso",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
+    "id": "willys-banda-azul-oro",
+    "nombre": "Willys Cigars · Shorty",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
+    "id": "willys-banda-azul-roja-oro",
+    "nombre": "Willys Cigars · Robusto",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
+    "id": "willys-banda-azul-coleta",
+    "nombre": "Willys Cigars · Chihuahua",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
+    "id": "willys-banda-azul-ovalada",
+    "nombre": "Willys Cigars · Lancero",
+    "artesano_id": "willys-cigars",
+    "pueblo": "Área metro (Guaynabo / San Juan)",
+    "capa": "",
+    "fortaleza": null,
+    "vitolas": [],
+    "notas": "Hecho a mano en Puerto Rico. Foto de Willys Cigars (oct 2026); nombre confirmado por Sergio; vitola y liga por confirmar.",
+    "fuentes": [
+      "https://www.instagram.com/willyscigars/"
+    ]
+  },
+  {
     "id": "don-collins-corona-grande",
     "nombre": "El Puro Corona Grande",
     "artesano_id": "don-collins",
@@ -363,7 +428,7 @@
     "capa": "",
     "fortaleza": null,
     "vitolas": [],
-    "notas": "Cigarro de la casa ('Degustación del Chapu', IG 2022). También usan #labrujacigar (La Bruja), pero no hay detalles públicos de ninguno.",
+    "notas": "Cigarro de la casa ('Degustación del Chapu', IG 2022).",
     "fuentes": [
       "https://www.instagram.com/elchapupr/p/CfFhl7fOHq4/"
     ]

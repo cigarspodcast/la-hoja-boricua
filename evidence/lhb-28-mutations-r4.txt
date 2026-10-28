@@ -1,0 +1,13 @@
+baseline (0, [])
+S13 lib: sin tope de tamano del documento -> ROJO (bien) fail=1
+      LHB-28: PUT /api/mihoja exige JSON, If-Match y un cuerpo válido; cada rechazo no crea ni cambia nada
+R6 motor: no se revisa la cuenta despues de leer -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 1): con la cuenta cambiada durante la lectura o durante el guardado, la pasada se detiene al instante y no manda nada más
+R7 motor: no se revisa la cuenta despues de guardar -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 1): con la cuenta cambiada durante la lectura o durante el guardado, la pasada se detiene al instante y no manda nada más
+R9 motor: una pasada reciente de otra cuenta vale -> ROJO (bien) fail=1
+      LHB-31 (Codex ronda 1): una pasada hecha hace poco por otra cuenta no frena la de ahora
+R12 juntar: una llave __proto__ cambia el prototipo -> ROJO (bien) fail=1
+      LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada
+restaurado (0, [])
+mutaciones: 125 sobrevivieron o con error: 0

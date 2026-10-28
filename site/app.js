@@ -200,7 +200,7 @@ function evDate(f){const d=new Date(f+'T12:00:00');return isNaN(d)?null:d}
 function evItem(e,pending){const d=evDate(e.fecha);const m={nombre:e.lugar||e.titulo,direccion:e.direccion||'',pueblo:e.pueblo,maps:e.maps,lat:e.lat,lng:e.lng};
  return `<article class="ev ${pending?'pending':''}"><div class="date">${d?`<small>${MES[d.getMonth()]}</small><b>${d.getDate()}</b>`:'<b>?</b>'}</div><div style="min-width:0;flex:1">
  <div class="t">${esc(e.titulo)}</div>${(()=>{const ok=v=>v&&!/no definid|por confirmar|no publicad|sin confirmar/i.test(v)?v:'';const m=[ok(e.hora),[ok(e.lugar),ok(e.pueblo)].filter(Boolean).join(', '),ok(e.precio)].filter(Boolean).map(esc).join(' · ');return m?`<div class="s">${m}</div>`:''})()}
- ${e.detalle?`<div class="s">${esc(e.detalle)}</div>`:''}
+ ${e.imagen?`<img class="ev-flyer" src="${esc(e.imagen)}" alt="${esc(e.titulo)}" width="480" height="600" loading="lazy">`:''} ${e.detalle?`<div class="s">${esc(e.detalle)}</div>`:''}
  <div class="src">${pending?tt('ev.pending'):(e.fuente?`${tt('ev.via')} ${e.fuente_url?`<a href="${esc(e.fuente_url)}" target="_blank" rel="noopener" style="color:inherit">${esc(e.fuente)}</a>`:esc(e.fuente)}`:'')}</div>
  <div class="links">${e.enlace?linkBtn('web',e.enlace,tt('ev.more')):''}${(e.lugar||e.maps)?`<a class="lbtn go-map" href="${esc(goLink(m))}" target="_blank" rel="noopener">${ICON.map}${tt('dir')}</a>`:''}</div></div></article>`}
 /* ---------- perfil ---------- */

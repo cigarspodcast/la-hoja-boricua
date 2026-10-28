@@ -56,7 +56,7 @@ export function utcDay(now = new Date()) {
 function name(v, field) {
   if (v == null) return { error: field + '-required' };
   if (typeof v !== 'string') return { error: field + '-invalid' };
-  const t = v.trim();
+  const t = v.normalize('NFC').trim(); // una sola forma guardada (é junta, no e y un acento suelto): la búsqueda de personas compara el texto tal cual
   if (!t) return { error: field + '-required' };
   if (NAME_CONTROL.test(t)) return { error: field + '-invalid' };
   if ([...t].length > NAME_MAX) return { error: field + '-long' };

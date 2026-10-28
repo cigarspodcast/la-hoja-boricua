@@ -1,0 +1,8 @@
+baseline (0, [])
+W13 cache: el shell se publica con la version de antes -> ROJO (bien) fail=17
+      LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL
+      LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta a
+      LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados
+      LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto, la ruta #/mihoja/editar, el enlace en el encabezado y el caché nuevo
+restaurado (0, [])
+mutaciones: 162 sobrevivieron o con error: 0
