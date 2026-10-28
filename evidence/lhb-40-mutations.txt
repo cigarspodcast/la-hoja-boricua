@@ -1,0 +1,23 @@
+baseline 0 ℹ fail 0
+M1 the publica filter removed RED ℹ fail 1
+M2 publica read as truthy RED ℹ fail 1
+M3 the field whitelist dropped RED ℹ fail 1
+M4 hidden profiles served RED ℹ fail 2
+M5 no HTML escaping RED ℹ fail 1
+M6 og:image missing RED ℹ fail 1
+M7 indexable RED ℹ fail 2
+M8 cached for an hour RED ℹ fail 1
+M9 the service worker answers /u/ RED ℹ fail 1
+M10 not sorted by the day smoked RED ℹ fail 1
+M11 full last name shown RED ℹ fail 2
+M12 avatar not checked RED ℹ fail 1
+M13 no display cap RED ℹ fail 1
+M14 count capped too RED ℹ fail 1
+M15 stamps of one kind counted as another RED ℹ fail 1
+M16 Reportar mails someone else RED ℹ fail 1
+M17 a D1 failure throws instead of 503 RED ℹ fail 1
+M18 /u/* not routed to Functions RED ℹ fail 2
+M19 the 404 names the profile RED ℹ fail 1
+M20 description not escaped in meta RED ℹ fail 1
+restored 0 ℹ fail 0
+mutations 20 red 20
