@@ -1,0 +1,5 @@
+LHB-45 Codex round 2 finding: artisan grouping and answer counts on the by-town guide. Scratch copy: C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua/ddfa8e87-aefe-452e-8857-30bbd7a1c261/scratchpad/mut45
+baseline: ℹ fail 0 []
+the Adjuntas heading renamed Ponce: ℹ fail 1 ['LHB-45: una guía de dónde fumar por pueblo con lugares, con cada lugar de ese pueblo y solo esos']
+32 artesanos changed to 999 in the answer and the FAQ: ℹ fail 1 ['LHB-45: una guía de dónde fumar por pueblo con lugares, con cada lugar de ese pueblo y solo esos']
+restored: ℹ fail 0 []

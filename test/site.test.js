@@ -3620,6 +3620,15 @@ test('LHB-45: una guía de dónde fumar por pueblo con lugares, con cada lugar d
  for(const a of src){for(const c of C.filter(c=>c.artesano_id===a.id))assert.ok(hq.includes('href="../cigarros/'+c.id+'.html"'),'sus cigarros '+c.id);const f=a.hecho_en_pr_fuente.trim();if(f.startsWith('http'))assert.ok(hq.includes('href="'+esc32(f)+'"'),'su fuente '+a.id)}
  const hp=read('guias/artesanos-de-cigarros-por-pueblo.html');const ids=[...hp.matchAll(/<li><a href="\.\.\/artesanos\/([^"]+)\.html">/g)].map(x=>x[1]);
  assert.deepEqual(ids.slice().sort(),A.map(a=>a.id).sort(),'artesanos por pueblo: cada artesano una vez');
+ /* Codex ronda 2: cada artesano bajo su pueblo, y las cuentas de la respuesta salen de los datos */
+ const base=a=>{const pu=String(a.pueblo||'').trim();if(!pu)return null;const m=pu.match(/^(.+?)\s*\(/);return m?m[1].trim():pu};const grp=new Map();for(const a of A){const k=base(a);if(!grp.has(k))grp.set(k,[]);grp.get(k).push(a.id)}
+ const secs=[...hp.matchAll(/<h2>([^<]+)<\/h2>\s*<ul>([\s\S]*?)<\/ul>/g)].map(m=>[dec45(m[1]),[...m[2].matchAll(/href="\.\.\/artesanos\/([^"]+)\.html"/g)].map(x=>x[1]).sort()]);
+ assert.deepEqual(secs.map(s=>s[0]).sort(),[...grp.keys()].map(k=>k===null?'Sin pueblo en la guía':k).sort(),'una sección por pueblo o zona');
+ for(const [k,v] of grp)assert.deepEqual(secs.find(s=>s[0]===(k===null?'Sin pueblo en la guía':k))[1],v.slice().sort(),'los artesanos de '+k);
+ const named=[...grp.keys()].filter(k=>k!==null),con=named.reduce((n,k)=>n+grp.get(k).length,0),ap=dec45(hp.match(/<p class="answer">([\s\S]*?)<\/p>/)[1]);
+ assert.ok(ap.startsWith('La Hoja Boricua tiene '+A.length+' artesanos de cigarros. '+con+' tienen pueblo o zona en la guía, en '+named.length+' pueblos y zonas: '),'las cuentas de la respuesta: '+ap.slice(0,140));
+ for(const k of named)assert.ok(ap.includes(k+' ('+grp.get(k).length+')'),'la respuesta cuenta '+k);
+ if(grp.has(null))assert.ok(ap.includes(' De '+grp.get(null).length+' artesano'),'los que no tienen pueblo');
 });
 test('LHB-45: el service worker no guarda una guía como el shell ni la precarga',()=>{const sw=read('sw.js');
  const nav=sw.split(/\r?\n/).filter(l=>l.includes("req.mode==='navigate'"));assert.equal(nav.length,1);
