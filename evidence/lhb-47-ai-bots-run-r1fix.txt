@@ -1,0 +1,10 @@
+LHB-47 crawler query check after Codex r1, 2026-10-28T13:53:34Z. The token lacks zone Analytics Read, so no counts can come back; GraphQL validates arguments before authorization, so an authz error shows the query parsed and its filter validated.
+== 1. evidence/lhb-47-ai-bots.py 30 (the fixed script)
+errors: [{"message": "Actor 'com.cloudflare.api.token.8a04f40bd0c928c6c5ba4874fed2e6d3' does not have permission 'com.cloudflare.api.account.zone.analytics.read' for zone 25ebca85f3121058137e3ea8b5a65c43", "path": null, "extensions": {"code": "authz", "timestamp": "2026-10-28T13:53:36.317831545Z", "ray_id": "a51a6d7939fc0020-SEA"}}]
+rc 1
+== 2. control: the same script with the filter argument misspelled (scratch copy)
+errors: [{"message": "error parsing args for \"httpRequestsAdaptiveGroups\": filter: not an object", "path": null, "extensions": {"timestamp": "2026-10-28T13:53:36.966954354Z", "ray_id": "a51a6d7d9d616695-AMS"}}]
+rc 1
+== 3. control: a misspelled field inside the OR filter, userAgent_lik (scratch copy)
+errors: [{"message": "error parsing args for \"httpRequestsAdaptiveGroups\": filter: OR: unknown arg userAgent_lik", "path": null, "extensions": {"timestamp": "2026-10-28T13:53:48.501623157Z", "ray_id": "a51a6dc5cc88992b-SEA"}}]
+rc 1
