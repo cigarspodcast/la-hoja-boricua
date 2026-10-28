@@ -205,19 +205,23 @@ window.LHB_SYNC=function(D){
    run('guardado')})}
  /* LHB-34: ¿la cuenta tiene lo último de este teléfono? Una pasada, y sí solo si terminó bien, no queda nada pendiente y la copia es igual a lo sincronizado.
     o.backup: el canon de un respaldo que la persona acaba de descargar; si la copia de ahora es esa, está a salvo en el archivo aunque no haya red.
-    Una cata a medias no viaja ni va en el respaldo: con una, no. Devuelve { ok, via } o { ok: false, why } */
+    Una cata a medias no viaja ni va en el respaldo: con una, no. Devuelve { ok, via, mark } o { ok: false, why }.
+    mark es la copia tal como se revisó (el texto guardado y el contador compartido): forget(mark) solo borra si nadie escribió desde entonces, aquí o en otra pestaña */
  async function settled(o){o=o||{};let r;try{r=await run('salir')}catch(e){r={fail:'boom'}}
-  const d=D.getDoc();
+  const d=D.getDoc(),mark=markNow();
   if(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length)return {ok:false,why:'draft'};
-  if(typeof o.backup==='string'&&canon(d)===o.backup)return {ok:true,via:'backup'};
+  if(typeof o.backup==='string'&&canon(d)===o.backup)return {ok:true,via:'backup',mark};
   if(!r||!r.ok)return {ok:false,why:(r&&(r.fail||r.skip))||'fail'};
   const m=readMeta(),acc=D.acct();
   if(dirty||!m||!acc||m.sub!==acc.sub||m.dirty||!m.base||canon(d)!==canon(m.base))return {ok:false,why:'pending'};
-  return {ok:true,via:'sync'}}
+  return {ok:true,via:'sync',mark}}
+ const markNow=()=>{let raw=null;try{raw=D.ls.get(KEY)}catch(e){raw={}}return {raw,seq:readSeq()}};
  /* LHB-34: mientras se sale o se borra la cuenta no corre ninguna pasada (una a destiempo volvería a llevar Mi Hoja a la cuenta). hold(true) espera la que esté corriendo */
  function hold(on){held=!!on;if(on){if(timer){D.clearTimer(timer);timer=0}if(retryT){D.clearTimer(retryT);retryT=0}}return held&&busy?busy.then(()=>{},()=>{}):Promise.resolve()}
- /* LHB-34: se borra Mi Hoja de este teléfono y lo que se sabía de su sincronización (se llama al salir o al borrar la cuenta, después de hold). Las copias apartadas de otras cuentas se quedan */
- function forget(){hold(true);mem=null;unk=null;dirty=false;let ok=true;
+ /* LHB-34: se borra Mi Hoja de este teléfono y lo que se sabía de su sincronización (al salir o al borrar la cuenta). Las copias apartadas de otras cuentas se quedan.
+    Con mark (de settled), solo si la copia sigue igual que cuando se revisó; si no, no toca nada y devuelve false. La revisión y el borrado van sin esperas entre los dos */
+ function forget(mark){if(mark){const now=markNow();if(now.raw!==mark.raw||now.seq!==mark.seq)return false}
+  hold(true);mem=null;unk=null;dirty=false;let ok=true;
   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
   set('off');return ok}
  function start(){

@@ -40,7 +40,19 @@ export function clerkKey(env, iss) {
   return k.startsWith(dev ? 'sk_test_' : 'sk_live_') ? k : null;
 }
 
-// borra el usuario en Clerk, que cierra todas sus sesiones. Un 404 es que ya no estaba (un reintento después de un borrado a medias).
+// ¿esta llave conoce a este usuario? true (200), false (404: otra instancia, o ya se borró) o null (Clerk no contestó). El prefijo de la llave dice
+// desarrollo o producción, no cuál instancia: dos instancias de desarrollo tienen llaves sk_test_, y solo la buena conoce al usuario.
+export async function clerkUser(key, sub, fetchFn = fetch) {
+  let r;
+  try {
+    r = await fetchFn('https://api.clerk.com/v1/users/' + encodeURIComponent(sub), { method: 'GET', headers: { Authorization: 'Bearer ' + key } });
+  } catch (e) {
+    return null;
+  }
+  return r.status === 200 ? true : r.status === 404 ? false : null;
+}
+
+// borra el usuario en Clerk, que cierra todas sus sesiones. Un 404 es que ya no estaba (otro pedido lo borró entre la revisión y aquí).
 export async function deleteClerkUser(key, sub, fetchFn = fetch) {
   let r;
   try {

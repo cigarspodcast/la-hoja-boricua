@@ -184,15 +184,24 @@ SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage
  onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}}});
 SYNC.start();
 /* ---------- LHB-34: la cuenta en Perfil: descargar los datos (el respaldo de siempre), salir y borrar la cuenta ---------- */
-/* el canon del último respaldo descargado en esta página: si Mi Hoja sigue igual, salir no pierde nada aunque no haya red */
-let lastBackup=null,acBusy=false,acRetry=null;
+/* lastBackup: el canon del último respaldo descargado en esta página; si Mi Hoja sigue igual, salir no pierde nada aunque no haya red.
+   outDone: lo de este teléfono ya se borró y falta cerrar la sesión de Clerk; si eso falló, el botón lo vuelve a intentar sin revisar otra vez */
+let lastBackup=null,acBusy=false,outDone=false;
 const acMsg=t=>{const el=$('#acMsg');if(el){el.textContent=t;el.hidden=!t}};
 /* lo que queda de esta página después de salir o de borrar: el aviso para la página que abre después */
 const bye=k=>{try{sessionStorage.setItem('lhb_bye',k)}catch(e){}};
 try{const k=sessionStorage.getItem('lhb_bye');if(k){sessionStorage.removeItem('lhb_bye');setTimeout(()=>toast(k==='del'?tt('ac.del.done'):tt('ac.bye')),600)}}catch(e){}
-/* se borra lo de esta cuenta en este teléfono: Mi Hoja y su sincronización (sync.js), la cuenta guardada y la acción a medias */
-const dropLocal=()=>{SYNC.forget();acct.clear();intent.clear();ST=null;STRAW=null};
+/* un borrado empezado: la marca se pone antes del pedido y se quita cuando el servidor contesta que terminó o que no borró nada (4xx, 503).
+   Si la respuesta se pierde o Clerk falla (502), la próxima vez que la app abre con esa cuenta se termina sola (resumeDelete). Ese pedido manda '#fin',
+   que nunca es un @: solo sirve si el perfil ya no está (functions/api/account.js); con el perfil entero el servidor dice que no y la marca se va sin borrar nada */
+const DELMARK='lhb_borrando';
+const delMark={get:()=>{try{const v=JSON.parse(localStorage.getItem(DELMARK));return v&&typeof v.sub==='string'?v:null}catch(e){return null}},
+ set:sub=>{try{localStorage.setItem(DELMARK,JSON.stringify({sub}))}catch(e){}},clear:()=>{try{localStorage.removeItem(DELMARK)}catch(e){}}};
+/* se borra lo de esta cuenta en este teléfono: Mi Hoja y su sincronización (sync.js), la cuenta guardada y la acción a medias.
+   Con mark (de SYNC.settled), solo si la copia sigue como se revisó; si alguien escribió desde entonces no se toca nada */
+const dropLocal=mark=>{if(!SYNC.forget(mark))return false;acct.clear();intent.clear();ST=null;STRAW=null;return true};
 async function signOutClerk(C){await C.signOut({redirectUrl:'/'});location.assign('/')}
+const typedOk=(a,v)=>String(v||'').trim().replace(/^@/,'').toLowerCase()===String(a.handle).toLowerCase();
 function accountPanel(){const a=acct.get();if(!a||!a.handle)return '';
  return `<section class="acct-p" id="acctP"><div class="section-title"><h2>${tt('ac.h')}</h2></div>
  <div class="links"><button class="lbtn" data-exp type="button">${tt('ac.download')}</button><button class="lbtn" type="button" id="acOut">${tt('ac.out')}</button></div>
@@ -203,27 +212,41 @@ function accountPanel(){const a=acct.get();if(!a||!a.handle)return '';
  <p class="hint">${tt('h.leeQueGuardamosY')} <a href="/privacidad">${tt('h.privacidadYCuenta')}</a>.</p></section>`}
 function bindAccount(){const a=acct.get();const out=$('#acOut'),del=$('#acDel'),inp=$('#acDelI');if(!a||!out)return;
  out.onclick=salir;$$('#acctP [data-exp]').forEach(b=>b.onclick=exportar);
- inp.oninput=()=>{del.disabled=!acRetry&&inp.value.trim().replace(/^@/,'').toLowerCase()!==String(a.handle).toLowerCase()};
+ inp.oninput=()=>{del.disabled=!typedOk(a,inp.value)};
  del.onclick=()=>borrar(a,inp.value)}
-/* salir: solo si la cuenta tiene lo último de este teléfono (o lo de ahora está en un respaldo recién descargado). Entonces se borra Mi Hoja de este teléfono, para que un teléfono prestado no se quede con lo de nadie, y se cierra la sesión */
+/* salir: solo si la cuenta tiene lo último de este teléfono (o lo de ahora está en un respaldo recién descargado). Entonces se borra Mi Hoja de este teléfono,
+   para que un teléfono prestado no se quede con lo de nadie, y se cierra la sesión. Clerk se pide antes de revisar: entre la revisión y el borrado no hay esperas */
 async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
- try{const r=await SYNC.settled({backup:lastBackup});
-  if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}
-  let C;try{C=await clerk()}catch(e){acMsg(tt('ac.outFail'));return}
-  await SYNC.hold(true);dropLocal();bye('out');
+ try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.outFail'));return}
+  if(!outDone){const r=await SYNC.settled({backup:lastBackup});
+   if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}
+   if(!dropLocal(r.mark)){acMsg(tt('ac.pending'));return}
+   outDone=true;bye('out')}
   try{await signOutClerk(C)}catch(e){acMsg(tt('ac.outFail'))}}
  finally{acBusy=false}}
-/* borrar: el servidor borra la base y el usuario de Clerk (functions/api/account.js); aquí, después, lo de este teléfono y la sesión.
-   Si la base se borró y Clerk no (502), otro intento lo termina: el perfil ya no está, así que la confirmación pasa a ser la palabra del servidor */
+/* el pedido de borrar. 200: se borra lo de este teléfono y se cierra la sesión. Lo que el servidor contesta sin haber borrado nada (4xx, 503) quita la marca */
+async function askDelete(C,sub,confirm){let r=null;try{r=await api(C,'DELETE','/api/account',{confirm},sub)}catch(e){r=null}
+ if(r&&r.status===200){delMark.clear();dropLocal();bye('del');try{await signOutClerk(C)}catch(e){location.assign('/')}return r}
+ if(r&&((r.status>=400&&r.status<500)||r.status===503))delMark.clear();
+ return r}
+/* borrar: el servidor borra la base y el usuario de Clerk (functions/api/account.js). Mientras tanto no corre ninguna pasada; si no se borró nada, vuelven.
+   Si quedó a medias (502) o no se sabe (sin respuesta), la sincronización sigue parada y otro intento, con el mismo @ escrito, lo termina */
 async function borrar(a,typed){if(acBusy)return;acBusy=true;const del=$('#acDel');if(del)del.disabled=true;acMsg(tt('ac.del.wait'));
  try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.del.fail'));return}
-  await SYNC.hold(true);
-  let r=null;try{r=await api(C,'DELETE','/api/account',{confirm:acRetry||typed},a.sub)}catch(e){r=null}
-  if(r&&r.status===200){dropLocal();bye('del');try{await signOutClerk(C)}catch(e){location.assign('/')}return}
-  if(r&&r.status===502){acRetry='borrar';acMsg(tt('ac.del.half'));return}
-  SYNC.hold(false);
-  acMsg(!r?tt('ac.del.fail'):r.body&&r.body.error==='confirm-mismatch'?tt('ac.del.bad'):r.status===503?tt('ac.del.off'):tt('ac.del.fail'))}
- finally{acBusy=false;const d=$('#acDel'),i=$('#acDelI');if(d&&i)d.disabled=!acRetry&&i.value.trim().replace(/^@/,'').toLowerCase()!==String(a.handle).toLowerCase()}}
+  await SYNC.hold(true);delMark.set(a.sub);
+  const r=await askDelete(C,a.sub,typed);
+  if(r&&r.status===200)return;
+  if(!delMark.get())SYNC.hold(false);
+  acMsg(!r?tt('ac.del.fail'):r.status===502?tt('ac.del.half'):r.body&&r.body.error==='confirm-mismatch'?tt('ac.del.bad'):r.status===503?tt('ac.del.off'):tt('ac.del.fail'))}
+ finally{acBusy=false;const d=$('#acDel'),i=$('#acDelI');if(d&&i)d.disabled=!typedOk(a,i.value)}}
+/* al abrir la app con un borrado a medias de esta misma cuenta, se termina; con otra cuenta o sin sesión, la marca espera */
+async function resumeDelete(){const m=delMark.get();if(!m)return;let C;try{C=await clerk()}catch(e){return}
+ if(!C||!C.user||C.user.id!==m.sub)return;
+ await SYNC.hold(true);
+ const r=await askDelete(C,m.sub,'#fin');
+ if(r&&r.status===200)return;
+ if(!delMark.get())SYNC.hold(false);else if(r&&r.status===502)toast(tt('ac.del.half'))}
+if(delMark.get())setTimeout(resumeDelete,1500);
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}

@@ -20,7 +20,8 @@ export async function onRequestGet({ request, env }) {
   try {
     const now = new Date();
     const since = new Date(now.getTime() - 60e3).toISOString();
-    await env.DB.prepare('DELETE FROM handle_checks WHERE user_id = ?1 AND created_at <= ?2').bind(user.sub, since).run();
+    // LHB-34: lo vencido se borra de todos, no solo de esta cuenta: así la anotación de una cuenta borrada tampoco se queda
+    await env.DB.prepare('DELETE FROM handle_checks WHERE created_at <= ?1').bind(since).run();
     // revisar y anotar en UNA sentencia, para que pedidos a la vez no pasen el tope
     const t = await env.DB.prepare(
       'INSERT INTO handle_checks (user_id, created_at) SELECT ?1, ?2 WHERE (SELECT COUNT(*) FROM handle_checks WHERE user_id = ?1 AND created_at > ?3) < ?4'
