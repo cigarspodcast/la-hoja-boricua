@@ -1,0 +1,36 @@
+# LHB-14: fuentes por registro
+# datos: C:\Users\Owner\lhb-14-wt\data
+# base de conteo: registros por archivo; una clave "presente" es una clave que existe en el registro;
+# "con URL" es un registro con al menos una URL http(s) en sus claves de fuente; "sin URL usable" es el resto.
+
+## places.json: 41 registros (base: elementos de la lista de registros)
+- clave fuentes: presente en 41 de 41 registros; con al menos una URL en 35 de 41
+  - fuentes vacío o sin URL: don-paco-1932
+  - fuentes vacío o sin URL: timber-blues
+  - fuentes vacío o sin URL: scryer-rum
+  - fuentes vacío o sin URL: vc-lounge
+  - fuentes vacío o sin URL: la-factoria
+  - fuentes vacío o sin URL: the-cave
+- clave web: presente en 28 de 41 registros; con al menos una URL en 28 de 41
+- registros con al menos una URL en alguna clave de fuente: 41 de 41
+- registros sin URL usable en ninguna clave de fuente: 0 de 41
+
+## artesanos.json: 32 registros (base: elementos de la lista de registros)
+- clave fuentes: presente en 32 de 32 registros; con al menos una URL en 32 de 32
+- clave web: presente en 12 de 32 registros; con al menos una URL en 12 de 32
+- clave hecho_en_pr_fuente: presente en 2 de 32 registros; con al menos una URL en 1 de 32
+- registros con al menos una URL en alguna clave de fuente: 32 de 32
+- registros sin URL usable en ninguna clave de fuente: 0 de 32
+
+## cigarros.json: 48 registros (base: elementos de la lista de registros)
+- clave fuentes: presente en 48 de 48 registros; con al menos una URL en 48 de 48
+- registros con al menos una URL en alguna clave de fuente: 48 de 48
+- registros sin URL usable en ninguna clave de fuente: 0 de 48
+
+## events.json: 12 registros (base: elementos de la lista de registros)
+- clave fuente_url: presente en 12 de 12 registros; con al menos una URL en 12 de 12
+- clave fuente: presente en 12 de 12 registros; con al menos una URL en 0 de 12
+- registros con al menos una URL en alguna clave de fuente: 12 de 12
+- registros sin URL usable en ninguna clave de fuente: 0 de 12
+
+TOTAL sin URL usable: 0 registros (base: suma de los cuatro archivos)
