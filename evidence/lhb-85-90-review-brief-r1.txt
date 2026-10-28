@@ -1,0 +1,15 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-90-wt (branch lhb-90-footer-shift, which is stacked on lhb-85-thumbs). The diff below is main..HEAD, so it covers two tickets that will merge back to back.
+
+LHB-85 (thumbnails at their drawn size):
+1. tools/build_thumbs.py writes a 320 x 160 twin (<name>_thumb-s.webp, WebP q75) beside each of the 36 600 x 300 cigar thumbnails in site/img/cigarros, from the full image.
+2. site/app.js: thumbS() maps a thumbnail path to its twin. The catalog card img uses src=twin, srcset "twin 320w, large 600w" and sizes "(min-width:760px) 225px, (min-width:620px) calc(33vw - 28px), calc(50vw - 32px)" (the card image is 158 px wide on a 412 px phone, up to about 277 px just below 620 px, 225 px at 3 columns; main is at most 760 px). The cigar page's gallery buttons (96 px) use the twin.
+3. site/sw.js precaches both sizes (existing tests require every thumbnail precached for the offline catalog).
+Evidence: evidence/lhb-85-thumbs.txt (byte table), lhb-85-tests(-red).txt, lhb-85-mutations.out (9 of 9), lhb-85-perf.txt (Lighthouse: image waste 164185 -> 12083 bytes median).
+
+LHB-90 (footer shift): site/styles.css .view:empty+.seo-foot{visibility:hidden}: the footer stays invisible while main#view is empty, so when the first frame paints before the app draws its first view, the footer is not painted high and then pushed down. evidence/lhb-90-perf.txt: 5 of 5 runs CLS 0.007 or less, production 3 of 3 shifted.
+
+Cache lhb-v78. Suite 230/230 (evidence/lhb-90-tests.txt).
+
+Look for real defects: a card or gallery image that ends up blurry, broken or wrongly sized at some width or pixel density; a sizes value that makes the browser pick the wrong candidate; the offline catalog breaking (a thumbnail the page asks for that the service worker did not precache); the footer staying hidden when it should show (a view that never leaves :empty, or a view rendered with only whitespace or a comment), or hidden content that should be reachable by keyboard or screen reader while hidden; anything that changes how the page looks once loaded; tests that would pass on broken code.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

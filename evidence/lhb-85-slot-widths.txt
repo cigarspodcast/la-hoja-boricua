@@ -1,0 +1,47 @@
+LHB-85, Codex round 1 fix: the drawn width of the catalog card image, measured, and the sizes value derived from it.
+Measured 2026-10-28T16:00Z on the branch preview https://a3d741c8.la-hoja-boricua.pages.dev (lhb-90-footer-shift, which
+carries lhb-85 unchanged), in the built-in browser. Method: an iframe of the given width on /#/catalogo, 2.5 s after load,
+getBoundingClientRect().width of the first '.grid .card .ph.has-foto img'. documentElement.clientWidth equalled the iframe
+width at every width measured (no classic scrollbar), so vw in sizes and the iframe width are the same basis.
+The mini row (.mini-row, Mi Hoja: my uploads, my favorites) was measured by cloning a catalog card into a .mini-row
+prepended to #view: its card is fixed at 140 px, so the image is the same at every width.
+
+Counting basis: CSS pixels of the image box, one image per width (all cards in one grid are the same width).
+
+viewport  grid image  declared (new sizes)  declared (old sizes)
+  320       113.4        115.0                 128.0
+  360       133.5        135.0                 148.0
+  375       141.1        142.5                 155.5
+  390       148.8        150.0                 163.0
+  412       159.6        161.0                 174.0
+  430       168.9        170.0                 183.0
+  500       203.9        205.0                 218.0
+  619       263.8        264.5                 277.5
+  620       163.6        164.6                 176.6
+  700       190.4        191.0                 203.0
+  759       210.3        210.5                 222.5
+  760       210.5        211.0                 225.0
+ 1024       210.5        211.0                 225.0
+ 1440       210.5        211.0                 225.0
+mini row    115.4        116.0                 (the grid value, 128 to 277.5)
+
+New sizes, grid card: (min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)
+New sizes, mini row card: 116px
+Every declared value is at or above the measured width (never blurry) and at most 1.6 px above it.
+
+Candidate choice this gives (320w twin, 600w large): the browser needs declared x DPR source pixels.
+- DPR 2 phone at 412: 322 needed, so the 600w is chosen (the twin is 2 px short; the old value needed 348, also 600w).
+  At 375 and below the twin covers DPR 2 (285 needed at 375). Measured LCP and byte effects remain those in lhb-85-perf.txt
+  (Lighthouse mobile is 412 x 823 at DPR 1.75: 161 x 1.75 = 282, so the twin is chosen, as before).
+- Mini row at DPR 2: 232 needed, the twin; at DPR 3: 348, the large.
+
+Large candidates: five large thumbnails were 420 x 210 while the srcset called them 600w (galiz-spirit, villareno-surtido,
+monte-mistica-connecticut, monte-mistica-corojo, monte-mistica-maduro). tools/build_thumbs.py now rewrites any large
+thumbnail that is not 600 x 300 from its full image (680 x 340 or 640 x 320, so a downscale), and the test requires every
+large thumbnail to be 600 x 300.
+
+Bytes of the five rewritten large thumbnails (WebP q75, 600 x 300), against their full image:
+galiz-spirit 23904 (full 26324), villareno-surtido 21416 (full 20842), monte-mistica-connecticut 29496 (full 32164),
+monte-mistica-corojo 33624 (full 37046), monte-mistica-maduro 33384 (full 36432). Large set total 281786 -> 347340.
+The 320 x 160 twins rebuilt byte-identical (small total 132548 before and after). A large thumbnail is fetched only when
+the browser picks 600w (declared slot x DPR above 320) and by the service worker precache.

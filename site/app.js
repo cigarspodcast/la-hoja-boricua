@@ -1,6 +1,10 @@
 (()=>{'use strict';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* LHB-85: the 320 x 160 twin of a 600 x 300 thumbnail (tools/build_thumbs.py) */
+const thumbS=t=>String(t).replace(/_thumb\.webp$/,'_thumb-s.webp');
+// ancho dibujado de la imagen de la tarjeta, medido (evidence/lhb-85-slot-widths.txt); la fila mini (Mi Hoja) es de 140 px fijos
+const SIZES_GRID='(min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)',SIZES_MINI='116px';
 const view=$('#view');const REDUCED_ALL=matchMedia('(prefers-reduced-motion: reduce)').matches;const VBArt=window.VBArt;const tt=window.LHB_I18N.t;
 const LS={get(k,d){try{const v=localStorage.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){localStorage.setItem('vb_'+k,JSON.stringify(v))}};
 /* ---------- IndexedDB for photos ---------- */
@@ -68,7 +72,7 @@ const emptyCoqui=msg=>`<div class="empty">${VBArt.coqui('coqui-empty')}<div>${ms
 /* ---------- cards ---------- */
 const fotoOf=c=>(!c||c.yours||!window.LHB_FOTOS)?null:(window.LHB_FOTOS[c.id]||null);
 async function hydratePhotos(root=view){for(const el of $$('[data-photo]',root)){const u=await photoURL(el.dataset.photo);if(u){el.innerHTML=`<img src="${u}" alt="">`}}}
-function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(f.thumb)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
  ${favs.includes(c.id)?'<span class="fav-dot" aria-label="'+tt('card.fav')+'">♥</span>':''}
  <div class="body"><div class="name">${esc(c.nombre)}</div><div class="meta">${esc(artisanName(c))}${c.pueblo?' · '+esc(c.pueblo):''}</div>
  <div class="pills">${c.capa?`<span class="pill">${esc(fx(c,'capa'))}</span>`:''}${c.fortaleza?`<span class="pill f-${c.fortaleza}">${fortLabel(c.fortaleza)}</span>`:''}${c.yours?'<span class="pill yours">'+tt('card.yours')+'</span>':''}</div></div></a>`}
@@ -90,7 +94,7 @@ function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.ca
 function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="empty">${tt('cig.notFound')}</div>`;return}
  const a=artisanById(c.artesano_id);const favs=EXT.S().favs.cigarros;const rat=EXT.S().ratings[c.id]||0;const isFav=favs.includes(c.id);
  view.innerHTML=`<button class="back" data-back>${tt('back')}</button>
- ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(g.thumb)}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+ ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
  <div class="detail-head"><div><div class="eyebrow">${c.yours?tt('cig.byYou'):tt('cig.madePR')}</div><h1>${esc(c.nombre)}</h1></div>
  <button class="fav-btn" id="fav" aria-pressed="${isFav}">${isFav?tt('cig.saved'):tt('cig.save')}</button></div>
  <div class="specs"><div class="spec"><small>${tt('f.capa')}</small><span>${esc(fx(c,'capa')||tt('notPub'))}</span></div><div class="spec"><small>${tt('f.fortaleza')}</small><span>${c.fortaleza?fortLabel(c.fortaleza):tt('notPub')}</span></div>
@@ -247,8 +251,8 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
  <details class="edit"><summary>${tt('pf.favCapa')}</summary><form class="form" id="pForm">
  <div class="field"><label for="pC">${tt('pf.favCapa')}</label><select id="pC"><option value="">\u2014</option>${['Claro','Connecticut','Natural','Colorado','Habano','Corojo','Criollo','Maduro','Oscuro'].map(x=>`<option ${p.capa===x?'selected':''}>${x}</option>`).join('')}</select></div>
  <button class="btn" type="submit">${tt('pf.save')}</button></form></details>
- <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
- <div class="section-title"><h2>${tt('pf.myFavs')}</h2></div>${favC.length?`<div class="mini-row">${favC.map(cigarCard).join('')}</div>`:'<div class="empty">'+tt('pf.noFavs')+'</div>'}
+ <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
+ <div class="section-title"><h2>${tt('pf.myFavs')}</h2></div>${favC.length?`<div class="mini-row">${favC.map(c=>cigarCard({...c,mini:true})).join('')}</div>`:'<div class="empty">'+tt('pf.noFavs')+'</div>'}
  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--gold);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
  <p class="note">${tt('pf.note')}</p>`;
  if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));
