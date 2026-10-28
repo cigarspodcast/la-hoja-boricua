@@ -1,0 +1,23 @@
+baseline 0 ℹ tests 15 ℹ fail 0
+N1 the publica filter removed (server) RED ℹ tests 15 ℹ fail 1
+N2 the endpoint sends the user id RED ℹ tests 15 ℹ fail 1
+N3 followers not wired to the table RED ℹ tests 15 ℹ fail 1
+N4 following reads the followers RED ℹ tests 15 ℹ fail 1
+N5 hidden profiles served (server) RED ℹ tests 15 ℹ fail 1
+N6 a D1 failure throws instead of 503 RED ℹ tests 15 ℹ fail 1
+N7 publica read as truthy (app) RED ℹ tests 15 ℹ fail 1
+N8 Humidor tab for everyone RED ℹ tests 15 ℹ fail 1
+N9 Humidor panel for another person RED ℹ tests 15 ℹ fail 1
+N10 bio not escaped RED ℹ tests 15 ℹ fail 1
+N11 your own @ not sent to Perfil RED ℹ tests 15 ℹ fail 1
+N12 a late answer paints another page RED ℹ tests 15 ℹ fail 1
+N13 a late answer of the previous account paints RED ℹ tests 15 ℹ fail 1
+N14 the API reviews not reprojected RED ℹ tests 15 ℹ fail 1
+N15 people rows do not link to the profile RED ℹ tests 15 ℹ fail 1
+N16 Perfil does not mount the profile RED ℹ tests 15 ℹ fail 1
+N17 no #/u/ route RED ℹ tests 15 ℹ fail 1
+N18 your Resenas count taken from the server RED ℹ tests 15 ℹ fail 1
+N19 Editar perfil and the follow slot swapped RED ℹ tests 15 ℹ fail 2
+N20 the own view fetches another handle RED ℹ tests 15 ℹ fail 1
+restored 0 ℹ tests 15 ℹ fail 0
+mutations 20 red 20

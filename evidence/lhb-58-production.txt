@@ -1,0 +1,32 @@
+LHB-58 production read-back, https://lahojaboricua.com, after merge 674ae531e5463492d2c4e29679c11c9001ae6d09 (PR #30). Captured 2026-10-28T20:19:23Z.
+
+== GET /sw.js (VERSION line)
+const VERSION='lhb-v85';
+
+== GET /api/u/nadie_asi (no such profile)
+HTTP/1.1 404 Not Found
+Content-Type: application/json; charset=utf-8
+{"error":"not-found"}
+
+== GET /api/u/AB (invalid handle)
+404 application/json; charset=utf-8
+
+== GET /hoja.js: LHB-58 symbols present (count of matching lines)
+function vPersona: 2
+function pfOwnSync: 1
+const pfKey=: 1
+else pfOwnSync()}});: 1
+persona:vPersona: 1
+class="person-a" href="#/u/: 1
+
+== GET /app.js: route u and the #pfOwn mount
+u:()=>R.persona(id),: 1
+id="pfOwn": 1
+EXT.profileOwn(ac): 1
+
+== GET /u/nadie_asi (LHB-40 public page still served)
+404 text/html; charset=utf-8
+
+== The app view, built-in browser pane at https://lahojaboricua.com/#/u/nadie_asi after the service worker moved to lhb-v85 (caches: vb-tiles, lhb-v85). Captured 2026-10-28T20:22:13Z.
+{"hash":"#/u/nadie_asi","pfX":true,"text":"This profile is not available.","tab":"mihoja"}
+(the pane's language is English; the Spanish string is h.pfNoDisponible "Este perfil no está disponible.")

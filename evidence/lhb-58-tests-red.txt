@@ -1,0 +1,101 @@
+✔ LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las mismas claves (10.4449ms)
+✖ LHB-85: la tarjeta escoge con srcset y sizes; la galería usa la gemela (1.7539ms)
+✖ LHB-58: GET /api/u/<handle> trae solo lo público: el perfil, las reseñas (catas con publica === true) y los conteos; seguidores y siguiendo salen de follows; nada privado en el JSON (74.6724ms)
+✖ LHB-58: el perfil de otra persona (#/u/<handle>): foto, nombre, @, bio, marca y conteos de /api/u/; pestañas Reseñas, Pasaporte y Favoritos; el Humidor no está; tocar una reseña abre su tarjeta (1.4221ms)
+✖ LHB-58: el perfil de otra persona: 404, error, @ imposible, el tuyo te lleva a Perfil, y una respuesta tardía no pinta otra página (0.7879ms)
+✖ LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y las cuatro pestañas; Reseñas son solo tus catas públicas (publica === true); el Humidor sí está (0.9419ms)
+✖ LHB-58: tu Perfil con otra cuenta en el mismo teléfono: lo que llega tarde de la cuenta anterior no se pinta; sin cuenta guardada no hay perfil; app.js lo pone en #pfOwn y #/u/ va a vPersona (1.2219ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 1
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 188.5923
+
+✖ failing tests:
+
+test at test\site.test.js:3752:1
+✖ LHB-85: la tarjeta escoge con srcset y sizes; la galería usa la gemela (1.7539ms)
+  AssertionError [ERR_ASSERTION]: las dos filas mini usan SIZES_MINI (LHB-58: la de favoritos vive en la pestaña Favoritos de hoja.js)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:3762:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:4087:1
+✖ LHB-58: GET /api/u/<handle> trae solo lo público: el perfil, las reseñas (catas con publica === true) y los conteos; seguidores y siguiendo salen de follows; nada privado en el JSON (74.6724ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\functions\api\u\[handle].js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914/26f104f2-e100-49e6-912b-3193fec0d946/scratchpad/red58/functions/api/u/%5Bhandle%5D.js'
+  }
+
+test at test\site.test.js:4140:1
+✖ LHB-58: el perfil de otra persona (#/u/<handle>): foto, nombre, @, bio, marca y conteos de /api/u/; pestañas Reseñas, Pasaporte y Favoritos; el Humidor no está; tocar una reseña abre su tarjeta (1.4221ms)
+  Error: no está: /* ---------- perfil, pasaporte primero (LHB-58) / /* ---------- fin del perfil (LHB-58)
+      at cut (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4113:80)
+      at HOJA58 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4114:91)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4141:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test\site.test.js:4155:1
+✖ LHB-58: el perfil de otra persona: 404, error, @ imposible, el tuyo te lleva a Perfil, y una respuesta tardía no pinta otra página (0.7879ms)
+  Error: no está: /* ---------- perfil, pasaporte primero (LHB-58) / /* ---------- fin del perfil (LHB-58)
+      at cut (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4113:80)
+      at HOJA58 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4114:91)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4156:8)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test\site.test.js:4166:1
+✖ LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y las cuatro pestañas; Reseñas son solo tus catas públicas (publica === true); el Humidor sí está (0.9419ms)
+  Error: no está: /* ---------- perfil, pasaporte primero (LHB-58) / /* ---------- fin del perfil (LHB-58)
+      at cut (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4113:80)
+      at HOJA58 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4114:91)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4167:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test\site.test.js:4181:1
+✖ LHB-58: tu Perfil con otra cuenta en el mismo teléfono: lo que llega tarde de la cuenta anterior no se pinta; sin cuenta guardada no hay perfil; app.js lo pone en #pfOwn y #/u/ va a vPersona (1.2219ms)
+  Error: no está: /* ---------- perfil, pasaporte primero (LHB-58) / /* ---------- fin del perfil (LHB-58)
+      at cut (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4113:80)
+      at HOJA58 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4114:91)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua--claude-worktrees-lhb-40-58-profiles-5a5914\26f104f2-e100-49e6-912b-3193fec0d946\scratchpad\red58\test\site.test.js:4182:17)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

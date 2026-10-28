@@ -1,0 +1,77 @@
+✔ LHB-28: exportar e importar solo se alcanzan desde las listas de Mi Hoja, que ya pasan por la puerta; ningún otro archivo los menciona (9.6529ms)
+✔ LHB-39: los números sobre un documento de prueba: catas, sellos por tipo (solo los del catálogo), los tres mejor puntuados, la capa y la fortaleza más anotadas (16.2141ms)
+✔ LHB-39: el diario se busca por nombre, marca, artesano y sabor (sin importar acentos ni mayúsculas), se filtra por estrellas y por pública o privada, y se ordena por fecha o por estrellas (6.1903ms)
+✔ LHB-39: la página del diario muestra los números y los filtros; cambiar un filtro repinta solo la lista y su cuenta; la búsqueda de otra cuenta no se queda (16.3768ms)
+✖ LHB-39 (Codex ronda 1): con el filtro de pública o privada, cambiar la casilla saca la entrada de la lista y corrige la cuenta; una sincronización devuelve el foco a la búsqueda aunque la puerta de la cuenta la quite (13.8326ms)
+✔ LHB-39 (Codex ronda 2): el foco anotado al llegar una sincronización no se usa después de irse a otra página ni con otra cuenta (5.7718ms)
+✔ LHB-58: GET /api/u/<handle> trae solo lo público: el perfil, las reseñas (catas con publica === true) y los conteos; seguidores y siguiendo salen de follows; nada privado en el JSON (99.0597ms)
+✔ LHB-58: el perfil de otra persona (#/u/<handle>): foto, nombre, @, bio, marca y conteos de /api/u/; pestañas Reseñas, Pasaporte y Favoritos; el Humidor no está; tocar una reseña abre su tarjeta (6.9869ms)
+✔ LHB-58: el perfil de otra persona: 404, error, @ imposible, el tuyo te lleva a Perfil, y una respuesta tardía no pinta otra página (39.6993ms)
+✔ LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y las cuatro pestañas; Reseñas son solo tus catas públicas (publica === true); el Humidor sí está (5.1558ms)
+✔ LHB-58: tu Perfil con otra cuenta en el mismo teléfono: lo que llega tarde de la cuenta anterior no se pinta; sin cuenta guardada no hay perfil; app.js lo pone en #pfOwn y #/u/ va a vPersona (20.533ms)
+✖ LHB-58 (Codex ronda 1): tu Perfil abierto se pinta otra vez cuando llega una sincronización, en la misma pestaña; con otra cuenta, no; la sincronización lo llama solo en Perfil (5.8928ms)
+✖ LHB-58 (Codex ronda 1): si /api/u/<tu @> falla, tu número de reseñas sale igual de tu Mi Hoja; seguidores y siguiendo esperan (5.3298ms)
+✖ LHB-58 (Codex ronda 1): las pestañas se manejan con el teclado: flechas, Inicio y Fin cambian la pestaña y el foco; solo la abierta está en el orden del tabulador (5.6825ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 10
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 388.1783
+
+✖ failing tests:
+
+test at test\site.test.js:3861:1
+✖ LHB-39 (Codex ronda 1): con el filtro de pública o privada, cambiar la casilla saca la entrada de la lista y corrige la cuenta; una sincronización devuelve el foco a la búsqueda aunque la puerta de la cuenta la quite (13.8326ms)
+  AssertionError [ERR_ASSERTION]: la sincronización anota el foco antes de pasar por la puerta
+      at TestContext.<anonymous> (C:\Users\Owner\la-hoja-boricua\.claude\worktrees\lhb-40-58-profiles-5a5914\test\site.test.js:3877:34)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:4207:1
+✖ LHB-58 (Codex ronda 1): tu Perfil abierto se pinta otra vez cuando llega una sincronización, en la misma pestaña; con otra cuenta, no; la sincronización lo llama solo en Perfil (5.8928ms)
+  TypeError: H.X.pfOwnSync is not a function
+      at TestContext.<anonymous> (C:\Users\Owner\la-hoja-boricua\.claude\worktrees\lhb-40-58-profiles-5a5914\test\site.test.js:4214:6)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test\site.test.js:4223:1
+✖ LHB-58 (Codex ronda 1): si /api/u/<tu @> falla, tu número de reseñas sale igual de tu Mi Hoja; seguidores y siguiendo esperan (5.3298ms)
+  AssertionError [ERR_ASSERTION]: tu reseña pública cuenta
+      at TestContext.<anonymous> (C:\Users\Owner\la-hoja-boricua\.claude\worktrees\lhb-40-58-profiles-5a5914\test\site.test.js:4226:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:4229:1
+✖ LHB-58 (Codex ronda 1): las pestañas se manejan con el teclado: flechas, Inicio y Fin cambian la pestaña y el foco; solo la abierta está en el orden del tabulador (5.6825ms)
+  AssertionError [ERR_ASSERTION]: tabindex de entrada
+      at TestContext.<anonymous> (C:\Users\Owner\la-hoja-boricua\.claude\worktrees\lhb-40-58-profiles-5a5914\test\site.test.js:4231:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
