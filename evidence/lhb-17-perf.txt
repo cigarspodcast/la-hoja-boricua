@@ -1,0 +1,138 @@
+# LHB-17: mobile performance audit of https://lahojaboricua.com/
+
+Tool: Lighthouse 13.6.0, mobile form factor and its default simulated throttling, headless Chrome 156.0.0.0, on this Windows host.
+Runs: 3 cold loads of /, one Lighthouse process each. Figures: median of the 3 runs, with min and max as the spread.
+Host claim: the whole pass ran under live-runs/LHB-17-18-lighthouse.claim.md (copy of the closed claim at the end of this file).
+
+## Measured figures (basis: 3 runs, median [min to max])
+
+- Performance score: 87 [78 to 87]
+- FCP: 999 ms [996 ms to 1005 ms]
+- LCP: 3249 ms [3246 ms to 3255 ms]
+- TBT: 151 ms [126 ms to 373 ms]
+- CLS: 0.000 [0.000 to 0.145]
+- Speed Index: 5371 ms [2847 ms to 5396 ms]
+- TTFB (server response): 110 ms [97 ms to 139 ms]
+
+## Waterfall of first load (run 3, the median-LCP run; basis: every request Lighthouse recorded, in start order)
+
+start ms | end ms | transfer bytes | type | url
+       1 |      217 |     3787 | Document | https://lahojaboricua.com/
+     224 |      342 |    19293 | Font | https://lahojaboricua.com/fonts/figtree.woff2
+     228 |      298 |     3096 | Stylesheet | https://lahojaboricua.com/vendor-leaflet.css
+     231 |      360 |    15072 | Stylesheet | https://lahojaboricua.com/styles.css
+     231 |      308 |    45600 | Image | https://lahojaboricua.com/img/guagua/campo.webp
+     231 |      351 |    25555 | Image | https://lahojaboricua.com/img/guagua/hojas.webp
+     232 |      359 |    10478 | Script | https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092
+     232 |      350 |      988 | Image | https://lahojaboricua.com/icons/icon.svg
+     233 |      360 |     4640 | Script | https://lahojaboricua.com/i18n.js
+     233 |      360 |    44519 | Script | https://lahojaboricua.com/vendor-leaflet.js
+     233 |      386 |    18808 | Script | https://lahojaboricua.com/data/bundle.js
+     234 |      365 |     3292 | Script | https://lahojaboricua.com/art.js
+     235 |      361 |     1253 | Script | https://lahojaboricua.com/fotos.js
+     235 |      366 |     6761 | Script | https://lahojaboricua.com/cuenta.js
+     235 |      361 |     7843 | Script | https://lahojaboricua.com/sync.js
+     236 |      396 |    41392 | Script | https://lahojaboricua.com/hoja.js
+     236 |      402 |    21122 | Script | https://lahojaboricua.com/app.js
+     236 |      367 |      994 | Manifest | https://lahojaboricua.com/manifest.webmanifest
+     412 |      412 |        0 | Image | data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 440%22%3E%3Cpat…
+     414 |      498 |    31923 | Image | https://lahojaboricua.com/img/guagua/guagua_recorte.webp
+     415 |      415 |        0 | Image | data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3…
+     447 |      521 |      505 | Fetch | https://lahojaboricua.com/data/bundle.js
+     447 |      498 |        0 | Image | https://lahojaboricua.com/img/guagua/guagua_recorte.webp
+     448 |      531 |    28881 | Image | https://lahojaboricua.com/img/hero/banner.webp
+     448 |      610 |     5811 | Image | https://lahojaboricua.com/img/cigarros/turro-angel-david_thumb.webp
+     448 |      599 |     8693 | Image | https://lahojaboricua.com/img/cigarros/turro-cartucho_thumb.webp
+     449 |      530 |     4825 | Image | https://lahojaboricua.com/img/cigarros/turro-deja-el-drama_thumb.webp
+     449 |      544 |     3499 | Image | https://lahojaboricua.com/img/cigarros/don-collins-linea_thumb.webp
+     449 |      575 |     4822 | Image | https://lahojaboricua.com/img/cigarros/turro-don-pepe_thumb.webp
+     449 |      550 |     6590 | Image | https://lahojaboricua.com/img/cigarros/turro-barber-pole_thumb.webp
+     450 |      542 |     3497 | Image | https://lahojaboricua.com/img/cigarros/don-collins-corona-grande_thumb.webp
+     450 |      597 |     5986 | Image | https://lahojaboricua.com/img/cigarros/turro-el-turrito_thumb.webp
+     450 |      543 |     6859 | Image | https://lahojaboricua.com/img/cigarros/turro-escopeta_thumb.webp
+     450 |      623 |    14843 | Image | https://lahojaboricua.com/img/cigarros/galiz-spirit_thumb.webp
+     450 |      596 |     6485 | Image | https://lahojaboricua.com/img/cigarros/turro-gallo-pinto_thumb.webp
+     451 |      584 |     4453 | Image | https://lahojaboricua.com/img/cigarros/hoja-boricua_thumb.webp
+     451 |      593 |     4363 | Image | https://lahojaboricua.com/img/cigarros/hoja-boricua-gran-reserva_thumb.webp
+     451 |      594 |     5930 | Image | https://lahojaboricua.com/img/cigarros/turro-hva-robusto_thumb.webp
+     451 |      593 |     3801 | Image | https://lahojaboricua.com/img/cigarros/turro-lancero_thumb.webp
+     451 |      596 |     5527 | Image | https://lahojaboricua.com/img/cigarros/turro-mamposteao_thumb.webp
+     452 |      600 |    16355 | Image | https://lahojaboricua.com/img/cigarros/monte-mistica-connecticut_thumb.webp
+     452 |      621 |    17484 | Image | https://lahojaboricua.com/img/cigarros/monte-mistica-corojo_thumb.webp
+     452 |      623 |    17723 | Image | https://lahojaboricua.com/img/cigarros/monte-mistica-maduro_thumb.webp
+     452 |      603 |     6817 | Image | https://lahojaboricua.com/img/cigarros/turro-naturola_thumb.webp
+     452 |      603 |     6188 | Image | https://lahojaboricua.com/img/cigarros/turro-albizu-campos_thumb.webp
+     452 |      596 |     3909 | Image | https://lahojaboricua.com/img/cigarros/puerto-rico-965_thumb.webp
+     452 |      631 |    40571 | Image | https://lahojaboricua.com/img/cigarros/san-pedrito-linea_thumb.webp
+     452 |      623 |    28911 | Image | https://lahojaboricua.com/img/cigarros/san-pedrito-barber-pole_thumb.webp
+     452 |      593 |     6269 | Image | https://lahojaboricua.com/img/cigarros/turro-timber-blues_thumb.webp
+     453 |      621 |    12519 | Image | https://lahojaboricua.com/img/cigarros/villareno-surtido_thumb.webp
+     453 |      599 |     4122 | Image | https://lahojaboricua.com/img/cigarros/willys-banda-negra-oro_thumb.webp
+     455 |      558 |     3331 | Image | https://lahojaboricua.com/img/cigarros/willys-banda-azul-coleta_thumb.webp
+     455 |      596 |     3127 | Image | https://lahojaboricua.com/img/cigarros/willys-banda-azul-ovalada_thumb.webp
+     455 |      575 |     4396 | Image | https://lahojaboricua.com/img/cigarros/willys-banda-azul-roja-oro_thumb.webp
+     456 |      575 |     4464 | Image | https://lahojaboricua.com/img/cigarros/willys-banda-azul-oro_thumb.webp
+     456 |      621 |    10744 | Image | https://lahojaboricua.com/img/cigarros/willys-tripa-corta_thumb.webp
+     456 |      599 |     3828 | Image | https://lahojaboricua.com/img/cigarros/yambo-toro_thumb.webp
+     458 |      622 |    16279 | Font | https://lahojaboricua.com/fonts/shrikhand.woff2
+     517 |      626 |    19052 | Font | https://lahojaboricua.com/fonts/fraunces-normal-600.woff2
+     637 |      707 |      455 | XHR | https://lahojaboricua.com/cdn-cgi/rum?
+     638 |      641 |        0 | Other | https://lahojaboricua.com/icons/icon.svg
+     640 |      725 |     4460 | Other | https://lahojaboricua.com/icons/icon-192.png
+
+Requests: 62; total transfer 662790 bytes (basis: the same run).
+Scripts requested on first load of /: 10, 160108 bytes transferred:
+  - https://lahojaboricua.com/i18n.js (4640 bytes transferred, 11671 bytes resource)
+  - https://lahojaboricua.com/vendor-leaflet.js (44519 bytes transferred, 147552 bytes resource)
+  - https://lahojaboricua.com/data/bundle.js (18808 bytes transferred, 72586 bytes resource)
+  - https://lahojaboricua.com/art.js (3292 bytes transferred, 7450 bytes resource)
+  - https://lahojaboricua.com/fotos.js (1253 bytes transferred, 6324 bytes resource)
+  - https://lahojaboricua.com/cuenta.js (6761 bytes transferred, 18243 bytes resource)
+  - https://lahojaboricua.com/sync.js (7843 bytes transferred, 18583 bytes resource)
+  - https://lahojaboricua.com/hoja.js (41392 bytes transferred, 111097 bytes resource)
+  - https://lahojaboricua.com/app.js (21122 bytes transferred, 54480 bytes resource)
+  - https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 (10478 bytes transferred, 31853 bytes resource)
+
+## Lighthouse audits scored below 1 in the median run (basis: that run; savings are Lighthouse estimates)
+
+- cache-insight: score 0.50; Est savings of 4 KiB; savings {"FCP": 0, "LCP": 0}
+- image-delivery-insight: score 0.00; Est savings of 253 KiB; savings {"FCP": 0, "LCP": 450}
+- interactive: score 0.94; 3.2 s
+- largest-contentful-paint: score 0.71; 3.2 s
+- lcp-breakdown-insight: score 0.00; savings {"LCP": 0}
+- lcp-discovery-insight: score 0.00; savings {"LCP": 0}
+- legacy-javascript-insight: score 0.50; Est savings of 10 KiB; savings {"FCP": 0, "LCP": 0}
+- mainthread-work-breakdown: score 0.00; 2.3 s; savings {"TBT": 150}
+- max-potential-fid: score 0.90; 130 ms
+- network-dependency-tree-insight: score 0.00; savings {"LCP": 0}
+- render-blocking-insight: score 0.00; Est savings of 130 ms; savings {"FCP": 150, "LCP": 0}
+- speed-index: score 0.56; 5.4 s
+- total-blocking-time: score 0.96; 130 ms
+- unminified-javascript: score 0.50; Est savings of 3 KiB; savings {"FCP": 0, "LCP": 0}
+
+## Host claim record
+
+# CLOSED: [touched 2026-10-28T05:14Z] no live run. Closed 2026-10-28T05:14:58Z. LHB lane, LHB-17 LHB-18
+
+Owner: Alfredo Medina
+Session: LHB-17/18 audits (builder)
+Root: C:\Users\Owner\lhb-17-wt
+Claimed at: 2026-10-28T05:12:24Z
+Expected window: 25 min from the claim time.
+Closes when: the runner process ends (finally rewrites line 1 CLOSED).
+
+## What this claim covers
+
+Lighthouse runs (3 mobile performance runs of the home page, 5 accessibility runs). Performance is timing-sensitive, so other heavy work on this host would corrupt it.
+
+Runs: [('perf1', 0, 26), ('perf2', 0, 21), ('perf3', 0, 18), ('a11y-home', 0, 17), ('a11y-vc-lounge', 0, 14), ('a11y-don-collins', 0, 15), ('a11y-app-lugares', 0, 17), ('a11y-app-mihoja', 0, 21)]
+
+
+## Findings (each rests on the measurement named; each becomes its own Backlog ticket)
+
+1. HYPOTHESIS CONFIRMED: the map library loads on every first visit to /. vendor-leaflet.js (147552 bytes resource, 44519 transferred) and vendor-leaflet.css (3096 transferred) are requested at 228 to 233 ms, beside every app script, although the map only appears on #/lugares. Basis: the waterfall above, median-LCP run. All 10 scripts together: 160108 bytes transferred.
+2. LCP 3249 ms median [3246 to 3255], "needs improvement" (good is under 2500 ms). The LCP element is the splash image div#campo > div#cz > div.lay > img.campo-bg. In the median run the image itself arrives fast (time to first byte 209 ms, load 87 ms), but its render is delayed 2363 ms. That points at the splash animation, not the network. Basis: lcp-breakdown-insight, run 3.
+3. Images: Lighthouse estimates 253 KiB of image savings and 450 ms off LCP. Example: cigar thumbnails of 17 to 41 KB are drawn at about 159 by 81 px. 41 images, 419689 bytes transferred. Basis: image-delivery-insight and network-requests, run 3.
+4. Speed Index 5371 ms median [2847 to 5396], "poor" (good is under 3400 ms). It moves with the splash: run 1 had Speed Index 2847 ms but CLS 0.145, from footer.seo-foot shifting; runs 2 and 3 had CLS 0. So the splash timing is bimodal across runs (1 of 3 different). Basis: the per-run figures (run 1: score 78, LCP 3255, TBT 373, CLS 0.145, SI 2847; run 2: 87, 3246, 151, 0, 5371; run 3: 87, 3249, 126, 0, 5396).
+5. Render-blocking CSS: styles.css (15072 bytes transferred) blocks first paint for an estimated 150 ms of FCP. vendor-leaflet.css also blocks (estimate not given). Basis: render-blocking-insight, run 3.
+Not ticketed (estimated savings too small to act on): cache headers 4 KiB, legacy JavaScript 10 KiB, unminified JavaScript 3 KiB, each with 0 ms LCP and FCP impact. Healthy: TTFB 110 ms median, FCP 999 ms, TBT 151 ms.
