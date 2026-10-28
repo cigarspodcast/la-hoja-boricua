@@ -1,0 +1,8 @@
+LHB-32 Spanish-unchanged check: the branch working tree against d9a247c
+counting basis: one page = one .html file in site/<section>/; lines compared after CRLF to LF
+lugares    pages at base  42  on branch  42  same set: True  identical except 3 hreflang lines after canonical: 42
+artesanos  pages at base  33  on branch  33  same set: True  identical except 3 hreflang lines after canonical: 33
+cigarros   pages at base  49  on branch  49  same set: True  identical except 3 hreflang lines after canonical: 49
+llms.txt unchanged: True
+sitemap: base entries 125, branch Spanish entries 125, same and in the same order: True
+TOTAL Spanish pages 124, problems 0
