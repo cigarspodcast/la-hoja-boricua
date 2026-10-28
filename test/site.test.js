@@ -1844,12 +1844,12 @@ test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, 
 function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,failBigKey:null,failBig:0,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
  const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
  const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)}},
-  getDoc:()=>rawDoc(),setDoc:(d,exp)=>{st.setDocs++;if(st.beforeApply){const f=st.beforeApply;st.beforeApply=null;f()}if(exp!==undefined&&win.LHB_MERGE.canon(rawDoc())!==exp)return 'stale';if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
+  getDoc:()=>rawDoc(),setDoc:(d,exp)=>{st.setDocs++;if(st.beforeApply){const f=st.beforeApply;st.beforeApply=null;f()}if(exp!==undefined&&win.LHB_MERGE.stable(rawDoc())!==exp)return 'stale';if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
    net.log.push(method);if(net.status&&net.status[method])return {status:net.status[method],body:{}};
    if(method==='PUT'&&net.beforePut){const f=net.beforePut;net.beforePut=null;await f()}
-   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match']}),env:a.env});return {status:r.status,body:await r.json()}},
+   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match']}),env:a.env});if(method==='PUT'&&net.dropAfterPut){net.dropAfterPut=false;throw new TypeError('sin red')}return {status:r.status,body:await r.json()}},
   acct:()=>st.acct?{sub:st.acct}:null,now:()=>new Date(st.clock).toISOString(),nowMs:()=>st.clock,
   setTimer:(fn,ms)=>{const t={fn,ms,live:true};timers.push(t);return t},clearTimer:t=>{if(t)t.live=false},
   toast:m=>toasts.push(m),listen:(ev,fn)=>{handlers[ev]=fn},onState:s=>{st.states.push(s.state)},onApplied:()=>{st.applied++}};
@@ -2045,7 +2045,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on'))A.route()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta');
  assert.ok(h.includes("listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})}"),'el navegador avisa al volver la red y al ver la página');
- assert.ok(h.includes("setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.canon(load())!==exp)return 'stale';ST=normalize(d);return write(ST)}"),'lo que llega se guarda por write, solo si la copia sigue igual a la que se leyó, y devuelve si se pudo');
+ assert.ok(h.includes("setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)}"),'lo que llega se guarda por write, solo si la copia sigue igual a la que se leyó, y devuelve si se pudo');
  assert.ok(ix.indexOf('sync.js')>0&&ix.indexOf('sync.js')<ix.indexOf('hoja.js'),'sync.js carga antes que hoja.js');
  assert.ok(sw.includes("'sync.js'"),'sync.js está en el caché del shell');
 });
@@ -2345,6 +2345,41 @@ test('LHB-31 (Codex ronda 6): dos fallos seguidos sin recargar (meta, luego apli
   P.edit(d=>{d.favs.cigarros=[]});r=await P.eng.run('p4');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.cigarros,[],'el borrado de después sí se sincroniza');
  }finally{a.done()}
  }
+});
+test('LHB-31 (Codex ronda 7): si otra pestaña guarda justo antes de aplicar, se vuelve a juntar con lo leído de nuevo: la acción nueva (volver a agregar) y lo ajeno se conservan, y el borrador más nuevo no se pisa',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
+  A.edit(d=>{d.favs.artesanos=[]});B.edit(d=>{d.favs.cigarros=['k1']});await B.fire();
+  const T=SYNC28().LHB_SYNC(A.D);
+  A.st.beforeApply=()=>{const prev=A.ls.get(A.KEY);const d=A.doc();d.favs.artesanos=['a1'];A.ls.set(A.KEY,JSON.stringify(d));T.changed(prev)};
+  let r=await A.sync('trae');assert.equal(r.ok,true,JSON.stringify(r));
+  assert.deepEqual(A.doc().favs.artesanos,['a1'],'volver a agregar en la otra pestaña no se pierde');assert.deepEqual(A.doc().favs.cigarros,['k1'],'lo que llegó de B sí se aplicó');
+  await A.fire();await A.sync();
+  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y la cuenta lo tiene');assert.deepEqual(srv28(a,'user_a').doc.favs.cigarros,['k1']);
+  /* el borrador (cata a medias) no entra en canon: la comparación mira la copia entera */
+  const C=DEV28(a,'user_a'),E=DEV28(a,'user_a');C.seed({...DOC28,draft:{marca:'viejo'}});await C.sync();await E.sync();E.edit(d=>{d.ratings.c7=2});await E.fire();
+  C.st.beforeApply=()=>{const d=C.doc();d.draft={marca:'nuevo'};C.ls.set(C.KEY,JSON.stringify(d))};
+  r=await C.sync('trae');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(C.doc().draft,{marca:'nuevo'},'el borrador más nuevo sigue');assert.equal(C.doc().ratings.c7,2,'y lo que llegó se aplicó');
+ }finally{a.done()}
+});
+test('LHB-31 (Codex ronda 7): un PUT sin respuesta que sí llegó no hace que el teléfono borre lo que otro volvió a agregar; uno que no llegó no deshace un borrado',async()=>{
+ const a=await ENG28();
+ try{
+  /* llegó, se perdió la respuesta, B trae el borrado y vuelve a agregar a1 */
+  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
+  A.edit(d=>{d.favs.artesanos=[]});A.net.dropAfterPut=true;let r=await A.eng.run('p1');assert.equal(r.skip,'offline');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'el PUT sí llegó');
+  await B.sync();assert.deepEqual(B.doc().favs.artesanos,[]);B.edit(d=>{d.favs.artesanos=['a1']});await B.fire();assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1']);
+  r=await A.eng.run('p2');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'lo que B volvió a agregar sigue en la cuenta');
+  /* una pasada completa borra el recuerdo del PUT sin respuesta: más tarde, con la cuenta muy adelantada, un borrado normal sigue valiendo */
+  A.edit(d=>{d.favs.cigarros=['k1']});await A.sync();await B.sync();B.edit(d=>{d.ratings.r1=1});await B.fire();B.edit(d=>{d.ratings.r2=2});await B.fire();await A.sync();
+  A.edit(d=>{d.favs.cigarros=[]});r=await A.eng.run('p3');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.cigarros,[],'el borrado normal no se deshace por un recuerdo viejo');
+  /* no llegó: el borrado sigue valiendo en el reintento */
+  const C=DEV28(a,'user_a');C.seed(DOC28);await C.sync();
+  C.edit(d=>{d.favs.cigarros=['k9']});await C.sync();
+  C.edit(d=>{d.favs.cigarros=[]});C.net.beforePut=async()=>{throw new TypeError('sin red')};r=await C.eng.run('p1');assert.equal(r.skip,'offline');assert.deepEqual(srv28(a,'user_a').doc.favs.cigarros,['k9']);
+  r=await C.eng.run('p2');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.cigarros,[],'el borrado que no llegó se sube en el reintento y no se deshace');
+ }finally{a.done()}
 });
 test('LHB-28 (Codex ronda 1): juntar no se rompe con llaves como constructor o __proto__ y no contamina nada',()=>{
  const {LHB_MERGE:X}=SYNC28();const E=o=>({schema:1,creado:'2026-10-01',humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{},...o});

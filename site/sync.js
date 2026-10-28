@@ -72,13 +72,13 @@ function merge(base,local,remote,o){const prefer=o&&o.prefer,b=std(base),l=std(l
  Object.assign(out,mergeMap(extras(b),extras(l),extras(r),prefer,false));
  return out}
 const hasData=d=>{d=std(d);return d.humidor.length+d.diario.length+KINDS.reduce((n,k)=>n+Object.keys(d.pasaporte[k]).length+d.favs[k].length,0)+Object.keys(d.ratings).length>0};
-window.LHB_MERGE={merge,strip,canon,same,hasData,meet,LOCAL_ONLY};
+window.LHB_MERGE={merge,strip,canon,same,stable,hasData,meet,LOCAL_ONLY};
 
 /* ---------- el motor ---------- */
 const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_seq',KEY='lhb_mihoja_v1';
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 window.LHB_SYNC=function(D){
- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,mem=null,state={state:'idle',err:null};
+ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,state={state:'idle',err:null};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
  const writeMeta=m=>{try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
  /* un contador chico compartido entre pestañas: cada escritura de la persona lo sube, y una pasada sabe si alguien escribió (aquí o en otra pestaña) mientras esperaba la red */
@@ -126,6 +126,8 @@ window.LHB_SYNC=function(D){
    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
    if(g.body.rev>0&&(!isObj(g.body.doc)||!(g.body.schema<=1)))return {fail:'schema'};
    const rev=g.body.rev,remote=rev>0?g.body.doc:null;
+   /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa) */
+   if(unk&&unk.sub===uid&&rev>=unk.rev+2)voided=true;
    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
    const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
@@ -139,27 +141,28 @@ window.LHB_SYNC=function(D){
    const merged=remote?merge(base,L,remote):L;
    let newRev=rev,pushed=false;
    if(!remote||canon(merged)!==canon(remote)){
-    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev)})}catch(e){return {skip:'offline'}}
+    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev)})}catch(e){unk={sub:uid,rev};return {skip:'offline'}}
     if(!alive())return {skip:'other-account'};
     if(p.status===409)continue;
     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
     newRev=p.body.rev;pushed=true}
-   /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse */
-   const now0=D.getDoc(),Ln=std(now0),quiet=canon(Ln)===canon(L);
-   const final=quiet?merged:merge(L,Ln,merged);
-   const full={...final,...keep(now0)};
-   if(!alive())return {skip:'other-account'};
-   let wrote=true;
-   if(canon(full)!==canon(Ln)){applying=true;try{wrote=D.setDoc(full,canon(Ln))}finally{applying=false}}
-   /* otra pestaña guardó justo entre la lectura y la escritura: no se pisa, la pasada vuelve a empezar con lo nuevo */
-   if(wrote==='stale')continue;
-   if(!wrote){if(pushed){mem=null;voided=true;poison()}return {fail:'storage'}}
+   /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
+   let now0,Ln,quiet,final,wrote=true;
+   for(let k=0;k<4;k++){
+    now0=D.getDoc();Ln=std(now0);quiet=canon(Ln)===canon(L);
+    final=quiet?merged:merge(L,Ln,merged);
+    const full={...final,...keep(now0)};
+    if(!alive())return {skip:'other-account'};
+    wrote=true;
+    if(canon(full)!==canon(Ln)){applying=true;try{wrote=D.setDoc(full,stable(now0))}finally{applying=false}}
+    if(wrote!=='stale')break}
+   if(!wrote||wrote==='stale'){if(pushed){mem=null;voided=true;poison()}return {fail:wrote?'conflict':'storage'}}
    /* si no se puede anotar lo sincronizado, la próxima pasada no se fía de la base vieja (junta sin dar nada por borrado) */
    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
    const edited=edits!==e0||readSeq()!==s0;
    mem={sub:uid,base:merged,rev:newRev};
    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}
-   staleBase=false;voided=false;if(!edited)dirty=false;
+   staleBase=false;voided=false;unk=null;if(!edited)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
    const pulled=!!remote&&canon(merged)!==canon(L);
    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');
