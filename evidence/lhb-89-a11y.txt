@@ -18,3 +18,11 @@ The branch's one remaining failure, color-contrast on p.cl-internal-560t1i (#fbc
 (read in the built-in browser on the preview at 16:27Z; the same dialog's aria-labelledby is lhb-clerk-title-1, text
 "Sign in to La Hoja Boricua"). Production, on the production instance, has no color-contrast failure. It is Clerk's
 component (Not mine: Clerk settings) and does not reach production.
+
+Step transitions, read after Codex round 2 (which left "does Clerk briefly remove the modal between steps" NOT VERIFIED):
+on https://10c99e99.la-hoja-boricua.pages.dev/#/mihoja (deploy of 1ed3f27, the round 2 code), with a separate logging
+MutationObserver on document.body, I clicked the modal's own "Sign up" link and then its "Sign in" link (navigation inside
+the modal; nothing typed or submitted). After "Sign up": aria-labelledby lhb-clerk-title-3, text "Create your account",
+inside the dialog. After "Sign in": the same id, text "Sign in to La Hoja Boricua". Mutations observed: 4; mutations in
+which no .cl-modalContent existed: 0. So for the sign-in and sign-up steps the shell stays mounted and the watcher keeps
+naming it. Steps after a submitted email (verification code) were not exercised: that would send a real email.
