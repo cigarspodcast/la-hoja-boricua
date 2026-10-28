@@ -20,8 +20,8 @@ How each round 3 finding was taken:
    - borrar sends no DELETE when the marker was not saved: it shows ac.del.store and releases sync unless an earlier marker is still present.
 
 Tests and evidence:
-- evidence/lhb-34-tests.txt: the full suite, 270/270.
-- evidence/lhb-34-mutations-r3fix.out: RESULT 63 of 63 mutations red; M48 to M63 cover the fence (not set, no wait, no second check, each writer ignoring it, no expiry, left after an abort, sync left held, passes during the wait, removed right after the erase, salir not awaiting forget) and the marker (no read-back, DELETE without a saved marker, an earlier marker's hold released). M29 was retargeted to the new mark comparison; the run where its old target crashed is evidence/lhb-34-mutations-r3fix-first.out.
+- evidence/lhb-34-tests.txt: the full suite, 280/280, after merging origin/main (LHB-58, the profile page, which took cache lhb-v85; this branch is now lhb-v86). The merge kept both sides in hoja.js's export list, in app.js vPerfil (the account panel, then LHB-58's profileOwn) and in the vPerfil test harness's EXT stub.
+- evidence/lhb-34-mutations-r3fix.out: RESULT 63 of 63 mutations red, rerun after the merge (the pre-merge run, also 63 of 63, is -r3fix-premerge.out); M48 to M63 cover the fence (not set, no wait, no second check, each writer ignoring it, no expiry, left after an abort, sync left held, passes during the wait, removed right after the erase, salir not awaiting forget) and the marker (no read-back, DELETE without a saved marker, an earlier marker's hold released). M29 was retargeted to the new mark comparison; the run where its old target crashed is evidence/lhb-34-mutations-r3fix-first.out.
 - New tests: another tab writes during the fence wait (nothing erased, fence removed, sync released, no pass during the wait); writers refuse under the fence and an expired fence no longer blocks; a marker that throws or is lost sends nothing.
 
 Check:
