@@ -181,7 +181,7 @@ SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage
  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),toast,
  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
- onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else if(location.hash==='#/mihoja/perfil')pfOwnSync()}});
+ onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else pfOwnSync()}});
 SYNC.start();
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
@@ -391,8 +391,14 @@ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct
 let PFO=null;
 const pfOwnData=()=>{const s=S();return {own:true,resenas:myResenas(s),sellos:passCounts().c,favorite_brand:null,favs:s.favs.cigarros.map(A.cigarById).filter(Boolean),humidor:s.humidor}};
 const pfCur=()=>{const sel=$$('[data-pftab]').find(b=>b.getAttribute('aria-selected')==='true');return sel?sel.dataset.pftab:'resenas'};
+/* Codex ronda 2: pintar otra vez reemplaza los botones; el foco y el botón al que vuelve una tarjeta abierta (lastFocus) pasan al botón nuevo
+   de la misma pestaña o de la misma reseña (aunque haya cambiado de lugar); si esa reseña ya no está, a la pestaña abierta */
+const pfKey=(o,n)=>{if(!n)return null;const m=/^pfT-([a-z]+)$/.exec(n.id||'');if(m)return {tab:m[1]};const b=$$('[data-pfres]').find(x=>x===n);const e=b&&o.d&&o.d.resenas[+b.dataset.pfres];return e?{res:JSON.stringify(e)}:null};
+const pfFind=(o,d,k)=>{const i=k.res?d.resenas.findIndex(e=>JSON.stringify(e)===k.res):-1;return (i>=0&&$$('[data-pfres]').find(b=>b.dataset.pfres===String(i)))||$('#pfT-'+(k.tab||o.cur))};
 /* tu número de reseñas sale enseguida de tu Mi Hoja; seguidores y siguiendo esperan al servidor */
-function pfOwnPaint(o){const d=pfOwnData();o.root.innerHTML=`<div id="pfAbout">${pfAbout(o.profile)}</div>`+pfCounts({...(o.counts||{}),resenas:d.resenas.length},true,o.a.handle)+pfTabsHTML(true,o.cur);pfBind(d,o.cur)}
+function pfOwnPaint(o){const d=pfOwnData();const kf=pfKey(o,document.activeElement),kl=pfKey(o,lastFocus);
+ o.root.innerHTML=`<div id="pfAbout">${pfAbout(o.profile)}</div>`+pfCounts({...(o.counts||{}),resenas:d.resenas.length},true,o.a.handle)+pfTabsHTML(true,o.cur);pfBind(d,o.cur);o.d=d;
+ if(kf){const n=pfFind(o,d,kf);if(n&&n.focus)n.focus({preventScroll:true})}if(kl){const n=pfFind(o,d,kl);if(n)lastFocus=n}}
 /* a es la cuenta guardada */
 async function profileOwn(a){const root=$('#pfOwn');PFO=null;if(!root||!a||typeof a.handle!=='string'||!PF_HANDLE.test(a.handle))return;
  const o=PFO={root,a,profile:{},counts:null,cur:'resenas'};pfOwnPaint(o);
@@ -401,6 +407,7 @@ async function profileOwn(a){const root=$('#pfOwn');PFO=null;if(!root||!a||typeo
  if(PFO!==o||$('#pfOwn')!==root||!now||now.sub!==a.sub)return;
  if(r.status!==200||!r.body.profile||!r.body.counts)return;
  o.cur=pfCur();o.profile=r.body.profile;o.counts=r.body.counts;pfOwnPaint(o)}
+/* la sincronización lo llama en cualquier página: solo pinta si tu Perfil está puesto (#/perfil o #/mihoja/perfil) */
 function pfOwnSync(){const o=PFO;if(!o||$('#pfOwn')!==o.root)return;const now=acct.get();if(!now||now.sub!==o.a.sub)return;o.cur=pfCur();pfOwnPaint(o)}
 /* ---------- fin del perfil (LHB-58) ---------- */
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);

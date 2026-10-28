@@ -32,13 +32,18 @@ M = [
     ('N18 your Resenas count waits for the server (Codex round 1)', H, "pfCounts({...(o.counts||{}),resenas:d.resenas.length},true,o.a.handle)", "pfCounts(o.counts,true,o.a.handle)"),
     ('N19 Editar perfil and the follow slot swapped', H, "<div class=\"pf-act\">${own?", "<div class=\"pf-act\">${!own?"),
     ('N20 the own view fetches another handle', H, "const r=await pfFetch(a.handle);const now=acct.get();", "const r=await pfFetch('x'+a.handle);const now=acct.get();"),
-    ('N21 a sync does not repaint your Perfil (Codex round 1)', H, "else if(location.hash==='#/mihoja/perfil')pfOwnSync()", ""),
+    ('N21 a sync does not repaint your Perfil (Codex round 1)', H, "else pfOwnSync()}});", "}});"),
     ('N22 a sync resets the open tab (Codex round 1)', H, "o.cur=pfCur();pfOwnPaint(o)}", "o.cur='resenas';pfOwnPaint(o)}"),
     ('N23 a sync repaints for another account (Codex round 1)', H, "if(!now||now.sub!==o.a.sub)return;o.cur=", "o.cur="),
     ('N24 no keyboard on the tabs (Codex round 1)', H, "b.onkeydown=e=>{", "b.onkeydownX=e=>{"),
     ('N25 every tab in the tab order (Codex round 1)', H, "b.setAttribute('tabindex',b.dataset.pftab===t?'0':'-1')", "b.setAttribute('tabindex','0')"),
     ('N26 the arrow keys do not move the focus (Codex round 1)', H, "if(el&&el.focus)el.focus()", ""),
     ('N27 the arrow keys stop at the ends (Codex round 1)', H, "order[(j+order.length)%order.length]", "order[Math.min(Math.max(j,0),order.length-1)]"),
+    ('N28 a sync repaints only at #/mihoja/perfil (Codex round 2)', H, "else pfOwnSync()}});", "else if(location.hash==='#/mihoja/perfil')pfOwnSync()}});"),
+    ('N29 a repaint drops the focus (Codex round 2)', H, "if(kf){const n=pfFind(o,d,kf);if(n&&n.focus)n.focus({preventScroll:true})}", ""),
+    ('N30 an open sheet returns to a removed button (Codex round 2)', H, "if(n)lastFocus=n}}", "}}"),
+    ('N31 the sheet returns by position, not by review (Codex round 2)', H, "findIndex(e=>JSON.stringify(e)===k.res)", "findIndex(e=>true)"),
+    ('N32 no fallback to the open tab (Codex round 2)', H, "||$('#pfT-'+(k.tab||o.cur))", ""),
 ]
 PAT = 'LHB-58|LHB-51|LHB-85: la tarjeta|LHB-27: cada clave'
 def run():
