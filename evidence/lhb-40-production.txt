@@ -1,0 +1,87 @@
+LHB-40 production read-back, 2026-10-28T19:40:23Z, after PR #29 merged (origin/main 8040f9975222324d198f5499f3ee7d4ef602e21b).
+
+== https://lahojaboricua.com/sw.js line 2
+const VERSION='lhb-v84';
+if(url.pathname.startsWith('/u/'))return;
+
+== /_routes.json
+<!doctype html>
+<html lang="es-PR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Página no encontrada | La Hoja Boricua</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/lugares/l.css">
+</head>
+<body>
+<header><a class="brand" href="/">La Hoja <em>Boricua</em></a><a class="app" href="/">Abrir la app</a></header>
+<main>
+<h1>Esta página no existe</h1>
+<p class="tag">Puede que el enlace esté viejo o tenga un error.</p>
+<ul>
+<li><a href="/">La Hoja Boricua</a></li>
+<li><a href="/lugares/">Cigar lounges en Puerto Rico</a></li>
+<li><a href="/artesanos/">Artesanos de cigarros en Puerto Rico</a></li>
+</ul>
+</main>
+<footer><a href="/">La Hoja Boricua</a></footer>
+</body>
+</html>
+
+== /u.css
+200 text/css; charset=utf-8
+
+== GET /u/nadie_asi
+HTTP/1.1 404 Not Found
+Content-Type: text/html; charset=utf-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+x-robots-tag: noindex, follow
+Cache-Control: no-store
+content-security-policy: default-src 'none'; style-src 'self'; img-src 'self' https://img.clerk.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+x-content-type-options: nosniff
+cf-cache-status: DYNAMIC
+
+<!doctype html>
+<html lang="es-PR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perfil no encontrado | La Hoja Boricua</title>
+<meta name="robots" content="noindex, follow">
+<link rel="stylesheet" href="/u.css">
+</head>
+<body>
+<header><a class="brand" href="/">La Hoja <em>Boricua</em></a><a class="app" href="/">Abrir la app</a></header>
+<main>
+<h1>Este perfil no está disponible</h1>
+<p class="tag">Puede que el enlace esté viejo o que la persona lo haya quitado.</p>
+
+== GET /u/admin
+HTTP/1.1 404 Not Found
+Content-Type: text/html; charset=utf-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+x-robots-tag: noindex, follow
+Cache-Control: no-store
+content-security-policy: default-src 'none'; style-src 'self'; img-src 'self' https://img.clerk.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+x-content-type-options: nosniff
+cf-cache-status: DYNAMIC
+
+<!doctype html>
+<html lang="es-PR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perfil no encontrado | La Hoja Boricua</title>
+<meta name="robots" content="noindex, follow">
+<link rel="stylesheet" href="/u.css">
+</head>
+<body>
+<header><a class="brand" href="/">La Hoja <em>Boricua</em></a><a class="app" href="/">Abrir la app</a></header>
+<main>
+<h1>Este perfil no está disponible</h1>
+<p class="tag">Puede que el enlace esté viejo o que la persona lo haya quitado.</p>
+
+Note: _routes.json is read by Pages at deploy time and is not served as a file; the /u/* route is proven by the Function's own 404 page above (its title, noindex, follow, CSP), which only the Function returns.
