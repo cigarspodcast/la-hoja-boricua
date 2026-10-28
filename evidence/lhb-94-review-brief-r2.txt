@@ -1,0 +1,18 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-94-wt (branch lhb-94-cuenta-i18n). The diff below is origin/main..HEAD for test/site.test.js only. Round 1 reviewed the site change (cuenta.js through i18n.js) and returned PASS (evidence/lhb-94-review-r1.txt); site/ has not changed since. This is round 2.
+
+Round 1's one P3 (nonblocking): the LHB-94 test never triggered the three success toasts, so a tt() that kept only cu.saved in Spanish passed. Taken in commit aae592c. A new test, "LHB-94 (Codex r1)", drives three flows through the real cuenta.js with the harness's fake Clerk and API, in Spanish and in English:
+- a new profile (GET /api/me needsProfile, then the onboarding callback, a 201);
+- a profile edit (require with {edit:true}, then the edit callback, a 200);
+- an identity completion (needsIdentity, then the identity callback, a 200).
+Each callback must return {ok:true}. The toasts must equal the old Spanish exactly, and in English T.en and the literal English text.
+Evidence:
+- lhb-94-tests-merged.txt: 245/245, after merging main.
+- lhb-94-mutations-r1fix.out: 12 of 12 red. M11 is your round 1 scenario; M12 is the identity toast written back as a Spanish literal.
+
+Check:
+- that the finding is fixed;
+- that the new test cannot pass on broken code;
+- that its fakes do not hide a real path. For example, picture.url() needs a Clerk image: the harness user has hasImage true and an img.clerk.com URL.
+- anything else in the test diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

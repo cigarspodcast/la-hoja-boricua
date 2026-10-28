@@ -1,0 +1,31 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-94-wt (branch lhb-94-cuenta-i18n). The diff below is origin/main..HEAD for the paths that matter.
+
+LHB-94: with the app in English, the account gate (site/cuenta.js, which decides who can open Mi Hoja and shows its cards and notices) showed Spanish: "Entra para usar Mi Hoja", "Entrar o crear cuenta", "Necesitas conexión" and others. cuenta.js passed Spanish literals straight to D.ui.card / notice / toast, and the i18n scans (LHB-27, LHB-29) did not cover it.
+The change:
+1. site/cuenta.js: inside LHB_CUENTA(D), const tt=(k,v)=>window.LHB_I18N.t(k,v); every visible text goes through tt('cu.*'): the waiting card, the sign-in gate card (title, body, the optional sentence about data saved on this phone, the open-without-account sentence, the button), the no-connection card, the could-not-check card (two bodies), the retry label, the sign-in-again notice and its button, and the three toasts. The sentences of the gate body are joined with ' ' in code, as before.
+2. site/i18n.js: 20 cu.* keys in es (the exact previous Spanish) and en.
+3. test/site.test.js:
+   - CUENTA_HARNESS loads i18n.js before cuenta.js, as index.html does, and takes an optional browser language.
+   - The LHB-27 key test counts cuenta.js.
+   - A new LHB-94 test checks:
+     - the i18n scan of cuenta.js is empty;
+     - there is no label literal;
+     - each key is in both languages, translated;
+     - there are no unused cu.* keys;
+     - five rendered screens, in Spanish (exact old text) and English.
+   - Cache lhb-v83.
+Evidence:
+- lhb-94-tests-red.txt: red before the change, only the new test.
+- lhb-94-tests.txt: 244/244.
+- lhb-94-mutations.py: run separately.
+- Live on the preview in English: "Sign in to use Mi Hoja" and the English body and button.
+
+Look for real defects:
+- a visible string in cuenta.js still in Spanish, or one that reaches the UI some other way (an error code the UI shows raw, D.ui.onboarding / edit / identity texts);
+- tt called when window.LHB_I18N is missing (a page or test that loads cuenta.js without i18n.js), or at a time when the language could differ from the rest of the page;
+- English wording that is wrong or inconsistent with the rest of the English app ("Mi Hoja", "journal", "sign in");
+- the Spanish changed by accident (spacing, punctuation, the ellipsis);
+- the harness change altering what older cuenta.js tests prove;
+- tests that would pass on broken code.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

@@ -237,7 +237,7 @@ test('LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las
  const {T}=I18N();const es=Object.keys(T.es).sort(),en=Object.keys(T.en).sort();assert.deepEqual(en,es,'mismas claves');
  const used=new Set([...read('app.js').matchAll(/\btt\('([^']+)'/g)].map(m=>m[1]).filter(k=>k!=='fort.'));
  /* LHB-29: también hoja.js y art.js (tt), index.html (data-i18n, data-i18n-attr) y cada val.* de un valor que hoja.js guarda (STORED) */
- for(const f of ['hoja.js','art.js'])for(const m of read(f).matchAll(/\b(?:tt|LHB_I18N\.t)\('([^']+)'/g))if(m[1]!=='val.')used.add(m[1]);
+ for(const f of ['hoja.js','art.js','cuenta.js'])for(const m of read(f).matchAll(/\b(?:tt|LHB_I18N\.t)\('([^']+)'/g))if(m[1]!=='val.')used.add(m[1]);
  const ixh=read('index.html');for(const m of ixh.matchAll(/data-i18n="([^"]+)"/g))used.add(m[1]);for(const m of ixh.matchAll(/data-i18n-attr="([^"]+)"/g))for(const p of m[1].split(';'))used.add(p.slice(p.indexOf(':')+1));
  const st=STORED();for(const k of es)if(k.startsWith('val.')&&st.includes(k.slice(4)))used.add(k);
  for(const f of ['suave','media','fuerte'])used.add('fort.'+f);for(const k of ['arts.nVitola','arts.nVitolas'])used.add(k);
@@ -444,8 +444,9 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, 
   assert.equal((await post(c,{handle:'sinfoto',...IDN,avatar_url:AV}))[0],201,'y el @ no se gastó con los rechazos');
  }finally{globalThis.fetch=realFetch}
 });
-function CUENTA_HARNESS(over){
- const vm=require('vm');const ctx={window:{}};vm.createContext(ctx);vm.runInContext(read('cuenta.js'),ctx);
+/* LHB-94: i18n.js va antes, como en index.html; sin idioma el navegador no dice nada y sale el español */
+function CUENTA_HARNESS(over,lang){
+ const vm=require('vm');const ctx={window:lang?{navigator:{language:lang}}:{}};vm.createContext(ctx);vm.runInContext(read('i18n.js'),ctx);vm.runInContext(read('cuenta.js'),ctx);
  const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;const navL=[];
  /* LHB-49: una cuenta de prueba sin hasImage explícito trae foto (la que Clerk importa de Google); las pruebas de la foto lo ponen en false */
  let cu=null;const C={get user(){return cu},set user(v){cu=v&&v.hasImage===undefined?{hasImage:true,imageUrl:'https://img.clerk.com/test-'+v.id,...v}:v},addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
@@ -3936,6 +3937,46 @@ test('LHB-39 (Codex ronda 2): el foco anotado al llegar una sincronización no s
  seen.length=0;g.API.vDiario();assert.deepEqual(seen,[],'y no queda pendiente');
  /* sin irse y con la misma cuenta, sigue volviendo */
  sync();g.API.vDiario();assert.deepEqual(seen,['focus',0],'el caso de la ronda 1 sigue bien');
+});
+/* LHB-94: la puerta de la cuenta (cuenta.js) toma sus textos de i18n.js: en español como antes, en inglés traducidos */
+test('LHB-94: cuenta.js no deja texto en español escrito; cada texto sale de i18n.js en los dos idiomas',async()=>{
+ const {scan}=require('./i18n-scan.js');const cu=read('cuenta.js');const {T}=I18N();
+ assert.deepEqual(scan(cu),[],'texto en español escrito en cuenta.js');
+ assert.ok(!/label:'[^']*'/.test(cu),'las etiquetas de los botones también salen de i18n.js');
+ const keys=[...new Set([...cu.matchAll(/\btt\('(cu\.[\w.]+)'/g)].map(m=>m[1]))];assert.ok(keys.length>=18,'claves: '+keys.length);
+ for(const k of keys){assert.ok(typeof T.es[k]==='string'&&T.es[k].length,'es '+k);assert.ok(typeof T.en[k]==='string'&&T.en[k].length,'en '+k);assert.notEqual(T.en[k],T.es[k],'en traducido '+k)}
+ for(const k of Object.keys(T.es))if(k.startsWith('cu.'))assert.ok(keys.includes(k),'clave sin uso '+k);
+ assert.deepEqual(Object.keys(T.en).filter(k=>k.startsWith('cu.')).sort(),Object.keys(T.es).filter(k=>k.startsWith('cu.')).sort(),'las mismas claves en los dos');
+ // lo que ve la persona: la tarjeta de entrar, sin red, la cuenta que no se pudo revisar y el aviso de volver a entrar, en los dos idiomas
+ const run=async lang=>{const seen=[];const ui={card:(h,p,b)=>seen.push(['card',h,p,b&&b.label]),notice:(h,p,b)=>seen.push(['notice',h,p,b&&b.label]),closeAll:()=>{},toast:m=>seen.push(['toast',m]),onboarding:()=>{},identity:()=>{}};
+  const a=CUENTA_HARNESS({ui,hasLocal:()=>true},lang);await a.A.require(a.go);await tick();
+  const b=CUENTA_HARNESS({ui,clerk:async()=>{throw new Error('sin red')}},lang);await b.A.require(b.go);await tick();
+  const c=CUENTA_HARNESS({ui,api:async()=>({status:401,body:{}})},lang);c.C.user={id:'user_a'};await c.A.require(c.go);await tick();
+  const d=CUENTA_HARNESS({ui,api:async()=>{throw new Error('x')}},lang);d.nav('#/catalogo');d.C.user={id:'user_a'};await d.A.quick(d.go,{act:'fav'});await tick();d.C.signIn(null);await tick();
+  return seen.filter(x=>x[1]!==T.es['cu.wait.h']&&x[1]!==T.en['cu.wait.h'])};
+ const es=await run(null),en=await run('en-US');
+ assert.deepEqual(es,[['card','Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta. Lo que ya tienes guardado en este teléfono pasa a tu cuenta al entrar. El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.','Entrar o crear cuenta'],
+  ['card','Necesitas conexión','Para entrar a Mi Hoja la primera vez necesitas conexión a internet.','Intentar otra vez'],
+  ['card','No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.','Intentar otra vez'],
+  ['notice','No pudimos revisar tu cuenta','Intenta otra vez en un momento.','Intentar otra vez'],
+  ['notice','Entra otra vez','Tu acción quedó pendiente. Entra para continuar.','Entrar']],'en español, los mismos textos de antes');
+ assert.equal(en.length,es.length,'las mismas pantallas en inglés');
+ for(let i=0;i<en.length;i++){assert.equal(en[i][0],es[i][0]);for(let j=1;j<4;j++){assert.ok(en[i][j]&&en[i][j]!==es[i][j],'en inglés: '+es[i][j]);assert.ok(!/[áéíóúñ¿¡]/i.test(en[i][j]),'sin letras del español en: '+en[i][j])}}
+ assert.equal(en[0][1],'Sign in to use Mi Hoja');
+});
+/* LHB-94 (Codex r1): los tres avisos de éxito salen en el idioma de la app: perfil nuevo, perfil editado e identidad completada */
+test('LHB-94 (Codex r1): bienvenida, perfil guardado y perfil completo, en español y en inglés',async()=>{
+ const {T}=I18N();
+ const run=async lang=>{const out=[];
+  const mk=(me,put)=>{let cb=null;const ui={card:()=>{},notice:()=>{},closeAll:()=>{},toast:m=>out.push(m),onboarding:f=>{cb=f},edit:(p,f)=>{cb=f},identity:f=>{cb=f}};
+   const h=CUENTA_HARNESS({ui,api:async(C,m)=>m==='GET'?me:put},lang);h.C.user={id:'user_a'};return {h,cb:()=>cb}};
+  const a=mk({status:200,body:{needsProfile:true}},{status:201,body:{profile:{handle:'ana'}}});await a.h.A.require(a.h.go);await tick();assert.equal(typeof a.cb(),'function','abre el perfil nuevo');assert.deepEqual(await a.cb()({handle:'ana'}),{ok:true});
+  const b=mk({status:200,body:{profile:{handle:'ana'}}},{status:200,body:{profile:{handle:'ana'}}});await b.h.A.require(b.h.go,{edit:true});await tick();assert.equal(typeof b.cb(),'function','abre editar');assert.deepEqual(await b.cb()({}),{ok:true});
+  const c=mk({status:200,body:{profile:{handle:'ana'},needsIdentity:true}},{status:200,body:{}});await c.h.A.require(c.h.go);await tick();assert.equal(typeof c.cb(),'function','abre completar la identidad');assert.deepEqual(await c.cb()({first_name:'A'}),{ok:true});
+  return out};
+ assert.deepEqual(await run(null),['¡Bienvenido a Mi Hoja!','Perfil guardado.','Listo, tu perfil está completo.'],'en español, como antes');
+ assert.deepEqual(await run('en-US'),[T.en['cu.welcome'],T.en['cu.saved'],T.en['cu.done']],'en inglés');
+ assert.deepEqual(await run('en-US'),['Welcome to Mi Hoja!','Profile saved.','Done, your profile is complete.']);
 });
 /* LHB-40: el pasaporte público /u/<handle> en SQLite real: los perfiles de API56 (nombre Ana, apellido Secreta) y la Mi Hoja guardada en la tabla mihoja */
 async function API40(){

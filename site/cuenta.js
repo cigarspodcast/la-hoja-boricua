@@ -5,6 +5,8 @@
    - Cada respuesta pendiente se amarra al usuario, a la pantalla y a la operación que la pidió; si algo cambió, se ignora.
    - Entrar desde cualquier página deja la página como está, y al terminar se hace la acción que el usuario empezó. */
 window.LHB_CUENTA=function(D){'use strict';
+/* LHB-94: los textos salen de i18n.js (cargado antes), en el idioma de la app */
+const tt=(k,v)=>window.LHB_I18N.t(k,v);
 const ACT=Object.create(null);let seq=0,sip=0,gen=0,hooked=false,lastId=null,pending=null,ob=false,failure=null,vis=0;
 /* irse de una página termina todo lo que esa visita esperaba: volver después no revive una revisión ni una acción que quedó pendiente */
 if(typeof D.onNav==='function')D.onNav(()=>{vis++;pending=null;failure=null;const it=D.intent.get();if(it&&it.from!==D.here())D.intent.clear()});
@@ -32,19 +34,19 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}
   /* el aviso de error pedía salir y volver a entrar: al salir, la hoja se cierra con todo y su botón; se deja un botón nuevo para entrar y seguir con la acción */
-  if(!id&&fl&&fl.from===D.here())D.ui.notice('Entra otra vez','Tu acción quedó pendiente. Entra para continuar.',{label:'Entrar',on:()=>go(fl.done,{...fl.o,resume:false})})})}
+  if(!id&&fl&&fl.from===D.here())D.ui.notice(tt('cu.again.h'),tt('cu.again.p'),{label:tt('cu.again.b'),on:()=>go(fl.done,{...fl.o,resume:false})})})}
 /* una acción en sitio (corazón, sello, estrella, humidor) cuenta aparte de la puerta de una página: tocar un corazón no cancela el dibujo de Mi Hoja ni al revés; un cambio de cuenta cancela las dos */
 async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=vis,op=inp?++sip:++seq;if(inp){failure=null;/* un toque nuevo sustituye al anterior: lo guardado del anterior para volver de Google ya no vale (el nuevo guarda el suyo si hace falta) */if(!o.resume)D.intent.clear()}else ob=false;
  const lv=(C,uid)=>op===(inp?sip:seq)&&vis===v0&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
  const show=(h,p,b)=>{if(!inp&&op===seq)D.ui.card(h,p,b)};
  /* un error nunca se esconde: sobre la página (en sitio) o en la tarjeta de Mi Hoja, siempre con reintento que conserva la acción */
- const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:'Intentar otra vez',on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}else D.ui.card(h,p,b)};
- show('Un momento…','Revisando tu cuenta.');
+ const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:tt('cu.retry'),on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}else D.ui.card(h,p,b)};
+ show(tt('cu.wait.h'),tt('cu.wait.p'));
  let C;
  try{C=await D.clerk()}catch(e){
   if(op!==(inp?sip:seq)||vis!==v0||D.here()!==from)return;
   if(D.store.get()&&!o.edit){D.intent.clear();retire();return done()}
-  fail('Necesitas conexión',o.edit?'Para editar tu perfil necesitas conexión a internet.':'Para entrar a Mi Hoja la primera vez necesitas conexión a internet.');return}
+  fail(tt('cu.net.h'),o.edit?tt('cu.net.edit'):tt('cu.net.first'));return}
  hook(C);
  /* con el perfil de ese usuario ya guardado la acción en sitio no espera a la red ni depende de otro toque: solo se descarta si cambió la cuenta o la página */
  if(inp?(gen!==g0||vis!==v0||D.here()!==from):!lv(C))return;
@@ -58,7 +60,7 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
   if(o.resume){D.intent.clear();return}
   pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));
   const open=()=>D.openSignIn(C);
-  show('Entra para usar Mi Hoja','Tu humidor, tu diario, tu pasaporte y tus favoritos quedan con tu cuenta.'+(D.hasLocal&&D.hasLocal()?' Lo que ya tienes guardado en este teléfono pasa a tu cuenta al entrar.':'')+' El catálogo, los artesanos y los lugares siguen abiertos sin cuenta.',{label:'Entrar o crear cuenta',on:open});
+  show(tt('cu.gate.h'),tt('cu.gate.p')+(D.hasLocal&&D.hasLocal()?' '+tt('cu.gate.local'):'')+' '+tt('cu.gate.open'),{label:tt('cu.gate.b'),on:open});
   open();return}
  const uid=C.user.id;let r;
  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
@@ -69,10 +71,10 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  if(r.status===200&&r.body.profile&&o.edit){cache(snap(uid,r.body.profile));D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
  if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));D.intent.clear();retire();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
- if(r.status===401||r.status===403){D.store.clear();fail('No pudimos revisar tu cuenta','Cierra la sesión y entra otra vez.');return}
+ if(r.status===401||r.status===403){D.store.clear();fail(tt('cu.check.h'),tt('cu.check.relog'));return}
  const c=D.store.get();
  if(c&&c.sub===uid&&!o.edit&&(r.status===0||r.status>=500)){D.intent.clear();retire();return done()}
- fail('No pudimos revisar tu cuenta','Intenta otra vez en un momento.')}
+ fail(tt('cu.check.h'),tt('cu.check.later'))}
 /* LHB-49: la foto de perfil es la de Clerk. Si la cuenta ya trae una (Google, Apple) viene puesta; si no, o si la persona quiere otra, la sube con setProfileImage.
    Una foto de Clerk que no se subió ni se importó (la silueta de siempre) tiene hasImage en false y no cuenta. Sin foto no se manda el perfil. */
 const CLERK_IMG='https://img.clerk.com/';
@@ -127,7 +129,7 @@ function onboard(C,done,o,lv,uid){ob=true;
   const same=!!C.user&&C.user.id===uid;
   if(r.status===201){if(same)cache(snap(uid,r.body.profile));
    if(!live())return {stale:true};
-   settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
+   settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
   if(!live())return {stale:true};
   /* la respuesta se perdió pero el perfil sí se creó: se revisa de nuevo dentro de este mismo envío y, si sale bien, se termina igual que con un 201.
      Si la revisión falla, el formulario sigue vivo para reintentar; no se anuncia éxito antes de tiempo. */
@@ -136,7 +138,7 @@ function onboard(C,done,o,lv,uid){ob=true;
    if(!live())return {stale:true};
    /* LHB-52: el perfil que apareció tras el 409 sigue sin identidad: se completa antes de guardar nada o abrir Mi Hoja; este formulario ya no vale */
    if(m.status===200&&m.body.profile&&m.body.needsIdentity===true){identify(C,done,o,lv,uid,m.body.profile);return {stale:true}}
-   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));settle();ob=false;D.intent.clear();D.ui.toast('¡Bienvenido a Mi Hoja!');if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}};
  /* un envío y una subida nunca corren a la vez: lo que se manda es la foto que se ve, y la que se sube no llega tarde a un perfil ya enviado */
@@ -164,7 +166,7 @@ function edit(C,done,o,lv,uid,prof){ob=true;
   let r;try{r=await D.api(C,'PUT','/api/profile',{...f,avatar_url:pic},uid)}catch(e){r={status:0,body:{}}}
   if(!live())return {stale:true};
   if(r.status===200&&r.body.profile){if(!!C.user&&C.user.id===uid)cache(snap(uid,r.body.profile));
-   settle();ob=false;D.intent.clear();D.ui.toast('Perfil guardado.');done();return {ok:true}}
+   settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.saved'));done();return {ok:true}}
   return {error:r.body&&r.body.error||'generic'}};
  D.ui.edit(prof,async f=>{
   if(!live())return {stale:true};
@@ -176,7 +178,7 @@ function identify(C,done,o,lv,uid,prof){ob=true;
  /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, se vuelve a revisar */
  D.store.clear();
  const {live,settle}=guard(C,o,lv,uid);let sending=false;
- const finish=()=>{cache(snap(uid,prof));settle();ob=false;D.intent.clear();D.ui.toast('Listo, tu perfil está completo.');if(o.inPlace)D.reroute();done();return {ok:true}};
+ const finish=()=>{cache(snap(uid,prof));settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.done'));if(o.inPlace)D.reroute();done();return {ok:true}};
  const send=async f=>{
   if(!live())return {stale:true};
   let r;try{r=await D.api(C,'PUT','/api/profile',{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date},uid)}catch(e){r={status:0,body:{}}}
