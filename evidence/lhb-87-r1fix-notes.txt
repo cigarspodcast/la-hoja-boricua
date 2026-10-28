@@ -47,3 +47,4 @@ Observation, not a defect claim: in an earlier pass I tapped a group again while
 hidden pane; the popup then opened at the group's pre-zoom spot and ended above the map once the zoom finished
 (wrapper 282 to 434, map 337 to 567). With frames running, Leaflet's zoom animation lasts about 250 ms; whether a tap in
 that window can do this for a person is NOT VERIFIED.
+Correction to the paragraph above: the live read was at about 17:23 to 17:24Z (the clock read 17:25Z when that paragraph was written), not 17:28Z.
