@@ -7,13 +7,15 @@
 const ALLOW = new Set(['Cigars Podcast', 'Instagram', 'WhatsApp', 'Facebook', 'YouTube', 'OpenStreetMap', 'Podcast', 'Lounge',
   'Claro', 'Connecticut', 'Natural', 'Colorado', 'Habano', 'Corojo', 'Criollo', 'Maduro', 'Oscuro', 'La Hoja', 'Boricua', 'Puerto Rico']);
 const stripExpr = s => { let p; do { p = s; s = s.replace(/\$\{[^{}]*\}/g, ''); } while (s !== p); return s; };
-const code = s => /=>|[;{}=|]|&&|\?\?|\(['"]|\bconst\b|\breturn\b|\.(map|join|filter)\(|^[',+]|'$|^\(.*\)$|^use strict$|\w\(/.test(s);
+// LHB-29 (Codex ronda 1): un ";" seguido de espacio y minúscula es prosa ("del pie; debe sentirse"), no código
+const code = s => /=>|;(?! [a-zà-ÿ])|[{}=|]|&&|\?\?|\(['"]|\bconst\b|\breturn\b|\.(map|join|filter)\(|^[',+]|'$|^\(.*\)$|^use strict$|\w\(/.test(s);
 function scan(src) {
   src = src.replace(/\/\* [\s\S]*?\*\//g, ''); // comentarios "/* ... */" (no "image/*")
   const out = [];
   const keep = (kind, raw) => {
     const s = stripExpr(raw).replace(/\s+/g, ' ').trim();
-    if (!/[A-Za-zÀ-ÿ]{2}/.test(s) || code(s) || ALLOW.has(s)) return;
+    // LHB-29 (Codex ronda 1): una conjunción sola entre etiquetas (<b>⋮</b> o <b>⋯</b>) también es texto
+    if (!(/[A-Za-zÀ-ÿ]{2}/.test(s) || (kind === 'text' && /^[oyeu]$/.test(s))) || code(s) || ALLOW.has(s)) return;
     out.push(kind + ': ' + s);
   };
   for (const m of src.matchAll(/(?<=>)([^<>`]*)(?=<)/g)) keep('text', m[1]);

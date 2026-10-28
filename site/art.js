@@ -1,4 +1,5 @@
 (()=>{
+const tt=window.LHB_I18N.t;/* LHB-29: i18n.js carga antes que art.js */
 function star(cx,cy,R){const r=R*.382;let p='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r:R;p+=(i?'L':'M')+(cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1)}return p+'Z'}
 let n=0;
 // v9: el dibujo SVG viejo se borró; volky() queda como alias para no romper llamadas.
@@ -15,13 +16,13 @@ const COQUI_INNER=`<ellipse cx="60" cy="102" rx="36" ry="5" fill="#000" opacity=
 function guagua(cls=''){
  // v8: la guagua es la ilustración B que escogió Sergio (turquesa y crema, sin logo), recortada en WebP con transparencia.
  // Sustituye el dibujo SVG de la v6 (tablilla HOJA PR). Mismo nombre y VEHICULO='guagua' para no romper nada.
- return `<img class="volky guagua ${cls}" src="img/guagua/guagua_recorte.webp" width="600" height="400" alt="Guagua turquesa y crema" decoding="async" draggable="false">`}
+ return `<img class="volky guagua ${cls}" src="img/guagua/guagua_recorte.webp" width="600" height="400" alt="${tt('a.guagua')}" decoding="async" draggable="false">`}
 
-function coqui(cls=''){return `<svg class="coqui ${cls}" viewBox="0 0 120 110" role="img" aria-label="Coquí">${COQUI_INNER}</svg>`}
+function coqui(cls=''){return `<svg class="coqui ${cls}" viewBox="0 0 120 110" role="img" aria-label="${tt('a.coqui')}">${COQUI_INNER}</svg>`}
 // v17: la garita se sustituyó por la flor de tabaco (pedido de Sergio, 21 oct 2026). Estilo vectorial con sombreado suave.
 function rs(R,k=.5){let p='';for(let i=0;i<5;i++){const a=-1.5708+i*1.2566,v=(b,r)=>(r*Math.cos(b)).toFixed(1)+' '+(r*Math.sin(b)).toFixed(1);p+=(i?'':'M'+v(a-.6283,R*k))+'Q'+v(a,R*1.25)+' '+v(a+.6283,R*k)}return p+'Z'}
 function flor(cls=''){const k='f'+(++n),u=(id,x,y,a=0,s=1,m)=>`<use href="#${k}${id}" transform="translate(${x} ${y})${m?' scale(-1 1)':''} rotate(${a}) scale(${s})"/>`;
- return `<svg class="flor ${cls}" viewBox="0 0 130 160" role="img" aria-label="Flor de tabaco"><defs><linearGradient id="${k}g" x2="1" y2="1"><stop offset="0" stop-color="#9ad866"/><stop offset="1" stop-color="#3f8a35"/></linearGradient><linearGradient id="${k}t" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f7e3c8"/><stop offset="1" stop-color="#ee79a6"/></linearGradient><linearGradient id="${k}b" x1="0" y1="1" x2="0" y2="0"><stop offset=".3" stop-color="#8cc05a"/><stop offset="1" stop-color="#f07fab"/></linearGradient>
+ return `<svg class="flor ${cls}" viewBox="0 0 130 160" role="img" aria-label="${tt('a.flor')}"><defs><linearGradient id="${k}g" x2="1" y2="1"><stop offset="0" stop-color="#9ad866"/><stop offset="1" stop-color="#3f8a35"/></linearGradient><linearGradient id="${k}t" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f7e3c8"/><stop offset="1" stop-color="#ee79a6"/></linearGradient><linearGradient id="${k}b" x1="0" y1="1" x2="0" y2="0"><stop offset=".3" stop-color="#8cc05a"/><stop offset="1" stop-color="#f07fab"/></linearGradient>
  <g id="${k}l"><path d="M0 0C6-22 44-26 62-3C46 16 10 18 0 0Z" fill="url(#${k}g)"/><path d="M0 0Q30-3 62-3C46 16 10 18 0 0Z" fill="#14381c" opacity=".2"/><path d="M2 0Q30-3 59-3M14-1l8-12M28-2l9-12M42-3l8-9M14 0l8 9M28-1l9 9M42-2l8 6" stroke="#e2f3bf" stroke-width="1.1" fill="none" opacity=".6"/></g>
  <g id="${k}f"><path d="M-2.2-5C-2.4-12-3-17-6-21H6C3-17 2.4-12 2.2-5Z" fill="url(#${k}t)"/><path d="${rs(9)}" transform="translate(0 -22) scale(1 .45)" fill="#e8619a"/><ellipse cy="-22" rx="2.6" ry="1.1" fill="#a8335f"/><path d="M-3.2 0-4-6H4L3.2 0Z" fill="#6fae44"/></g>
  <g id="${k}s"><path d="${rs(9)}" fill="#ec6ba0"/><path d="${rs(5,.6)}" fill="#f9b3cf"/><circle r="1.6" fill="#fff2b0"/></g>
@@ -35,7 +36,7 @@ function flor(cls=''){const k='f'+(++n),u=(id,x,y,a=0,s=1,m)=>`<use href="#${k}$
  ${u('d',65,12,0,.6)}</svg>`}
 function flamboyan(cls=''){const k='b'+(++n),q=i=>{const x=Math.sin(i*91.7)*4e4;return x-Math.floor(x)},B=[[16,52,11],[30,44,14],[48,37,16],[70,34,17],[92,37,16],[110,44,14],[124,52,11],[40,54,11],[62,55,12],[84,55,12],[104,54,11]];let t='';
  for(let i=0;i<120;i++){const a=q(i)*6.283,r=Math.sqrt(q(i+.37)),x=70+Math.cos(a)*r*56,y=44+Math.sin(a)*r*14;t+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(1.2+q(i+.7)*1.5).toFixed(1)}" fill="${y<40?(q(i+.2)<.5?'#ffd25a':'#ffaa44'):(q(i+.2)<.5?'#d63a26':'#f26a31')}"/>`}
- return `<svg class="flamboyan ${cls}" viewBox="0 0 140 124" role="img" aria-label="Flamboyán"><defs><radialGradient id="${k}" cx="66" cy="18" r="66" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ff9a3e"/><stop offset=".45" stop-color="#ec5a2c"/><stop offset="1" stop-color="#c22c22"/></radialGradient><linearGradient id="${k}t" x2="1"><stop offset="0" stop-color="#8a5a34"/><stop offset=".6" stop-color="#5e3b22"/><stop offset="1" stop-color="#3f2716"/></linearGradient></defs>
+ return `<svg class="flamboyan ${cls}" viewBox="0 0 140 124" role="img" aria-label="${tt('a.flamboyan')}"><defs><radialGradient id="${k}" cx="66" cy="18" r="66" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ff9a3e"/><stop offset=".45" stop-color="#ec5a2c"/><stop offset="1" stop-color="#c22c22"/></radialGradient><linearGradient id="${k}t" x2="1"><stop offset="0" stop-color="#8a5a34"/><stop offset=".6" stop-color="#5e3b22"/><stop offset="1" stop-color="#3f2716"/></linearGradient></defs>
  <ellipse cx="70" cy="119" rx="40" ry="4" fill="#000" opacity=".25"/><ellipse cx="68" cy="116" rx="28" ry="5" fill="#3f8a35"/><path d="M46 116l-2-6 4 5 1-7 2 8M86 116l2-6 1 6 3-5-1 6M60 117l-1-5 3 5" stroke="#7cc04a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
  <path d="M58 117C64 104 62 94 66 84C60 76 46 70 26 66L28 62C46 66 58 70 66 76C66 70 62 64 54 58L57 55C66 61 70 68 70 76C76 68 90 62 112 61L112 65C94 66 82 72 74 80C82 76 90 70 94 62L97 64C92 74 82 82 74 88C72 98 74 108 80 117Z" fill="url(#${k}t)"/>
  <path d="M65 112C67 104 69 98 68 90M70 108C73 100 70 94 72 88" stroke="#3a2314" stroke-width="1.2" fill="none" opacity=".7"/>

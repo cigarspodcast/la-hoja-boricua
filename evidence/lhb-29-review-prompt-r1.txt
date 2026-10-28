@@ -1,0 +1,15 @@
+You are reviewing one commit in this repository (La Hoja Boricua, a vanilla JS PWA in site/). Review only; do not edit files. Do not load or run any skills.
+
+Diff to review: git diff 0530ca3 042edb4 -- site test evidence/lhb-29-resolve-compare.js evidence/lhb-29-mutations.py
+
+What the change is meant to do (LHB-29, the second step of the English version):
+1. Every visible Spanish text in site/hoja.js moves into site/i18n.js T.es, word for word, with an English value in T.en under the same key; hoja.js calls tt('key') or tt('key',{a:...}). The language is fixed at load, so tt at module definition time is safe. i18n.js ENABLED stays false, so the live app keeps showing Spanish until a later ticket turns the switch on.
+2. Values the app STORES (tasting options such as capa, aspecto, tiro; the PASOS step titles saved in each journal entry; the region keys of REG) stay Spanish in the data, so a backup made before or after this change reads the same. The screen shows them through lab(v)=tt('val.'+v,null,v), which falls back to the stored value itself. The region select now carries value="<stored key>" so the onchange handler keeps reading the Spanish key while the option text can be translated.
+3. site/art.js: its 4 alt and aria-label texts go behind keys. i18n.js loads before art.js and hoja.js (deferred, in that order).
+4. site/index.html keeps its Spanish markup as the default, marked with data-i18n (innerHTML) or data-i18n-attr ("attribute:key"); i18n.js apply() swaps them only when the language is English, called from wire().
+5. Hand-made cases: plurals, the install hint, headings with <em>, the share card labels, the pairing strength range (the second end now prints fortLabel(key) lower-cased; in Spanish that is the key itself for every key used), and the events calendar day labels.
+6. Cache bumped to lhb-v71. Tests: test/i18n-resolve.js puts the Spanish back in place of each tt() call so the older text pins keep checking the shipped Spanish; the harnesses that run slices of hoja.js get the real tt and lab.
+
+Look for real defects: text that now renders differently in Spanish, a tt() key missing from either table or with different {variables}, a variable passed under the wrong name, a stored value that would now be saved translated, a lab() missing where a stored value is shown, apply() breaking the page or running in Spanish, a quoting or escaping change (for example a key value with an apostrophe or HTML inside an attribute), a template literal broken by the transform, a load-order problem, and tests that would pass on broken code. evidence/lhb-29-resolve-compare.txt lists every difference between main's hoja.js and the branch's hoja.js with tt() resolved; evidence/lhb-29-render-compare.txt is the rendered comparison in a browser.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

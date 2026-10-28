@@ -1,0 +1,12 @@
+You are reviewing one commit in this repository (La Hoja Boricua, a vanilla JS PWA in site/). Review only; do not edit files. Do not load or run any skills.
+
+This is round 2. Round 1 (evidence/lhb-29-review-r1.txt) blocked on one finding: two PASOS instructions (visual, encendido) and the "o" separators were still Spanish literals, and test/i18n-scan.js missed them because it treated any ";" as code and needed two letters.
+
+Diff to review: git diff 2b79422 HEAD -- site test evidence/lhb-29-mutations.py
+
+What the fix does:
+1. site/hoja.js: PASOS visual and encendido use tt('h.miraLaCapaCon') and tt('h.tuestaElPieCon'); the three "o" separators (two in the install hint, one in the tasting form) use tt('h.o'). site/i18n.js gains those three keys in both tables, the Spanish word for word.
+2. test/i18n-scan.js: a ";" followed by a space and a lowercase letter counts as prose, and a lone o, y, e or u between tags counts as text. With these rules app.js and art.js still scan to 0, and hoja.js scans to the same 81 annotated exceptions as before (test/lhb-29-hoja-exceptions.txt). evidence/lhb-29-tests-red-r1.txt is the suite with the new scan rules before the hoja.js fix (1 failing test).
+3. evidence/lhb-29-mutations.py adds M14 and M15 for exactly these two gaps; evidence/lhb-29-mutations.out shows 15 of 15 caught.
+
+Check that the round 1 finding is fixed, that the tightened scan does not hide any other visible Spanish in hoja.js, art.js or app.js (read the exceptions list), and that nothing in the fix changes the Spanish output. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

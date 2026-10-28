@@ -1,0 +1,51 @@
+LHB-29 resolve-compare: site/hoja.js with its tt() calls resolved to T.es, against 0530ca3:site/hoja.js
+counting basis: one line per word-diff run (- removed from main, + added on the branch), cut at 240 characters
++ tt=window.LHB_I18N.t;
++ /* LHB-29: lo que se guarda (opciones de la cata, pasos, regiones) se queda en español; lab() lo muestra en el idioma de la app */
++ const lab=v=>tt('val.'+v,null,v);const
+- MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
++ MES='ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic'.split(',');
+- MESL=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
++ MESL='enero,febrero,marzo,abril,mayo,junio,julio,agosto,septiembre,octubre,noviembre,diciembre'.split(',');
+- de':'Guardar en'} favoritos">${on?'♥':'♡'}<span>Favorito</span></button>`};
++ de favoritos':'Guardar en favoritos'}">${on?'♥':'♡'}<span>Favorito</span></button>`};
+- class="whub-t">sabor${sel.length===1?'':'es'}</text></svg></div>`}
++ class="whub-t">${sel.length===1?'sabor':'sabores'}</text></svg></div>`}
+- $$(`[data-fav="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',(on?'Quitar de':'Guardar en')+'
++ $$(`[data-fav="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'Quitar de favoritos':'Guardar en
+- '+fmtF(hoy()):'Sin
++ '+(fmtF(hoy()))+'':'Sin
+- class="dl">${[['Fortaleza',d.fortaleza],['Cuerpo',d.cuerpo],['Final',d.final],['Capa',d.capa],['Tiro',d.tiro],['Quemada',d.quemada]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}
+-  ${(d.pasos||[]).filter(p=>(p.tags&&p.tags.length)||p.nota).map(p=>`<dt>${esc(p.paso)}</dt><dd>${esc([(p.tags||[]).map(WN).join(',
++ class="dl">${[['Fortaleza',d.fortaleza],['Cuerpo',d.cuerpo],['Final',d.final],['Capa',d.capa],['Tiro',d.tiro],['Quemada',d.quemada]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(lab(v))}</dd>`).join('')}
++  ${(d.pasos||[]).filter(p=>(p.tags&&p.tags.length)||p.nota).map(p=>`<dt>${esc(lab(p.paso))}</dt><dd>${esc([(p.tags||[]).map(WN).join(',
+- '+fmtF(S().pasaporte[k][x.id]):'Sin
++ '+(fmtF(S().pasaporte[k][x.id]))+'':'Sin
+- '+region(municipio(a.pueblo)):''}</div></div></a>${favBtn('artesanos',a.id,'icon')}</div>`;
++ '+lab(region(municipio(a.pueblo))):''}</div></div></a>${favBtn('artesanos',a.id,'icon')}</div>`;
+- aria-pressed="${cur===o}">${esc(o)}</button>`).join('')}</div>`;
++ aria-pressed="${cur===o}">${esc(lab(o))}</button>`).join('')}</div>`;
+- aria-pressed="${cur.includes(o)}">${esc(o)}</button>`).join('')}</div>`;
++ aria-pressed="${cur.includes(o)}">${esc(lab(o))}</button>`).join('')}</div>`;
+- class="dl">${[['Capa',CD.capa],['Fortaleza',CD.fortaleza],['Cuerpo',CD.cuerpo],['Final',CD.largo]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${tagChips(all)||'<p
++ class="dl">${[['Capa',CD.capa],['Fortaleza',CD.fortaleza],['Cuerpo',CD.cuerpo],['Final',CD.largo]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(lab(v))}</dd>`).join('')}</dl>${tagChips(all)||'<p
+- aria-label="${n} estrella${n>1?'s':''}"
++ aria-label="${n>1?''+(n)+' estrellas':''+(n)+' estrella'}"
+- '+esc(CD.nombre):''}</div><h1>${p.t}</h1>
++ '+esc(CD.nombre):''}</div><h1>${lab(p.t)}</h1>
+- ${x.f.map((f,i)=>i?f:A.fortLabel(f)).join('
++ ${x.f.map((f,i)=>i?A.fortLabel(f).toLowerCase():A.fortLabel(f)).join('
+- ${qs.reg===r?'selected':''}>${r}</option>`).join('')}</select>
++ value="${r}" ${qs.reg===r?'selected':''}>${lab(r)}</option>`).join('')}</select>
+- class="count-line">${n} resultado${n===1?'':'s'}${qs.fort?'
++ class="count-line">${n===1?''+(n)+' resultado':''+(n)+' resultados'}${qs.fort?'
+- DIAS=['dom','lun','mar','mié','jue','vie','sáb'];
++ DIAS='dom,lun,mar,mié,jue,vie,sáb'.split(',');
+- aria-label="${dd}
++ aria-label="${es.length>1?''+(dd)+'
+- ${MESL[mo]}: ${es.length} evento${es.length>1?'s':''}"
++ '+(MESL[mo])+': '+(es.length)+' eventos':''+(dd)+' de '+(MESL[mo])+': '+(es.length)+' evento'}"
+RUNS 45
+range end suave: es "suave" = key
+range end media: es "media" = key
+range end fuerte: es "fuerte" = key

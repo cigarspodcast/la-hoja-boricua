@@ -1,0 +1,5 @@
+attr: Guagua turquesa y crema
+attr: Coquí
+attr: Flor de tabaco
+attr: Flamboyán
+TOTAL 4
