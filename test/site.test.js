@@ -5160,3 +5160,27 @@ test('LHB-101: un escape mal formado en el hash no tumba el router (se queda el 
  let s;assert.doesNotThrow(()=>{s=h.API.S()},'S() no lanza');assert.deepEqual(s.favs,{cigarros:[],artesanos:[],lugares:[]},'Mi Hoja vacía');
  h.ctx.localStorage.getItem=real;assert.deepEqual(h.API.S().favs.cigarros,['c1'],'cuando se puede leer otra vez, lee lo guardado');
 });
+/* LHB-102: las subidas guardadas (vb_uploads) que no son una lista de objetos no rompen nada: el lector de app.js de verdad (LS, uploads y
+   allCigars, que usan el catálogo y la búsqueda) con un almacenamiento de mentira, y el respaldo de hoja.js con HOJA38 */
+function UP102(raw){const vm=require('vm');const src=read('app.js').replace(/\r\n/g,'\n');const i=src.indexOf('const LS={'),j=src.indexOf('\nconst artisanById=',i);
+ assert.ok(i>0&&j>i,'el lector está en app.js');const ls=new Map();if(raw!==undefined)ls.set('vb_uploads',raw);
+ const code=src.slice(i,src.indexOf('\n/* ---------- IndexedDB',i))+'\n'+src.slice(src.indexOf('let D=',i),src.indexOf('\nasync function refreshData',i))+'\n'+src.slice(src.indexOf('const uploads=',i),j);
+ const ctx={localStorage:{getItem:k=>ls.has(k)?ls.get(k):null,setItem:(k,v)=>ls.set(k,String(v))},window:{VB_DATA:{cigarros:[{id:'c2',nombre:'Zafra'},{id:'c1',nombre:'Boricua'}]}}};
+ vm.createContext(ctx);vm.runInContext(code+';this.uploads=uploads;this.allCigars=allCigars',ctx);return {ctx,ls}}
+test('LHB-102: unas subidas guardadas rotas ({} , un texto, null, una lista con basura) se leen como lista vacía o solo con lo bueno, sin romper el catálogo ni la búsqueda, y sin tocar lo guardado',async()=>{
+ for(const raw of ['{}','"x"','null','7','true','{"0":{"id":"u0"}}']){const U=UP102(raw);let all;
+  assert.doesNotThrow(()=>{all=U.ctx.allCigars()},'allCigars no lanza con '+raw);assert.deepEqual(all.map(c=>c.id),['c1','c2'],'solo el catálogo con '+raw);
+  assert.deepEqual([...U.ctx.uploads()],[],'uploads() vacío con '+raw);assert.equal(U.ls.get('vb_uploads'),raw,'leer no reescribe lo guardado: '+raw)}
+ /* una lista con basura: se quedan los objetos */
+ const raw='[1,"a",null,[2],{"id":"u1","nombre":"Al Alba"}]',U=UP102(raw);const all=U.ctx.allCigars();
+ assert.deepEqual(all.map(c=>c.id),['u1','c1','c2'],'el objeto bueno entra, en su orden');assert.equal(all[0].yours,true);assert.equal(U.ls.get('vb_uploads'),raw);
+ /* sin nada guardado y con una lista buena, como antes */
+ assert.deepEqual(UP102().ctx.allCigars().map(c=>c.id),['c1','c2']);assert.deepEqual(UP102('[{"id":"u2","nombre":"Cemí"}]').ctx.allCigars().map(c=>c.id),['c1','u2','c2']);
+ /* hoja.js: el respaldo exporta subidas como lista y la importación junta las subidas aunque lo guardado esté roto */
+ const a=HOJA38({ls:{vb_uploads:'{}'}});a.API.exportar();const file=JSON.parse(await a.blobs[0].text());assert.deepEqual(file.extra.subidas,[],'el respaldo lleva una lista');
+ assert.equal(a.ls.get('vb_uploads'),'{}','exportar no toca lo guardado');
+ const b=HOJA38({ls:{vb_uploads:'{}'}});b.API.importar({__text:JSON.stringify({...file,extra:{subidas:[{id:'u9',nombre:'Del respaldo'}]}})});
+ assert.deepEqual(JSON.parse(b.ls.get('vb_uploads')).map(x=>x.id),['u9'],'la importación trae las subidas del respaldo');
+ const c=HOJA38({ls:{vb_uploads:JSON.stringify([{id:'u1',nombre:'Mía'}])}});c.API.importar({__text:JSON.stringify({...file,extra:{subidas:[{id:'u9',nombre:'Del respaldo'}]}})});
+ assert.deepEqual(JSON.parse(c.ls.get('vb_uploads')).map(x=>x.id).sort(),['u1','u9'],'con una lista buena, junta las dos como antes');
+});

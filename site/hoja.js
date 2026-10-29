@@ -34,6 +34,8 @@ function normalize(o){const d=DEF();o=o&&typeof o==='object'?o:{};
  if(!Array.isArray(o.humidor))o.humidor=[];if(!Array.isArray(o.diario))o.diario=[];if(!o.ratings||typeof o.ratings!=='object')o.ratings={};o.diario.forEach(entryDefaults);return o}
 function upgrade(o){o=o||{};if(!o.schema)o.schema=1;while(o.schema<SCHEMA&&MIG[o.schema])o=MIG[o.schema](o);return normalize(o)}
 const legacy=k=>{try{const v=localStorage.getItem('vb_'+k);return v==null?null:JSON.parse(v)}catch(e){return null}};
+/* LHB-102: una lista guardada que no es lista de objetos se lee vacía (el respaldo y su importación no se rompen por ella) */
+const legacyList=k=>{const v=legacy(k);return Array.isArray(v)?v.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)):[]};
 let ST=null,STRAW=null;
 function load(){const raw=localStorage.getItem(KEY);
  if(raw){try{return upgrade(JSON.parse(raw))}catch(e){try{localStorage.setItem(KEY+'_danado_'+Date.now(),raw)}catch(_){}}}
@@ -138,7 +140,7 @@ function humidorForm(cid,editId){const it=editId?S().humidor.find(x=>x.id===edit
 /* ---------- respaldo ---------- */
 function download(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},4000)}
 function exportar(){const s=S();const data={app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:SCHEMA,exportado:new Date().toISOString(),url:APP_URL,
- mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacy('uploads')||[]}};
+ mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacyList('uploads')}};
  download(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}),`la-hoja-boricua-respaldo-${hoy()}.json`);
  s.respaldo=new Date().toISOString();s.cambios=0;s.recordarDespues=null;write(s);lastBackup=LHB_MERGE.canon(s);toast(tt('h.respaldoDescargado'));if(location.hash.startsWith('#/mihoja'))setTimeout(()=>A.route(),300)}
 const byId=(a,b,key='id')=>{const m=new Map(a.map(x=>[x[key],x]));for(const x of b){if(!x||!x[key])continue;const o=m.get(x[key]);if(!o||(x.actualizado||x.fecha||'')>(o.actualizado||o.fecha||''))m.set(x[key],x)}return [...m.values()]};
@@ -150,7 +152,7 @@ function importar(file){const fr=new FileReader();fr.onload=()=>{let j;try{j=JSO
  save(s=>{const m=LHB_MERGE.merge(null,s,inc,{prefer:'local'});s.humidor=m.humidor;s.diario=m.diario;s.pasaporte=m.pasaporte;s.favs=m.favs;s.ratings=m.ratings});
  const x=j.extra||{};try{if(x.perfil&&!legacy('perfil'))localStorage.setItem('vb_perfil',JSON.stringify(x.perfil));
   if(Array.isArray(x.sugeridas)&&x.sugeridas.length)localStorage.setItem('vb_sugeridas',JSON.stringify(byId(legacy('sugeridas')||[],x.sugeridas)));
-  if(Array.isArray(x.subidas)&&x.subidas.length)localStorage.setItem('vb_uploads',JSON.stringify(byId(legacy('uploads')||[],x.subidas)))}catch(e){}
+  if(Array.isArray(x.subidas)&&x.subidas.length)localStorage.setItem('vb_uploads',JSON.stringify(byId(legacyList('uploads'),x.subidas)))}catch(e){}
  const s=S();toast(`${tt('h.importadoCatasEnHumidor',{a:s.diario.length-n0.d,b:s.humidor.length-n0.h})}`);A.route()};fr.readAsText(file)}
 function backupDue(){const s=S();const n=s.diario.length+s.humidor.length+Object.values(s.pasaporte).reduce((t,o)=>t+Object.keys(o).length,0);if(!n||!s.cambios)return false;
  if(s.recordarDespues&&new Date(s.recordarDespues)>new Date())return false;if(!s.respaldo)return s.cambios>=3;return (Date.now()-new Date(s.respaldo))/864e5>=14}
