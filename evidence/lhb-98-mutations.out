@@ -1,0 +1,14 @@
+baseline (no mutation): pass 45 fail 0
+writes ignore the lock (the state before this ticket)    RED (caught) (fail 2)
+quiet writes wait for the lock too                       RED (caught) (fail 1)
+write() does not pass quiet to the fence                 RED (caught) (fail 2)
+a tab does not yield on the fence                        RED (caught) (fail 1)
+a tab that yielded never asks again                      RED (caught) (fail 1)
+sign-out without the exclusive                           RED (caught) (fail 3)
+account deletion without the exclusive                   RED (caught) (fail 1)
+the fence goes up before the exclusive is asked          RED (caught) (fail 1)
+no fallback when a tab never yields                      RED (caught) (fail 1)
+the page does not take the shared lock back              RED (caught) (fail 1)
+closed without Web Locks                                 RED (caught) (fail 9)
+the page never takes the shared lock                     RED (caught) (fail 5)
+RESULT 12 of 12 red

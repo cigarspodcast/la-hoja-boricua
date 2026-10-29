@@ -3012,7 +3012,8 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  const h=read('hoja.js').replace(/\r\n/g,'\n'),ix=read('index.html'),sw=read('sw.js');
  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
- assert.ok(/function write\(s,quiet\)\{if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
+ /* LHB-98: la valla mira también el candado de Mi Hoja, salvo en lo que la app escribe sola (quiet) */
+ assert.ok(/function write\(s,quiet\)\{if\(SYNC&&SYNC\.fenced\(quiet\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(quiet\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else pfOwnSync()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
@@ -4141,8 +4142,11 @@ function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').
   api:async(Cx,method,path,body,uid)=>{log.push([method,path,JSON.stringify(body),uid]);log.push('pasada '+JSON.stringify(await dev.eng.run('durante')));if(o.api)return o.api(body);return {status:200,body:{ok:true}}},
   sessionStorage:{getItem:k=>ss.has(k)?ss.get(k):null,setItem:(k,v)=>ss.set(k,String(v)),removeItem:k=>ss.delete(k)},location:{assign:u=>log.push('assign '+u)},setTimeout:()=>0,
   setInterval:(f,ms)=>{const t={f,ms,live:true};ivs.push(t);return t},clearInterval:t=>{if(t)t.live=false},
+  /* LHB-98: o.locks, los Web Locks de mentira (LOCKS98) que comparte con otra pestaña (TAB98) */
+  clearTimeout:()=>{},AbortController,...(o.locks?{navigator:{locks:o.locks}}:{}),
   window:{addEventListener:(t,f)=>listeners.push([t,f])}};const listeners=[];
- vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW="x";'+src.slice(i,j)+';this.X={salir,borrar,resumeDelete,accountPanel,bindAccount,setBackup:v=>{lastBackup=v},st:()=>ST}',ctx);
+ vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW="x";'+src.slice(i,j)+';this.X={salir,borrar,resumeDelete,accountPanel,bindAccount,setBackup:v=>{lastBackup=v},st:()=>ST,wlClosed:typeof wlClosed==="function"?wlClosed:null}',ctx);
+ if(ctx.X.wlClosed)dev.D.closed=()=>ctx.X.wlClosed();
  return {X:ctx.X,els,log,toasts,ss,C,listeners,ivs,outs:()=>log.filter(x=>typeof x==='string'&&/^(signOut|assign|acct|intent)/.test(x))}}
 const DOC34=()=>({schema:1,creado:'2026-10-01T00:00:00.000Z',humidor:[{id:'h1',marca:'Don Rey',actualizado:'2026-10-02'}],diario:[],pasaporte:{},favs:{},ratings:{}});
 const KEYS34=['lhb_mihoja_v1','lhb_mihoja_v1_sync','lhb_mihoja_v1_owner','lhb_mihoja_v1_seq'];
@@ -6001,3 +6005,141 @@ test('LHB-102: unas subidas guardadas rotas ({} , un texto, null, una lista con 
  const c=HOJA38({ls:{vb_uploads:JSON.stringify([{id:'u1',nombre:'Mía'}])}});c.API.importar({__text:JSON.stringify({...file,extra:{subidas:[{id:'u9',nombre:'Del respaldo'}]}})});
  assert.deepEqual(JSON.parse(c.ls.get('vb_uploads')).map(x=>x.id).sort(),['u1','u9'],'con una lista buena, junta las dos como antes');
 });
+
+/* ===================== LHB-98: Mi Hoja se escribe con el candado de Web Locks en la mano; salir lo tiene exclusivo ===================== */
+/* Web Locks de mentira: por nombre, compartido con compartido, exclusivo solo; la fila es en orden (un compartido detrás de un exclusivo espera).
+   held y queue son los de 'lhb_mihoja'; onBlocked: alguien quedó esperando en esa fila detrás de lo que está en la mano */
+function LOCKS98(){const names=new Map();const of=n=>{if(!names.has(n))names.set(n,{held:[],queue:[]});return names.get(n)};
+ const M=of('lhb_mihoja');const L={held:M.held,queue:M.queue,onBlocked:null,grants:[]};
+ const can=(x,r)=>r.mode==='shared'?!x.held.some(h=>h.mode==='exclusive'):x.held.length===0;
+ const pump=x=>{while(x.queue.length&&can(x,x.queue[0])){const r=x.queue.shift();x.held.push(r);if(x===M)L.grants.push(r.mode);
+   Promise.resolve().then(()=>r.cb({name:r.name,mode:r.mode})).then(v=>{rel(x,r);r.res(v)},e=>{rel(x,r);r.rej(e)})}
+  if(x===M&&x.queue.length&&L.onBlocked)L.onBlocked(x.queue[0])};
+ const rel=(x,r)=>{const i=x.held.indexOf(r);if(i>=0)x.held.splice(i,1);pump(x)};
+ L.request=(name,o,cb)=>{if(typeof o==='function'){cb=o;o={}}const x=of(name);return new Promise((res,rej)=>{const r={name,mode:o.mode||'exclusive',cb,res,rej};
+  if(o.signal)o.signal.addEventListener('abort',()=>{const i=x.queue.indexOf(r);if(i>=0){x.queue.splice(i,1);const e=new Error('aborted');e.name='AbortError';rej(e);pump(x)}});
+  x.queue.push(r);pump(x)})};
+ return L}
+/* otra pestaña de Mi Hoja: write() de hoja.js con su propio candado (el bloque LHB-98) y su propio motor sobre el mismo almacenamiento.
+   Los avisos storage de la valla le llegan como una tarea aparte; o.suspend: la pestaña está dormida y los avisos esperan hasta resume() */
+function TAB98(dev,locks,o){o=o||{};const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
+ const wline=src.match(/^function write\(s,quiet\)\{.*$/m)[0];
+ const i=src.indexOf('var WLS=null'),j=src.indexOf('\nwlInit();',i);const gate=i>=0&&j>i?src.slice(i,j)+'\nwlInit();\n':'';
+ const lst=(src.match(/^window\.addEventListener\('storage',e=>\{if\(e\.key==='lhb_mihoja_v1_saliendo'[\s\S]*?\}\}\);$/m)||[''])[0];
+ const toasts=[],listeners=[];let eng=null;
+ const ctx={...TT(),KEY:'lhb_mihoja_v1',PEND:[],toast:m=>toasts.push(m),navigator:{locks},AbortController,setTimeout:()=>0,clearTimeout:()=>{},location:{assign:()=>{}},
+  localStorage:{getItem:k=>dev.ls.has(k)?dev.ls.get(k):null,setItem:(k,v)=>dev.ls.set(k,String(v))},window:{addEventListener:(t,f)=>listeners.push([t,f])}};
+ eng=SYNC28().LHB_SYNC({...dev.D,closed:()=>!!ctx.X.wlClosed&&ctx.X.wlClosed()});ctx.SYNC=eng;
+ vm.createContext(ctx);vm.runInContext('let ST=null,STRAW=null;'+wline+';'+gate+lst+';this.X={write,wlClosed:typeof wlClosed==="function"?wlClosed:null}',ctx);
+ let asleep=!!o.suspend;const waiting=[];
+ const deliver=e=>{for(const [t,f] of listeners)if(t==='storage')f(e)};
+ /* la otra pestaña escribe la valla: el aviso le llega a esta como una tarea, o espera si está dormida */
+ const tell=e=>{if(asleep)waiting.push(e);else setImmediate(()=>deliver(e))};
+ return {X:ctx.X,toasts,eng,tell,resume:()=>{if(!asleep)return false;asleep=false;for(const e of waiting.splice(0))deliver(e);return true}}}
+/* la valla que pone la pestaña que sale le llega a la otra como un aviso storage */
+const FENCE98=(dev,tab)=>{const set=dev.D.ls.set;dev.D.ls.set=(k,v)=>{set(k,v);if(k==='lhb_mihoja_v1_saliendo')tab.tell({key:k,newValue:String(v)})}};
+const tick98=async(n)=>{for(let i=0;i<(n||30);i++)await new Promise(r=>setImmediate(r))};
+test('LHB-98 (reproducción 2): la salida reintentada con la copia ya borrada y Clerk tardando: aunque el reloj salte 11 s, otra pestaña que abre Mi Hoja no escribe nada que se quede',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  const L=LOCKS98();let done=null;
+  /* 1. la primera salida falla en Clerk, y su valla caduca */
+  const h=ACCT34(dev,{locks:L,signOutFails:1,signOutWait:async()=>{if(done)await new Promise(r=>{done.go=r})}});
+  await tick98();await h.X.salir();await tick98();
+  for(const k of KEYS34)assert.ok(!dev.ls.has(k),'la copia ya se borró: '+k);assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
+  dev.st.clock+=10001;assert.equal(dev.eng.fenced(true),false,'la valla caducó');
+  /* 2. se reintenta y Clerk tarda */
+  done={};const p=h.X.salir();await tick98();assert.ok(done.go,'Clerk está cerrando la sesión');
+  /* 3. el reloj salta 11 s antes de que la valla se renueve */
+  dev.st.clock+=11000;
+  /* 4. otra pestaña abre Mi Hoja y escribe una entrada */
+  const B=TAB98(dev,L);FENCE98(dev,B);await tick98();
+  const d=DOC34();d.humidor.push({id:'otra',marca:'Escrita en la otra pestaña',actualizado:'2026-10-29'});
+  const wrote=B.X.write(d);
+  /* 5. Clerk termina */
+  done.go();await p;await tick98();
+  assert.ok(h.log.includes('assign /'),'la sesión se cerró');
+  assert.equal(wrote,false,'la otra pestaña no pudo escribir');
+  assert.ok(!dev.ls.has('lhb_mihoja_v1'),'y en este teléfono no quedó nada');
+  assert.deepEqual(B.toasts,['Se está saliendo de la cuenta en este teléfono. Espera unos segundos e intenta otra vez.']);
+ }finally{a.done()}});
+test('LHB-98 (reproducción 1): una pestaña dormida a mitad de una escritura cuando otra sale: la salida la espera, su cambio cambia la marca, no se borra nada ni se cierra la sesión',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  const L=LOCKS98();
+  /* la otra pestaña tiene el candado y se queda dormida justo después de revisar la valla, antes de guardar */
+  const B=TAB98(dev,L,{suspend:true});FENCE98(dev,B);await tick98();
+  const late=DOC34();late.humidor.push({id:'tarde',marca:'Guardada al despertar',actualizado:'2026-10-29'});
+  /* se despierta cuando la salida la espera (Web Locks) o, sin candado, cuando la salida ya cerró la sesión: termina de guardar y luego lee sus avisos */
+  const wake=()=>{if(B.resume===undefined)return;const w=B.resume;B.resume=undefined;dev.ls.set('lhb_mihoja_v1',JSON.stringify(late));w()};
+  L.onBlocked=r=>{if(r.mode==='exclusive')wake()};
+  const h=ACCT34(dev,{locks:L,signOutWait:async()=>{wake()}});await tick98();
+  await h.X.salir();await tick98();
+  assert.ok(hid28(dev.doc()).includes('tarde'),'el cambio de la pestaña dormida está en el teléfono');
+  assert.deepEqual(h.outs(),[],'y la sesión no se cerró con él dentro');
+  assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');
+ }finally{a.done()}});
+test('LHB-98: sin el candado compartido en la mano, lo que escribe la persona no se guarda (ni la meta, el contador o la dueña del motor); lo que la app escribe sola al abrir, sí',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  const L=LOCKS98();
+  /* alguien tiene el exclusivo (una salida): la pestaña nueva pide el compartido y espera */
+  let free=null;L.request('lhb_mihoja',{mode:'exclusive'},()=>new Promise(r=>{free=r}));await tick98();
+  const B=TAB98(dev,L);await tick98();assert.equal(B.X.wlClosed(),true,'sin el compartido');
+  const before=KEYS34.map(k=>dev.ls.get(k));
+  const d=DOC34();d.humidor.push({id:'x1',marca:'No va',actualizado:'2026-10-29'});
+  assert.equal(B.X.write(d),false,'la persona no escribe');assert.deepEqual(KEYS34.map(k=>dev.ls.get(k)),before,'nada cambió');
+  B.eng.changed(null);assert.deepEqual(KEYS34.map(k=>dev.ls.get(k)),before,'ni el contador ni la meta del motor');
+  /* sin dueña anotada (ni la llave ni la meta) */
+  dev.ls.delete('lhb_mihoja_v1_owner');dev.ls.delete('lhb_mihoja_v1_sync');assert.equal(B.eng.ensureOwner(),false,'ni la dueña');assert.ok(!dev.ls.has('lhb_mihoja_v1_owner'));
+  dev.ls.set('lhb_mihoja_v1_owner',before[2]);dev.ls.set('lhb_mihoja_v1_sync',before[1]);
+  assert.equal(B.X.write(d,true),true,'lo que la app escribe sola sí (no espera al candado, solo a la valla con tiempo)');
+  /* se suelta el exclusivo: llega el compartido y se escribe */
+  dev.seed(DOC34());free();await tick98();assert.equal(B.X.wlClosed(),false);
+  assert.equal(B.X.write(d),true);assert.ok(hid28(dev.doc()).includes('x1'));
+ }finally{a.done()}});
+test('LHB-98: al ver la valla de otra pestaña, esta suelta el compartido y vuelve a la fila detrás de la salida; cuando la salida termina lo tiene otra vez',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  const L=LOCKS98();const B=TAB98(dev,L);await tick98();assert.equal(B.X.wlClosed(),false,'tiene el compartido');assert.deepEqual(L.held.map(h=>h.mode),['shared']);
+  /* la salida pide el exclusivo: espera a B */
+  let inside=false,free=null;const p=L.request('lhb_mihoja',{mode:'exclusive'},()=>{inside=true;return new Promise(r=>{free=r})});await tick98();assert.equal(inside,false,'la salida espera');
+  /* la valla: B suelta y pide otra vez */
+  B.tell({key:'lhb_mihoja_v1_saliendo',newValue:'1'});await tick98();
+  assert.equal(inside,true,'la salida tiene el exclusivo');assert.equal(B.X.wlClosed(),true,'B no escribe');assert.deepEqual(L.queue.map(q=>q.mode),['shared'],'B está en la fila');
+  /* una valla que no es nueva (vacía) no cambia nada */
+  B.tell({key:'lhb_mihoja_v1_saliendo',newValue:null});await tick98();assert.deepEqual(L.queue.map(q=>q.mode),['shared']);
+  free();await p;await tick98();assert.equal(B.X.wlClosed(),false,'terminó la salida: B lo tiene otra vez');
+ }finally{a.done()}});
+test('LHB-98: salir pide el exclusivo antes de poner la valla y lo tiene hasta que Clerk termina; si otra pestaña no lo suelta en WL_WAIT sale con la valla con tiempo; si Clerk falla, la página vuelve a tener el compartido',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  const L=LOCKS98();const modes=[];let pend=null;
+  const h=ACCT34(dev,{locks:L,signOutFails:1,signOutWait:async()=>{modes.push(L.held.map(x=>x.mode).join());if(pend)await pend}});await tick98();
+  assert.deepEqual(L.held.map(x=>x.mode),['shared'],'la página tiene el compartido');
+  /* la valla se pone después de pedir el exclusivo */
+  const set=dev.D.ls.set;const order=[];dev.D.ls.set=(k,v)=>{if(k==='lhb_mihoja_v1_saliendo')order.push('valla:'+L.queue.concat(L.held).map(x=>x.mode).join());set(k,v)};
+  await h.X.salir();await tick98();dev.D.ls.set=set;
+  assert.ok(/^valla:.*exclusive/.test(order[0]),'la valla sale con el exclusivo ya pedido: '+order[0]);
+  assert.deepEqual(modes,['exclusive'],'Clerk cierra la sesión con el exclusivo en la mano');
+  assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
+  assert.deepEqual(L.held.map(x=>x.mode),['shared'],'Clerk falló: la página tiene otra vez el compartido');
+  /* otra pestaña dormida que nunca suelta su compartido: a los WL_WAIT se sale sin el exclusivo */
+  const dev2=DEV28(a,'user_a');dev2.seed(DOC34());await dev2.sync();const L2=LOCKS98();
+  L2.request('lhb_mihoja',{mode:'shared'},()=>new Promise(()=>{}));await tick98();
+  const h2=ACCT34(dev2,{locks:L2});
+  const src=read('hoja.js');assert.match(src,/const WL_WAIT=5e3;/,'WL_WAIT es de 5 s');
+  /* la espera: el setTimeout de la prueba no corre solo; se aborta a mano el pedido que quedó en la fila */
+  const pr=h2.X.salir();for(let i=0;i<200&&!L2.queue.some(x=>x.mode==='exclusive');i++)await tick98(5);assert.ok(!h2.log.includes('assign /'),'espera a la otra pestaña');
+  const q=L2.queue.find(x=>x.mode==='exclusive');assert.ok(q,'el exclusivo está en la fila');
+  L2.queue.splice(L2.queue.indexOf(q),1);const e=new Error('aborted');e.name='AbortError';q.rej(e);
+  await pr;await tick98();assert.ok(h2.log.includes('assign /'),'salió con la valla con tiempo');for(const k of KEYS34)assert.ok(!dev2.ls.has(k),'borrado '+k);
+ }finally{a.done()}});
+test('LHB-98: borrar la cuenta también borra este teléfono y cierra la sesión con el exclusivo en la mano',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  const L=LOCKS98();const modes=[];
+  const h=ACCT34(dev,{locks:L,signOutWait:async()=>{modes.push(L.held.map(x=>x.mode).join())}});await tick98();
+  await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');await tick98();
+  assert.deepEqual(modes,['exclusive']);for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
+ }finally{a.done()}});
