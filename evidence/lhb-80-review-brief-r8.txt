@@ -1,0 +1,23 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-80-wt (branch lhb-80-sync-op). TIER 2, round 8.
+
+Ticket LHB-80: an idempotency token (X-Op) on PUT /api/mihoja so a pass can learn whether an upload whose answer was lost landed, and never applies a stale base. Round 7 (evidence/lhb-80-review-r7.txt) concurred with the dispositions of LHB-104 and LHB-105 (cross-tab classes that predate this branch, non-blocking). It blocked on the round 6 restamp (kept()):
+1. (P1) The restamp revived the stored meta while the newer in-memory base (mem, old epoch) was rejected, so a stale stored base deleted a remote re-add.
+2. (P2) An ignored failure of the restamp's meta write left the changed epoch, so the untouched copy lost its pending deletion.
+3. (non-blocking, LHB-105) The restamp could bless a meta after another tab changed the copy.
+
+The diff below (one commit against the round 7 prompt commit) replaces the restamp:
+- newEpoch() returns the value it wrote (or null). isolate() keeps e1 (the epoch before) and e2 (the one it wrote).
+- If isolate() fails BEFORE the copy changes (no free parking key, the parking write rejected, setDoc({}) returned false), back() puts the previous epoch back: it writes e1, or removes the key when there was none. It does this only while the stored epoch is still e2. With e1 back, the stored meta, mem and the landed uploads in pend are exactly as valid as they were before the attempt, and no meta is written. Writing a value of the same length or removing a key needs no more space than the epoch write that just succeeded. If another tab wrote its own epoch in the meantime, back() leaves that one.
+- A failure after the clear (setOwner) keeps e2, as before.
+- The test harness's storage (DEV28) gains remove(), as the real adapter in hoja.js has.
+Tests (three added):
+- Round 7 finding 1's sequence: A's upload lands but its meta cannot be saved; another device re-adds a1 at rev 3; a switch fails at the parking write; back on A, a1 stays on the account and the phone.
+- Round 7 finding 2's second sequence: all parking keys taken and META rejected; the unuploaded removal still counts.
+- Round 7 finding 3's interleaving in one process: inside this engine's setDoc({}), a second engine on the same storage writes its epoch, clears the copy and fails its owner write, then this engine's clear fails. The epoch is not put back, and the empty copy is not uploaded as deletions.
+All three fail on e04b1c0 and pass here. Mutants: the restamp mutant replaced by two (back() never runs; back() ignores another tab's epoch), and the ordering mutant regenerated for the new block. Evidence: evidence/lhb-80-mutations.out, 35 of 38 red, 3 named equivalent, 0 unexpected survivors; evidence/lhb-80-tests.txt, full suite 375 tests, 374 pass, 0 fail, 1 skipped.
+
+Check that round 6 finding 3 and round 7 findings 1 and 2 are closed for every failure point inside isolate(), including the cases where back() itself cannot write. Check whether putting e1 back can ever make a base valid for a copy that DID change, in this tab or with another tab between the epoch write and back(). Check whether a pass that captured e2 during the attempt can do harm after e1 returns. The cross-tab classes stay non-blocking under LHB-104 and LHB-105; give any correction to those tickets. Block only on a defect this branch introduces, or on one within LHB-80's scope (lost-answer uploads and stale bases within one tab) that should be fixed before release.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

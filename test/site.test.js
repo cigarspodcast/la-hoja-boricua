@@ -2816,7 +2816,7 @@ test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, 
 /* un teléfono de mentira para probar el motor contra el servidor de verdad (SQLite): su almacenamiento, su reloj, sus temporizadores y su red */
 function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,failBigKey:null,failBig:0,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
  const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
- const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)}},
+ const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)},remove:k=>{ls.delete(k)}},
   getDoc:()=>rawDoc(),setDoc:(d,exp)=>{st.setDocs++;if(st.beforeApply){const f=st.beforeApply;st.beforeApply=null;f()}if(exp!==undefined&&win.LHB_MERGE.stable(rawDoc())!==exp)return 'stale';if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
@@ -6390,6 +6390,44 @@ test('LHB-80 (Codex r6): el cambio de cuenta falla antes de tocar la copia ('+co
   assert.deepEqual(A.doc().favs.artesanos,[],'la copia de A sigue como estaba');
   assert.equal((await A.sync()).ok,true);
   assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r7): una subida de A llegó pero su meta no se pudo guardar; otro teléfono vuelve a poner a1; un cambio de cuenta falla antes de tocar la copia: la base nueva (en memoria) sigue valiendo y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});A.st.failKey='lhb_mihoja_v1_sync';await A.sync();A.st.failKey=null;
+  assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.artesanos=['a1']});await P.sync();
+  assert.equal(srv28(a,'user_a').rev,3,'el otro teléfono la volvió a poner');
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_de_user_a';assert.equal(A.eng.isolate(),false);A.st.failKey=null;
+  A.st.acct=A.st.user='user_a';assert.equal((await A.sync()).ok,true);
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y llegó al teléfono');
+ }finally{a.done()}});
+test('LHB-80 (Codex r7): sin lugar para apartar la copia y sin poder escribir la meta, el cambio de cuenta falla: lo que A quitó sin subir sigue siendo un borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  /* las diez llaves para apartar copias de A ya están ocupadas */
+  for(let i=0;i<11;i++)A.ls.set('lhb_mihoja_v1_de_user_a'+(i?'_'+i:''),'{"favs":{"artesanos":["x"]}}');
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_sync';assert.equal(A.eng.isolate(),false,'no hay llave libre');A.st.failKey=null;
+  A.st.acct=A.st.user='user_a';assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r7): otra pestaña cambió la época mientras este cambio de cuenta fallaba: no se vuelve a la época de antes y la copia vacía no se sube como borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.ratings.c1=5});
+  const Y=SYNC28().LHB_SYNC(A.D);const sd=A.D.setDoc;let n=0;
+  /* esta pestaña va a vaciar la copia; antes, la otra hace su propio cambio de cuenta: escribe su época, vacía la copia y no puede anotar la dueña. Luego el vaciado de esta falla */
+  A.D.setDoc=(d,...r)=>{if(n++===0&&d&&!Object.keys(d).length){A.st.failKey='lhb_mihoja_v1_owner';assert.equal(Y.isolate(),false);A.st.failKey=null;return false}return sd(d,...r)};
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);A.D.setDoc=sd;
+  A.st.acct=A.st.user='user_a';await A.eng.settled({});
+  const s=srv28(a,'user_a').doc;assert.equal(s.humidor.length,1);assert.equal(s.diario.length,1);assert.ok(s.favs.artesanos.includes('a1'),'la cuenta sigue entera');
  }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();

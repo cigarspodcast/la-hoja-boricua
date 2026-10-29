@@ -106,7 +106,7 @@ window.LHB_SYNC=function(D){
     a la misma cuenta, que deja la copia vacía): una pasada que empezó en otra época ya no vale, y una base en memoria o lo que mandó una subida solo es base de la copia de su época */
  const EPOCH=KEY+'_epoca';
  const epochOf=()=>{try{return D.ls.get(EPOCH)}catch(e){return undefined}};
- const newEpoch=()=>{try{D.ls.set(EPOCH,Math.random().toString(36).slice(2,12)+Date.now().toString(36));return true}catch(e){return false}};
+ const newEpoch=()=>{const v=Math.random().toString(36).slice(2,12)+Date.now().toString(36);try{D.ls.set(EPOCH,v);return v}catch(e){return null}};
  /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
     que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
  const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
@@ -122,14 +122,15 @@ window.LHB_SYNC=function(D){
   const old=ownerOf();if(old===null||old===acc.sub)return true;
   inIso=true;try{
    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
-   const e1=epochOf();if(!newEpoch())return false;
-   /* Codex r6: si falla antes de vaciar la copia, la copia sigue siendo la de antes y su meta también: se le pone la época nueva, para que lo que la persona
-      quitó y no se ha subido siga contando como borrado (solo si la meta es la de la copia de antes, de la época que había) */
-   const kept=()=>{const m=readMeta();if(m&&m.sub===old&&epOf(m)===e1){m.ep=epochOf();writeMeta(m)}return false};
+   const e1=epochOf(),e2=newEpoch();if(!e2)return false;
+   /* Codex r6 y r7: si falla antes de vaciar la copia, la copia no cambió: vuelve la época de antes, y con ella valen otra vez la meta, la base en memoria y lo que
+      mandaron sus subidas (lo que la persona quitó y no se ha subido sigue contando como borrado). Solo si la época sigue siendo la que se escribió aquí: si otra
+      pestaña ya puso otra, se queda la suya. Poner un valor del mismo largo o quitar la llave no pide más espacio */
+   const back=()=>{try{if(epochOf()===e2){if(typeof e1==='string')D.ls.set(EPOCH,e1);else D.ls.remove(EPOCH)}}catch(e){}return false};
    let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
-   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return kept();try{D.ls.set(k,raw)}catch(e){return kept()}}
+   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return back();try{D.ls.set(k,raw)}catch(e){return back()}}
    applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
-   if(!ok)return kept();
+   if(!ok)return back();
    return setOwner(acc.sub)}finally{inIso=false}}
  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
  async function once(){
