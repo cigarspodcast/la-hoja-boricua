@@ -5255,7 +5255,7 @@ test('LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de toke
    Un color escrito %23 (dentro de un SVG en data URI) cuenta igual que uno escrito # (Codex ronda 1). */
 const LIT67=/(?:#|%23)[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\(/gi;
 /* LHB-99: también hsl() y RGB() en mayúsculas (arriba), y los colores con nombre. */
-/* LHB-99 (Codex rondas 1 y 2): un color con nombre se busca solo donde pinta, leyendo la estructura y no una línea suelta:
+/* LHB-99 (Codex rondas 1 a 3): un color con nombre se busca solo donde pinta, leyendo la estructura y no una línea suelta:
    - en el CSS, en cada declaración de una propiedad de color (el valor sigue hasta su ; aunque cruce líneas o comillas), y los bloques se
      hallan saltando los textos entre comillas (un "}" no cierra nada);
    - en el código, en los atributos style y los atributos de color del SVG solo dentro de una etiqueta (<b ... style="...">), con o sin
@@ -5278,12 +5278,15 @@ function decl99(s,a,b,at){for(let j=a;j<b;){while(j<b&&/[\s;]/.test(s[j]))j++;co
   const colon=name&&s[j]===':';if(colon)j++;const v=j;let dep=0;
   while(j<b){const c=s[j];if(c==='$'&&s[j+1]==='{'){j=interp99(s,j);continue}if(/['"`]/.test(c)){j=q99(s,j);continue}if(c==='(')dep++;else if(c===')')dep--;else if(c===';'&&dep<=0)break;j++}
   if(colon&&CPROP99.test(name))val99(s,v,Math.min(j,b),at);if(j===n)j++}}
-// los bloques { } de una hoja, saltando los textos entre comillas; cada bloque sin otro adentro es una lista de declaraciones
+// los bloques { } de una hoja, saltando los textos entre comillas; las declaraciones de cada bloque son su texto sin los bloques de
+// adentro (Codex ronda 3: .x{color:red;&:hover{...}} cuenta el color de .x)
 function sheet99(s,a,b,at){const st=[];for(let j=a;j<b;){const c=s[j];if(c==='"'||c==="'"){j=q99(s,j);continue}
-  if(c==='{'){if(st.length)st[st.length-1].kid=true;st.push({i:j,kid:false})}else if(c==='}'){const t=st.pop();if(t&&!t.kid)decl99(s,t.i+1,j,at)}j++}}
-// ¿la posición i está dentro de una etiqueta abierta? desde el último <letra, sin cruzar > ni código (; { } ( )) fuera de comillas y de ${}
-function tag99(s,i){const lt=s.lastIndexOf('<',i);if(lt<0||!/[a-zA-Z]/.test(s[lt+1]||''))return false;
- for(let j=lt+1;j<i;){const c=s[j];if(c==='$'&&s[j+1]==='{'){j=interp99(s,j);continue}if(c==='"'||c==="'"){const z=q99(s,j);if(z>i)return true;j=z;continue}if(/[>;{}()]/.test(c))return false;j++}return true}
+  if(c==='{')st.push({i:j,kids:[]});else if(c==='}'){const t=st.pop();if(t){let p=t.i+1;for(const [x,y] of t.kids){decl99(s,p,x,at);p=y+1}decl99(s,p,j,at);if(st.length)st[st.length-1].kids.push([t.i,j])}}j++}}
+// ¿la posición i está dentro de una etiqueta abierta? alguna <letra de antes llega hasta i sin cruzar > ni código (; { } ( )) fuera de
+// comillas y de ${} (Codex ronda 3: un < dentro de un valor o de un ${} anterior no es la etiqueta; se prueba la anterior)
+function tag99(s,i){for(let lt=s.lastIndexOf('<',i),n=0;lt>=0&&n<40&&i-lt<4000;lt=s.lastIndexOf('<',lt-1),n++){if(!/[a-zA-Z]/.test(s[lt+1]||''))continue;
+  let j=lt+1,ok=true;while(j<i){const c=s[j];if(c==='$'&&s[j+1]==='{'){j=interp99(s,j);continue}if(c==='"'||c==="'"){const z=q99(s,j);if(z>i)break;j=z;continue}if(/[>;{}()]/.test(c)){ok=false;break}j++}
+  if(ok)return true}return false}
 function js99(s,at){const close=(i,q)=>{for(let j=i;j<s.length;){if(s[j]==='$'&&s[j+1]==='{'){j=interp99(s,j);continue}if(s.startsWith(q,j))return j;j++}return s.length};
  for(const m of s.matchAll(/(?<=\s)style\s*=\s*(\\?["'])/g)){if(!tag99(s,m.index))continue;const a=m.index+m[0].length;decl99(s,a,close(a,m[1]),at)}
  for(const m of s.matchAll(/(?<=\s)(?:fill|stroke|stop-color|flood-color|lighting-color|color)\s*=\s*(\\?["'])/g)){if(!tag99(s,m.index))continue;const a=m.index+m[0].length;val99(s,a,close(a,m[1]),at)}
@@ -5355,7 +5358,11 @@ test('LHB-67: ningún color suelto en las pantallas de la app; lo que queda est�
   ['app.js',"\nconst settings99={}; settings99.color='red';",0],['app.js',"\nconst selector99='[fill=\"red\"]';",0],
   ['styles.css','\n.x{background:url("data:image/svg+xml,'+encodeURIComponent("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><style>rect{fill:red}</style><rect width=\"10\" height=\"10\"/></svg>")+'")}',1],
   ['app.js',"\nconst x99=`<i class=\"${a>b?'p':'q'}\" style=\"color:red\">`;",1],['app.js',"\nif(a<b) color99 = 'red';",0],['app.js',"\nlet color = 'red';",0],
-  ['app.js',"\nel.style='color:red';",1],['app.js',"\nel.style.cssText='border:1px solid red';",1],['app.js','\nconst x99=`<style>.y{color:red}</style>`;',1]])
+  ['app.js',"\nel.style='color:red';",1],['app.js',"\nel.style.cssText='border:1px solid red';",1],['app.js','\nconst x99=`<style>.y{color:red}</style>`;',1],
+  /* Codex ronda 3: un < en un valor o un ${} anterior no esconde la etiqueta; una regla anidada no esconde las declaraciones de su regla */
+  ['app.js',"\nconst x99=`<i class=\"${a<b?'p':'q'}\" style=\"color:red\">`;",1],['app.js','\nconst y99=`<i title="1 < 2" style="color:red">`;',1],
+  ['styles.css','\n.x{color:red;&:hover{color:var(--info)}}',1],['styles.css','\n@media (min-width:9px){.x{color:var(--info)}.y{fill:red}}',1],
+  ['styles.css','\n.x{&:hover{color:var(--info)}border:1px solid red}',1]])
   assert.equal(probe(f,x),n,(n?'la prueba ve ':'no es un color suelto: ')+x.trim());
 });
 test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera',()=>{

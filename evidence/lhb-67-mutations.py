@@ -66,6 +66,8 @@ M99 = [
     ('H32 spaces around = in an SVG fill (LHB-99 Codex r2)', lambda: append(HJ, '\nconst lhb99l=`<svg><rect fill = "red"/></svg>`;\n')),
     ('H33 a <style> sheet inside a new SVG data URI (LHB-99 Codex r2)', lambda: append(CS, '\n.lhb99m{background:url("data:image/svg+xml,%3Csvg%3E%3Cstyle%3Erect%7Bfill%3Ared%7D%3C%2Fstyle%3E%3Crect%2F%3E%3C%2Fsvg%3E")}\n')),
     ('H34 a <style> block in a template (LHB-99 Codex r2)', lambda: append(AP, '\nconst lhb99n=`<style>.y{color:red}</style>`;\n')),
+    ('H35 a comparison in an earlier ${} of the same tag (LHB-99 Codex r3)', lambda: append(AP, "\nconst lhb99o=`<i class=\"${a<b?'p':'q'}\" style=\"color:red\">`;\n")),
+    ('H36 a parent declaration beside a nested rule (LHB-99 Codex r3)', lambda: append(CS, '\n.lhb99p{color:red;&:hover{color:var(--info)}}\n')),
 ]
 M = M + M99
 red = 0

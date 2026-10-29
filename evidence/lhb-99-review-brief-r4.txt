@@ -1,0 +1,13 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket (base c1b7b99 to HEAD). This is the fourth and final review cycle of a TIER 1 ticket; the open blockers after cycle two were recorded for the owner. Read first: evidence/lhb-99-review-brief-r1.txt (scope and pinned decisions), then evidence/lhb-99-review-r1.txt, -r2.txt and -r3.txt, and the briefs for rounds 2 and 3.
+
+Round 3 concurred that rounds 1 and 2 are fixed and found two new cases, both fixed in HEAD:
+1. A < inside an earlier attribute value or ${} hid a later style color: tag99 now tries each earlier <letter in turn (up to 40, within 4000 characters) and accepts the first whose scan to the attribute crosses no > and no code outside quoted strings and ${}.
+2. A nested CSS rule hid its parent's declarations: sheet99 now reads each block's own text with its nested blocks cut out.
+
+The LHB-67 test probes 47 cases (31 seen once, the multiline gradient twice, 15 zero times), every counterexample from rounds 1 to 3 among them. Mutations 36 of 36 red; 17 of the 18 new ones survive the old scan (evidence/lhb-67-mutations.out). Full suite 332 pass, 0 fail, 1 skipped (evidence/lhb-99-tests.txt).
+
+The scope note from round 3's brief stands: this is a test-side guard for a design rule bounded by the ticket's three pinned decisions; mark BLOCK only a defect inside that boundary that a plausible edit to these five files would hit, and anything else as non-blocking.
+
+Check in particular: is each round 3 case fixed by the code; does the new tag99 search or the new sheet99 introduce a false positive or a false negative in the real files or a plausible next edit; anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

@@ -32,8 +32,10 @@ H31 a quoted brace before a color in a CSS rule (LHB-99 Codex r2) rc 1 fail 1 ->
 H32 spaces around = in an SVG fill (LHB-99 Codex r2)           rc 1 fail 1 -> RED
 H33 a <style> sheet inside a new SVG data URI (LHB-99 Codex r2) rc 1 fail 1 -> RED
 H34 a <style> block in a template (LHB-99 Codex r2)            rc 1 fail 1 -> RED
+H35 a comparison in an earlier ${} of the same tag (LHB-99 Codex r3) rc 1 fail 1 -> RED
+H36 a parent declaration beside a nested rule (LHB-99 Codex r3) rc 1 fail 1 -> RED
 baseline after restore: rc 0 pass 7
-RESULT 34 of 34 mutations red
+RESULT 36 of 36 mutations red
 before LHB-99: H19 hsl() in styles.css (LHB-99)                 rc 0 fail 0 -> SURVIVED
 before LHB-99: H20 uppercase RGB() in hoja.js (LHB-99)          rc 0 fail 0 -> SURVIVED
 before LHB-99: H21 uppercase HSLA() in cuenta.js (LHB-99)       rc 0 fail 0 -> SURVIVED
@@ -50,4 +52,6 @@ before LHB-99: H31 a quoted brace before a color in a CSS rule (LHB-99 Codex r2)
 before LHB-99: H32 spaces around = in an SVG fill (LHB-99 Codex r2) rc 0 fail 0 -> SURVIVED
 before LHB-99: H33 a <style> sheet inside a new SVG data URI (LHB-99 Codex r2) rc 0 fail 0 -> SURVIVED
 before LHB-99: H34 a <style> block in a template (LHB-99 Codex r2) rc 0 fail 0 -> SURVIVED
-BEFORE LHB-99: 15 of 16 new mutations survived the old scan
+before LHB-99: H35 a comparison in an earlier ${} of the same tag (LHB-99 Codex r3) rc 0 fail 0 -> SURVIVED
+before LHB-99: H36 a parent declaration beside a nested rule (LHB-99 Codex r3) rc 0 fail 0 -> SURVIVED
+BEFORE LHB-99: 17 of 18 new mutations survived the old scan
