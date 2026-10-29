@@ -1,0 +1,20 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-96-wt (branch lhb-96-tags). The diff below is origin/main..HEAD. This is a TIER 1 review: one round.
+
+Ticket LHB-96 (bug): the public passport page /u/<handle> (functions/u/[handle].js, LHB-40) printed diary tags as their stored flavor-wheel ids (madera, cacao), while the app shows the wheel names through WN() and tagChips() (site/hoja.js WHEEL; the names come from site/i18n.js, Spanish). Scope: functions/u/[handle].js, test/site.test.js, evidence/. No site file changes, so no cache bump.
+
+What was built:
+- WHEEL_NAME in functions/u/[handle].js: the same nine ids as site/hoja.js WHEEL, each with its Spanish name from site/i18n.js (cacao is "Cacao / café", the n of that WHEEL entry).
+- tagName(t): the name for a wheel id, through an own-property check (so constructor and __proto__ typed by hand stay as typed). Anything else is shown as typed, matched case-sensitively, like WN() in the app. The output is escaped as before.
+
+Tests:
+- New "LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre...":
+  - wheel ids, free text with HTML, constructor, __proto__, and a hand-typed "Madera";
+  - a parity check that WHEEL_NAME equals site/hoja.js WHEEL ids mapped to their site/i18n.js Spanish strings.
+- Two LHB-40 assertions that pinned the raw ids ('madera', '<li>madera</li><li>cacao</li>') now expect the names. That is the behavior this ticket changes.
+
+Evidence:
+- evidence/lhb-96-tests.txt: the full suite, 267 pass and 1 skipped (the LHB-95 browser test).
+- evidence/lhb-96-red-before.txt: the new test against main's functions/u/[handle].js, red.
+- evidence/lhb-96-mutations.out: RESULT 6 of 6 mutations red.
+
+Check the fix, the escaping, that the parity check would catch a drift between the app's names and the page's, and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
