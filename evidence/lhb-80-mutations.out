@@ -1,4 +1,4 @@
-baseline (no mutation): pass 29 fail 0
+baseline (no mutation): pass 30 fail 0
 the client never asks about a lost upload (before LHB-80)    RED (caught) (fail 6)
 GET never says whether an upload landed (before LHB-80)      RED (caught) (fail 6)
 PUT does not record its id                                   RED (caught) (fail 4)
@@ -21,11 +21,13 @@ r1: a missing id is trusted outside the recorded range       RED (caught) (fail 
 an answer about another id is believed                       RED (caught) (fail 2)
 r1: a 409 forgets every unresolved upload                    RED (caught) (fail 1)
 r1: a pass without a PUT forgets an upload that can still land GREEN (equivalent: the fence leaves nothing unresolved at the current rev when a pass completes) (fail 0)
-r1: a new upload replaces the unresolved one                 RED (caught) (fail 2)
-r2: no fence while an upload can still land                  RED (caught) (fail 2)
+r1: a new upload replaces the unresolved one                 RED (caught) (fail 3)
+r2: no fence while an upload can still land                  RED (caught) (fail 3)
 r2: an evicted upload leaves no trace                        RED (caught) (fail 1)
 r2: an evicted upload never voids the base                   RED (caught) (fail 1)
 r2: an evicted upload always voids the base                  RED (caught) (fail 1)
 r2: a 200 at the evicted If-Match keeps it                   RED (caught) (fail 1)
 r2: settled ignores uploads that can still land              GREEN (equivalent: settled() needs an ok pass, and an ok pass ends with nothing unresolved (the fence)) (fail 0)
-RESULT 27 of 29 red; 2 named equivalent; 0 unexpected survivors
+r3: the OPS_ASK limit counts every account                   RED (caught) (fail 1)
+r3: one eviction record for every account                    GREEN (equivalent: the account keeps its other uploads at the same If-Match, and returning after another account starts with no base) (fail 0)
+RESULT 28 of 31 red; 3 named equivalent; 0 unexpected survivors

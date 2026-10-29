@@ -51,6 +51,10 @@ MUTS = [
 EQUIV = {
     'r1: a pass without a PUT forgets an upload that can still land': 'the fence leaves nothing unresolved at the current rev when a pass completes',
     'r2: settled ignores uploads that can still land': 'settled() needs an ok pass, and an ok pass ends with nothing unresolved (the fence)',
+    # Codex r3: eviction happens after the pass's GET resolved every lower rev, so the account's other OPS_ASK uploads in pend share the evicted If-Match
+    # (its fence and settled() do not need the record); and after another account used the device, isolate starts this account with no base, so the void
+    # decision changes nothing. The per-account limit (mutant above) is what closes round 3; the Map is kept as round 3 asked.
+    'r3: one eviction record for every account': 'the account keeps its other uploads at the same If-Match, and returning after another account starts with no base',
 }
 
 
