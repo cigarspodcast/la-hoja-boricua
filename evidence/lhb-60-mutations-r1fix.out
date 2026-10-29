@@ -1,0 +1,24 @@
+N1 the count waits for the server                rc 1 fail 4 -> RED
+N2 no rollback on a refusal                      rc 1 fail 1 -> RED
+N3 a refusal says nothing                        rc 1 fail 1 -> RED
+N4 two requests at once                          rc 1 fail 1 -> RED
+N5 a stale response overwrites a newer tap       rc 1 fail 2 -> RED
+N6 your own row gets a button                    rc 1 fail 1 -> RED
+N7 any stored account counts                     rc 1 fail 1 -> RED
+N8 a button without knowing the state            rc 1 fail 1 -> RED
+N9 the same person twice across pages            rc 1 fail 1 -> RED
+N10 the next page without the cursor             rc 1 fail 1 -> RED
+N11 no more button                               rc 1 fail 1 -> RED
+N12 the list routes ignored                      rc 1 fail 1 -> RED
+N13 the counts do not link                       rc 1 fail 1 -> RED
+N14 a left page still answers (r1: the check is ok()) rc 1 fail 1 -> RED
+N16 r1: the request does not ask again after the token rc 1 fail 1 -> RED
+N17 r1: api() ignores go                         rc 1 fail 1 -> RED
+N18 r1: the mount ignores an account change during the GET rc 1 fail 1 -> RED
+N19 r1: a mounted button ignores sign-out        rc 1 fail 1 -> RED
+N20 r1: the account store does not tell the buttons rc 1 fail 1 -> RED
+N21 r1: a confirmation does not repaint the count rc 1 fail 1 -> RED
+N22 r1: the watcher never leaves a gone page     rc 1 fail 1 -> RED
+N15 an empty list says nothing                   rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 6
+RESULT 22 of 22 mutations red
