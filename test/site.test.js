@@ -6810,6 +6810,47 @@ test('LHB-104 (Codex r2): treinta recargas, cada una con una subida sin respuest
   off=false;assert.equal((await SYNC28().LHB_SYNC(D2).run('red')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
   assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
  }finally{a.done()}});
+test('LHB-104 (Codex r3): la pestaña 2 empieza a salir y su GET tarda; mientras, la 1 quita a1, sabe que llegó, anota su base, quita la anotación y repone a1: la 2 usa la base nueva y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0,late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  let open=null,paused=false;
+  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;await new Promise(x=>{open=x})}return api(C,m,...r)},wait:async()=>{}};
+  const T2=SYNC28().LHB_SYNC(D2);const pB=T2.settled({});
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'el GET de la pestaña 2 espera');
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.ok(late,'la subida que repone a1 quedó sin respuesta');
+  open();await pB;
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y en el teléfono');
+  assert.equal((await late()).status,409,'la de la pestaña 1 ya no llega');
+ }finally{a.done()}});
+test('LHB-104 (Codex r3): la subida llega (200) mientras la persona vuelve a poner a1 y la base nueva no se puede anotar: la anotación se queda, y al recargar a1 sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.net.afterPut=async()=>{A.edit(d=>{d.favs.artesanos=['a1']});A.st.failKey='lhb_mihoja_v1_sync'};
+  A.edit(d=>{d.favs.artesanos=[]});const r=await A.eng.run('guardado');A.st.failKey=null;
+  assert.ok(!r.ok,'la pasada no terminó');assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r3): con muchas recargas en el mismo If-Match, lo anotado no pasa de OPS_ASK ids y una llave de sobra: cabe en 600 caracteres y, cuando vuelve la red, sube',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const D2=mk104(A,{set:(k,v)=>{if(!isP104(k))return;let n=String(v).length;for(const [x,w] of A.ls)if(isP104(x)&&x!==k)n+=String(w).length;if(n>600)throw new Error('QuotaExceededError')}});
+  const api=A.D.api;let off=true;D2.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<30;i++)await SYNC28().LHB_SYNC(D2).run('recarga');
+  assert.ok([...A.ls.keys()].filter(isP104).length<=9,'pocas llaves');
+  off=false;assert.equal((await SYNC28().LHB_SYNC(D2).run('red')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+  assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{
