@@ -5,6 +5,7 @@
    LHB-55: PUT con "avatar_url" en el cuerpo (el perfil entero) edita el perfil entero del dueño (403 sin perfil, 409 si el @ lo tiene otra persona); aquí un segundo POST sigue dando 409. */
 import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
 import { checkProfile, checkIdentity } from '../_lib/profile.js';
+import { fencedRun, idHash, wasDeleted } from '../_lib/account.js';
 
 // la sesión, la base y el cuerpo JSON: { user, body } o la respuesta de rechazo
 async function intake(request, env) {
@@ -28,11 +29,14 @@ export async function onRequestPost({ request, env }) {
   if (p.error) return json({ error: p.error }, 400);
   const stamp = now.toISOString();
   try {
-    const r = await env.DB.prepare(
-      'INSERT INTO profiles (user_id, handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date, age_ok_at, created_at, updated_at) ' +
-      'VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?11) ON CONFLICT(user_id) DO NOTHING'
-    ).bind(it.user.sub, p.handle, p.display_name, p.bio, p.favorite_brand, p.avatar_key, p.first_name, p.last_name, p.gender, p.birth_date, stamp).run();
-    if (!r.meta.changes) return json({ error: 'profile-exists' }, 409);
+    // LHB-34 (Codex r2): una cuenta borrada no vuelve a tener perfil, aunque su sesión todavía viva (la valla va en la misma sentencia)
+    const cols = 'INSERT INTO profiles (user_id, handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date, age_ok_at, created_at, updated_at) ';
+    const hash = await idHash(it.user.sub);
+    const r = await fencedRun(env.DB,
+      cols + 'SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?11 WHERE NOT EXISTS (SELECT 1 FROM deleted_accounts WHERE id_hash = ?12) ON CONFLICT(user_id) DO NOTHING',
+      cols + 'VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?11) ON CONFLICT(user_id) DO NOTHING',
+      [it.user.sub, p.handle, p.display_name, p.bio, p.favorite_brand, p.avatar_key, p.first_name, p.last_name, p.gender, p.birth_date, stamp], hash);
+    if (!r.meta.changes) return (await wasDeleted(env.DB, hash)) ? json({ error: 'account-deleted' }, 403) : json({ error: 'profile-exists' }, 409);
   } catch (e) {
     if (/UNIQUE/i.test(String(e && e.message))) return json({ error: 'handle-taken' }, 409);
     throw e;

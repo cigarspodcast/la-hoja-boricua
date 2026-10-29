@@ -1,0 +1,31 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-34-wt (branch lhb-34-account). The diff below is origin/main..HEAD. This is round 7 of a TIER 2 review. Your rounds 1 to 6 are in evidence/lhb-34-review-r1.txt to -r6.txt. Round 6: BLOCK, one finding; you concurred that the round 5 finding is fixed.
+
+The ticket and its pinned decisions are in evidence/lhb-34-review-brief-r6.txt and unchanged.
+
+How the round 6 finding was taken:
+1. Edits made during a pending sign-out retry survived a successful sign-out. FIXED, on both Clerk sign-out paths.
+   - site/sync.js exports fenceUp(): it stamps the fence (the same key and clock that fenced() reads).
+   - site/hoja.js leaving(C) is now the only way either path signs out of Clerk: salir (first attempt and retry) and askDelete after a 200. It stamps the fence, renews it every 3 s (FENCE_TTL is 10 s) while signOutClerk is pending, and stops in finally. On success the page navigates. On failure the renewal stops and the fence expires on its own, and a later retry is covered by the round 5 rule.
+   - On a retry with no new copy, the fence is stamped synchronously, right after the storage check, before anything is awaited. So there is no window between the check and the fence.
+   - Test "LHB-34 (Codex r6): mientras Clerk cierra la sesión la valla se renueva...":
+     - first attempt: Clerk takes 11 s, the fence still holds, then the sign-out fails, the renewal stops and the fence expires;
+     - your schedule: a retry after expiry puts the fence back at once and holds it while Clerk takes 11 s;
+     - the delete path does the same.
+   - Mutations M71 to M75 are red: no renewal, no first stamp, renewal never stopped, fenceUp a no-op, and delete without leaving.
+   - Side effect found by the mutation run: the renewal re-stamps the fence right after forget, which masked forget's own stamps (M59 and M64 survived the first run, kept as evidence/lhb-34-mutations-r6fix-survivors.out). The r3 fence test now also calls engine settled and forget directly and checks the fence forget leaves. M59 and M64 are red again.
+- The round 4 residual (a renderer suspended inside one synchronous step during another tab's sign-out) stays escalated to the owner. Please do not re-report it.
+
+The branch now also merges origin/main: LHB-60 (follow button and lists, PR #33). The only conflicts were cache pins. LHB-60's api() gained a 7th argument (go), and acct.set and acct.clear now call acctTell(); LHB-34 code is unchanged by it. The cache is lhb-v88.
+
+Evidence:
+- evidence/lhb-34-tests.txt: the full suite after the merge, 290 pass and 1 skipped (the LHB-95 browser test).
+- evidence/lhb-34-mutations-merged60.out: RESULT 75 of 75 mutations red after the merge. Before the merge: evidence/lhb-34-mutations-r6fix.out, 75 of 75.
+
+Check:
+- that round 6 finding 1 is fixed on both paths;
+- that leaving cannot leave a renewal running, or a fence that never expires, after a failure;
+- that the new tests cannot pass on broken code;
+- that the merge with LHB-60 did not break either feature;
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

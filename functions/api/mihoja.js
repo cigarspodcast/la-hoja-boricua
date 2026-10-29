@@ -43,11 +43,13 @@ export async function onRequestPut({ request, env }) {
   if (c.error) return json({ error: c.error }, c.status);
   const me = g.user.sub, at = new Date().toISOString();
   try {
-    // una sola sentencia revisa el rev y escribe: dos teléfonos a la vez no pasan los dos
+    // una sola sentencia revisa el rev y escribe: dos teléfonos a la vez no pasan los dos.
+    // LHB-34: crear la copia también pide el perfil en la misma sentencia: un PUT que pasó la puerta antes de que se borrara la cuenta no la vuelve a crear
     const r = rev === 0
-      ? await env.DB.prepare('INSERT INTO mihoja (user_id, doc, schema, rev, updated_at) VALUES (?1, ?2, ?3, 1, ?4) ON CONFLICT(user_id) DO NOTHING').bind(me, c.text, c.schema, at).run()
+      ? await env.DB.prepare('INSERT INTO mihoja (user_id, doc, schema, rev, updated_at) SELECT ?1, ?2, ?3, 1, ?4 WHERE EXISTS (SELECT 1 FROM profiles WHERE user_id = ?1) ON CONFLICT(user_id) DO NOTHING').bind(me, c.text, c.schema, at).run()
       : await env.DB.prepare('UPDATE mihoja SET doc = ?2, schema = ?3, rev = rev + 1, updated_at = ?4 WHERE user_id = ?1 AND rev = ?5').bind(me, c.text, c.schema, at, rev).run();
     if (r.meta.changes) return json({ rev: rev + 1, updated_at: at });
+    if (!(await env.DB.prepare('SELECT 1 AS n FROM profiles WHERE user_id = ?1').bind(me).first())) return json({ error: 'no-profile' }, 403);
     // el rev ya no era ese: se devuelve la copia de ahora para que el cliente la junte con la suya
     const s = shape(await current(env.DB).bind(me).first());
     return s ? json({ error: 'conflict', ...s }, 409) : json({ error: 'corrupt' }, 500);

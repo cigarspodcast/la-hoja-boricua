@@ -1,0 +1,26 @@
+M1 handle_checks skipped                             rc 1 fail 4 -> RED
+M2 mihoja skipped                                    rc 1 fail 5 -> RED
+M3 profiles skipped                                  rc 1 fail 5 -> RED
+M4 follows skipped (red without foreign keys)        rc 1 fail 1 -> RED
+M5 follow_events skipped (red without foreign keys)  rc 1 fail 1 -> RED
+M6 follows only on the follower side                 rc 1 fail 1 -> RED
+M7 the Clerk delete skipped                          rc 1 fail 3 -> RED
+M8 Clerk 404 is a failure                            rc 1 fail 2 -> RED
+M9 unknown tables ignored (fail open)                rc 1 fail 1 -> RED
+M10 d1_migrations counted as unknown                 rc 1 fail 1 -> RED
+M11 no typed confirmation                            rc 1 fail 2 -> RED
+M12 any Clerk key for any instance                   rc 1 fail 1 -> RED
+M13 Clerk deleted before the base                    rc 1 fail 1 -> RED
+M14 sign-out check removed (the Proof)               rc 1 fail 2 -> RED
+M15 settled: pending check removed                   rc 1 fail 1 -> RED
+M16 settled: draft check removed                     rc 1 fail 1 -> RED
+M17 settled: any backup counts                       rc 1 fail 1 -> RED
+M18 forget keeps the sync meta                       rc 1 fail 3 -> RED
+M19 held passes still run                            rc 1 fail 2 -> RED
+M20 a refused delete leaves sync stopped             rc 1 fail 1 -> RED
+M21 after a half delete the retry sends the @ again  rc 1 fail 1 -> RED
+M22 delete button always enabled                     rc 1 fail 1 -> RED
+M23 no privacy link in the panel                     rc 1 fail 1 -> RED
+M24 Perfil does not bind the panel                   rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 10
+RESULT 24 of 24 mutations red

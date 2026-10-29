@@ -1,0 +1,33 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-34-wt (branch lhb-34-account). The diff below is origin/main..HEAD. This is round 4 of a TIER 2 review, which loops until there is no blocking finding. Your rounds 1 to 3 are in evidence/lhb-34-review-r1.txt, -r2.txt and -r3.txt. Round 3: BLOCK, two findings; you concurred that round 2 findings 2, 3 and 4 are fixed.
+
+Ticket LHB-34, account page. Pinned decisions:
+- Delete needs typed confirmation and signs the user out everywhere.
+- Download reuses the existing respaldo JSON.
+- Sign-out removes this phone's local copy, but only after the server confirms it holds the latest rev. With unsynced changes, sign-out is blocked with "Sincroniza o descarga un respaldo primero".
+- A link to the privacy page.
+- Delete removes every row, the Mi Hoja document, R2 photos (none exist yet; LHB-35) and the Clerk user.
+
+How each round 3 finding was taken:
+1. Another tab could write between forget's final check and the erase.
+   - site/sync.js forget(mark) is now async. With a mark it checks the mark, holds this tab's sync (awaiting a running pass), writes a fence key lhb_mihoja_v1_saliendo holding Date.now(), waits FENCE_MS (1000 ms, D.wait), checks the mark again, and only then erases KEY, META, OWNER and SEQ in one synchronous block.
+   - fenced() is true while the fence is under FENCE_TTL (10 s) old. While fenced, every local writer refuses: hoja.js write() (the only writer of the Mi Hoja key, used by the UI and by sync's setDoc; it shows ac.fenced and drops its in-memory copy), and the engine's writeMeta, bumpSeq and setOwner.
+   - A writer in another tab that checked the fence just before it became visible writes within the wait; its write changes the stored text or the shared counter, the second check fails, nothing is erased, the fence is removed and sync is released.
+   - After a successful erase the fence is left to expire, so a tab that has not yet received the storage event for the owner key cannot write its in-memory copy back during that time. A fence left by a tab that closed halfway expires by itself.
+   - This is a storage handshake, not a cross-tab lock: it relies on a localStorage write becoming visible to other same-origin tabs within 1 s. The Web Locks API would need every Mi Hoja write path to become asynchronous; say if you consider the handshake insufficient and why.
+   - salir and askDelete now await dropLocal.
+2. A delete marker that could not be saved silently abandoned recovery.
+   - delMark.set returns whether the marker was saved, by reading it back (a throw, or a write that silently does not persist, both return false).
+   - borrar sends no DELETE when the marker was not saved: it shows ac.del.store and releases sync unless an earlier marker is still present.
+
+Tests and evidence:
+- evidence/lhb-34-tests.txt: the full suite, 280/280, after merging origin/main (LHB-58, the profile page, which took cache lhb-v85; this branch is now lhb-v86). The merge kept both sides in hoja.js's export list, in app.js vPerfil (the account panel, then LHB-58's profileOwn) and in the vPerfil test harness's EXT stub.
+- evidence/lhb-34-mutations-r3fix.out: RESULT 63 of 63 mutations red, rerun after the merge (the pre-merge run, also 63 of 63, is -r3fix-premerge.out); M48 to M63 cover the fence (not set, no wait, no second check, each writer ignoring it, no expiry, left after an abort, sync left held, passes during the wait, removed right after the erase, salir not awaiting forget) and the marker (no read-back, DELETE without a saved marker, an earlier marker's hold released). M29 was retargeted to the new mark comparison; the run where its old target crashed is evidence/lhb-34-mutations-r3fix-first.out.
+- New tests: another tab writes during the fence wait (nothing erased, fence removed, sync released, no pass during the wait); writers refuse under the fence and an expired fence no longer blocks; a marker that throws or is lost sends nothing.
+
+Check:
+- that each round 3 finding is fixed;
+- that the new tests cannot pass on broken code;
+- that the fixes did not break LHB-28 sync, LHB-63 handle checks or onboarding before 0006 is applied;
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

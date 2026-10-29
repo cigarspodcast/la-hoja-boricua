@@ -1,0 +1,28 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-34-wt (branch lhb-34-account). The diff below is origin/main..HEAD. This is round 6 of a TIER 2 review. Your rounds 1 to 5 are in evidence/lhb-34-review-r1.txt to -r5.txt. Round 5: BLOCK, one finding; you concurred on both round 4 fixes.
+
+Ticket LHB-34, account page. Pinned decisions:
+- Delete needs typed confirmation and signs the user out everywhere.
+- Download reuses the existing respaldo JSON.
+- Sign-out removes this phone's local copy, but only after the server confirms it holds the latest rev. With unsynced changes, sign-out is blocked with "Sincroniza o descarga un respaldo primero".
+- A link to the privacy page.
+- Delete removes every row, the Mi Hoja document, R2 photos (none exist yet; LHB-35) and the Clerk user.
+
+How the round 5 finding was taken:
+1. A sign-out retry after a failed Clerk sign-out skipped the check even when Mi Hoja had been written again. FIXED.
+   - site/hoja.js salir: on a retry (outDone), if the Mi Hoja key is back in localStorage, outDone is reset and SYNC.hold(false) releases the sync engine, so the retry runs SYNC.settled and dropLocal again like a first sign-out. With no new copy, the retry still only retries Clerk.
+   - Test "LHB-34 (Codex r5): cerrar la sesión falla, la valla caduca y se vuelve a escribir Mi Hoja...": your schedule. Clerk sign-out fails once, the fence expires, Mi Hoja is written again. Offline, the retry does not sign out, and the new entry stays. Online, the new entry reaches the account, the local copy is erased again, and then the sign-out happens.
+   - Mutations: M69 (the retry skips the check) and M70 (it checks, but leaves the engine held) are red.
+   - The ACCT34 harness context gained KEY.
+- The residual from round 4 (a renderer suspended inside one synchronous step during another tab's sign-out) stays escalated to the owner. Please do not re-report it.
+
+Evidence:
+- evidence/lhb-34-tests.txt: the full suite, 283 pass and 1 skipped (the LHB-95 browser test, which needs LHB_BROWSER=1).
+- evidence/lhb-34-mutations-r5fix.out: RESULT 70 of 70 mutations red. -r5fix-first.out is the first run of M69 and M70 only.
+
+Check:
+- that round 5 finding 1 is fixed;
+- that the new test cannot pass on broken code;
+- that the fix did not break LHB-28 sync or the other sign-out and delete paths;
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

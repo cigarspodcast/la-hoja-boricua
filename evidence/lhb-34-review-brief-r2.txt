@@ -1,0 +1,46 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-34-wt (branch lhb-34-account). The diff below is origin/main..HEAD. This is round 2 of a TIER 2 review, which loops until there is no blocking finding. Your round 1 is in evidence/lhb-34-review-r1.txt: VERDICT BLOCK, five findings.
+
+Ticket LHB-34, account page. Pinned decisions:
+- Delete needs typed confirmation and signs the user out everywhere.
+- Download reuses the existing respaldo JSON.
+- Sign-out removes this phone's local copy, but only after the server confirms it holds the latest rev. With unsynced changes, sign-out is blocked with "Sincroniza o descarga un respaldo primero".
+- A link to the privacy page.
+- Delete removes every row, the Mi Hoja document, R2 photos (none exist yet; LHB-35) and the Clerk user.
+
+How each round 1 finding was taken:
+1. Sign-out could erase edits made after validation.
+   - salir now gets Clerk BEFORE the check.
+   - SYNC.settled returns a mark: the raw stored text of the Mi Hoja key and the shared write counter, read in the same tick as the check.
+   - SYNC.forget(mark) compares the mark and erases in one synchronous block, so there is no await between compare and erase. If anything changed (this tab or another), nothing is erased, sync is not held, and the message is the pending one.
+   - Tests: "LHB-34 (Codex r1): lo que se escribe entre la revisión y el borrado...", covering this tab writing through the engine and another tab writing the key directly.
+2. An in-flight Mi Hoja PUT could recreate a row after deletion.
+   - functions/api/mihoja.js: the create (If-Match 0) is now INSERT ... SELECT ... WHERE EXISTS (SELECT 1 FROM profiles WHERE user_id = ?1), one statement. After any write that changes nothing, a missing profile answers 403 no-profile; that also covers an update after deletion.
+   - account.js sweeps the base a second time after the Clerk delete.
+   - functions/api/handle.js now prunes expired handle_checks rows of every account, not only the caller's, so a rate-log row written after a deletion disappears within a minute of anyone's next check.
+   - Follows cannot be recreated: their foreign keys need both profiles, and D1 enforces foreign keys.
+   - Test: a rev-0 PUT paused right before its INSERT, the delete completes, the PUT resumes and gets 403 with no row.
+3. The key's prefix did not prove the instance.
+   - Before deleting anything, account.js asks Clerk GET /v1/users/{id} with the key.
+   - 200 is required while a profile exists. A 404 with a profile is 503 clerk-mismatch, and nothing is deleted. A 5xx or network error is 503 clerk-unavailable.
+   - With no profile and a 404, the Clerk side already finished (a lost response), so only the base is swept.
+4. A lost 502 broke the retry.
+   - With no profile left, the server accepts any non-empty confirmation. The client's retry sends the same typed @, and the acRetry variable is gone.
+   - A durable mark, localStorage lhb_borrando {sub}, is set before the request. It is cleared when the server answers 200, 4xx or 503 (nothing deleted). It is kept on a 502 or a lost response, and sync stays held.
+   - On the next app load with the same Clerk user, resumeDelete sends confirm '#fin'. '#fin' can never be a handle, so it only works when the profile is already gone. With an intact profile, the server says 400 and the mark is dropped without deleting anything.
+   - An end-to-end test runs the real endpoint: a lost 502, a reload that resumes and finishes, a mark with an intact profile, a mark of another account, and no session.
+5. A failed Clerk sign-out could not be retried.
+   - outDone records that local data is already gone, so a second tap only retries Clerk.
+
+Residual risk, for you to judge: a profile POST (onboarding) sent from another still-open tab, with a session token minted before the Clerk delete (tokens live 60 s and are verified offline against JWKS), could create a new profiles row for the deleted id inside that window. Fencing it needs a tombstone table, which is a new D1 migration. Production D1 migrations are owner-gated in this lane, so it is not in this branch. The UI never offers onboarding to a user who has a profile, and after deletion the deleting tab reloads signed out.
+
+Evidence in the worktree:
+- evidence/lhb-34-tests.txt: the full suite, 258/258.
+- evidence/lhb-34-mutations-r1fix.out: 37 of 37 mutations red, M25 to M37 for round 1. A first run of the 37 left M8 (a Clerk 404 on the delete itself) surviving, recorded in evidence/lhb-34-mutations-r1fix-first.out; a test for that race was added and the rerun is the 37 of 37.
+
+Check:
+- that each round 1 finding is fixed;
+- that the new tests cannot pass on broken code;
+- that the fixes did not break LHB-28 sync or LHB-63 handle checks;
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
