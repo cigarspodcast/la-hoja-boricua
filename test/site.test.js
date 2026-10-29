@@ -2817,7 +2817,7 @@ test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, 
 /* un teléfono de mentira para probar el motor contra el servidor de verdad (SQLite): su almacenamiento, su reloj, sus temporizadores y su red */
 function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,failBigKey:null,failBig:0,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
  const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
- const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)},remove:k=>{ls.delete(k)}},
+ const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(st.failPre&&k.startsWith(st.failPre))||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)},remove:k=>{ls.delete(k)},keys:()=>{if(st.failKeys)throw new Error('SecurityError');return [...ls.keys()]}},
   getDoc:()=>rawDoc(),setDoc:(d,exp)=>{st.setDocs++;if(st.beforeApply){const f=st.beforeApply;st.beforeApply=null;f()}if(exp!==undefined&&win.LHB_MERGE.stable(rawDoc())!==exp)return 'stale';if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
@@ -6592,7 +6592,7 @@ test('LHB-104: una pestaña manda una subida mientras otra sale, después de su 
   const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
   const T2=SYNC28().LHB_SYNC(A.D);const gd=A.D.getDoc;let n=0;
   /* la pasada de salir ya leyó la lista; cuando escribe la copia, la otra pestaña anota una subida nueva con el rev de ahora */
-  A.D.getDoc=()=>{if(++n===2)A.ls.set('lhb_mihoja_v1_pend',JSON.stringify({v:1,l:[{s:'user_a',r:1,o:'otra_pestana'}]}));return gd()};
+  A.D.getDoc=()=>{if(++n===2)A.ls.set('lhb_mihoja_v1_pend.otra_pestana',JSON.stringify({v:1,s:'user_a',r:1,o:'otra_pestana'}));return gd()};
   const s2=await T2.settled({});A.D.getDoc=gd;
   assert.equal(s2.ok,false,'una subida de otra pestaña todavía puede llegar');
  }finally{a.done()}});
@@ -6602,7 +6602,7 @@ test('LHB-104: si la subida no se puede anotar para las otras pestañas, no se m
   a.db.exec(a.mig('0008_mihoja_ops.sql'));
   const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
   const api=A.D.api;let puts=0;A.D.api=async(C,m,...r)=>{if(m==='PUT')puts++;return api(C,m,...r)};
-  A.edit(d=>{d.favs.artesanos=[]});A.st.failKey='lhb_mihoja_v1_pend';const r=await A.eng.run('guardado');A.st.failKey=null;
+  A.edit(d=>{d.favs.artesanos=[]});A.st.failPre='lhb_mihoja_v1_pend.';const r=await A.eng.run('guardado');A.st.failPre=null;
   assert.ok(r.fail,'la pasada no terminó');assert.equal(puts,0,'no se mandó');assert.equal(srv28(a,'user_a').rev,1);
   assert.equal((await A.sync()).ok,true);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'luego sí');
  }finally{a.done()}});

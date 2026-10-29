@@ -82,9 +82,12 @@ const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 /* LHB-80 (Codex r1): cuántas subidas sin respuesta se recuerdan y se preguntan en un GET (OPS_ASK en functions/_lib/mihoja.js) */
 const OPS_ASK=8;
-/* LHB-104: las subidas sin respuesta de todas las pestañas, en una llave chica que todas leen: {v:1,l:[{s:cuenta,r:If-Match,o:id}]}. La pestaña que sube la anota
-   antes de mandar; cualquier pestaña la quita cuando sabe que ya no puede llegar. Así otra pestaña pone la valla, y no sale mientras una pueda llegar */
-const PEND=KEY+'_pend';
+/* LHB-104: las subidas sin respuesta de todas las pestañas, cada una en su propia llave chica que todas leen: PEND+id = {v:1,s:cuenta,r:If-Match,o:id}.
+   La pestaña que sube la anota antes de mandar; cualquier pestaña la quita cuando sabe que ya no puede llegar. Así otra pestaña pone la valla, y no sale mientras una pueda llegar.
+   Codex r1: una llave por subida, para que nadie lea y reescriba una lista que otra pestaña está cambiando (sin Web Locks se pisaban).
+   Con OPS_ASK anotadas para la misma cuenta y el mismo If-Match, las demás de esta pestaña van en una sola llave sin id (PEND+'x.'+pestaña+'.'+rev+'.'+cuenta, {v:1,s,r,x:true}):
+   la lista no crece sin límite */
+const PEND=KEY+'_pend.';
 window.LHB_SYNC=function(D){
  let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,pend=[],evict=new Map(),mem=null,held=false,state={state:'idle',err:null};
  /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
@@ -149,12 +152,22 @@ window.LHB_SYNC=function(D){
     en ese tramo por cualquier camino (una lectura que lanza, la cuenta o la época que cambian, una lectura de la época que falla), ninguna base de antes vale:
     se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada. Una subida que el servidor rechazó (409) no cuenta.
     Cualquier otra excepción del almacenamiento a mitad de la pasada la para sin más (se reintenta) */
- const shOk=e=>isObj(e)&&typeof e.s==='string'&&Number.isInteger(e.r)&&e.r>=0&&typeof e.o==='string';
- /* LHB-104: lo que no se puede leer como la lista (otra versión, roto) cuenta como vacío; una lectura que lanza sube */
- const shRead=()=>{const raw=D.ls.get(PEND);if(raw==null)return [];let v;try{v=JSON.parse(raw)}catch(e){return []}return isObj(v)&&v.v===1&&Array.isArray(v.l)?v.l.filter(shOk):[]};
- const shWrite=l=>{if(fenced())throw new Error('fenced');D.ls.set(PEND,JSON.stringify({v:1,l}))};
+ const shOk=v=>isObj(v)&&v.v===1&&typeof v.s==='string'&&Number.isInteger(v.r)&&v.r>=0&&(v.x===true||typeof v.o==='string');
+ /* LHB-104: una llave que no se puede leer como anotación (otra versión, rota) no cuenta; una lectura que lanza sube */
+ const shRead=()=>{const out=[];for(const k of D.ls.keys()){if(typeof k!=='string'||k.slice(0,PEND.length)!==PEND)continue;const raw=D.ls.get(k);if(raw==null)continue;
+   let v;try{v=JSON.parse(raw)}catch(e){continue}if(shOk(v))out.push({k,s:v.s,r:v.r,o:v.x===true?null:v.o})}return out};
+ const shDel=e=>{if(fenced())throw new Error('fenced');D.ls.remove(e.k)};
+ /* se anota antes de mandar. Codex r1: después de anotarla se mira la valla otra vez (salir pone la valla y luego mira las anotadas): o salir ve esta, o esta ve la valla y no se manda */
+ const shAdd=(uid,rev,op)=>{if(fenced())throw new Error('fenced');
+  const full=shRead().filter(e=>e.s===uid&&e.r===rev).length>=OPS_ASK;
+  const k=full?PEND+'x.'+TAB+'.'+rev+'.'+uid:PEND+op,had=full&&D.ls.get(k)!=null;
+  if(!had)D.ls.set(k,JSON.stringify(full?{v:1,s:uid,r:rev,x:true}:{v:1,s:uid,r:rev,o:op}));
+  if(fenced()){if(!had){try{D.ls.remove(k)}catch(e){}}throw new Error('fenced')}
+  if(full)myX.add(k);return k};
  /* las que mandó esta pestaña (aunque ya no las pregunte): de esas se encarga la memoria de esta pestaña (pend, evict); las demás de la lista son de otra */
  const myOps=new Set();
+ /* y las llaves de sobra de esta pestaña (las suyas sin id: de las subidas que van en ellas también se encarga su memoria) */
+ const TAB=(Math.random().toString(36).slice(2)+'00000000').slice(0,8),myX=new Set();
  let unrecorded=false,poisonNow=null;
  async function once(){unrecorded=false;poisonNow=null;let r;
   try{r=await once0()}catch(e){r={fail:'storage'}}
@@ -187,7 +200,7 @@ window.LHB_SYNC=function(D){
    const ask=pend.filter(x=>x.sub===uid);
    /* LHB-104: y por las que otra pestaña anotó y esta no conoce (de esta cuenta) */
    const mineOps=new Set(ask.map(x=>x.op));
-   const room=Math.max(0,OPS_ASK-ask.length),oth=shRead().filter(e=>e.s===uid&&!mineOps.has(e.o)&&!myOps.has(e.o)),other=room?oth.slice(-room).map(e=>e.o):[];
+   const room=Math.max(0,OPS_ASK-ask.length),oth=shRead().filter(e=>e.s===uid&&e.o&&!mineOps.has(e.o)&&!myOps.has(e.o)),other=room?oth.slice(-room).map(e=>e.o):[];
    const q=ask.map(x=>x.op).concat(other);
    let g;try{g=await D.api(C,'GET','/api/mihoja'+(q.length?'?'+q.map(o=>'op='+encodeURIComponent(o)).join('&'):''),null,uid)}catch(e){return {skip:'offline'}}
    if(!alive())return {skip:'other-account'};
@@ -211,10 +224,12 @@ window.LHB_SYNC=function(D){
    /* LHB-104: la lista de todas las pestañas. Las de un rev que la cuenta ya pasó no pueden llegar y se quitan; si eran de otra pestaña y no se sabe que no llegaron,
       pudieron llegar sobre esta misma copia (la comparten las pestañas): se junta sin dar nada por borrado. Las del rev de ahora todavía pueden llegar: valla */
    let shLive=false;
-   {const sh=shRead(),keep=[];let ch=false;
-    for(const e of sh){if(e.s!==uid||e.r>=rev){keep.push(e);if(e.s===uid&&e.r===rev)shLive=true;continue}
-     ch=true;const own=myOps.delete(e.o);if(!mineOps.has(e.o)&&!own){const o=oks&&oks.find(y=>isObj(y)&&y.id===e.o);if(!(o&&o.rev===null&&Number.isInteger(g.body.opsFrom)&&e.r+1>=g.body.opsFrom))voided=true}}
-    if(ch)shWrite(keep)}
+   /* la que no tiene id (la de sobra) no se puede preguntar: no se sabe si llegó */
+   /* Codex r1: si la base ya no vale, eso se anota (poison) antes de quitar las anotaciones que lo dicen: si la pasada se corta, la próxima tampoco se fía de ella */
+   {const gone=[];
+    for(const e of shRead()){if(e.s!==uid)continue;if(e.r>=rev){if(e.r===rev)shLive=true;continue}
+     gone.push(e);const own=e.o?myOps.delete(e.o):myX.delete(e.k);if(!(e.o&&mineOps.has(e.o))&&!own){const o=e.o&&oks&&oks.find(y=>isObj(y)&&y.id===e.o);if(!(o&&o.rev===null&&Number.isInteger(g.body.opsFrom)&&e.r+1>=g.body.opsFrom))voided=true}}
+    if(gone.length){if(voided&&!poison())return {fail:'storage'};for(const e of gone)shDel(e)}}
    /* Codex r2: una subida olvidada por exceso (más de OPS_ASK sin respuesta) puede llegar mientras la cuenta siga en su If-Match. Cuando la cuenta pasa de ese rev:
       si una de las preguntadas llegó justo ahí, la olvidada perdió (con un mismo If-Match llega una sola); si no, no se sabe si fue ella y se junta sin dar nada por borrado */
    /* Codex r3: una por cuenta (evict es un Map de sub a If-Match): otra cuenta en este teléfono no borra la de esta */
@@ -240,18 +255,18 @@ window.LHB_SYNC=function(D){
     /* Codex r1: se suma a las que siguen sin saberse (no las reemplaza); si son demasiadas, la más vieja deja de preguntarse.
        Codex r2: pero queda anotado su If-Match (evict) hasta que la cuenta pase de él, y mientras tanto cada pasada pone la valla */
     /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
-    const op=newOp();shWrite(shRead().concat([{s:uid,r:rev,o:op}]));myOps.add(op);pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
+    const op=newOp(),sk=shAdd(uid,rev,op);myOps.add(op);pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
     if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
     let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
-    if(p.status===409||(p.status<500&&p.status!==200)){pend=pend.filter(x=>x.op!==op);shWrite(shRead().filter(e=>e.o!==op))}
+    if(p.status===409||(p.status<500&&p.status!==200)){pend=pend.filter(x=>x.op!==op);if(sk===PEND+op)shDel({k:sk})}
     if(!alive())return {skip:'other-account'};
     if(p.status===409)continue;
     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
     pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true;unrecorded=true;
     /* LHB-104: tampoco las de otras pestañas con ese If-Match o uno más viejo */
-    shWrite(shRead().filter(e=>!(e.s===uid&&e.r<=rev)))}
+    for(const e of shRead())if(e.s===uid&&e.r<=rev)shDel(e)}
    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
    let now0,Ln,quiet,final,wrote=true;
    for(let k=0;k<4;k++){
@@ -341,7 +356,9 @@ window.LHB_SYNC=function(D){
    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
    await D.wait(FENCE_MS);
    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
-   if(!same(mark))return back()}
+   if(!same(mark))return back();
+   /* LHB-104 (Codex r1): con la valla puesta, otra vez las subidas anotadas: una que otra pestaña anotó después de settled() todavía puede llegar */
+   {const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);let sh;try{sh=shRead()}catch(e){return back()}if(sh.some(e=>subs.includes(e.s)))return back()}}
   hold(true);mem=null;pend=[];evict=new Map();dirty=false;let ok=true;
   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
   set('off');return ok}
