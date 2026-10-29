@@ -1,9 +1,10 @@
 """LHB-79 proof: one call per route through tools/ai_routes.py, synthetic text only, each checked against an answer fixed before
 the call; then, inside this process (which holds the keys), a leak check: each key's first and last four characters searched in
 everything the branch adds, printing only found or not found. A refused route is recorded as its result and never retried.
-What the leak check reads (Codex ronda 1): every line added by every commit since BASE (so a key committed and then removed is
-still found), the working tree's uncommitted changes, every untracked file read whole, and evidence/ai-calls.log, which
-.gitignore would otherwise hide. If git cannot list any of these, the check fails instead of looking clean.
+What the leak check reads (Codex rondas 1 y 2): every file version any commit since BASE wrote, read whole from git, text or
+binary (so a key committed and then removed is still found, and no diff parsing can drop a line), every file the working tree
+changed or added, read whole, and evidence/ai-calls.log, which .gitignore would otherwise hide. If git cannot list or read any
+of these, the check fails instead of looking clean.
 usage: python tools/ai_proof.py BASE   (BASE: the commit the branch starts from; run from the repo root)"""
 import os, re, subprocess, sys
 
@@ -31,8 +32,8 @@ def run(name, expected, fn):
         results.append((name, 'refused %s' % e.status))
 
 
-def git(*args):
-    r = subprocess.run(['git'] + list(args), capture_output=True)
+def git(*args, stdin=None):
+    r = subprocess.run(['git'] + list(args), capture_output=True, input=stdin)
     if r.returncode != 0:
         print('leak check FAILED: git %s exited %d; nothing is reported clean' % (' '.join(args), r.returncode))
         sys.exit(3)
@@ -40,12 +41,17 @@ def git(*args):
 
 
 def added_text(base):
-    """everything the branch adds, as one text: added lines of every commit since BASE and of the uncommitted changes, plus
-    whole untracked files and the call log"""
+    """everything the branch adds, as one text: each file version written by a commit since BASE, read whole from git, and each
+    file the working tree changed or added, plus the call log, read whole from disk"""
     parts = []
-    for diff in (git('log', '-p', '--no-color', '--format=', base + '..HEAD'), git('diff', '--no-color', 'HEAD', '--')):
-        parts += [l[1:] for l in diff.decode('utf-8', 'replace').splitlines() if l.startswith('+') and not l.startswith('+++')]
-    names = [n for n in git('ls-files', '-z', '--others', '--exclude-standard').decode('utf-8', 'replace').split('\0') if n]
+    # one line per file each commit wrote: ":oldmode newmode oldsha newsha status<TAB>path"; a deletion's new sha is all zeros,
+    # and a submodule (mode 160000) is a commit, not a file
+    raw = git('log', '--raw', '--no-abbrev', '--no-renames', '--format=', base + '..HEAD').decode('utf-8', 'replace')
+    shas = sorted({f[3] for f in (l.split('\t')[0].split() for l in raw.splitlines() if l.startswith(':')) if len(f) >= 4 and f[1] != '160000' and set(f[3]) != {'0'}})
+    if shas:
+        parts.append(git('cat-file', '--batch', stdin=('\n'.join(shas) + '\n').encode()).decode('utf-8', 'replace'))
+    names = [n for n in git('diff', '--name-only', '-z', 'HEAD', '--').decode('utf-8', 'replace').split('\0') if n]
+    names += [n for n in git('ls-files', '-z', '--others', '--exclude-standard').decode('utf-8', 'replace').split('\0') if n]
     names.append(os.path.relpath(A.LOG))
     for n in names:
         if os.path.isfile(n):

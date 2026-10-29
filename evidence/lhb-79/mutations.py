@@ -16,12 +16,17 @@ MUTS = [
     (R, '3 only some transport errors caught', 'except Exception as e:\n            # any other', 'except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:\n            # any other'),
     (R, '4 echo checked in raw text only', 'if key in raw or key in json.dumps(data, ensure_ascii=False):', 'if key in raw:'),
     (P, '5a log file not scanned', 'names.append(os.path.relpath(A.LOG))', 'pass'),
-    (P, '5b net diff instead of every commit', "git('log', '-p', '--no-color', '--format=', base + '..HEAD')", "git('diff', '--no-color', base, 'HEAD', '--')"),
+    (P, '5b only the last commit read', "'--format=', base + '..HEAD')", "'--format=', 'HEAD~1..HEAD')"),
     (P, '5c file names split on spaces', "git('ls-files', '-z', '--others', '--exclude-standard').decode('utf-8', 'replace').split('\\0')", "git('ls-files', '--others', '--exclude-standard').decode('utf-8', 'replace').split()"),
     (P, '5d git failure ignored', 'if r.returncode != 0:', 'if False:'),
     (R, '6a missing ticket not logged', "raise _refuse(route, model, ticket, reason, 'refused: every call names its ticket and its reason')", "raise RouteError(route, 0, 'refused')"),
-    (R, '6b bad case not logged', "_log('together', model, ticket, reason, 'refused: case %r is not a fallback case' % (case,))", 'pass'),
-    (R, '7 carriage return kept', r"_BREAKS = re.compile('[\t\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]')", r"_BREAKS = re.compile('[\t\n]')"),
+    (R, '6b bad case not logged', "_log('together', model, ticket, reason, 'refused: not a fallback case')", 'pass'),
+    # Codex ronda 2
+    (P, 'r2-1 history blobs not read', 'if shas:', 'if False:'),
+    (P, 'r2-1 worktree changes not read', "names = [n for n in git('diff', '--name-only', '-z', 'HEAD', '--')", "names = [n for n in []"),
+    (R, 'r2-2 rejected case copied into the log', "'refused: not a fallback case')", "'refused: case %r' % (case,))"),
+    (R, 'r2-3 only TypeError and ValueError refused', "    except Exception:\n        # TypeError, ValueError, and a RecursionError", "    except (TypeError, ValueError):\n        # TypeError, ValueError, and a RecursionError"),
+    (R, '7 carriage return kept',r"_BREAKS = re.compile('[\t\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]')", r"_BREAKS = re.compile('[\t\n]')"),
 ]
 SRC = {f: open(f, encoding='utf-8').read() for f in (R, P)}
 red = 0

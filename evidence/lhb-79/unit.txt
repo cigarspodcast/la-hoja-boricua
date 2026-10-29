@@ -12,13 +12,15 @@ C:\Users\Owner\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: Reso
   _warnings.warn(self.warn_message, ResourceWarning)
 ok
 test_refusal_is_recorded_not_retried_and_hides_the_key (tools.test_ai_routes.T.test_refusal_is_recorded_not_retried_and_hides_the_key) ... ok
-test_refusals_before_sending_are_logged_once (tools.test_ai_routes.T.test_refusals_before_sending_are_logged_once) ... ok
+test_refusals_before_sending_are_logged_once (tools.test_ai_routes.T.test_refusals_before_sending_are_logged_once) ... C:\Users\Owner\AppData\Local\Python\pythoncore-3.14-64\Lib\tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 401: 'Unauthorized'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
 test_ticket_and_reason_required (tools.test_ai_routes.T.test_ticket_and_reason_required) ... ok
 test_together_needs_a_case (tools.test_ai_routes.T.test_together_needs_a_case) ... ok
 test_transport_exceptions_are_named_not_quoted_and_logged (tools.test_ai_routes.T.test_transport_exceptions_are_named_not_quoted_and_logged) ... ok
 
 ----------------------------------------------------------------------
-Ran 14 tests in 4.312s
+Ran 14 tests in 10.349s
 
 OK
-leak check FAILED: git log -p --no-color --format= no-such-commit..HEAD exited 128; nothing is reported clean
+leak check FAILED: git log --raw --no-abbrev --no-renames --format= no-such-commit..HEAD exited 128; nothing is reported clean

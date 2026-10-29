@@ -22,4 +22,4 @@ Rules that travel with the access:
 - **Call log.** Every call appends one line to `evidence/ai-calls.log`, tab-separated: UTC time with Z, route, model, ticket, reason, HTTP status. It holds no key and no request or response text.
 - **A refusal is a result.** A refused call (401, 403, 429) is recorded, never retried in a loop.
 
-Tests: `python -m unittest tools/test_ai_routes.py` (no network). Proof: `python tools/ai_proof.py <base commit>`.
+Tests: `python -m unittest tools/test_ai_routes.py` (no network). Proof: `python tools/ai_proof.py <base commit>` (one paid call per route, then the leak check). Leak check alone, no call: `python tools/ai_leakcheck.py <base commit>`.

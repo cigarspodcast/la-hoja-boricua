@@ -133,6 +133,19 @@ class T(unittest.TestCase):
         with self.assertRaises(A.RouteError):
             A._post('jev', A.JEV_URL, {'x': circular}, {}, 'jev-latest', 'LHB-79', 'proof', o)
         self.assertEqual(len(self.lines()), 3)
+        # Codex ronda 2: a body nested past the recursion limit is refused and logged like any other bad body
+        nested = []
+        # 50000 deep: Python 3.14's C encoder passes 1100 and raises RecursionError by 20000 (measured 2026-10-29)
+        for _ in range(50000):
+            nested = [nested]
+        with self.assertRaises(A.RouteError):
+            A.opencode_chat('m', nested, 'LHB-79', 'proof', opener=o)
+        self.assertEqual(len(self.lines()), 4)
+        # and a rejected case is never copied into the log, whatever it holds
+        with self.assertRaises(ValueError):
+            A.together_chat('m', [], 'LHB-79', 'proof', case=FAKE, opener=o)
+        self.assertEqual(len(self.lines()), 5)
+        self.assertNotIn(FAKE[:6], self.log())
         self.assertIsNone(o.req)
         self.assertTrue(all(l.split('\t')[5].startswith('refused') for l in self.lines()))
 
@@ -197,7 +210,9 @@ class T(unittest.TestCase):
         class B(http.server.BaseHTTPRequestHandler):
             def do_POST(self):
                 hits.append(self.headers.get('Authorization'))
+                self.rfile.read(int(self.headers.get('Content-Length') or 0))
                 self.send_response(200)
+                self.send_header('Content-Length', '2')
                 self.end_headers()
                 self.wfile.write(b'{}')
             do_GET = do_POST
@@ -208,8 +223,11 @@ class T(unittest.TestCase):
 
         class R(http.server.BaseHTTPRequestHandler):
             def do_POST(self):
+                # read the body before answering: on Windows, closing with unread data resets the connection (the client sees no answer)
+                self.rfile.read(int(self.headers.get('Content-Length') or 0))
                 self.send_response(302)
                 self.send_header('Location', 'http://127.0.0.1:%d/inference/go/v1/chat/completions' % sb.server_port)
+                self.send_header('Content-Length', '0')
                 self.end_headers()
 
             def log_message(self, *a):
@@ -268,7 +286,19 @@ class LeakScan(unittest.TestCase):
             f.write('@' + k3 + '\n')
         with open('.gitignore', 'a') as f:
             f.write(k4 + '\n')
+        # Codex ronda 2: a content line starting with ++ (git shows +++, like a file header) and a binary file, committed and then removed
+        k5, k6 = 'KFIV' + 'v' * 20, 'KSIX' + 'u' * 20
+        with open('plus.txt', 'w') as f:
+            f.write('++' + k5 + '\n')
+        with open('blob.bin', 'wb') as f:
+            f.write(b'\x00' + k6.encode() + b'\n')
+        self.g('add', 'plus.txt', 'blob.bin')
+        self.g('commit', '-q', '-m', 'odd shapes')
+        os.remove('blob.bin')
+        self.g('commit', '-q', '-am', 'drop the binary')
         text, n = self.P.added_text(self.base)
+        self.assertIn(k5, text, 'a line that starts with ++')
+        self.assertIn(k6, text, 'a binary file, committed and then removed')
         self.assertIn(k1, text, 'committed and then removed')
         self.assertIn(k2, text, 'untracked file with a space in its name, line starting with -')
         self.assertIn(k3, text, 'the call log, ignored by *.log')

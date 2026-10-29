@@ -98,7 +98,8 @@ def _post(route, url, body, headers, model, ticket, reason, opener=None):
         raise _refuse(route, model, ticket, reason, 'refused: every call names its ticket and its reason')
     try:
         payload = json.dumps(body).encode('utf-8')
-    except (TypeError, ValueError):
+    except Exception:
+        # TypeError, ValueError, and a RecursionError from a body nested too deep (Codex ronda 2): all refused and logged the same way
         raise _refuse(route, model, ticket, reason, 'refused: body is not JSON')
     key = _key(KEYS[route])
     if key is None:
@@ -150,7 +151,8 @@ def opencode_chat(model, messages, ticket, reason, max_tokens=64, session=None, 
 def together_chat(model, messages, ticket, reason, case, max_tokens=64, opener=None):
     """one Together chat completion, ONLY for case 'not-on-go' or 'go-exhausted' (owner ruling ee2ea5c). Returns the reply text."""
     if case not in TOGETHER_CASES:
-        _log('together', model, ticket, reason, 'refused: case %r is not a fallback case' % (case,))
+        # a fixed status: the rejected value is the caller's text and never goes into the log (Codex ronda 2)
+        _log('together', model, ticket, reason, 'refused: not a fallback case')
         raise ValueError('Together is a fallback: case must be one of %s' % (TOGETHER_CASES,))
     # the case goes into the logged reason, but only onto a real reason: an empty one is still refused by _post
     tagged = reason + ' [' + case + ']' if isinstance(reason, str) and reason.strip() else reason
