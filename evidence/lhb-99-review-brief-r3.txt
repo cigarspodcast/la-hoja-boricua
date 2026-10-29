@@ -1,0 +1,18 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket (base c1b7b99 to HEAD). This is the third review cycle of a TIER 1 ticket, run after the second cycle's open blocker was recorded for the owner. Read first: evidence/lhb-99-review-brief-r1.txt (scope and pinned decisions), evidence/lhb-99-review-r1.txt, evidence/lhb-99-review-brief-r2.txt and evidence/lhb-99-review-r2.txt.
+
+Round 2 maintained round 1 findings 1 and 2 with four new cases, all fixed in HEAD (the block that starts with the LHB-99 comment before ALLOW67 in test/site.test.js):
+1. A quoted } ended a CSS block: blocks are now found by sheet99, which skips quoted strings; each innermost block is a declaration list for decl99.
+2. Whitespace around = hid style= and fill=: both now allow \s*=\s*.
+3. settings.color='red' and the selector string [fill="red"] were taken for attributes: the attribute name must follow whitespace and tag99 must find it inside an open tag (the last < followed by a letter, without crossing > or ; { } ( ) outside quoted strings and ${}).
+4. A <style> sheet inside an encoded SVG was not read: js99 reads every <style>...</style> as a sheet (in templates, and in the decoded payload of SVG data URIs). el.style= and el.style.cssText= strings are also read as declarations.
+
+The LHB-67 test now probes 42 cases (26 seen once, the multiline gradient twice, 15 zero times), every counterexample from rounds 1 and 2 among them. Mutations 34 of 34 red; 15 of the 16 new ones survive the old scan (evidence/lhb-67-mutations.out). Full suite 332 pass, 0 fail, 1 skipped (evidence/lhb-99-tests.txt).
+
+Scope note for your judgment: this is a test-side guard for a design rule, with the ticket's three pinned decisions as its boundary. The out-of-scope list from round 2's brief still stands (hwb(), lab(), lch(), oklch(), color(), HTML-entity hex, base64 data URIs, JS object literals passed to an API, computed values such as el.style.color=c?'red':'blue'). Please mark as BLOCK only a defect inside the pinned boundary that a plausible edit to these five files would hit; anything else as non-blocking.
+
+Check in particular:
+- Is each round 2 case fixed by the code?
+- New false negatives or false positives from sheet99 and tag99 in the real files or a plausible next edit.
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

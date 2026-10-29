@@ -28,8 +28,12 @@ H27 the share image paints a named color (fillStyle, LHB-99)   rc 1 fail 1 -> RE
 H28 a named color after a quoted url() (LHB-99 Codex r1)       rc 1 fail 1 -> RED
 H29 a named color on the next line of a gradient (LHB-99 Codex r1) rc 1 fail 1 -> RED
 H30 a quoted brace before the name inside ${} (LHB-99 Codex r1) rc 1 fail 1 -> RED
+H31 a quoted brace before a color in a CSS rule (LHB-99 Codex r2) rc 1 fail 1 -> RED
+H32 spaces around = in an SVG fill (LHB-99 Codex r2)           rc 1 fail 1 -> RED
+H33 a <style> sheet inside a new SVG data URI (LHB-99 Codex r2) rc 1 fail 1 -> RED
+H34 a <style> block in a template (LHB-99 Codex r2)            rc 1 fail 1 -> RED
 baseline after restore: rc 0 pass 7
-RESULT 30 of 30 mutations red
+RESULT 34 of 34 mutations red
 before LHB-99: H19 hsl() in styles.css (LHB-99)                 rc 0 fail 0 -> SURVIVED
 before LHB-99: H20 uppercase RGB() in hoja.js (LHB-99)          rc 0 fail 0 -> SURVIVED
 before LHB-99: H21 uppercase HSLA() in cuenta.js (LHB-99)       rc 0 fail 0 -> SURVIVED
@@ -42,4 +46,8 @@ before LHB-99: H27 the share image paints a named color (fillStyle, LHB-99) rc 0
 before LHB-99: H28 a named color after a quoted url() (LHB-99 Codex r1) rc 0 fail 0 -> SURVIVED
 before LHB-99: H29 a named color on the next line of a gradient (LHB-99 Codex r1) rc 0 fail 0 -> SURVIVED
 before LHB-99: H30 a quoted brace before the name inside ${} (LHB-99 Codex r1) rc 0 fail 0 -> SURVIVED
-BEFORE LHB-99: 11 of 12 new mutations survived the old scan
+before LHB-99: H31 a quoted brace before a color in a CSS rule (LHB-99 Codex r2) rc 0 fail 0 -> SURVIVED
+before LHB-99: H32 spaces around = in an SVG fill (LHB-99 Codex r2) rc 0 fail 0 -> SURVIVED
+before LHB-99: H33 a <style> sheet inside a new SVG data URI (LHB-99 Codex r2) rc 0 fail 0 -> SURVIVED
+before LHB-99: H34 a <style> block in a template (LHB-99 Codex r2) rc 0 fail 0 -> SURVIVED
+BEFORE LHB-99: 15 of 16 new mutations survived the old scan

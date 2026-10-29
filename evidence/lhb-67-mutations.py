@@ -62,6 +62,10 @@ M99 = [
     ('H28 a named color after a quoted url() (LHB-99 Codex r1)', lambda: append(CS, '\n.lhb99h{background:url("/img/x.svg") red}\n')),
     ('H29 a named color on the next line of a gradient (LHB-99 Codex r1)', lambda: append(CS, '\n.lhb99i{background:linear-gradient(\n red,var(--card))}\n')),
     ('H30 a quoted brace before the name inside ${} (LHB-99 Codex r1)', lambda: append(AP, "\nconst lhb99j=`<i style=\"color:${a==='}'?'red':'var(--info)'}\">`;\n")),
+    ('H31 a quoted brace before a color in a CSS rule (LHB-99 Codex r2)', lambda: append(CS, '\n.lhb99k{content:"}";color:red}\n')),
+    ('H32 spaces around = in an SVG fill (LHB-99 Codex r2)', lambda: append(HJ, '\nconst lhb99l=`<svg><rect fill = "red"/></svg>`;\n')),
+    ('H33 a <style> sheet inside a new SVG data URI (LHB-99 Codex r2)', lambda: append(CS, '\n.lhb99m{background:url("data:image/svg+xml,%3Csvg%3E%3Cstyle%3Erect%7Bfill%3Ared%7D%3C%2Fstyle%3E%3Crect%2F%3E%3C%2Fsvg%3E")}\n')),
+    ('H34 a <style> block in a template (LHB-99 Codex r2)', lambda: append(AP, '\nconst lhb99n=`<style>.y{color:red}</style>`;\n')),
 ]
 M = M + M99
 red = 0

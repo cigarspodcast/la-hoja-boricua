@@ -5255,12 +5255,14 @@ test('LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de toke
    Un color escrito %23 (dentro de un SVG en data URI) cuenta igual que uno escrito # (Codex ronda 1). */
 const LIT67=/(?:#|%23)[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\(/gi;
 /* LHB-99: también hsl() y RGB() en mayúsculas (arriba), y los colores con nombre. */
-/* LHB-99 (Codex ronda 1): un color con nombre se busca solo donde pinta, leyendo la estructura y no una línea suelta:
-   - en el CSS, en cada declaración de una propiedad de color (el valor sigue hasta su ; aunque cruce líneas o comillas);
-   - en el código, en los atributos style y en los atributos de color del SVG de las plantillas, y en una asignación de style.<propiedad>,
-     fillStyle, strokeStyle o shadowColor con un texto entre comillas;
+/* LHB-99 (Codex rondas 1 y 2): un color con nombre se busca solo donde pinta, leyendo la estructura y no una línea suelta:
+   - en el CSS, en cada declaración de una propiedad de color (el valor sigue hasta su ; aunque cruce líneas o comillas), y los bloques se
+     hallan saltando los textos entre comillas (un "}" no cierra nada);
+   - en el código, en los atributos style y los atributos de color del SVG solo dentro de una etiqueta (<b ... style="...">), con o sin
+     espacios alrededor del =; en una hoja <style> de las plantillas; y en una asignación de style, style.cssText, style.<propiedad>,
+     fillStyle, strokeStyle o shadowColor a un texto entre comillas;
    - dentro de un ${} el código no cuenta (palette.red, una variable red), solo un texto entre comillas que es exactamente un nombre;
-   - url(...) no cuenta (un archivo red.svg), y solo un data URI de SVG se lee con el %xx decodificado (su # y sus atributos cuentan). */
+   - url(...) no cuenta (un archivo red.svg), y solo un data URI de SVG se lee con el %xx decodificado (su #, sus atributos y su <style>). */
 const NAMES99=new Set('aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen'.split(' '));
 const CPROP99=/^(?:--[\w-]+|[a-z-]*color|background(?:-image)?|fill|stroke|border(?:-[a-z]+)*|outline|box-shadow|text-shadow|text-decoration|column-rule)$/i;
 const q99=(s,i)=>{const c=s[i];for(let j=i+1;j<s.length;j++){if(s[j]==='\\'){j++;continue}if(s[j]===c)return j+1}return s.length};
@@ -5276,13 +5278,21 @@ function decl99(s,a,b,at){for(let j=a;j<b;){while(j<b&&/[\s;]/.test(s[j]))j++;co
   const colon=name&&s[j]===':';if(colon)j++;const v=j;let dep=0;
   while(j<b){const c=s[j];if(c==='$'&&s[j+1]==='{'){j=interp99(s,j);continue}if(/['"`]/.test(c)){j=q99(s,j);continue}if(c==='(')dep++;else if(c===')')dep--;else if(c===';'&&dep<=0)break;j++}
   if(colon&&CPROP99.test(name))val99(s,v,Math.min(j,b),at);if(j===n)j++}}
+// los bloques { } de una hoja, saltando los textos entre comillas; cada bloque sin otro adentro es una lista de declaraciones
+function sheet99(s,a,b,at){const st=[];for(let j=a;j<b;){const c=s[j];if(c==='"'||c==="'"){j=q99(s,j);continue}
+  if(c==='{'){if(st.length)st[st.length-1].kid=true;st.push({i:j,kid:false})}else if(c==='}'){const t=st.pop();if(t&&!t.kid)decl99(s,t.i+1,j,at)}j++}}
+// ¿la posición i está dentro de una etiqueta abierta? desde el último <letra, sin cruzar > ni código (; { } ( )) fuera de comillas y de ${}
+function tag99(s,i){const lt=s.lastIndexOf('<',i);if(lt<0||!/[a-zA-Z]/.test(s[lt+1]||''))return false;
+ for(let j=lt+1;j<i;){const c=s[j];if(c==='$'&&s[j+1]==='{'){j=interp99(s,j);continue}if(c==='"'||c==="'"){const z=q99(s,j);if(z>i)return true;j=z;continue}if(/[>;{}()]/.test(c))return false;j++}return true}
 function js99(s,at){const close=(i,q)=>{for(let j=i;j<s.length;){if(s[j]==='$'&&s[j+1]==='{'){j=interp99(s,j);continue}if(s.startsWith(q,j))return j;j++}return s.length};
- for(const m of s.matchAll(/(?<![\w-])style=(\\?["'])/g)){const a=m.index+m[0].length;decl99(s,a,close(a,m[1]),at)}
- for(const m of s.matchAll(/(?<![\w-])(?:fill|stroke|stop-color|flood-color|lighting-color|color)=(\\?["'])/g)){const a=m.index+m[0].length;val99(s,a,close(a,m[1]),at)}
- for(const m of s.matchAll(/\.(?:style\.([a-zA-Z]+)|fillStyle|strokeStyle|shadowColor)\s*=\s*(['"`])/g)){if(m[1]&&!CPROP99.test(m[1].replace(/[A-Z]/g,c=>'-'+c.toLowerCase())))continue;const a=m.index+m[0].length;val99(s,a,q99(s,a-1)-1,at)}}
+ for(const m of s.matchAll(/(?<=\s)style\s*=\s*(\\?["'])/g)){if(!tag99(s,m.index))continue;const a=m.index+m[0].length;decl99(s,a,close(a,m[1]),at)}
+ for(const m of s.matchAll(/(?<=\s)(?:fill|stroke|stop-color|flood-color|lighting-color|color)\s*=\s*(\\?["'])/g)){if(!tag99(s,m.index))continue;const a=m.index+m[0].length;val99(s,a,close(a,m[1]),at)}
+ for(const m of s.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)){const a=m.index+m[0].indexOf('>')+1;sheet99(s,a,a+m[1].length,at)}
+ for(const m of s.matchAll(/\.(?:style(?:\.cssText)?|style\.([a-zA-Z]+)|fillStyle|strokeStyle|shadowColor)\s*=\s*(['"`])/g)){const a=m.index+m[0].length,e=q99(s,a-1)-1;
+  if(/^\.style(?:\.cssText)?\s*=/.test(m[0]))decl99(s,a,e,at);else if(!m[1]||CPROP99.test(m[1].replace(/[A-Z]/g,c=>'-'+c.toLowerCase())))val99(s,a,e,at)}}
 function dec99(s){let d='';const map=[];for(let i=0;i<s.length;){if(s[i]==='%'&&/^[0-9a-fA-F]{2}$/.test(s.slice(i+1,i+3))){d+=String.fromCharCode(parseInt(s.slice(i+1,i+3),16));map.push(i);i+=3}else{d+=s[i];map.push(i);i++}}return {d,map}}
 function extra99(f,s){const at=[];
- if(/\.css$/.test(f)){for(const m of s.matchAll(/\{([^{}]*)\}/g))decl99(s,m.index+1,m.index+1+m[1].length,at)}else js99(s,at);
+ if(/\.css$/.test(f))sheet99(s,0,s.length,at);else js99(s,at);
  for(const m of s.matchAll(/data:image\/svg\+xml(?:;[\w=.-]+)*,/gi)){const a=m.index+m[0].length,q=s[m.index-1];let b=a;
   if(q==='"'||q==="'"){b=s.indexOf(q,a);if(b<0)b=s.length}else while(b<s.length&&!/[)\s"'`]/.test(s[b]))b++;
   const {d,map}=dec99(s.slice(a,b)),sub=[];for(const h of d.matchAll(LIT67))sub.push(h.index);js99(d,sub);for(const i of sub)at.push(a+map[i])}
@@ -5339,7 +5349,13 @@ test('LHB-67: ningún color suelto en las pantallas de la app; lo que queda est�
   ['app.js',"\nconst x99='red de tiendas, white label';",0],['app.js',"\nconst note99='color: red de tiendas';",0],['app.js',"\nconst note99='%63olor%3A%72ed';",0],
   ['app.js','\nel.style.color=palette.red;',0],['app.js',"\nconst x99=`<i style=\"color:${red?'var(--a)':'var(--b)'}\">`;",0],['app.js',"\nconst x99=`<i style=\"color:${palette.red}\">`;",0],
   ['app.js',"\nel.style.width='red';",0],['styles.css','\n.x{color:var(--flag-red)}',0],['styles.css','\n.x{background:url(/assets/red.svg)}',0],
-  ['styles.css','\n.x{transition:color .2s,background .2s}',0],['styles.css','\n.x{font-family:"Red Hat",sans-serif;content:"red"}',0]])
+  ['styles.css','\n.x{transition:color .2s,background .2s}',0],['styles.css','\n.x{font-family:"Red Hat",sans-serif;content:"red"}',0],
+  /* Codex ronda 2: un "}" entre comillas no cierra el bloque; espacios alrededor del =; solo dentro de una etiqueta; la hoja <style> de un SVG */
+  ['styles.css','\n.x{content:"}";color:red}',1],['app.js','\nconst x99=`<b style = "color:red">`;',1],['app.js','\nconst y99=`<svg><rect fill = "red"/></svg>`;',1],
+  ['app.js',"\nconst settings99={}; settings99.color='red';",0],['app.js',"\nconst selector99='[fill=\"red\"]';",0],
+  ['styles.css','\n.x{background:url("data:image/svg+xml,'+encodeURIComponent("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><style>rect{fill:red}</style><rect width=\"10\" height=\"10\"/></svg>")+'")}',1],
+  ['app.js',"\nconst x99=`<i class=\"${a>b?'p':'q'}\" style=\"color:red\">`;",1],['app.js',"\nif(a<b) color99 = 'red';",0],['app.js',"\nlet color = 'red';",0],
+  ['app.js',"\nel.style='color:red';",1],['app.js',"\nel.style.cssText='border:1px solid red';",1],['app.js','\nconst x99=`<style>.y{color:red}</style>`;',1]])
   assert.equal(probe(f,x),n,(n?'la prueba ve ':'no es un color suelto: ')+x.trim());
 });
 test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera',()=>{
