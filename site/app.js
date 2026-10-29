@@ -348,40 +348,5 @@ document.addEventListener('click',async e=>{if(!e.target.closest('#btnAdd'))retu
  if(deferred){const d=deferred;deferred=null;d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted'){window.__lhbInstalled=true;syncInstall();toast(tt('inst.ok'))}return}
  EXT.openSheet('instalar',isIOS?(/ipad/i.test(navigator.userAgent)||navigator.platform==='MacIntel'?'ipad':'ios'):'')});
 if('serviceWorker' in navigator){const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.update&&r.update()).catch(()=>{}))}
-(function splash(){const sp=$('#splash');if(!sp)return;const fl=$('#splashFlor');if(fl&&window.VBArt)fl.innerHTML=VBArt.flor('sf');const seen=sessionStorage.getItem('vb_splash');
- let gone=false;const done=()=>{if(gone)return;gone=true;sp.classList.add('out');setTimeout(()=>sp.remove(),450)};if(seen){done();return}sessionStorage.setItem('vb_splash','1');
- sp.addEventListener('click',done);sp.addEventListener('touchstart',done,{passive:true});
- /* v9: guagua por capas (sombra, ruedas que giran, carrocería que rebota, luz del campo) */
- const VS='img/guagua/guagua_recorte.webp',car=$('#splashCar'),cz=$('#cz'),campo=$('#campo');
- car.innerHTML=`<i class="vsh"></i><i class="vsh2"></i><img class="van-i" src="${VS}" alt="" draggable="false"><span class="whl w1"><i></i></span><span class="whl w2"><i></i></span><div class="vb"><img class="van-i" src="${VS}" alt="" draggable="false"><i class="vlit"></i><i class="vhaze"></i></div>`;
- const PTS=[[0,1.16,.745,.4],[.18,.84,.755,.48],[.5,.52,.785,.66],[.78,.24,.815,.84],[1,-.34,.835,1.02]];
- const path=u=>{let i=1;while(i<PTS.length-1&&u>PTS[i][0])i++;const a=PTS[i-1],b=PTS[i],k=(u-a[0])/(b[0]-a[0]);return[1,2,3].map(j=>a[j]+(b[j]-a[j])*k)};
- const ease=u=>u*.65+u*u*(3-2*u)*.35;
- let W=campo.clientWidth,H=campo.clientHeight;const vw=()=>W*.46,vh=()=>W*.46/1.5;
- const at=u=>{const[cx,gy,s]=path(ease(u));return{cx:cx*W,gy:gy*H,s}};
- const tf=p=>`translate(${(p.cx-vw()/2).toFixed(1)}px,${(p.gy-vh()).toFixed(1)}px) scale(${p.s.toFixed(3)})`;
- const haze=car.querySelector('.vhaze');
- if(REDUCED_ALL){const p=at(.55);car.style.transform=tf(p);haze.style.opacity=.15;setTimeout(done,1500);return}
- const imgs=[...sp.querySelectorAll('img')].map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve());
- Promise.race([Promise.all(imgs),new Promise(r=>setTimeout(r,1200))]).then(()=>{if(gone)return;W=campo.clientWidth;H=campo.clientHeight;sp.classList.add('go');
-  const D=3300,DL=150,N=26,kf=[];for(let i=0;i<=N;i++){const u=i/N,p=at(u);kf.push({transform:tf(p),opacity:u>.9?Math.max(0,1-(u-.9)/.1):1,offset:u})}
-  const van=car.animate(kf,{duration:D,delay:DL,easing:'linear',fill:'both'});
-  haze.animate([{opacity:.7},{opacity:.25,offset:.5},{opacity:0}],{duration:D,delay:DL,fill:'both'});
-  const pan=(el,a)=>el&&el.animate([{transform:`translateX(${-a*W}px)`},{transform:`translateX(${a*W}px)`}],{duration:D+400,easing:'cubic-bezier(.4,0,.5,1)',fill:'both'});
-  pan($('.l-hills',sp),.018);pan($('.l-field',sp),.04);pan($('.l-mid',sp),.045);pan($('.l-fg',sp),.075);pan($('.l-fg2',sp),.13);
-  cz.animate([{transform:'scale(1)'},{transform:'scale(1.06)'}],{duration:D+400,easing:'ease-in-out',fill:'both'});
-  const dust=$('#dust'),wake=$('#wake'),R=(a,b)=>a+Math.random()*(b-a),K=W/360;
-  const puff=(x,y,s)=>{const e=document.createElement('i');e.className='puff';const z=R(36,56)*s*K;e.style.width=e.style.height=z+'px';dust.appendChild(e);
-   const dx=R(14,34)*s*K,dy=R(10,24)*s*K;e.animate([{transform:`translate(${x-z/2}px,${y-z/2}px) scale(.35)`,opacity:.85},{transform:`translate(${x-z/2+dx}px,${y-z/2-dy}px) scale(2.3)`,opacity:0}],{duration:R(750,1100),easing:'cubic-bezier(.2,.7,.4,1)',fill:'forwards'}).onfinish=()=>e.remove()};
-  const COL=['#7aa646','#5f8a35','#c99a4a','#a3b85a','#8a6a34'];
-  const leaf=(x,y,s)=>{const e=document.createElement('i');e.className='wleaf';const z=R(9,16)*s*K;
-   e.innerHTML=`<svg width="${z}" height="${z*1.3}" viewBox="0 0 20 26"><path d="M10 0C18 6 19 16 14 22 12 24 11 25 10 26 9 25 8 24 6 22 1 16 2 6 10 0Z" fill="${COL[Math.random()*5|0]}"/><path d="M10 3V25" stroke="rgba(40,30,10,.45)" stroke-width="1.2"/></svg>`;wake.appendChild(e);
-   const dx=R(25,60)*s*K,dy=R(30,70)*s*K,r=R(-1,1)>0?1:-1;
-   e.animate([{transform:`translate(${x}px,${y}px) rotate(0) scale(.4)`,opacity:0},{transform:`translate(${x+dx*.3}px,${y-dy*.6}px) rotate(${r*140}deg) rotateY(60deg) scale(1)`,opacity:1,offset:.25},{transform:`translate(${x+dx*.75}px,${y-dy}px) rotate(${r*300}deg) rotateY(180deg) scale(1)`,opacity:1,offset:.6},{transform:`translate(${x+dx}px,${y-dy*.55}px) rotate(${r*460}deg) rotateY(300deg) scale(.9)`,opacity:0}],{duration:R(1200,1600),easing:'ease-out',fill:'forwards'}).onfinish=()=>e.remove()};
-  let nl=0;const iv=setInterval(()=>{const t=van.currentTime-DL;if(gone||t>D){clearInterval(iv);return}if(t<0)return;const u=t/D;if(u<.06||u>.93)return;
-   const p=at(u),L=p.cx-vw()*p.s/2,vs=vw()*p.s,hs=vh()*p.s;
-   puff(L+.92*vs,p.gy-.08*hs,p.s);if(Math.random()<.6)puff(L+.2*vs,p.gy-.02*hs,p.s*.8);
-   if(u>.2&&nl<12&&Math.random()<.4){nl++;leaf(L+R(.7,1)*vs,p.gy-R(.1,.5)*hs,p.s)}},75);
-  setTimeout(done,DL+D+300)})})();
 route();topAvatar();refreshData();
 })();

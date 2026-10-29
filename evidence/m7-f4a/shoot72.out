@@ -1,0 +1,37 @@
+== first-run: chrome pid 53440
+   1.1s start      first-run-start-390x844.png {"intro": true, "src": "intro-portrait.mp4", "t": 0.15, "paused": false, "muted": true, "ready": 4, "stored": "1793252094306", "session": "1", "why": "play", "inert": true, "focus": "intro-skip", "cards": 48}
+   3.2s middle     first-run-middle-390x844.png {"intro": true, "src": "intro-portrait.mp4", "t": 2.35, "paused": false, "muted": true, "ready": 4, "stored": "1793252094306", "session": "1", "why": "play", "inert": true, "focus": "intro-skip", "cards": 48}
+   5.3s late       first-run-late-390x844.png {"intro": true, "src": "intro-portrait.mp4", "t": 4.35, "paused": false, "muted": true, "ready": 4, "stored": "1793252094306", "session": "1", "why": "play", "inert": true, "focus": "intro-skip", "cards": 48}
+  10.6s after      first-run-after-390x844.png {"intro": false, "src": null, "t": null, "paused": null, "muted": null, "ready": null, "stored": "1793252094306", "session": "1", "why": "play", "inert": false, "focus": "view", "cards": 48}
+  11.0s reload
+  14.1s same-session first-run-same-session-390x844.png {"intro": false, "src": null, "t": null, "paused": null, "muted": null, "ready": null, "stored": "1793252094306", "session": "1", "why": "session", "inert": false, "focus": "BODY", "cards": 48}
+   chrome pid 53440 exited 0
+== first-run-wide: chrome pid 46076
+   1.7s start      first-run-wide-start-1280x720.png {"intro": true, "src": "intro-landscape.mp4", "t": 0.53, "paused": false, "muted": true, "ready": 4, "stored": "1793252109294", "session": "1", "why": "play", "inert": true, "focus": "intro-skip", "cards": 48}
+   4.2s middle     first-run-wide-middle-1280x720.png {"intro": true, "src": "intro-landscape.mp4", "t": 3.03, "paused": false, "muted": true, "ready": 4, "stored": "1793252109294", "session": "1", "why": "play", "inert": true, "focus": "intro-skip", "cards": 48}
+   chrome pid 46076 exited 0
+== skip: chrome pid 43520
+   1.5s before-skip skip-before-skip-390x844.png {"intro": true, "src": "intro-portrait.mp4", "t": 0.68, "paused": false, "muted": true, "ready": 4, "stored": "1793252115114", "session": "1", "why": "play", "inert": true, "focus": "intro-skip", "cards": 48}
+   1.5s document.querySelector('.intro-skip').click()
+   1.9s after-skip skip-after-skip-390x844.png {"intro": false, "src": null, "t": null, "paused": null, "muted": null, "ready": null, "stored": "1793252115114", "session": "1", "why": "play", "inert": false, "focus": "view", "cards": 48}
+   chrome pid 43520 exited 0
+== escape: chrome pid 9184
+   1.5s before-esc escape-before-esc-390x844.png {"intro": true, "src": "intro-portrait.mp4", "t": 0.51, "paused": false, "muted": true, "ready": 4, "stored": "1793252118819", "session": "1", "why": "play", "inert": true, "focus": "intro-skip", "cards": 48}
+   1.5s document.querySelector('.intro').dispatchEvent(new Keyboa
+   1.9s after-esc  escape-after-esc-390x844.png {"intro": false, "src": null, "t": null, "paused": null, "muted": null, "ready": null, "stored": "1793252118819", "session": "1", "why": "play", "inert": false, "focus": "view", "cards": 48}
+   chrome pid 9184 exited 0
+== reduced: chrome pid 46400
+   3.2s reduced    reduced-reduced-390x844.png {"intro": false, "src": null, "t": null, "paused": null, "muted": null, "ready": null, "stored": null, "session": null, "why": "reduced", "inert": false, "focus": "BODY", "cards": 48}
+   chrome pid 46400 exited 0
+== deep-link: chrome pid 51136
+   3.1s deep       deep-link-deep-390x844.png {"intro": false, "src": null, "t": null, "paused": null, "muted": null, "ready": null, "stored": null, "session": null, "why": "deep", "inert": false, "focus": "BODY", "cards": 0}
+   chrome pid 51136 exited 0
+first run: the intro shows and the video plays muted                   PASS
+first run: it closes by itself, the app is back, the date is stored    PASS
+same session: no intro after a reload                                  PASS
+wide screen: the landscape video                                       PASS
+skip: Saltar closes it at once and the focus goes to the view          PASS
+Escape closes it                                                       PASS
+reduced motion: never shown                                            PASS
+deep link: never shown                                                 PASS
+RESULT 8 of 8 checks pass
