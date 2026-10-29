@@ -1,0 +1,18 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). This is round 2 of a TIER 2 review of LHB-71 (M7-F3: a routes-driven menu with grouped destinations, icons and the compact home). The full ticket brief and your round 1 review are in evidence/lhb-71-review-brief-r1.txt and evidence/lhb-71-review-r1.txt in the worktree.
+
+Round 1 verdict: BLOCK, with three findings. What changed for each (commit 4443953):
+1. P2 vCatalogo: LS.set('homeSeen',true) could throw (quota, blocked storage) before the catalog painted. Now try{LS.set('homeSeen',true)}catch(e){}; the per-load decision stays as it was.
+2. P2 catalogStart cancelled Ctrl, Cmd and Shift clicks. It now returns at once when e.defaultPrevented, e.button>0, or any of metaKey, ctrlKey, shiftKey, altKey is set; only an unmodified primary click scrolls.
+3. P3 menuHTML read the subroute raw and gave an unknown route no marker. It now decodes the subroute with decodeURIComponent inside a try (a malformed escape keeps the raw text), and an unknown route is treated as catalogo, the view route() falls back to.
+
+Also: site/sw.js VERSION lhb-v94 to lhb-v95, because the preview at f33e1f8 already served lhb-v94 with the old app.js; the 21 test pins move with it.
+
+New test "LHB-71 (Codex ronda 1)": the real vCatalogo with a storage whose set throws QuotaExceededError still paints three cards; six modified or cancelled clicks are not prevented and do not scroll, while a plain click does; the marker for #/mihoja/%70ersonas is Personas, for #/ruta-que-no-existe is Cigarros, and #/a/%E0%A4%A marks Artesanos without throwing. It fails on the round 1 app.js (QuotaExceededError). Mutations K14 to K16 revert each fix; 16 of 16 mutations red (evidence/lhb-71-mutations.out). Suite 322 pass, 0 fail, 1 skipped (evidence/lhb-71-tests.txt).
+
+Check:
+- that each fix closes its finding fully (any other path where storage can throw during the home render; any other click the handler should leave alone, such as a keyboard activation of the link, which fires click with button 0, or a click on a child element of the card);
+- that the menu marker now agrees with route() for every route, including ones route() would throw on (does route() itself throw on a malformed escape, and does that matter here);
+- that the cache bump is right;
+- anything else in the diff, and anything in the round 1 diff you did not cover.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
