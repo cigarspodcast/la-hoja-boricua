@@ -99,14 +99,14 @@ const BRAND_ICONS={cigar:'<path d="m4 16 12-9 4 5-12 9zM13 9l4 5M5 4c0 2 3 2 3 4
 const brandIcon=(n,cls='')=>`<svg class="brand-icon ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${BRAND_ICONS[n]||BRAND_ICONS.leaf}</svg>`;
 /* LHB-71: los tres caminos de la portada; Cigarros baja hasta la lista sin mover el foco (no abre el teclado) */
 const homePaths=()=>`<nav class="home-paths" aria-label="${tt('home.paths')}">${[['#/catalogo','cigar','menu.cigarros','menu.cigarrosSub',' data-catalog-start'],['#/artesanos','maker','menu.artesanos','menu.artesanosSub',''],['#/lugares','place','menu.lugares','menu.lugaresSub','']].map(([h,i,t,s,x])=>`<a href="${h}"${x}><span class="path-ico">${brandIcon(i)}</span><span class="path-copy"><b>${tt(t)}</b><small>${tt(s)}</small></span></a>`).join('')}</nav>`;
-function catalogStart(e){const a=e.target&&e.target.closest&&e.target.closest('[data-catalog-start]');if(!a)return;const h=$('#catalogStart');if(!h)return;e.preventDefault();h.scrollIntoView({block:'start',behavior:REDUCED_ALL?'auto':'smooth'})}
+function catalogStart(e){if(e.defaultPrevented||e.button>0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;const a=e.target&&e.target.closest&&e.target.closest('[data-catalog-start]');if(!a)return;const h=$('#catalogStart');if(!h)return;e.preventDefault();h.scrollIntoView({block:'start',behavior:REDUCED_ALL?'auto':'smooth'})}
 document.addEventListener('click',catalogStart);
 /* LHB-71: la portada se decide una vez por carga: escribir en el buscador o tocar un filtro repinta, y no puede cambiar la portada a mitad de la visita */
 let homeCompact=null;
 function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.capa).filter(Boolean))].sort();const capaLbl=new Map();for(const c of cs)if(c.capa&&(!capaLbl.has(c.capa)||capaLbl.get(c.capa)===c.capa))capaLbl.set(c.capa,fx(c,'capa'));
  const q=state.q.toLowerCase();const list=cs.filter(c=>(!q||[c.nombre,artisanName(c),c.pueblo,fq(c,'capa'),fq(c,'notas')].join(' ').toLowerCase().includes(q))&&(!state.capa||c.capa===state.capa)&&(!state.fort||c.fortaleza===state.fort)&&(!state.art||c.artesano_id===state.art));
  /* LHB-71: quien ya vino ve la portada compacta: la presentación sin foto ni párrafo y sin los cuadros, para llegar a la lista */
- if(homeCompact===null){homeCompact=!!LS.get('homeSeen',false);LS.set('homeSeen',true)}const compact=homeCompact;
+ if(homeCompact===null){homeCompact=!!LS.get('homeSeen',false);try{LS.set('homeSeen',true)}catch(e){}}const compact=homeCompact;
  view.innerHTML=`<section class="hero${compact?' compact':''}">${FACADES_BAR}<img class="hero-bg" src="img/hero/banner.webp" alt="" width="760" height="422" decoding="async"><div class="eyebrow">${tt('cat.eyebrow')}</div><h1>${tt('cat.title')}</h1><p>${tt('cat.lead')}</p></section><button type="button" class="btn-add" id="btnAdd"${installHidden(window)?' hidden':''}>${tt('cat.install')}</button>
  ${homePaths()}${compact?'':`<nav class="tiles" aria-label="${tt('cat.explore')}"><a href="#/cata">${VBArt.leaf('#8fd162')}<b>${tt('tile.cata')}</b><small>${tt('tile.cataSub')}</small></a><a href="#/maridajes">${VBArt.leaf('#ffd27a')}<b>${tt('tile.mar')}</b><small>${tt('tile.marSub')}</small></a><a href="#/eventos">${VBArt.leaf('#ff8a80')}<b>${tt('tile.ev')}</b><small>${tt('tile.evSub')}</small></a><a href="#/podcast">${VBArt.leaf('#8fb8ff')}<b>Podcast</b><small>Cigars Podcast</small></a></nav>`}
  <h2 class="cat-h" id="catalogStart">${tt('menu.cigarros')}</h2>
@@ -323,7 +323,8 @@ const ROUTES=[
 ];
 const ROUTE_OF=Object.fromEntries(ROUTES.map(x=>[x.r,x]));
 /* el menú: los grupos en su orden, cada destino con su ícono, y la página en la que está marcada (aria-current y «Aquí») */
-function menuHTML(hash){const [r0,arg0]=String(hash==null?location.hash:hash).replace(/^#\/?/,'').split('/');const r=r0||'catalogo',x=ROUTE_OF[r],home=x&&x.of?x.of:r;
+function menuHTML(hash){const [r0,a0]=String(hash==null?location.hash:hash).replace(/^#\/?/,'').split('/');let arg0=a0||'';try{arg0=decodeURIComponent(arg0)}catch(e){}
+ const r=ROUTE_OF[r0]?r0:'catalogo',x=ROUTE_OF[r],home=x&&x.of?x.of:r;
  const ipad=/ipad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),ia=ipad?'ipad':/iphone|ipod/i.test(navigator.userAgent)?'ios':'';
  const rows=g=>ROUTES.flatMap(x=>(x.menu||[]).filter(m=>m[0]===g).map(m=>{const sub=m[4]||'',href='#/'+x.r+(sub?'/'+sub:''),subs=(x.menu||[]).map(n=>n[4]).filter(Boolean);
    const cur=home===x.r&&(sub?r===x.r&&arg0===sub:!(r===x.r&&subs.includes(arg0)));

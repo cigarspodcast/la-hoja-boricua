@@ -1,15 +1,18 @@
 K1 a route added to the table without a menu entry (the Proof case)    rc 1 fail 1 -> RED
-K2 a detail route whose parent is not in the menu                      rc 1 fail 2 -> RED
+K2 a detail route whose parent is not in the menu                      rc 1 fail 3 -> RED
 K3 the router back to its own list                                     rc 1 fail 1 -> RED
 K4 hoja.js keeps a second hard-coded menu                              rc 1 fail 1 -> RED
-K5 People search dropped from the menu                                 rc 1 fail 3 -> RED
-K6 no current-page marker                                              rc 1 fail 1 -> RED
-K7 a detail page marks nothing (no parent lookup)                      rc 1 fail 1 -> RED
+K5 People search dropped from the menu                                 rc 1 fail 4 -> RED
+K6 no current-page marker                                              rc 1 fail 2 -> RED
+K7 a detail page marks nothing (no parent lookup)                      rc 1 fail 2 -> RED
 K8 the Cigarros card moves focus into the search box                   rc 1 fail 1 -> RED
-K9 the Cigarros card scrolls nowhere                                   rc 1 fail 1 -> RED
+K9 the Cigarros card scrolls nowhere                                   rc 1 fail 2 -> RED
 K10 returning visitors get the full home                               rc 1 fail 1 -> RED
 K12 decided at every render (a keystroke turns the home compact)       rc 1 fail 1 -> RED
 K13 the compact home keeps the install button                          rc 1 fail 1 -> RED
+K14 (Codex r1) a full storage stops the catalog                        rc 1 fail 1 -> RED
+K15 (Codex r1) Ctrl or Cmd click is cancelled                          rc 1 fail 1 -> RED
+K16 (Codex r1) the marker reads the hash raw                           rc 1 fail 1 -> RED
 K11 a menu key without its English value                               rc 1 fail 2 -> RED
-baseline after restore: rc 0 pass 4
-RESULT 13 of 13 mutations red
+baseline after restore: rc 0 pass 5
+RESULT 16 of 16 mutations red

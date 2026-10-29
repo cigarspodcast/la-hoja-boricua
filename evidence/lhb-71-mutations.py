@@ -33,8 +33,11 @@ M = [
     ('K8 the Cigarros card moves focus into the search box', lambda: edit(AP, "e.preventDefault();h.scrollIntoView(", "e.preventDefault();$('#q').focus();h.scrollIntoView(")),
     ('K9 the Cigarros card scrolls nowhere', lambda: edit(AP, "e.preventDefault();h.scrollIntoView({block:'start',behavior:REDUCED_ALL?'auto':'smooth'})", 'e.preventDefault()')),
     ('K10 returning visitors get the full home', lambda: edit(AP, "const compact=homeCompact;", 'const compact=false;')),
-    ('K12 decided at every render (a keystroke turns the home compact)', lambda: edit(AP, "if(homeCompact===null){homeCompact=!!LS.get('homeSeen',false);LS.set('homeSeen',true)}", "homeCompact=!!LS.get('homeSeen',false);LS.set('homeSeen',true);")),
+    ('K12 decided at every render (a keystroke turns the home compact)', lambda: edit(AP, "if(homeCompact===null){homeCompact=!!LS.get('homeSeen',false);try{LS.set('homeSeen',true)}catch(e){}}", "homeCompact=!!LS.get('homeSeen',false);try{LS.set('homeSeen',true)}catch(e){}")),
     ('K13 the compact home keeps the install button', lambda: edit('site/styles.css', '.hero.compact~.btn-add,.hero.compact .eyebrow{display:none}', '.hero.compact .eyebrow{display:none}')),
+    ('K14 (Codex r1) a full storage stops the catalog', lambda: edit(AP, "try{LS.set('homeSeen',true)}catch(e){}", "LS.set('homeSeen',true)")),
+    ('K15 (Codex r1) Ctrl or Cmd click is cancelled', lambda: edit(AP, "if(e.defaultPrevented||e.button>0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;", '')),
+    ('K16 (Codex r1) the marker reads the hash raw', lambda: edit(AP, "const r=ROUTE_OF[r0]?r0:'catalogo',x=ROUTE_OF[r]", "arg0=a0;const r=r0||'catalogo',x=ROUTE_OF[r]")),
     ('K11 a menu key without its English value', lambda: edit(IX, ' "menu.personasSub": "Find someone by @ or by name",', '')),
 ]
 red = 0
