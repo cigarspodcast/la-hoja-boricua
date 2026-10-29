@@ -6313,7 +6313,8 @@ test('LHB-62 (Codex r2): en la app, el perfil y las listas se pintan otra vez en
 });
 test('LHB-62 (Codex r3): una página pública sin Clerk cargado (sin cuenta guardada) nota por la cookie __session que la sesión cambió en otra pestaña: al volver se pinta otra vez, y una respuesta de la sesión de antes no se pinta',async()=>{
  const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
- const jwt=sub=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,exp:1})).toString('base64url')+'.firma';
+ /* Codex r4: una cookie que el servidor da por buena (exp en el futuro) */
+ const jwt=sub=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.firma';
  const back=H=>{for(const f of [...H.ctx.acctW])f()};
  /* el perfil puesto con la sesión de B; en otra pestaña entra C, a quien bea bloqueó; se vuelve a esta */
  let n=0;let H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
@@ -6365,4 +6366,32 @@ test('LHB-62: Bloqueados en Editar perfil: la lista de a quién bloqueaste, cada
  /* un Desbloquear que falla: la fila se queda, el botón vuelve, y se avisa */
  const K=HOJA58({api:(m)=>m==='GET'?{status:200,body:{people:[{handle:'bea',display_name:null,avatar_key:null}]}}:{status:0,body:{}}});K.ctx.view.innerHTML=SEC;await K.ctx.blkList();
  await K.stubs['unblk:bea'].onclick();await tick();assert.ok(K.els.blkL.innerHTML.includes('data-unblk="bea"'));assert.equal(K.stubs['unblk:bea'].disabled,false);assert.ok(K.toasts.includes('No pudimos desbloquear. Intenta otra vez.'));
+});
+test('LHB-62 (Codex r4): la cookie vencida es la vista sin sesión: cambiarla por una nueva del mismo sub pinta otra vez; una respuesta sin sesión que llega después no se pinta; nbf y la tolerancia de 5 s',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const now=()=>Math.floor(Date.now()/1000);
+ const jwt=(sub,c)=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,...c})).toString('base64url')+'.firma';
+ const back=H=>{for(const f of [...H.ctx.acctW])f()};
+ /* el perfil de bea pedido con la cookie vencida de u_yo (el servidor contesta sin sesión); llega la nueva de u_yo, a quien bea bloqueó */
+ let n=0;let H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-60});await H.X.vPersona('bea');assert.ok(H.all().includes('id="pfMore"'));
+ back(H);await tick();assert.equal(n,1,'sin cambio no se pide nada');
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});back(H);await tick();
+ assert.equal(n,2,'la nueva del mismo sub: se pide otra vez');assert.ok(!H.all().includes('id="pfMore"'),'y ya no se ve');
+ /* la lista de seguidores también */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null}}:{status:404,body:{}}):{status:404,body:{}}});
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-60});H.loc.hash='#/u/cris/seguidores';await H.X.vPersona('cris');await tick();assert.ok(H.all().includes('Bea S.'));
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});back(H);await tick();assert.equal(n,2);assert.ok(!H.all().includes('Bea S.'));
+ /* la respuesta pedida con la vencida llega después de la nueva: no se pinta, se pregunta otra vez */
+ let rel=null;n=0;H=HOJA58({acct:null,reply:u=>{if(!u.startsWith('/api/u/'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-60});const p=H.X.vPersona('bea');await tick();
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});rel({status:200,body:API58JSON()});await p;await tick();
+ assert.equal(n,2);assert.ok(!H.all().includes('id="pfMore"'));
+ /* como el servidor: 5 s de tolerancia en exp; un nbf en el futuro (más de 5 s) todavía no vale; sin exp no vale */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON()}):{status:404,body:{}}});
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-2});await H.X.vPersona('bea');
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});back(H);await tick();assert.equal(n,1,'vencida hace 2 s todavía vale: el mismo sub, nada que pedir');
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600,nbf:now()+60});back(H);await tick();assert.equal(n,2,'nbf en el futuro: sin sesión');
+ H.ctx.document.cookie='__session='+jwt('u_yo',{});back(H);await tick();assert.equal(n,2,'sin exp: también sin sesión, sin cambio');
+ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600,nbf:now()+2});back(H);await tick();assert.equal(n,3,'nbf dentro de los 5 s: vale');
 });

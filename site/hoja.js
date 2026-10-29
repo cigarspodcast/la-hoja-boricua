@@ -517,9 +517,12 @@ async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h
 /* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado).
    Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen).
    Codex r3: y de quién es la cookie de sesión de Clerk (__session, la de este sitio que el servidor lee): solo el sub de su contenido, sin verificar nada, para notar
-   que la sesión cambió en otra pestaña aunque aquí no haya Clerk; '' si no hay o no se puede leer */
+   que la sesión cambió en otra pestaña aunque aquí no haya Clerk; '' si no hay o no se puede leer.
+   Codex r4: el sub solo cuenta si el servidor la daría por buena ahora (exp y nbf, con los LEEWAY 5 s de functions/_lib/auth.js); vencida es la vista sin sesión,
+   así que cambiarla por una nueva del mismo sub también es otra sesión */
 const cookieSub=()=>{try{const m=/(?:^|;\s*)__session=([^;]+)/.exec(String(document.cookie||''));const p=m&&m[1].split('.')[1];if(!p)return '';
- const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));return j&&typeof j.sub==='string'?j.sub:''}catch(e){return ''}};
+ const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));if(!j||typeof j.sub!=='string')return '';const t=Date.now()/1000;
+ return Number.isFinite(j.exp)&&t<=j.exp+5&&(j.nbf===undefined||(Number.isFinite(j.nbf)&&t+5>=j.nbf))?j.sub:''}catch(e){return ''}};
 const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')+'|'+cookieSub()};
 /* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva. Codex r2: al poner uno se quitan los de páginas que ya no están */
 const pfRedo=(live,sub0,redo)=>{for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};

@@ -60,6 +60,10 @@ MUTS = [
     (HJ, 'r3: the session cookie is not part of the token', "+'|'+cookieSub()};", '};'),
     (HJ, 'r3: the cookie read is the wrong one', '__session=([^;]+)', '__sesion=([^;]+)'),
     (HJ, 'r3: returning to the tab does not tell the watchers', "window.addEventListener('focus',()=>acctTell())", "window.addEventListener('focus',()=>{})"),
+    # Codex round 4
+    (HJ, 'r4: an expired cookie still counts as its sub', "return Number.isFinite(j.exp)&&t<=j.exp+5&&", "return true||Number.isFinite(j.exp)&&t<=j.exp+5&&"),
+    (HJ, 'r4: nbf is ignored', "(j.nbf===undefined||(Number.isFinite(j.nbf)&&t+5>=j.nbf))", "(true)"),
+    (HJ, 'r4: no exp leeway', "t<=j.exp+5&&", "t<=j.exp&&"),
     (HJ, 'r1: a late block tells another account', '   if(!ok())return;\n   if(r.status===200&&r.body&&r.body.blocked===true)', '   if(r.status===200&&r.body&&r.body.blocked===true)'),
 ]
 
