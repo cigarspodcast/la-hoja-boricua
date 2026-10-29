@@ -1,0 +1,182 @@
+[
+ {
+  "variant": "ruta",
+  "version": "mono",
+  "px": 16,
+  "clusters": 2,
+  "basis": "luma<128",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "ruta",
+  "version": "mono",
+  "px": 32,
+  "clusters": 2,
+  "basis": "luma<128",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "ruta",
+  "version": "mono",
+  "px": 180,
+  "clusters": 2,
+  "basis": "luma<128",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "ruta",
+  "version": "color",
+  "px": 16,
+  "clusters": 2,
+  "basis": "luma<200",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "ruta",
+  "version": "color",
+  "px": 32,
+  "clusters": 2,
+  "basis": "luma<200",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "ruta",
+  "version": "color",
+  "px": 180,
+  "clusters": 2,
+  "basis": "luma<200",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "parada",
+  "version": "mono",
+  "px": 16,
+  "clusters": 2,
+  "basis": "luma<128",
+  "dot_cluster": 1,
+  "rib_cluster": 2,
+  "separate": true
+ },
+ {
+  "variant": "parada",
+  "version": "mono",
+  "px": 32,
+  "clusters": 4,
+  "basis": "luma<128",
+  "dot_cluster": 1,
+  "rib_cluster": 2,
+  "separate": true
+ },
+ {
+  "variant": "parada",
+  "version": "mono",
+  "px": 180,
+  "clusters": 4,
+  "basis": "luma<128",
+  "dot_cluster": 1,
+  "rib_cluster": 2,
+  "separate": true
+ },
+ {
+  "variant": "parada",
+  "version": "color",
+  "px": 16,
+  "clusters": 2,
+  "basis": "luma<200",
+  "dot_cluster": 1,
+  "rib_cluster": 2,
+  "separate": true
+ },
+ {
+  "variant": "parada",
+  "version": "color",
+  "px": 32,
+  "clusters": 2,
+  "basis": "luma<200",
+  "dot_cluster": 1,
+  "rib_cluster": 2,
+  "separate": true
+ },
+ {
+  "variant": "parada",
+  "version": "color",
+  "px": 180,
+  "clusters": 4,
+  "basis": "luma<200",
+  "dot_cluster": 1,
+  "rib_cluster": 3,
+  "separate": true
+ },
+ {
+  "variant": "camino",
+  "version": "mono",
+  "px": 16,
+  "clusters": 4,
+  "basis": "luma<128",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "camino",
+  "version": "mono",
+  "px": 32,
+  "clusters": 3,
+  "basis": "luma<128",
+  "dot_cluster": 3,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "camino",
+  "version": "mono",
+  "px": 180,
+  "clusters": 3,
+  "basis": "luma<128",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "camino",
+  "version": "color",
+  "px": 16,
+  "clusters": 2,
+  "basis": "luma<200",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "camino",
+  "version": "color",
+  "px": 32,
+  "clusters": 2,
+  "basis": "luma<200",
+  "dot_cluster": 2,
+  "rib_cluster": 1,
+  "separate": true
+ },
+ {
+  "variant": "camino",
+  "version": "color",
+  "px": 180,
+  "clusters": 3,
+  "basis": "luma<200",
+  "dot_cluster": 3,
+  "rib_cluster": 1,
+  "separate": true
+ }
+]

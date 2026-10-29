@@ -1,0 +1,19 @@
+ruta    mono   16 px  clusters (luma<128)  2  dot in 2, rib in 1  -> SEPARATE
+ruta    mono   32 px  clusters (luma<128)  2  dot in 2, rib in 1  -> SEPARATE
+ruta    mono  180 px  clusters (luma<128)  2  dot in 2, rib in 1  -> SEPARATE
+ruta    color  16 px  clusters (luma<200)  2  dot in 2, rib in 1  -> SEPARATE
+ruta    color  32 px  clusters (luma<200)  2  dot in 2, rib in 1  -> SEPARATE
+ruta    color 180 px  clusters (luma<200)  2  dot in 2, rib in 1  -> SEPARATE
+parada  mono   16 px  clusters (luma<128)  2  dot in 1, rib in 2  -> SEPARATE
+parada  mono   32 px  clusters (luma<128)  4  dot in 1, rib in 2  -> SEPARATE
+parada  mono  180 px  clusters (luma<128)  4  dot in 1, rib in 2  -> SEPARATE
+parada  color  16 px  clusters (luma<200)  2  dot in 1, rib in 2  -> SEPARATE
+parada  color  32 px  clusters (luma<200)  2  dot in 1, rib in 2  -> SEPARATE
+parada  color 180 px  clusters (luma<200)  4  dot in 1, rib in 3  -> SEPARATE
+camino  mono   16 px  clusters (luma<128)  4  dot in 2, rib in 1  -> SEPARATE
+camino  mono   32 px  clusters (luma<128)  3  dot in 3, rib in 1  -> SEPARATE
+camino  mono  180 px  clusters (luma<128)  3  dot in 2, rib in 1  -> SEPARATE
+camino  color  16 px  clusters (luma<200)  2  dot in 2, rib in 1  -> SEPARATE
+camino  color  32 px  clusters (luma<200)  2  dot in 2, rib in 1  -> SEPARATE
+camino  color 180 px  clusters (luma<200)  3  dot in 3, rib in 1  -> SEPARATE
+RESULT one-color versions: rib and dot separate at every size: PASS
