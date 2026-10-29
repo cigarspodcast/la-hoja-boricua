@@ -1,0 +1,21 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-98-wt (branch lhb-98-weblocks). TIER 2, round 2.
+
+Ticket LHB-98: Mi Hoja is written only while the page holds the shared Web Lock 'lhb_mihoja'; signing out and account deletion take it exclusive, so no other tab can write between the local wipe and the end of the Clerk sign-out. Without Web Locks, the LHB-34 timestamp fence stays as it was.
+
+Round 1 (evidence/lhb-98-review-r1.txt) found no deadlock and blocked on two findings:
+1. When another tab did not release within WL_WAIT, wlOnly ran the sign-out or deletion without the exclusive (timestamp fence only).
+2. Quiet writes (load() importing vb_favs and vb_ratings on first open, write(s,true)) skipped the lock.
+
+The diff below is the fix against the round 1 prompt commit:
+- site/hoja.js wlOnly(f,onWait): f runs only inside the exclusive grant; there is no unlocked fallback while Web Locks exist. Without onWait (sign-out) the request is aborted at WL_WAIT and wlOnly returns WL_NO: salir deletes nothing, does not sign out, shows ac.wlBusy, and the page takes its shared lock back; a retry works once the other tab lets go. With onWait (askDelete after the server answered 200: the account is already gone, so there is nothing to postpone to) the request is not aborted: at WL_WAIT onWait shows ac.wlWait (close the other tabs), and the wipe and sign-out run when the exclusive arrives.
+- site/hoja.js write(s,quiet): a quiet write while wlClosed() returns true without persisting; the document stays in memory (ST). When the shared lock is granted, wlTake sets ST=null, so the next read runs load() again and the migration write happens with the lock held.
+- site/sync.js fenced(): the soft parameter is gone (quiet writes no longer reach it while closed); write() calls fenced() at both checks.
+- site/i18n.js: ac.wlBusy and ac.wlWait in Spanish and English.
+- test/site.test.js: the ACCT34 harness gains o.timers (the page's setTimeout callbacks, run by hand). The WL_WAIT test now expects a refused sign-out and then a successful retry. The quiet-write test now expects nothing stored without the lock. Two new tests: deletion waits past WL_WAIT with the message and finishes with the exclusive; a tab opening Mi Hoja for the first time while a sign-out holds the exclusive and the timestamp fence has expired stores nothing. All four were seen failing on the round 1 code.
+Evidence: evidence/lhb-98-mutations.out 14 of 14 red (5 new or retargeted for round 1; two round 1 mutations about the soft parameter removed because the code they mutated is gone); evidence/lhb-98-tests.txt full suite 347 tests, 346 pass, 0 fail, 1 skipped.
+
+Check that both findings are closed, that no path still writes Mi Hoja or wipes it without the lock where Web Locks exist, that a deletion waiting with no limit cannot deadlock (for example against lhb_borrar, resumeDelete, or a tab whose wlYield never runs), and that a refused sign-out leaves nothing held (sync hold, acBusy, the lock).
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
