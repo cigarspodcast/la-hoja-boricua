@@ -4832,7 +4832,7 @@ test('LHB-97: dos reseñas iguales: tras una sincronización el foco y la tarjet
   const H=HOJA58({ls:{lhb_mihoja_v1:doc()},reply:()=>({status:503,body:{}})});
   H.ctx.view.innerHTML='<div class="pf-own" id="pfOwn"></div>';await H.X.profileOwn({sub:'u_a',handle:'ana'});
   assert.equal([...H.els.pfPanel.innerHTML.matchAll(/<b>Gemela<\/b>/g)].length,2,como+': las dos se ven');
-  /* abre la segunda: la tarjeta de una reseña no tiene controles, el foco se queda en su botón */
+  /* abre la segunda: con LHB-64 la hoja toma el foco (su primer control o Cerrar); lastFocus guarda el botón de la reseña */
   const s1=H.stubs['pfres:1'];s1.focus();s1.onclick();assert.equal(H.sheets.length,1);assert.equal(H.ctx.lastFocus,s1);assert.equal(H.foco.el.id,'sheetPanel',como+': el foco entra en la hoja (LHB-64)');
   assert.ok(H.ctx.document.body.classList.contains('sheet-on'),como+': la tarjeta está abierta');
   /* llega la misma Mi Hoja */
