@@ -1,4 +1,4 @@
-You are reviewing one merge in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-64-wt (branch a11y-fixes, PR #36 to main, which the owner merges). The diff below is a11y-fixes HEAD 87ca9ef (a merge of main) against its parent 538a096, limited to site/ and test/: it brings main's LHB-102 (PR #40, TIER 1 PASS, evidence/lhb-102-review-r1.txt) and LHB-97 (PR #41, TIER 1 PASS in round 2, evidence/lhb-97-review-r2.txt) onto this branch. TIER 1: one round.
+You are reviewing one merge in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-64-wt (branch a11y-fixes, PR #36 to main, which the owner merges). The diff below is a11y-fixes HEAD (the merge of main 87ca9ef plus a one-line test comment fix) against its parent 538a096, limited to site/ and test/: it brings main's LHB-102 (PR #40, TIER 1 PASS, evidence/lhb-102-review-r1.txt) and LHB-97 (PR #41, TIER 1 PASS in round 2, evidence/lhb-97-review-r2.txt) onto this branch. TIER 1: one round.
 
 What they are on main:
 - LHB-102: app.js uploads() keeps only the objects of a stored vb_uploads list and reads anything else as an empty list; hoja.js legacyList applies the same rule in the backup export and the import merge. A read never rewrites the stored value.
@@ -107,7 +107,7 @@ index 1504676..a0109f6 100644
   'data/bundle.js',
   'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
 diff --git a/test/site.test.js b/test/site.test.js
-index 0dd8c57..8185581 100644
+index 0dd8c57..87ebaf8 100644
 --- a/test/site.test.js
 +++ b/test/site.test.js
 @@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
@@ -306,7 +306,7 @@ index 0dd8c57..8185581 100644
 +  const H=HOJA58({ls:{lhb_mihoja_v1:doc()},reply:()=>({status:503,body:{}})});
 +  H.ctx.view.innerHTML='<div class="pf-own" id="pfOwn"></div>';await H.X.profileOwn({sub:'u_a',handle:'ana'});
 +  assert.equal([...H.els.pfPanel.innerHTML.matchAll(/<b>Gemela<\/b>/g)].length,2,como+': las dos se ven');
-+  /* abre la segunda: la tarjeta de una reseña no tiene controles, el foco se queda en su botón */
++  /* abre la segunda: con LHB-64 la hoja toma el foco (su primer control o Cerrar); lastFocus guarda el botón de la reseña */
 +  const s1=H.stubs['pfres:1'];s1.focus();s1.onclick();assert.equal(H.sheets.length,1);assert.equal(H.ctx.lastFocus,s1);assert.equal(H.foco.el.id,'sheetPanel',como+': el foco entra en la hoja (LHB-64)');
 +  assert.ok(H.ctx.document.body.classList.contains('sheet-on'),como+': la tarjeta está abierta');
 +  /* llega la misma Mi Hoja */
