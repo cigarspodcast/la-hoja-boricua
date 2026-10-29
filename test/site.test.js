@@ -2112,7 +2112,8 @@ test('LHB-56: la regla de bloqueo ya está en su sitio (no hace nada hasta LHB-6
  try{
   assert.equal(await a.FL.isBlocked(a.DB,'u_a','u_b'),false,'hasta que lleguen los bloqueos ningún par está bloqueado');
   const src=fs.readFileSync(path.join(__dirname,'..','functions','api','follow.js'),'utf8');
-  assert.ok(src.includes("if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'blocked' }, 403);"),'seguir pregunta por el bloqueo y contesta 403 blocked');
+  /* LHB-62: el bloqueo contesta el mismo 404 que un perfil que no existe, quien queda bloqueado no se entera */
+  assert.ok(src.includes("if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'not-found' }, 404);"),'seguir pregunta por el bloqueo y contesta 404 not-found');
   assert.ok(src.indexOf('isBlocked(env.DB')<src.indexOf('INSERT INTO follows'),'el bloqueo se pregunta antes de escribir');
   /* ningún archivo de seguir selecciona la fecha de nacimiento, el género ni el apellido */
   for(const f of ['_lib/follow.js','api/follow.js','api/followers.js','api/following.js'])assert.ok(!/birth_date|gender|last_name|first_name/.test(fs.readFileSync(path.join(__dirname,'..','functions',...f.split('/')),'utf8').replace(/\/\*[\s\S]*?\*\//g,'').replace(/^\s*\/\/.*$/gm,'')),f+' no toca datos privados');
@@ -4656,9 +4657,10 @@ test('LHB-60 (Codex r1): un pedido no sale si la página se fue mientras llegaba
   F.H.acctBox.v=later;for(const f of [...F.H.ctx.acctW])f();assert.ok(!F.H.all().includes('fwB-bea'),'se quita para '+JSON.stringify(later));assert.equal(F.H.ctx.acctW.size,0);
   b.onclick();await F.tick();assert.equal(F.q.length,0,'no manda nada');}
  /* el que mira la cuenta se va solo cuando la página ya no está */
- F=FW60();await F.H.X.vPersona('bea');assert.equal(F.H.ctx.acctW.size,1);F.H.ctx.view.innerHTML='<div id="otra"></div>';for(const f of [...F.H.ctx.acctW])f();assert.equal(F.H.ctx.acctW.size,0);
+ /* LHB-62 (Codex r1): miran dos, el botón y la página (que se pinta otra vez con otra cuenta) */
+ F=FW60();await F.H.X.vPersona('bea');assert.equal(F.H.ctx.acctW.size,2);F.H.ctx.view.innerHTML='<div id="otra"></div>';for(const f of [...F.H.ctx.acctW])f();assert.equal(F.H.ctx.acctW.size,0);
  /* Codex r2: abrir tres perfiles sin que cambie la cuenta deja uno solo mirando, el de la página que está */
- F=FW60();for(const h of ['bea','bea','bea']){await F.H.X.vPersona(h);await F.tick()}assert.equal(F.H.ctx.acctW.size,1,'los de páginas que se fueron no se quedan');
+ F=FW60();for(const h of ['bea','bea','bea']){await F.H.X.vPersona(h);await F.tick()}assert.equal(F.H.ctx.acctW.size,2,'los de páginas que se fueron no se quedan: solo el botón y la página que está');
  /* 3 seguidores: Seguir y Dejar de seguir; el servidor confirma el primero con 10: se ve 9 mientras va el segundo */
  F=FW60();await F.H.X.vPersona('bea');b=F.btn('bea');b.onclick();b.onclick();await F.tick();F.q.shift().answer({status:200,body:{following:true,followers:10}});await F.tick();
  assert.equal(F.q.length,1,'va el DELETE');assert.equal(F.count(),'9');assert.equal(b.textContent,'Seguir');
@@ -6015,7 +6017,7 @@ async function API62(opts){opts=opts||{};
  const call=async(fn,u,body,o)=>{o=o||{};const r=await fn({request:rq(u?await a.tk(u):null,body,o),env:o.env||env,params:o.params});const t=await r.text();let j;try{j=JSON.parse(t)}catch(e){j=t}return [r.status,j]};
  return {...a,B,PE,AU,env,DB,setPrepare:f=>{onPrepare=f},
   block:(u,h,o)=>call(B.onRequestPost,u,{handle:h},o),unblock:(u,h,o)=>call(B.onRequestDelete,u,{handle:h},o),blocked:(u,o)=>call(B.onRequestGet,u,undefined,o),
-  follow2:(u,h,o)=>call(a.F.onRequestPost,u,{handle:h},o),
+  follow2:(u,h,o)=>call(a.F.onRequestPost,u,{handle:h},o),unfollow2:(u,h,o)=>call(a.F.onRequestDelete,u,{handle:h},o),
   state2:(h,u,o)=>call(a.F.onRequestGet,u,undefined,{...(o||{}),url:'https://x.test/api/follow?handle='+h}),
   list2:(dir,h,u,o)=>call((dir==='followers'?a.FS:a.FG).onRequestGet,u,undefined,{...(o||{}),url:'https://x.test/api/'+dir+'?handle='+h}),
   people:(u,q,o)=>call(PE.onRequestGet,u,undefined,{...(o||{}),url:'https://x.test/api/people?q='+encodeURIComponent(q)}),
@@ -6067,7 +6069,8 @@ test('LHB-62: bloquear quita los seguir en las dos direcciones y esconde a cada 
    assert.deepEqual(await a.state2(h,v),[404,{error:'not-found'}],v+' no ve los conteos de '+h);
    for(const d of ['followers','following'])assert.deepEqual(await a.list2(d,h,v),[404,{error:'not-found'}],v+' no ve las listas de '+h);
    assert.deepEqual(hs62(await a.people(v,h)),[],v+' no encuentra a '+h);
-   assert.deepEqual(await a.follow2(v,h),[403,{error:'blocked'}],v+' no puede seguir a '+h)}
+   assert.deepEqual(await a.follow2(v,h),nada,v+' no puede seguir a '+h+', y le contesta lo mismo que a un perfil que no existe');
+   assert.deepEqual(await a.unfollow2(v,h),nada,v+' tampoco ve el conteo de '+h+' al dejar de seguir')}
   assert.deepEqual(hs62(await a.list2('followers','cris','u_yo')),['yolo'],'en la lista de otra persona, yo no veo a bea');
   assert.deepEqual(hs62(await a.list2('followers','cris','u_bea')),['bea'],'ni bea me ve a mí');
   assert.deepEqual(await a.feed2('u_yo'),['cris'],'el feed ya no trae a bea');
@@ -6114,7 +6117,7 @@ test('LHB-62: un bloqueo que llega entre la revisión y la escritura de un segui
   SEED62(a);a.db.prepare("DELETE FROM follows WHERE follower_id='u_cris'").run();
   /* justo antes de que seguir escriba su fila, bea bloquea a cris */
   a.setPrepare(sql=>{if(/^INSERT INTO follows/.test(sql)){a.setPrepare(null);a.db.prepare("INSERT INTO blocks (blocker_id,blocked_id,created_at) VALUES ('u_bea','u_cris','x')").run()}});
-  assert.deepEqual(await a.follow2('u_cris','bea'),[403,{error:'blocked'}]);
+  assert.deepEqual(await a.follow2('u_cris','bea'),[404,{error:'not-found'}]);
   assert.equal(a.rows().filter(r=>r.follower_id==='u_cris').length,0,'no quedó la fila');
  }finally{a.done()}
 });
@@ -6169,8 +6172,114 @@ test('LHB-62: en la app, Reportar abre un correo ya escrito con el @ y el enlace
 });
 test('LHB-62: el bloqueo es real en cada lugar que lo pregunta, y el código de bloquear no lee ni escribe nada privado',async()=>{
  const src=f=>fs.readFileSync(path.join(__dirname,'..','functions',...f.split('/')),'utf8');
- for(const [f,s] of [['api/u/[handle].js','isBlocked(env.DB, await viewerOf(request, env), r.uid)'],['u/[handle].js','isBlocked(env.DB, await viewerOf(request, env), r.uid)'],['_lib/follow.js','if (await isBlocked(env.DB, me, who.user_id)) return json({ error: \'not-found\' }, 404);'],['api/follow.js','if (await isBlocked(env.DB, me, who.user_id)) return json({ error: \'not-found\' }, 404);'],['_lib/people.js',"notBlocked(1, 'profiles.user_id')"],['_lib/feed.js','isBlocked(db, me, r.uid)']])assert.ok(src(f).includes(s),f+' pregunta por el bloqueo');
+ for(const [f,s] of [['api/u/[handle].js','isBlocked(env.DB, viewer, r.uid)'],['u/[handle].js','isBlocked(env.DB, await viewerOf(request, env), r.uid)'],['_lib/follow.js','if (await isBlocked(env.DB, me, who.user_id)) return json({ error: \'not-found\' }, 404);'],['api/follow.js','if (await isBlocked(env.DB, me, who.user_id)) return json({ error: \'not-found\' }, 404);'],['_lib/people.js',"notBlocked(1, 'profiles.user_id')"],['_lib/feed.js','isBlocked(db, me, r.uid)']])assert.ok(src(f).includes(s),f+' pregunta por el bloqueo');
  for(const f of ['api/block.js'])assert.ok(!/birth_date|gender|last_name|first_name/.test(src(f).replace(/\/\*[\s\S]*?\*\//g,'').replace(/^\s*\/\/.*$/gm,'')),f+' no toca datos privados');
+});
+test('LHB-62 (Codex r1): quien te bloqueó tampoco existe en bloquear ni desbloquear, y en tu lista Bloqueados de quien también te bloqueó o se ocultó sale solo el @',async()=>{
+ const a=await API62();
+ try{
+  SEED62(a);
+  assert.deepEqual(await a.block('u_yo','bea'),[200,{blocked:true}]);
+  const nada=await a.unblock('u_bea','nadie_asi');assert.deepEqual(nada,[404,{error:'not-found'}]);
+  assert.deepEqual(await a.unblock('u_bea','yolo'),nada,'bea no puede desbloquear a quien la bloqueó: lo mismo que un perfil que no existe');
+  assert.deepEqual(await a.block('u_bea','yolo'),nada,'ni bloquearlo de vuelta');
+  assert.deepEqual(a.bl(),[['u_yo','u_bea']],'no se escribió nada');
+  assert.deepEqual(await a.blocked('u_bea'),[200,{people:[]}],'y en su lista no sale yolo');
+  const pb=a.db.prepare("SELECT display_name,avatar_key FROM profiles WHERE user_id='u_bea'").get();assert.ok(pb.display_name&&pb.avatar_key,'la semilla tiene nombre y foto');
+  assert.deepEqual(await a.blocked('u_yo'),[200,{people:[{handle:'bea',display_name:pb.display_name,avatar_key:pb.avatar_key}]}],'yo sí veo a quien bloqueé, con su nombre y su foto');
+  /* bea me había bloqueado antes de que yo la bloqueara (los dos a la vez): yo la sigo pudiendo desbloquear, pero sin su nombre ni su foto de ahora */
+  a.db.prepare("INSERT INTO blocks (blocker_id,blocked_id,created_at) VALUES ('u_bea','u_yo','x')").run();
+  assert.deepEqual(await a.blocked('u_yo'),[200,{people:[{handle:'bea',display_name:null,avatar_key:null}]}]);
+  assert.deepEqual(await a.unblock('u_yo','bea'),[200,{blocked:false}],'mi fila sí se quita');
+  assert.deepEqual(a.bl(),[['u_bea','u_yo']],'y queda la de ella');
+  assert.deepEqual(await a.unblock('u_yo','bea'),nada,'ahora bea me bloqueó y yo no: para mí no existe');
+  /* alguien que bloqueé y después se ocultó: solo el @ */
+  assert.deepEqual(await a.block('u_yo','cris'),[200,{blocked:true}]);a.db.prepare("UPDATE profiles SET hidden=1 WHERE user_id='u_cris'").run();
+  assert.deepEqual(await a.blocked('u_yo'),[200,{people:[{handle:'cris',display_name:null,avatar_key:null}]}]);
+  assert.deepEqual(await a.unblock('u_yo','cris'),[200,{blocked:false}],'y se puede desbloquear');
+ }finally{a.done()}
+});
+test('LHB-62 (Codex r1): una cuenta bloquea a lo sumo BLOCK_MAX personas, así la lista Bloqueados las trae todas; al tope no se toca nada',async()=>{
+ const a=await API62();
+ try{
+  SEED62(a);
+  assert.equal(a.B.BLOCK_MAX,500);
+  const ins=a.db.prepare("INSERT INTO blocks (blocker_id,blocked_id,created_at) VALUES ('u_yo',?,?)");
+  for(let i=0;i<a.B.BLOCK_MAX-1;i++){a.mk('u_t'+i,'t'+String(i).padStart(3,'0'));ins.run('u_t'+i,'2026-10-01T00:00:00.'+String(i%1000).padStart(3,'0')+'Z')}
+  assert.deepEqual(await a.block('u_yo','cris'),[200,{blocked:true}],'el último que cabe entra');
+  const before=a.rows().length;
+  assert.deepEqual(await a.block('u_yo','bea'),[429,{error:'block-cap'}],'al tope, 429 block-cap');
+  assert.equal(a.rows().length,before,'y los seguir con bea siguen ahí');
+  assert.ok(a.rows().some(r=>r.follower_id==='u_yo'&&r.followee_id==='u_bea'));
+  const [st,b]=await a.blocked('u_yo');assert.equal(st,200);assert.equal(b.people.length,a.B.BLOCK_MAX,'la lista trae a todos los bloqueados');
+  assert.deepEqual(await a.block('u_yo','cris'),[200,{blocked:true}],'repetir uno que ya está no choca con el tope');
+ }finally{a.done()}
+});
+test('LHB-62 (Codex r1): los conteos de un perfil no cuentan a quien tiene el par bloqueado con quien mira, y cuadran con las listas',async()=>{
+ const a=await API62();
+ try{
+  SEED62(a);
+  assert.equal((await a.profile('cris',null))[1].counts.followers,2,'sin sesión, los dos seguidores de cris');
+  assert.deepEqual(await a.block('u_yo','bea'),[200,{blocked:true}]);
+  const [st,b]=await a.profile('cris','u_yo');assert.equal(st,200);
+  assert.deepEqual(hs62(await a.list2('followers','cris','u_yo')),['yolo']);
+  assert.equal(b.counts.followers,1,'yo no cuento a bea entre los seguidores de cris');
+  assert.equal((await a.state2('cris','u_yo'))[1].followers,1,'tampoco en los conteos de seguir');
+  assert.equal((await a.profile('cris','u_bea'))[1].counts.followers,1,'ni bea me cuenta a mí');
+  assert.equal((await a.profile('cris',null))[1].counts.followers,2,'sin sesión no cambia');
+  assert.equal((await a.unfollow2('u_yo','cris'))[1].followers,0,'al dejar de seguir, el conteo es el que yo veo');
+  assert.equal((await a.follow2('u_yo','cris'))[1].followers,1,'y al seguir');
+  /* sin la tabla todavía, los conteos son los de siempre */
+  const z=await API62({sin0007:true});try{SEED62(z);assert.equal((await z.profile('cris','u_yo'))[1].counts.followers,2)}finally{z.done()}
+ }finally{a.done()}
+});
+test('LHB-62 (Codex r1): en la app, el perfil y las listas que llegan de la sesión de otra cuenta no se pintan: se pregunta otra vez; y si la cuenta cambia con la página puesta, se pinta otra vez',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const C={sub:'u_c',handle:'cris',name:'Cris P.',avatar:''};
+ /* el perfil: la cuenta cambia mientras llega la respuesta de la sesión de antes; con la de ahora, 404 */
+ let rel=null,n=0;
+ let H=HOJA58({reply:u=>{if(!u.startsWith('/api/u/'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
+ let p=H.X.vPersona('bea');await tick();assert.ok(rel,'preguntó');
+ H.acctBox.v=C;rel({status:200,body:API58JSON()});await p;await tick();
+ assert.equal(n,2,'se preguntó otra vez con la sesión nueva');
+ assert.ok(!H.all().includes('pf-n')&&!H.all().includes('Bea'),'no se pinta el perfil de la respuesta vieja');assert.ok(H.all().includes('Este perfil no está disponible.'));
+ /* el perfil ya puesto: otra cuenta entra y para ella no existe */
+ n=0;H=HOJA58({reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
+ await H.X.vPersona('bea');assert.ok(H.all().includes('id="pfMore"'),'se pintó');
+ H.acctBox.v=C;for(const f of [...H.ctx.acctW])f();await tick();
+ assert.equal(n,2,'se pidió otra vez');assert.ok(H.all().includes('Este perfil no está disponible.')&&!H.all().includes('id="pfMore"'),'y ya no se ve');
+ /* la misma cuenta guardada otra vez no pide nada */
+ n=0;H=HOJA58({reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON()}):{status:404,body:{}}});await H.X.vPersona('bea');
+ H.acctBox.v={...H.acctBox.v};for(const f of [...H.ctx.acctW])f();await tick();assert.equal(n,1,'sin cambio de cuenta no se pide otra vez');
+ /* las listas: lo mismo */
+ rel=null;n=0;
+ H=HOJA58({reply:u=>{if(!u.startsWith('/api/followers'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
+ H.loc.hash='#/u/bea/seguidores';p=H.X.vPersona('bea');await tick();assert.ok(rel,'preguntó la lista');
+ H.acctBox.v=C;rel({status:200,body:{people:[{handle:'dani',display_name:'Dani R.',avatar_key:null}],next:null}});await p;await tick();
+ assert.equal(n,2,'la lista se pidió otra vez');assert.ok(!H.all().includes('dani'),'sin la fila de la respuesta vieja');assert.equal(H.els.fwH.textContent,'Este perfil no está disponible.');
+ n=0;H=HOJA58({reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'dani',display_name:'Dani R.',avatar_key:null}],next:null}}:{status:404,body:{}}):{status:404,body:{}}});
+ H.loc.hash='#/u/bea/seguidores';await H.X.vPersona('bea');await tick();assert.ok(H.all().includes('dani'));
+ H.acctBox.v=null;for(const f of [...H.ctx.acctW])f();await tick();assert.equal(n,2,'salir pinta la lista otra vez');assert.ok(!H.all().includes('dani'));
+});
+test('LHB-62 (Codex r1): en la app, la respuesta tardía de Bloquear no cierra otra hoja, y con otra cuenta no avisa ni cambia de página',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const mk=()=>{let rel=null;const H=HOJA58({reply:u=>u.startsWith('/api/u/')?{status:200,body:API58JSON()}:{status:404,body:{}},api:(method,path)=>path==='/api/block'?new Promise(r=>{rel=r}):{status:200,body:{viewerFollows:false,followers:3}}});
+  H.ctx.sheet=(x,l)=>{H.sheets.push([x,l]);H.ctx.$('#pfMore').innerHTML+=x};let closed=0;H.ctx.closeSheet=()=>{closed++};
+  return {H,rel:x=>rel(x),pending:()=>!!rel,closed:()=>closed}};
+ /* la hoja se cerró y se abrió otra antes de la respuesta: esa otra no se cierra; el aviso y la vuelta sí, es la misma cuenta y la misma página */
+ let T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();const go=T.H.els.blkGo;go.onclick();await tick();assert.ok(T.pending());
+ T.H.ctx.$('#pfMore').innerHTML='<div id="otraHoja"></div>';
+ T.rel({status:200,body:{blocked:true}});await tick();
+ assert.equal(T.closed(),0,'no cierra la hoja que no es suya');assert.ok(T.H.toasts.includes('Bloqueaste a @bea.'));assert.equal(T.H.loc.hash,'#/mihoja/perfil');
+ /* con la hoja todavía abierta, se cierra */
+ T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();T.H.els.blkGo.onclick();await tick();T.rel({status:200,body:{blocked:true}});await tick();assert.equal(T.closed(),1);
+ /* otra cuenta entró mientras tanto: ni aviso ni cambio de página */
+ T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();T.H.els.blkGo.onclick();await tick();
+ T.H.acctBox.v={sub:'u_c',handle:'cris',name:'Cris P.',avatar:''};T.rel({status:200,body:{blocked:true}});await tick();
+ assert.deepEqual(T.H.toasts,[],'no avisa a la otra cuenta');assert.equal(T.H.loc.hash,'','ni la lleva a su Perfil');
+ /* los rechazos nuevos tienen su aviso */
+ T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();T.H.els.blkGo.onclick();await tick();T.rel({status:429,body:{error:'block-cap'}});await tick();
+ assert.deepEqual(T.H.toasts,['Llegaste al máximo de personas que puedes bloquear.']);
 });
 test('LHB-62: Bloqueados en Editar perfil: la lista de a quién bloqueaste, cada fila con Desbloquear; quitar una pasa el foco a la siguiente; sin la tabla la sección no sale',async()=>{
  const sent=[];

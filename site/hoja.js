@@ -509,7 +509,11 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
    y con ella el servidor esconde a quien tiene el par bloqueado contigo */
 async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
 /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
-async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();
+/* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado) */
+const subNow=()=>{const a=acct.get();return a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:null};
+/* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva; el que mira se quita solo cuando su página ya no está */
+const pfRedo=(live,sub0,redo)=>{const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
+async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow();
  /* LHB-60: #/u/<handle>/seguidores y #/u/<handle>/siguiendo (el enrutador de app.js pasa solo el @; lo que sigue se lee del hash), también las tuyas */
  const seg=String(location.hash||'').replace(/^#\/?/,'').split('/')[2]||'';
  if((seg==='seguidores'||seg==='siguiendo')&&PF_HANDLE.test(h))return vFwList(h,seg==='seguidores'?'followers':'following');
@@ -517,8 +521,10 @@ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct
  view.innerHTML=`<div class="pf" id="pfX"><p class="hint">${tt('h.pfCargando')}</p></div>`;const el=$('#pfX');
  if(!PF_HANDLE.test(h)){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
  const r=await pfFetch(h);
- /* una respuesta que llega cuando ya se fue de la página no pinta nada */
+ /* una respuesta que llega cuando ya se fue de la página no pinta nada; si otra cuenta entró mientras tanto, era de la sesión de antes: se pregunta otra vez */
  if($('#pfX')!==el)return;
+ if(subNow()!==sub0)return vPersona(raw);
+ pfRedo(()=>$('#pfX')===el,sub0,()=>vPersona(raw));
  if(r.status===404){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
  const b=r.body;if(r.status!==200||!b.profile||typeof b.profile!=='object'||!b.counts||typeof b.counts!=='object'){el.innerHTML=`<div class="empty">${tt('h.pfError')}</div>`;return}
  const d={own:false,resenas:(Array.isArray(b.resenas)?b.resenas:[]).filter(e=>e&&typeof e==='object').map(pfEntry),sellos:b.counts.sellos,favorite_brand:b.profile.favorite_brand};
@@ -577,14 +583,15 @@ async function fwMount(id,h,live,onCount){const box=$('#'+id),a=meAcct();if(!box
  const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};for(const f of [...acctW])f();acctW.add(w);
  followBtn($('#fwB-'+h),h,{on:r.body.viewerFollows,n:onCount&&Number.isInteger(r.body.followers)?r.body.followers:null},live,onCount,a.sub)}
 /* las listas: foto, nombre público (nombre e inicial) y @ de cada persona, cada fila con su botón; 20 por página con el cursor del servidor. Son públicas: se piden sin sesión */
-async function vFwList(h,dir){
+async function vFwList(h,dir){const sub0=subNow();
  view.innerHTML=`<div class="pf" id="fwX"><p><a class="lbtn" href="#/u/${encodeURIComponent(h)}">@${esc(h)}</a></p><h1 class="pf-n">${tt(dir==='followers'?'h.pfSeguidores':'h.pfSiguiendo')}</h1><ul class="people" id="fwL"></ul><p class="hint" id="fwH" aria-live="polite">${tt('h.pfCargando')}</p><button class="lbtn" type="button" id="fwMore" hidden>${tt('ev.more')}</button></div>`;
  const root=$('#fwX'),live=()=>$('#fwX')===root,seen=new Set();let next=null,seq=0;
  const say=m=>{const el=$('#fwH');if(el){el.textContent=m;el.hidden=!m}};
  const page=async()=>{const mine=++seq;$('#fwMore').hidden=true;let r;
   try{const x=await fetch('/api/'+dir+'?handle='+encodeURIComponent(h)+(next?'&cursor='+encodeURIComponent(next):''),{headers:{Accept:'application/json'}});let j={};try{j=await x.json()}catch(e){}r={status:x.status,body:j&&typeof j==='object'?j:{}}}catch(e){r={status:0,body:{}}}
-  /* se fue de la página, o es la respuesta de un pedido viejo: no pinta nada */
+  /* se fue de la página, o es la respuesta de un pedido viejo: no pinta nada. Codex r1: si otra cuenta entró mientras tanto, la lista empieza otra vez con la sesión nueva */
   if(!live()||mine!==seq)return;
+  if(subNow()!==sub0)return vFwList(h,dir);
   if(r.status===404){say(tt('h.pfNoDisponible'));return}
   if(r.status!==200||!Array.isArray(r.body.people)){say(tt('h.fwError'));$('#fwMore').hidden=!next;return}
   const me=meAcct(),ppl=r.body.people.filter(p=>p&&typeof p.handle==='string'&&PF_HANDLE.test(p.handle)&&!seen.has(p.handle));ppl.forEach(p=>seen.add(p.handle));
@@ -593,12 +600,13 @@ async function vFwList(h,dir){
   say(seen.size?'':tt('h.fwNadie'));$('#fwMore').hidden=!next;
   await Promise.all(ppl.map(p=>fwMount('fwR-'+p.handle,p.handle,live)))};
  $('#fwMore').onclick=()=>page();
+ pfRedo(live,sub0,()=>vFwList(h,dir));
  await page()}
 /* ---------- bloquear y reportar (LHB-62): en el perfil de otra persona, y la lista Bloqueados en Editar perfil (functions/api/block.js) ---------- */
 const CONTACTO='sergio@cigarspodcast.com';/* el contacto de privacidad.html y de la página /u/<handle> */
 /* Reportar abre un correo ya escrito con el @ y el enlace del perfil, como la página /u/<handle>; no manda nada por sí solo: lo manda la persona desde su correo */
 const reportHref=h=>'mailto:'+CONTACTO+'?subject='+encodeURIComponent('Reportar @'+h)+'&body='+encodeURIComponent(location.origin+'/u/'+h);
-const blkErr=e=>e==='blocks-off'?tt('h.blkOff'):tt('h.blkFail');
+const blkErr=e=>e==='blocks-off'?tt('h.blkOff'):e==='block-cap'?tt('h.blkCap'):e==='not-found'?tt('h.pfNoDisponible'):tt('h.blkFail');
 /* Reportar para todos; Bloquear para una cuenta con perfil y otra persona, con una hoja que pregunta antes. Al bloquear, el perfil ya no se ve: se vuelve a tu Perfil */
 function blkMount(id,h,live){const box=$('#'+id);if(!box)return;const a=meAcct();
  box.innerHTML=`<a class="lbtn" id="pfReport" href="${esc(reportHref(h))}">${tt('h.blkReportar')}</a>${a&&a.handle!==h?`<button class="lbtn" type="button" id="pfBlock">${tt('h.blkBloquear')}</button>`:''}`;
@@ -606,7 +614,9 @@ function blkMount(id,h,live){const box=$('#'+id);if(!box)return;const a=meAcct()
  b.onclick=()=>{sheet(`<h2 class="sheet-h">${tt('h.blkPregunta',{a:'@'+esc(h)})}</h2><p>${tt('h.blkExplica')}</p><p><button class="btn" type="button" id="blkGo">${tt('h.blkBloquear')}</button> <button class="lbtn" type="button" data-close>${tt('h.cancelar')}</button></p>`,tt('h.blkPregunta',{a:'@'+h}));
   const go=$('#blkGo');go.onclick=async()=>{go.disabled=true;const ok=()=>fwSame(a.sub);let r;
    try{const C=await clerk();r=await api(C,'POST','/api/block',{handle:h},a.sub,undefined,ok)}catch(e){r={status:0,body:{}}}
-   closeSheet();
+   /* Codex r1: la hoja se cierra solo si sigue siendo esta (no otra que se abrió después); el aviso es para la cuenta que bloqueó, y volver a tu Perfil, solo desde esta página */
+   if($('#blkGo')===go)closeSheet();
+   if(!ok())return;
    if(r.status===200&&r.body&&r.body.blocked===true){toast(tt('h.blkHecho',{a:'@'+h}));if(live())location.hash='#/mihoja/perfil'}
    else toast(blkErr(r.body&&r.body.error))}}}
 /* Bloqueados, debajo del formulario de Editar perfil: cada fila con Desbloquear (no devuelve los seguir). Sin la tabla todavía (blocks-off) o sin red, la sección no sale.

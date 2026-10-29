@@ -11,8 +11,10 @@ export async function onRequestGet({ request, env, params }) {
   if (!env.DB) return json({ error: 'no-db' }, 503);
   try {
     const r = await publicPassport(env.DB, params && params.handle);
-    if (!r || await isBlocked(env.DB, await viewerOf(request, env), r.uid)) return json({ error: 'not-found' }, 404);
-    const f = await countsOf(env.DB, r.uid);
+    const viewer = r ? await viewerOf(request, env) : null;
+    if (!r || await isBlocked(env.DB, viewer, r.uid)) return json({ error: 'not-found' }, 404);
+    // Codex ronda 1: los conteos cuadran con las listas que ve quien mira
+    const f = await countsOf(env.DB, r.uid, viewer);
     const { profile, counts, catas } = r.view;
     return json({ profile, counts: { resenas: counts.catas, followers: f.followers, following: f.following, sellos: counts.sellos }, resenas: catas });
   } catch (e) {

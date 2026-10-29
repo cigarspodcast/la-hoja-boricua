@@ -58,15 +58,17 @@ export async function targetOf(db, rawHandle, { hidden = false } = {}) {
   ).bind(h.handle).first();
 }
 
-// los conteos salen de la tabla, y solo cuentan perfiles visibles: el número cuadra con la lista
-export async function countsOf(db, userId) {
-  const f = await db.prepare(
-    'SELECT COUNT(*) AS n FROM follows f JOIN profiles p ON p.user_id = f.follower_id WHERE f.followee_id = ?1 AND p.hidden = 0'
-  ).bind(userId).first();
-  const g = await db.prepare(
-    'SELECT COUNT(*) AS n FROM follows f JOIN profiles p ON p.user_id = f.followee_id WHERE f.follower_id = ?1 AND p.hidden = 0'
-  ).bind(userId).first();
-  return { followers: f.n, following: g.n };
+// los conteos salen de la tabla, y solo cuentan perfiles visibles: el número cuadra con la lista.
+// LHB-62 (Codex ronda 1): con viewer, tampoco cuentan quienes tienen el par bloqueado con quien mira, como en listOf
+export async function countsOf(db, userId, viewer = null) {
+  return blockAware(async on => {
+    const filter = on && viewer;
+    const one = async (mine, other) => (await db.prepare(
+      'SELECT COUNT(*) AS n FROM follows f JOIN profiles p ON p.user_id = f.' + other + ' WHERE f.' + mine + ' = ?1 AND p.hidden = 0' +
+      (filter ? notBlocked(2, 'p.user_id') : '')
+    ).bind(userId, ...(filter ? [viewer] : [])).first()).n;
+    return { followers: await one('followee_id', 'follower_id'), following: await one('follower_id', 'followee_id') };
+  });
 }
 
 // el cursor es "fecha~@" de la última persona de la página: sin nada privado, y con la fecha y el @ el orden es estable
