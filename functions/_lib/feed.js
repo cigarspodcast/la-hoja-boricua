@@ -11,16 +11,19 @@ import { publicEntry } from './passport.js';
    y una página termina siempre con un grupo entero: así nada que esa persona haga en un grupo ya visto (una cata nueva, una que se vuelve pública
    o privada, una borrada) mueve a las que faltan (Codex ronda 1: con el lugar dentro del grupo en el cursor, una vieja que se volvía pública
    hacía saltar otra). Solo un grupo de más de PAGE catas (más de 20 públicas de una persona en un mismo día) se parte, para no pasar de 20 por
-   página (Codex ronda 2): ahí el cursor es "día~@~n~h", con n el lugar de la última cata entre las públicas del grupo, contando desde la más
-   vieja, y h la huella de lo público de esa cata. La página siguiente sigue después de la cata con esa huella (la más cercana a n, si hay dos
-   iguales), así que lo que pase con las demás catas del grupo (una nueva, una vieja que se vuelve pública, una que se borra o se vuelve privada)
-   no hace saltar ni repetir (Codex ronda 3). Solo si esa misma cata cambió o se fue, se sigue por n; es el límite aceptado.
-   No lleva nada privado: ni el id de la entrada, ni cuántas privadas hay; la huella es de lo que esa persona ya vio */
-const CURSOR = /^(\d{4}-\d{2}-\d{2}|-)~([a-z0-9_]{3,20})(?:~([1-9]\d{0,6})~([0-9a-z]{1,7}))?$/;
+   página (Codex ronda 2): ahí el cursor es "día~@~n~h~j", con n el lugar de la última cata entre las públicas del grupo, contando desde la más
+   vieja, h la huella de lo público de esa cata y j cuántas del grupo, contando desde la más vieja hasta ella, tienen esa misma huella. La página
+   siguiente sigue después de la j-ésima cata con esa huella, desde la más vieja, así que lo que pase con las demás catas del grupo (una nueva, una
+   vieja que se vuelve pública, una que se borra o se vuelve privada) no hace saltar ni repetir (Codex ronda 3), tampoco si otra cata es igual a
+   ella en lo público, más nueva o más vieja (Codex ronda 4: escoger la más cercana a n podía escoger la gemela). Una cata nueva va al principio
+   del diario, más nueva que todas, y no mueve la cuenta desde la más vieja. El límite aceptado: si cambia esa misma cata, o una más vieja que es
+   igual a ella en lo público (para quien mira, la misma cata), se sigue por n.
+   No lleva nada privado: ni el id de la entrada, ni cuántas privadas hay; la huella y j son de lo público */
+const CURSOR = /^(\d{4}-\d{2}-\d{2}|-)~([a-z0-9_]{3,20})(?:~([1-9]\d{0,6})~([0-9a-f]{20})~([1-9]\d{0,6}))?$/;
 export function parseFeedCursor(raw) {
   if (raw == null || raw === '') return { cursor: null };
   const m = typeof raw === 'string' ? CURSOR.exec(raw) : null;
-  return m ? { cursor: { day: m[1] === '-' ? '' : m[1], handle: m[2], n: m[3] ? Number(m[3]) : 0, h: m[4] || '' } } : { error: 'bad-cursor' };
+  return m ? { cursor: { day: m[1] === '-' ? '' : m[1], handle: m[2], n: m[3] ? Number(m[3]) : 0, h: m[4] || '', j: m[5] ? Number(m[5]) : 0 } } : { error: 'bad-cursor' };
 }
 
 /* un miembro de un objeto JSON por su llave exacta, y como JSON.parse, el último si se repite. Una ruta como '$.publica' no sirve: SQLite la
@@ -49,35 +52,37 @@ const ORDER = 'ORDER BY day DESC, handle DESC, k ASC';
 const key = r => (r.day || '-') + '~' + r.handle;
 const read = async (db, where, args, limit) => (await db.prepare(SQL + where + ORDER + (limit ? ' LIMIT ' + limit : '')).bind(...args).all()).results || [];
 
-/* la huella de una cata: FNV-1a de 32 bits sobre lo público de ella (publicEntry), en base 36 */
-function huella(r) {
+/* la huella de una cata: SHA-256 de lo público de ella (publicEntry), sus primeros 80 bits en hexadecimal. Con 32 bits (FNV-1a) dos catas
+   distintas podían dar la misma huella y pasar por gemelas (Codex ronda 4) */
+async function huella(r) {
   let e = null;
   try { e = JSON.parse(r.v); } catch (x) { e = null; }
   const t = JSON.stringify(e && typeof e === 'object' ? publicEntry(e) : null);
-  let h = 0x811c9dc5;
-  for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
-  return h.toString(36);
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)));
+  return Array.from(d.subarray(0, 10), b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /* las catas de un grupo grande, de PAGE en PAGE, después de la última que se vio (sin n, desde el principio); su tamaño lo limita Mi Hoja (LIST_MAX entradas) */
-async function groupPage(db, me, day, handle, n, h) {
-  const g = (await read(db, GROUP, [me, day, handle])).map((r, i, all) => [r, all.length - i]);
+async function groupPage(db, me, day, handle, n, h, j) {
+  const rows = await read(db, GROUP, [me, day, handle]), fp = await Promise.all(rows.map(huella));
+  // [fila, su lugar desde la más vieja, su huella, cuántas con esa huella hay desde la más vieja hasta ella]
+  const g = rows.map((r, i) => [r, rows.length - i, fp[i], 0]), seen = new Map();
+  for (let i = g.length - 1; i >= 0; i--) { const c = (seen.get(g[i][2]) || 0) + 1; seen.set(g[i][2], c); g[i][3] = c; }
   let start = 0;
   if (n) {
-    let at = -1;
-    g.forEach((x, i) => { if (huella(x[0]) === h && (at < 0 || Math.abs(x[1] - n) < Math.abs(g[at][1] - n))) at = i; });
+    const at = g.findIndex(x => x[2] === h && x[3] === j);
     start = at >= 0 ? at + 1 : g.findIndex(x => x[1] < n);
     if (start < 0) start = g.length;
   }
   const rest = g.slice(start), page = rest.slice(0, PAGE), last = page[page.length - 1];
-  if (rest.length > PAGE) return { page: page.map(x => x[0]), next: key({ day, handle }) + '~' + last[1] + '~' + huella(last[0]) };
+  if (rest.length > PAGE) return { page: page.map(x => x[0]), next: key({ day, handle }) + '~' + last[1] + '~' + last[2] + '~' + last[3] };
   return { page: page.map(x => x[0]), next: (await read(db, AFTER, [me, day, handle], 1)).length ? key({ day, handle }) : null };
 }
 
 // una página: { items: [{ author: {handle, display_name, avatar_key}, entry }], next }
 export async function feedOf(db, me, cursor) {
   let page, next = null;
-  if (cursor && cursor.n) ({ page, next } = await groupPage(db, me, cursor.day, cursor.handle, cursor.n, cursor.h));
+  if (cursor && cursor.n) ({ page, next } = await groupPage(db, me, cursor.day, cursor.handle, cursor.n, cursor.h, cursor.j));
   else {
     const rows = cursor ? await read(db, AFTER, [me, cursor.day, cursor.handle], PAGE + 1) : await read(db, '', [me], PAGE + 1);
     page = rows;
@@ -87,7 +92,7 @@ export async function feedOf(db, me, cursor) {
       page = rows.slice(0, PAGE);
       while (page.length && key(page[page.length - 1]) === cut) page.pop();
       if (page.length) next = key(page[page.length - 1]);
-      else ({ page, next } = await groupPage(db, me, rows[0].day, rows[0].handle, 0, ''));
+      else ({ page, next } = await groupPage(db, me, rows[0].day, rows[0].handle, 0, '', 0));
     }
   }
   // LHB-62 (bloquear) completa isBlocked; una persona bloqueada se salta aquí, y el cursor sigue siendo el de la última cata leída
