@@ -1,0 +1,26 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket (base 73ddbbe, the end of LHB-72). This is round 1 of a TIER 2 review.
+
+Ticket LHB-73 (M7-F4b): an audio credits page, the About replay link, truthful credit wording. Pinned decisions:
+- The audio credits page lists every licensed audio and music item with title, author, license and link (CC BY 4.0 requires attribution in the app). The list comes from the Codex package's audio attribution files; each license is re-checked on its source page at execution, and an entry that cannot be verified is left off and reported, never invented.
+- Credit wording says only what is true: inspect a full-size frame before writing the line (the package once claimed the plate was retained before anyone looked). The bus is another artist's illustration (Calle Pomarrosas). The credit names the artist and does not imply endorsement.
+- "Ver intro" sits in About and replays the intro regardless of the 14-day policy.
+- Strings as es and en keys.
+- Proof: a test that every audio file shipped under site/assets has a credits entry, seen failing when an entry is removed; a test that About exposes "Ver intro".
+
+What changed:
+- The app had no About screen. site/app.js adds routes acerca (menu group La app, icon info) and creditos (a detail of acerca), both in the LHB-71 route table, so the menu and router come from one list.
+- vAcerca(): a Ver intro link to /?intro=1#/acerca (a full navigation; intro.js, from LHB-72, reads ?intro=1 at boot, plays before the deep-link and same-session rules, removes intro from the address with replaceState, so the visitor ends on #/acerca). With prefers-reduced-motion or navigator.connection.saveData (read when the view paints, not at load), intro.js would not play, so About shows a note instead of a button. Links to #/creditos and /privacidad.
+- vCreditos(): the bus credit (a 3D version, made for this app, of an original illustration by Calle Pomarrosas, linked; no claim about the plate, no claim of permission); one list item per CREDITS.audio entry with title (source link), author, license (license link) and the changes made; a line for the project-made breeze layer; a note that naming the authors does not mean they endorse the app and that they did not make the animation or landscape. External links open with target _blank rel noopener. Back goes to #/acerca.
+- CREDITS in app.js: audio entries (engine: nhaudio, CC BY 4.0; nature bed: myrinvp, CC0 1.0) and files: a map from each file with sound under site/assets to its entries.
+- i18n.js: menu.acerca*, about.*, cred.* in es and en. styles.css: tokens only. sw.js lhb-v98 to lhb-v99 (21 test pins move).
+- test/site.test.js: two LHB-73 tests. AUDIO73 walks site/assets and counts audio files by extension, plus MP4/MOV with an hdlr box of type soun; GAPS73 reports a file with no credits, a missing entry or field, a mapped file that does not exist, and an entry no file uses. The second test runs the real LHB-71 route table, the real vAcerca and the real intro.js boot (INTRO72 harness) for ?intro=1 with a session marker. LHB-27's app.js scan now expects exactly four literals: the two work titles and the two license names (proper names, the same in both languages). The LHB-67 color census count for VBArt.leaf in app.js moves from 6 to 8.
+
+Evidence: evidence/lhb-73/license-recheck.md (the two Freesound pages read 2026-10-29: titles, authors, license links; geotag Netherlands for the nature bed), evidence/lhb-73/frames (full-size frames at 3.0 s and the plate enlarged 8 times: lettering CALLE POMARROSAS about 4 px tall at full size), evidence/lhb-73-tests.txt (328 pass, 0 fail, 1 skipped), evidence/lhb-73-mutations.out (13 of 13 red, clean baseline), evidence/lhb-73/shoot73.out (real headless Chrome against the local mock: 14 of 14 checks, including Ver intro opening the intro and leaving the address at /#/acerca, and the reduced-motion note).
+
+Check in particular:
+- Is any credit claim untrue or unsupported by the evidence (wording in es and en, the Netherlands note, "made for this app", "did not make the animation or landscape")? Does CC BY 4.0 attribution here meet the license's requirements (title, author, source, license link, indication of changes)?
+- Can a file with sound reach site/assets without failing the test (other containers, uppercase extensions, an MP4 whose sound handler the regex misses)? Can the test pass while the page omits an entry?
+- Does Ver intro work in a normal browser from every state (already on /?x, from the installed app, with the service worker serving the shell for /?intro=1, from an English session), and can it loop or leave intro=1 behind?
+- Accessibility of the two views (headings, link names, focus after route change, the back button), and anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

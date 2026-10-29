@@ -11,8 +11,8 @@ shutil.copytree(WT, D, ignore=shutil.ignore_patterns('.git', 'node_modules', 'ev
 os.makedirs(os.path.join(D, 'evidence'))
 shutil.copyfile(os.path.join(WT, 'evidence', 'lhb-27-scan-before.txt'), os.path.join(D, 'evidence', 'lhb-27-scan-before.txt'))
 PAT = 'LHB-73|LHB-71: el menú|LHB-27: cada clave|LHB-27: ningún texto'
-AP, I18 = 'site/app.js', 'site/i18n.js'
-FILES = (AP, I18)
+AP, I18, TS = 'site/app.js', 'site/i18n.js', 'test/site.test.js'
+FILES = (AP, I18, TS)
 
 
 def runp():
@@ -42,7 +42,11 @@ M = [
     ('K10 no endorsement note', lambda: edit(AP, '<p class="hint cred-endorse">${tt(\'cred.endorse\')}</p>', '')),
     ('K11 the credit claims the plate', lambda: edit(I18, ' "cred.bus": "La guagua de la intro es una versión en 3D, hecha para esta app, de una ilustración original de",', ' "cred.bus": "La guagua de la intro, con su tablilla, es una versión en 3D de una ilustración original de",')),
     ('K12 Ver intro has no English value', lambda: edit(I18, ' "about.replay": "Watch intro",\n', '')),
-    ('K13 the back button goes elsewhere', lambda: edit(AP, "$('[data-back]').onclick=()=>{location.hash='#/acerca'}", "$('[data-back]').onclick=()=>{location.hash='#/catalogo'}")),
+    ('K14 (Codex r1) the census goes back to the byte regex', lambda: edit(TS, 'if(iso){if(SOUND73(b)!==false)out.push(p)}', "if(iso){if(/hdlr[\\s\\S]{8}soun/.test(b.toString('latin1')))out.push(p)}")),
+    ('K15 (Codex r1) the box walker ignores 64-bit sizes', lambda: edit(TS, "if(n===1){if(e-o<16){bad=true;return any}n=Number(b.readBigUInt64BE(o+8));h=16}else if(n===0)n=e-o;", 'if(n===0)n=e-o;')),
+    ('K16 (Codex r1) a file the walker cannot read counts as silent', lambda: edit(TS, 'return r?true:bad?null:false}', 'return r?true:false}')),
+    ('K17 (Codex r1) the credits view drops the focus', lambda: edit(AP, "$('[data-back]').onclick=()=>{location.hash='#/acerca'};keepFocus()}", "$('[data-back]').onclick=()=>{location.hash='#/acerca'}}")),
+    ('K13 the back button goes elsewhere', lambda: edit(AP, "$('[data-back]').onclick=()=>{location.hash='#/acerca'};", "$('[data-back]').onclick=()=>{location.hash='#/catalogo'};")),
 ]
 red = 0
 for name, mut in M:
