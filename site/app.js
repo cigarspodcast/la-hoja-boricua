@@ -276,7 +276,9 @@ function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,
  if(leafletMap&&r!=='lugares'){leafletMap.remove();leafletMap=null}
  const R=EXT.routes;
  ({catalogo:vCatalogo,c:()=>vCigar(id),artesanos:vArtesanos,a:()=>vArtesano(id),subir:()=>EXT.requireAccount(vSubir,{fast:true}),lugares:()=>vLugares(id),actividades:()=>R.eventos(id),eventos:()=>R.eventos(id),perfil:()=>R.mihoja('perfil'),u:()=>R.persona(id),mihoja:()=>R.mihoja(id),cata:()=>R.cata(id),maridajes:R.maridajes,podcast:R.podcast,buscar:R.buscar}[r]||vCatalogo)();
- if(r!==route._last){window.scrollTo(0,0)}route._last=h}
+ if(r!==route._last){window.scrollTo(0,0)}route._last=h;
+ /* LHB-100: pintó una vista; el guardián de index.html quita el aviso si estaba (también cuando una ruta posterior sí carga) */
+ if(window.LHB_BOOT)window.LHB_BOOT.ok()}
 window.addEventListener('hashchange',route);
 window.addEventListener('online',()=>{if(location.hash.includes('lugares'))route()});window.addEventListener('offline',()=>{if(location.hash.includes('lugares'))route()});
 /* ---------- install (v21: botón en el home) ---------- */
@@ -324,5 +326,5 @@ if('serviceWorker' in navigator){const hadSW=!!navigator.serviceWorker.controlle
    puff(L+.92*vs,p.gy-.08*hs,p.s);if(Math.random()<.6)puff(L+.2*vs,p.gy-.02*hs,p.s*.8);
    if(u>.2&&nl<12&&Math.random()<.4){nl++;leaf(L+R(.7,1)*vs,p.gy-R(.1,.5)*hs,p.s)}},75);
   setTimeout(done,DL+D+300)})})();
-route();if(window.LHB_BOOT)window.LHB_BOOT.ok();/* LHB-100: arrancó; el guardián de index.html ya no muestra el aviso */topAvatar();refreshData();
+route();topAvatar();refreshData();
 })();

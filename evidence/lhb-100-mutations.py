@@ -33,13 +33,17 @@ def original():
 
 M = [
     ('B0 the original main code (no guard, raw decode, S() unguarded)', original),
-    ('B1 no ok() from app.js after the first view', lambda: edit(APP, 'route();if(window.LHB_BOOT)window.LHB_BOOT.ok();', 'route();')),
-    ('B2 the guard does not act when the scripts finish loading', lambda: edit(IX, "d.addEventListener('DOMContentLoaded',function(){setTimeout(function(){if(!ok)fail()},0)});", '')),
-    ('B3 no 12 s backstop', lambda: edit(IX, 'setTimeout(function(){if(ok)out();else fail()},12000)', '0')),
+    ('B1 route() does not report a painted view', lambda: edit(APP, ' if(window.LHB_BOOT)window.LHB_BOOT.ok()}\nwindow.addEventListener', '}\nwindow.addEventListener')),
+    ('B2 the guard does not act when the scripts finish loading', lambda: edit(IX, "d.addEventListener('DOMContentLoaded',function(){setTimeout(check,0)});", '')),
+    ('B3 no 12 s backstop', lambda: edit(IX, 'setTimeout(check,12000)', '0')),
     ('B4 the fallback text differs from i18n.js', lambda: edit(IX, "'Recargar'", "'Reintentar'")),
     ('B5 a failed boot reloads by itself (a retry loop)', lambda: edit(IX, 'd.body.appendChild(b)}', 'd.body.appendChild(b);location.reload()}')),
-    ('B6 a late boot leaves the message up', lambda: edit(IX, "w.LHB_BOOT={ok:function(){ok=true;var b=d.getElementById('bootFail');if(b&&b.parentNode)b.parentNode.removeChild(b)}};", "w.LHB_BOOT={ok:function(){ok=true}};")),
+    ('B6 a late boot leaves the message up', lambda: edit(IX, "function good(){var b=d.getElementById('bootFail');if(b&&b.parentNode)b.parentNode.removeChild(b);", "function good(){")),
     ('B7 the splash stays on a failed boot', lambda: edit(IX, 'shown=true;out();', 'shown=true;')),
+    ('B8 a painted view does not count (an older cached app.js; Codex r1)', lambda: edit(IX, 'function check(){if(ok)return;if(up())good();else fail()}', 'function check(){if(ok)return;fail()}')),
+    ('B9 the guard cuts a healthy splash at 12 s (Codex r1)', lambda: edit(IX, 'function check(){if(ok)return;', 'function check(){if(ok){out();return}')),
+    ('B10 no splash backstop after the boot', lambda: edit(IX, 'setTimeout(out,10000)', '0')),
+    ('B11 a view painted later does not clear the message (Codex r1)', lambda: edit(IX, 'function(){if(!ok&&up())good()}', 'function(){}')),
     ('R1 route() decodes without a guard', lambda: edit(APP, "let id='';if(arg){try{id=decodeURIComponent(arg)}catch(e){id=arg}}", "const id=arg?decodeURIComponent(arg):'';")),
     ('R2 S() lets a blocked read throw', lambda: edit(HJ, 'return ST}catch(e){ST=null;return DEF()}};', 'return ST}finally{}};')),
 ]

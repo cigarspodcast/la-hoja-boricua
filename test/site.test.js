@@ -5062,18 +5062,19 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
 });
 /* LHB-100: el guardián de index.html (el script en línea antes de los demás), de verdad, con un documento de mentira: el splash, los
    eventos y los temporizadores que la prueba dispara a mano */
+const mk100=t=>({tag:t,children:[],textContent:'',parentNode:null});
 function BOOT100(o={}){const vm=require('vm');const ix=read('index.html');const m=ix.match(/<script>(\/\* LHB-100[\s\S]*?)<\/script>/);assert.ok(m,'el guardián está en index.html');
  const timers=[],ev={},body=[],reloads=[];const el=(tag)=>({tag,cls:new Set(),attrs:{},children:[],textContent:'',parentNode:null,classList:{add(c){this._s.add(c)},contains(c){return this._s.has(c)}},
   setAttribute(k,v){this.attrs[k]=v},appendChild(c){c.parentNode=this;this.children.push(c)},removeChild(c){this.children=this.children.filter(x=>x!==c);c.parentNode=null}});
  const mk=t=>{const e=el(t);e.classList._s=e.cls;return e};
- const root=mk('body');const splash=mk('div');splash.id='splash';if(!o.noSplash)root.appendChild(splash);
+ const root=mk('body');const splash=mk('div');splash.id='splash';if(!o.noSplash)root.appendChild(splash);const view=mk('main');view.id='view';root.appendChild(view);
  const find=(n,id)=>{if(n.id===id)return n;for(const c of n.children){const f=find(c,id);if(f)return f}return null};
  const document={getElementById:id=>find(root,id),createElement:mk,addEventListener:(t,f)=>{(ev[t]=ev[t]||[]).push(f)},body:root};
- const win={LHB_I18N:o.i18n};
+ const win={LHB_I18N:o.i18n};if(o.mo)win.MutationObserver=class{constructor(cb){win._mo=cb}observe(n,opt){win._moOn=[n,opt]}disconnect(){win._moOff=true}};
  const ctx={window:win,document,navigator:{language:o.lang||'es-PR'},location:{reload:()=>reloads.push(1)},setTimeout:(f,ms)=>{timers.push([f,ms]);return timers.length}};
  vm.createContext(ctx);vm.runInContext(m[1].replace(/\(window,document\);\s*$/,'(window,document);'),ctx);
  const fire=ms=>{for(const t of timers.filter(t=>t[1]===ms&&!t.done)){t.done=true;t[0]()}};
- return {win,root,splash,ev,timers,reloads,fire,msg:()=>find(root,'bootFail'),loaded:()=>{for(const f of ev.DOMContentLoaded||[])f();fire(0)}}}
+ return {win,root,splash,view,ev,timers,reloads,fire,msg:()=>find(root,'bootFail'),loaded:()=>{for(const f of ev.DOMContentLoaded||[])f();fire(0)}}}
 test('LHB-100: si el arranque falla (un script que no cargó), el splash se va y sale un aviso con Recargar; si arranca, nada cambia; el aviso no depende de i18n.js',()=>{
  /* un script falló: app.js nunca avisa; al terminar de cargar los scripts, el splash se va y sale el aviso */
  let B=BOOT100();B.loaded();assert.ok(B.splash.cls.has('out'),'el splash se va');B.fire(450);assert.equal(B.splash.parentNode,null,'y se quita');
@@ -5084,9 +5085,18 @@ test('LHB-100: si el arranque falla (un script que no cargó), el splash se va y
  B=BOOT100({lang:'en-US'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.en['boot.fail']);assert.equal(B.msg().children[1].textContent,I18N().T.en['boot.reload']);
  /* con i18n.js cargado, el texto sale de ahí (el idioma que la persona eligió) */
  B=BOOT100({i18n:{lang:'en',t:k=>'T:'+k}});B.loaded();assert.equal(B.msg().children[0].textContent,'T:boot.fail');
- /* arranque bueno: app.js avisa antes de que terminen de cargar los scripts; no hay aviso y el splash sigue a lo suyo */
+ /* arranque bueno: app.js avisa antes de que terminen de cargar los scripts; no hay aviso y el splash es de la app: a los 12 s el guardián
+    no lo toca (Codex ronda 1: un splash lento pero sano no se corta); solo si a los 10 s de arrancar sigue ahí, se quita */
  B=BOOT100();B.win.LHB_BOOT.ok();B.loaded();assert.equal(B.msg(),null,'sin aviso');assert.ok(!B.splash.cls.has('out'),'el splash lo maneja la app');
- B.fire(12000);assert.ok(B.splash.cls.has('out'),'a los 12 s, si el splash sigue, se va igual');assert.equal(B.msg(),null);
+ B.fire(12000);assert.ok(!B.splash.cls.has('out'),'a los 12 s el guardián no corta un splash sano');assert.equal(B.msg(),null);
+ B.fire(10000);assert.ok(B.splash.cls.has('out'),'a los 10 s de arrancar, si el splash sigue, se va igual');
+ /* una vista pintada cuenta como arranque aunque nadie avise (Codex ronda 1: una versión anterior de app.js en la caché no llama a ok()) */
+ B=BOOT100();B.view.appendChild(mk100('section'));B.loaded();assert.equal(B.msg(),null,'vista pintada: sin aviso');assert.ok(!B.splash.cls.has('out'),'y el splash es de la app');
+ B.fire(12000);assert.ok(!B.splash.cls.has('out'));B.fire(10000);assert.ok(B.splash.cls.has('out'),'el respaldo de 10 s también aquí');
+ /* falló y la vista se pinta después sin que nadie avise: el observador de la vista quita el aviso */
+ B=BOOT100({mo:true});assert.equal(B.win._moOn[0],B.view,'observa la vista');B.loaded();assert.ok(B.msg(),'aviso');B.view.appendChild(mk100('section'));B.win._mo();
+ assert.equal(B.msg(),null,'la vista se pintó: el aviso se va');assert.equal(B.win._moOff,true,'y deja de observar');
+ B=BOOT100({mo:true});B.loaded();B.win._mo();assert.ok(B.msg(),'un cambio que no pinta la vista no quita el aviso');
  /* nunca terminan de cargar (un script colgado): a los 12 s se va el splash y sale el aviso; si la app arranca después, el aviso se va */
  B=BOOT100();B.fire(12000);assert.ok(B.splash.cls.has('out')&&B.msg(),'a los 12 s, aviso');B.win.LHB_BOOT.ok();assert.equal(B.msg(),null,'arrancó tarde: el aviso se quita');
  /* un solo aviso */
@@ -5096,19 +5106,23 @@ test('LHB-100: si el arranque falla (un script que no cargó), el splash se va y
  for(const l of ['es','en'])for(const k of ['boot.fail','boot.reload'])assert.ok(g.includes("'"+I18N().T[l][k]+"'"),'copia de '+l+' '+k);
  /* va antes que cualquier otro script, y app.js avisa al final del arranque, después de pintar la primera vista */
  const ix=read('index.html');assert.ok(ix.indexOf('/* LHB-100')<ix.indexOf('<script src='),'el guardián corre antes que los demás scripts');
- assert.ok(read('app.js').includes('route();if(window.LHB_BOOT)window.LHB_BOOT.ok();'),'app.js avisa justo después de route()');
+ assert.ok(read('app.js').replace(/\r\n/g,'\n').includes(" if(window.LHB_BOOT)window.LHB_BOOT.ok()}\nwindow.addEventListener('hashchange',route);"),'cada ruta que pinta avisa, al final de route()');
  assert.ok(read('styles.css').includes('.boot-fail{position:fixed;'),'el aviso tiene su estilo');
 });
 /* LHB-101: route() de app.js, de verdad, con las vistas de mentira */
-function ROUTE101(hash){const vm=require('vm');const src=read('app.js').replace(/\r\n/g,'\n');const i=src.indexOf('function route(){'),j=src.indexOf('\nwindow.addEventListener(\'hashchange\',route);',i);assert.ok(i>0&&j>i);
+function ROUTE101(hash,o={}){const vm=require('vm');const src=read('app.js').replace(/\r\n/g,'\n');const i=src.indexOf('function route(){'),j=src.indexOf('\nwindow.addEventListener(\'hashchange\',route);',i);assert.ok(i>0&&j>i);
  const log=[];const v=n=>(...a)=>log.push([n,...a]);
  const ctx={location:{hash},$$:()=>[],leafletMap:null,EXT:{routes:new Proxy({},{get:(t,k)=>v('R.'+String(k))}),requireAccount:v('requireAccount')},
-  vCatalogo:v('vCatalogo'),vCigar:v('vCigar'),vArtesanos:v('vArtesanos'),vArtesano:v('vArtesano'),vSubir:v('vSubir'),vLugares:v('vLugares'),window:{scrollTo:()=>{}}};
+  vCatalogo:o.throws?()=>{throw new TypeError('x')}:v('vCatalogo'),vCigar:v('vCigar'),vArtesanos:v('vArtesanos'),vArtesano:v('vArtesano'),vSubir:v('vSubir'),vLugares:v('vLugares'),
+  window:{scrollTo:()=>{},LHB_BOOT:o.noBoot?undefined:{ok:()=>log.push(['ok'])}}};
  vm.createContext(ctx);vm.runInContext(src.slice(i,j)+';this.route=route',ctx);return {route:ctx.route,log}}
 test('LHB-101: un escape mal formado en el hash no tumba el router (se queda el texto tal cual); si leer el almacenamiento está bloqueado, Mi Hoja sale vacía y no rompe la pintura',()=>{
- let R=ROUTE101('#/a/%E0%A4%A');assert.doesNotThrow(()=>R.route());assert.deepEqual(R.log,[['vArtesano','%E0%A4%A']],'abre la vista de artesano con el texto tal cual');
- R=ROUTE101('#/a/casa%20robles');R.route();assert.deepEqual(R.log,[['vArtesano','casa robles']],'un escape bueno se decodifica como antes');
- R=ROUTE101('#/c/');R.route();assert.deepEqual(R.log,[['vCigar','']]);
+ let R=ROUTE101('#/a/%E0%A4%A');assert.doesNotThrow(()=>R.route());assert.deepEqual(R.log,[['vArtesano','%E0%A4%A'],['ok']],'abre la vista de artesano con el texto tal cual');
+ R=ROUTE101('#/a/casa%20robles');R.route();assert.deepEqual(R.log,[['vArtesano','casa robles'],['ok']],'un escape bueno se decodifica como antes');
+ R=ROUTE101('#/c/');R.route();assert.deepEqual(R.log,[['vCigar',''],['ok']]);
+ /* LHB-100 (Codex ronda 1): cada ruta que pinta avisa al guardián, así una ruta posterior que sí carga quita el aviso; una vista que falla no avisa */
+ R=ROUTE101('#/catalogo',{throws:true});assert.throws(()=>R.route());assert.deepEqual(R.log,[],'la vista falló: no avisa');
+ R=ROUTE101('#/catalogo',{noBoot:true});assert.doesNotThrow(()=>R.route(),'sin guardián (una página vieja) no rompe');
  /* S(): una lectura bloqueada (SecurityError) da el estado vacío, sin error; cuando vuelve a poder leer, lee de verdad */
  const h=HOJA38();h.set('lhb_mihoja_v1',{schema:1,favs:{cigarros:['c1'],artesanos:[],lugares:[]}});
  const real=h.ctx.localStorage.getItem;h.ctx.localStorage.getItem=()=>{const e=new Error('blocked');e.name='SecurityError';throw e};
