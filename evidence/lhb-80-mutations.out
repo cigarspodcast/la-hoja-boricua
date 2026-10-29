@@ -1,4 +1,4 @@
-baseline (no mutation): pass 43 fail 0
+baseline (no mutation): pass 47 fail 0
 the client never asks about a lost upload (before LHB-80)    RED (caught) (fail 6)
 GET never says whether an upload landed (before LHB-80)      RED (caught) (fail 6)
 PUT does not record its id                                   RED (caught) (fail 4)
@@ -34,7 +34,10 @@ r4: a pass survives an account round trip                    RED (caught) (fail 
 r4: the cached base is not bound to its copy                 RED (caught) (fail 1)
 r4: an upload sent from another copy is a base               RED (caught) (fail 1)
 r5: isolate empties the copy before the epoch changes (the epoch moves after the clear) RED (caught) (fail 2)
-r7: a failed switch that left the copy keeps the new epoch   RED (caught) (fail 3)
+r7: a failed switch that left the copy keeps the new epoch   RED (caught) (fail 6)
 r7: a failed switch puts back the old epoch over another tab RED (caught) (fail 1)
+r8: epochs of different lengths                              RED (caught) (fail 1)
+r8: a pass runs while the old epoch could not be put back    RED (caught) (fail 3)
+r8: a failed put-back is forgotten                           RED (caught) (fail 3)
 r5: the stored meta is not bound to its copy (the pass)      RED (caught) (fail 2)
-RESULT 35 of 38 red; 3 named equivalent; 0 unexpected survivors
+RESULT 38 of 41 red; 3 named equivalent; 0 unexpected survivors

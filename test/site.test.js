@@ -6429,6 +6429,42 @@ test('LHB-80 (Codex r7): otra pestaña cambió la época mientras este cambio de
   A.st.acct=A.st.user='user_a';await A.eng.settled({});
   const s=srv28(a,'user_a').doc;assert.equal(s.humidor.length,1);assert.equal(s.diario.length,1);assert.ok(s.favs.artesanos.includes('a1'),'la cuenta sigue entera');
  }finally{a.done()}});
+for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
+                           ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
+test('LHB-80 (Codex r8): el cambio de cuenta falla antes de tocar la copia y volver a la época de antes también falla ('+como+'): se reintenta antes de sincronizar y el borrado sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';
+  if(como==='no se puede escribir la de antes')A.ls.set(E,'abcdefghij00000000z');
+  A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<11;i++)A.ls.set(A.KEY+'_de_user_a'+(i?'_'+i:''),'ocupada');
+  rompe(A,E);
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);
+  A.st.acct=A.st.user='user_a';assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r8): mientras no se pueda volver a la época de antes, no se sincroniza',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<11;i++)A.ls.set(A.KEY+'_de_user_a'+(i?'_'+i:''),'ocupada');
+  const rm=A.D.ls.remove;A.D.ls.remove=k=>{if(k===E)throw new Error('SecurityError');return rm(k)};
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);A.st.acct=A.st.user='user_a';
+  const r=await A.eng.run('guardado');assert.equal(r.fail,'storage');assert.equal(srv28(a,'user_a').rev,1,'no subió ni trajo nada');
+  A.D.ls.remove=rm;assert.equal((await A.sync()).ok,true);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+ }finally{a.done()}});
+test('LHB-80 (Codex r8): todas las épocas tienen el mismo largo',async()=>{
+ const a=await ENG28();const R=Math.random;
+ try{
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.seed(DOC28);await A.sync();
+  const seen=new Set();
+  for(const [i,x] of [0.5,0.744854709076402,0.1,0.999999999,1e-9].entries()){Math.random=()=>x;A.st.acct=A.st.user='user_'+(i%2?'a':'b');assert.equal(A.eng.isolate(),true);seen.add(A.ls.get(E).length)}
+  assert.deepEqual([...seen],[19]);
+ }finally{Math.random=R;a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{

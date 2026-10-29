@@ -106,7 +106,12 @@ window.LHB_SYNC=function(D){
     a la misma cuenta, que deja la copia vacía): una pasada que empezó en otra época ya no vale, y una base en memoria o lo que mandó una subida solo es base de la copia de su época */
  const EPOCH=KEY+'_epoca';
  const epochOf=()=>{try{return D.ls.get(EPOCH)}catch(e){return undefined}};
- const newEpoch=()=>{const v=Math.random().toString(36).slice(2,12)+Date.now().toString(36);try{D.ls.set(EPOCH,v);return v}catch(e){return null}};
+ /* Codex r8: todas del mismo largo (10 al azar y 9 de la hora): volver a la de antes nunca pide más espacio que la que se puso */
+ const newEpoch=()=>{const v=(Math.random().toString(36).slice(2)+'0000000000').slice(0,10)+Date.now().toString(36).padStart(9,'0');try{D.ls.set(EPOCH,v);return v}catch(e){return null}};
+ /* Codex r8: si volver a la época de antes no se pudo escribir, queda anotado aquí y se reintenta antes de cada pasada; mientras no se pueda, no se sincroniza
+    (con la época nueva la base de la copia, que no cambió, no valdría y lo que la persona quitó se perdería). Si otra pestaña ya puso otra época, se deja la suya */
+ let undo=null;
+ const tryUndo=()=>{if(!undo)return true;try{if(epochOf()===undo.from){if(typeof undo.to==='string')D.ls.set(EPOCH,undo.to);else D.ls.remove(EPOCH)}undo=null;return true}catch(e){return false}};
  /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
     que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
  const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
@@ -120,13 +125,14 @@ window.LHB_SYNC=function(D){
  let inIso=false;
  function isolate(){if(inIso)return true;const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
   const old=ownerOf();if(old===null||old===acc.sub)return true;
+  if(!tryUndo())return false;
   inIso=true;try{
    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
    const e1=epochOf(),e2=newEpoch();if(!e2)return false;
    /* Codex r6 y r7: si falla antes de vaciar la copia, la copia no cambió: vuelve la época de antes, y con ella valen otra vez la meta, la base en memoria y lo que
       mandaron sus subidas (lo que la persona quitó y no se ha subido sigue contando como borrado). Solo si la época sigue siendo la que se escribió aquí: si otra
       pestaña ya puso otra, se queda la suya. Poner un valor del mismo largo o quitar la llave no pide más espacio */
-   const back=()=>{try{if(epochOf()===e2){if(typeof e1==='string')D.ls.set(EPOCH,e1);else D.ls.remove(EPOCH)}}catch(e){}return false};
+   const back=()=>{undo={from:e2,to:e1};tryUndo();return false};
    let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
    if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return back();try{D.ls.set(k,raw)}catch(e){return back()}}
    applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
@@ -139,6 +145,7 @@ window.LHB_SYNC=function(D){
   if(!C||!C.user||C.user.id!==acc.sub)return {skip:'other-account'};
   const uid=acc.sub;
   if(!isolate())return {fail:'park'};
+  if(!tryUndo())return {fail:'storage'};
   /* de quién es lo guardado se anota antes de tocar la red: si esta primera pasada falla y luego entra otra cuenta, lo de esta no se sube a la otra */
   if(ownerOf()===null&&!setOwner(uid))return {fail:'storage'};
   const ep0=epochOf();
