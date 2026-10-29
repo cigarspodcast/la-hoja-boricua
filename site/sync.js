@@ -129,7 +129,9 @@ window.LHB_SYNC=function(D){
   if(!tryUndo())return false;
   inIso=true;try{
    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
-   const e1=epochOf(),e2=newEpoch();if(!e2)return false;
+   /* Codex r10: la época de antes se lee aquí mismo; si la lectura falla, no se sabe a cuál volver y no se toca nada */
+   let e1;try{e1=D.ls.get(EPOCH)}catch(e){return false}
+   const e2=newEpoch();if(!e2)return false;
    /* Codex r6 y r7: si falla antes de vaciar la copia, la copia no cambió: vuelve la época de antes, y con ella valen otra vez la meta, la base en memoria y lo que
       mandaron sus subidas (lo que la persona quitó y no se ha subido sigue contando como borrado). Solo si la época sigue siendo la que se escribió aquí: si otra
       pestaña ya puso otra, se queda la suya. Poner un valor del mismo largo o quitar la llave no pide más espacio */
@@ -149,7 +151,8 @@ window.LHB_SYNC=function(D){
   if(!tryUndo())return {fail:'storage'};
   /* de quién es lo guardado se anota antes de tocar la red: si esta primera pasada falla y luego entra otra cuenta, lo de esta no se sube a la otra */
   if(ownerOf()===null&&!setOwner(uid))return {fail:'storage'};
-  const ep0=epochOf();
+  /* Codex r10: si la época no se puede leer, no se sabe de qué copia es la base guardada: no se sincroniza (se reintenta) */
+  let ep0;try{ep0=D.ls.get(EPOCH)}catch(e){return {fail:'storage'}}
   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid&&epochOf()===ep0};
   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
   const meta0=readMeta();let meta=meta0&&meta0.sub===uid&&epOf(meta0)===ep0?meta0:null;
