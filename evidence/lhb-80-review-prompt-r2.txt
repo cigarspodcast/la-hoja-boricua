@@ -247,7 +247,7 @@ index 32e8c29..1a468eb 100644
    set('off');return ok}
   function start(){
 
-===== test/site.test.js: the LHB-80 block only (git diff 5ed77ae c77d3b95c626fa357811f9c84235c2eac8ba8115, limited to lines added or changed by LHB-80 and the cache pins) =====
+===== test/site.test.js (this diff also carries the LHB-98 test block that the merge of origin/main brought in, already reviewed under LHB-98) =====
 diff --git a/test/site.test.js b/test/site.test.js
 index ae2931f..b675810 100644
 --- a/test/site.test.js
