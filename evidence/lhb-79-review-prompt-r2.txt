@@ -1,0 +1,536 @@
+You are reviewing one ticket in this repository (La Hoja Boricua). Review only; do not edit files. Do not load or run any skills. Do NOT make any network call and do NOT run tools/ai_proof.py as a script: it makes paid calls with real keys (importing it is safe now; its calls run only under __main__). The worktree is C:/Users/Owner/lhb-79-wt (branch lhb-79-ai-routes, from main f1ea0d0). TIER 2, round 2.
+
+Round 1 (evidence/lhb-79-review-r1.txt) returned BLOCK with seven findings. The diff below is the fix commit 12f8440 against its parent, then the whole branch file list. What each finding became:
+1. Redirects: _post now opens through an opener whose redirect handler follows nothing (_NoRedirect); a 3xx is a refusal. Test test_redirects_are_not_followed uses two loopback servers and a 302 (urllib follows a 302 for a POST as a GET, keeping Authorization; it refuses a 307 by itself).
+2. Provider error text: never kept. Only the error kind (type or code) is kept, when it is a short identifier holding no 6-character window of the key. Test covers the key at character 292, unicode-escaped, inside the type field, and in a non-JSON body.
+3. Transport exceptions: any exception other than HTTPError is reported by its class name only and logged once (BadStatusLine, IncompleteRead, RuntimeError carrying the key).
+4. Key echoed in a 200: dropped as status key-echo, checked in the raw text and in the decoded JSON. ai_proof prints an answer only when it equals the expected one.
+5. Leak scan (ai_proof.added_text): every added line of every commit since BASE (git log -p), uncommitted changes against HEAD, untracked files listed with -z and read whole, and evidence/ai-calls.log; any git failure exits 3. evidence/ai-calls.log is now tracked (!evidence/ai-calls.log in .gitignore). Tests on a throwaway repo.
+6. Refusals before sending (missing ticket or reason, body not JSON, bad Together case, empty reason with a case) are logged once with status refused: ... and send nothing.
+7. The log replaces every line break str.splitlines knows, and tabs, with a space.
+
+Evidence: evidence/lhb-79/unit.txt (14 tests OK); evidence/lhb-79/mutations.out 15 of 15 red (one mutation per finding plus the earlier four); evidence/lhb-79/proof.txt run 14:27Z on 12f8440: jev PASS, opencode-go PASS, together refused 503 service_unavailable (recorded, not retried; the same model answered at 14:05Z and 14:20Z), leak check not found for all three keys.
+
+Recorded on the ticket, not defects to re-raise: three unintended live calls at 14:19:57Z to 14:20:01Z, made when the round 1 proof was imported by a test run in a temp folder; their log lines were copied into evidence/ai-calls.log. The call count is above the brief's one per route.
+
+Check in particular whether any of the seven is only partly fixed, and whether the fixes opened a new path (for example, the key-echo check, the _kind window test with short keys, the scanner's handling of binary or renamed files, or a log line whose status field can still carry provider text).
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: python -m unittest tools/test_ai_routes.py. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 12f8440~1 12f8440 -- tools .gitignore =====
+diff --git a/.gitignore b/.gitignore
+index 2ec960d..7607043 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -8,3 +8,5 @@ __MACOSX/
+ tools/*_interno.json
+ __pycache__/
+ .wrangler/
++
++!evidence/ai-calls.log
+diff --git a/tools/ai_proof.py b/tools/ai_proof.py
+index dcdf703..7c58447 100644
+--- a/tools/ai_proof.py
++++ b/tools/ai_proof.py
+@@ -1,13 +1,15 @@
+ """LHB-79 proof: one call per route through tools/ai_routes.py, synthetic text only, each checked against an answer fixed before
+-the call; then, inside this process (which holds the keys), a search of the branch's added lines for each key's first and last
+-four characters, printing only found or not found. A refused route is recorded as its result and never retried.
++the call; then, inside this process (which holds the keys), a leak check: each key's first and last four characters searched in
++everything the branch adds, printing only found or not found. A refused route is recorded as its result and never retried.
++What the leak check reads (Codex ronda 1): every line added by every commit since BASE (so a key committed and then removed is
++still found), the working tree's uncommitted changes, every untracked file read whole, and evidence/ai-calls.log, which
++.gitignore would otherwise hide. If git cannot list any of these, the check fails instead of looking clean.
+ usage: python tools/ai_proof.py BASE   (BASE: the commit the branch starts from; run from the repo root)"""
+ import os, re, subprocess, sys
+ 
+ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ import ai_routes as A
+ 
+-BASE = sys.argv[1]
+ T, R = 'LHB-79', 'proof call, known answer'
+ norm = lambda s: re.sub(r'[^a-záéíóúñ]', '', str(s).strip().lower())
+ results = []
+@@ -21,36 +23,64 @@ def run(name, expected, fn):
+     try:
+         got = fn()
+         ok = got == expected
+-        print('%-12s answered; expected %r, got %r -> %s' % (name, expected, got, 'PASS' if ok else 'WRONG ANSWER'))
++        # the answer is printed only when it is the one fixed before the call: anything else stays unprinted, whatever it holds
++        print('%-12s answered; expected %r -> %s' % (name, expected, 'PASS, got %r' % got if ok else 'WRONG ANSWER (not printed)'))
+         results.append((name, 'pass' if ok else 'wrong'))
+     except A.RouteError as e:
+         print('%-12s REFUSED status %s (%s); recorded, not retried' % (name, e.status, e.detail))
+         results.append((name, 'refused %s' % e.status))
+ 
+ 
+-for n in A.KEYS:
+-    print('key %-20s %s' % (A.KEYS[n], 'present' if A.present(n) else 'absent'))
+-
+-run('jev', 'tobacco', lambda: A.jev_choice(
+-    'La hoja de tabaco se cura colgada en un rancho de madera durante semanas.',
+-    'Which crop is this sentence about?',
+-    {'tobacco': 'Tobacco, the leaf that is cured', 'coffee': 'Coffee, the bean that is roasted', 'sugarcane': 'Sugarcane, the stalk that is pressed'},
+-    T, R)['choice'])
+-# max_tokens leaves room for models that spend tokens reasoning before the one-word answer
+-run('opencode-go', 'hoja', lambda: norm(A.opencode_chat('glm-5.3-flash', [{'role': 'user', 'content': 'Reply with exactly one word, in lowercase, with no punctuation: hoja'}], T, R, max_tokens=512)))
+-# Together: gpt-oss-120b is on Together's serverless list and absent from the Go plan's /models list (both read
+-# 2026-10-29), so the not-on-go case applies
+-run('together', 'tabaco', lambda: norm(A.together_chat('openai/gpt-oss-120b', [{'role': 'user', 'content': 'Reply with exactly one word, in lowercase, with no punctuation: tabaco'}], T, R, case='not-on-go', max_tokens=512)))
+-
+-added = subprocess.run(['git', 'diff', BASE, '--', '.'], capture_output=True, text=True, encoding='utf-8', errors='replace').stdout
+-added += '\n'.join(open(p, encoding='utf-8', errors='replace').read() for p in subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], capture_output=True, text=True).stdout.split() if os.path.isfile(p))
+-plus = '\n'.join(l for l in added.splitlines() if l.startswith('+') or not l.startswith(('-', ' ', '@', 'diff ', 'index ')))
+-for n, var in A.KEYS.items():
+-    k = A._key(var)
+-    if not k:
+-        print('leak check %-20s skipped (absent)' % var)
+-        continue
+-    hit = (k[:4] in plus) or (k[-4:] in plus)
+-    print('leak check %-20s first or last four characters in the added lines: %s' % (var, 'FOUND' if hit else 'not found'))
+-    k = None
+-print('RESULT ' + ', '.join('%s %s' % r for r in results))
++def git(*args):
++    r = subprocess.run(['git'] + list(args), capture_output=True)
++    if r.returncode != 0:
++        print('leak check FAILED: git %s exited %d; nothing is reported clean' % (' '.join(args), r.returncode))
++        sys.exit(3)
++    return r.stdout
++
++
++def added_text(base):
++    """everything the branch adds, as one text: added lines of every commit since BASE and of the uncommitted changes, plus
++    whole untracked files and the call log"""
++    parts = []
++    for diff in (git('log', '-p', '--no-color', '--format=', base + '..HEAD'), git('diff', '--no-color', 'HEAD', '--')):
++        parts += [l[1:] for l in diff.decode('utf-8', 'replace').splitlines() if l.startswith('+') and not l.startswith('+++')]
++    names = [n for n in git('ls-files', '-z', '--others', '--exclude-standard').decode('utf-8', 'replace').split('\0') if n]
++    names.append(os.path.relpath(A.LOG))
++    for n in names:
++        if os.path.isfile(n):
++            with open(n, 'rb') as f:
++                parts.append(f.read().decode('utf-8', 'replace'))
++    return '\n'.join(parts), len(names)
++
++
++def main(BASE):
++    for n in A.KEYS:
++        print('key %-20s %s' % (A.KEYS[n], 'present' if A.present(n) else 'absent'))
++
++    run('jev', 'tobacco', lambda: A.jev_choice(
++        'La hoja de tabaco se cura colgada en un rancho de madera durante semanas.',
++        'Which crop is this sentence about?',
++        {'tobacco': 'Tobacco, the leaf that is cured', 'coffee': 'Coffee, the bean that is roasted', 'sugarcane': 'Sugarcane, the stalk that is pressed'},
++        T, R)['choice'])
++    # max_tokens leaves room for models that spend tokens reasoning before the one-word answer
++    run('opencode-go', 'hoja', lambda: norm(A.opencode_chat('glm-5.3-flash', [{'role': 'user', 'content': 'Reply with exactly one word, in lowercase, with no punctuation: hoja'}], T, R, max_tokens=512)))
++    # Together: gpt-oss-120b is on Together's serverless list and absent from the Go plan's /models list (both read
++    # 2026-10-29), so the not-on-go case applies
++    run('together', 'tabaco', lambda: norm(A.together_chat('openai/gpt-oss-120b', [{'role': 'user', 'content': 'Reply with exactly one word, in lowercase, with no punctuation: tabaco'}], T, R, case='not-on-go', max_tokens=512)))
++
++    text, nfiles = added_text(BASE)
++    print('leak check read %d characters: the commits since %s, uncommitted changes, %d untracked or log files' % (len(text), BASE, nfiles))
++    for n, var in A.KEYS.items():
++        k = A._key(var)
++        if not k:
++            print('leak check %-20s skipped (absent)' % var)
++            continue
++        hit = (k[:4] in text) or (k[-4:] in text)
++        print('leak check %-20s first or last four characters in what the branch adds: %s' % (var, 'FOUND' if hit else 'not found'))
++        k = None
++    print('RESULT ' + ', '.join('%s %s' % r for r in results))
++
++
++if __name__ == '__main__':
++    main(sys.argv[1])
+diff --git a/tools/ai_routes.py b/tools/ai_routes.py
+index fd16dd9..cfc7daf 100644
+--- a/tools/ai_routes.py
++++ b/tools/ai_routes.py
+@@ -7,7 +7,7 @@ the estate gateway. The rules travel with the code (CLAUDE.md, "AI routes"):
+ - Together is a fallback only: the caller must say which case applies, 'not-on-go' (the model is not on the Go plan) or
+   'go-exhausted' (an OpenCode call was refused because the subscription is used up).
+ - Every call appends one line to evidence/ai-calls.log: UTC time with Z, route, model, ticket, reason, HTTP status. No key,
+-  no request or response text.
++  no request or response text. A call refused before it is sent is logged too, with why in the status field.
+ usage (library): from ai_routes import jev_choice, opencode_chat, together_chat"""
+ import datetime, json, os, re, urllib.error, urllib.request, uuid
+ 
+@@ -21,6 +21,9 @@ TOGETHER_CASES = ('not-on-go', 'go-exhausted')
+ # OpenCode Go refuses a request without x-opencode-session (400 MissingSessionID); its docs ask for a stable id per
+ # conversation, so one process is one conversation unless the caller passes its own
+ GO_SESSION = 'lhb-' + uuid.uuid4().hex
++# the provider's error kind ("MissingSessionID", "invalid_request_error"), the only provider text a refusal keeps: its free-text
++# message can echo a key in any encoding or cut, so it is never kept (Codex ronda 1)
++KIND = re.compile(r'[A-Za-z][A-Za-z0-9_.\-]{0,39}')
+ 
+ 
+ class RouteError(Exception):
+@@ -30,6 +33,16 @@ class RouteError(Exception):
+         self.route, self.status, self.detail = route, status, detail
+ 
+ 
++class _NoRedirect(urllib.request.HTTPRedirectHandler):
++    # a redirect would carry the Authorization header to a URL the client never chose (a /inference path, another host):
++    # none is followed, and the 3xx comes back as a refusal
++    def redirect_request(self, req, fp, code, msg, headers, newurl):
++        return None
++
++
++_open = urllib.request.build_opener(_NoRedirect).open
++
++
+ def _key(name):
+     v = os.environ.get(name)
+     if not v and os.name == 'nt':
+@@ -47,65 +60,99 @@ def present(route):
+     return _key(KEYS[route]) is not None
+ 
+ 
++# every line break Python's str.splitlines knows, and the tab that separates the fields
++_BREAKS = re.compile('[\t\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]')
++
++
+ def _log(route, model, ticket, reason, status):
+     os.makedirs(os.path.dirname(LOG), exist_ok=True)
+     t = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+-    clean = lambda s: str(s).replace('\t', ' ').replace('\n', ' ')
++    clean = lambda s: _BREAKS.sub(' ', str(s))
+     with open(LOG, 'a', encoding='utf-8') as f:
+-        f.write('\t'.join([t, route, clean(model), clean(ticket), clean(reason), str(status)]) + '\n')
++        f.write('\t'.join([t, route, clean(model), clean(ticket), clean(reason), clean(status)]) + '\n')
+ 
+ 
+-def _post(route, url, body, headers, model, ticket, reason, opener=urllib.request.urlopen):
+-    if not ticket or not reason:
+-        raise ValueError('every call names its ticket and its reason')
++def _kind(raw, key):
++    """the provider's error kind from a JSON error body, or '' (never the message, never anything holding part of the key)"""
++    try:
++        e = json.loads(raw)
++        e = e.get('error', e) if isinstance(e, dict) else {}
++        e = e if isinstance(e, dict) else {}
++    except ValueError:
++        return ''
++    for f in ('type', 'code'):
++        v = e.get(f)
++        if isinstance(v, str) and KIND.fullmatch(v) and not any(key[i:i + 6] in v for i in range(max(1, len(key) - 5))):
++            return v
++    return ''
++
++
++def _refuse(route, model, ticket, reason, why):
++    _log(route, model, ticket, reason, why)
++    return RouteError(route, 0, why)
++
++
++def _post(route, url, body, headers, model, ticket, reason, opener=None):
++    opener = opener or _open
++    if not isinstance(ticket, str) or not ticket.strip() or not isinstance(reason, str) or not reason.strip():
++        raise _refuse(route, model, ticket, reason, 'refused: every call names its ticket and its reason')
++    try:
++        payload = json.dumps(body).encode('utf-8')
++    except (TypeError, ValueError):
++        raise _refuse(route, model, ticket, reason, 'refused: body is not JSON')
+     key = _key(KEYS[route])
+     if key is None:
+-        _log(route, model, ticket, reason, 'no-key')
+-        raise RouteError(route, 0, 'key %s is not set' % KEYS[route])
++        raise _refuse(route, model, ticket, reason, 'no-key')
+     h = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key, 'User-Agent': 'lhb-ai-routes/1'}
+     h.update(headers)
+-    req = urllib.request.Request(url, data=json.dumps(body).encode('utf-8'), headers=h, method='POST')
+-    status = 0
++    req = urllib.request.Request(url, data=payload, headers=h, method='POST')
++    status, detail, data = 0, '', None
+     try:
+-        with opener(req, timeout=60) as r:
+-            status = r.status
+-            data = json.loads(r.read().decode('utf-8'))
+-    except urllib.error.HTTPError as e:
+-        status = e.code
+         try:
+-            msg = e.read().decode('utf-8', 'replace')[:300]
+-        except Exception:
+-            msg = ''
+-        # the provider's own message, with the key cut out wherever it appears (a provider may echo part of a bad key)
+-        msg = re.sub(r'[A-Za-z0-9_\-]{24,}', '[redacted]', msg.replace(key, '[key]') if key else msg)
+-        detail = 'HTTP %d %s' % (e.code, msg)
+-    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
+-        detail = type(e).__name__
+-    else:
+-        _log(route, model, ticket, reason, status)
+-        return data
++            with opener(req, timeout=60) as r:
++                status = r.status
++                raw = r.read().decode('utf-8', 'replace')
++            data = json.loads(raw)
++            # a provider that echoes the key in an answer does not get it returned or printed (Codex ronda 1), in any JSON encoding
++            if key in raw or key in json.dumps(data, ensure_ascii=False):
++                status, detail, data = 'key-echo', 'the answer contained the key; dropped', None
++        except urllib.error.HTTPError as e:
++            status = e.code
++            try:
++                kind = _kind(e.read().decode('utf-8', 'replace'), key)
++            except Exception:
++                kind = ''
++            detail = ('HTTP %d %s' % (e.code, kind)).strip()
++        except Exception as e:
++            # any other failure (no answer, a malformed answer, http.client errors): its name only, never its text, which can hold what the server sent
++            status, detail, data = 0, type(e).__name__, None
+     finally:
+         key = h = req = None
+     _log(route, model, ticket, reason, status)
+-    raise RouteError(route, status, detail)
++    if data is None:
++        raise RouteError(route, status, detail or 'no answer')
++    return data
+ 
+ 
+-def jev_choice(state, instructions, criteria, ticket, reason, model='jev-latest', opener=urllib.request.urlopen):
++def jev_choice(state, instructions, criteria, ticket, reason, model='jev-latest', opener=None):
+     """one TypeSafe Jev choice question (docs.typesafe.ai/api); state must be data class none. Returns the answer object."""
+     body = {'model': model, 'state': state, 'questions': {'q': {'type': 'choice', 'instructions': instructions, 'criteria': criteria}}}
+     return _post('jev', JEV_URL, body, {}, model, ticket, reason, opener)['answers']['q']
+ 
+ 
+-def opencode_chat(model, messages, ticket, reason, max_tokens=64, session=None, opener=urllib.request.urlopen):
++def opencode_chat(model, messages, ticket, reason, max_tokens=64, session=None, opener=None):
+     """one chat completion on the OpenCode Go plan (OpenAI shape). Returns the reply text."""
+     data = _post('opencode-go', GO_BASE + '/chat/completions', {'model': model, 'messages': messages, 'max_tokens': max_tokens},
+                  {'x-opencode-session': session or GO_SESSION}, model, ticket, reason, opener)
+     return data['choices'][0]['message']['content']
+ 
+ 
+-def together_chat(model, messages, ticket, reason, case, max_tokens=64, opener=urllib.request.urlopen):
++def together_chat(model, messages, ticket, reason, case, max_tokens=64, opener=None):
+     """one Together chat completion, ONLY for case 'not-on-go' or 'go-exhausted' (owner ruling ee2ea5c). Returns the reply text."""
+     if case not in TOGETHER_CASES:
++        _log('together', model, ticket, reason, 'refused: case %r is not a fallback case' % (case,))
+         raise ValueError('Together is a fallback: case must be one of %s' % (TOGETHER_CASES,))
+-    data = _post('together', TOGETHER_URL, {'model': model, 'messages': messages, 'max_tokens': max_tokens}, {}, model, ticket, reason + ' [' + case + ']', opener)
++    # the case goes into the logged reason, but only onto a real reason: an empty one is still refused by _post
++    tagged = reason + ' [' + case + ']' if isinstance(reason, str) and reason.strip() else reason
++    data = _post('together', TOGETHER_URL, {'model': model, 'messages': messages, 'max_tokens': max_tokens}, {}, model, ticket, tagged, opener)
+     return data['choices'][0]['message']['content']
+diff --git a/tools/test_ai_routes.py b/tools/test_ai_routes.py
+index 1e25586..38a555a 100644
+--- a/tools/test_ai_routes.py
++++ b/tools/test_ai_routes.py
+@@ -1,6 +1,6 @@
+ """LHB-79: tests for tools/ai_routes.py with a fake opener; no network, and a fake key set only in this process.
+ usage: python -m unittest tools/test_ai_routes.py   (from the repo root)"""
+-import io, json, os, sys, tempfile, unittest, urllib.error
++import io, json, os, subprocess, sys, tempfile, unittest, urllib.error
+ 
+ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ import ai_routes as A
+@@ -48,7 +48,8 @@ class T(unittest.TestCase):
+             os.environ.pop(n, None)
+ 
+     def log(self):
+-        return open(A.LOG, encoding='utf-8').read()
++        with open(A.LOG, encoding='utf-8') as f:
++            return f.read()
+ 
+     def test_jev_body_headers_and_log(self):
+         o = Opener({'answers': {'q': {'type': 'choice', 'choice': 'b', 'confidence': .9, 'probabilities': {'a': .1, 'b': .9}}}})
+@@ -106,10 +107,177 @@ class T(unittest.TestCase):
+         self.assertIn('no-key', self.log())
+ 
+     def test_ticket_and_reason_required(self):
++        o = Opener({})
++        for t, r in (('', 'proof'), ('LHB-79', ''), ('LHB-79', '   '), (None, 'proof')):
++            with self.assertRaises(A.RouteError):
++                A.opencode_chat('m', [], t, r, opener=o)
++        # Together tags the case onto the reason; an empty reason is still refused, not passed as " [not-on-go]"
++        with self.assertRaises(A.RouteError):
++            A.together_chat('m', [], 'LHB-79', '', case='not-on-go', opener=o)
++        self.assertIsNone(o.req, 'nothing is sent')
++
++    # ---- Codex ronda 1 ----
++    def lines(self):
++        return self.log().splitlines()
++
++    def test_refusals_before_sending_are_logged_once(self):
++        o = Opener({})
++        with self.assertRaises(A.RouteError):
++            A.opencode_chat('m', [], '', 'proof', opener=o)
++        self.assertEqual(len(self.lines()), 1)
+         with self.assertRaises(ValueError):
+-            A.opencode_chat('m', [], '', 'proof', opener=Opener({}))
+-        with self.assertRaises(ValueError):
+-            A.opencode_chat('m', [], 'LHB-79', '', opener=Opener({}))
++            A.together_chat('m', [], 'LHB-79', 'proof', case='default', opener=o)
++        self.assertEqual(len(self.lines()), 2)
++        circular = []
++        circular.append(circular)
++        with self.assertRaises(A.RouteError):
++            A._post('jev', A.JEV_URL, {'x': circular}, {}, 'jev-latest', 'LHB-79', 'proof', o)
++        self.assertEqual(len(self.lines()), 3)
++        self.assertIsNone(o.req)
++        self.assertTrue(all(l.split('\t')[5].startswith('refused') for l in self.lines()))
++
++    def test_line_breaks_never_split_a_log_line(self):
++        o = Opener({'choices': [{'message': {'content': 'x'}}]})
++        A.opencode_chat('m\u2028x', [{'role': 'user', 'content': 'x'}], 'LHB-79', 'reason\rsecond\x85third\u2029fourth\tfifth', opener=o)
++        self.assertEqual(len(self.lines()), 1)
++        self.assertEqual(len(self.lines()[0].split('\t')), 6)
++
++    def test_provider_error_text_is_never_kept(self):
++        esc = ''.join('\\u%04x' % ord(c) for c in FAKE)
++        bodies = [
++            b'{"error":{"type":"MissingSessionID","message":"bad key ' + FAKE.encode() + b'"}}',
++            b'{"error":{"message":"' + b'x' * 292 + FAKE.encode() + b'"}}',
++            b'{"error":{"message":"' + esc.encode() + b'"}}',
++            b'{"error":{"type":"' + FAKE[2:20].encode() + b'","message":"m"}}',
++            b'not json ' + FAKE[-8:].encode(),
++        ]
++        for i, b in enumerate(bodies):
++            err = urllib.error.HTTPError('https://opencode.ai', 400, 'Bad', {}, io.BytesIO(b))
++            with self.assertRaises(A.RouteError) as c:
++                A.opencode_chat('m', [], 'LHB-79', 'proof', opener=Opener(error=err))
++            text = str(c.exception) + c.exception.detail
++            for j in range(len(FAKE) - 5):
++                self.assertNotIn(FAKE[j:j + 6], text, 'body %d leaks part of the key' % i)
++        # the error kind alone is kept, so a refusal still says why
++        err = urllib.error.HTTPError('https://opencode.ai', 400, 'Bad', {}, io.BytesIO(bodies[0]))
++        with self.assertRaises(A.RouteError) as c:
++            A.opencode_chat('m', [], 'LHB-79', 'proof', opener=Opener(error=err))
++        self.assertEqual(c.exception.detail, 'HTTP 400 MissingSessionID')
++        self.assertNotIn(FAKE[:6], self.log())
++
++    def test_transport_exceptions_are_named_not_quoted_and_logged(self):
++        import http.client
++        for exc in (http.client.BadStatusLine(FAKE), http.client.IncompleteRead(FAKE.encode()), RuntimeError(FAKE)):
++            with self.assertRaises(A.RouteError) as c:
++                A.jev_choice('x', 'y', {'a': 'a'}, 'LHB-79', 'proof', opener=Opener(error=exc))
++            self.assertNotIn(FAKE, str(c.exception) + c.exception.detail)
++            self.assertNotIn(FAKE[:6], str(c.exception))
++        self.assertEqual(len(self.lines()), 3, 'one line per call')
++
++    def test_an_answer_that_echoes_the_key_is_dropped(self):
++        esc = ''.join('\\u%04x' % ord(c) for c in FAKE)
++        for body in ({'choices': [{'message': {'content': FAKE}}]}, None):
++            if body is None:
++                class R(Resp):
++                    def __init__(self):
++                        self.status, self._b = 200, ('{"choices":[{"message":{"content":"' + esc + '"}}]}').encode()
++                o = lambda req, timeout=None: R()
++            else:
++                o = Opener(body)
++            with self.assertRaises(A.RouteError) as c:
++                A.opencode_chat('m', [], 'LHB-79', 'proof', opener=o)
++            self.assertEqual(c.exception.status, 'key-echo')
++            self.assertNotIn(FAKE, str(c.exception))
++        self.assertIn('\tkey-echo', self.log())
++
++    def test_redirects_are_not_followed(self):
++        import http.server, threading
++        hits = []
++
++        class B(http.server.BaseHTTPRequestHandler):
++            def do_POST(self):
++                hits.append(self.headers.get('Authorization'))
++                self.send_response(200)
++                self.end_headers()
++                self.wfile.write(b'{}')
++            do_GET = do_POST
++
++            def log_message(self, *a):
++                pass
++        sb = http.server.HTTPServer(('127.0.0.1', 0), B)
++
++        class R(http.server.BaseHTTPRequestHandler):
++            def do_POST(self):
++                self.send_response(302)
++                self.send_header('Location', 'http://127.0.0.1:%d/inference/go/v1/chat/completions' % sb.server_port)
++                self.end_headers()
++
++            def log_message(self, *a):
++                pass
++        # 302: urllib follows it for a POST (as a GET, still carrying Authorization); 307 it would refuse by itself
++        sr = http.server.HTTPServer(('127.0.0.1', 0), R)
++        for s in (sb, sr):
++            threading.Thread(target=s.handle_request, daemon=True).start()
++        try:
++            with self.assertRaises(A.RouteError) as c:
++                A._post('opencode-go', 'http://127.0.0.1:%d/zen/go/v1/chat/completions' % sr.server_port, {}, {}, 'm', 'LHB-79', 'proof')
++            self.assertEqual(c.exception.status, 302)
++            self.assertEqual(hits, [], 'the key never reaches the redirect target')
++        finally:
++            sb.server_close()
++            sr.server_close()
++
++
++class LeakScan(unittest.TestCase):
++    """Codex ronda 1: the proof's leak check reads everything the branch adds, and fails instead of looking clean"""
++    def setUp(self):
++        import ai_proof
++        self.P = ai_proof
++        self.cwd = os.getcwd()
++        self.d = tempfile.mkdtemp()
++        os.chdir(self.d)
++        g = lambda *a: subprocess.run(['git'] + list(a), check=True, capture_output=True)
++        self.g = g
++        g('init', '-q')
++        g('config', 'user.email', 't@example.invalid')
++        g('config', 'user.name', 't')
++        with open('.gitignore', 'w') as f:
++            f.write('*.log\n')
++        g('add', '.gitignore')
++        g('commit', '-q', '-m', 'base')
++        self.base = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
++        self.log0 = A.LOG
++
++    def tearDown(self):
++        os.chdir(self.cwd)
++        A.LOG = self.log0
++
++    def test_it_finds_a_key_wherever_the_branch_put_it(self):
++        k1, k2, k3, k4 = 'KONE' + 'x' * 20, 'KTWO' + 'y' * 20, 'KTHR' + 'z' * 20, 'KFOU' + 'w' * 20
++        with open('cfg.txt', 'w') as f:
++            f.write(k1 + '\n')
++        self.g('add', 'cfg.txt')
++        self.g('commit', '-q', '-m', 'add')
++        os.remove('cfg.txt')
++        self.g('commit', '-q', '-am', 'remove')
++        with open('a b.txt', 'w') as f:
++            f.write('- ' + k2 + '\n')
++        A.LOG = os.path.join(self.d, 'evidence', 'ai-calls.log')
++        os.makedirs(os.path.dirname(A.LOG))
++        with open(A.LOG, 'w') as f:
++            f.write('@' + k3 + '\n')
++        with open('.gitignore', 'a') as f:
++            f.write(k4 + '\n')
++        text, n = self.P.added_text(self.base)
++        self.assertIn(k1, text, 'committed and then removed')
++        self.assertIn(k2, text, 'untracked file with a space in its name, line starting with -')
++        self.assertIn(k3, text, 'the call log, ignored by *.log')
++        self.assertIn(k4, text, 'an uncommitted change to a tracked file')
++
++    def test_git_failure_is_not_clean(self):
++        with self.assertRaises(SystemExit) as c:
++            self.P.added_text('no-such-commit')
++        self.assertEqual(c.exception.code, 3)
+ 
+ 
+ if __name__ == '__main__':
+
+===== files changed on the branch: git diff --stat f1ea0d0 HEAD =====
+ .gitignore                           |   2 +
+ CLAUDE.md                            |  25 ++
+ evidence/ai-calls.log                |  14 ++
+ evidence/lhb-79-review-brief-r1.txt  |  25 ++
+ evidence/lhb-79-review-prompt-r1.txt | 359 +++++++++++++++++++++++++++
+ evidence/lhb-79-review-r1.txt        | 467 +++++++++++++++++++++++++++++++++++
+ evidence/lhb-79/mutations.out        |  16 ++
+ evidence/lhb-79/mutations.py         |  39 +++
+ evidence/lhb-79/proof.txt            |  12 +
+ evidence/lhb-79/unit.txt             |  24 ++
+ tools/ai_proof.py                    |  86 +++++++
+ tools/ai_routes.py                   | 158 ++++++++++++
+ tools/test_ai_routes.py              | 284 +++++++++++++++++++++
+ 13 files changed, 1511 insertions(+)

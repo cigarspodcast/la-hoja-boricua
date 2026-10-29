@@ -1,0 +1,25 @@
+You are reviewing one ticket in this repository (La Hoja Boricua). Review only; do not edit files. Do not load or run any skills. Do NOT make any network call and do NOT run tools/ai_proof.py: it makes paid calls with real keys. The worktree is C:/Users/Owner/lhb-79-wt (branch lhb-79-ai-routes, from main f1ea0d0). The diff below is the whole branch against f1ea0d0. TIER 2: rounds until no blocking finding.
+
+Ticket LHB-79: give LHB its own client for three AI routes, called directly with keys held in the Windows user environment, never through the estate gateway. Rules that travel with the access are in CLAUDE.md, "AI routes".
+Pinned: keys read at call time and never printed, logged, written, returned or put in an exception; Jev takes data class none only; OpenCode Go only under https://opencode.ai/zen/go/v1, never /inference (metered); Together is a fallback only, for case not-on-go or go-exhausted; every call appends one line to evidence/ai-calls.log (UTC Z, route, model, ticket, reason, status) with no key and no request or response text; a refusal is recorded, never retried in a loop. Proof: one call per route with a known answer, plus a leak check.
+
+What changed:
+- tools/ai_routes.py: _key (env, then HKCU Environment), _post (logs every outcome, cuts the key and any 24+ character token out of a provider's error text), jev_choice, opencode_chat (sends x-opencode-session: one id per process or the caller's), together_chat (refuses any case outside TOGETHER_CASES before sending).
+- tools/test_ai_routes.py: 6 tests with a fake opener, no network.
+- tools/ai_proof.py: the live proof runner and leak check (first and last four characters of each key searched in the branch's added lines, printing found or not found only).
+- CLAUDE.md: the rules table and the two lessons from the first proof run.
+
+Evidence: evidence/lhb-79/unit.txt (6 OK); evidence/lhb-79/mutations.out 5 of 5 red; evidence/lhb-79/proof.txt, run 14:05Z: jev, opencode-go and together all PASS, leak check not found for all three keys. evidence/ai-calls.log holds 8 lines: the first proof run (opencode-go and together answered 400), one diagnostic call each, and the passing run. The first 400s were MissingSessionID from Go and a dedicated-only Llama model on Together.
+
+Known deviations, already recorded on the ticket: the brief asked for exactly one call per route; there were 3 Go, 3 Together and 2 Jev calls. Model listing GETs used for diagnosis are not logged (they are reads, not completions). The OpenCode docs now name https://opencode.ai/inference/go as the base; the brief forbids /inference and /zen/go/v1 answers, so the client keeps /zen/go/v1.
+
+Check in particular:
+- Can any key reach stdout, the log, an exception, a file, or the git history by any path (HTTPError body, URLError text, repr of the request, a traceback, the leak check itself)?
+- Is the leak check sound (does it actually search what the branch adds, including untracked files, and can it false-negative)?
+- Does every call path log exactly one line, including no-key, ValueError and timeout paths? Can a refusal be retried automatically?
+- Is the Together case gate and the /inference ban enforced in code, not only in docs?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: python -m unittest tools/test_ai_routes.py. If no tool works at all, review from the diff embedded below and say which claims you could not run.

@@ -1,0 +1,198 @@
+You are reviewing one ticket in this repository (La Hoja Boricua). Review only; do not edit files. Do not load or run any skills. Do NOT make any network call and do NOT run tools/ai_proof.py as a script (it makes paid calls with real keys). tools/ai_leakcheck.py makes no call but reads the real keys; do not run it either. Importing either module is safe. The worktree is C:/Users/Owner/lhb-79-wt (branch lhb-79-ai-routes, from main f1ea0d0). TIER 2, round 3.
+
+Round 2 (evidence/lhb-79-review-r2.txt) returned BLOCK: it concurred with round 1 fixes 1, 2, 3, 4 and 7, and kept three open. The diff below is the fix commit 2a818f5 against its parent. What each became:
+1. Leak scan missed a content line starting with ++ and binary files. added_text no longer parses diffs: it lists every file version each commit since BASE wrote (git log --raw --no-abbrev --no-renames, skipping deletions and submodules) and reads each blob whole with git cat-file --batch, text or binary; then it reads whole every file the working tree changed (git diff --name-only -z HEAD), every untracked file, and the call log. Any git failure exits 3. Test covers a ++ line and a binary file committed and then deleted.
+2. A rejected Together case was copied into the log: the status is now the fixed text "refused: not a fallback case". Test passes the fake key as the case.
+3. A RecursionError from json.dumps escaped: serialization now catches any exception and refuses with one log line. Test nests 50000 deep (Python 3.14's C encoder passes 1100 and raises by 20000).
+Also: the redirect test's servers now read the request body and send Content-Length (a Windows connection reset made it flaky: 8 of 8 runs pass now); tools/ai_leakcheck.py runs the leak check alone, with no AI call.
+
+Evidence: evidence/lhb-79/unit.txt 14 tests OK; evidence/lhb-79/mutations.out 19 of 19 red (round 2 adds four: history blobs not read, worktree changes not read, rejected case logged, only TypeError and ValueError refused); evidence/lhb-79/leakcheck.txt on 2a818f5: not found for all three keys, exit 0. The last live proof (evidence/lhb-79/proof.txt, 14:27Z on 12f8440) is unchanged: this round changes no code a successful call runs through.
+
+Check whether these three are fully fixed and whether the new scanner has a false-negative path (for example: a rename, a mode-only change, a merge commit, a file git treats as a submodule, a blob larger than memory, or cat-file output for a missing object).
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 2a818f5~1 2a818f5 -- tools CLAUDE.md =====
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 75bdc1c..cb665c8 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -22,4 +22,4 @@ Rules that travel with the access:
+ - **Call log.** Every call appends one line to `evidence/ai-calls.log`, tab-separated: UTC time with Z, route, model, ticket, reason, HTTP status. It holds no key and no request or response text.
+ - **A refusal is a result.** A refused call (401, 403, 429) is recorded, never retried in a loop.
+ 
+-Tests: `python -m unittest tools/test_ai_routes.py` (no network). Proof: `python tools/ai_proof.py <base commit>`.
++Tests: `python -m unittest tools/test_ai_routes.py` (no network). Proof: `python tools/ai_proof.py <base commit>` (one paid call per route, then the leak check). Leak check alone, no call: `python tools/ai_leakcheck.py <base commit>`.
+diff --git a/tools/ai_leakcheck.py b/tools/ai_leakcheck.py
+new file mode 100644
+index 0000000..1306117
+--- /dev/null
++++ b/tools/ai_leakcheck.py
+@@ -0,0 +1,23 @@
++"""LHB-79: the proof's leak check on its own, with no AI call: each key's first and last four characters searched in what the
++branch adds (ai_proof.added_text), printing only found or not found. Exits 1 if any is found, 3 if git cannot be read.
++usage: python tools/ai_leakcheck.py BASE   (from the repo root)"""
++import os, sys
++
++sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
++import ai_proof as P
++import ai_routes as A
++
++base = sys.argv[1]
++text, n = P.added_text(base)
++print('leak check read %d characters: every file version the commits since %s wrote, %d changed, untracked or log files' % (len(text), base, n))
++found = False
++for var in A.KEYS.values():
++    k = A._key(var)
++    if not k:
++        print('leak check %-20s skipped (absent)' % var)
++        continue
++    hit = (k[:4] in text) or (k[-4:] in text)
++    found = found or hit
++    print('leak check %-20s first or last four characters in what the branch adds: %s' % (var, 'FOUND' if hit else 'not found'))
++    k = None
++sys.exit(1 if found else 0)
+diff --git a/tools/ai_proof.py b/tools/ai_proof.py
+index 7c58447..34dbe13 100644
+--- a/tools/ai_proof.py
++++ b/tools/ai_proof.py
+@@ -1,9 +1,10 @@
+ """LHB-79 proof: one call per route through tools/ai_routes.py, synthetic text only, each checked against an answer fixed before
+ the call; then, inside this process (which holds the keys), a leak check: each key's first and last four characters searched in
+ everything the branch adds, printing only found or not found. A refused route is recorded as its result and never retried.
+-What the leak check reads (Codex ronda 1): every line added by every commit since BASE (so a key committed and then removed is
+-still found), the working tree's uncommitted changes, every untracked file read whole, and evidence/ai-calls.log, which
+-.gitignore would otherwise hide. If git cannot list any of these, the check fails instead of looking clean.
++What the leak check reads (Codex rondas 1 y 2): every file version any commit since BASE wrote, read whole from git, text or
++binary (so a key committed and then removed is still found, and no diff parsing can drop a line), every file the working tree
++changed or added, read whole, and evidence/ai-calls.log, which .gitignore would otherwise hide. If git cannot list or read any
++of these, the check fails instead of looking clean.
+ usage: python tools/ai_proof.py BASE   (BASE: the commit the branch starts from; run from the repo root)"""
+ import os, re, subprocess, sys
+ 
+@@ -31,8 +32,8 @@ def run(name, expected, fn):
+         results.append((name, 'refused %s' % e.status))
+ 
+ 
+-def git(*args):
+-    r = subprocess.run(['git'] + list(args), capture_output=True)
++def git(*args, stdin=None):
++    r = subprocess.run(['git'] + list(args), capture_output=True, input=stdin)
+     if r.returncode != 0:
+         print('leak check FAILED: git %s exited %d; nothing is reported clean' % (' '.join(args), r.returncode))
+         sys.exit(3)
+@@ -40,12 +41,17 @@ def git(*args):
+ 
+ 
+ def added_text(base):
+-    """everything the branch adds, as one text: added lines of every commit since BASE and of the uncommitted changes, plus
+-    whole untracked files and the call log"""
++    """everything the branch adds, as one text: each file version written by a commit since BASE, read whole from git, and each
++    file the working tree changed or added, plus the call log, read whole from disk"""
+     parts = []
+-    for diff in (git('log', '-p', '--no-color', '--format=', base + '..HEAD'), git('diff', '--no-color', 'HEAD', '--')):
+-        parts += [l[1:] for l in diff.decode('utf-8', 'replace').splitlines() if l.startswith('+') and not l.startswith('+++')]
+-    names = [n for n in git('ls-files', '-z', '--others', '--exclude-standard').decode('utf-8', 'replace').split('\0') if n]
++    # one line per file each commit wrote: ":oldmode newmode oldsha newsha status<TAB>path"; a deletion's new sha is all zeros,
++    # and a submodule (mode 160000) is a commit, not a file
++    raw = git('log', '--raw', '--no-abbrev', '--no-renames', '--format=', base + '..HEAD').decode('utf-8', 'replace')
++    shas = sorted({f[3] for f in (l.split('\t')[0].split() for l in raw.splitlines() if l.startswith(':')) if len(f) >= 4 and f[1] != '160000' and set(f[3]) != {'0'}})
++    if shas:
++        parts.append(git('cat-file', '--batch', stdin=('\n'.join(shas) + '\n').encode()).decode('utf-8', 'replace'))
++    names = [n for n in git('diff', '--name-only', '-z', 'HEAD', '--').decode('utf-8', 'replace').split('\0') if n]
++    names += [n for n in git('ls-files', '-z', '--others', '--exclude-standard').decode('utf-8', 'replace').split('\0') if n]
+     names.append(os.path.relpath(A.LOG))
+     for n in names:
+         if os.path.isfile(n):
+diff --git a/tools/ai_routes.py b/tools/ai_routes.py
+index cfc7daf..bb4b42c 100644
+--- a/tools/ai_routes.py
++++ b/tools/ai_routes.py
+@@ -98,7 +98,8 @@ def _post(route, url, body, headers, model, ticket, reason, opener=None):
+         raise _refuse(route, model, ticket, reason, 'refused: every call names its ticket and its reason')
+     try:
+         payload = json.dumps(body).encode('utf-8')
+-    except (TypeError, ValueError):
++    except Exception:
++        # TypeError, ValueError, and a RecursionError from a body nested too deep (Codex ronda 2): all refused and logged the same way
+         raise _refuse(route, model, ticket, reason, 'refused: body is not JSON')
+     key = _key(KEYS[route])
+     if key is None:
+@@ -150,7 +151,8 @@ def opencode_chat(model, messages, ticket, reason, max_tokens=64, session=None,
+ def together_chat(model, messages, ticket, reason, case, max_tokens=64, opener=None):
+     """one Together chat completion, ONLY for case 'not-on-go' or 'go-exhausted' (owner ruling ee2ea5c). Returns the reply text."""
+     if case not in TOGETHER_CASES:
+-        _log('together', model, ticket, reason, 'refused: case %r is not a fallback case' % (case,))
++        # a fixed status: the rejected value is the caller's text and never goes into the log (Codex ronda 2)
++        _log('together', model, ticket, reason, 'refused: not a fallback case')
+         raise ValueError('Together is a fallback: case must be one of %s' % (TOGETHER_CASES,))
+     # the case goes into the logged reason, but only onto a real reason: an empty one is still refused by _post
+     tagged = reason + ' [' + case + ']' if isinstance(reason, str) and reason.strip() else reason
+diff --git a/tools/test_ai_routes.py b/tools/test_ai_routes.py
+index 38a555a..9bcf3fb 100644
+--- a/tools/test_ai_routes.py
++++ b/tools/test_ai_routes.py
+@@ -133,6 +133,19 @@ class T(unittest.TestCase):
+         with self.assertRaises(A.RouteError):
+             A._post('jev', A.JEV_URL, {'x': circular}, {}, 'jev-latest', 'LHB-79', 'proof', o)
+         self.assertEqual(len(self.lines()), 3)
++        # Codex ronda 2: a body nested past the recursion limit is refused and logged like any other bad body
++        nested = []
++        # 50000 deep: Python 3.14's C encoder passes 1100 and raises RecursionError by 20000 (measured 2026-10-29)
++        for _ in range(50000):
++            nested = [nested]
++        with self.assertRaises(A.RouteError):
++            A.opencode_chat('m', nested, 'LHB-79', 'proof', opener=o)
++        self.assertEqual(len(self.lines()), 4)
++        # and a rejected case is never copied into the log, whatever it holds
++        with self.assertRaises(ValueError):
++            A.together_chat('m', [], 'LHB-79', 'proof', case=FAKE, opener=o)
++        self.assertEqual(len(self.lines()), 5)
++        self.assertNotIn(FAKE[:6], self.log())
+         self.assertIsNone(o.req)
+         self.assertTrue(all(l.split('\t')[5].startswith('refused') for l in self.lines()))
+ 
+@@ -197,7 +210,9 @@ class T(unittest.TestCase):
+         class B(http.server.BaseHTTPRequestHandler):
+             def do_POST(self):
+                 hits.append(self.headers.get('Authorization'))
++                self.rfile.read(int(self.headers.get('Content-Length') or 0))
+                 self.send_response(200)
++                self.send_header('Content-Length', '2')
+                 self.end_headers()
+                 self.wfile.write(b'{}')
+             do_GET = do_POST
+@@ -208,8 +223,11 @@ class T(unittest.TestCase):
+ 
+         class R(http.server.BaseHTTPRequestHandler):
+             def do_POST(self):
++                # read the body before answering: on Windows, closing with unread data resets the connection (the client sees no answer)
++                self.rfile.read(int(self.headers.get('Content-Length') or 0))
+                 self.send_response(302)
+                 self.send_header('Location', 'http://127.0.0.1:%d/inference/go/v1/chat/completions' % sb.server_port)
++                self.send_header('Content-Length', '0')
+                 self.end_headers()
+ 
+             def log_message(self, *a):
+@@ -268,7 +286,19 @@ class LeakScan(unittest.TestCase):
+             f.write('@' + k3 + '\n')
+         with open('.gitignore', 'a') as f:
+             f.write(k4 + '\n')
++        # Codex ronda 2: a content line starting with ++ (git shows +++, like a file header) and a binary file, committed and then removed
++        k5, k6 = 'KFIV' + 'v' * 20, 'KSIX' + 'u' * 20
++        with open('plus.txt', 'w') as f:
++            f.write('++' + k5 + '\n')
++        with open('blob.bin', 'wb') as f:
++            f.write(b'\x00' + k6.encode() + b'\n')
++        self.g('add', 'plus.txt', 'blob.bin')
++        self.g('commit', '-q', '-m', 'odd shapes')
++        os.remove('blob.bin')
++        self.g('commit', '-q', '-am', 'drop the binary')
+         text, n = self.P.added_text(self.base)
++        self.assertIn(k5, text, 'a line that starts with ++')
++        self.assertIn(k6, text, 'a binary file, committed and then removed')
+         self.assertIn(k1, text, 'committed and then removed')
+         self.assertIn(k2, text, 'untracked file with a space in its name, line starting with -')
+         self.assertIn(k3, text, 'the call log, ignored by *.log')

@@ -8,3 +8,5 @@ __MACOSX/
 tools/*_interno.json
 __pycache__/
 .wrangler/
+
+!evidence/ai-calls.log
