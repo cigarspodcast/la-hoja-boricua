@@ -1,0 +1,56 @@
+You are reviewing one small change in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 5 of a TIER 2 review of LHB-73. Round 4 (evidence/lhb-73-review-r4.txt) gave VERDICT: PASS with one non-blocking P3: KIND73 in test/site.test.js recognized PNG by six bytes although the commit said eight.
+
+The only change since round 4 is commit 5205b7d. The diff below is scoped to it (base abea83a).
+- KIND73 now checks the full PNG signature 89 50 4E 47 0D 0A 1A 0A.
+- A fixture casi.png, holding only the six-byte prefix, is counted.
+- Mutation K23, which restores the six-byte check, turns red: 23 of 23 red with a clean baseline (evidence/lhb-73-mutations.out).
+- The suite is 328 pass, 0 fail, 1 skipped (evidence/lhb-73-tests.txt).
+
+Check that the P3 is closed and that the change introduces nothing new. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff abea83a HEAD -- test/site.test.js evidence/lhb-73-mutations.py =====
+diff --git a/evidence/lhb-73-mutations.py b/evidence/lhb-73-mutations.py
+index 2505f16..8523261 100644
+--- a/evidence/lhb-73-mutations.py
++++ b/evidence/lhb-73-mutations.py
+@@ -49,7 +49,8 @@ M = [
+     ('K19 (Codex r2) ftyp must be the first box', lambda: edit(TS, "if(!top||!top.some(x=>x.ty==='ftyp'))return 'unknown';", "if(!top||top[0].ty!=='ftyp')return 'unknown';")),
+     ('K20 (Codex r2) a track of another kind counts as silent', lambda: edit(TS, "else if(!['vide','pict','auxv'].includes(ht))return 'unknown'", '')),
+     ('K21 (Codex r2) any binary file counts as silent', lambda: edit(TS, " return 'unknown'}\n/* los archivos de site/assets", " return 'silent'}\n/* los archivos de site/assets")),
+-    ('K22 (Codex r3) signatures before the MP4 reading, with TrueType and ICO', lambda: edit(TS, "function KIND73(b){const r=SOUND73(b);if(r!=='unknown')return r;const h=b.toString('latin1',0,12);\n if(h.startsWith('\\x89PNG\\r\\n')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||/^GIF8[79]a/.test(h)||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h))return 'silent';", "function KIND73(b){const h=b.toString('latin1',0,12),u=b.length>=4?b.readUInt32BE(0):-1;\n if(h.startsWith('\\x89PNG')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||h.startsWith('GIF8')||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h)||u===0x00010000||u===0x00000100)return 'silent';")),
++    ('K22 (Codex r3) signatures before the MP4 reading, with TrueType and ICO', lambda: edit(TS, "function KIND73(b){const r=SOUND73(b);if(r!=='unknown')return r;const h=b.toString('latin1',0,12);\n if(h.startsWith('\\x89PNG\\r\\n\\x1a\\n')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||/^GIF8[79]a/.test(h)||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h))return 'silent';", "function KIND73(b){const h=b.toString('latin1',0,12),u=b.length>=4?b.readUInt32BE(0):-1;\n if(h.startsWith('\\x89PNG')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||h.startsWith('GIF8')||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h)||u===0x00010000||u===0x00000100)return 'silent';")),
++    ('K23 (Codex r4) PNG judged by six bytes', lambda: edit(TS, "h.startsWith('\\x89PNG\\r\\n\\x1a\\n')||", "h.startsWith('\\x89PNG\\r\\n')||")),
+     ('K17 (Codex r1) the credits view drops the focus', lambda: edit(AP, "$('[data-back]').onclick=()=>{location.hash='#/acerca'};keepFocus()}", "$('[data-back]').onclick=()=>{location.hash='#/acerca'}}")),
+     ('K13 the back button goes elsewhere', lambda: edit(AP, "$('[data-back]').onclick=()=>{location.hash='#/acerca'};", "$('[data-back]').onclick=()=>{location.hash='#/catalogo'};")),
+ ]
+diff --git a/test/site.test.js b/test/site.test.js
+index cd2b23a..d3bc98f 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -5528,7 +5528,7 @@ function SOUND73(b){
+ /* un archivo es mudo solo si se demuestra: primero se lee como MP4 (si se lee, eso manda); si no, una imagen o una fuente por una firma larga,
+    o texto (UTF-8 sin bytes nulos: SVG, JSON, CSS). Codex ronda 3: TrueType (00010000) e ICO (00000100) salen: son también el tamaño de una caja */
+ function KIND73(b){const r=SOUND73(b);if(r!=='unknown')return r;const h=b.toString('latin1',0,12);
+- if(h.startsWith('\x89PNG\r\n')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||/^GIF8[79]a/.test(h)||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h))return 'silent';
++ if(h.startsWith('\x89PNG\r\n\x1a\n')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||/^GIF8[79]a/.test(h)||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h))return 'silent';
+  if(!b.subarray(0,4096).includes(0)){try{new TextDecoder('utf-8',{fatal:true}).decode(b.subarray(0,4096),{stream:true});return 'silent'}catch(e){}}
+  return 'unknown'}
+ /* los archivos de site/assets que pueden llevar sonido: todos menos los que se demuestran mudos; el nombre no cuenta */
+@@ -5565,13 +5565,13 @@ test('LHB-73: cada archivo con sonido de site/assets tiene sus créditos (títul
+   put('a/ext64.mp4',MP473(['vide','soun'],true));put('a/clip.3gp',MP473(['soun']));put('a/MAYUS.MP4',MP473(['soun']));put('a/roto.mov',cut);put('a/cmov.mov',cmov);
+   put('a/libre-primero.dat',freeFirst);put('a/con-tiempo.mp4',MP473(['vide','tmcd']));put('a/mudo.mp4',MP473(['vide']));put('a/imagen.avif',avif);
+   put('b/sin-nombre.bin',Buffer.concat([Buffer.from('OggS','latin1'),Buffer.alloc(40)]));put('b/onda.dat',Buffer.concat([Buffer.from('RIFF\0\0\0\0WAVE','latin1'),Buffer.alloc(40)]));
+-  put('b/pista.mka',Buffer.alloc(40));put('b/foto.png',Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0,0,0,0]));put('b/logo.svg',Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'));
++  put('b/pista.mka',Buffer.alloc(40));put('b/foto.png',Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0,0,0,0]));put('b/casi.png',Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0,0,0,0]));put('b/logo.svg',Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'));
+   put('b/poster.webp',Buffer.concat([Buffer.from('RIFF\0\0\0\0WEBPVP8 ','latin1'),Buffer.alloc(20)]));put('b/fuente.woff2',Buffer.concat([Buffer.from('wOF2','latin1'),Buffer.alloc(20)]));
+   put('b/datos.json',Buffer.from('{"a":"ñ"}'));put('b/vacio.txt',Buffer.alloc(0));
+   /* Codex ronda 3: la intro real con una caja free de 256 o de 65536 bytes delante (el tamaño se lee como ICO o TrueType) cuenta */
+   const real=fs.readFileSync(path.join(S,'assets/intro/intro-landscape.mp4'));for(const n of [256,65536]){const pad=BOX73('free',Buffer.alloc(n-8));assert.equal(pad.readUInt32BE(0),n);put('c/relleno-'+n+'.mp4',Buffer.concat([pad,real]))}
+   put('c/icono.ico',Buffer.concat([Buffer.from([0,0,1,0,1,0]),Buffer.alloc(30)]));
+-  assert.deepEqual(AUDIO73(tmp,tmp),['a/MAYUS.MP4','a/clip.3gp','a/cmov.mov','a/con-tiempo.mp4','a/ext64.mp4','a/libre-primero.dat','a/roto.mov','b/onda.dat','b/pista.mka','b/sin-nombre.bin','c/icono.ico','c/relleno-256.mp4','c/relleno-65536.mp4'],
++  assert.deepEqual(AUDIO73(tmp,tmp),['a/MAYUS.MP4','a/clip.3gp','a/cmov.mov','a/con-tiempo.mp4','a/ext64.mp4','a/libre-primero.dat','a/roto.mov','b/casi.png','b/onda.dat','b/pista.mka','b/sin-nombre.bin','c/icono.ico','c/relleno-256.mp4','c/relleno-65536.mp4'],
+    'cuenta todo lo que no se demuestra mudo (un ICO también: su firma es la de una caja); el video sin sonido, AVIF, PNG, WebP, WOFF2, SVG, JSON y un archivo vacío no');
+   for(const n of [256,65536])assert.equal(KIND73(fs.readFileSync(path.join(tmp,'c/relleno-'+n+'.mp4'))),'sound','relleno de '+n+': se lee como MP4')}
+  finally{fs.rmSync(tmp,{recursive:true,force:true})}
