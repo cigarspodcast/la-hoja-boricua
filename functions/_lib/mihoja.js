@@ -35,6 +35,20 @@ export function checkBody(b) {
   return { text, schema: b.schema };
 }
 
+// LHB-80: el id de una subida (cabecera X-Op, ?op= en GET): lo inventa el cliente, uno por PUT. OPS_KEEP: cuántas se recuerdan por cuenta (migrations/0008_mihoja_ops.sql)
+export const OP = /^[A-Za-z0-9_-]{8,64}$/;
+export const OPS_KEEP = 20;
+// sin la columna todavía (0008 sin aplicar) se contesta como antes
+export const noOps = e => /no such column: ops|has no column named ops/i.test(String(e && e.message));
+// en qué rev llegó la subida id según la columna ops de la fila, o null si no está (ni una lista que no se puede leer cuenta)
+export function opRev(raw, id) {
+  let a;
+  try { a = JSON.parse(raw); } catch (e) { return null; }
+  if (!Array.isArray(a)) return null;
+  for (const x of a) if (Array.isArray(x) && x[0] === id && Number.isInteger(x[1])) return x[1];
+  return null;
+}
+
 // la fila de la cuenta como la ve el cliente; sin fila: rev 0 y doc null
 export function shape(row) {
   if (!row) return { rev: 0, schema: null, doc: null, updated_at: null };

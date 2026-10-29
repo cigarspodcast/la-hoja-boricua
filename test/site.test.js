@@ -2653,8 +2653,9 @@ test('LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar
 async function API28(){
  const a=await API52();const M=await a.imp('api/mihoja.js'),ML=await a.imp('_lib/mihoja.js');
  const mk=(u,handle)=>a.db.prepare("INSERT INTO profiles (user_id,handle,display_name,avatar_key,first_name,last_name,gender,birth_date,hidden,age_ok_at,created_at,updated_at) VALUES (?1,?2,'Ana M.',NULL,'Ana','Mora','F','1990-05-17',0,'2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z')").run(u,handle);
- const rq=(token,body,o)=>{o=o||{};return {headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':o.type!==undefined?o.type:'application/json','If-Match':o.match!==undefined?o.match:null,'Content-Length':o.len!==undefined?o.len:null})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body,text:async()=>typeof body==='string'?body:JSON.stringify(body)}};
- const get=async(u,e=a.env)=>{const r=await M.onRequestGet({request:rq(u?await a.tok(u):null),env:e});return [r.status,await r.json()]};
+ /* LHB-80: o.path (la ruta con ?op=) y o.op (la cabecera X-Op) */
+ const rq=(token,body,o)=>{o=o||{};return {url:'https://x.test'+(o.path||'/api/mihoja'),headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':o.type!==undefined?o.type:'application/json','If-Match':o.match!==undefined?o.match:null,'Content-Length':o.len!==undefined?o.len:null,'X-Op':o.op!==undefined?o.op:null})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body,text:async()=>typeof body==='string'?body:JSON.stringify(body)}};
+ const get=async(u,e=a.env,o)=>{const r=await M.onRequestGet({request:rq(u?await a.tok(u):null,undefined,o),env:e});return [r.status,await r.json()]};
  const put=async(u,body,match,o,e=a.env)=>{const r=await M.onRequestPut({request:rq(u?await a.tok(u):null,body,{match,...(o||{})}),env:e});return [r.status,await r.json()]};
  const rows=()=>a.db.prepare('SELECT COUNT(*) n FROM mihoja').get().n;
  return {...a,M,ML,mk,get,put,rows,rq}}
@@ -2821,7 +2822,7 @@ function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();con
   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
    net.log.push(method);if(net.status&&net.status[method])return {status:net.status[method],body:{}};if(method==='GET'&&net.beforeGet){const f=net.beforeGet;net.beforeGet=null;await f()}
    if(method==='PUT'&&net.beforePut){const f=net.beforePut;net.beforePut=null;await f()}
-   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match']}),env:a.env});if(method==='PUT'&&net.dropAfterPut){net.dropAfterPut=false;throw new TypeError('sin red')}if(method==='PUT'&&net.afterPut){const f=net.afterPut;net.afterPut=null;await f()}if(method==='PUT'&&net.badBody){net.badBody=false;return {status:r.status,body:{}}}return {status:r.status,body:await r.json()}},
+   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match'],op:headers&&headers['X-Op'],path}),env:a.env});if(method==='PUT'&&net.dropAfterPut){net.dropAfterPut=false;throw new TypeError('sin red')}if(method==='PUT'&&net.afterPut){const f=net.afterPut;net.afterPut=null;await f()}if(method==='PUT'&&net.badBody){net.badBody=false;return {status:r.status,body:{}}}return {status:r.status,body:await r.json()}},
   acct:()=>st.acct?{sub:st.acct}:null,now:()=>new Date(st.clock).toISOString(),nowMs:()=>st.clock,
   setTimer:(fn,ms)=>{const t={fn,ms,live:true};timers.push(t);return t},clearTimer:t=>{if(t)t.live=false},
   toast:m=>toasts.push(m),listen:(ev,fn)=>{handlers[ev]=fn},onState:s=>{st.states.push(s.state)},onApplied:()=>{st.applied++}};
@@ -6001,3 +6002,117 @@ test('LHB-102: unas subidas guardadas rotas ({} , un texto, null, una lista con 
  const c=HOJA38({ls:{vb_uploads:JSON.stringify([{id:'u1',nombre:'Mía'}])}});c.API.importar({__text:JSON.stringify({...file,extra:{subidas:[{id:'u9',nombre:'Del respaldo'}]}})});
  assert.deepEqual(JSON.parse(c.ls.get('vb_uploads')).map(x=>x.id).sort(),['u1','u9'],'con una lista buena, junta las dos como antes');
 });
+
+/* ===================== LHB-80: el id de cada subida de Mi Hoja (X-Op), y GET ?op= para saber si una subida sin respuesta llegó ===================== */
+test('LHB-80: con 0008, un PUT con X-Op anota su id con el rev nuevo en la misma sentencia; GET ?op= dice en qué rev llegó, o null; se recuerdan las últimas OPS_KEEP',async()=>{
+ const a=await API28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));a.mk('user_a','ana_a');a.mk('user_b','beto_b');
+  const cols=a.db.prepare('PRAGMA table_info(mihoja)').all().map(c=>c.name);assert.ok(cols.includes('ops'),'la columna ops');
+  const q=id=>({path:'/api/mihoja?op='+id});
+  assert.deepEqual((await a.get('user_a',a.env,q('op_crear_01')))[1].op,{id:'op_crear_01',rev:null},'sin copia, no llegó');
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'0',{op:'op_crear_01'}))[0],200);
+  assert.deepEqual((await a.get('user_a',a.env,q('op_crear_01')))[1].op,{id:'op_crear_01',rev:1},'crear la copia la anota en el rev 1');
+  assert.equal((await a.put('user_a',{schema:1,doc:{...DOC28,ratings:{c1:5}}},'1',{op:'op_segunda_2'}))[0],200);
+  const [st,b]=await a.get('user_a',a.env,q('op_segunda_2'));assert.equal(st,200);assert.equal(b.rev,2);assert.deepEqual(b.op,{id:'op_segunda_2',rev:2});assert.deepEqual(b.doc.ratings,{c1:5},'el resto de la respuesta es el de siempre');
+  assert.deepEqual((await a.get('user_a',a.env,q('op_crear_01')))[1].op,{id:'op_crear_01',rev:1},'la de antes sigue');
+  assert.deepEqual((await a.get('user_a',a.env,q('op_que_no_es')))[1].op,{id:'op_que_no_es',rev:null});
+  /* un PUT que no escribe (409) no anota su id */
+  const [c409]=await a.put('user_a',{schema:1,doc:DOC28},'1',{op:'op_choca_409'});assert.equal(c409,409);
+  assert.deepEqual((await a.get('user_a',a.env,q('op_choca_409')))[1].op,{id:'op_choca_409',rev:null},'un 409 no llegó');
+  /* sin X-Op se escribe como siempre y no se anota nada */
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'2'))[0],200);
+  assert.equal(JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops).length,2);
+  /* sin ?op, GET contesta como siempre */
+  assert.ok(!('op' in (await a.get('user_a'))[1]));
+  /* la copia de otra cuenta no dice nada de las subidas de esta */
+  assert.equal((await a.put('user_b',{schema:1,doc:DOC28},'0',{op:'op_de_beto1'}))[0],200);
+  assert.deepEqual((await a.get('user_b',a.env,q('op_segunda_2')))[1].op,{id:'op_segunda_2',rev:null});
+  /* solo las últimas OPS_KEEP */
+  const K=a.ML.OPS_KEEP;assert.equal(K,20);
+  let rev=3;for(let i=0;i<K+2;i++){assert.equal((await a.put('user_a',{schema:1,doc:DOC28},String(rev),{op:'op_tanda_'+String(i).padStart(2,'0')}))[0],200);rev++}
+  const ops=JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops);assert.equal(ops.length,K);
+  assert.deepEqual(ops[K-1],['op_tanda_'+String(K+1).padStart(2,'0'),rev],'la más nueva al final, con su rev');
+  assert.deepEqual((await a.get('user_a',a.env,q('op_tanda_01')))[1].op,{id:'op_tanda_01',rev:null},'las más viejas se olvidan');
+  assert.deepEqual((await a.get('user_a',a.env,q('op_tanda_02')))[1].op,{id:'op_tanda_02',rev:6});
+  /* una lista dañada no rompe nada: se empieza de nuevo */
+  a.db.prepare("UPDATE mihoja SET ops='no es json' WHERE user_id='user_a'").run();
+  assert.deepEqual((await a.get('user_a',a.env,q('op_tanda_02')))[1].op,{id:'op_tanda_02',rev:null});
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},String(rev),{op:'op_tras_dano'}))[0],200);
+  assert.deepEqual(JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops),[['op_tras_dano',rev+1]]);
+  /* un id que no vale */
+  for(const bad of ['corto','con espacio x','x'.repeat(65),'acento_ñandú'])assert.deepEqual(await a.put('user_a',{schema:1,doc:DOC28},String(rev+1),{op:bad}),[400,{error:'bad-op'}],bad);
+  assert.deepEqual(await a.get('user_a',a.env,{path:'/api/mihoja?op=corto'}),[400,{error:'bad-op'}]);
+  assert.equal(a.db.prepare("SELECT rev FROM mihoja WHERE user_id='user_a'").get().rev,rev+1,'un rechazo no cambia nada');
+ }finally{a.done()}
+});
+test('LHB-80: sin 0008 todavía, un PUT con X-Op escribe como siempre y GET ?op= contesta como siempre (sin op)',async()=>{
+ const a=await API28();
+ try{
+  a.mk('user_a','ana_a');
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'0',{op:'op_crear_01'}))[0],200);
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'1',{op:'op_segunda_2'}))[0],200);
+  const [st,b]=await a.get('user_a',a.env,{path:'/api/mihoja?op=op_segunda_2'});assert.equal(st,200);assert.equal(b.rev,2);assert.ok(!('op' in b),'sin la columna no dice nada');
+  /* otro error de la base no se esconde */
+  const env={...a.env,DB:{prepare:()=>({bind:()=>({first:async()=>{throw new Error('D1_ERROR: algo más')},run:async()=>{throw new Error('D1_ERROR: algo más')}})})}};
+  assert.deepEqual(await a.get('user_a',env,{path:'/api/mihoja?op=op_segunda_2'}),[503,{error:'unavailable'}]);
+ }finally{a.done()}
+});
+/* las dos maneras en que una subida llega sin que el teléfono lo sepa: la respuesta no se puede leer, o la red se cae después de escribir */
+const LOST80=['badBody','dropAfterPut'];
+test('LHB-80 (reproducción 1): la quita de un favorito llega sin respuesta y la persona lo vuelve a poner antes del reintento: el favorito se queda, aquí y en la cuenta',async()=>{
+ for(const lost of LOST80){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');
+   A.seed(DOC28);assert.equal((await A.sync()).ok,true);assert.equal((await B.sync()).ok,true);
+   assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'a1 en el rev 1');
+   /* A quita a1; su PUT escribe el rev 2 pero la respuesta se pierde */
+   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;const r1=await A.sync();assert.notEqual(r1.ok,true,lost+': la pasada no sabe si llegó');
+   assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita llegó');
+   /* antes del reintento, la persona lo vuelve a poner en este mismo teléfono */
+   A.edit(d=>{d.favs.artesanos=['a1']});
+   const r2=await A.sync();assert.equal(r2.ok,true,lost);
+   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': a1 se queda en el teléfono');
+   assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');assert.equal(srv28(a,'user_a').rev,3);
+  }finally{a.done()}}});
+test('LHB-80 (reproducción 2): la quita llega sin respuesta, el otro teléfono la trae y lo vuelve a poner justo antes del reintento: el favorito y la estrella nueva se quedan',async()=>{
+ for(const lost of LOST80){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');
+   A.seed(DOC28);await A.sync();await B.sync();
+   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;await A.sync();assert.equal(srv28(a,'user_a').rev,2);
+   /* B trae la quita y prepara volver a ponerlo */
+   assert.equal((await B.sync()).ok,true);assert.deepEqual(B.doc().favs.artesanos,[]);B.edit(d=>{d.favs.artesanos=['a1']});
+   /* A cambia una estrella y reintenta; después de que A lee el rev 2, B sube su vuelta (rev 3) */
+   A.edit(d=>{d.ratings.c1=5});A.net.beforePut=async()=>{assert.equal((await B.sync()).ok,true);assert.equal(srv28(a,'user_a').rev,3)};
+   const r=await A.sync();assert.equal(r.ok,true,lost);
+   const s=srv28(a,'user_a');
+   assert.deepEqual(s.doc.favs.artesanos,['a1'],lost+': la vuelta de B se queda en la cuenta');assert.equal(s.doc.ratings.c1,5,lost+': y la estrella de A');
+   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': A también lo tiene');
+   assert.equal((await B.sync()).ok,true);assert.deepEqual(B.doc().favs.artesanos,['a1']);assert.equal(B.doc().ratings.c1,5);
+  }finally{a.done()}}});
+test('LHB-80: una subida sin respuesta que no llegó, y la cuenta ya pasó de su rev: se olvida y se junta con la base de antes; sin 0008, como antes (sin dar nada por borrado)',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
+  /* el PUT de A nunca llega (la red se cae antes) */
+  const asks=[];const api=A.D.api;A.D.api=async(C,m,path,...r)=>{asks.push(m+' '+path);if(m==='PUT'&&!asks.some(x=>x==='skip'))throw new TypeError('sin red');return api(C,m,path,...r)};
+  A.edit(d=>{d.humidor.push({id:'h2',marca:'De A',actualizado:'2026-10-29'})});await A.sync();assert.equal(srv28(a,'user_a').rev,1,'no llegó');
+  asks.push('skip');
+  /* B sube otra cosa (rev 2) */
+  B.edit(d=>{d.humidor.push({id:'h3',marca:'De B',actualizado:'2026-10-29'})});await B.sync();
+  const r=await A.sync();assert.equal(r.ok,true);
+  assert.ok(asks.some(x=>/^GET \/api\/mihoja\?op=[A-Za-z0-9_-]{8,64}$/.test(x)),'se preguntó por la subida sin respuesta');
+  assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','h2','h3']);
+  /* después ya no se pregunta */
+  asks.length=0;asks.push('skip');await A.sync();assert.ok(!asks.some(x=>/\?op=/.test(x)),'ya no se pregunta');
+ }finally{a.done()}
+ /* sin la columna (0008 sin aplicar) el GET no dice nada y se sigue como antes */
+ const b=await ENG28();
+ try{
+  const A=DEV28(b,'user_a');A.seed(DOC28);await A.sync();A.edit(d=>{d.favs.artesanos=[]});A.net.badBody=true;await A.sync();
+  A.edit(d=>{d.favs.artesanos=['a1']});const r=await A.sync();assert.equal(r.ok,true,'sin 0008 la pasada termina');
+ }finally{b.done()}});

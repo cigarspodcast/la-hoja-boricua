@@ -81,7 +81,9 @@ const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_s
 const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 window.LHB_SYNC=function(D){
- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
+ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unkVoid=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
+ /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
+ const newOp=()=>{if(D.opId)return D.opId();try{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
  /* Codex r4: un reloj que se atrasa no hace eterna la valla; uno que se adelanta en medio de la espera lo cubre forget, que la vuelve a poner antes de revisar */
  const fenced=()=>{let t=0;try{t=parseInt(D.ls.get(FENCE),10)}catch(e){}const d=D.nowMs()-t;return t>0&&d<FENCE_TTL&&d>-FENCE_TTL};
@@ -122,19 +124,29 @@ window.LHB_SYNC=function(D){
   if(ownerOf()===null&&!setOwner(uid))return {fail:'storage'};
   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid};
   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
-  const meta0=readMeta(),meta=meta0&&meta0.sub===uid?meta0:null;
+  const meta0=readMeta();let meta=meta0&&meta0.sub===uid?meta0:null;
   const first=!meta||!meta.at;
   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
   const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true});
   for(let i=0;i<TRIES;i++){
    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
-   let g;try{g=await D.api(C,'GET','/api/mihoja',null,uid)}catch(e){return {skip:'offline'}}
+   /* LHB-80: con una subida sin respuesta, se pregunta por ella */
+   const ask=unk&&unk.sub===uid&&unk.op?unk:null;
+   let g;try{g=await D.api(C,'GET','/api/mihoja'+(ask?'?op='+encodeURIComponent(ask.op):''),null,uid)}catch(e){return {skip:'offline'}}
    if(!alive())return {skip:'other-account'};
    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
    if(g.body.rev>0&&(!isObj(g.body.doc)||!(g.body.schema<=1)))return {fail:'schema'};
    const rev=g.body.rev,remote=rev>0?g.body.doc:null;
-   /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa) */
-   if(unk&&unk.sub===uid&&rev>=unk.rev+2)voided=true;
+   /* LHB-80: el servidor dice si esa subida llegó. Llegó en el rev n: lo que se mandó es lo que la cuenta tenía en n, y esa es la base (se anota ya, así vale también
+      si esta pasada repite tras un 409). No llegó y la cuenta ya pasó del rev que pedía (If-Match): ya no puede llegar */
+   const oc=ask&&ask===unk&&isObj(g.body.op)&&g.body.op.id===ask.op?g.body.op:null;
+   if(oc){
+    if(Number.isInteger(oc.rev)&&oc.rev>0){unk=null;if(unkVoid){voided=false;unkVoid=false}
+     meta={sub:uid,rev:oc.rev,base:ask.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:ask.sent,rev:oc.rev};staleBase=!writeMeta(meta)}
+    else if(oc.rev===null&&rev>ask.rev)unk=null}
+   /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
+      LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
+   if(unk&&unk.sub===uid&&rev>=unk.rev+2){voided=true;unkVoid=true}
    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
    const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
@@ -149,8 +161,9 @@ window.LHB_SYNC=function(D){
    let newRev=rev,pushed=false;
    if(!remote||canon(merged)!==canon(remote)){
     /* se anota antes de mandar: si la respuesta no llega, no se puede leer, o la cuenta cambia mientras tanto, el PUT pudo haber llegado. Solo una respuesta clara (409, otro error 4xx o un 200 con revisión) lo borra */
-    unk={sub:uid,rev};
-    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev)})}catch(e){return {skip:'offline'}}
+    /* LHB-80: con su id y lo que se manda, para saber después si llegó */
+    const op=newOp();unk={sub:uid,rev,op,sent:merged};
+    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
     if(p.status===409||(p.status<500&&p.status!==200))unk=null;
     if(!alive())return {skip:'other-account'};
     if(p.status===409)continue;
@@ -173,7 +186,7 @@ window.LHB_SYNC=function(D){
    const edited=edits!==e0||readSeq()!==s0||!quiet;
    mem={sub:uid,base:merged,rev:newRev};
    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}
-   staleBase=false;voided=false;if(unk&&unk.sub===uid)unk=null;if(!edited)dirty=false;
+   staleBase=false;voided=false;unkVoid=false;if(unk&&unk.sub===uid)unk=null;if(!edited)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
    const pulled=!!remote&&canon(merged)!==canon(L);
    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');
