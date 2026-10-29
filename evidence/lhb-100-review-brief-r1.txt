@@ -1,0 +1,39 @@
+You are reviewing two tickets in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-100-wt (branch lhb-100-101-robust, PR to main). The diff below is base f92ff9c (origin/main) to HEAD. This is round 1 of a TIER 2 review (LHB-100 is TIER 2; LHB-101 is TIER 1 and rides in the same round).
+
+Ticket LHB-100: one failed script load leaves a blank page behind a splash that never leaves. index.html loads eight deferred scripts (i18n, bundle, art, fotos, cuenta, sync, hoja, app). If one fails (a weak phone network), the boot in app.js throws before the splash's done() and before the view is painted. Measured before the fix with a local server that answers 500 once (evidence/lhb-100/before.out): art.js failed left a blank view with no message; sync.js failed left the splash up for the whole 15 s window.
+Scope: site/app.js (boot and splash), site/index.html only if needed, site/sw.js, test/site.test.js, evidence/.
+Pinned decisions:
+- The splash must always leave, whatever the boot does. A timer started before any other boot code, not depending on code that may have failed.
+- A boot failure shows a short message with a reload button, as i18n keys with es and en values. Never a blank view.
+- No retry loop that can hammer the network.
+Not mine: any change to what a healthy load shows.
+
+Ticket LHB-101: route() throws URIError on a malformed hash escape (#/a/%E0%A4%A), so the view does not change; hoja.js S() throws when storage reads throw SecurityError, which can abort a catalog render before view.innerHTML is assigned.
+Pinned decisions: route() decodes the way menuHTML does, inside a try, keeping the raw text on failure. S() falls back to its empty default state when a read throws; it never throws into a render.
+
+What changed:
+- index.html: an inline script before every script tag. It defines window.LHB_BOOT.ok(). On DOMContentLoaded (after all deferred scripts ran) it schedules a 0 ms check; if ok() was not called, fail() runs: the splash gets class out and is removed after 450 ms, and a div#bootFail.boot-fail role=alert with a paragraph and a Reload button (location.reload on click) is appended to body. A 12 s timer runs out() if ok, otherwise fail(). ok() later removes #bootFail. Text: LHB_I18N.t('boot.fail' / 'boot.reload') when i18n loaded and returns a real string, else a copy in es or en chosen by LHB_I18N.lang or navigator.language.
+- app.js: the boot tail is now route();if(window.LHB_BOOT)window.LHB_BOOT.ok();topAvatar();refreshData(); and route() decodes inside a try.
+- hoja.js: S() body inside try; catch sets ST=null and returns DEF().
+- i18n.js: boot.fail and boot.reload in es and en.
+- styles.css: .boot-fail (fixed, centered card, z-index 101, above the splash's 100) and its p.
+- sw.js: lhb-v89 to lhb-v105 (and 21 test pins).
+- Tests: BOOT100 runs the real guard text from index.html in a vm with a fake DOM and manual timers (failure, en fallback, i18n text, healthy boot, 12 s backstop, late boot, single message, fallback copy equals i18n.js, guard before other scripts, ok() placement, CSS present). ROUTE101 runs the real route() source in a vm with stub views. The LHB-101 S() case uses the real hoja.js with a throwing getItem. The LHB-27 key census also scans index.html for LHB_I18N.t('...'); the LHB-31 pin follows the new S().
+
+Evidence:
+- evidence/lhb-100-tests.txt: 303 pass, 0 fail, 1 skipped.
+- evidence/lhb-100-mutations.out: 10 of 10 red with a clean baseline, including B0 = the original origin/main files.
+- evidence/lhb-100/after.out: headless Chrome at 390 px against failserver.py; art.js failed once and sync.js failed once both show the message with the splash gone at 1.0 s; a healthy load shows no message. Screenshots beside it.
+
+Check in particular:
+- Can a healthy load ever show the message (ok() timing versus DOMContentLoaded, a slow first route(), a cached service-worker load, a hash route that throws inside its view, the intro or onboarding paths)? Does the guard change anything a healthy load shows, including the splash's own timing?
+- Does any failure path still strand the splash or leave a blank view without the message (a script that hangs rather than fails, a throw inside route() itself, a throw after ok())?
+- Can the message and a working app both be on screen, or two messages?
+- Is there any retry loop?
+- Is the fallback text correct when i18n.js loaded but another script failed, and when i18n.js itself failed?
+- Accessibility of the message (role, focus, contrast in both themes, the button target size).
+- Do the LHB-101 changes hide a real error a caller relied on, or change behavior for valid input?
+- Is the cache version bump complete (every pin)?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

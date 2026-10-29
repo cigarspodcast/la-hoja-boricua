@@ -1,0 +1,19 @@
+case: fail art.js, expect fail
+chrome pid 38144
+  t= 0.5s {"splash": true, "msg": null, "view": 0}
+  t= 4.5s {"splash": false, "msg": null, "view": 0}
+  shot evidence/lhb-100/before-art-6s-390x844.png
+  shot evidence/lhb-100/before-art-15s-390x844.png
+events: HTTP 500 art.js; NETFAIL net::ERR_ABORTED; EXC TypeError: Cannot read properties of undefined (reading 'leaf')
+RESULT FAIL (expected fail)
+chrome pid 38144 exited 0
+server pid 26328 stopped (rc 1)
+case: fail sync.js, expect fail
+chrome pid 4904
+  t= 0.5s {"splash": true, "msg": null, "view": 0}
+  shot evidence/lhb-100/before-sync-6s-390x844.png
+  shot evidence/lhb-100/before-sync-15s-390x844.png
+events: HTTP 500 sync.js; NETFAIL net::ERR_ABORTED; EXC TypeError: window.LHB_SYNC is not a function
+RESULT FAIL (expected fail)
+chrome pid 4904 exited 0
+server pid 26904 stopped (rc 1)

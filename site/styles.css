@@ -220,6 +220,9 @@ details.edit .form{padding:6px 0 14px}
 .offline-badge{display:inline-block;font-size:11px;background:var(--info-strong);color:var(--on-info-strong);border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:2px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (display-mode:standalone){.btn-install{display:none!important}}
+/* LHB-100: el aviso cuando la app no cargó completa (lo pinta el guardián de index.html) */
+.boot-fail{position:fixed;left:16px;right:16px;top:28%;z-index:101;padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--card);text-align:center}
+.boot-fail p{margin:0 0 14px;font-size:16px;line-height:1.4}
 .road{position:relative;height:118px;margin:18px 0 6px;overflow:hidden;border-bottom:4px dashed var(--warn)}
 .volky{display:block;width:100%;height:auto;overflow:visible}
 @keyframes spin{to{transform:rotate(360deg)}}

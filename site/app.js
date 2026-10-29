@@ -1,4 +1,6 @@
 (()=>{'use strict';
+/* LHB-100: esta versión empezó; desde aquí el guardián de index.html solo cuenta el aviso de route(), no una vista a medio pintar */
+if(window.LHB_BOOT&&window.LHB_BOOT.hello)window.LHB_BOOT.hello();
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* LHB-85: the 320 x 160 twin of a 600 x 300 thumbnail (tools/build_thumbs.py) */
@@ -359,11 +361,13 @@ function menuHTML(hash){const [r0,a0]=String(hash==null?location.hash:hash).repl
    return `<a class="menu-dest" href="${href}"${cur?' aria-current="page"':''}><span class="menu-ico">${brandIcon(m[1])}</span><span class="menu-copy"><b>${tt(m[2])}</b><small>${tt(m[3])}</small></span>${cur?`<span class="menu-here">${tt('menu.aqui')}</span>`:brandIcon('arrow','menu-go')}</a>`}));
  const extra={app:[`<button type="button" class="menu-dest" data-sheet="instalar" data-arg="${ia}"><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`]};
  return `<header class="menu-welcome"><div class="eyebrow">${tt('menu.welcome')}</div><h2 class="sheet-h">${tt('menu.title')}</h2></header><nav class="menu-groups" aria-label="${tt('h.menu')}">${MENU_GROUPS.map(([g,label])=>`<section aria-labelledby="mg-${g}"><h3 id="mg-${g}">${label()}</h3>${rows(g).join('')}${(extra[g]||[]).join('')}</section>`).join('')}</nav>`}
-function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');const id=arg?decodeURIComponent(arg):'';
+function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');let id='';if(arg){try{id=decodeURIComponent(arg)}catch(e){id=arg}}
  const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',u:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});
  if(leafletMap&&r!=='lugares'){leafletMap.remove();leafletMap=null}
  (ROUTE_OF[r]||ROUTE_OF.catalogo).go(id);
- if(r!==route._last){window.scrollTo(0,0)}route._last=h}
+ if(r!==route._last){window.scrollTo(0,0)}route._last=h;
+ /* LHB-100: pintó una vista; el guardián de index.html quita el aviso si estaba (también cuando una ruta posterior sí carga) */
+ if(window.LHB_BOOT)window.LHB_BOOT.ok()}
 window.addEventListener('hashchange',route);
 window.addEventListener('online',()=>{if(location.hash.includes('lugares'))route()});window.addEventListener('offline',()=>{if(location.hash.includes('lugares'))route()});
 /* ---------- install (v21: botón en el home) ---------- */
