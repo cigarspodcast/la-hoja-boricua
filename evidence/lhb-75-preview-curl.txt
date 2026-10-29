@@ -1,15 +1,15 @@
-LHB-75 curl record, taken 2026-10-29T07:53:35Z from this machine. Preview: branch facelift, sw lhb-v103.
+LHB-75 curl record, taken 2026-10-29T08:03:36Z from this machine. Preview (<preview>, address from the owner): sw lhb-v104.
 Before the guard (07:26Z) the same preview answered x-robots-tag: noindex, the Pages default for preview URLs.
 
-== HEAD https://facelift.la-hoja-boricua.pages.dev/
+== HEAD https://<preview>/
 HTTP/1.1 200 OK
 x-robots-tag: noindex, nofollow
 
-== HEAD https://facelift.la-hoja-boricua.pages.dev/cigarros/cohoba-robusto-maduro
+== HEAD https://<preview>/cigarros/cohoba-robusto-maduro
 HTTP/1.1 200 OK
 x-robots-tag: noindex, nofollow
 
-== HEAD https://facelift.la-hoja-boricua.pages.dev/lugares/casa-de-montecristo-vsj
+== HEAD https://<preview>/lugares/casa-de-montecristo-vsj
 HTTP/1.1 200 OK
 x-robots-tag: noindex, nofollow
 
@@ -22,7 +22,7 @@ HTTP/1.1 200 OK
 == HEAD https://la-hoja-boricua.pages.dev/
 HTTP/1.1 200 OK
 
-== GET https://facelift.la-hoja-boricua.pages.dev/u/ana (Pages Function)
+== GET https://<preview>/u/ana (Pages Function)
 HTTP/1.1 404 Not Found
 x-robots-tag: noindex, follow
 

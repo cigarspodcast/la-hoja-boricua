@@ -5761,7 +5761,7 @@ function HEADERS75(text){const rules=[];let cur=null;
  return {rules,get}}
 test('LHB-75: las vistas previas de ramas no van a los buscadores; lahojaboricua.com y su dirección de pages.dev no cambian',()=>{
  const H=HEADERS75(read('_headers'));
- for(const u of ['https://facelift.la-hoja-boricua.pages.dev/','https://facelift.la-hoja-boricua.pages.dev/cigarros/cohoba-robusto-maduro','https://8f3a2b1c.la-hoja-boricua.pages.dev/index.html'])
+ for(const u of ['https://rama-x.la-hoja-boricua.pages.dev/','https://rama-x.la-hoja-boricua.pages.dev/cigarros/cohoba-robusto-maduro','https://8f3a2b1c.la-hoja-boricua.pages.dev/index.html'])
   assert.equal(H.get(u,'x-robots-tag'),'noindex, nofollow','vista previa: '+u);
  for(const u of ['https://lahojaboricua.com/','https://lahojaboricua.com/cigarros/cohoba-robusto-maduro','https://www.lahojaboricua.com/','https://la-hoja-boricua.pages.dev/'])
   assert.equal(H.get(u,'x-robots-tag'),null,'producción sin cambio: '+u);
@@ -5770,7 +5770,7 @@ test('LHB-75: las vistas previas de ramas no van a los buscadores; lahojaboricua
  /* el matcher distingue: una regla para todo, o para el nombre de pages.dev del proyecto, sí casaría con producción */
  assert.equal(HEADERS75('/*\n  X-Robots-Tag: noindex').get('https://lahojaboricua.com/','x-robots-tag'),'noindex');
  assert.equal(HEADERS75('https://:project.pages.dev/*\n  X-Robots-Tag: noindex').get('https://la-hoja-boricua.pages.dev/','x-robots-tag'),'noindex');
- assert.equal(HEADERS75('https://:project.pages.dev/*\n  X-Robots-Tag: noindex').get('https://facelift.la-hoja-boricua.pages.dev/','x-robots-tag'),null,'un marcador no cruza el punto');
+ assert.equal(HEADERS75('https://:project.pages.dev/*\n  X-Robots-Tag: noindex').get('https://rama-x.la-hoja-boricua.pages.dev/','x-robots-tag'),null,'un marcador no cruza el punto');
  /* las páginas que sirven Functions (/u/*) no reciben _headers: ya dicen noindex por su cuenta */
  assert.ok(read('../functions/u/[handle].js').includes("const ROBOTS = 'noindex, follow';"));
 });

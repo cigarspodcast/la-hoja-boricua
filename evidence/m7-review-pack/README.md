@@ -8,7 +8,7 @@ This pack is for reviewing the new look of La Hoja Boricua before anything goes 
 2. Screenshots of 13 screens at three phone and tablet sizes.
 3. A device check for the owner: install on iPhone and Android, the screen readers, and offline use.
 
-**The preview address comes from the owner.** It is not written in this pack. Nothing here is on lahojaboricua.com. The preview is hidden from search engines: every page answers with `X-Robots-Tag: noindex, nofollow`.
+**The preview address comes from the owner.** It is not written in this pack. Nothing here is on lahojaboricua.com. The preview is hidden from search engines: its pages and files answer with `X-Robots-Tag: noindex, nofollow`. The one exception is the public profile pages (`/u/...`), which are made by the server. They answer `noindex, follow` on the preview and on the live site alike.
 
 ## Before the review (owner)
 

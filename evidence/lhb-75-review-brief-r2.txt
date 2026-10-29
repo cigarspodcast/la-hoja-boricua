@@ -1,0 +1,21 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 2 of a TIER 2 review of LHB-75. The round 1 brief and your review are evidence/lhb-75-review-brief-r1.txt and evidence/lhb-75-review-r1.txt. The diff below is the ticket's code since cedd37f: site/_headers and the LHB-75 test. The LHB-74 changes in the same test file are another ticket, outside this review.
+
+The ticket's Done-when (you could not locate it in round 1): "the Proof passes; the preview deploys from the branch; the review pack is committed and shown in full on screen; the owner holds the preview URL." The Proof is: "node --test --test-timeout=60000 test/site.test.js, output redirected to evidence/ and read to its last line. The preview URL answers 200 with the noindex header (curl output saved). Counting basis: screenshots counted from the pack's own manifest."
+
+Round 1 verdict: BLOCK. Your findings, and what changed:
+
+1. P2: committed files published the preview address.
+   - evidence/lhb-75-curl.sh now takes the address as its first argument, and the record shows it as <preview>.
+   - evidence/lhb-75-preview-curl.txt was regenerated that way. It is current: the preview serves lhb-v104, the tree's version.
+   - The LHB-75 test's example preview host is now rama-x.la-hoja-boricua.pages.dev, an example branch name.
+   - git grep finds the address in no current file except two dated review records: evidence/lhb-74-review-prompt-r4.txt and evidence/lhb-74-review-r4.txt, which embed an earlier diff verbatim. Dated records are not edited here, by rule.
+   - Stated plainly to the owner: the address stays in the public repository's pushed history, and the repository README already publishes the pattern https://<branch>.la-hoja-boricua.pages.dev. A committed-file fix cannot withdraw it. Restricting it needs Cloudflare Access on previews, a dashboard setting reserved to the owner.
+2. P2: Word numbering. md2docx.py now gives each numbered list its own numbering instance, a new w:num on the List Number abstract numbering with lvlOverride/startOverride 1, so every list restarts at 1.
+   - Nested bullets inside a numbered item do not break the count.
+   - Links are real hyperlinks, with relative targets.
+   - Read back from README.docx: 11 numbered lists with 42 items; each heading's list has its own numId; 39 hyperlinks.
+3. P3: README now says the preview's pages and files answer noindex, nofollow, and that the /u/ profile pages (made by the server) answer noindex, follow on the preview and the live site alike.
+
+Evidence: evidence/lhb-75-mutations.out, 6 of 6 red; evidence/lhb-75-tests.txt, 332 pass, 0 fail, 1 skipped.
+
+Check that each finding is closed, and anything else in the ticket. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
