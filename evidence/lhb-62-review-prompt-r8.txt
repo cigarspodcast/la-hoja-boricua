@@ -1,0 +1,64 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-62-wt (branch lhb-62-block). TIER 2, round 8.
+
+Ticket LHB-62: block and report. A block hides each profile from the other everywhere; a blocked person is not told. Round 7 (evidence/lhb-62-review-r7.txt) concurred that the three round 6 findings are closed, and blocked on one new P2: signing out while pfWho's Bearer re-ask was in flight made it read C.user.id after Clerk had cleared it, a TypeError that left the profile at "Cargando" with no watcher (and threw in both lists).
+
+The diff below (one commit, 175b85f, against the round 7 prompt commit) changes site/hoja.js pfWho: the Clerk user id is kept before the waits (uid), a re-ask that throws returns null, and the answer is compared with uid. The caller then runs its existing checks: page still live, subNow unchanged (a sign-out increments acctGen and clears the cookie, so it is a change: the view asks again from the start with the current session). Test: Codex's round 7 reproduction for the profile, followers and following (stale cookie, anonymous answer, Clerk gives u_yo and a key, the Bearer answer is held, sign-out, the answer arrives with X-Lhb-Viewer u_yo): no throw, a third request without the key, painted for the anonymous session, a watcher left. Seen failing on the round 7 code with TypeError: Cannot read properties of null (reading 'id'). Mutant added: the Clerk user read after the wait. Evidence: evidence/lhb-62-mutations.out 59 of 59 red; evidence/lhb-62-tests.txt full suite 371 tests, 370 pass, 0 fail, 1 skipped.
+
+Not changed, from round 7's qualification: after a later list page fails, More stays available for an explicit retry by the person (no automatic request).
+
+Check that the round 7 finding is closed for every await in pfWho and its callers (Clerk load, getToken, the re-ask), including a sign-in or an account switch at those points, and anything else in the redesign that can throw or paint for a session other than the current one.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 986b484 175b85fc4d4e1d525f11816051931e382b185446 -- site test functions =====
+diff --git a/site/hoja.js b/site/hoja.js
+index 0b4aeb3..398c7fc 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -567,8 +567,9 @@ const vwOf=x=>{try{const v=x&&x.headers&&typeof x.headers.get==='function'?x.hea
+ const pfMatch=(tok,r)=>r.viewer==null||r.viewer===tokSub(tok);
+ async function pfWho(r,get){let C;try{C=await clerk()}catch(e){return null}
+  if(!C||!C.user||!C.session)return r.viewer===''?r:null;
+- let t;try{t=await C.session.getToken()}catch(e){return null}if(!t)return null;
+- const x=await get(t);return x.viewer==null||x.viewer===C.user.id?x:null}
++ /* Codex r7: quién era se anota antes de esperar: si sale mientras tanto, Clerk ya no tiene user y quien llamó ve el cambio de sesión (subNow) y pregunta otra vez */
++ const uid=C.user.id;let t;try{t=await C.session.getToken()}catch(e){return null}if(!t)return null;
++ let x;try{x=await get(t)}catch(e){return null}return x.viewer==null||x.viewer===uid?x:null}
+ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow(),tok0=cookieTok();
+  /* LHB-60: #/u/<handle>/seguidores y #/u/<handle>/siguiendo (el enrutador de app.js pasa solo el @; lo que sigue se lee del hash), también las tuyas */
+  const seg=String(location.hash||'').replace(/^#\/?/,'').split('/')[2]||'';
+diff --git a/test/site.test.js b/test/site.test.js
+index c35431d..6930cb6 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -6470,6 +6470,28 @@ test('LHB-62 (Codex r6): con cuenta guardada, si cargar Clerk para el botón de
+   assert.equal(n,2,kind+': una vez más, con la cookie nueva');assert.ok(H.all().includes('id="fwB-bea"'),kind+': el botón está, en la página de ahora');
+  }
+ });
++test('LHB-62 (Codex r7): la persona sale mientras llega la respuesta pedida con su llave: no se rompe, se pregunta otra vez con la sesión de ahora y queda mirando (el perfil, seguidores y siguiendo)',async()=>{
++ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
++ const now=()=>Math.floor(Date.now()/1000);
++ const jwt=(sub,c)=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,...c})).toString('base64url')+'.firma';
++ const auth=o=>(o&&o.headers&&o.headers.Authorization)||'';
++ for(const kind of ['u','seguidores','siguiendo']){
++  const pfx=kind==='u'?'/api/u/':kind==='seguidores'?'/api/followers':'/api/following';
++  const ok=kind==='u'?API58JSON():{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null};
++  let seen=[],rel=null;
++  const H=HOJA58({acct:null,reply:(u,o)=>{if(!u.startsWith(pfx))return {status:404,body:{}};seen.push(auth(o));
++   if(auth(o))return new Promise(r=>{rel=r});return {status:200,body:ok,headers:{'X-Lhb-Viewer':'-'}}}});
++  const C={user:{id:'u_yo'},session:{getToken:async()=>'llave-yo'}};H.ctx.clerk=async()=>C;
++  H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-60});if(kind!=='u')H.loc.hash='#/u/cris/'+kind;
++  const p=H.X.vPersona(kind==='u'?'bea':'cris');await tick();assert.deepEqual(seen,['','Bearer llave-yo'],kind);
++  /* sale: Clerk ya no tiene user ni session, la cookie se va */
++  C.user=null;C.session=null;H.ctx.document.cookie='';H.ctx.acctGen++;
++  rel({status:200,body:ok,headers:{'X-Lhb-Viewer':'u_yo'}});await p;await tick();
++  assert.deepEqual(seen,['','Bearer llave-yo',''],kind+': se preguntó otra vez, sin llave');
++  assert.ok(kind==='u'?H.all().includes('id="pfMore"'):H.all().includes('Bea S.'),kind+': pintado sin sesión');
++  assert.ok(H.ctx.acctW.size>=1,kind+': queda mirando');
++ }
++});
+ test('LHB-62 (Codex r5): la sesión cambia dos veces seguidas mientras llegan las respuestas: ninguna de las dos se pinta (el perfil y las listas)',async()=>{
+  const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+  const now=()=>Math.floor(Date.now()/1000);

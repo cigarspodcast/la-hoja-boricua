@@ -1,6 +1,7 @@
 /* LHB-57: buscar personas por @ o por nombre (prefijo, sin importar mayúsculas). Solo lo público de cada persona: @, nombre público (nombre e inicial del apellido) y foto.
    Nunca fecha de nacimiento, género, correo ni el apellido completo. */
 import { publicName } from './profile.js';
+import { blockAware, notBlocked } from './follow.js';
 export const QMIN = 2;
 export const QMAX = 40;
 export const PAGE = 20;
@@ -42,15 +43,17 @@ const matches = (ql, r) => [r.handle, r.first_name, r.last_name, r.first_name &&
 // la base de datos trae candidatos por el esqueleto de la primera palabra en el @, el nombre o el apellido (lo que se escribe como "nombre apellido" empieza por el nombre; SCAN por tanda, a lo sumo SCANMAX revisados por llamada) y aquí se comprueba todo lo escrito, incluido "nombre apellido";
 // si se agota SCANMAX, next sigue desde lo último revisado.
 // el nombre público siempre se arma aquí (nombre e inicial); un display_name guardado de antes no sale. Sin nombre ni apellido guardados, display_name es null y solo se muestra el @
+// LHB-62: nunca quien tiene el par bloqueado con quien busca (sin la tabla de bloqueos todavía, la misma búsqueda sin ese filtro)
 export async function searchPeople(db, me, { q, cursor }) {
   const sk = skeletonOf(q), ql = q.toLowerCase();
-  const sql = 'SELECT handle, first_name, last_name, avatar_key FROM profiles ' +
+  const sql = on => 'SELECT handle, first_name, last_name, avatar_key FROM profiles ' +
     "WHERE hidden = 0 AND user_id <> ?1 AND handle > ?2 AND (handle LIKE ?3 ESCAPE '\\' OR first_name LIKE ?3 ESCAPE '\\' OR last_name LIKE ?3 ESCAPE '\\') " +
+    (on ? notBlocked(1, 'profiles.user_id') + ' ' : '') +
     'ORDER BY handle ASC LIMIT ' + SCAN;
   const found = [];
   let at = cursor, scanned = 0, last = '', cut = false;
   for (;;) {
-    const rows = (await db.prepare(sql).bind(me, at, sk).all()).results || [];
+    const rows = await blockAware(async on => (await db.prepare(sql(on)).bind(me, at, sk).all()).results || []);
     for (const r of rows) {
       scanned++; last = r.handle;
       if (matches(ql, r)) found.push(r);

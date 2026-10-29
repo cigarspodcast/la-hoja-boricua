@@ -1,0 +1,17 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block). TIER 2, round 5.
+
+Ticket LHB-62: block and report. A block hides each profile from the other everywhere; a blocked person is not told.
+
+Round 4 (evidence/lhb-62-review-r4.txt) concurred with the B-to-C and sign-out fixes and found no focus loop, and maintained finding 2 in one form: an expired __session cookie for u_yo (the server treats it as anonymous) replaced by a valid cookie for the same sub leaves the fingerprint unchanged, so the anonymous view stays on screen and a late anonymous answer is painted.
+
+The diff below is the fix commit against the round 4 prompt commit:
+- site/hoja.js cookieSub(): the sub counts only while the server would accept the cookie now, by the same rule as functions/_lib/auth.js verifyToken: exp is a finite number and now <= exp + 5 s (LEEWAY), and nbf, when present, is finite and now + 5 s >= nbf. Otherwise it returns '' (the anonymous view). So expired-to-valid for the same sub changes the fingerprint from 0|| to 0||u_yo, and valid-to-expired changes it back, which matches what the server would answer. A valid-to-valid refresh of the same sub does not change it (same authorization).
+- test/site.test.js: the round 3 test's fake JWT had exp:1 (already expired); it now carries an exp an hour ahead. One new test: expired-to-valid same sub repaints the profile and the followers list, a late answer requested with the expired cookie is not painted, 5 s exp tolerance, nbf in the future, no exp.
+Known limit, stated rather than hidden: the check uses this device's clock, the server uses its own. A client clock off by more than the token's life could disagree with the server for that window; Clerk refreshes __session before it expires, so on a live session the cookie is fresh.
+Tests: the new test was seen failing on the round 4 code. Evidence: evidence/lhb-62-mutations.out 49 of 49 red (3 new: expiry ignored, nbf ignored, no leeway); evidence/lhb-62-tests.txt full suite 357 tests, 356 pass, 0 fail, 1 skipped.
+
+Check that finding 2 is now closed, including any authentication transition the fingerprint still misses, and whether the client-side expiry rule matches auth.js.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

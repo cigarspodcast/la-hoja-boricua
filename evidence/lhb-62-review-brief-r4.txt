@@ -1,0 +1,17 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block). TIER 2, round 4.
+
+Ticket LHB-62: block and report. A block hides each profile from the other everywhere; a blocked person is not told.
+
+Round 3 (evidence/lhb-62-review-r3.txt) concurred with the watcher cleanup and maintained finding 2: a public profile or list page opened with no saved account never installs cuenta.js's Clerk listener (hook), so a session change (for example in another tab) neither advances acctGen nor repaints, and a late answer from the old session can be painted.
+
+The diff below is the fix commit against the round 3 prompt commit:
+- site/hoja.js cookieSub(): reads Clerk's __session cookie (the same-site cookie the server's tokenOf reads) and returns the sub of its payload, decoded without verification, or '' if absent or unreadable. subNow() is now acctGen + saved sub + cookieSub(), so the token vPersona and vFwList take at request time, and compare when the answer arrives and in their pfRedo watchers, changes when the session changes, with or without Clerk loaded in this page.
+- Returning to the tab (document visibilitychange to visible, and window focus) calls acctTell(), so the open page's watcher compares the token and repaints if the session changed elsewhere. fwMount's watchers are unaffected unless the saved account changed.
+Also a note on what such a page can show: content fetched with a session the viewer no longer has is never more than the other session's view. Under the old signed-in session B (no block with the profile), it is what B could see; a signed-out viewer sees the anonymous public view (the /u page is public by design). This round closes the stale view anyway.
+Tests: 1 new test (a public page with no saved account: the cookie changes from B to C and returning to the tab refetches and shows the 404; a late answer after a cookie change is not painted; lists; signing out; an unreadable cookie; the visibility and focus wiring), seen failing on the round 3 code. Evidence: evidence/lhb-62-mutations.out 46 of 46 red (3 new); evidence/lhb-62-tests.txt full suite 356 tests, 355 pass, 0 fail, 1 skipped.
+
+Check that finding 2 is now closed: any session change that the token still misses (for example Clerk's cookie name in production, a session refreshed with the same sub, an HttpOnly cookie), whether reading the cookie this way is safe (it is never trusted for anything but noticing a change), and repaint costs or loops from focus events.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

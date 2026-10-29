@@ -1,0 +1,445 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\lhb-62-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a188ab-a29c-7be1-9756-e7465c4ca7e3
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-62-wt (branch lhb-62-block; the repository moved from C:/Users/Owner to C:/LHB today, paths in earlier rounds are the old ones). TIER 2, round 7.
+
+Ticket LHB-62: block and report. A block hides each profile from the other everywhere; a blocked person is not told. The profile (/api/u/<handle>) and the follower and following lists are public; with a Clerk session (the __session cookie of this site, sent by itself) the server hides whoever has the pair blocked with the viewer.
+
+Round 6 (evidence/lhb-62-review-r6.txt) blocked on three P2 findings:
+1. The bounded re-ask (again flag) painted a second answer that still did not match the session (a cookie that expired in transit twice).
+2. The client judged the cookie's validity by its own clock (exp, nbf): with a fast clock a valid new cookie read as anonymous both before and after, so nothing was re-asked.
+3. fwMount's watcher sweep could run the page's own watcher, which repainted the page; followBtn then got a missing button and threw.
+
+The diff below (two commits, 7b1073f and the one that lists the two new Bearer literals in test/lhb-29-hoja-exceptions.txt, against the round 6 prompt commit) is a redesign of the session check in site/hoja.js:
+- subNow is acctGen | saved account sub | cookieTok(): the whole __session value, with no validity judgment. Any new cookie is another question; the same cookie is not.
+- The server keeps sending X-Lhb-Viewer (round 5; the user_id it answered as, or "-"). pfMatch(tok,r): an answer matches when it has no header (a 404, an older server) or its viewer equals tokSub of the cookie the request carried (the payload sub, unverified, used only for this comparison).
+- On a mismatch, pfWho asks Clerk who is signed in. Nobody (no user or no session): the anonymous answer stands, but only if it was anonymous. Someone: the page asks again with their key (Authorization: Bearer, the same route; tokenOf in functions/_lib/auth.js prefers the header over the cookie) and paints that answer only if it has no header or answers as C.user.id. Otherwise (Clerk fails, no token, still a mismatch) null: the profile says h.pfError and the list says h.fwError, nothing of the mismatched answer is painted, and no further request is made until the session changes (watcher keyed to the request-time fingerprint). After pfWho the page re-checks that it is still live and that subNow is unchanged (a cookie Clerk refreshed while loading is a change: re-ask from the start).
+- The again flag and pfSeen are removed; pfRedo is back to its round 2 form (a fixed fingerprint).
+- fwMount: after the sweep, if the page is gone or the box was replaced, it returns before adding its watcher or the button.
+Tests (test/site.test.js; HOJA58's fetch stub now passes the request options to reply, so tests see the Authorization header): r4 rewritten (any cookie change re-asks: expired, future nbf, no exp; the same cookie does not); r5 rewritten (vencida en camino with Clerk signed in: the Bearer re-ask hides the profile; matching answer: one request and Clerk not used; Clerk says nobody: anonymous painted; Bearer still anonymous, and Clerk failing: error state, no loop, a new cookie re-asks; no header: as before; lists both ways); new for finding 2 (no saved account, a cookie arrives that looks expired: re-asked on return, for the profile and both lists); new for finding 3 (saved account, Clerk refreshes the cookie while fwMount loads: the page repaints once, no TypeError, the button is on the current page, profile and list). Each of the four was seen failing on the round 6 code: 'se pidió otra vez con la llave', 'u: la cookie nueva pregunta otra vez', '{"exp":...}', and TypeError: Cannot set properties of null (setting 'onclick'). Evidence: evidence/lhb-62-mutations.out 58 of 58 red and evidence/lhb-62-tests.txt full suite 370 tests, 369 pass, 0 fail, 1 skipped (the mutation list was updated: the r4 and r5 validity and fingerprint mutants are gone with the code they broke; r6 mutants added).
+
+Known limits, stated: when the server and Clerk disagree and the key cannot settle it, the page shows the load error until the session changes or the person returns to the tab with a new cookie. A Clerk load is triggered on a mismatch even for a visitor whose stale cookie belongs to a signed-out session (once, then the anonymous answer is painted).
+
+Check that the three findings are closed in every form; whether pfWho can paint an answer for a session other than the current one (an account switch while Clerk loads, a token for another user); whether anything can loop or request without bound; what a signed-out visitor, a visitor with a stale cookie and a signed-in person each see on first load and on return to the tab; and whether the Bearer re-ask changes anything the server reveals.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 67a39ca 617a8e9065dfd3fcdac4eba8e4bb06ad631b2aee -- site test functions =====
+diff --git a/site/hoja.js b/site/hoja.js
+index d52b405..0b4aeb3 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -546,40 +546,44 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
+   const t=order[(j+order.length)%order.length];paint(t);const el=$('#pfT-'+t);if(el&&el.focus)el.focus()}});paint(cur)}
+ /* GET /api/u/<handle>: pública, sin pedir la llave. LHB-62: la cookie de sesión de Clerk (__session, de este mismo sitio) va sola con el pedido,
+    y con ella el servidor esconde a quien tiene el par bloqueado contigo */
+-async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{},viewer:vwOf(r)}}catch(e){return {status:0,body:{}}}}
++async function pfFetch(h,t){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json',...(t?{Authorization:'Bearer '+t}:{})}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{},viewer:vwOf(r)}}catch(e){return {status:0,body:{}}}}
+ /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
+ /* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado).
+    Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen).
+-   Codex r3: y de quién es la cookie de sesión de Clerk (__session, la de este sitio que el servidor lee): solo el sub de su contenido, sin verificar nada, para notar
+-   que la sesión cambió en otra pestaña aunque aquí no haya Clerk; '' si no hay o no se puede leer.
+-   Codex r4: el sub solo cuenta si el servidor la daría por buena ahora (exp y nbf, con los LEEWAY 5 s de functions/_lib/auth.js); vencida es la vista sin sesión,
+-   así que cambiarla por una nueva del mismo sub también es otra sesión */
+-const cookieSub=()=>{try{const m=/(?:^|;\s*)__session=([^;]+)/.exec(String(document.cookie||''));const p=m&&m[1].split('.')[1];if(!p)return '';
+- const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));if(!j||typeof j.sub!=='string')return '';/* Codex r5: el segundo entero, como auth.js */const t=Math.floor(Date.now()/1000);
+- return Number.isFinite(j.exp)&&t<=j.exp+5&&(j.nbf===undefined||(Number.isFinite(j.nbf)&&t+5>=j.nbf))?j.sub:''}catch(e){return ''}};
+-const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')+'|'+cookieSub()};
++   Codex r3: y la cookie de sesión de Clerk (__session, la de este sitio que el servidor lee), para notar que la sesión cambió en otra pestaña aunque aquí no haya Clerk.
++   Codex r6: la cookie entera, sin juzgar si vale: con el reloj de este teléfono no se sabe qué dirá el servidor, y cualquier cookie nueva es otra pregunta */
++const cookieTok=()=>{try{const m=/(?:^|;\s*)__session=([^;]+)/.exec(String(document.cookie||''));return m?m[1]:''}catch(e){return ''}};
++/* el sub de una cookie, sin verificar nada: solo para compararlo con la sesión con que dice el servidor que contestó; '' si no hay o no se puede leer */
++const tokSub=t=>{try{const p=t&&t.split('.')[1];if(!p)return '';const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));return j&&typeof j.sub==='string'?j.sub:''}catch(e){return ''}};
++const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')+'|'+cookieTok()};
+ /* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva. Codex r2: al poner uno se quitan los de páginas que ya no están */
+-/* Codex r5: sub0 puede ser una función (la lista, que va cambiando con cada página) */
+-const pfRedo=(live,sub0,redo)=>{const want=typeof sub0==='function'?sub0:()=>sub0;for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==want()){acctW.delete(w);redo()}};acctW.add(w)};
+-/* Codex r5: con qué sesión contestó de verdad el servidor (la cabecera X-Lhb-Viewer: el user_id de quien mira, o - sin sesión). Lo pintado queda con esa y no
+-   con la que se creyó al pedir, así una cookie que vence en camino y se renueva con el mismo sub ya no pasa por igual. Sin la cabecera (un 404, un servidor
+-   de antes), la del pedido */
++const pfRedo=(live,sub0,redo)=>{for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
++/* Codex r5: con qué sesión contestó de verdad el servidor: la cabecera X-Lhb-Viewer (el user_id de quien mira, o - sin sesión: ''); sin la cabecera (un 404, un servidor de antes), null */
+ const vwOf=x=>{try{const v=x&&x.headers&&typeof x.headers.get==='function'?x.headers.get('X-Lhb-Viewer'):null;return typeof v==='string'&&v?(v==='-'?'':v):null}catch(e){return null}};
+-const pfSeen=(sub0,r)=>r&&typeof r.viewer==='string'?sub0.replace(/[^|]*$/,r.viewer):sub0;
+-async function vPersona(raw,again){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow();
++/* Codex r6: la respuesta vale si el servidor contestó como quien dice la cookie que llevaba el pedido (o no lo dice). Si no (la cookie venció en camino, o el reloj de aquí
++   no cuadra con el del servidor), se le pregunta a Clerk quién entró: nadie, y la respuesta sin sesión vale; alguien, y se pide otra vez con su llave (get(t)), que vale si
++   el servidor contesta como esa persona. Si no se puede saber (Clerk no carga, no hay llave, contesta otra cosa), null: la página dice que no pudo cargar, y el próximo
++   cambio de sesión pregunta otra vez */
++const pfMatch=(tok,r)=>r.viewer==null||r.viewer===tokSub(tok);
++async function pfWho(r,get){let C;try{C=await clerk()}catch(e){return null}
++ if(!C||!C.user||!C.session)return r.viewer===''?r:null;
++ let t;try{t=await C.session.getToken()}catch(e){return null}if(!t)return null;
++ const x=await get(t);return x.viewer==null||x.viewer===C.user.id?x:null}
++async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow(),tok0=cookieTok();
+  /* LHB-60: #/u/<handle>/seguidores y #/u/<handle>/siguiendo (el enrutador de app.js pasa solo el @; lo que sigue se lee del hash), también las tuyas */
+  const seg=String(location.hash||'').replace(/^#\/?/,'').split('/')[2]||'';
+  if((seg==='seguidores'||seg==='siguiendo')&&PF_HANDLE.test(h))return vFwList(h,seg==='seguidores'?'followers':'following');
+  if(h&&me&&typeof me==='object'&&me.handle===h){location.hash='#/mihoja/perfil';return}
+  view.innerHTML=`<div class="pf" id="pfX"><p class="hint">${tt('h.pfCargando')}</p></div>`;const el=$('#pfX');
+  if(!PF_HANDLE.test(h)){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
+- const r=await pfFetch(h);
++ let r=await pfFetch(h);
+  /* una respuesta que llega cuando ya se fue de la página no pinta nada; si otra cuenta entró mientras tanto, era de la sesión de antes: se pregunta otra vez */
+  if($('#pfX')!==el)return;
+  if(subNow()!==sub0)return vPersona(raw);
+- /* Codex r5: si el servidor contestó con otra sesión que la de ahora, se pregunta otra vez; una sola vez (con relojes que no cuadran se pinta, y volver a la pestaña pregunta) */
+- const fp=pfSeen(sub0,r);if(fp!==subNow()&&!again)return vPersona(raw,1);
+- pfRedo(()=>$('#pfX')===el,fp,()=>vPersona(raw));
++ /* Codex r6: si el servidor contestó con otra sesión que la cookie del pedido, se le pregunta a Clerk (pfWho) */
++ if(!pfMatch(tok0,r)){r=await pfWho(r,t=>pfFetch(h,t));if($('#pfX')!==el)return;if(subNow()!==sub0)return vPersona(raw)}
++ pfRedo(()=>$('#pfX')===el,sub0,()=>vPersona(raw));
++ if(!r){el.innerHTML=`<div class="empty">${tt('h.pfError')}</div>`;return}
+  if(r.status===404){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
+  const b=r.body;if(r.status!==200||!b.profile||typeof b.profile!=='object'||!b.counts||typeof b.counts!=='object'){el.innerHTML=`<div class="empty">${tt('h.pfError')}</div>`;return}
+  const d={own:false,resenas:(Array.isArray(b.resenas)?b.resenas:[]).filter(e=>e&&typeof e==='object').map(pfEntry),sellos:b.counts.sellos,favorite_brand:b.profile.favorite_brand};
+@@ -635,20 +639,24 @@ async function fwMount(id,h,live,onCount){const box=$('#'+id),a=meAcct();if(!box
+  if(!live()||$('#'+id)!==box||!fwSame(a.sub)||r.status!==200||!r.body||typeof r.body.viewerFollows!=='boolean')return;
+  box.innerHTML=`<button class="btn fw-b" type="button" id="fwB-${h}"></button>`;
+  /* Codex r2: antes de mirar, los de páginas que ya no están se van (cada uno se quita solo si su página se fue) */
+- const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};for(const f of [...acctW])f();acctW.add(w);
++ const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};for(const f of [...acctW])f();
++ /* Codex r6: la barrida puede pintar la página otra vez (una sesión nueva): entonces esta caja ya no está y no se pone nada */
++ if(!live()||$('#'+id)!==box)return;acctW.add(w);
+  followBtn($('#fwB-'+h),h,{on:r.body.viewerFollows,n:onCount&&Number.isInteger(r.body.followers)?r.body.followers:null},live,onCount,a.sub)}
+ /* las listas: foto, nombre público (nombre e inicial) y @ de cada persona, cada fila con su botón; 20 por página con el cursor del servidor. Son públicas: se piden sin sesión */
+-async function vFwList(h,dir,again){const sub0=subNow();let fp=sub0;
++async function vFwList(h,dir){const sub0=subNow(),tok0=cookieTok();
+  view.innerHTML=`<div class="pf" id="fwX"><p><a class="lbtn" href="#/u/${encodeURIComponent(h)}">@${esc(h)}</a></p><h1 class="pf-n">${tt(dir==='followers'?'h.pfSeguidores':'h.pfSiguiendo')}</h1><ul class="people" id="fwL"></ul><p class="hint" id="fwH" aria-live="polite">${tt('h.pfCargando')}</p><button class="lbtn" type="button" id="fwMore" hidden>${tt('ev.more')}</button></div>`;
+  const root=$('#fwX'),live=()=>$('#fwX')===root,seen=new Set();let next=null,seq=0;
+  const say=m=>{const el=$('#fwH');if(el){el.textContent=m;el.hidden=!m}};
+- const page=async()=>{const mine=++seq;$('#fwMore').hidden=true;let r;
+-  try{const x=await fetch('/api/'+dir+'?handle='+encodeURIComponent(h)+(next?'&cursor='+encodeURIComponent(next):''),{headers:{Accept:'application/json'}});let j={};try{j=await x.json()}catch(e){}r={status:x.status,body:j&&typeof j==='object'?j:{},viewer:vwOf(x)}}catch(e){r={status:0,body:{}}}
++ const page=async()=>{const mine=++seq;$('#fwMore').hidden=true;const url='/api/'+dir+'?handle='+encodeURIComponent(h)+(next?'&cursor='+encodeURIComponent(next):'');
++  const ask=async t=>{try{const x=await fetch(url,{headers:{Accept:'application/json',...(t?{Authorization:'Bearer '+t}:{})}});let j={};try{j=await x.json()}catch(e){}return {status:x.status,body:j&&typeof j==='object'?j:{},viewer:vwOf(x)}}catch(e){return {status:0,body:{}}}};
++  let r=await ask();
+   /* se fue de la página, o es la respuesta de un pedido viejo: no pinta nada. Codex r1: si otra cuenta entró mientras tanto, la lista empieza otra vez con la sesión nueva */
+   if(!live()||mine!==seq)return;
+   if(subNow()!==sub0)return vFwList(h,dir);
+-  /* Codex r5: como vPersona, con la sesión con que contestó el servidor */
+-  fp=pfSeen(sub0,r);if(fp!==subNow()&&!again)return vFwList(h,dir,1);
++  /* Codex r6: como vPersona */
++  if(!pfMatch(tok0,r)){r=await pfWho(r,ask);if(!live()||mine!==seq)return;if(subNow()!==sub0)return vFwList(h,dir)}
++  if(!r){say(tt('h.fwError'));$('#fwMore').hidden=!next;return}
+   if(r.status===404){say(tt('h.pfNoDisponible'));return}
+   if(r.status!==200||!Array.isArray(r.body.people)){say(tt('h.fwError'));$('#fwMore').hidden=!next;return}
+   const me=meAcct(),ppl=r.body.people.filter(p=>p&&typeof p.handle==='string'&&PF_HANDLE.test(p.handle)&&!seen.has(p.handle));ppl.forEach(p=>seen.add(p.handle));
+@@ -657,7 +665,7 @@ async function vFwList(h,dir,again){const sub0=subNow();let fp=sub0;
+   say(seen.size?'':tt('h.fwNadie'));$('#fwMore').hidden=!next;
+   await Promise.all(ppl.map(p=>fwMount('fwR-'+p.handle,p.handle,live)))};
+  $('#fwMore').onclick=()=>page();
+- pfRedo(live,()=>fp,()=>vFwList(h,dir));
++ pfRedo(live,sub0,()=>vFwList(h,dir));
+  await page()}
+ /* ---------- bloquear y reportar (LHB-62): en el perfil de otra persona, y la lista Bloqueados en Editar perfil (functions/api/block.js) ---------- */
+ const CONTACTO='sergio@cigarspodcast.com';/* el contacto de privacidad.html y de la página /u/<handle> */
+diff --git a/test/lhb-29-hoja-exceptions.txt b/test/lhb-29-hoja-exceptions.txt
+index 95ec34f..4c2e617 100644
+--- a/test/lhb-29-hoja-exceptions.txt
++++ b/test/lhb-29-hoja-exceptions.txt
+@@ -36,6 +36,9 @@ str: La Hoja Boricua
+ str: Bearer
+ str: hint hs-ok
+ str: hint hs-bad
++# LHB-62 (Codex r6): la llave de la sesión en la cabecera Authorization, como en api(): el perfil y las listas preguntan otra vez con ella
++str: Bearer
++str: Bearer
+ # LHB-62: el asunto del correo de Reportar va en español, como el de la página /u/<handle>: lo lee el contacto del proyecto
+ str: Reportar @
+ str: Suave a media
+diff --git a/test/site.test.js b/test/site.test.js
+index d39633b..c35431d 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -4577,7 +4577,7 @@ function HOJA58(opts){opts=opts||{};
+    if(!stubs[k]){const attrs={};const sel=x[0].match(/aria-selected="([^"]+)"/);if(sel)attrs['aria-selected']=sel[1];stubs[k]={dataset:{[m[1]]:x[1]},onclick:null,setAttribute(a,v){attrs[a]=String(v)},getAttribute:a=>attrs[a]??null,focus(){foco.el=this},/* LHB-62: Desbloquear quita su fila de la lista */get isConnected(){return all().includes('data-'+m[1]+'="'+x[1]+'"')},closest:()=>({remove(){const e=els.blkL;if(e)e.innerHTML=e.innerHTML.replace(new RegExp('<li class="person" data-handle="'+x[1]+'">[\\s\\S]*?</li>'),'')}})}}
+    out.push(stubs[k])}return out};
+  const fetches=[];let reply=opts.reply||(()=>({status:200,body:{}}));
+- const fetch=async(u,o)=>{fetches.push(u);const r=await reply(u);if(r instanceof Error)throw r;return {status:r.status,headers:{get:k=>{const h=r.headers||{};for(const x of Object.keys(h))if(x.toLowerCase()===String(k).toLowerCase())return h[x];return null}},json:async()=>{if(r.body===undefined)throw new Error('sin JSON');return r.body}}};
++ const fetch=async(u,o)=>{fetches.push(u);const r=await reply(u,o);if(r instanceof Error)throw r;return {status:r.status,headers:{get:k=>{const h=r.headers||{};for(const x of Object.keys(h))if(x.toLowerCase()===String(k).toLowerCase())return h[x];return null}},json:async()=>{if(r.body===undefined)throw new Error('sin JSON');return r.body}}};
+  const acctBox={v:opts.acct===undefined?{sub:'u_a',handle:'ana',name:'Ana S.',avatar:''}:opts.acct};const sheets=[],log=[];const loc={hash:''};
+  /* LHB-60: la sesión y el adaptador de la API con sesión (api(C,method,path,body,uid)); sin opts.api contesta 500 */
+  const toasts=[],calls=[],sheetOn={v:false};
+@@ -6374,7 +6374,7 @@ test('LHB-62: Bloqueados en Editar perfil: la lista de a quién bloqueaste, cada
+  const K=HOJA58({api:(m)=>m==='GET'?{status:200,body:{people:[{handle:'bea',display_name:null,avatar_key:null}]}}:{status:0,body:{}}});K.ctx.view.innerHTML=SEC;await K.ctx.blkList();
+  await K.stubs['unblk:bea'].onclick();await tick();assert.ok(K.els.blkL.innerHTML.includes('data-unblk="bea"'));assert.equal(K.stubs['unblk:bea'].disabled,false);assert.ok(K.toasts.includes('No pudimos desbloquear. Intenta otra vez.'));
+ });
+-test('LHB-62 (Codex r4): la cookie vencida es la vista sin sesión: cambiarla por una nueva del mismo sub pinta otra vez; una respuesta sin sesión que llega después no se pinta; nbf y la tolerancia de 5 s',async()=>{
++test('LHB-62 (Codex r4, r6): cualquier cookie nueva es otra pregunta, aunque el reloj de aquí la crea vencida o todavía no válida; la misma cookie no pide nada; una respuesta que llega con otra cookie no se pinta',async()=>{
+  const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+  const now=()=>Math.floor(Date.now()/1000);
+  const jwt=(sub,c)=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,...c})).toString('base64url')+'.firma';
+@@ -6394,45 +6394,81 @@ test('LHB-62 (Codex r4): la cookie vencida es la vista sin sesión: cambiarla po
+  H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-60});const p=H.X.vPersona('bea');await tick();
+  H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});rel({status:200,body:API58JSON()});await p;await tick();
+  assert.equal(n,2);assert.ok(!H.all().includes('id="pfMore"'));
+- /* como el servidor: 5 s de tolerancia en exp; un nbf en el futuro (más de 5 s) todavía no vale; sin exp no vale */
++ /* Codex r6: no se juzga si la cookie vale (el reloj de aquí no es el del servidor): la misma no pide nada, cualquier otra sí */
+  n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON()}):{status:404,body:{}}});
+- H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-2});await H.X.vPersona('bea');
+- H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});back(H);await tick();assert.equal(n,1,'vencida hace 2 s todavía vale: el mismo sub, nada que pedir');
+- H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600,nbf:now()+60});back(H);await tick();assert.equal(n,2,'nbf en el futuro: sin sesión');
+- H.ctx.document.cookie='__session='+jwt('u_yo',{});back(H);await tick();assert.equal(n,2,'sin exp: también sin sesión, sin cambio');
+- H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600,nbf:now()+2});back(H);await tick();assert.equal(n,3,'nbf dentro de los 5 s: vale');
++ const c1='__session='+jwt('u_yo',{exp:now()-2});H.ctx.document.cookie=c1;await H.X.vPersona('bea');
++ H.ctx.document.cookie=c1;back(H);await tick();assert.equal(n,1,'la misma cookie: nada que pedir');
++ for(const [c,k] of [[{exp:now()+3600},2],[{exp:now()+3600,nbf:now()+60},3],[{},4],[{exp:now()-3600},5]]){H.ctx.document.cookie='__session='+jwt('u_yo',c);back(H);await tick();assert.equal(n,k,JSON.stringify(c))}
+ });
+-test('LHB-62 (Codex r5): lo pintado queda con la sesión con que contestó el servidor (X-Lhb-Viewer): una cookie que vence en camino y se renueva con el mismo sub pide otra vez, una sola vez; las listas también',async()=>{
++test('LHB-62 (Codex r5, r6): si el servidor contestó con otra sesión que la cookie del pedido (X-Lhb-Viewer), se le pregunta a Clerk: nadie entró y lo sin sesión vale; alguien, y se pide otra vez con su llave; si no se sabe, dice que no pudo cargar, sin vueltas; las listas también',async()=>{
+  const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+  const now=()=>Math.floor(Date.now()/1000);
+  const jwt=(sub,c)=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,...c})).toString('base64url')+'.firma';
+  const back=H=>{for(const f of [...H.ctx.acctW])f()};
+  const yo=()=>'__session='+jwt('u_yo',{exp:now()+3600});const ANON={'X-Lhb-Viewer':'-'},YO={'X-Lhb-Viewer':'u_yo'};
+- /* el pedido sale con una cookie buena de u_yo; el servidor ya la vio vencida y contesta sin sesión; al llegar, la cookie es otra buena de u_yo */
+- let n=0;let H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON(),headers:ANON}:{status:404,body:{error:'not-found'}}):{status:404,body:{}}});
+- H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();
+- assert.equal(n,2,'se pidió otra vez');assert.ok(!H.all().includes('id="pfMore"'),'y con la sesión de ahora ya no se ve');
+- /* contestó con la sesión de ahora: una sola vez, y volver no pide nada */
+- n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON(),headers:YO}):{status:404,body:{}}});
+- H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();assert.equal(n,1);assert.ok(H.all().includes('id="pfMore"'));
+- back(H);await tick();assert.equal(n,1,'volver no pide nada');
+- /* relojes que no cuadran: el servidor siempre contesta sin sesión. Se pregunta una vez más y se pinta, sin vueltas */
+- n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON(),headers:ANON}):{status:404,body:{}}});
+- H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();assert.equal(n,2,'una vez más, no más');assert.ok(H.all().includes('id="pfMore"'));
++ const signed=H=>{H.ctx.clerk=async()=>({user:{id:'u_yo'},session:{getToken:async()=>'llave-yo'}})};
++ const auth=o=>(o&&o.headers&&o.headers.Authorization)||'';
++ /* la cookie de u_yo venció en camino: el servidor contestó sin sesión. Clerk dice que entró u_yo: con su llave el perfil ya no se ve */
++ let seen=[];let H=HOJA58({acct:null,reply:(u,o)=>{if(!u.startsWith('/api/u/'))return {status:404,body:{}};seen.push(auth(o));return auth(o)?{status:404,body:{error:'not-found'}}:{status:200,body:API58JSON(),headers:ANON}}});
++ signed(H);H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();
++ assert.deepEqual(seen,['','Bearer llave-yo'],'se pidió otra vez con la llave');assert.ok(H.all().includes('Este perfil no está disponible.')&&!H.all().includes('id="pfMore"'),'y con la sesión de ahora ya no se ve');
++ back(H);await tick();assert.equal(seen.length,2,'volver sin cambio no pide nada');
++ /* contestó como la cookie: una sola vez, sin Clerk */
++ seen=[];H=HOJA58({acct:null,reply:(u,o)=>u.startsWith('/api/u/')?(seen.push(auth(o)),{status:200,body:API58JSON(),headers:YO}):{status:404,body:{}}});
++ H.ctx.clerk=async()=>{throw new Error('no se usa')};H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();assert.deepEqual(seen,['']);assert.ok(H.all().includes('id="pfMore"'));
++ /* Clerk dice que nadie entró (la cookie es de una sesión que ya no está): lo sin sesión vale */
++ seen=[];H=HOJA58({acct:null,reply:(u,o)=>u.startsWith('/api/u/')?(seen.push(auth(o)),{status:200,body:API58JSON(),headers:ANON}):{status:404,body:{}}});
++ H.ctx.clerk=async()=>({user:null,session:null});H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();assert.deepEqual(seen,['']);assert.ok(H.all().includes('id="pfMore"'));
++ /* con la llave el servidor sigue contestando sin sesión, o Clerk no carga: no se pinta, se dice que no se pudo, sin vueltas; una cookie nueva pregunta otra vez */
++ for(const how of ['sin sesión con la llave','Clerk no carga']){const k=how==='Clerk no carga'?1:2;
++  seen=[];H=HOJA58({acct:null,reply:(u,o)=>u.startsWith('/api/u/')?(seen.push(auth(o)),{status:200,body:API58JSON(),headers:ANON}):{status:404,body:{}}});
++  if(how==='Clerk no carga')H.ctx.clerk=async()=>{throw new Error('sin red')};else signed(H);
++  H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();
++  assert.equal(seen.length,k,how);assert.ok(H.all().includes('No pudimos cargar el perfil.')&&!H.all().includes('id="pfMore"'),how);
++  back(H);await tick();assert.equal(seen.length,k,how+': volver sin cambio no pide nada');
++  H.ctx.document.cookie=yo()+'x';back(H);await tick();assert.ok(seen.length>k,how+': una cookie nueva pregunta otra vez')}
+  /* sin la cabecera (un servidor de antes), como antes */
+- n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON()}):{status:404,body:{}}});
+- H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();assert.equal(n,1);
+- /* las listas: la primera página contestó sin sesión */
+- n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null},headers:ANON}:{status:200,body:{people:[],next:null},headers:YO}):{status:404,body:{}}});
+- H.ctx.document.cookie=yo();H.loc.hash='#/u/cris/seguidores';await H.X.vPersona('cris');await tick();
+- assert.equal(n,2);assert.ok(!H.all().includes('Bea S.'),'con la sesión de ahora bea no sale');
+- back(H);await tick();assert.equal(n,2,'y volver no pide nada');
+- /* la lista que el servidor siempre contesta sin sesión: se pinta, y volver a la pestaña pregunta otra vez (con lo que contestó, no con lo que se creyó) */
+- n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n,{status:200,body:{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null},headers:ANON}):{status:404,body:{}}});
+- H.ctx.document.cookie=yo();H.loc.hash='#/u/cris/seguidores';await H.X.vPersona('cris');await tick();assert.equal(n,2);
+- back(H);await tick();assert.equal(n,4,'volver pregunta otra vez, y una vez más');
+- /* el reloj de la cookie es el segundo entero, como auth.js */
+- assert.ok(read('hoja.js').includes('const t=Math.floor(Date.now()/1000);'));
++ seen=[];H=HOJA58({acct:null,reply:(u,o)=>u.startsWith('/api/u/')?(seen.push(auth(o)),{status:200,body:API58JSON()}):{status:404,body:{}}});
++ signed(H);H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();assert.deepEqual(seen,['']);assert.ok(H.all().includes('id="pfMore"'));
++ /* las listas: la primera página contestó sin sesión; con la llave bea no sale */
++ seen=[];H=HOJA58({acct:null,reply:(u,o)=>{if(!u.startsWith('/api/followers'))return {status:404,body:{}};seen.push(auth(o));return auth(o)?{status:200,body:{people:[],next:null},headers:YO}:{status:200,body:{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null},headers:ANON}}});
++ signed(H);H.ctx.document.cookie=yo();H.loc.hash='#/u/cris/seguidores';await H.X.vPersona('cris');await tick();
++ assert.deepEqual(seen,['','Bearer llave-yo']);assert.ok(!H.all().includes('Bea S.'),'con la sesión de ahora bea no sale');
++ back(H);await tick();assert.equal(seen.length,2,'y volver no pide nada');
++ /* la lista que con la llave sigue sin sesión: dice que no pudo, sin bea */
++ seen=[];H=HOJA58({acct:null,reply:(u,o)=>u.startsWith('/api/followers')?(seen.push(auth(o)),{status:200,body:{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null},headers:ANON}):{status:404,body:{}}});
++ signed(H);H.ctx.document.cookie=yo();H.loc.hash='#/u/cris/seguidores';await H.X.vPersona('cris');await tick();
++ assert.equal(seen.length,2);assert.ok(!H.all().includes('Bea S.'));assert.equal(H.els.fwH.textContent,'No pudimos cargar la lista. Intenta otra vez.');
++});
++test('LHB-62 (Codex r6): sin cuenta guardada, una cookie que llega (aunque el reloj de aquí la crea vencida) pregunta otra vez al volver: el perfil, seguidores y siguiendo',async()=>{
++ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
++ const now=()=>Math.floor(Date.now()/1000);
++ const jwt=(sub,c)=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,...c})).toString('base64url')+'.firma';
++ const back=H=>{for(const f of [...H.ctx.acctW])f()};
++ for(const kind of ['u','seguidores','siguiendo']){
++  let n=0;const pfx=kind==='u'?'/api/u/':kind==='seguidores'?'/api/followers':'/api/following';
++  const ok=kind==='u'?API58JSON():{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null};
++  const H=HOJA58({acct:null,reply:u=>u.startsWith(pfx)?(++n===1?{status:200,body:ok}:{status:404,body:{error:'not-found'}}):{status:404,body:{}}});
++  H.ctx.document.cookie='';if(kind!=='u')H.loc.hash='#/u/cris/'+kind;
++  await H.X.vPersona(kind==='u'?'bea':'cris');await tick();assert.equal(n,1,kind);
++  H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-120});back(H);await tick();
++  assert.equal(n,2,kind+': la cookie nueva pregunta otra vez');assert.ok(!H.all().includes('id="pfMore"')&&!H.all().includes('Bea S.'),kind)}
++});
++test('LHB-62 (Codex r6): con cuenta guardada, si cargar Clerk para el botón de seguir trae otra cookie, la página se pinta otra vez una sola vez y el botón de la vieja no se pone (sin error)',async()=>{
++ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
++ const now=()=>Math.floor(Date.now()/1000);
++ const jwt=(sub,c)=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,...c})).toString('base64url')+'.firma';
++ const back=H=>{for(const f of [...H.ctx.acctW])f()};
++ for(const kind of ['u','seguidores']){
++  let n=0;const pfx=kind==='u'?'/api/u/':'/api/followers';
++  const ok=kind==='u'?API58JSON():{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null};
++  const H=HOJA58({reply:u=>u.startsWith(pfx)?(++n,{status:200,body:ok}):{status:404,body:{}},api:(m,path)=>m==='GET'&&path.startsWith('/api/follow?')?{status:200,body:{viewerFollows:false,followers:3}}:{status:500,body:{}}});
++  H.ctx.document.cookie='__session='+jwt('u_a',{exp:now()-60});
++  let k=0;H.ctx.clerk=async()=>{if(!k++)H.ctx.document.cookie='__session='+jwt('u_a',{exp:now()+60});return {user:{id:'u_a'},session:{getToken:async()=>'llave-a'}}};
++  if(kind!=='u')H.loc.hash='#/u/cris/seguidores';
++  await H.X.vPersona(kind==='u'?'bea':'cris');await tick();
++  assert.equal(n,2,kind+': una vez más, con la cookie nueva');assert.ok(H.all().includes('id="fwB-bea"'),kind+': el botón está, en la página de ahora');
++ }
+ });
+ test('LHB-62 (Codex r5): la sesión cambia dos veces seguidas mientras llegan las respuestas: ninguna de las dos se pinta (el perfil y las listas)',async()=>{
+  const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+
+2026-10-29T17:18:36.199054Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T17:18:38.171035Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Likely] The remaining risk is whether `pfWho` validates the account that requested the Bearer response or a mutable Clerk account read after it arrives. I’ll inspect that race, the retry bounds, and the three prior findings without editing files or loading skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\LHB\lhb-62-wt
+2026-10-29T17:18:44.963656Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The Node fallback can read the worktree. The code removes the clock-based validity check and guards `fwMount` after its watcher sweep. I’m checking account switches, later list pages, and whether unresolved identity can still expose rows or restart requests.
+
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] I reproduced a new sign-out race: `pfWho` reads `C.user.id` after awaiting the Bearer response. If Clerk clears `C.user` during that wait, it throws before the page can check the changed fingerprint. On a first profile load, the page stays at “Cargando” with no watcher, so returning to the tab does not recover it.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All 24 focused LHB-62 checks pass. The full suite has 364 passes, five failures, and one skip; I’m verifying the failure causes. The three round-6 mechanisms are corrected in the diff. The new sign-out exception reproduces in the profile and both lists.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] **P2, blocking: signing out during the Bearer re-ask throws before the session-change check can run.** [site/hoja.js:571](C:/LHB/lhb-62-wt/site/hoja.js:571), `pfWho`.
+
+| Claim | Artifact |
+|---|---|
+| Clerk’s user can disappear while the response is pending. | `const x=await get(t);return x.viewer==null||x.viewer===C.user.id?x:null` |
+| The exception bypasses recovery and profile watcher registration. | `vPersona` awaits `pfWho` before its fingerprint recheck and `pfRedo`. |
+
+[Certain] Executed reproduction using `HOJA58`, signed Bearer tokens and the real SQLite-backed API handlers:
+
+1. Open an allowed profile with no saved account and a stale cookie.
+2. The anonymous response triggers `pfWho`; Clerk supplies `u_yo` and its token.
+3. Hold the authenticated response, then sign out: clear `C.user`, `C.session` and the cookie; increment `acctGen`.
+4. Deliver the successful response carrying `X-Lhb-Viewer: u_yo`.
+
+[Certain] Result: `TypeError: Cannot read properties of null (reading 'id')`. The profile remains at “Cargando el perfil...” after two requests, with **zero watchers**. Returning to the tab cannot recover it. Both list directions also throw, although their previously registered watchers can restart them.
+
+Guard the current user/session after the awaits and allow the caller’s fingerprint check to execute. Add this sign-out case to the regression tests.
+
+[Certain] **CONCUR with closure of all three round-6 findings:**
+
+- **Finding 1:** `pfWho`, `vPersona` and `vFwList.page` reject unresolved viewer mismatches instead of painting the second anonymous answer.
+- **Finding 2:** `cookieTok` and `subNow` detect the complete cookie changing without consulting `exp`, `nbf` or the device clock.
+- **Finding 3:** `fwMount` checks page and box identity after the watcher sweep, preventing the missing-button call.
+
+[Certain] Account switches while Clerk loads were checked for the profile and both lists: changed fingerprints restart the load, and returning repeatedly with an unchanged fingerprint adds no requests. A signed token for another user was rejected in all three views without painting that user’s answer.
+
+[Certain] Expected first-load and return behavior, apart from the blocker above:
+
+| Visitor | First load | Return with unchanged fingerprint |
+|---|---|---|
+| Signed out, no cookie | Public anonymous answer; no Clerk load | No request |
+| Stale cookie, Clerk signed out | Clerk resolves the mismatch; anonymous answer stands | No request |
+| Signed in | Matching answer stands; mismatch uses Bearer or shows the load error | No request |
+
+[Certain] Automatic retries are bounded per stable fingerprint. One qualification: after a failed later list page, `vFwList.page` unhides **More** when `next` exists, permitting another explicit retry without a session change.
+
+[Certain] The Bearer re-ask uses the existing verified authentication path and block filters; no additional server disclosure was found.
+
+[Certain] Validation: **24 focused checks passed**. Full suite: **364 passed, 5 failed, 1 skipped**. Four failures involve denied Python execution (`EPERM`); one involves denied temporary-directory creation. Native-browser behavior and the mutation rerun are **NOT VERIFIED**. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK
+tokens used
+172,327
+[Certain] **P2, blocking: signing out during the Bearer re-ask throws before the session-change check can run.** [site/hoja.js:571](C:/LHB/lhb-62-wt/site/hoja.js:571), `pfWho`.
+
+| Claim | Artifact |
+|---|---|
+| Clerk’s user can disappear while the response is pending. | `const x=await get(t);return x.viewer==null||x.viewer===C.user.id?x:null` |
+| The exception bypasses recovery and profile watcher registration. | `vPersona` awaits `pfWho` before its fingerprint recheck and `pfRedo`. |
+
+[Certain] Executed reproduction using `HOJA58`, signed Bearer tokens and the real SQLite-backed API handlers:
+
+1. Open an allowed profile with no saved account and a stale cookie.
+2. The anonymous response triggers `pfWho`; Clerk supplies `u_yo` and its token.
+3. Hold the authenticated response, then sign out: clear `C.user`, `C.session` and the cookie; increment `acctGen`.
+4. Deliver the successful response carrying `X-Lhb-Viewer: u_yo`.
+
+[Certain] Result: `TypeError: Cannot read properties of null (reading 'id')`. The profile remains at “Cargando el perfil...” after two requests, with **zero watchers**. Returning to the tab cannot recover it. Both list directions also throw, although their previously registered watchers can restart them.
+
+Guard the current user/session after the awaits and allow the caller’s fingerprint check to execute. Add this sign-out case to the regression tests.
+
+[Certain] **CONCUR with closure of all three round-6 findings:**
+
+- **Finding 1:** `pfWho`, `vPersona` and `vFwList.page` reject unresolved viewer mismatches instead of painting the second anonymous answer.
+- **Finding 2:** `cookieTok` and `subNow` detect the complete cookie changing without consulting `exp`, `nbf` or the device clock.
+- **Finding 3:** `fwMount` checks page and box identity after the watcher sweep, preventing the missing-button call.
+
+[Certain] Account switches while Clerk loads were checked for the profile and both lists: changed fingerprints restart the load, and returning repeatedly with an unchanged fingerprint adds no requests. A signed token for another user was rejected in all three views without painting that user’s answer.
+
+[Certain] Expected first-load and return behavior, apart from the blocker above:
+
+| Visitor | First load | Return with unchanged fingerprint |
+|---|---|---|
+| Signed out, no cookie | Public anonymous answer; no Clerk load | No request |
+| Stale cookie, Clerk signed out | Clerk resolves the mismatch; anonymous answer stands | No request |
+| Signed in | Matching answer stands; mismatch uses Bearer or shows the load error | No request |
+
+[Certain] Automatic retries are bounded per stable fingerprint. One qualification: after a failed later list page, `vFwList.page` unhides **More** when `next` exists, permitting another explicit retry without a session change.
+
+[Certain] The Bearer re-ask uses the existing verified authentication path and block filters; no additional server disclosure was found.
+
+[Certain] Validation: **24 focused checks passed**. Full suite: **364 passed, 5 failed, 1 skipped**. Four failures involve denied Python execution (`EPERM`); one involves denied temporary-directory creation. Native-browser behavior and the mutation rerun are **NOT VERIFIED**. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK

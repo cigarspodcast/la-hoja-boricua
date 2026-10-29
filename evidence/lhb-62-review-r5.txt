@@ -1,0 +1,224 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-62-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a1886e-c9cf-7c60-aa2c-4077354fbda3
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block). TIER 2, round 5.
+
+Ticket LHB-62: block and report. A block hides each profile from the other everywhere; a blocked person is not told.
+
+Round 4 (evidence/lhb-62-review-r4.txt) concurred with the B-to-C and sign-out fixes and found no focus loop, and maintained finding 2 in one form: an expired __session cookie for u_yo (the server treats it as anonymous) replaced by a valid cookie for the same sub leaves the fingerprint unchanged, so the anonymous view stays on screen and a late anonymous answer is painted.
+
+The diff below is the fix commit against the round 4 prompt commit:
+- site/hoja.js cookieSub(): the sub counts only while the server would accept the cookie now, by the same rule as functions/_lib/auth.js verifyToken: exp is a finite number and now <= exp + 5 s (LEEWAY), and nbf, when present, is finite and now + 5 s >= nbf. Otherwise it returns '' (the anonymous view). So expired-to-valid for the same sub changes the fingerprint from 0|| to 0||u_yo, and valid-to-expired changes it back, which matches what the server would answer. A valid-to-valid refresh of the same sub does not change it (same authorization).
+- test/site.test.js: the round 3 test's fake JWT had exp:1 (already expired); it now carries an exp an hour ahead. One new test: expired-to-valid same sub repaints the profile and the followers list, a late answer requested with the expired cookie is not painted, 5 s exp tolerance, nbf in the future, no exp.
+Known limit, stated rather than hidden: the check uses this device's clock, the server uses its own. A client clock off by more than the token's life could disagree with the server for that window; Clerk refreshes __session before it expires, so on a live session the cookie is fresh.
+Tests: the new test was seen failing on the round 4 code. Evidence: evidence/lhb-62-mutations.out 49 of 49 red (3 new: expiry ignored, nbf ignored, no leeway); evidence/lhb-62-tests.txt full suite 357 tests, 356 pass, 0 fail, 1 skipped.
+
+Check that finding 2 is now closed, including any authentication transition the fingerprint still misses, and whether the client-side expiry rule matches auth.js.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 9fd78ac 3b1271996ab50594e94a334af7b0b2969a9b6fa1 -- site test evidence/lhb-62-mutations.py =====
+diff --git a/evidence/lhb-62-mutations.py b/evidence/lhb-62-mutations.py
+index bcc9a43..64dc49b 100644
+--- a/evidence/lhb-62-mutations.py
++++ b/evidence/lhb-62-mutations.py
+@@ -60,6 +60,10 @@ MUTS = [
+     (HJ, 'r3: the session cookie is not part of the token', "+'|'+cookieSub()};", '};'),
+     (HJ, 'r3: the cookie read is the wrong one', '__session=([^;]+)', '__sesion=([^;]+)'),
+     (HJ, 'r3: returning to the tab does not tell the watchers', "window.addEventListener('focus',()=>acctTell())", "window.addEventListener('focus',()=>{})"),
++    # Codex round 4
++    (HJ, 'r4: an expired cookie still counts as its sub', "return Number.isFinite(j.exp)&&t<=j.exp+5&&", "return true||Number.isFinite(j.exp)&&t<=j.exp+5&&"),
++    (HJ, 'r4: nbf is ignored', "(j.nbf===undefined||(Number.isFinite(j.nbf)&&t+5>=j.nbf))", "(true)"),
++    (HJ, 'r4: no exp leeway', "t<=j.exp+5&&", "t<=j.exp&&"),
+     (HJ, 'r1: a late block tells another account', '   if(!ok())return;\n   if(r.status===200&&r.body&&r.body.blocked===true)', '   if(r.status===200&&r.body&&r.body.blocked===true)'),
+ ]
+ 
+diff --git a/site/hoja.js b/site/hoja.js
+index 56b1f8f..56f7deb 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -517,9 +517,12 @@ async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h
+ /* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado).
+    Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen).
+    Codex r3: y de quién es la cookie de sesión de Clerk (__session, la de este sitio que el servidor lee): solo el sub de su contenido, sin verificar nada, para notar
+-   que la sesión cambió en otra pestaña aunque aquí no haya Clerk; '' si no hay o no se puede leer */
++   que la sesión cambió en otra pestaña aunque aquí no haya Clerk; '' si no hay o no se puede leer.
++   Codex r4: el sub solo cuenta si el servidor la daría por buena ahora (exp y nbf, con los LEEWAY 5 s de functions/_lib/auth.js); vencida es la vista sin sesión,
++   así que cambiarla por una nueva del mismo sub también es otra sesión */
+ const cookieSub=()=>{try{const m=/(?:^|;\s*)__session=([^;]+)/.exec(String(document.cookie||''));const p=m&&m[1].split('.')[1];if(!p)return '';
+- const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));return j&&typeof j.sub==='string'?j.sub:''}catch(e){return ''}};
++ const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));if(!j||typeof j.sub!=='string')return '';const t=Date.now()/1000;
++ return Number.isFinite(j.exp)&&t<=j.exp+5&&(j.nbf===undefined||(Number.isFinite(j.nbf)&&t+5>=j.nbf))?j.sub:''}catch(e){return ''}};
+ const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')+'|'+cookieSub()};
+ /* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva. Codex r2: al poner uno se quitan los de páginas que ya no están */
+ const pfRedo=(live,sub0,redo)=>{for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
+diff --git a/test/site.test.js b/test/site.test.js
+index 55c1734..a426a1e 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -6313,7 +6313,8 @@ test('LHB-62 (Codex r2): en la app, el perfil y las listas se pintan otra vez en
+ });
+ test('LHB-62 (Codex r3): una página pública sin Clerk cargado (sin cuenta guardada) nota por la cookie __session que la sesión cambió en otra pestaña: al volver se pinta otra vez, y una respuesta de la sesión de antes no se pinta',async()=>{
+  const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+- const jwt=sub=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,exp:1})).toString('base64url')+'.firma';
++ /* Codex r4: una cookie que el servidor da por buena (exp en el futuro) */
++ const jwt=sub=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.firma';
+  const back=H=>{for(const f of [...H.ctx.acctW])f()};
+  /* el perfil puesto con la sesión de B; en otra pestaña entra C, a quien bea bloqueó; se vuelve a esta */
+  let n=0;let H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
+@@ -6366,3 +6367,31 @@ test('LHB-62: Bloqueados en Editar perfil: la lista de a quién bloqueaste, cada
+  const K=HOJA58({api:(m)=>m==='GET'?{status:200,body:{people:[{handle:'bea',display_name:null,avatar_key:null}]}}:{status:0,body:{}}});K.ctx.view.innerHTML=SEC;await K.ctx.blkList();
+  await K.stubs['unblk:bea'].onclick();await tick();assert.ok(K.els.blkL.innerHTML.includes('data-unblk="bea"'));assert.equal(K.stubs['unblk:bea'].disabled,false);assert.ok(K.toasts.includes('No pudimos desbloquear. Intenta otra vez.'));
+ });
++test('LHB-62 (Codex r4): la cookie vencida es la vista sin sesión: cambiarla por una nueva del mismo sub pinta otra vez; una respuesta sin sesión que llega después no se pinta; nbf y la tolerancia de 5 s',async()=>{
++ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
++ const now=()=>Math.floor(Date.now()/1000);
++ const jwt=(sub,c)=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,...c})).toString('base64url')+'.firma';
++ const back=H=>{for(const f of [...H.ctx.acctW])f()};
++ /* el perfil de bea pedido con la cookie vencida de u_yo (el servidor contesta sin sesión); llega la nueva de u_yo, a quien bea bloqueó */
++ let n=0;let H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-60});await H.X.vPersona('bea');assert.ok(H.all().includes('id="pfMore"'));
++ back(H);await tick();assert.equal(n,1,'sin cambio no se pide nada');
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});back(H);await tick();
++ assert.equal(n,2,'la nueva del mismo sub: se pide otra vez');assert.ok(!H.all().includes('id="pfMore"'),'y ya no se ve');
++ /* la lista de seguidores también */
++ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null}}:{status:404,body:{}}):{status:404,body:{}}});
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-60});H.loc.hash='#/u/cris/seguidores';await H.X.vPersona('cris');await tick();assert.ok(H.all().includes('Bea S.'));
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});back(H);await tick();assert.equal(n,2);assert.ok(!H.all().includes('Bea S.'));
++ /* la respuesta pedida con la vencida llega después de la nueva: no se pinta, se pregunta otra vez */
++ let rel=null;n=0;H=HOJA58({acct:null,reply:u=>{if(!u.startsWith('/api/u/'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-60});const p=H.X.vPersona('bea');await tick();
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});rel({status:200,body:API58JSON()});await p;await tick();
++ assert.equal(n,2);assert.ok(!H.all().includes('id="pfMore"'));
++ /* como el servidor: 5 s de tolerancia en exp; un nbf en el futuro (más de 5 s) todavía no vale; sin exp no vale */
++ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON()}):{status:404,body:{}}});
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-2});await H.X.vPersona('bea');
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600});back(H);await tick();assert.equal(n,1,'vencida hace 2 s todavía vale: el mismo sub, nada que pedir');
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600,nbf:now()+60});back(H);await tick();assert.equal(n,2,'nbf en el futuro: sin sesión');
++ H.ctx.document.cookie='__session='+jwt('u_yo',{});back(H);await tick();assert.equal(n,2,'sin exp: también sin sesión, sin cambio');
++ H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600,nbf:now()+2});back(H);await tick();assert.equal(n,3,'nbf dentro de los 5 s: vale');
++});
+
+2026-10-29T16:12:11.608031Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T16:12:13.441018Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The new test covers expired-to-valid replacement, but it does not establish that the fingerprint catches every authentication transition. I’ll check the server rules, response guards, and round 4 evidence without editing files or loading skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\Users\Owner\lhb-62-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T16:12:21.691230Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The time rules differ at the boundary: `auth.js` uses `Math.floor(now / 1000)`, while `cookieSub()` uses fractional seconds. I’m also testing whether expiry during request transit, followed by a same-user refresh, lets an anonymous response pass the fingerprint guard.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The signed-token reproduction keeps finding 2 open. The request starts while the old cookie is valid, reaches the server after expiry, and returns an anonymous 200. A same-user refresh arrives before that response paints, leaving both fingerprints at `0||u_yo`; the blocked profile remains visible, although a fresh server request returns 404. All 19 targeted tests pass.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The same race leaves Bea visible in Cris’s followers list after a fresh authenticated request excludes her. The full suite finished with 351 passed, 5 failed, and 1 skipped; the five failures come from denied Python execution and temporary-directory creation. The original expired-before-request case is fixed, but the expiry-during-request case remains.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] **MAINTAIN finding 2.** The expired-before-request case is fixed, but expiry during a request followed by a same-user refresh still permits blocked content to paint.
+
+1. [Certain] **P2, blocking:** [site/hoja.js:526](C:/Users/Owner/lhb-62-wt/site/hoja.js:526), `subNow`, `vPersona`, `vFwList`.
+
+   | Claim | Artifact |
+   |---|---|
+   | Different cookies can produce identical request and response fingerprints. | `subNow()` incorporates `cookieSub()`, which returns only the currently valid `sub`. |
+   | That equality permits an anonymous response to paint after authentication resumes. | Both response guards check only `subNow()!==sub0`. |
+
+   [Certain] **Executed reproduction using signed RS256 tokens, `API62`, and `HOJA58`, with synchronized clocks:**
+
+   - At `exp + 4 s`, start the request with the old cookie. Fingerprint: `0||u_yo`.
+   - At `exp + 6 s`, the server processes that cookie as expired and produces the anonymous response.
+   - At `exp + 7 s`, replace it with a fresh cookie for `u_yo`, then deliver the pending response. Fingerprint: `0||u_yo` again.
+   - Invoke the return-to-tab watchers.
+
+   [Certain] **Observed:** one request; Bea’s blocked profile remains visible. A fresh authenticated server request returns **404**. The followers reproduction likewise retains Bea while a fresh server response excludes her.
+
+   [Certain] The added test begins with an already-expired cookie, so its initial fingerprint is empty. It does not cover this valid → expired during processing → refreshed sequence. Include cookie replacement in pending-response invalidation, or bind responses to the authorization state the server actually used.
+
+2. [Certain] **P3, nonblocking independently:** [site/hoja.js:524](C:/Users/Owner/lhb-62-wt/site/hoja.js:524), `cookieSub`; [functions/_lib/auth.js:80](C:/Users/Owner/lhb-62-wt/functions/_lib/auth.js:80), `verifyToken`.
+
+   | Claim | Artifact |
+   |---|---|
+   | The client’s expiry boundary differs from the server’s without clock skew. | Client: `Date.now()/1000`. Server: `Math.floor(now / 1000)`. |
+
+   [Certain] With integer `exp=N` and both clocks at `N+5.5 s`, the client returns `''`, while the signed-token server verifier returns `ok:true`. This was executed. Use the server’s flooring operation. The finite-number checks and five-second comparisons otherwise match its temporal checks.
+
+[Certain] Validation: **19 targeted tests passed**. Full suite: **351 passed, 5 failed, 1 skipped**. Four failures involve denied Python execution; one involves denied temporary-directory creation. The mutation run was not independently rerun because its runner writes files. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK
+tokens used
+88,588
+[Certain] **MAINTAIN finding 2.** The expired-before-request case is fixed, but expiry during a request followed by a same-user refresh still permits blocked content to paint.
+
+1. [Certain] **P2, blocking:** [site/hoja.js:526](C:/Users/Owner/lhb-62-wt/site/hoja.js:526), `subNow`, `vPersona`, `vFwList`.
+
+   | Claim | Artifact |
+   |---|---|
+   | Different cookies can produce identical request and response fingerprints. | `subNow()` incorporates `cookieSub()`, which returns only the currently valid `sub`. |
+   | That equality permits an anonymous response to paint after authentication resumes. | Both response guards check only `subNow()!==sub0`. |
+
+   [Certain] **Executed reproduction using signed RS256 tokens, `API62`, and `HOJA58`, with synchronized clocks:**
+
+   - At `exp + 4 s`, start the request with the old cookie. Fingerprint: `0||u_yo`.
+   - At `exp + 6 s`, the server processes that cookie as expired and produces the anonymous response.
+   - At `exp + 7 s`, replace it with a fresh cookie for `u_yo`, then deliver the pending response. Fingerprint: `0||u_yo` again.
+   - Invoke the return-to-tab watchers.
+
+   [Certain] **Observed:** one request; Bea’s blocked profile remains visible. A fresh authenticated server request returns **404**. The followers reproduction likewise retains Bea while a fresh server response excludes her.
+
+   [Certain] The added test begins with an already-expired cookie, so its initial fingerprint is empty. It does not cover this valid → expired during processing → refreshed sequence. Include cookie replacement in pending-response invalidation, or bind responses to the authorization state the server actually used.
+
+2. [Certain] **P3, nonblocking independently:** [site/hoja.js:524](C:/Users/Owner/lhb-62-wt/site/hoja.js:524), `cookieSub`; [functions/_lib/auth.js:80](C:/Users/Owner/lhb-62-wt/functions/_lib/auth.js:80), `verifyToken`.
+
+   | Claim | Artifact |
+   |---|---|
+   | The client’s expiry boundary differs from the server’s without clock skew. | Client: `Date.now()/1000`. Server: `Math.floor(now / 1000)`. |
+
+   [Certain] With integer `exp=N` and both clocks at `N+5.5 s`, the client returns `''`, while the signed-token server verifier returns `ok:true`. This was executed. Use the server’s flooring operation. The finite-number checks and five-second comparisons otherwise match its temporal checks.
+
+[Certain] Validation: **19 targeted tests passed**. Full suite: **351 passed, 5 failed, 1 skipped**. Four failures involve denied Python execution; one involves denied temporary-directory creation. The mutation run was not independently rerun because its runner writes files. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK
