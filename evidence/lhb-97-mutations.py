@@ -14,7 +14,8 @@ PAT = 'LHB-97|LHB-58'
 HJ, TS = 'site/hoja.js', 'test/site.test.js'
 FILES = (HJ, TS)
 FOCUS_OLD = "if(kf){const n=pfFind(o,d,kf);"
-FOCUS_BAD = "if(kf&&!document.body.classList.contains('sheet-on')){const n=pfFind(o,d,kf);"
+KEY = "JSON.stringify([typeof x.id==='string'&&x.id?x.id:null,e])"
+FOCUS_BAD ="if(kf&&!document.body.classList.contains('sheet-on')){const n=pfFind(o,d,kf);"
 
 
 def runp():
@@ -72,7 +73,8 @@ M = [
         edit(HJ, "const k=b&&o.d&&o.d.keys&&o.d.keys[+b.dataset.pfres];return k?{res:k}:null};", "const e=b&&o.d&&o.d.resenas[+b.dataset.pfres];return e?{res:JSON.stringify(e)}:null};"),
         edit(HJ, "const i=k.res?d.keys.indexOf(k.res):-1;", "const i=k.res?d.resenas.findIndex(e=>JSON.stringify(e)===k.res):-1;"))),
     ('F3 no count for twins with the same key', lambda: edit(HJ, "return {e,k:k+'#'+c}", "return {e,k}")),
-    ('F4 the id is ignored (key by what the card shows, counted)', lambda: edit(HJ, "typeof x.id==='string'&&x.id?'id:'+x.id:'e:'+JSON.stringify(e)", "'e:'+JSON.stringify(e)")),
+    ('F4 the id is ignored (key by what the card shows, counted)', lambda: edit(HJ, KEY, "JSON.stringify([null,e])")),
+    ('F6 Codex r1: the id alone, counted (order acts as id for a shared id)', lambda: edit(HJ, KEY, "typeof x.id==='string'&&x.id?'id:'+x.id:'e:'+JSON.stringify(e)")),
     ('F5 the key leaks into the reviews shown', lambda: edit(HJ, "const myResenas=s=>myResenasK(s).map(x=>x.e);", "const myResenas=s=>myResenasK(s).map(x=>({...x.e,k:x.k}));")),
 ]
 n_red = 0

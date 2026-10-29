@@ -4847,6 +4847,20 @@ test('LHB-97: dos reseñas iguales: tras una sincronización el foco y la tarjet
  /* las reseñas que se enseñan no cambian: la clave no sale en la reseña */
  const H=HOJA58();assert.deepEqual(Object.keys(H.X.myResenas({diario:[{id:'dA',...gem}]})[0]).sort(),['artesano','consumido','marca','nombre','notas','rating','tags']);
 });
+/* LHB-97 (Codex ronda 1): dos catas con el mismo id y distinto contenido; el lugar no hace de id: si se va una, la otra sigue siendo ella, y la que se fue no se confunde con la que queda */
+test('LHB-97 (Codex ronda 1): con dos catas del mismo id, la que abriste sigue siendo ella cuando la otra se va o se vuelve privada; si la que se va es la tuya, el foco va a la pestaña, no a la otra',async()=>{
+ const al={id:'dup',nombre:'Alfa',rating:4,publica:true,consumido:'2026-05-01'},be={id:'dup',nombre:'Beta',rating:3,publica:true,consumido:'2026-05-01'};
+ const put=(H,diario)=>H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario}));
+ const abre=async i=>{const H=HOJA58({reply:()=>({status:503,body:{}})});put(H,[al,be]);H.ctx.view.innerHTML='<div class="pf-own" id="pfOwn"></div>';await H.X.profileOwn({sub:'u_a',handle:'ana'});
+  assert.ok(H.els.pfPanel.innerHTML.indexOf('<b>Alfa</b>')<H.els.pfPanel.innerHTML.indexOf('<b>Beta</b>'),'Alfa y luego Beta');const b=H.stubs['pfres:'+i];b.focus();b.onclick();return H};
+ /* abre Beta; la otra sincronización deja solo Beta */
+ let H=await abre(1);put(H,[be]);H.X.pfOwnSync();let n=H.stubs['pfres:0'];assert.ok(n&&!H.stubs['pfres:1']);
+ assert.equal(H.ctx.lastFocus,n,'Beta sola: la tarjeta vuelve a Beta');assert.equal(H.foco.el,n,'y el foco');
+ /* abre Beta; Alfa se vuelve privada */
+ H=await abre(1);put(H,[{...al,publica:false},be]);H.X.pfOwnSync();n=H.stubs['pfres:0'];assert.equal(H.ctx.lastFocus,n,'Alfa privada: la tarjeta vuelve a Beta');assert.equal(H.foco.el,n);
+ /* abre Alfa; queda solo Beta: Alfa se fue, la tarjeta y el foco van a la pestaña, no a Beta */
+ H=await abre(0);put(H,[be]);H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas'],'Alfa se fue: a la pestaña');assert.equal(H.foco.el,H.els['pfT-resenas'],'y el foco');
+});
 /* LHB-96: la página pública /u/<handle> muestra los sabores de la rueda por su nombre, como la app; lo escrito a mano sale tal cual */
 test('LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre (Madera, Cacao / café), lo escrito a mano como se escribió, todo escapado; los nombres son los de la app',async()=>{
  const a=await API40();

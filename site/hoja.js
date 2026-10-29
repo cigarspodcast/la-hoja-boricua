@@ -450,8 +450,9 @@ const pfTxt=(v,n)=>typeof v==='string'?[...v.trim()].slice(0,n).join(''):'';
 const pfEntry=e=>({nombre:pfTxt(e.nombre,80),marca:pfTxt(e.marca,60),artesano:pfTxt(e.artesano,80),rating:Number.isInteger(e.rating)&&e.rating>=1&&e.rating<=5?e.rating:0,
  tags:(Array.isArray(e.tags)?e.tags:[]).map(t=>pfTxt(t,40)).filter(Boolean).slice(0,30),notas:pfTxt(e.notas,1000),consumido:okDay(e.consumido)?e.consumido:null});
 /* tus reseñas, de tu Mi Hoja en este teléfono: las públicas, la más reciente primero (por el día en que se fumó; a igual día, el orden del diario) */
-/* LHB-97: con la clave de cada una (el id de su cata; sin id, lo que se enseña), para que el foco vuelva a la misma aunque otra se vea igual; dos con la misma clave se cuentan en orden */
-const myResenasK=s=>{const n=new Map();return (s.diario||[]).filter(isPublica).map((x,i)=>{const e=pfEntry(x);return [e,i,typeof x.id==='string'&&x.id?'id:'+x.id:'e:'+JSON.stringify(e)]})
+/* LHB-97: con la clave de cada una (el id de su cata junto con lo que se enseña), para que el foco vuelva a la misma aunque otra se vea igual; solo dos iguales en las dos cosas se cuentan en orden.
+   Codex ronda 1: el orden no hace de id cuando dos catas tienen el mismo id, porque cada una lleva también lo suyo */
+const myResenasK=s=>{const n=new Map();return (s.diario||[]).filter(isPublica).map((x,i)=>{const e=pfEntry(x);return [e,i,JSON.stringify([typeof x.id==='string'&&x.id?x.id:null,e])]})
  .sort((a,b)=>(b[0].consumido||'').localeCompare(a[0].consumido||'')||a[1]-b[1]).map(([e,,k])=>{const c=(n.get(k)||0)+1;n.set(k,c);return {e,k:k+'#'+c}})};
 const myResenas=s=>myResenasK(s).map(x=>x.e);
 const pfNum=v=>Number.isInteger(v)&&v>=0?v:0;
