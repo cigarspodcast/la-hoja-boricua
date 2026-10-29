@@ -6495,6 +6495,31 @@ test('LHB-80 (Codex r10): la pasada no puede leer la época: no sincroniza, y la
   assert.equal((await A.sync()).ok,true);
   assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
  }finally{a.done()}});
+test('LHB-80 (Codex r11): la meta no se puede leer en la pasada: no sincroniza, y la siguiente sube el borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),M='lhb_mihoja_v1_sync';A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  const get=A.D.ls.get;let n=0;A.D.ls.get=k=>{if(k===M&&n++===0)throw new Error('SecurityError');return get(k)};
+  assert.equal((await A.eng.run('guardado')).fail,'storage');assert.equal(srv28(a,'user_a').rev,1,'no subió ni trajo nada');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r11): la subida llega y luego una lectura de la copia lanza: la base de antes ya no vale, y lo que se vuelve a poner se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  const api=A.D.api,gd=A.D.getDoc;let arm=false;
+  A.D.api=async(C,m,...r)=>{const x=await api(C,m,...r);if(m==='PUT')arm=true;return x};
+  A.D.getDoc=()=>{if(arm){arm=false;throw new Error('SecurityError')}return gd()};
+  const r=await A.eng.run('guardado');assert.ok(r.fail,'la pasada no terminó');A.D.api=api;A.D.getDoc=gd;
+  assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
 test('LHB-80 (Codex r8): todas las épocas tienen el mismo largo',async()=>{
  const a=await ENG28();const R=Math.random;
  try{

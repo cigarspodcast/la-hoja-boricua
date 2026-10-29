@@ -54,6 +54,8 @@ MUTS = [
     (SY, 'r9: a failed epoch read counts as another tab', 'try{if(D.ls.get(EPOCH)===undo.from){', 'try{if(epochOf()===undo.from){'),
     (SY, 'r10: a failed read of the earlier epoch counts as none', 'let e1;try{e1=D.ls.get(EPOCH)}catch(e){return false}', 'let e1=epochOf();'),
     (SY, 'r10: a pass that cannot read the epoch still syncs', "let ep0;try{ep0=D.ls.get(EPOCH)}catch(e){return {fail:'storage'}}", 'let ep0=epochOf();'),
+    (SY, 'r11: a meta that cannot be read counts as none', "let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){return {fail:'storage'}}", 'let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){metaRaw=null}'),
+    (SY, 'r11: a storage error after an upload keeps the old base', 'if(putSent){mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}', ''),
     (SY, 'r5: the stored meta is not bound to its copy (the pass)', 'meta0.sub===uid&&epOf(meta0)===ep0?meta0', 'meta0.sub===uid?meta0'),
 ]
 

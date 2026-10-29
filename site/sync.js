@@ -142,7 +142,13 @@ window.LHB_SYNC=function(D){
    if(!ok)return back();
    return setOwner(acc.sub)}finally{inIso=false}}
  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
- async function once(){
+ /* Codex r11: si algo del almacenamiento falla a mitad de la pasada (una lectura que lanza), la pasada no sigue. Si ya mandó una subida, pudo llegar y
+    ya no queda anotada: ninguna base de antes vale (se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada) */
+ let putSent=false,poisonNow=null;
+ async function once(){putSent=false;poisonNow=null;
+  try{return await once0()}
+  catch(e){if(putSent){mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}return {fail:'storage'}}}
+ async function once0(){
   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};
   let C;try{C=await D.clerk()}catch(e){return {skip:'offline'}}
   if(!C||!C.user||C.user.id!==acc.sub)return {skip:'other-account'};
@@ -155,12 +161,14 @@ window.LHB_SYNC=function(D){
   let ep0;try{ep0=D.ls.get(EPOCH)}catch(e){return {fail:'storage'}}
   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid&&epochOf()===ep0};
   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
-  const meta0=readMeta();let meta=meta0&&meta0.sub===uid&&epOf(meta0)===ep0?meta0:null;
+  /* Codex r11: una meta que no se puede leer no es una meta que no hay: no se sincroniza (se reintenta) */
+  let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){return {fail:'storage'}}
+  const meta0=(()=>{if(metaRaw==null)return null;try{const m=JSON.parse(metaRaw);return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}})();let meta=meta0&&meta0.sub===uid&&epOf(meta0)===ep0?meta0:null;
   /* LHB-80 (Codex r1): el servidor contestó por las subidas que se le preguntaron (tiene la columna ops) */
   let opsSeen=false;
   const first=!meta||!meta.at;
   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
-  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});
+  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});poisonNow=poison;
   for(let i=0;i<TRIES;i++){
    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
    /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
@@ -211,7 +219,7 @@ window.LHB_SYNC=function(D){
     /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
     const op=newOp();pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
     if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
-    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
+    putSent=true;let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
     if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
     if(!alive())return {skip:'other-account'};
