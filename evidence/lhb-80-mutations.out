@@ -1,0 +1,18 @@
+baseline (no mutation): pass 23 fail 0
+the client never asks about a lost upload (before LHB-80)    RED (caught) (fail 4)
+GET never says whether an upload landed (before LHB-80)      RED (caught) (fail 4)
+PUT does not record its id                                   RED (caught) (fail 4)
+PUT records the old rev                                      RED (caught) (fail 2)
+the first PUT records rev 0                                  RED (caught) (fail 1)
+every id is kept                                             RED (caught) (fail 2)
+a bad id is accepted on PUT                                  RED (caught) (fail 1)
+a bad id is accepted on GET                                  RED (caught) (fail 1)
+GET without the column fails                                 RED (caught) (fail 2)
+PUT without the column fails                                 RED (caught) (fail 6)
+any recorded id answers                                      RED (caught) (fail 3)
+the PUT does not send its id                                 RED (caught) (fail 3)
+a landed upload is not the base                              RED (caught) (fail 2)
+an upload that cannot land any more is asked about forever   RED (caught) (fail 1)
+a missing id is trusted past OPS_KEEP                        RED (caught) (fail 1)
+an answer about another id is believed                       RED (caught) (fail 1)
+RESULT 16 of 16 red
