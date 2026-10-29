@@ -1,0 +1,186 @@
+✖ LHB-34: borrar la cuenta no deja una fila con su id en ninguna tabla, borra el usuario de Clerk y no toca a nadie más (con llaves foráneas) (27.1067ms)
+✖ LHB-34: borrar la cuenta no deja una fila con su id en ninguna tabla, borra el usuario de Clerk y no toca a nadie más (sin llaves foráneas) (64.5783ms)
+✖ LHB-34: una tabla que la lista no conoce: no se borra nada (falla cerrado) (9.9643ms)
+✖ LHB-34: una tabla de la lista sin migrar todavía (handle_checks) se salta; las demás se borran (54.8874ms)
+✖ LHB-34: antes de borrar nada: sesión, llave de Clerk de la misma instancia, JSON y la confirmación (41.6918ms)
+✖ LHB-34: si Clerk falla después de borrar la base: 502, y otro intento con BORRAR lo termina (20.0856ms)
+✖ LHB-34: salir con cambios sin sincronizar deja la copia de este teléfono y dice "Sincroniza o descarga un respaldo primero" (77.7419ms)
+✖ LHB-34: salir sin red pero con un respaldo recién descargado de lo de ahora; una cata a medias no deja salir (29.9065ms)
+✖ LHB-34: borrar la cuenta desde el teléfono: sin pasadas mientras tanto, y después nada de la cuenta en el teléfono (77.3886ms)
+✖ LHB-34: el panel de la cuenta en Perfil: descargar (el respaldo de siempre), salir, borrar con el @ escrito y el enlace a privacidad (0.8529ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 0
+ℹ fail 10
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 502.0496
+
+✖ failing tests:
+
+test at test\site.test.js:4006:30
+✖ LHB-34: borrar la cuenta no deja una fila con su id en ninguna tabla, borra el usuario de Clerk y no toca a nadie más (con llaves foráneas) (27.1067ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\functions\api\account.js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua/ddfa8e87-aefe-452e-8857-30bbd7a1c261/scratchpad/tool34/red/functions/api/account.js'
+  }
+
+test at test\site.test.js:4006:30
+✖ LHB-34: borrar la cuenta no deja una fila con su id en ninguna tabla, borra el usuario de Clerk y no toca a nadie más (sin llaves foráneas) (64.5783ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\functions\api\account.js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua/ddfa8e87-aefe-452e-8857-30bbd7a1c261/scratchpad/tool34/red/functions/api/account.js'
+  }
+
+test at test\site.test.js:4022:1
+✖ LHB-34: una tabla que la lista no conoce: no se borra nada (falla cerrado) (9.9643ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\functions\api\account.js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua/ddfa8e87-aefe-452e-8857-30bbd7a1c261/scratchpad/tool34/red/functions/api/account.js'
+  }
+
+test at test\site.test.js:4032:1
+✖ LHB-34: una tabla de la lista sin migrar todavía (handle_checks) se salta; las demás se borran (54.8874ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\functions\api\account.js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua/ddfa8e87-aefe-452e-8857-30bbd7a1c261/scratchpad/tool34/red/functions/api/account.js'
+  }
+
+test at test\site.test.js:4036:1
+✖ LHB-34: antes de borrar nada: sesión, llave de Clerk de la misma instancia, JSON y la confirmación (41.6918ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\functions\api\account.js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua/ddfa8e87-aefe-452e-8857-30bbd7a1c261/scratchpad/tool34/red/functions/api/account.js'
+  }
+
+test at test\site.test.js:4051:1
+✖ LHB-34: si Clerk falla después de borrar la base: 502, y otro intento con BORRAR lo termina (20.0856ms)
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\functions\api\account.js' imported from C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js
+      at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+      at moduleResolve (node:internal/modules/esm/resolve:879:10)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+      at #resolve (node:internal/modules/esm/loader:687:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:607:35)
+      at node:internal/modules/esm/loader:636:32
+      at TracingChannel.tracePromise (node:diagnostics_channel:362:14) {
+    code: 'ERR_MODULE_NOT_FOUND',
+    url: 'file:///C:/Users/Owner/AppData/Local/Temp/claude/C--Users-Owner-la-hoja-boricua/ddfa8e87-aefe-452e-8857-30bbd7a1c261/scratchpad/tool34/red/functions/api/account.js'
+  }
+
+test at test\site.test.js:4073:1
+✖ LHB-34: salir con cambios sin sincronizar deja la copia de este teléfono y dice "Sincroniza o descarga un respaldo primero" (77.7419ms)
+  AssertionError [ERR_ASSERTION]: bloque LHB-34
+      at ACCT34 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js:4060:95)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js:4076:11)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:4098:1
+✖ LHB-34: salir sin red pero con un respaldo recién descargado de lo de ahora; una cata a medias no deja salir (29.9065ms)
+  AssertionError [ERR_ASSERTION]: bloque LHB-34
+      at ACCT34 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js:4060:95)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js:4100:46)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:4111:1
+✖ LHB-34: borrar la cuenta desde el teléfono: sin pasadas mientras tanto, y después nada de la cuenta en el teléfono (77.3886ms)
+  AssertionError [ERR_ASSERTION]: bloque LHB-34
+      at ACCT34 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js:4060:95)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js:4115:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:4129:1
+✖ LHB-34: el panel de la cuenta en Perfil: descargar (el respaldo de siempre), salir, borrar con el @ escrito y el enlace a privacidad (0.8529ms)
+  AssertionError [ERR_ASSERTION]: bloque LHB-34
+      at ACCT34 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js:4060:95)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\tool34\red\test\site.test.js:4131:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

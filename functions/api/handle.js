@@ -5,6 +5,7 @@
    Guardar sigue siendo la autoridad: la columna handle es UNIQUE y el servidor contesta 409 handle-taken si alguien se adelanto. */
 import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
 import { checkHandle } from '../_lib/profile.js';
+import { fencedRun, idHash } from '../_lib/account.js';
 
 export const CHECKS_PER_MINUTE = 30; // tope de prueba, a decidir por el dueño
 
@@ -20,11 +21,13 @@ export async function onRequestGet({ request, env }) {
   try {
     const now = new Date();
     const since = new Date(now.getTime() - 60e3).toISOString();
-    await env.DB.prepare('DELETE FROM handle_checks WHERE user_id = ?1 AND created_at <= ?2').bind(user.sub, since).run();
+    // LHB-34: lo vencido se borra de todos, no solo de esta cuenta: así la anotación de una cuenta borrada tampoco se queda
+    await env.DB.prepare('DELETE FROM handle_checks WHERE created_at <= ?1').bind(since).run();
     // revisar y anotar en UNA sentencia, para que pedidos a la vez no pasen el tope
-    const t = await env.DB.prepare(
-      'INSERT INTO handle_checks (user_id, created_at) SELECT ?1, ?2 WHERE (SELECT COUNT(*) FROM handle_checks WHERE user_id = ?1 AND created_at > ?3) < ?4'
-    ).bind(user.sub, now.toISOString(), since, CHECKS_PER_MINUTE).run();
+    // LHB-34 (Codex r2): una cuenta borrada no anota revisiones (la valla va en la misma sentencia)
+    const ins = 'INSERT INTO handle_checks (user_id, created_at) SELECT ?1, ?2 WHERE (SELECT COUNT(*) FROM handle_checks WHERE user_id = ?1 AND created_at > ?3) < ?4';
+    const t = await fencedRun(env.DB, ins + ' AND NOT EXISTS (SELECT 1 FROM deleted_accounts WHERE id_hash = ?5)', ins,
+      [user.sub, now.toISOString(), since, CHECKS_PER_MINUTE], await idHash(user.sub));
     if (!t.meta.changes) return json({ error: 'handle-rate' }, 429);
     const row = await env.DB.prepare('SELECT user_id FROM profiles WHERE handle = ?1').bind(h.handle).first();
     if (!row || row.user_id === user.sub) return json({ available: true }, 200);

@@ -1,0 +1,32 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-34-wt (branch lhb-34-account). The diff below is origin/main..HEAD. This is round 5 of a TIER 2 review. Your rounds 1 to 4 are in evidence/lhb-34-review-r1.txt to -r4.txt. Round 4: BLOCK, two findings; you concurred that round 3 finding 2 is fixed.
+
+Ticket LHB-34, account page. Pinned decisions:
+- Delete needs typed confirmation and signs the user out everywhere.
+- Download reuses the existing respaldo JSON.
+- Sign-out removes this phone's local copy, but only after the server confirms it holds the latest rev. With unsynced changes, sign-out is blocked with "Sincroniza o descarga un respaldo primero".
+- A link to the privacy page.
+- Delete removes every row, the Mi Hoja document, R2 photos (none exist yet; LHB-35) and the Clerk user.
+
+How each round 4 finding was taken:
+2. An overlapping resume could clear the marker of an in-flight delete. FIXED.
+   - site/hoja.js delLock: borrar (from the hold to its message) and resumeDelete run one at a time, across the page and the other tabs, through navigator.locks.request('lhb_borrar'). Where Web Locks are missing, a page queue is used.
+   - resumeDelete reads the marker again inside its turn, so a resume queued behind a finished delete sends nothing.
+   - Test "LHB-34 (Codex r4): el botón y el que termina...": your schedule (a button request waiting; the resume queued behind it, then a 502 and a finished #fin), and a queued resume that finds the marker gone. Mutations M67 (no serialization) and M68 (the resume uses the marker it read before its turn) are red.
+1. A writer paused between its fence check and its store. HARDENED, and escalated to the owner as a residual (posted on the ticket).
+   - write() checks the fence a second time immediately before localStorage.setItem, after isolate, the owner write and JSON.stringify (M66).
+   - forget stamps the fence again after the wait, so a forward clock jump during the wait cannot leave it expired at the erase (M64).
+   - fenced() ignores a fence more than FENCE_TTL in the future, so a clock moved backward cannot make it permanent (M65).
+   - What remains: localStorage has no atomic operation across tabs. A tab whose renderer is suspended for more than a second between that last fence check and its setItem (one synchronous step), at the exact moment another tab signs out, can lose that one edit. Closing this needs every Mi Hoja write to go through an asynchronous Web Locks write, a refactor of all save() call sites beyond this ticket. The recommendation on the ticket is to accept this residual for LHB-34, with full exclusion as a follow-up if the owner wants it.
+   - Please do not re-report that residual as a new finding. If you consider the hardening itself wrong, or find another schedule that loses an edit WITHOUT a renderer suspended inside one synchronous step, report that.
+
+Evidence:
+- evidence/lhb-34-tests.txt: the full suite, 282 pass and 1 skipped (the LHB-95 browser test, which needs LHB_BROWSER=1), after merging origin/main (LHB-95, a tool-only change).
+- evidence/lhb-34-mutations-r4fix.out: RESULT 68 of 68 mutations red. Three earlier runs stopped on mutation targets that the round 4 edits had moved (an assert in the runner, not a survivor); they are kept as -r4fix-first.out, -second.out and -third.out.
+
+Check:
+- that round 4 finding 2 is fixed and the hardening of finding 1 is correct;
+- that the new tests cannot pass on broken code;
+- that the fixes did not break LHB-28 sync, LHB-63 handle checks or onboarding before 0006 is applied;
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

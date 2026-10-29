@@ -1,0 +1,7 @@
+M71 Codex r6: the fence is not renewed while Clerk signs out rc 1 fail 1 -> RED
+M72 Codex r6: a retry does not put the fence back first rc 1 fail 1 -> RED
+M73 Codex r6: the renewal never stops                rc 1 fail 1 -> RED
+M74 Codex r6: fenceUp writes nothing                 rc 1 fail 1 -> RED
+M75 Codex r6: delete signs out without the fence     rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 24
+RESULT 5 of 5 mutations red
