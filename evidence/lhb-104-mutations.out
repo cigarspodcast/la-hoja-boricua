@@ -1,0 +1,12 @@
+baseline (no mutation): pass 62 fail 0
+settled ignores the other tabs (before LHB-104)              RED (caught) (fail 1)
+the upload is not recorded for the other tabs                RED (caught) (fail 4)
+no fence for an upload of another tab                        RED (caught) (fail 1)
+an upload of another tab that may have landed keeps the base RED (caught) (fail 1)
+the uploads of other tabs are never asked about              RED (caught) (fail 1)
+more ids are asked than the server takes                     RED (caught) (fail 1)
+this tab counts its own dropped uploads as another tab       RED (caught) (fail 1)
+a 200 leaves the older uploads of the other tabs listed      RED (caught) (fail 4)
+a clear rejection leaves the upload listed                   RED (caught) (fail 1)
+an upload past the account rev stays listed                  RED (caught) (fail 1)
+RESULT 10 of 10 red; 0 named equivalent; 0 unexpected survivors
