@@ -1,4 +1,4 @@
-baseline (no mutation): pass 109 fail 0
+baseline (no mutation): pass 111 fail 0
 settled ignores the other tabs (before LHB-104)              RED (caught) (fail 1)
 the upload is not recorded for the other tabs                RED (caught) (fail 13)
 no fence for an upload of another tab                        RED (caught) (fail 2)
@@ -24,4 +24,6 @@ r3: a 200 removes the entries before the base is recorded    RED (caught) (fail 
 r3: an upload known to have landed at that If-Match does not clear the others RED (caught) (fail 1)
 r3: one overflow key per upload, not shared                  RED (caught) (fail 3)
 r3: a pass whose minimal meta does not fit stops instead of keeping the entries RED (caught) (fail 1)
-RESULT 25 of 25 red; 0 named equivalent; 0 unexpected survivors
+r4: a GET answer older than the recorded base is used        RED (caught) (fail 1)
+r4: the final meta overwrites a newer base                   RED (caught) (fail 1)
+RESULT 27 of 27 red; 0 named equivalent; 0 unexpected survivors
