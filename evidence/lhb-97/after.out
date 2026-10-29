@@ -1,0 +1,19 @@
+✔ LHB-58: GET /api/u/<handle> trae solo lo público: el perfil, las reseñas (catas con publica === true) y los conteos; seguidores y siguiendo salen de follows; nada privado en el JSON (192.3191ms)
+✔ LHB-58: el perfil de otra persona (#/u/<handle>): foto, nombre, @, bio, marca y conteos de /api/u/; pestañas Reseñas, Pasaporte y Favoritos; el Humidor no está; tocar una reseña abre su tarjeta (24.6578ms)
+✔ LHB-58: el perfil de otra persona: 404, error, @ imposible, el tuyo te lleva a Perfil, y una respuesta tardía no pinta otra página (85.8418ms)
+✔ LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y las cuatro pestañas; Reseñas son solo tus catas públicas (publica === true); el Humidor sí está (11.4268ms)
+✔ LHB-58: tu Perfil con otra cuenta en el mismo teléfono: lo que llega tarde de la cuenta anterior no se pinta; sin cuenta guardada no hay perfil; app.js lo pone en #pfOwn y #/u/ va a vPersona (43.2956ms)
+✔ LHB-58 (Codex ronda 1): tu Perfil abierto se pinta otra vez cuando llega una sincronización, en la misma pestaña; con otra cuenta, no; la sincronización lo llama solo en Perfil (13.7407ms)
+✔ LHB-58 (Codex ronda 1): si /api/u/<tu @> falla, tu número de reseñas sale igual de tu Mi Hoja; seguidores y siguiendo esperan (17.397ms)
+✔ LHB-58 (Codex ronda 1): las pestañas se manejan con el teclado: flechas, Inicio y Fin cambian la pestaña y el foco; solo la abierta está en el orden del tabulador (22.5099ms)
+✔ LHB-58 (Codex ronda 2): la sincronización pinta tu Perfil abierto en #/perfil (adonde vuelve borrar un cigarro) igual que en #/mihoja/perfil; en una lista pasa por el router como antes (15.2133ms)
+✔ LHB-58 (Codex ronda 2): pintar otra vez tu Perfil (la respuesta del servidor o una sincronización) deja el foco en la misma pestaña; la tarjeta abierta vuelve a la misma reseña aunque cambie de lugar, y si ya no está, a la pestaña (13.4001ms)
+✔ LHB-97: dos reseñas iguales: tras una sincronización el foco y la tarjeta abierta vuelven a la segunda; con la tarjeta de una reseña abierta el foco no se cae a BODY; sin id, cada gemela por su orden (30.4621ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 773.1197

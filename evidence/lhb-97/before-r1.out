@@ -1,0 +1,36 @@
+✔ LHB-58: GET /api/u/<handle> trae solo lo público: el perfil, las reseñas (catas con publica === true) y los conteos; seguidores y siguiendo salen de follows; nada privado en el JSON (220.1563ms)
+✔ LHB-58: el perfil de otra persona (#/u/<handle>): foto, nombre, @, bio, marca y conteos de /api/u/; pestañas Reseñas, Pasaporte y Favoritos; el Humidor no está; tocar una reseña abre su tarjeta (41.6215ms)
+✔ LHB-58: el perfil de otra persona: 404, error, @ imposible, el tuyo te lleva a Perfil, y una respuesta tardía no pinta otra página (84.3233ms)
+✔ LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y las cuatro pestañas; Reseñas son solo tus catas públicas (publica === true); el Humidor sí está (14.5255ms)
+✔ LHB-58: tu Perfil con otra cuenta en el mismo teléfono: lo que llega tarde de la cuenta anterior no se pinta; sin cuenta guardada no hay perfil; app.js lo pone en #pfOwn y #/u/ va a vPersona (69.1745ms)
+✔ LHB-58 (Codex ronda 1): tu Perfil abierto se pinta otra vez cuando llega una sincronización, en la misma pestaña; con otra cuenta, no; la sincronización lo llama solo en Perfil (19.853ms)
+✔ LHB-58 (Codex ronda 1): si /api/u/<tu @> falla, tu número de reseñas sale igual de tu Mi Hoja; seguidores y siguiendo esperan (25.6291ms)
+✔ LHB-58 (Codex ronda 1): las pestañas se manejan con el teclado: flechas, Inicio y Fin cambian la pestaña y el foco; solo la abierta está en el orden del tabulador (32.1463ms)
+✔ LHB-58 (Codex ronda 2): la sincronización pinta tu Perfil abierto en #/perfil (adonde vuelve borrar un cigarro) igual que en #/mihoja/perfil; en una lista pasa por el router como antes (28.5145ms)
+✔ LHB-58 (Codex ronda 2): pintar otra vez tu Perfil (la respuesta del servidor o una sincronización) deja el foco en la misma pestaña; la tarjeta abierta vuelve a la misma reseña aunque cambie de lugar, y si ya no está, a la pestaña (16.5818ms)
+✔ LHB-97: dos reseñas iguales: tras una sincronización el foco y la tarjeta abierta vuelven a la segunda; con la tarjeta de una reseña abierta el foco no se cae a BODY; sin id, cada gemela por su orden (52.2603ms)
+✖ LHB-97 (Codex ronda 1): con dos catas del mismo id, la que abriste sigue siendo ella cuando la otra se va o se vuelve privada; si la que se va es la tuya, el foco va a la pestaña, no a la otra (21.7341ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1018.4443
+
+✖ failing tests:
+
+test at test\site.test.js:4855:1
+✖ LHB-97 (Codex ronda 1): con dos catas del mismo id, la que abriste sigue siendo ella cuando la otra se va o se vuelve privada; si la que se va es la tuya, el foco va a la pestaña, no a la otra (21.7341ms)
+  AssertionError [ERR_ASSERTION]: Beta sola: la tarjeta vuelve a Beta
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-97-wt\test\site.test.js:4862:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [Object],
+    expected: [Object],
+    operator: '==',
+    diff: 'simple'
+  }
