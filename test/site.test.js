@@ -6851,6 +6851,17 @@ test('LHB-104 (Codex r3): con muchas recargas en el mismo If-Match, lo anotado n
   off=false;assert.equal((await SYNC28().LHB_SYNC(D2).run('red')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
   assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
  }finally{a.done()}});
+test('LHB-104 (Codex r3): sin la columna ops (0008 sin aplicar) nadie puede decir si la quita de otra pestaña llegó: la otra pestaña no se fía de su base y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.run('x')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{
