@@ -18,7 +18,8 @@ K19 (Codex r2) ftyp must be the first box                    rc 1 fail 1 -> RED
 K20 (Codex r2) a track of another kind counts as silent      rc 1 fail 1 -> RED
 K21 (Codex r2) any binary file counts as silent              rc 1 fail 1 -> RED
 K22 (Codex r3) signatures before the MP4 reading, with TrueType and ICO rc 1 fail 1 -> RED
+K23 (Codex r4) PNG judged by six bytes                       rc 1 fail 1 -> RED
 K17 (Codex r1) the credits view drops the focus              rc 1 fail 1 -> RED
 K13 the back button goes elsewhere                           rc 1 fail 1 -> RED
 baseline after restore: rc 0 pass 6 fail 0
-RESULT 22 of 22 mutations red
+RESULT 23 of 23 mutations red
