@@ -6470,6 +6470,28 @@ test('LHB-62 (Codex r6): con cuenta guardada, si cargar Clerk para el botón de 
   assert.equal(n,2,kind+': una vez más, con la cookie nueva');assert.ok(H.all().includes('id="fwB-bea"'),kind+': el botón está, en la página de ahora');
  }
 });
+test('LHB-62 (Codex r7): la persona sale mientras llega la respuesta pedida con su llave: no se rompe, se pregunta otra vez con la sesión de ahora y queda mirando (el perfil, seguidores y siguiendo)',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const now=()=>Math.floor(Date.now()/1000);
+ const jwt=(sub,c)=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,...c})).toString('base64url')+'.firma';
+ const auth=o=>(o&&o.headers&&o.headers.Authorization)||'';
+ for(const kind of ['u','seguidores','siguiendo']){
+  const pfx=kind==='u'?'/api/u/':kind==='seguidores'?'/api/followers':'/api/following';
+  const ok=kind==='u'?API58JSON():{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null};
+  let seen=[],rel=null;
+  const H=HOJA58({acct:null,reply:(u,o)=>{if(!u.startsWith(pfx))return {status:404,body:{}};seen.push(auth(o));
+   if(auth(o))return new Promise(r=>{rel=r});return {status:200,body:ok,headers:{'X-Lhb-Viewer':'-'}}}});
+  const C={user:{id:'u_yo'},session:{getToken:async()=>'llave-yo'}};H.ctx.clerk=async()=>C;
+  H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()-60});if(kind!=='u')H.loc.hash='#/u/cris/'+kind;
+  const p=H.X.vPersona(kind==='u'?'bea':'cris');await tick();assert.deepEqual(seen,['','Bearer llave-yo'],kind);
+  /* sale: Clerk ya no tiene user ni session, la cookie se va */
+  C.user=null;C.session=null;H.ctx.document.cookie='';H.ctx.acctGen++;
+  rel({status:200,body:ok,headers:{'X-Lhb-Viewer':'u_yo'}});await p;await tick();
+  assert.deepEqual(seen,['','Bearer llave-yo',''],kind+': se preguntó otra vez, sin llave');
+  assert.ok(kind==='u'?H.all().includes('id="pfMore"'):H.all().includes('Bea S.'),kind+': pintado sin sesión');
+  assert.ok(H.ctx.acctW.size>=1,kind+': queda mirando');
+ }
+});
 test('LHB-62 (Codex r5): la sesión cambia dos veces seguidas mientras llegan las respuestas: ninguna de las dos se pinta (el perfil y las listas)',async()=>{
  const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
  const now=()=>Math.floor(Date.now()/1000);

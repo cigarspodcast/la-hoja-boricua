@@ -567,8 +567,9 @@ const vwOf=x=>{try{const v=x&&x.headers&&typeof x.headers.get==='function'?x.hea
 const pfMatch=(tok,r)=>r.viewer==null||r.viewer===tokSub(tok);
 async function pfWho(r,get){let C;try{C=await clerk()}catch(e){return null}
  if(!C||!C.user||!C.session)return r.viewer===''?r:null;
- let t;try{t=await C.session.getToken()}catch(e){return null}if(!t)return null;
- const x=await get(t);return x.viewer==null||x.viewer===C.user.id?x:null}
+ /* Codex r7: quién era se anota antes de esperar: si sale mientras tanto, Clerk ya no tiene user y quien llamó ve el cambio de sesión (subNow) y pregunta otra vez */
+ const uid=C.user.id;let t;try{t=await C.session.getToken()}catch(e){return null}if(!t)return null;
+ let x;try{x=await get(t)}catch(e){return null}return x.viewer==null||x.viewer===uid?x:null}
 async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow(),tok0=cookieTok();
  /* LHB-60: #/u/<handle>/seguidores y #/u/<handle>/siguiendo (el enrutador de app.js pasa solo el @; lo que sigue se lee del hash), también las tuyas */
  const seg=String(location.hash||'').replace(/^#\/?/,'').split('/')[2]||'';
