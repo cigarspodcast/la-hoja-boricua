@@ -47,3 +47,5 @@ Check:
 - anything else in the diff.
 
 Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+Also in this diff: site/sw.js VERSION goes from lhb-v92 to lhb-v93, because styles.css, app.js and hoja.js are cached app-shell files and returning users must get the new ones; the 21 test pins of the version string move with it. The diff base is origin/facelift-f1c (LHB-68, already reviewed and merged into facelift), so the diff holds only this ticket.
