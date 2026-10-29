@@ -122,11 +122,15 @@ window.LHB_SYNC=function(D){
   const old=ownerOf();if(old===null||old===acc.sub)return true;
   inIso=true;try{
    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
-   if(!newEpoch())return false;
+   const e1=epochOf();if(!newEpoch())return false;
+   /* Codex r6: si falla antes de vaciar la copia, la copia sigue siendo la de antes y su meta también: se le pone la época nueva, para que lo que la persona
+      quitó y no se ha subido siga contando como borrado (solo si la meta es la de la copia de antes, de la época que había) */
+   const kept=()=>{const m=readMeta();if(m&&m.sub===old&&epOf(m)===e1){m.ep=epochOf();writeMeta(m)}return false};
    let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
-   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return false;try{D.ls.set(k,raw)}catch(e){return false}}
+   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return kept();try{D.ls.set(k,raw)}catch(e){return kept()}}
    applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
-   return !!ok&&setOwner(acc.sub)}finally{inIso=false}}
+   if(!ok)return kept();
+   return setOwner(acc.sub)}finally{inIso=false}}
  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
  async function once(){
   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};

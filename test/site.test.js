@@ -6378,6 +6378,19 @@ test('LHB-80 (Codex r5): nueve quitas de A sin respuesta, la vuelta de a1, B sin
   A.D.api=api;assert.equal((await A.sync()).ok,true);
   assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
  }finally{a.done()}});
+for(const [como,rompe] of [['no se puede apartar la copia',A=>{A.st.failKey='lhb_mihoja_v1_de_user_a'}],['no se puede vaciar la copia',A=>{A.st.failSet=true}]])
+test('LHB-80 (Codex r6): el cambio de cuenta falla antes de tocar la copia ('+como+'): lo que A quitó sin subir sigue siendo un borrado al volver',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  A.st.acct=A.st.user='user_b';rompe(A);assert.equal(A.eng.isolate(),false,'el cambio falló');
+  A.st.failKey=null;A.st.failSet=false;A.st.acct=A.st.user='user_a';
+  assert.deepEqual(A.doc().favs.artesanos,[],'la copia de A sigue como estaba');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{
