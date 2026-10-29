@@ -113,5 +113,6 @@ export async function listResponse(request, env, dir) {
   if (!who) return json({ error: 'not-found' }, 404);
   const me = await viewerOf(request, env);
   if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'not-found' }, 404);
-  return json(await listOf(env.DB, who.user_id, dir, c.cursor, me));
+  // Codex ronda 5: X-Lhb-Viewer, como /api/u/<handle>: con qué sesión se contestó (el user_id de quien mira, o - sin sesión)
+  return json(await listOf(env.DB, who.user_id, dir, c.cursor, me), 200, { 'X-Lhb-Viewer': me || '-' });
 }

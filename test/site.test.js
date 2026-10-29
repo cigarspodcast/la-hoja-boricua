@@ -4573,7 +4573,7 @@ function HOJA58(opts){opts=opts||{};
    if(!stubs[k]){const attrs={};const sel=x[0].match(/aria-selected="([^"]+)"/);if(sel)attrs['aria-selected']=sel[1];stubs[k]={dataset:{[m[1]]:x[1]},onclick:null,setAttribute(a,v){attrs[a]=String(v)},getAttribute:a=>attrs[a]??null,focus(){foco.el=this},/* LHB-62: Desbloquear quita su fila de la lista */get isConnected(){return all().includes('data-'+m[1]+'="'+x[1]+'"')},closest:()=>({remove(){const e=els.blkL;if(e)e.innerHTML=e.innerHTML.replace(new RegExp('<li class="person" data-handle="'+x[1]+'">[\\s\\S]*?</li>'),'')}})}}
    out.push(stubs[k])}return out};
  const fetches=[];let reply=opts.reply||(()=>({status:200,body:{}}));
- const fetch=async(u,o)=>{fetches.push(u);const r=await reply(u);if(r instanceof Error)throw r;return {status:r.status,json:async()=>{if(r.body===undefined)throw new Error('sin JSON');return r.body}}};
+ const fetch=async(u,o)=>{fetches.push(u);const r=await reply(u);if(r instanceof Error)throw r;return {status:r.status,headers:{get:k=>{const h=r.headers||{};for(const x of Object.keys(h))if(x.toLowerCase()===String(k).toLowerCase())return h[x];return null}},json:async()=>{if(r.body===undefined)throw new Error('sin JSON');return r.body}}};
  const acctBox={v:opts.acct===undefined?{sub:'u_a',handle:'ana',name:'Ana S.',avatar:''}:opts.acct};const sheets=[],log=[];const loc={hash:''};
  /* LHB-60: la sesión y el adaptador de la API con sesión (api(C,method,path,body,uid)); sin opts.api contesta 500 */
  const toasts=[],calls=[],sheetOn={v:false};
@@ -6022,6 +6022,9 @@ async function API62(opts){opts=opts||{};
   list2:(dir,h,u,o)=>call((dir==='followers'?a.FS:a.FG).onRequestGet,u,undefined,{...(o||{}),url:'https://x.test/api/'+dir+'?handle='+h}),
   people:(u,q,o)=>call(PE.onRequestGet,u,undefined,{...(o||{}),url:'https://x.test/api/people?q='+encodeURIComponent(q)}),
   profile:(h,u,o)=>call(AU.onRequestGet,u,undefined,{cookie:true,...(o||{}),params:{handle:h}}),
+  /* Codex r5: [status, X-Lhb-Viewer] */
+  vw:async(kind,h,u)=>{const o=kind==='u'?{cookie:true,params:{handle:h}}:{url:'https://x.test/api/'+kind+'?handle='+h};const fn=kind==='u'?AU.onRequestGet:(kind==='followers'?a.FS:a.FG).onRequestGet;
+   const r=await fn({request:rq(u?await a.tk(u):null,undefined,o),env,params:o.params});return [r.status,r.headers.get('X-Lhb-Viewer')]},
   ssr:async(h,u,o)=>{const r=await call(a.U.onRequestGet,u,undefined,{cookie:true,...(o||{}),url:'https://lahojaboricua.com/u/'+h,params:{handle:h}});return r[0]},
   feed2:async u=>{await a.login(u);const [st,b]=await a.feed(u,null,env);assert.equal(st,200,JSON.stringify(b));return b.items.map(x=>x.author.handle)},
   bl:()=>a.db.prepare('SELECT blocker_id,blocked_id FROM blocks ORDER BY 1,2').all().map(r=>[r.blocker_id,r.blocked_id])}}
@@ -6394,4 +6397,57 @@ test('LHB-62 (Codex r4): la cookie vencida es la vista sin sesión: cambiarla po
  H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600,nbf:now()+60});back(H);await tick();assert.equal(n,2,'nbf en el futuro: sin sesión');
  H.ctx.document.cookie='__session='+jwt('u_yo',{});back(H);await tick();assert.equal(n,2,'sin exp: también sin sesión, sin cambio');
  H.ctx.document.cookie='__session='+jwt('u_yo',{exp:now()+3600,nbf:now()+2});back(H);await tick();assert.equal(n,3,'nbf dentro de los 5 s: vale');
+});
+test('LHB-62 (Codex r5): lo pintado queda con la sesión con que contestó el servidor (X-Lhb-Viewer): una cookie que vence en camino y se renueva con el mismo sub pide otra vez, una sola vez; las listas también',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const now=()=>Math.floor(Date.now()/1000);
+ const jwt=(sub,c)=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,...c})).toString('base64url')+'.firma';
+ const back=H=>{for(const f of [...H.ctx.acctW])f()};
+ const yo=()=>'__session='+jwt('u_yo',{exp:now()+3600});const ANON={'X-Lhb-Viewer':'-'},YO={'X-Lhb-Viewer':'u_yo'};
+ /* el pedido sale con una cookie buena de u_yo; el servidor ya la vio vencida y contesta sin sesión; al llegar, la cookie es otra buena de u_yo */
+ let n=0;let H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON(),headers:ANON}:{status:404,body:{error:'not-found'}}):{status:404,body:{}}});
+ H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();
+ assert.equal(n,2,'se pidió otra vez');assert.ok(!H.all().includes('id="pfMore"'),'y con la sesión de ahora ya no se ve');
+ /* contestó con la sesión de ahora: una sola vez, y volver no pide nada */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON(),headers:YO}):{status:404,body:{}}});
+ H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();assert.equal(n,1);assert.ok(H.all().includes('id="pfMore"'));
+ back(H);await tick();assert.equal(n,1,'volver no pide nada');
+ /* relojes que no cuadran: el servidor siempre contesta sin sesión. Se pregunta una vez más y se pinta, sin vueltas */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON(),headers:ANON}):{status:404,body:{}}});
+ H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();assert.equal(n,2,'una vez más, no más');assert.ok(H.all().includes('id="pfMore"'));
+ /* sin la cabecera (un servidor de antes), como antes */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON()}):{status:404,body:{}}});
+ H.ctx.document.cookie=yo();await H.X.vPersona('bea');await tick();assert.equal(n,1);
+ /* las listas: la primera página contestó sin sesión */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null},headers:ANON}:{status:200,body:{people:[],next:null},headers:YO}):{status:404,body:{}}});
+ H.ctx.document.cookie=yo();H.loc.hash='#/u/cris/seguidores';await H.X.vPersona('cris');await tick();
+ assert.equal(n,2);assert.ok(!H.all().includes('Bea S.'),'con la sesión de ahora bea no sale');
+ back(H);await tick();assert.equal(n,2,'y volver no pide nada');
+ /* la lista que el servidor siempre contesta sin sesión: se pinta, y volver a la pestaña pregunta otra vez (con lo que contestó, no con lo que se creyó) */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n,{status:200,body:{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null},headers:ANON}):{status:404,body:{}}});
+ H.ctx.document.cookie=yo();H.loc.hash='#/u/cris/seguidores';await H.X.vPersona('cris');await tick();assert.equal(n,2);
+ back(H);await tick();assert.equal(n,4,'volver pregunta otra vez, y una vez más');
+ /* el reloj de la cookie es el segundo entero, como auth.js */
+ assert.ok(read('hoja.js').includes('const t=Math.floor(Date.now()/1000);'));
+});
+test('LHB-62 (Codex r5): la sesión cambia dos veces seguidas mientras llegan las respuestas: ninguna de las dos se pinta (el perfil y las listas)',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const now=()=>Math.floor(Date.now()/1000);
+ const ck=sub=>'__session=eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,exp:now()+3600})).toString('base64url')+'.firma';
+ for(const kind of ['u','followers']){
+  let n=0;const rels=[];const pfx=kind==='u'?'/api/u/':'/api/followers';
+  const ok=kind==='u'?{status:200,body:API58JSON()}:{status:200,body:{people:[{handle:'bea',display_name:'Bea S.',avatar_key:null}],next:null}};
+  const H=HOJA58({acct:null,reply:u=>{if(!u.startsWith(pfx))return {status:404,body:{}};n++;return n<3?new Promise(r=>rels.push(r)):{status:404,body:{error:'not-found'}}}});
+  H.ctx.document.cookie=ck('u_b');if(kind!=='u')H.loc.hash='#/u/cris/seguidores';
+  const p=H.X.vPersona(kind==='u'?'bea':'cris');await tick();
+  H.ctx.document.cookie=ck('u_c');rels[0](ok);await tick();assert.equal(n,2,kind+': la primera no se pinta, se pide otra vez');
+  H.ctx.document.cookie=ck('u_d');rels[1](ok);await p;await tick();
+  assert.equal(n,3,kind+': la segunda tampoco');assert.ok(!H.all().includes('id="pfMore"')&&!H.all().includes('Bea S.'),kind+': nada de las sesiones de antes');
+ }
+});
+test('LHB-62 (Codex r5): /api/u/<handle> y las listas dicen con qué sesión contestaron (X-Lhb-Viewer): el user_id de quien mira, o - sin sesión',async()=>{
+ const a=await API62();SEED62(a);
+ assert.deepEqual(await a.vw('u','bea','u_yo'),[200,'u_yo']);assert.deepEqual(await a.vw('u','bea',null),[200,'-']);
+ assert.deepEqual(await a.vw('followers','cris','u_yo'),[200,'u_yo']);assert.deepEqual(await a.vw('followers','cris',null),[200,'-']);
+ assert.deepEqual(await a.vw('following','bea',null),[200,'-']);
 });

@@ -16,7 +16,9 @@ export async function onRequestGet({ request, env, params }) {
     // Codex ronda 1: los conteos cuadran con las listas que ve quien mira
     const f = await countsOf(env.DB, r.uid, viewer);
     const { profile, counts, catas } = r.view;
-    return json({ profile, counts: { resenas: counts.catas, followers: f.followers, following: f.following, sellos: counts.sellos }, resenas: catas });
+    // Codex ronda 5: la cabecera X-Lhb-Viewer dice con qué sesión se contestó (el user_id de quien mira, que es suyo, o - sin sesión): la app la compara con su
+    // cookie para saber si lo pintado es de otra sesión. En una cabecera y no en el JSON, que sigue igual byte por byte (LHB-74)
+    return json({ profile, counts: { resenas: counts.catas, followers: f.followers, following: f.following, sellos: counts.sellos }, resenas: catas }, 200, { 'X-Lhb-Viewer': viewer || '-' });
   } catch (e) {
     return json({ error: 'unavailable' }, 503);
   }
