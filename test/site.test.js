@@ -4413,7 +4413,7 @@ async function API61(){
 const ids61=items=>items.map(x=>x.entry.nombre.replace(/^N /,''));
 test('LHB-61: Siguiendo trae solo las catas públicas de quienes sigues, con lo público del autor; una privada, una de alguien que no sigues o de un perfil oculto nunca sale',async()=>{
  const a=await API61();try{
-  a.mk('u_yo','yo');a.mk('u_bea','bea',{name:'Bea S.'});a.mk('u_cris','cris');a.mk('u_oculta','oculta',{hidden:true});a.mk('u_otro','otro');
+  a.mk('u_yo','yo');a.mk('u_bea','bea',{name:'Bea Soto'});a.set('u_bea','first_name','Bea');a.set('u_bea','last_name','soto');a.mk('u_cris','cris');a.mk('u_oculta','oculta',{hidden:true});a.mk('u_otro','otro');
   a.fol('u_yo','u_bea','2026-10-01T00:00:00.000Z');a.fol('u_yo','u_cris','2026-10-01T00:00:01.000Z');a.fol('u_yo','u_oculta','2026-10-01T00:00:02.000Z');
   a.doc('u_bea',DOC40());a.doc('u_cris',{schema:1,diario:[a.cata('c1','2026-03-04'),{...a.cata('c2','2026-03-10'),publica:false}]});
   a.doc('u_oculta',{schema:1,diario:[a.cata('o1','2026-05-01')]});a.doc('u_otro',{schema:1,diario:[a.cata('x1','2026-05-01')]});
@@ -4422,9 +4422,9 @@ test('LHB-61: Siguiendo trae solo las catas públicas de quienes sigues, con lo 
   await a.login('u_yo');const [st,b]=await a.feed('u_yo');assert.equal(st,200);
   assert.deepEqual(b.items.map(x=>[x.author.handle,x.entry.nombre]),[['bea','Churchill Nuevo'],['cris','N c1'],['bea','Toro Publico']],'solo las públicas (publica === true) de quienes sigo, la más reciente primero');
   assert.equal(b.next,null);
-  assert.deepEqual(b.items[0].author,{handle:'bea',display_name:'Bea S.',avatar_key:AV},'el autor: nombre público, @ y foto');
+  assert.deepEqual(b.items[0].author,{handle:'bea',display_name:'Bea S.',avatar_key:AV},'el autor: nombre público (nombre e inicial, nunca el display_name guardado), @ y foto');
   assert.deepEqual(b.items[2].entry,{nombre:'Toro Publico',marca:'',artesano:'Don Ramón',rating:4,tags:['madera','cacao'],notas:'nota publica\nsegunda linea',consumido:'2026-03-03'},'la misma lista cerrada que el pasaporte');
-  const txt=JSON.stringify(b);for(const s of [...SECRETOS56,'foto_secreta_1','d-pub-1','paso privado','capa privada','Corona Secreta','Robusto Texto','Lancero Uno','HumidorPrivado','N c2','N o1','N x1','N aj1','u_bea','u_yo','fecha'])assert.ok(!txt.includes(s),'no sale: '+s);
+  const txt=JSON.stringify(b);for(const s of [...SECRETOS56,'foto_secreta_1','d-pub-1','paso privado','capa privada','Corona Secreta','Robusto Texto','Lancero Uno','HumidorPrivado','N c2','N o1','N x1','N aj1','u_bea','u_yo','fecha','Soto','soto'])assert.ok(!txt.includes(s),'no sale: '+s);
   /* dejar de seguir: sus catas desaparecen */
   assert.equal((await a.unfollow('u_yo','bea'))[0],200);const [,b2]=await a.feed('u_yo');assert.deepEqual(b2.items.map(x=>x.author.handle),['cris']);
   /* una cata que se vuelve privada desaparece; un perfil que se oculta también */
@@ -4438,10 +4438,10 @@ test('LHB-61: Siguiendo pide sesión con perfil; un documento roto de una person
   assert.deepEqual(await a.feed(null),[401,{error:'no-session'}]);
   await a.login('u_nadie');assert.deepEqual(await a.feed('u_nadie'),[403,{error:'no-profile'}],'sin perfil no hay Siguiendo');
   await a.login('u_yo');assert.deepEqual(await a.feed('u_yo'),[200,{items:[],next:null}],'nadie tiene Mi Hoja todavía');
-  a.doc('u_bea',{schema:1,diario:[a.cata('b1','2026-02-02'),null,'x',[1],{...a.cata('b2','no-es-dia')},{...a.cata('b3',null)},{publica:true}]});a.doc('u_rota','{no es json');a.doc('u_lista',{schema:1,diario:{'0':a.cata('l1','2026-02-03')}});
+  a.doc('u_bea',{schema:1,diario:[a.cata('b1','2026-02-02'),null,'x',[1],{...a.cata('b2','no-es-dia')},{...a.cata('b3',null)},{...a.cata('b4','2026-02-02\u0000x')},{publica:true}]});a.doc('u_rota','{no es json');a.doc('u_lista',{schema:1,diario:{'0':a.cata('l1','2026-02-03')}});
   const [st,b]=await a.feed('u_yo');assert.equal(st,200);
-  assert.deepEqual(b.items.map(x=>[x.entry.nombre,x.entry.consumido]),[['N b1','2026-02-02'],['N b2',null],['N b3',null],['',null]],'lo roto no rompe; sin día va al final, en el orden del diario');
-  for(const c of ['x','2026-01-01~bea','2026-01-01~bea~0','2026-01-01~Bea~1','2026-1-01~bea~1','2026-01-01~bea~1~2','-~bea~01'])assert.deepEqual(await a.feed('u_yo',c),[400,{error:'bad-cursor'}],'cursor malo: '+c);
+  assert.deepEqual(b.items.map(x=>[x.entry.nombre,x.entry.consumido]),[['N b1','2026-02-02'],['N b2',null],['N b3',null],['N b4',null],['',null]],'lo roto no rompe; sin día va al final, en el orden del diario');
+  for(const c of ['x','2026-01-01~bea~1','2026-01-01~bea~0','-~bea~1','2026-01-01~bea~','2026-01-01~~bea','2026-01-01~Bea~1','2026-1-01~bea~1','2026-01-01~bea~1~2','-~bea~01','-~Bea','2026-01-01\u0000~bea'])assert.deepEqual(await a.feed('u_yo',c),[400,{error:'bad-cursor'}],'cursor malo: '+c);
  }finally{a.done&&a.done()}});
 test('LHB-61: Siguiendo pagina de 20 en 20 con el cursor, la más reciente primero (día, @, orden del diario), sin repetir ni saltar; una cata nueva entre páginas no mueve a las demás',async()=>{
  const a=await API61();try{
@@ -4451,14 +4451,38 @@ test('LHB-61: Siguiendo pagina de 20 en 20 con el cursor, la más reciente prime
   /* lo esperado, calculado aparte: día (más nuevo primero), @ (al revés), y en la misma persona y día el orden del diario */
   const exp=[];for(const h of who)docs[h].forEach((e,i)=>exp.push({h,day:e.consumido,i,id:e.id}));
   exp.sort((x,y)=>y.day.localeCompare(x.day)||y.h.localeCompare(x.h)||x.i-y.i);
-  await a.login('u_yo');const {out,pages}=await a.all('u_yo');assert.equal(pages,3);assert.equal(out.length,51);
+  await a.login('u_yo');const {out,pages}=await a.all('u_yo');assert.ok(pages>=3,'al menos 3 páginas: '+pages);assert.equal(out.length,51);
   assert.deepEqual(ids61(out),exp.map(x=>x.id),'el orden completo, sin repetir ni saltar');
   /* una cata nueva de beto llega entre la página 1 y la 2: nada se repite ni se salta de lo que ya había */
   const [,p1]=await a.feed('u_yo');docs.beto.unshift(a.cata('nueva','2026-01-10'));a.doc('u_beto',{schema:1,diario:docs.beto});
   const rest=[];let c=p1.next;while(c){const [,b]=await a.feed('u_yo',c);rest.push(...b.items);c=b.next}
   const seen=[...ids61(p1.items),...ids61(rest)].filter(x=>x!=='nueva');assert.deepEqual(seen,exp.map(x=>x.id),'una cata nueva no hace repetir ni saltar');
-  /* el cursor no lleva nada privado: día, @ y el lugar entre las públicas */
-  assert.match(p1.next,/^\d{4}-\d{2}-\d{2}~[a-z0-9_]{3,20}~\d+$/);assert.ok(!/u_|nueva|ana1/.test(p1.next));
+  /* el cursor no lleva nada privado: el día y el @ */
+  assert.match(p1.next,/^\d{4}-\d{2}-\d{2}~[a-z0-9_]{3,20}$/);assert.ok(!/u_|nueva|ana1/.test(p1.next));
+ }finally{a.done&&a.done()}});
+test('LHB-61 (Codex ronda 1): una página termina con un grupo entero (las catas de una persona en un día): una vieja que se vuelve pública no hace saltar otra; un día con un nulo no es día y no rompe el cursor; un grupo de más de 20 sale entero',async()=>{
+ const a=await API61();try{
+  a.mk('u_yo','yo');a.mk('u_ana','ana');a.mk('u_bea','bea');a.fol('u_yo','u_ana','2026-10-01T00:00:00.000Z');a.fol('u_yo','u_bea','2026-10-01T00:00:01.000Z');
+  await a.login('u_yo');
+  /* el caso de Codex: bea tiene 15 del mismo día; ana 10 del mismo día y una vieja privada. La página 1 son las 15 de bea, y ana va entera en la 2 */
+  const D='2026-10-28';const bea=[];for(let k=0;k<15;k++)bea.push(a.cata('b'+k,D));const ana=[];for(let k=0;k<10;k++)ana.push(a.cata('a'+k,D));
+  ana.push({...a.cata('a10',D),publica:false});a.doc('u_bea',{schema:1,diario:bea});a.doc('u_ana',{schema:1,diario:ana});
+  const [s1,p1]=await a.feed('u_yo');assert.equal(s1,200);assert.deepEqual(ids61(p1.items),bea.map(e=>e.id),'la página 1 corta antes del grupo de ana, no a la mitad');assert.equal(p1.next,D+'~bea');
+  ana[10]={...ana[10],publica:true};a.doc('u_ana',{schema:1,diario:ana});
+  const [,p2]=await a.feed('u_yo',p1.next);assert.deepEqual(ids61(p2.items),ana.map(e=>e.id),'las 10 que siempre fueron públicas salen todas, y la vieja que se volvió pública también');assert.equal(p2.next,null);
+  /* lo mismo en un grupo ya visto: una vieja de bea que se vuelve pública no mueve a ana */
+  bea.push({...a.cata('b15',D),publica:false});a.doc('u_bea',{schema:1,diario:bea});const [,q1]=await a.feed('u_yo');assert.equal(q1.next,D+'~bea');
+  bea[15]={...bea[15],publica:true};a.doc('u_bea',{schema:1,diario:bea});const [,q2]=await a.feed('u_yo',q1.next);assert.deepEqual(ids61(q2.items),ana.map(e=>e.id));
+  /* un día con un carácter nulo no es un día: va al final, sale sin día, y cada cursor que sale se puede pedir (antes, Ver más daba 400) */
+  a.doc('u_ana',{schema:1,diario:Array.from({length:20},(_,k)=>a.cata('n'+k,D+'\u0000x'))});a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01')]});
+  const [,r1]=await a.feed('u_yo');assert.equal(r1.next,'2026-01-01~bea');
+  const {out}=await a.all('u_yo');assert.deepEqual(ids61(out),['v1',...Array.from({length:20},(_,k)=>'n'+k)]);assert.ok(out.slice(1).every(x=>x.entry.consumido===null),'sin día');
+  /* un grupo de más de 20 (25 de ana el mismo día) sale entero en su página; lo que sigue, en la siguiente */
+  a.doc('u_ana',{schema:1,diario:Array.from({length:25},(_,k)=>a.cata('g'+k,D))});a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01'),a.cata('v2','2026-01-01')]});
+  const [,g1]=await a.feed('u_yo');assert.deepEqual(ids61(g1.items),Array.from({length:25},(_,k)=>'g'+k),'las 25, en el orden del diario');assert.equal(g1.next,D+'~ana');
+  const [,g2]=await a.feed('u_yo',g1.next);assert.deepEqual(ids61(g2.items),['v1','v2']);assert.equal(g2.next,null);
+  /* sin nada después, el grupo grande es la última página */
+  a.doc('u_bea',{schema:1,diario:[]});assert.equal((await a.feed('u_yo'))[1].next,null);
  }finally{a.done&&a.done()}});
 /* LHB-61: la pantalla Siguiendo (hoja.js vSiguiendo) en el arnés de LHB-58: cada pedido queda en q hasta que la prueba lo contesta */
 function FEED61(o){o=o||{};const q=[];
