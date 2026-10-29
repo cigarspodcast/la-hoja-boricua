@@ -4879,7 +4879,7 @@ test('LHB-61: Siguiendo pide sesión con perfil; un documento roto de una person
   a.doc('u_bea',{schema:1,diario:[a.cata('b1','2026-02-02'),null,'x',[1],{...a.cata('b2','no-es-dia')},{...a.cata('b3',null)},{...a.cata('b4','2026-02-02\u0000x')},{publica:true}]});a.doc('u_rota','{no es json');a.doc('u_lista',{schema:1,diario:{'0':a.cata('l1','2026-02-03')}});
   const [st,b]=await a.feed('u_yo');assert.equal(st,200);
   assert.deepEqual(b.items.map(x=>[x.entry.nombre,x.entry.consumido]),[['N b1','2026-02-02'],['N b2',null],['N b3',null],['N b4',null],['',null]],'lo roto no rompe; sin día va al final, en el orden del diario');
-  for(const c of ['x','2026-01-01~bea~0','2026-01-01~bea~','2026-01-01~bea~-1','2026-01-01~bea~12345678','2026-01-01~~bea','2026-01-01~Bea~1','2026-1-01~bea~1','2026-01-01~bea~1~2','-~bea~01','-~Bea','2026-01-01\u0000~bea'])assert.deepEqual(await a.feed('u_yo',c),[400,{error:'bad-cursor'}],'cursor malo: '+c);
+  for(const c of ['x','2026-01-01~bea~0','2026-01-01~bea~','2026-01-01~bea~-1','2026-01-01~bea~12345678','2026-01-01~bea~1','2026-01-01~bea~1~','2026-01-01~bea~1~ABC','2026-01-01~bea~1~12345678','2026-01-01~bea~0~a','2026-01-01~~bea','2026-01-01~Bea~1','2026-1-01~bea~1','2026-01-01~bea~1~2~3','-~bea~01','-~Bea','2026-01-01\u0000~bea'])assert.deepEqual(await a.feed('u_yo',c),[400,{error:'bad-cursor'}],'cursor malo: '+c);
  }finally{a.done&&a.done()}});
 test('LHB-61: Siguiendo pagina de 20 en 20 con el cursor, la más reciente primero (día, @, orden del diario), sin repetir ni saltar; una cata nueva entre páginas no mueve a las demás',async()=>{
  const a=await API61();try{
@@ -4917,16 +4917,16 @@ test('LHB-61 (Codex ronda 1): una página termina con un grupo entero (las catas
   const {out}=await a.all('u_yo');assert.deepEqual(ids61(out),['v1',...Array.from({length:20},(_,k)=>'n'+k)]);assert.ok(out.slice(1).every(x=>x.entry.consumido===null),'sin día');
   /* un grupo de más de 20 (25 de ana el mismo día) se parte de 20 en 20 con su lugar (Codex ronda 2); lo que sigue, en la página siguiente */
   a.doc('u_ana',{schema:1,diario:Array.from({length:25},(_,k)=>a.cata('g'+k,D))});a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01'),a.cata('v2','2026-01-01')]});
-  const [,g1]=await a.feed('u_yo');assert.deepEqual(ids61(g1.items),Array.from({length:20},(_,k)=>'g'+k),'las 20 primeras, en el orden del diario');assert.equal(g1.next,D+'~ana~6','el lugar de g19 entre las 25, desde la más vieja');
+  const [,g1]=await a.feed('u_yo');assert.deepEqual(ids61(g1.items),Array.from({length:20},(_,k)=>'g'+k),'las 20 primeras, en el orden del diario');assert.match(g1.next,new RegExp('^'+D+'~ana~6~[0-9a-z]{1,7}$'),'el lugar de g19 entre las 25, desde la más vieja, y su huella');
   const [,g2]=await a.feed('u_yo',g1.next);assert.deepEqual(ids61(g2.items),['g20','g21','g22','g23','g24'],'el resto del grupo');assert.equal(g2.next,D+'~ana');
   const [,g3]=await a.feed('u_yo',g2.next);assert.deepEqual(ids61(g3.items),['v1','v2']);assert.equal(g3.next,null);
   const {out:go}=await a.all('u_yo');assert.equal(go.length,27,'todo, sin pasar de 20 por página');
   /* una cata nueva de ana en ese día, entre la página 1 y la 2, no hace repetir ni saltar (va al principio y no mueve los lugares) */
   const big=Array.from({length:25},(_,k)=>a.cata('g'+k,D));a.doc('u_ana',{schema:1,diario:[a.cata('gN',D),...big]});const [,g2b]=await a.feed('u_yo',g1.next);assert.deepEqual(ids61(g2b.items),['g20','g21','g22','g23','g24']);
   /* sin nada después, el grupo grande termina en next null */
-  a.doc('u_ana',{schema:1,diario:big});a.doc('u_bea',{schema:1,diario:[]});const [,h1]=await a.feed('u_yo');assert.equal(h1.next,D+'~ana~6');assert.equal((await a.feed('u_yo',h1.next))[1].next,null);
-  /* un lugar que ya no existe (el grupo se achicó) no rompe: sigue con lo que viene después */
-  a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01')]});const [st9,z]=await a.feed('u_yo',D+'~ana~1');assert.equal(st9,200);assert.deepEqual(ids61(z.items),[]);assert.equal(z.next,D+'~ana');
+  a.doc('u_ana',{schema:1,diario:big});a.doc('u_bea',{schema:1,diario:[]});const [,h1]=await a.feed('u_yo');assert.match(h1.next,new RegExp('^'+D+'~ana~6~'));assert.equal((await a.feed('u_yo',h1.next))[1].next,null);
+  /* un cursor cuya cata ya no está y cuyo lugar ya no queda no rompe: sigue con lo que viene después (los cambios de verdad, en la prueba de la ronda 3) */
+  a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01')]});const [st9,z]=await a.feed('u_yo',D+'~ana~1~zz');assert.equal(st9,200);assert.deepEqual(ids61(z.items),[]);assert.equal(z.next,D+'~ana');
  }finally{a.done&&a.done()}});
 test('LHB-61 (Codex ronda 2): una llave con un carácter nulo ("publica\\u0000x", "diario\\u0000x", "consumido\\u0000x") no se confunde con la de verdad: nada privado sale, ni cuenta para la página o el cursor',async()=>{
  const a=await API61();try{
@@ -4952,6 +4952,33 @@ test('LHB-61 (Codex ronda 2): una llave con un carácter nulo ("publica\\u0000x"
   a.doc('u_ana',rep21);[,b]=await a.feed('u_yo');assert.deepEqual(ids61(b.items),['v1']);assert.equal(b.next,null);
   const one=JSON.stringify({schema:1,diario:[{...a.cata('d0','2026-03-03'),publica:true}]}).split('"publica":true').join('"publica":false,"publica":true');
   a.doc('u_ana',one);[,b]=await a.feed('u_yo');assert.deepEqual(ids61(b.items),['d0','v1'],'y si la última es true, sale');
+ }finally{a.done&&a.done()}});
+test('LHB-61 (Codex ronda 3): dentro de un grupo de más de 20, la página siguiente sigue después de la última cata vista (por su huella): borrar, volver privada o volver pública otra cata del grupo no hace saltar ni repetir',async()=>{
+ const a=await API61();try{
+  a.mk('u_yo','yo');a.mk('u_ana','ana');a.mk('u_bea','bea');a.fol('u_yo','u_ana','2026-10-01T00:00:00.000Z');a.fol('u_yo','u_bea','2026-10-01T00:00:01.000Z');await a.login('u_yo');
+  const D='2026-10-28',G=()=>Array.from({length:25},(_,k)=>a.cata('g'+k,D)),ids=k=>Array.from({length:k[1]-k[0]},(_,i)=>'g'+(k[0]+i));
+  a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01')]});
+  const p1=async d=>{a.doc('u_ana',{schema:1,diario:d});const [,b]=await a.feed('u_yo');assert.deepEqual(ids61(b.items),ids([0,20]));assert.match(b.next,new RegExp('^'+D+'~ana~6~[0-9a-z]{1,7}$'));return b.next};
+  const p2=async(c,d)=>{a.doc('u_ana',{schema:1,diario:d});const [st,b]=await a.feed('u_yo',c);assert.equal(st,200);return b};
+  /* el caso de Codex: se borra g24 (sin ver todavía) entre la página 1 y la 2: no se repite g19 */
+  let c=await p1(G());let b=await p2(c,G().slice(0,24));assert.deepEqual(ids61(b.items),ids([20,24]),'sin repetir g19');assert.equal(b.next,D+'~ana');
+  /* g23 se vuelve privada */
+  c=await p1(G());b=await p2(c,G().map((e,k)=>k===23?{...e,publica:false}:e));assert.deepEqual(ids61(b.items),['g20','g21','g22','g24']);
+  /* se van las cinco que faltaban: nada repetido, y sigue con lo que viene después */
+  c=await p1(G());b=await p2(c,G().slice(0,20));assert.deepEqual(ids61(b.items),[]);assert.equal(b.next,D+'~ana');assert.deepEqual(ids61((await a.feed('u_yo',b.next))[1].items),['v1']);
+  /* una vieja privada (g25) se vuelve pública: sale, y no hace saltar a ninguna */
+  const g26=()=>[...G(),{...a.cata('g25',D),publica:false}];c=await p1(g26());b=await p2(c,g26().map((e,k)=>k===25?{...e,publica:true}:e));assert.deepEqual(ids61(b.items),ids([20,26]));
+  /* una nueva va al principio: tampoco */
+  c=await p1(G());b=await p2(c,[a.cata('nueva',D),...G()]);assert.deepEqual(ids61(b.items),ids([20,25]));
+  /* dos catas iguales en lo público (g3 es copia de g19): sigue después de la más cercana a su lugar, no de la primera */
+  const tw=()=>G().map((e,k)=>k===3?{...a.cata('g19',D),id:'tw'}:e);a.doc('u_ana',{schema:1,diario:tw()});const [,t1]=await a.feed('u_yo');
+  assert.deepEqual(ids61(t1.items).slice(18),['g18','g19']);const [,t2]=await a.feed('u_yo',t1.next);assert.deepEqual(ids61(t2.items),ids([20,25]));
+  /* la última vista se borró: sigue por su lugar, n */
+  c=await p1(G());b=await p2(c,G().filter((e,k)=>k!==19));assert.deepEqual(ids61(b.items),ids([20,25]),'por n: lo que estaba después');
+  /* un cursor de un grupo que ya no tiene esa cata ni ese lugar no rompe: sigue con lo que viene después */
+  a.doc('u_ana',{schema:1,diario:G()});const [st9,z]=await a.feed('u_yo',D+'~ana~1~zz');assert.equal(st9,200);assert.deepEqual(ids61(z.items),[]);assert.equal(z.next,D+'~ana');
+  /* el cursor no lleva nada privado: día, @, el lugar entre las públicas y la huella de lo público */
+  assert.ok(!/u_ana|g19|tw/.test(c));
  }finally{a.done&&a.done()}});
 /* LHB-61: la pantalla Siguiendo (hoja.js vSiguiendo) en el arnés de LHB-58: cada pedido queda en q hasta que la prueba lo contesta */
 function FEED61(o){o=o||{};const q=[];
