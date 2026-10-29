@@ -698,5 +698,5 @@ body.sheet-on{overflow:hidden}
 .badges .badge.on:nth-child(4n) span{color:var(--warn-ink)}
 /* LHB-74: la celebración: el sello cae una vez (0,58 s) y para; con menos movimiento, nada */
 @keyframes lhb-stamp{0%{transform:translateY(-14px) scale(1.3) rotate(-14deg);opacity:0}65%{transform:translateY(2px) scale(.94) rotate(-5deg);opacity:1}100%{transform:translateY(0) scale(1) rotate(-12deg);opacity:1}}
-.stamp.is-new::after,.stampbtn.is-new svg,.badge.is-new .bico{animation:lhb-stamp .58s cubic-bezier(.2,.75,.3,1) 1}
+.stamp.is-new::after,.stampbtn.is-new svg,.badge.is-new .bico{animation:lhb-stamp .58s cubic-bezier(.2,.75,.3,1) var(--cel-at,0ms) 1}
 @media (prefers-reduced-motion:reduce){.stamp.is-new::after,.stampbtn.is-new svg,.badge.is-new .bico{animation:none}}

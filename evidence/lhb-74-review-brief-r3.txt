@@ -1,0 +1,50 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 3 of a TIER 2 review of LHB-74 (M7-F5: passport color and the stamp celebration). The earlier briefs and your reviews are evidence/lhb-74-review-brief-r1.txt, -r2.txt and evidence/lhb-74-review-r1.txt, -r2.txt. The diff below is the whole ticket (base 2ff4293).
+
+Round 2 verdict: BLOCK, one P2. A repaint during the animation replaced the animated elements: the 350 ms stamp repaint, a sync repaint (onApplied), a second or third stamp, or any unrelated repaint cut the celebration short or restarted it.
+
+What changed (site/hoja.js celebrate, celMark, celDrop; vPasaporte no longer marks anything in its template):
+- celebrate(arg, on, badge), called by ACTIONS.stamp:
+  - drops any live record for the same stamp (an unstamp or a restamp);
+  - returns if the stamp was removed or reduced motion is on;
+  - adds a record for the stamp's selector ([data-stamp="arg"], ready when aria-pressed is true) and, when a badge was earned, one for [data-badge="id"] (ready when it has class on). A record that has not started within 2 s expires.
+- A MutationObserver on document.body (childList, subtree) is connected while any record is live, and disconnected when the last one is dropped.
+- celMark runs at celebrate and on each mutation. For each live record and each element matching its selector:
+  - it starts the record the first time an element is ready (start = now) and schedules the record's own cleanup 900 ms later;
+  - for an element that does not have is-new yet, it sets --cel-at to (start - now) ms and adds is-new.
+  - So a repainted element continues the animation where it was, with a negative animation-delay, instead of restarting. An element that already has the class is not re-timed.
+  - Under reduced motion it drops every record.
+- celDrop removes the record and the is-new class from that record's current elements only. The cleanup timer acts only if its own record is still live, so an old timer cannot cut a restamp.
+- CSS: .stamp.is-new::after, .stampbtn.is-new svg, .badge.is-new .bico get animation: lhb-stamp .58s cubic-bezier(.2,.75,.3,1) var(--cel-at,0ms) 1. The reduced-motion rule (animation: none) is unchanged.
+- The stamp handler call is now celebrate(arg,on,nb[0]).
+
+Tests:
+- PASS74 now runs the real ACTIONS block together with the real passport block in a vm. A.route repaints the real vPasaporte. Timers run in time order. A fake MutationObserver fires on each paint. The fake view makes new elements on every paint.
+- Scenarios, each driven through ACTIONS.stamp:
+  - one stamp: 0 ms at the tap, -350ms on the 350 ms repaint, gone at 900 ms, observer disconnected, no replay;
+  - stamps at 0 and 100 ms: both continue through both repaints; A's cleanup does not touch B;
+  - a sync repaint at 100 ms;
+  - three stamps;
+  - an unrelated repaint at 450 ms;
+  - every mark of one stamp counts from the same start;
+  - the badge starts on the first paint that shows it earned;
+  - the first stamp earns Primer sello;
+  - reduced motion;
+  - a button on a cigar page (no repaint);
+  - unstamp leaves nothing waiting, and a restamp is not cut by the first stamp's cleanup;
+  - a badge never shown within 2 s expires.
+- Mutations: 19 (L1 to L19), evidence/lhb-74-mutations.out.
+- Real browser at 390 px (evidence/m7-f5/shoot74.out, 10 of 10 checks): in one page call, tap the fifth cigar stamp, wait 470 ms, then read every running lhb-stamp animation's elapsed active time (localTime minus delay).
+  - The stamp had run 458 ms at 479 ms, so it continued through the 350 ms repaint.
+  - Catador had run 100 ms, so it started at the repaint.
+  - The same driver against the round 1 code (c73d68a) FAILS this check: the stamp had run 67 ms, so it restarted at the repaint (evidence/m7-f5/shoot74-on-round1-code.out).
+- site/sw.js goes from lhb-v102 to lhb-v103 (21 pins), because the preview served v102 with the round 1 hoja.js.
+
+Check that the finding is closed. Also look for any new way the celebration can:
+- replay or loop;
+- leak (an observer or a timer left running);
+- touch another stamp's element;
+- survive reduced motion turned on mid-visit;
+- block input.
+And check anything else in the full ticket diff, including the cost of observing document.body while a record is live (at most about 2 s).
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

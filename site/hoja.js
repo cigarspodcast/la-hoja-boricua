@@ -386,7 +386,7 @@ const ACTIONS={
   const before=badgeIds(),r0=ruta();const on=toggleStamp(k,id),r1=ruta(),nz=r1.ok.find(x=>!r0.ok.includes(x));RLIT=r1.lit.find(x=>!r0.lit.includes(x));if(RLIT&&(st&&st.closest('.rl')))closeSheet();if(nz)setTimeout(()=>zonaSheet(nz),1500);
   $$(`[data-stamp="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);const sp=b.querySelector(':scope>span:last-child');if(sp)sp.textContent=b.classList.contains('stamp')?(on?tt('h.selladoEl',{d:fmtF(hoy())}):tt('h.sinSello')):(on?tt('h.sellado'):tt('h.sellarPasaporte'))});
   const nb=badgeIds().filter(x=>!before.includes(x));if(nb.length){const b=BADGES.find(x=>x.id===nb[0]);toast(tt('h.nuevaInsignia')+b.n)}else toast(on?tt('h.selloPuestoEnTu'):tt('h.selloQuitado'));
-  celebrate(arg,on,nb[0],st,/^#\/mihoja\/pasaporte/.test(location.hash));
+  celebrate(arg,on,nb[0]);
   if(/^#\/(mihoja\/pasaporte|lugares\/ruta)/.test(location.hash))setTimeout(()=>{const y=scrollY;A.route();scrollTo(0,y)},350)},
  rate(arg){const [id,n]=split2(arg);const v=+n;if(!id||id in Object.prototype||!Number.isInteger(v)||v<1||v>5)return;setRating(id,v);keepScroll()},
  humidor(arg){openSheet('humidor',txt(arg)?arg:undefined)}
@@ -700,26 +700,35 @@ function townSheet(n){const t=ruta().ts.find(x=>x.n==n);if(!t)return;const it=[.
  sheet(`<h2 class="sheet-h">${t.on?'🌿 ':''}${esc(n)}</h2><p class="rsub">${tt('h.zonaDeSellados',{a:ZN[t.z],b:c,c:it.length,d:c<it.length?` ${tt('h.teFaltan',{a:it.length-c})}`:''})}</p><div class="rl">${it.map(i=>`<div class="ri"><div><b>${esc(i.x.nombre)}</b><small>${L[i.k]}${i.on?tt('h.sellado2')+fmtF(S().pasaporte[i.k][i.x.id]):tt('h.teFalta')}</small></div>${stampBtn(i.k,i.x.id)}</div>`).join('')}</div>`,n)}
 function zonaSheet(k){const l=ruta().z[k];sheet(`<div class="zcel">${zSello(k,1,tt('h.zonaCompleta'))}<h2 class="sheet-h">${tt('h.zonaCompleta2',{a:ZN[k]})}</h2><p>${tt('h.sellasteLosPueblosEste',{a:l.length,b:l.map(t=>t.n).join(', ')})}</p><button type="button" class="btn" data-close>${tt('h.wepa')}</button></div>`,tt('h.zonaCompleta'))}
 /* LHB-74: la celebración del sello. El sello recién puesto (y la insignia que gana) se anima una vez y para solo; con menos movimiento no hay nada.
-   No se guarda nada: sale del sello que se acaba de poner. En el pasaporte, que se vuelve a pintar, la lleva CELEB a la próxima pintura (y caduca);
-   en otra página se marca el botón que se tocó. La animación no tapa nada ni quita el toque */
-let CELEB=null;const lessMotion=()=>!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-function celebrate(arg,on,badge,st,repaint){CELEB=null;if(!on||lessMotion())return;if(repaint){CELEB={arg,badge:badge||null,at:Date.now()};return}
- if(st&&st.classList){st.classList.add('is-new');setTimeout(()=>st.classList.remove('is-new'),900)}}
-function celebrated(){const c=CELEB;CELEB=null;if(!c||Date.now()-c.at>2000||lessMotion())return null;return c}
-/* cada pintura le quita la clase solo a lo suyo: la limpieza de un sello anterior no corta la de uno nuevo (Codex ronda 1) */
-function settle(c){if(!c)return;const els=[...view.querySelectorAll('.is-new')];setTimeout(()=>els.forEach(e=>e.classList.remove('is-new')),900)}
-function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got=badgeIds();const pct=all.total?Math.round(c.total*100/all.total):0;const cel=celebrated();
+   No se guarda nada: sale del sello que se acaba de poner. La animación no tapa nada ni quita el toque.
+   La vista se vuelve a pintar mientras se anima (el pasaporte a los 350 ms, la sincronización, el idioma, otro sello): cada elemento nuevo se
+   marca otra vez con el reloj corrido (--cel-at negativo), así la animación sigue donde iba y ni empieza de nuevo ni se corta (Codex ronda 2).
+   El sello empieza al tocarlo (ya sale puesto); la insignia, en la primera pintura que la muestra ganada; lo que no empieza en 2 s, caduca */
+const CEL_OFF=900,CEL_WAIT=2000,LIVE=new Set();let celObs=null;
+const lessMotion=()=>!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+function celDrop(c){LIVE.delete(c);document.querySelectorAll(c.sel).forEach(e=>e.classList.remove('is-new'));if(!LIVE.size&&celObs){celObs.disconnect();celObs=null}}
+function celMark(){if(lessMotion()){[...LIVE].forEach(celDrop);return}const now=Date.now();
+ for(const c of [...LIVE])for(const e of document.querySelectorAll(c.sel)){
+  if(c.start==null){if(!c.ready(e))continue;c.start=now;setTimeout(()=>{if(LIVE.has(c))celDrop(c)},CEL_OFF)}
+  if(!e.classList.contains('is-new')){e.style.setProperty('--cel-at',(c.start-now)+'ms');e.classList.add('is-new')}}}
+function celebrate(arg,on,badge){[...LIVE].filter(c=>c.arg===arg).forEach(celDrop);if(!on||lessMotion())return;
+ const add=(sel,ready)=>{const c={arg,sel,ready,start:null};LIVE.add(c);setTimeout(()=>{if(LIVE.has(c)&&c.start==null)celDrop(c)},CEL_WAIT)};
+ add(`[data-stamp="${CSS.escape(arg)}"]`,e=>e.getAttribute('aria-pressed')==='true');
+ if(badge)add(`[data-badge="${CSS.escape(badge)}"]`,e=>e.classList.contains('on'));
+ if(!celObs&&typeof MutationObserver==='function'){celObs=new MutationObserver(celMark);celObs.observe(document.body,{childList:true,subtree:true})}
+ celMark()}
+function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got=badgeIds();const pct=all.total?Math.round(c.total*100/all.total):0;
  const sec=(k,title,items,name,sub)=>`<div class="section-title"><h2>${title}</h2><span class="count">${tt('h.de2',{a:c[k],b:all[k]})}</span></div><div class="pbar" role="progressbar" aria-label="${tt('h.de3',{a:title,b:c[k],c:all[k]})}" aria-valuemin="0" aria-valuemax="${all[k]}" aria-valuenow="${c[k]}"><i style="width:${all[k]?c[k]*100/all[k]:0}%"></i></div>
-  <div class="stamps">${items.map(x=>{const on=isStamp(k,x.id);return `<button type="button" class="stamp${cel&&cel.arg===k+':'+x.id?' is-new':''}" data-stamp="${k}:${esc(x.id)}" aria-pressed="${on}">${A.mono(name(x),44)}<b>${esc(name(x))}</b><small>${esc(sub(x)||'')}</small><span>${on?tt('h.selladoEl',{d:fmtF(S().pasaporte[k][x.id])}):tt('h.sinSello')}</span></button>`}).join('')}</div>`;
+  <div class="stamps">${items.map(x=>{const on=isStamp(k,x.id);return `<button type="button" class="stamp" data-stamp="${k}:${esc(x.id)}" aria-pressed="${on}">${A.mono(name(x),44)}<b>${esc(name(x))}</b><small>${esc(sub(x)||'')}</small><span>${on?tt('h.selladoEl',{d:fmtF(S().pasaporte[k][x.id])}):tt('h.sinSello')}</span></button>`}).join('')}</div>`;
  view.innerHTML=`${subnav('pasaporte')}
  <section class="pass-hero"><div class="pass-ring" style="--p:${pct}" role="img" aria-label="${tt('h.delPasaporte',{a:pct})}"><b>${pct}%</b><span>${tt('h.de2',{a:c.total,b:all.total})}</span></div><div><h2>${tt('h.pasaporteBoricuaH')}</h2><p>${tt('h.marcaLosArtesanosQue')}</p></div></section>
  ${rutaCard()}
  <div class="section-title"><h2>${tt('h.insignias')}</h2><span class="count">${tt('h.de2',{a:got.length+ru.ok.length,b:BADGES.length+6})}</span></div>
- <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}${cel&&cel.badge===b.id?' is-new':''}" data-badge="${b.id}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:var(--flag-red)"><div class="bico">${VBArt.leaf(on?'var(--flag-red)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
+ <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" data-badge="${b.id}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:var(--flag-red)"><div class="bico">${VBArt.leaf(on?'var(--flag-red)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
  ${sec('artesanos',tt('arts.eyebrow'),d.artesanos,x=>x.nombre,x=>x.pueblo)}
  ${sec('cigarros',tt('h.cigarros2'),d.cigarros,x=>x.nombre,x=>A.artisanName(x))}
  ${sec('lugares',tt('lug.eyebrow'),d.places,x=>x.nombre,x=>x.pueblo)}
- ${backupPanel()}`;settle(cel)}
+ ${backupPanel()}`}
 function vFavoritos(){const s=S(),d=D();const cs=s.favs.cigarros.map(A.cigarById).filter(Boolean),as=s.favs.artesanos.map(A.artisanById).filter(Boolean),ps=s.favs.lugares.map(id=>d.places.find(p=>p.id===id)).filter(Boolean);
  view.innerHTML=`${subnav('favoritos')}
  <div class="section-title"><h2>${tt('h.cigarros2')}</h2><span class="count">${cs.length}</span></div>${cs.length?`<div class="grid">${cs.map(A.cigarCard).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnUnCigarro')+'</div>'}

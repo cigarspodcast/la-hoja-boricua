@@ -94,7 +94,14 @@ try:
     fifth = js(CIG + ".find(b=>b.getAttribute('aria-pressed')==='false').dataset.stamp")
     cig = [None] * 4 + [fifth]
     # the fifth earns Catador: catch the celebration during its 0.58 s
-    js("document.querySelector('[data-stamp=\"%s\"]').click()" % cig[4])
+    # Codex round 2: the passport repaints 350 ms after the tap; the running animation must go on from where it was, not restart.
+    # In one page call: tap, wait 470 ms, then read each running lhb-stamp animation's elapsed active time (local time minus its delay)
+    run = js("(async()=>{const b=document.querySelector('[data-stamp=\"%s\"]');const t0=performance.now();b.click();await new Promise(r=>setTimeout(r,470));"
+             "const now=Math.round(performance.now()-t0);return {now,an:document.getAnimations().filter(a=>a.animationName==='lhb-stamp').map(a=>{const t=a.effect.target,s=t.closest('[data-stamp]'),g=t.closest('[data-badge]');"
+             "return {el:s?s.dataset.stamp:(g?g.dataset.badge:t.tagName),ran:Math.round(a.effect.getComputedTiming().localTime-a.effect.getTiming().delay)}})}})()" % cig[4])
+    ran = dict((a['el'], a['ran']) for a in (run or {}).get('an', []))
+    check('the 350 ms repaint does not restart the stamp (runs from the tap)', run and cig[4] in ran and abs(ran[cig[4]] - run['now']) <= 80, json.dumps(run))
+    check('Catador starts when the repaint shows it earned', 'catador' in ran and 0 <= ran['catador'] <= run['now'] - 300, json.dumps(ran))
     got = wait("document.querySelectorAll('.is-new').length>0", 3)
     news = js("[...document.querySelectorAll('.is-new')].map(e=>e.dataset.stamp||e.dataset.badge)")
     check('the fifth stamp and Catador celebrate', got and cig[4] in (news or []) and 'catador' in (news or []), json.dumps(news))
