@@ -1,0 +1,199 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-80-wt (branch lhb-80-sync-op). TIER 2, round 6.
+
+Ticket LHB-80: an idempotency token (X-Op) on PUT /api/mihoja so a pass can learn whether an upload whose answer was lost landed, and never applies a stale base. Round 5 (evidence/lhb-80-review-r5.txt) blocked on two P1 findings in site/sync.js:
+1. isolate() cleared the copy (setDoc({})) before setOwner() changed the epoch. A failed epoch write, or another tab paused between the clear and setOwner, left a waiting pass valid on the emptied copy, and it uploaded empty collections.
+2. setOwner()'s meta reset could fail while the owner and epoch were written. Back on A, A's stored meta from the earlier copy matched by sub alone and its base read the new empty copy as deletions.
+3. (evidence) The single-record mutant was not equivalent through finding 2's path.
+
+The diff below (one commit against the round 5 prompt commit) changes site/sync.js:
+- newEpoch() writes a fresh random epoch and reports whether it could. isolate() calls it FIRST, before it parks or clears anything, and returns false without touching the copy if it fails. This is now the only place the epoch changes. setOwner() no longer changes it: setOwner() is reached without isolate() only for a copy with no owner (a new device, or after forget), and forget() removes the meta and clears mem, pend and evict.
+- Every meta the code writes carries ep: setOwner's reset, the fresh meta in changed(), poison(), the landed-upload base, and the final meta of a pass. once(), the only reader that takes a base from the stored meta, uses it only when m.sub === uid AND its ep equals ep0. A meta without ep, written before LHB-80, counts as epoch null, and it matches only while no epoch is stored. Main has no epoch, so an upgraded device keeps its base until its first account change. A failed epoch read returns undefined, which matches no stored meta.
+- The other readers (settled, run's minAge, the debounce check, setOwner's reset condition, changed()'s fresh meta) compare sub only, as before. A first version also bound them to the epoch; the mutation proof showed each of those checks was masked by the pass's own check, so they were removed rather than claimed. The stored meta of another copy can then only delay or skip a pass, never give a base. settled() needs an ok pass, and an ok pass writes a meta of its own epoch.
+Tests (LHB-80 block, four added):
+- isolate with the epoch write rejected leaves the copy untouched, and the pass that waited for its GET finishes with the account whole.
+- When isolate clears the copy, the stored epoch has already changed (checked inside setDoc). This is the in-tab stand-in for the two-thread interleaving.
+- Round 5 finding 2's reproduction: A's meta reset is rejected while switching to B, then back on A settled() uploads nothing and the account stays whole.
+- Round 5 finding 3's sequence as a regression test.
+Tests 1 to 3 fail on 9fec0ea; test 4 passes there (it is the mutant's counter-example). Mutants: the round 4 mutant on setOwner's epoch change is removed with that code; two added for round 5 (isolate empties the copy before the epoch changes; the stored meta is not bound to its copy in the pass). The single-record mutant stays named equivalent with a corrected reason (EQUIV in evidence/lhb-80-mutations.py). Evidence: evidence/lhb-80-mutations.out, 33 of 36 red, 3 named equivalent, 0 unexpected survivors; evidence/lhb-80-tests.txt, full suite 370 tests, 369 pass, 0 fail, 1 skipped.
+
+Known limits, stated: pend, evict and mem live in memory. A reload with an upload unresolved falls back to the stored base, as stated since round 1.
+
+Check that findings 1 and 2 are closed in every interleaving of account switches (in this tab and in another tab), lost answers, late writes and storage failures, including a failure at each single write inside isolate() and setOwner(). Check whether a legacy meta without ep can be trusted for the wrong copy. Check whether the epoch can change under a pass that should continue in a way that never recovers. Check whether the equivalence claimed for the single-record mutant (see EQUIV in evidence/lhb-80-mutations.py) now holds. Report anything else that still applies a stale base or lets sign-out discard an upload that can still land.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 5997248 b6c69ad6be66e5618660dc55dab0798975d02fea -- site/sync.js test/site.test.js evidence/lhb-80-mutations.py =====
+diff --git a/evidence/lhb-80-mutations.py b/evidence/lhb-80-mutations.py
+index aec0ecc..12cd4fd 100644
+--- a/evidence/lhb-80-mutations.py
++++ b/evidence/lhb-80-mutations.py
+@@ -27,7 +27,7 @@ MUTS = [
+     (AP, 'PUT without the column fails', 'catch (e) { if (!noOps(e)) throw e; r = await plain(); }', 'catch (e) { throw e; }'),
+     (LB, 'any recorded id answers', 'x[0] === id && ', ''),
+     (SY, 'the PUT does not send its id', ",'X-Op':op})", "})"),
+-    (SY, 'a landed upload is not the base', 'if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}', ''),
++    (SY, 'a landed upload is not the base', 'if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}', ''),
+     (SY, 'an upload that cannot land any more is asked about forever', 'else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);', 'else if(0){'),
+     (SY, 'r1: a missing id is trusted outside the recorded range', 'if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true', ''),
+     (SY, 'an answer about another id is believed', 'const o=oks.find(y=>isObj(y)&&y.id===x.op);', 'const o=oks[0];'),
+@@ -43,9 +43,10 @@ MUTS = [
+     (SY, 'r3: the OPS_ASK limit counts every account', 'const mine=pend.filter(x=>x.sub===uid);', 'const mine=pend;'),
+     (SY, 'r3: one eviction record for every account', 'evict.set(uid,x.rev)', 'evict.clear(),evict.set(uid,x.rev)'),
+     (SY, 'r4: a pass survives an account round trip', 'ownerOf()===uid&&epochOf()===ep0};', 'ownerOf()===uid};'),
+-    (SY, 'r4: a change of owner keeps the epoch', 'if(ownerOf()!==uid)D.ls.set(EPOCH,', 'if(false)D.ls.set(EPOCH,'),
+     (SY, 'r4: the cached base is not bound to its copy', 'mem.sub===uid&&mem.ep===ep0&&', 'mem.sub===uid&&'),
+     (SY, 'r4: an upload sent from another copy is a base', 'if(x.ep!==ep0)voided=true;else if(', 'if('),
++    (SY, 'r5: isolate empties the copy before the epoch changes', '   if(!newEpoch())return false;\n   let raw=null;', '   let raw=null;'),
++    (SY, 'r5: the stored meta is not bound to its copy (the pass)', 'meta0.sub===uid&&epOf(meta0)===ep0?meta0', 'meta0.sub===uid?meta0'),
+ ]
+ 
+ 
+@@ -59,7 +60,10 @@ EQUIV = {
+     # (its fence and settled() do not need the record). Codex r4 refuted the rest of the round 3 argument: the in-memory base (memOk) survived a switch, and
+     # its counter-example (the 'A sin meta guardada' test) fails this mutant on the round 3 and 4 code. Since the epoch fix, no base survives a switch (setOwner
+     # resets the stored one, mem and landed uploads are bound to their epoch), so the record of an account after another one used the device decides nothing.
+-    'r3: one eviction record for every account': 'since the epoch fix no base outlives an account switch, and the account keeps its other uploads at the same If-Match',
++    # Codex r5 refuted the round 4 reason: a failed meta reset kept A's stored base across a switch, and its sequence (now the 'nueve quitas de A ... a1 se queda'
++    # test) fails this mutant on 9fec0ea. Since round 5 the stored meta carries its epoch and the pass rejects it from another copy, so after a switch every base
++    # A can use (stored meta, mem, a landed upload, the seed of the emptied copy) belongs to A's new copy; whether A's record voids it changes no merge.
++    'r3: one eviction record for every account': 'since round 5 every base (stored meta, mem, landed uploads) is bound to the epoch of its copy, and the account keeps its other uploads at the same If-Match',
+ }
+ 
+ 
+diff --git a/site/sync.js b/site/sync.js
+index 0dff878..6886b9f 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -105,8 +105,12 @@ window.LHB_SYNC=function(D){
+  /* LHB-80 (Codex r4): la época de la copia. Cambia cada vez que la copia de este teléfono pasa a otra dueña (isolate, en esta pestaña o en otra; también ida y vuelta
+     a la misma cuenta, que deja la copia vacía): una pasada que empezó en otra época ya no vale, y una base en memoria o lo que mandó una subida solo es base de la copia de su época */
+  const EPOCH=KEY+'_epoca';
+- const epochOf=()=>{try{return D.ls.get(EPOCH)}catch(e){return null}};
+- const setOwner=uid=>{if(fenced())return false;try{if(ownerOf()!==uid)D.ls.set(EPOCH,Math.random().toString(36).slice(2,12)+Date.now().toString(36));D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false}));return true}catch(e){return false}};
++ const epochOf=()=>{try{return D.ls.get(EPOCH)}catch(e){return undefined}};
++ const newEpoch=()=>{try{D.ls.set(EPOCH,Math.random().toString(36).slice(2,12)+Date.now().toString(36));return true}catch(e){return false}};
++ /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
++    que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
++ const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
++ const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false,ep:epochOf()}));return true}catch(e){return false}};
+  /* antes de guardar lo que escribe la persona hay que poder anotar de quién es; si no se puede, no se guarda */
+  const ensureOwner=()=>{const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;if(ownerOf()!==null)return true;return setOwner(acc.sub)};
+  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
+@@ -117,6 +121,8 @@ window.LHB_SYNC=function(D){
+  function isolate(){if(inIso)return true;const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
+   const old=ownerOf();if(old===null||old===acc.sub)return true;
+   inIso=true;try{
++   /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
++   if(!newEpoch())return false;
+    let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
+    if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return false;try{D.ls.set(k,raw)}catch(e){return false}}
+    applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
+@@ -133,12 +139,12 @@ window.LHB_SYNC=function(D){
+   const ep0=epochOf();
+   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid&&epochOf()===ep0};
+   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
+-  const meta0=readMeta();let meta=meta0&&meta0.sub===uid?meta0:null;
++  const meta0=readMeta();let meta=meta0&&meta0.sub===uid&&epOf(meta0)===ep0?meta0:null;
+   /* LHB-80 (Codex r1): el servidor contestó por las subidas que se le preguntaron (tiene la columna ops) */
+   let opsSeen=false;
+   const first=!meta||!meta.at;
+   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
+-  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true});
++  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});
+   for(let i=0;i<TRIES;i++){
+    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
+    /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
+@@ -158,7 +164,7 @@ window.LHB_SYNC=function(D){
+     for(const x of ask){const o=oks.find(y=>isObj(y)&&y.id===x.op);if(!o)continue;
+      if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(o.rev===x.rev+1)won=Math.max(won,o.rev);if(x.ep!==ep0)voided=true;else if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
+      else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true}}
+-    if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}}
++    if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}}
+    /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
+       LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
+    if(!oks&&ask.some(x=>rev>=x.rev+2))voided=true;
+@@ -213,7 +219,7 @@ window.LHB_SYNC=function(D){
+    /* ...y lo que cambió en la copia mientras tanto (aunque el contador compartido no se haya podido escribir) */
+    const edited=edits!==e0||readSeq()!==s0||!quiet;
+    mem={sub:uid,base:merged,rev:newRev,ep:ep0};
+-   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}
++   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0})){staleBase=true;poison();return {fail:'storage'}}
+    /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */
+    staleBase=false;voided=false;if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);if(!edited)dirty=false;
+    if(!quiet&&canon(final)!==canon(merged))again=true;
+@@ -245,7 +251,7 @@ window.LHB_SYNC=function(D){
+   ensureOwner();
+   /* sin base guardada, lo que había en este teléfono antes de esta primera edición queda como semilla (meta.seed) para la primera pasada */
+   {const acc=D.acct(),sub=acc&&typeof acc.sub==='string'?acc.sub:'';let m=readMeta(),ch=false;
+-   if(sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false};ch=true}
++   if(sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false,ep:epochOf()};ch=true}
+    if(m){if(!m.dirty){m.dirty=true;ch=true}
+     if(sub&&m.sub===sub&&!m.base&&!m.seed&&prev!=null){try{const p=JSON.parse(prev);if(isObj(p)){m.seed=std(p);ch=true}}catch(e){}}
+     if(ch)writeMeta(m)}}
+diff --git a/test/site.test.js b/test/site.test.js
+index d4398c1..835a6db 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -6324,6 +6324,60 @@ test('LHB-80 (Codex r4): una subida de A llegó sin respuesta; B entra y A vuelv
+   const d=srv28(a,'user_a').doc;assert.ok(d.humidor.length===1&&d.diario.length===1&&d.favs.artesanos.includes('a1')&&d.ratings.c1===5,'la cuenta sigue entera');
+   assert.equal(A.doc().ratings.c1,5,'y el teléfono la trajo');
+  }finally{a.done()}});
++test('LHB-80 (Codex r5): si la época nueva no se puede escribir, isolate no toca la copia; la pasada que esperaba su GET sigue y la cuenta queda entera',async()=>{
++ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let hold=null,rel=null;
++  A.D.api=async(C,m,path,...r)=>{if(m==='GET'&&hold){const h=hold;hold=null;await h}return api(C,m,path,...r)};
++  hold=new Promise(r=>{rel=r});const p=A.eng.settled({});await tick();
++  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_epoca';
++  assert.equal(A.eng.isolate(),false,'sin época nueva no se cambia de cuenta');
++  assert.ok(FULL80(A.doc()),'la copia sigue como estaba');
++  A.st.failKey=null;A.st.acct=A.st.user='user_a';A.eng.isolate();
++  rel();await p;
++  assert.ok(FULL80(srv28(a,'user_a').doc),'la cuenta sigue entera');assert.ok(FULL80(A.doc()),'y el teléfono también');
++ }finally{a.done()}});
++test('LHB-80 (Codex r5): cuando isolate vacía la copia, la época ya cambió (otra pestaña que espera ya no vale mientras el cambio está a medias)',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const E='lhb_mihoja_v1_epoca',e0=A.ls.get(E);let seen;const sd=A.D.setDoc;
++  A.D.setDoc=(d,...r)=>{if(seen===undefined&&d&&!Object.keys(d).length)seen=A.ls.get(E);return sd(d,...r)};
++  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),true);
++  assert.notEqual(seen,undefined,'isolate vació la copia');assert.notEqual(seen,e0,'la época cambió antes de vaciarla');
++ }finally{a.done()}});
++test('LHB-80 (Codex r5): la meta de A que no se pudo reponer al pasar a B no es base de la copia nueva de A al volver: nada se sube como borrado',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  A.edit(d=>{d.ratings.c1=5});
++  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_sync';A.eng.isolate();A.st.failKey=null;
++  A.st.acct=A.st.user='user_a';A.eng.isolate();
++  await A.eng.settled({});
++  assert.ok(FULL80(srv28(a,'user_a').doc),'la cuenta sigue entera');assert.equal(srv28(a,'user_a').rev,1,'no subió nada');
++ }finally{a.done()}});
++test('LHB-80 (Codex r5): nueve quitas de A sin respuesta, la vuelta de a1, B sin poder reponer la meta y nueve subidas sin respuesta; de vuelta en A, la más vieja llega tarde: a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let late=null;
++  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(C.user.id==='user_a'&&!late)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});for(let i=0;i<9;i++)await A.sync();
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_sync';A.eng.isolate();A.st.failKey=null;
++  for(let i=0;i<9;i++)await A.sync();
++  A.st.acct=A.st.user='user_a';A.eng.isolate();
++  A.edit(d=>{Object.assign(d,JSON.parse(JSON.stringify(DOC28)))});
++  await late();assert.equal(srv28(a,'user_a').rev,2,'la quita más vieja llegó tarde');
++  A.D.api=api;assert.equal((await A.sync()).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
+ test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
+  for(const lose of [false,true]){const a=await ENG28();
+   try{

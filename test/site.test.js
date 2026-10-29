@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v115'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v116'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -61,23 +61,23 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
- assert.match(sw,/const VERSION='lhb-v115'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
+ assert.match(sw,/const VERSION='lhb-v116'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
  assert.ok(a.includes(f)&&a.includes("VEHICULO='guagua'"));
  for(const g of ['img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
 test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v115'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v116'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v115'/);
+ assert.match(sw,/const VERSION='lhb-v116'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v115'/);
+ assert.match(sw,/const VERSION='lhb-v116'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
  const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%231EA8D7')&&em.includes('%23ED0000'),'bandera de los vacíos con el celeste y el rojo de la bandera (LHB-67: el celeste de la guagua)');
@@ -99,12 +99,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v115'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v116'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v115'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v116'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -112,7 +112,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v115'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v116'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -129,7 +129,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v115/);});
+ assert.match(read('sw.js'),/lhb-v116/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -142,19 +142,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v115'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v116'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v115'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v116'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v115'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v116'/);});
 
 test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
- for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v115'/);});
+ for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v116'/);});
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
@@ -1216,7 +1216,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v115'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1463,7 +1463,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v115'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v116'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1641,7 +1641,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v115'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1888,7 +1888,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
- assert.match(read('sw.js'),/const VERSION='lhb-v115'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
@@ -2190,7 +2190,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v115'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -2473,7 +2473,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
 });
 test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
- assert.match(read('sw.js'),/const VERSION='lhb-v115'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
@@ -2654,8 +2654,9 @@ test('LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar
 async function API28(){
  const a=await API52();const M=await a.imp('api/mihoja.js'),ML=await a.imp('_lib/mihoja.js');
  const mk=(u,handle)=>a.db.prepare("INSERT INTO profiles (user_id,handle,display_name,avatar_key,first_name,last_name,gender,birth_date,hidden,age_ok_at,created_at,updated_at) VALUES (?1,?2,'Ana M.',NULL,'Ana','Mora','F','1990-05-17',0,'2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z')").run(u,handle);
- const rq=(token,body,o)=>{o=o||{};return {headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':o.type!==undefined?o.type:'application/json','If-Match':o.match!==undefined?o.match:null,'Content-Length':o.len!==undefined?o.len:null})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body,text:async()=>typeof body==='string'?body:JSON.stringify(body)}};
- const get=async(u,e=a.env)=>{const r=await M.onRequestGet({request:rq(u?await a.tok(u):null),env:e});return [r.status,await r.json()]};
+ /* LHB-80: o.path (la ruta con ?op=) y o.op (la cabecera X-Op) */
+ const rq=(token,body,o)=>{o=o||{};return {url:'https://x.test'+(o.path||'/api/mihoja'),headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':o.type!==undefined?o.type:'application/json','If-Match':o.match!==undefined?o.match:null,'Content-Length':o.len!==undefined?o.len:null,'X-Op':o.op!==undefined?o.op:null})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body,text:async()=>typeof body==='string'?body:JSON.stringify(body)}};
+ const get=async(u,e=a.env,o)=>{const r=await M.onRequestGet({request:rq(u?await a.tok(u):null,undefined,o),env:e});return [r.status,await r.json()]};
  const put=async(u,body,match,o,e=a.env)=>{const r=await M.onRequestPut({request:rq(u?await a.tok(u):null,body,{match,...(o||{})}),env:e});return [r.status,await r.json()]};
  const rows=()=>a.db.prepare('SELECT COUNT(*) n FROM mihoja').get().n;
  return {...a,M,ML,mk,get,put,rows,rq}}
@@ -2816,13 +2817,13 @@ test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, 
 /* un teléfono de mentira para probar el motor contra el servidor de verdad (SQLite): su almacenamiento, su reloj, sus temporizadores y su red */
 function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,failBigKey:null,failBig:0,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
  const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
- const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)}},
+ const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)},remove:k=>{ls.delete(k)}},
   getDoc:()=>rawDoc(),setDoc:(d,exp)=>{st.setDocs++;if(st.beforeApply){const f=st.beforeApply;st.beforeApply=null;f()}if(exp!==undefined&&win.LHB_MERGE.stable(rawDoc())!==exp)return 'stale';if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
    net.log.push(method);if(net.status&&net.status[method])return {status:net.status[method],body:{}};if(method==='GET'&&net.beforeGet){const f=net.beforeGet;net.beforeGet=null;await f()}
    if(method==='PUT'&&net.beforePut){const f=net.beforePut;net.beforePut=null;await f()}
-   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match']}),env:a.env});if(method==='PUT'&&net.dropAfterPut){net.dropAfterPut=false;throw new TypeError('sin red')}if(method==='PUT'&&net.afterPut){const f=net.afterPut;net.afterPut=null;await f()}if(method==='PUT'&&net.badBody){net.badBody=false;return {status:r.status,body:{}}}return {status:r.status,body:await r.json()}},
+   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match'],op:headers&&headers['X-Op'],path}),env:a.env});if(method==='PUT'&&net.dropAfterPut){net.dropAfterPut=false;throw new TypeError('sin red')}if(method==='PUT'&&net.afterPut){const f=net.afterPut;net.afterPut=null;await f()}if(method==='PUT'&&net.badBody){net.badBody=false;return {status:r.status,body:{}}}return {status:r.status,body:await r.json()}},
   acct:()=>st.acct?{sub:st.acct}:null,now:()=>new Date(st.clock).toISOString(),nowMs:()=>st.clock,
   setTimer:(fn,ms)=>{const t={fn,ms,live:true};timers.push(t);return t},clearTimer:t=>{if(t)t.live=false},
   toast:m=>toasts.push(m),listen:(ev,fn)=>{handlers[ev]=fn},onState:s=>{st.states.push(s.state)},onApplied:()=>{st.applied++}};
@@ -3441,7 +3442,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
 });
 test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v115'/);
+ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v116'/);
  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
@@ -5120,7 +5121,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
- assert.match(read('sw.js'),/const VERSION='lhb-v115'/);
+ assert.match(read('sw.js'),/const VERSION='lhb-v116'/);
 });
 /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
 function DOM64(){
@@ -6009,6 +6010,573 @@ test('LHB-102: unas subidas guardadas rotas ({} , un texto, null, una lista con 
  assert.deepEqual(JSON.parse(c.ls.get('vb_uploads')).map(x=>x.id).sort(),['u1','u9'],'con una lista buena, junta las dos como antes');
 });
 
+/* ===================== LHB-80: el id de cada subida de Mi Hoja (X-Op), y GET ?op= para saber si una subida sin respuesta llegó ===================== */
+test('LHB-80: con 0008, un PUT con X-Op anota su id con el rev nuevo en la misma sentencia; GET ?op= dice en qué rev llegó, o null; se recuerdan las últimas OPS_KEEP',async()=>{
+ const a=await API28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));a.mk('user_a','ana_a');a.mk('user_b','beto_b');
+  const cols=a.db.prepare('PRAGMA table_info(mihoja)').all().map(c=>c.name);assert.ok(cols.includes('ops'),'la columna ops');
+  const q=id=>({path:'/api/mihoja?op='+id});
+  assert.deepEqual((await a.get('user_a',a.env,q('op_crear_01')))[1].op,{id:'op_crear_01',rev:null},'sin copia, no llegó');
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'0',{op:'op_crear_01'}))[0],200);
+  assert.deepEqual((await a.get('user_a',a.env,q('op_crear_01')))[1].op,{id:'op_crear_01',rev:1},'crear la copia la anota en el rev 1');
+  assert.equal((await a.put('user_a',{schema:1,doc:{...DOC28,ratings:{c1:5}}},'1',{op:'op_segunda_2'}))[0],200);
+  const [st,b]=await a.get('user_a',a.env,q('op_segunda_2'));assert.equal(st,200);assert.equal(b.rev,2);assert.deepEqual(b.op,{id:'op_segunda_2',rev:2});assert.deepEqual(b.doc.ratings,{c1:5},'el resto de la respuesta es el de siempre');
+  assert.deepEqual((await a.get('user_a',a.env,q('op_crear_01')))[1].op,{id:'op_crear_01',rev:1},'la de antes sigue');
+  assert.deepEqual((await a.get('user_a',a.env,q('op_que_no_es')))[1].op,{id:'op_que_no_es',rev:null});
+  /* un PUT que no escribe (409) no anota su id */
+  const [c409]=await a.put('user_a',{schema:1,doc:DOC28},'1',{op:'op_choca_409'});assert.equal(c409,409);
+  assert.deepEqual((await a.get('user_a',a.env,q('op_choca_409')))[1].op,{id:'op_choca_409',rev:null},'un 409 no llegó');
+  /* sin X-Op se escribe como siempre y no se anota nada */
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'2'))[0],200);
+  assert.equal(JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops).length,2);
+  /* sin ?op, GET contesta como siempre */
+  assert.ok(!('op' in (await a.get('user_a'))[1]));
+  /* la copia de otra cuenta no dice nada de las subidas de esta */
+  assert.equal((await a.put('user_b',{schema:1,doc:DOC28},'0',{op:'op_de_beto1'}))[0],200);
+  assert.deepEqual((await a.get('user_b',a.env,q('op_segunda_2')))[1].op,{id:'op_segunda_2',rev:null});
+  /* solo las últimas OPS_KEEP */
+  const K=a.ML.OPS_KEEP;assert.equal(K,20);assert.equal(a.ML.OPS_ASK,8);assert.match(read('sync.js'),/\r?\nconst OPS_ASK=8;\r?\n/,'el teléfono pregunta las mismas que el servidor acepta');
+  let rev=3;for(let i=0;i<K+2;i++){assert.equal((await a.put('user_a',{schema:1,doc:DOC28},String(rev),{op:'op_tanda_'+String(i).padStart(2,'0')}))[0],200);rev++}
+  const ops=JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops);assert.equal(ops.length,K);
+  assert.deepEqual(ops[K-1],['op_tanda_'+String(K+1).padStart(2,'0'),rev],'la más nueva al final, con su rev');
+  assert.deepEqual((await a.get('user_a',a.env,q('op_tanda_01')))[1].op,{id:'op_tanda_01',rev:null},'las más viejas se olvidan');
+  assert.deepEqual((await a.get('user_a',a.env,q('op_tanda_02')))[1].op,{id:'op_tanda_02',rev:6});
+  /* una lista dañada no rompe nada: se empieza de nuevo */
+  a.db.prepare("UPDATE mihoja SET ops='no es json' WHERE user_id='user_a'").run();
+  assert.deepEqual((await a.get('user_a',a.env,q('op_tanda_02')))[1].op,{id:'op_tanda_02',rev:null});
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},String(rev),{op:'op_tras_dano'}))[0],200);
+  assert.deepEqual(JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops),[['op_tras_dano',rev+1]]);
+  /* un id que no vale */
+  for(const bad of ['corto','con espacio x','x'.repeat(65),'acento_ñandú'])assert.deepEqual(await a.put('user_a',{schema:1,doc:DOC28},String(rev+1),{op:bad}),[400,{error:'bad-op'}],bad);
+  assert.deepEqual(await a.get('user_a',a.env,{path:'/api/mihoja?op=corto'}),[400,{error:'bad-op'}]);
+  /* Codex r1: varias a la vez (ops, en orden) y desde qué rev la lista lo puede decir (opsFrom, el más viejo anotado); hasta OPS_ASK */
+  {const [st,b]=await a.get('user_a',a.env,{path:'/api/mihoja?op=op_tras_dano&op=op_que_no_es&op=op_tanda_02'});assert.equal(st,200);
+   assert.deepEqual(b.ops,[{id:'op_tras_dano',rev:rev+1},{id:'op_que_no_es',rev:null},{id:'op_tanda_02',rev:null}]);assert.deepEqual(b.op,b.ops[0]);assert.equal(b.opsFrom,rev+1);}
+  assert.deepEqual(await a.get('user_a',a.env,{path:'/api/mihoja?'+Array.from({length:9},(_,i)=>'op=op_nueve_'+i+'x').join('&')}),[400,{error:'bad-op'}],'más de OPS_ASK');
+  assert.equal((await a.get('user_a',a.env,{path:'/api/mihoja?'+Array.from({length:8},(_,i)=>'op=op_ocho__'+i+'x').join('&')}))[0],200,'OPS_ASK sí');
+  assert.equal((await a.get('user_b',a.env,{path:'/api/mihoja?op=op_de_beto1'}))[1].opsFrom,1);
+  assert.equal(a.db.prepare("SELECT rev FROM mihoja WHERE user_id='user_a'").get().rev,rev+1,'un rechazo no cambia nada');
+ }finally{a.done()}
+});
+test('LHB-80: sin 0008 todavía, un PUT con X-Op escribe como siempre y GET ?op= contesta como siempre (sin op)',async()=>{
+ const a=await API28();
+ try{
+  a.mk('user_a','ana_a');
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'0',{op:'op_crear_01'}))[0],200);
+  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'1',{op:'op_segunda_2'}))[0],200);
+  const [st,b]=await a.get('user_a',a.env,{path:'/api/mihoja?op=op_segunda_2'});assert.equal(st,200);assert.equal(b.rev,2);assert.ok(!('op' in b),'sin la columna no dice nada');
+  /* otro error de la base no se esconde */
+  const env={...a.env,DB:{prepare:()=>({bind:()=>({first:async()=>{throw new Error('D1_ERROR: algo más')},run:async()=>{throw new Error('D1_ERROR: algo más')}})})}};
+  assert.deepEqual(await a.get('user_a',env,{path:'/api/mihoja?op=op_segunda_2'}),[503,{error:'unavailable'}]);
+ }finally{a.done()}
+});
+/* las dos maneras en que una subida llega sin que el teléfono lo sepa: la respuesta no se puede leer, o la red se cae después de escribir */
+const LOST80=['badBody','dropAfterPut'];
+test('LHB-80 (reproducción 1): la quita de un favorito llega sin respuesta y la persona lo vuelve a poner antes del reintento: el favorito se queda, aquí y en la cuenta',async()=>{
+ for(const lost of LOST80){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');
+   A.seed(DOC28);assert.equal((await A.sync()).ok,true);assert.equal((await B.sync()).ok,true);
+   assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'a1 en el rev 1');
+   /* A quita a1; su PUT escribe el rev 2 pero la respuesta se pierde */
+   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;const r1=await A.sync();assert.notEqual(r1.ok,true,lost+': la pasada no sabe si llegó');
+   assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita llegó');
+   /* antes del reintento, la persona lo vuelve a poner en este mismo teléfono */
+   A.edit(d=>{d.favs.artesanos=['a1']});
+   const r2=await A.sync();assert.equal(r2.ok,true,lost);
+   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': a1 se queda en el teléfono');
+   assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');assert.equal(srv28(a,'user_a').rev,3);
+  }finally{a.done()}}});
+test('LHB-80 (reproducción 2): la quita llega sin respuesta, el otro teléfono la trae y lo vuelve a poner justo antes del reintento: el favorito y la estrella nueva se quedan',async()=>{
+ for(const lost of LOST80){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');
+   A.seed(DOC28);await A.sync();await B.sync();
+   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;await A.sync();assert.equal(srv28(a,'user_a').rev,2);
+   /* B trae la quita y prepara volver a ponerlo */
+   assert.equal((await B.sync()).ok,true);assert.deepEqual(B.doc().favs.artesanos,[]);B.edit(d=>{d.favs.artesanos=['a1']});
+   /* A cambia una estrella y reintenta; después de que A lee el rev 2, B sube su vuelta (rev 3) */
+   A.edit(d=>{d.ratings.c1=5});A.net.beforePut=async()=>{assert.equal((await B.sync()).ok,true);assert.equal(srv28(a,'user_a').rev,3)};
+   const r=await A.sync();assert.equal(r.ok,true,lost);
+   const s=srv28(a,'user_a');
+   assert.deepEqual(s.doc.favs.artesanos,['a1'],lost+': la vuelta de B se queda en la cuenta');assert.equal(s.doc.ratings.c1,5,lost+': y la estrella de A');
+   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': A también lo tiene');
+   assert.equal((await B.sync()).ok,true);assert.deepEqual(B.doc().favs.artesanos,['a1']);assert.equal(B.doc().ratings.c1,5);
+  }finally{a.done()}}});
+test('LHB-80: una subida sin respuesta que no llegó, y la cuenta ya pasó de su rev: se olvida y se junta con la base de antes; sin 0008, como antes (sin dar nada por borrado)',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
+  /* el PUT de A nunca llega (la red se cae antes) */
+  const asks=[];const api=A.D.api;A.D.api=async(C,m,path,...r)=>{asks.push(m+' '+path);if(m==='PUT'&&!asks.some(x=>x==='skip'))throw new TypeError('sin red');return api(C,m,path,...r)};
+  A.edit(d=>{d.humidor.push({id:'h2',marca:'De A',actualizado:'2026-10-29'})});await A.sync();assert.equal(srv28(a,'user_a').rev,1,'no llegó');
+  asks.push('skip');
+  /* B sube otra cosa (rev 2) */
+  B.edit(d=>{d.humidor.push({id:'h3',marca:'De B',actualizado:'2026-10-29'})});await B.sync();
+  const r=await A.sync();assert.equal(r.ok,true);
+  assert.ok(asks.some(x=>/^GET \/api\/mihoja\?op=[A-Za-z0-9_-]{8,64}$/.test(x)),'se preguntó por la subida sin respuesta');
+  assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','h2','h3']);
+  /* después ya no se pregunta */
+  asks.length=0;asks.push('skip');await A.sync();assert.ok(!asks.some(x=>/\?op=/.test(x)),'ya no se pregunta');
+ }finally{a.done()}
+ /* sin la columna (0008 sin aplicar) el GET no dice nada y se sigue como antes */
+ const b=await ENG28();
+ try{
+  const A=DEV28(b,'user_a');A.seed(DOC28);await A.sync();A.edit(d=>{d.favs.artesanos=[]});A.net.badBody=true;await A.sync();
+  A.edit(d=>{d.favs.artesanos=['a1']});const r=await A.sync();assert.equal(r.ok,true,'sin 0008 la pasada termina');
+ }finally{b.done()}});
+test('LHB-80: la subida sin respuesta llegó, pero después la cuenta subió más de OPS_KEEP veces y su id ya no está: no se da por no llegada (no se borra la vuelta de la persona)',async()=>{
+ for(const lost of LOST80){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');
+   A.seed(DOC28);await A.sync();await B.sync();
+   /* A quita a1; llega en el rev 2 sin respuesta; A lo vuelve a poner */
+   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;await A.sync();assert.equal(srv28(a,'user_a').rev,2);
+   A.edit(d=>{d.favs.artesanos=['a1']});
+   /* B sube 21 veces (estrellas): el id de A sale de la lista */
+   for(let i=0;i<21;i++){B.edit(d=>{d.ratings['c'+i]=4});assert.equal((await B.sync()).ok,true)}
+   assert.ok(srv28(a,'user_a').rev>1+20,'más de OPS_KEEP revs después del que pidió A');
+   assert.ok(!JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops).some(x=>x[1]===2),'el id de A (rev 2) ya no está');
+   const r=await A.sync();assert.equal(r.ok,true,lost);
+   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': la vuelta de a1 se queda en el teléfono');
+   assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');assert.equal(srv28(a,'user_a').doc.ratings.c20,4);
+  }finally{a.done()}}});
+test('LHB-80: una quita cuyo PUT no llegó, y la cuenta subió dos veces mientras tanto: el servidor dice que no llegó, así que se olvida y la quita se aplica en el reintento',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
+  /* A quita a1; su PUT nunca llega (la red se cae antes) */
+  let drop=true;const api=A.D.api;A.D.api=async(C,m,...r)=>{if(m==='PUT'&&drop)throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,1,'no llegó');drop=false;
+  /* B sube dos veces otra cosa (rev 3) */
+  for(const c of ['c1','c2']){B.edit(d=>{d.ratings[c]=3});assert.equal((await B.sync()).ok,true)}
+  assert.equal(srv28(a,'user_a').rev,3);
+  const r=await A.sync();assert.equal(r.ok,true);
+  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita de A llegó a la cuenta');assert.deepEqual(A.doc().favs.artesanos,[]);
+  assert.equal(srv28(a,'user_a').doc.ratings.c2,3,'y lo de B se queda');
+ }finally{a.done()}});
+test('LHB-80: una respuesta de GET ?op= sobre otro id no se cree: la quita que no llegó se aplica',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  let drop=true;const api=A.D.api;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'&&drop)throw new TypeError('sin red');const x=await api(C,m,path,...r);
+   /* un servidor que contesta por otra subida, como si hubiera llegado */
+   if(m==='GET'&&/\?op=/.test(path)&&x&&x.body&&x.body.op)x.body={...x.body,op:{id:'otra_subida_99',rev:1},ops:[{id:'otra_subida_99',rev:1}],opsFrom:1};return x};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();drop=false;assert.equal(srv28(a,'user_a').rev,1);
+  const r=await A.sync();assert.equal(r.ok,true);
+  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita llegó');assert.deepEqual(A.doc().favs.artesanos,[]);
+ }finally{a.done()}});
+test('LHB-80 (Codex r1): la quita queda a medio escribir en el servidor; la persona lo vuelve a poner y cambia una estrella; la quita termina justo antes de la nueva subida (409): el favorito y la estrella se quedan',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* el primer PUT de A se queda en el servidor sin terminar (la red se cae); el segundo lo deja terminar justo antes */
+  let late=null,n=0;const api=A.D.api;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}if(late){const f=late;late=null;await f()}}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,1,'todavía no llegó');
+  A.edit(d=>{d.favs.artesanos=['a1'];d.ratings.c1=5});
+  const r=await A.sync();assert.equal(r.ok,true);
+  const s=srv28(a,'user_a');assert.ok(s.rev>=3,'la quita llegó (rev 2) y después la vuelta');
+  assert.deepEqual(s.doc.favs.artesanos,['a1'],'la vuelta de a1 se queda en la cuenta');assert.equal(s.doc.ratings.c1,5);
+  assert.deepEqual(A.doc().favs.artesanos,['a1'],'y en el teléfono');
+ }finally{a.done()}});
+test('LHB-80 (Codex r1, r2): con una subida que todavía puede llegar, la pasada sin nada nuevo sube igual con el mismo If-Match (la valla): la quita que llega tarde da 409 y la vuelta de la persona se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  let late=null,n=0;const api=A.D.api;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+  /* la persona lo vuelve a poner: la copia es otra vez la de la cuenta y la pasada no sube nada */
+  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);assert.equal(n,2,'subió otra vez con If-Match 1, aunque no hubiera nada nuevo');assert.equal(srv28(a,'user_a').rev,2);
+  /* la quita termina ahora: ya no puede llegar */
+  assert.equal((await late()).status,409);assert.equal(srv28(a,'user_a').rev,2);
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,['a1'],'la vuelta se queda en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-80 (Codex r1): una quita que llegó antes de 0008 (sin anotar) y se aplica 0008 antes del reintento: que no esté no se toma por no llegada; la vuelta de la persona se queda',async()=>{
+ for(const lost of LOST80){const a=await ENG28();
+  try{
+   const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;await A.sync();assert.equal(srv28(a,'user_a').rev,2);assert.equal(srv28(a,'user_a').doc.favs.artesanos.length,0);
+   A.edit(d=>{d.favs.artesanos=['a1']});
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const r=await A.sync();assert.equal(r.ok,true,lost);
+   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');
+  }finally{a.done()}}});
+test('LHB-80 (Codex r2): nueve subidas sin respuesta (la más vieja deja de preguntarse) y la persona lo vuelve a poner; la más vieja llega tarde: la vuelta se queda, aquí y en la cuenta',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* el primer PUT queda en camino (llega cuando la prueba dice); los demás no llegan nunca */
+  const api=A.D.api;let late=null,n=0;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(++n===1)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});for(let i=0;i<9;i++)await A.sync();assert.equal(n,9);assert.equal(srv28(a,'user_a').rev,1);
+  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();
+  await late();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó tarde');
+  A.D.api=api;assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,['a1'],'en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-80 (Codex r2): tras nueve subidas sin respuesta, cuando se sabe que la olvidada ya no puede llegar (llegó una de las preguntadas, o la valla) la base vale: lo que el otro teléfono quitó no vuelve',async()=>{
+ for(const how of ['la novena llegó sin respuesta','la valla llegó']){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a');A.seed({...DOC28,favs:{...DOC28.favs,artesanos:['a1','a2']}});await A.sync();
+   const api=A.D.api;let n=0;
+   A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===9&&how==='la novena llegó sin respuesta'){await api(C,m,path,...r);throw new TypeError('sin red')}throw new TypeError('sin red')}return api(C,m,path,...r)};
+   A.edit(d=>{d.favs.artesanos=['a2']});for(let i=0;i<9;i++)await A.sync();
+   A.D.api=api;
+   if(how==='la valla llegó'){assert.equal(srv28(a,'user_a').rev,1);assert.equal((await A.sync()).ok,true);}
+   assert.equal(srv28(a,'user_a').rev,2,how);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a2'],how);
+   /* el otro teléfono trae eso y quita a2 */
+   const B=DEV28(a,'user_a');await B.sync();B.edit(d=>{d.favs.artesanos=[]});await B.sync();assert.equal(srv28(a,'user_a').rev,3,how);
+   assert.equal((await A.sync()).ok,true,how);
+   assert.deepEqual(A.doc().favs.artesanos,[],how+': a2 no vuelve aquí');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],how+': ni en la cuenta');
+  }finally{a.done()}}});
+test('LHB-80 (Codex r3): otra cuenta en el mismo teléfono hace nueve subidas sin respuesta: no borra la subida de la primera que todavía puede llegar; al volver, la valla y salir siguen esperándola',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(C.user.id==='user_a'&&!late)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  /* entra user_b en este mismo teléfono y sube nueve veces sin respuesta */
+  A.st.acct=A.st.user='user_b';for(let i=0;i<9;i++)await A.sync();
+  A.st.acct=A.st.user='user_a';A.D.api=api;
+  const st=await A.eng.settled({});assert.equal(st.ok,true,'la pasada de salir puso la valla y llegó');assert.equal(srv28(a,'user_a').rev,2);
+  assert.equal((await late()).status,409,'la quita de antes ya no puede llegar');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,['a1'],'en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y en la cuenta');
+ }finally{a.done()}});
+/* LHB-80 (Codex r4): lo que tiene la cuenta, para ver que nada se vació */
+const FULL80=d=>!!d&&Array.isArray(d.humidor)&&d.humidor.length===1&&Array.isArray(d.diario)&&d.diario.length===1&&!!d.favs&&d.favs.artesanos.includes('a1')&&!!d.ratings&&d.ratings.c1===4;
+test('LHB-80 (Codex r4): ida y vuelta de cuentas mientras una pasada espera su GET (A, B, C, A): la pasada de antes ya no vale; nada se sube como borrado y la cuenta queda entera',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let late=null,hold=null,rel=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}if(m==='GET'&&hold){const h=hold;hold=null;await h}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  hold=new Promise(r=>{rel=r});const p=A.eng.settled({});await tick();
+  for(const u of ['user_b','user_c','user_a']){A.st.acct=A.st.user=u;A.eng.isolate()}
+  rel();const st=await p;
+  assert.equal(st.ok,false,'la pasada de antes del ida y vuelta no vale');
+  assert.equal(srv28(a,'user_a').rev,1,'no subió nada');assert.ok(FULL80(srv28(a,'user_a').doc),'la cuenta sigue entera');
+  /* la pasada siguiente, con la copia vacía de esta época: trae, pone la valla, y la quita de antes ya no puede llegar */
+  assert.equal((await A.sync()).ok,true);assert.equal((await late()).status,409);
+  assert.ok(FULL80(srv28(a,'user_a').doc),'la cuenta sigue entera');assert.ok(FULL80(A.doc()),'y el teléfono la trajo');
+ }finally{a.done()}});
+test('LHB-80 (Codex r4): la base en memoria de una cuenta (su meta no se pudo guardar) no vale para su copia nueva después de otra cuenta: nada se sube como borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);
+  A.st.failBigKey='lhb_mihoja_v1_sync';A.st.failBig=150;await A.sync();A.st.failBigKey=null;
+  assert.equal(srv28(a,'user_a').rev,1);
+  /* entra B en este teléfono; su primera subida se queda sin respuesta */
+  const api=A.D.api;let n=0;A.D.api=async(C,m,path,...r)=>{if(m==='PUT'&&C.user.id==='user_b'&&!n++)throw new TypeError('sin red');return api(C,m,path,...r)};
+  A.st.acct=A.st.user='user_b';A.eng.isolate();await A.sync();
+  A.st.acct=A.st.user='user_a';A.eng.isolate();A.D.api=api;
+  const st=await A.eng.settled({});assert.equal(st.ok,true);
+  assert.ok(FULL80(srv28(a,'user_a').doc),'la cuenta sigue entera');assert.ok(FULL80(A.doc()),'y el teléfono la trajo');
+ }finally{a.done()}});
+test('LHB-80 (Codex r4): A sin meta guardada, nueve quitas sin respuesta y la vuelta; B nueve subidas sin respuesta; de vuelta en A con su copia otra vez, la más vieja llega tarde: la vuelta se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);
+  A.st.failBigKey='lhb_mihoja_v1_sync';A.st.failBig=150;await A.sync();A.st.failBigKey=null;
+  const api=A.D.api;let late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(C.user.id==='user_a'&&!late)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});for(let i=0;i<9;i++)await A.sync();
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  A.st.acct=A.st.user='user_b';A.eng.isolate();for(let i=0;i<9;i++)await A.sync();
+  A.st.acct=A.st.user='user_a';A.eng.isolate();
+  /* la persona vuelve a poner su copia (como la tenía, con a1) */
+  A.edit(d=>{Object.assign(d,JSON.parse(JSON.stringify(DOC28)))});
+  await late();assert.equal(srv28(a,'user_a').rev,2,'la quita más vieja llegó tarde');
+  A.D.api=api;assert.equal((await A.sync()).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-80 (Codex r4): una subida de A llegó sin respuesta; B entra y A vuelve con su copia vacía: lo que mandó la copia de antes no es base de la nueva, y la cuenta no se vacía',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'&&C.user.id==='user_a'&&!n++){await api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
+  A.edit(d=>{d.ratings.c1=5});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'llegó, sin respuesta');
+  A.st.acct=A.st.user='user_b';A.eng.isolate();A.st.acct=A.st.user='user_a';A.eng.isolate();
+  assert.equal((await A.sync()).ok,true);
+  const d=srv28(a,'user_a').doc;assert.ok(d.humidor.length===1&&d.diario.length===1&&d.favs.artesanos.includes('a1')&&d.ratings.c1===5,'la cuenta sigue entera');
+  assert.equal(A.doc().ratings.c1,5,'y el teléfono la trajo');
+ }finally{a.done()}});
+test('LHB-80 (Codex r5): si la época nueva no se puede escribir, isolate no toca la copia; la pasada que esperaba su GET sigue y la cuenta queda entera',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let hold=null,rel=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='GET'&&hold){const h=hold;hold=null;await h}return api(C,m,path,...r)};
+  hold=new Promise(r=>{rel=r});const p=A.eng.settled({});await tick();
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_epoca';
+  assert.equal(A.eng.isolate(),false,'sin época nueva no se cambia de cuenta');
+  assert.ok(FULL80(A.doc()),'la copia sigue como estaba');
+  A.st.failKey=null;A.st.acct=A.st.user='user_a';A.eng.isolate();
+  rel();await p;
+  assert.ok(FULL80(srv28(a,'user_a').doc),'la cuenta sigue entera');assert.ok(FULL80(A.doc()),'y el teléfono también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r5): cuando isolate vacía la copia, la época ya cambió (otra pestaña que espera ya no vale mientras el cambio está a medias)',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const E='lhb_mihoja_v1_epoca',e0=A.ls.get(E);let seen;const sd=A.D.setDoc;
+  A.D.setDoc=(d,...r)=>{if(seen===undefined&&d&&!Object.keys(d).length)seen=A.ls.get(E);return sd(d,...r)};
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),true);
+  assert.notEqual(seen,undefined,'isolate vació la copia');assert.notEqual(seen,e0,'la época cambió antes de vaciarla');
+ }finally{a.done()}});
+test('LHB-80 (Codex r5): la meta de A que no se pudo reponer al pasar a B no es base de la copia nueva de A al volver: nada se sube como borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.ratings.c1=5});
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_sync';A.eng.isolate();A.st.failKey=null;
+  A.st.acct=A.st.user='user_a';A.eng.isolate();
+  await A.eng.settled({});
+  assert.ok(FULL80(srv28(a,'user_a').doc),'la cuenta sigue entera');assert.equal(srv28(a,'user_a').rev,1,'no subió nada');
+ }finally{a.done()}});
+test('LHB-80 (Codex r5): nueve quitas de A sin respuesta, la vuelta de a1, B sin poder reponer la meta y nueve subidas sin respuesta; de vuelta en A, la más vieja llega tarde: a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(C.user.id==='user_a'&&!late)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});for(let i=0;i<9;i++)await A.sync();
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_sync';A.eng.isolate();A.st.failKey=null;
+  for(let i=0;i<9;i++)await A.sync();
+  A.st.acct=A.st.user='user_a';A.eng.isolate();
+  A.edit(d=>{Object.assign(d,JSON.parse(JSON.stringify(DOC28)))});
+  await late();assert.equal(srv28(a,'user_a').rev,2,'la quita más vieja llegó tarde');
+  A.D.api=api;assert.equal((await A.sync()).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+for(const [como,rompe] of [['no se puede apartar la copia',A=>{A.st.failKey='lhb_mihoja_v1_de_user_a'}],['no se puede vaciar la copia',A=>{A.st.failSet=true}]])
+test('LHB-80 (Codex r6): el cambio de cuenta falla antes de tocar la copia ('+como+'): lo que A quitó sin subir sigue siendo un borrado al volver',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  A.st.acct=A.st.user='user_b';rompe(A);assert.equal(A.eng.isolate(),false,'el cambio falló');
+  A.st.failKey=null;A.st.failSet=false;A.st.acct=A.st.user='user_a';
+  assert.deepEqual(A.doc().favs.artesanos,[],'la copia de A sigue como estaba');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r7): una subida de A llegó pero su meta no se pudo guardar; otro teléfono vuelve a poner a1; un cambio de cuenta falla antes de tocar la copia: la base nueva (en memoria) sigue valiendo y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});A.st.failKey='lhb_mihoja_v1_sync';await A.sync();A.st.failKey=null;
+  assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.artesanos=['a1']});await P.sync();
+  assert.equal(srv28(a,'user_a').rev,3,'el otro teléfono la volvió a poner');
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_de_user_a';assert.equal(A.eng.isolate(),false);A.st.failKey=null;
+  A.st.acct=A.st.user='user_a';assert.equal((await A.sync()).ok,true);
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y llegó al teléfono');
+ }finally{a.done()}});
+test('LHB-80 (Codex r7): sin lugar para apartar la copia y sin poder escribir la meta, el cambio de cuenta falla: lo que A quitó sin subir sigue siendo un borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  /* las diez llaves para apartar copias de A ya están ocupadas */
+  for(let i=0;i<11;i++)A.ls.set('lhb_mihoja_v1_de_user_a'+(i?'_'+i:''),'{"favs":{"artesanos":["x"]}}');
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_sync';assert.equal(A.eng.isolate(),false,'no hay llave libre');A.st.failKey=null;
+  A.st.acct=A.st.user='user_a';assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r7): otra pestaña cambió la época mientras este cambio de cuenta fallaba: no se vuelve a la época de antes y la copia vacía no se sube como borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.ratings.c1=5});
+  const Y=SYNC28().LHB_SYNC(A.D);const sd=A.D.setDoc;let n=0;
+  /* esta pestaña va a vaciar la copia; antes, la otra hace su propio cambio de cuenta: escribe su época, vacía la copia y no puede anotar la dueña. Luego el vaciado de esta falla */
+  A.D.setDoc=(d,...r)=>{if(n++===0&&d&&!Object.keys(d).length){A.st.failKey='lhb_mihoja_v1_owner';assert.equal(Y.isolate(),false);A.st.failKey=null;return false}return sd(d,...r)};
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);A.D.setDoc=sd;
+  A.st.acct=A.st.user='user_a';await A.eng.settled({});
+  const s=srv28(a,'user_a').doc;assert.equal(s.humidor.length,1);assert.equal(s.diario.length,1);assert.ok(s.favs.artesanos.includes('a1'),'la cuenta sigue entera');
+ }finally{a.done()}});
+for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
+                           ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
+test('LHB-80 (Codex r8): el cambio de cuenta falla antes de tocar la copia y volver a la época de antes también falla ('+como+'): se reintenta antes de sincronizar y el borrado sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';
+  if(como==='no se puede escribir la de antes')A.ls.set(E,'abcdefghij00000000z');
+  A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<11;i++)A.ls.set(A.KEY+'_de_user_a'+(i?'_'+i:''),'ocupada');
+  rompe(A,E);
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);
+  A.st.acct=A.st.user='user_a';assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r8): mientras no se pueda volver a la época de antes, no se sincroniza',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<11;i++)A.ls.set(A.KEY+'_de_user_a'+(i?'_'+i:''),'ocupada');
+  const rm=A.D.ls.remove;A.D.ls.remove=k=>{if(k===E)throw new Error('SecurityError');return rm(k)};
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);A.st.acct=A.st.user='user_a';
+  const r=await A.eng.run('guardado');assert.equal(r.fail,'storage');assert.equal(srv28(a,'user_a').rev,1,'no subió ni trajo nada');
+  A.D.ls.remove=rm;assert.equal((await A.sync()).ok,true);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+ }finally{a.done()}});
+test('LHB-80 (Codex r9): volver a la época de antes quedó pendiente y la lectura de la época falla una vez: sigue pendiente y el borrado sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<11;i++)A.ls.set(A.KEY+'_de_user_a'+(i?'_'+i:''),'ocupada');
+  const rm=A.D.ls.remove;A.D.ls.remove=k=>{if(k===E)throw new Error('SecurityError');return rm(k)};
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);A.D.ls.remove=rm;A.st.acct=A.st.user='user_a';
+  const get=A.D.ls.get;let n=0;A.D.ls.get=k=>{if(k===E&&n++===0)throw new Error('SecurityError');return get(k)};
+  assert.equal((await A.eng.run('guardado')).fail,'storage','con la lectura fallida no se sincroniza');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r10): la lectura de la época de antes falla al empezar un cambio de cuenta: no se toca nada y el borrado sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.ls.set(E,'abcdefghij00000000z');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<11;i++)A.ls.set(A.KEY+'_de_user_a'+(i?'_'+i:''),'ocupada');
+  const get=A.D.ls.get;let n=0;A.D.ls.get=k=>{if(k===E&&n++===0)throw new Error('SecurityError');return get(k)};
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);A.D.ls.get=get;
+  assert.equal(A.ls.get(E),'abcdefghij00000000z','la época sigue como estaba');
+  A.st.acct=A.st.user='user_a';assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r10): la pasada no puede leer la época: no sincroniza, y la siguiente sube el borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.ls.set(E,'abcdefghij00000000z');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  const get=A.D.ls.get;let n=0;A.D.ls.get=k=>{if(k===E&&n++===0)throw new Error('SecurityError');return get(k)};
+  assert.equal((await A.eng.run('guardado')).fail,'storage');assert.equal(srv28(a,'user_a').rev,1,'no subió ni trajo nada');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r11): la meta no se puede leer en la pasada: no sincroniza, y la siguiente sube el borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),M='lhb_mihoja_v1_sync';A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  const get=A.D.ls.get;let n=0;A.D.ls.get=k=>{if(k===M&&n++===0)throw new Error('SecurityError');return get(k)};
+  assert.equal((await A.eng.run('guardado')).fail,'storage');assert.equal(srv28(a,'user_a').rev,1,'no subió ni trajo nada');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r11): la subida llega y luego una lectura de la copia lanza: la base de antes ya no vale, y lo que se vuelve a poner se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  const api=A.D.api,gd=A.D.getDoc;let arm=false;
+  A.D.api=async(C,m,...r)=>{const x=await api(C,m,...r);if(m==='PUT')arm=true;return x};
+  A.D.getDoc=()=>{if(arm){arm=false;throw new Error('SecurityError')}return gd()};
+  const r=await A.eng.run('guardado');assert.ok(r.fail,'la pasada no terminó');A.D.api=api;A.D.getDoc=gd;
+  assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-80 (Codex r12): la subida llega y luego la época no se puede leer al escribir la copia: la base de antes ya no vale, y lo que se vuelve a poner se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.ls.set(E,'abcdefghij00000000z');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  const api=A.D.api,get=A.D.ls.get;let arm=false,n=0;
+  A.D.api=async(C,m,...r)=>{const x=await api(C,m,...r);if(m==='PUT')arm=true;return x};
+  A.D.ls.get=k=>{if(arm&&k===E&&++n===2)throw new Error('SecurityError');return get(k)};
+  const r=await A.eng.run('guardado');assert.ok(r.fail||r.skip,'la pasada no terminó');A.D.api=api;A.D.ls.get=get;
+  assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-80 (Codex r12): la subida da 409 y luego una lectura de la copia lanza: la base sigue valiendo y el borrado se sube',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const P=DEV28(a,'user_a');await P.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  const api=A.D.api,gd=A.D.getDoc;let once=true,arm=false;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;P.edit(d=>{d.ratings.c2=3});await P.sync();const x=await api(C,m,...r);arm=x.status===409;return x}return api(C,m,...r)};
+  A.D.getDoc=()=>{if(arm){arm=false;throw new Error('SecurityError')}return gd()};
+  const r=await A.eng.run('guardado');assert.ok(r.fail,'la pasada no terminó');A.D.api=api;A.D.getDoc=gd;
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'la quita no llegó (409)');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+  assert.equal(srv28(a,'user_a').doc.ratings.c2,3,'lo del otro teléfono se queda');
+ }finally{a.done()}});
+test('LHB-80 (Codex r8): todas las épocas tienen el mismo largo',async()=>{
+ const a=await ENG28();const R=Math.random;
+ try{
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.seed(DOC28);await A.sync();
+  const seen=new Set();
+  for(const [i,x] of [0.5,0.744854709076402,0.1,0.999999999,1e-9].entries()){Math.random=()=>x;A.st.acct=A.st.user='user_'+(i%2?'a':'b');assert.equal(A.eng.isolate(),true);seen.add(A.ls.get(E).length)}
+  assert.deepEqual([...seen],[19]);
+ }finally{Math.random=R;a.done()}});
+test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
+ for(const lose of [false,true]){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+   const api=A.D.api;let late=null,n=0;
+   A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}if(lose)throw new TypeError('sin red')}return api(C,m,path,...r)};
+   A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+   A.edit(d=>{d.favs.artesanos=['a1']});
+   const st=await A.eng.settled({});
+   if(lose){assert.equal(st.ok,false,'la valla tampoco tuvo respuesta: no se sale por la sincronización');assert.equal(st.why,'offline')}
+   else{assert.equal(st.ok,true);assert.equal(st.via,'sync');assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1']);
+    A.D.wait=async()=>{};A.D.ls.remove=k=>A.ls.delete(k);assert.equal(await A.eng.forget(st.mark),true);
+    /* la quita termina durante la salida: ya no puede llegar, y la cuenta tiene a1 */
+    assert.equal((await late()).status,409);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'])}
+  }finally{a.done()}}});
 /* ===================== LHB-62: bloquear y reportar (functions/api/block.js, migrations/0007_blocks.sql) en SQLite real ===================== */
 async function API62(opts){opts=opts||{};
  const a=await API61();if(!opts.sin0007)a.db.exec(a.mig('0007_blocks.sql'));

@@ -1,0 +1,22 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-80-wt (branch lhb-80-sync-op). TIER 2, round 9.
+
+Ticket LHB-80: an idempotency token (X-Op) on PUT /api/mihoja so a pass can learn whether an upload whose answer was lost landed, and never applies a stale base. Round 8 (evidence/lhb-80-review-r8.txt) concurred that round 7 finding 1 is closed. It blocked on one single-tab P2: when back() could not put the old epoch back, the new epoch stayed and the untouched copy's pending deletion was lost. Codex reached it two ways, under a fixed quota (a shorter e2 written, then a longer e1 rejected) and through a remove() that throws. Its second finding (the compare and the write in back() are separate operations across tabs) is non-blocking and has been added to LHB-105.
+
+The diff below (one commit against the round 8 prompt commit) changes site/sync.js:
+- newEpoch() writes epochs of one fixed length: 10 random base-36 characters, padded, plus Date.now() in base 36 padded to 9 characters. That is 19 characters. Putting the earlier epoch back therefore never needs more space than the write that just succeeded.
+- back() records undo = {from: e2, to: e1} and calls tryUndo(). tryUndo() writes e1, or removes the key when there was none, only while the stored epoch is still e2. It clears undo when that write succeeds, or when another tab has moved the epoch on. It keeps undo when the write throws.
+- tryUndo() runs again at the start of isolate() (a failure returns false) and in once() right after isolate(). A failure there returns {fail:'storage'}, so no pass syncs, and so none discards the copy's base, while the old epoch is not back. run() then schedules its normal retry.
+Tests (four added):
+- The failed switch with remove() throwing once.
+- The failed switch with the restoring set() throwing once (e1 a string).
+- A pass refuses with fail 'storage' while the restore keeps failing, and syncs normally once it succeeds.
+- Every epoch is 19 characters for random values that produce short base-36 strings, including Codex's 0.744854709076402.
+All four fail on f374855 and pass here. Mutants: three added (lengths vary; a pass runs while the restore is pending; a failed restore is forgotten), and the two round 7 mutants retargeted to tryUndo(). Evidence: evidence/lhb-80-mutations.out, 38 of 41 red, 3 named equivalent, 0 unexpected survivors; evidence/lhb-80-tests.txt, full suite 379 tests, 378 pass, 0 fail, 1 skipped.
+
+Known limit, stated: undo lives in memory. After a reload while storage still refuses the restore, the copy keeps e2 and the next pass merges without that base (an unuploaded removal comes back). That is conservative: no data is lost.
+
+Check that every failure point inside isolate(), and every failure of the restore, leaves the untouched copy's base usable or keeps passes from syncing until it is. Check whether undo can restore an epoch over a copy that changed in this tab. Check whether a pending undo can block syncing forever when storage is healthy. Cross-tab interleavings stay non-blocking under LHB-104 and LHB-105; give any correction to those tickets. Block only on a defect this branch introduces, or on one within LHB-80's scope (lost-answer uploads and stale bases within one tab) that should be fixed before release.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
