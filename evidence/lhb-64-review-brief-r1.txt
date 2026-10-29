@@ -1,0 +1,32 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-64-wt (branch a11y-fixes, cut from origin/main). The diff below is origin/main..HEAD. This is round 1 of a TIER 2 review.
+
+Ticket LHB-64 (M7-F0): accessibility fixes ported from an outside design package (read in place, ported as a diff on current main; colors and layout are not touched here). Pinned decisions:
+- Port five fixes: modal focus containment (focus enters, Tab and Shift+Tab stay inside, Escape closes, focus returns), a persistent results status region, catalog filter focus, a visible focus ring on the camera and gallery controls, and the backup import control (a label with tabindex 0 over a hidden file input becomes one real keyboard-operable control).
+- Remove the portrait-only orientation lock from the manifest.
+- The profile-era screens (avatar sheet, profile editor, People search, follow buttons) get the same modal and focus treatment.
+- HYPOTHESIS to test: the import label is the only remaining unlabeled control; enumerate every tabindex and every hidden input[type=file] in site/.
+- Spanish interface text; every new string is an i18n key with Spanish and English values.
+
+What was built:
+- site/hoja.js, the one modal (sheet(), role=dialog aria-modal; every sheet in the app, the profile-era ones included, goes through it):
+  - #app gets inert while a sheet is open (the sheet is appended to body, outside #app), released when closing starts (closeSheet) or at once (closeSheetNow).
+  - lastFocus is kept when a sheet is opened from inside another sheet (the + sheet opening the humidor form), so focus returns to the first trigger.
+  - Initial focus: the first select, input, link or non-close button, else the Cerrar button; the delayed focus (80 ms) does nothing if the sheet closed or its control is gone.
+  - focusBack(): to lastFocus if it is still connected, else to #view. A flag (owed) makes it run once per opened sheet, so closeSheetNow (called on every account change) never moves focus when no sheet was open.
+  - keydown: Escape closes (as before). Tab, only while body has sheet-on (an open sheet, not one that is closing): the focusable controls of .sheet-panel (FOCUSABLE, minus hidden or unrendered ones) wrap at both ends, and a focus found outside the sheet is brought to the first (Tab) or last (Shift+Tab).
+  - The backup panel: Importar respaldo is now a <button id="impB"> that clicks the hidden <input type="file" id="impF" class="sr" tabindex="-1" aria-hidden="true">, the same pattern as the profile photo (obPb/obPf) and the diary photo (cFotoB/cFotoF).
+- site/app.js, the catalog: RS, a role=status aria-live=polite aria-atomic=true region created once and appended to body (outside #view and #app, so a repaint does not remove it and an open sheet does not make it inert); vCatalogo writes "Vitolas en el catálogo: N." or "No hay vitolas con esos filtros." to it (only when the text changes). A fortaleza chip, the capa select and the artisan select get focus back after the repaint.
+- site/i18n.js: cat.count and cat.noMatch, es and en. This file is outside the ticket's listed Scope; the plan requires every new string to be a key, so it was touched for these two keys only.
+- site/styles.css: .photo-btns label:has(input:focus-visible) gets the app's existing focus outline (2px var(--gold)); the camera and gallery file inputs are invisible (opacity 0), so their own ring never showed. No color changed.
+- site/manifest.webmanifest: "orientation": "portrait" removed.
+- site/sw.js: cache lhb-v90 (LHB-61, still open, holds v89).
+
+Enumeration (the hypothesis): the only tabindex="0" left in site/ is the flavor wheel segment (role=button with its own keyboard handling); the five file inputs are fCam and fGal (inside their visible labels in .photo-btns) and impF, obPf, cFotoF (class sr, tabindex -1, opened by a button). So the import label was the only redundant tab stop. People search keeps its input and rewrites only the result list; follow buttons repaint the same button element, so their focus is not lost.
+
+Tests (test/site.test.js, at the end): DOM64, a small fake DOM (tags, attributes, hidden, inert, focus, isConnected, and the selectors the code uses), runs the real code sliced from the source: SHEET64 (hoja.js from lastFocus to the Escape handler), CAT64 (app.js from RS to the end of vCatalogo), and backupPanel plus bindBackup. Five tests: the sheet trap, wrap, inert, Escape and return; the sheet focus edge cases (no control, a sheet from a sheet, the trigger gone, closing at once without a sheet); the catalog focus and status region; the import button; the enumeration plus the CSS ring and the manifest.
+
+Evidence: evidence/lhb-64-red-before.txt (the five tests against main's five site files: 5 of 5 red); evidence/lhb-64-mutations.out (RESULT 26 of 26 red; the first run, 25 of 26, is kept as -first.out: F5, a closing sheet still trapping Tab, survived until the test pressed Tab on the last control); evidence/lhb-64-tests.txt (full suite 296 pass, 0 fail, 1 skipped); evidence/lhb-64-tests-first.txt (the first full run, 2 failures from older tests pinning the source of closeSheetNow and the count of the word importar, both kept passing by the final code).
+
+Not verified here: a real keyboard and screen reader pass in a browser (it is done on the preview deploy and recorded separately); whether inert is honored by every target browser.
+
+Check the focus logic for real-browser cases the fake DOM cannot show (inert support, getClientRects on visually hidden .sr inputs, Clerk's own modal opened over a sheet, focus restore after a link in a sheet navigates, the hashchange close), the status region, the import button, any regression in other code that calls sheet(), closeSheet() or closeSheetNow(), and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

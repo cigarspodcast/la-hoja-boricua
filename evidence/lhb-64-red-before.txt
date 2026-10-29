@@ -1,0 +1,20 @@
+✖ LHB-64: una hoja abierta atrapa el foco (Tab y Mayús+Tab dan la vuelta dentro), deja la app inerte, Escape la cierra y el foco vuelve a quien la abrió (8.3468ms)
+✖ LHB-64: el foco de una hoja: sin otro control entra por Cerrar; una hoja abierta desde otra vuelve al botón de la primera; si ese botón ya no está, al contenido; cerrar al instante no roba el foco sin hoja abierta (2.0138ms)
+✖ LHB-64: el catálogo: elegir un filtro deja el foco en el mismo filtro aunque la vista se pinte otra vez, y una región de estado fija anuncia cuántas vitolas quedan (2.9518ms)
+✖ LHB-64: Importar respaldo es un botón de verdad que abre el campo de archivo escondido; el campo no es una parada del teclado y no queda ninguna etiqueta con tabindex (2.1137ms)
+✖ LHB-64: los controles que esconden un campo de archivo y lo que queda con tabindex 0, contados en todo site/ (la hipótesis del ticket); la cámara y la galería muestran el foco; la app ya no se traba en vertical (4.9759ms)
+ℹ tests 5
+ℹ pass 0
+ℹ fail 5
+✖ failing tests:
+✖ LHB-64: una hoja abierta atrapa el foco (Tab y Mayús+Tab dan la vuelta dentro), deja la app inerte, Escape la cierra y el foco vuelve a quien la abrió (8.3468ms)
+  AssertionError [ERR_ASSERTION]: lo de atrás no se alcanza
+✖ LHB-64: el foco de una hoja: sin otro control entra por Cerrar; una hoja abierta desde otra vuelve al botón de la primera; si ese botón ya no está, al contenido; cerrar al instante no roba el foco sin hoja abierta (2.0138ms)
+  AssertionError [ERR_ASSERTION]: sin otro control, el foco está en Cerrar
+✖ LHB-64: el catálogo: elegir un filtro deja el foco en el mismo filtro aunque la vista se pinte otra vez, y una región de estado fija anuncia cuántas vitolas quedan (2.9518ms)
+  ReferenceError: vCatalogo is not defined
+✖ LHB-64: Importar respaldo es un botón de verdad que abre el campo de archivo escondido; el campo no es una parada del teclado y no queda ninguna etiqueta con tabindex (2.1137ms)
+  AssertionError [ERR_ASSERTION]: un botón de verdad
+✖ LHB-64: los controles que esconden un campo de archivo y lo que queda con tabindex 0, contados en todo site/ (la hipótesis del ticket); la cámara y la galería muestran el foco; la app ya no se traba en vertical (4.9759ms)
+  AssertionError [ERR_ASSERTION]: solo queda la rueda de sabores (un botón con su teclado)
+rc 1

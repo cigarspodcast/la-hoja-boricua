@@ -1,0 +1,28 @@
+F1 Tab at the last control does not wrap                     rc 1 fail 1 -> RED
+F2 Shift+Tab at the first does not wrap                      rc 1 fail 1 -> RED
+F3 focus left outside is not brought back in                 rc 1 fail 1 -> RED
+F4 hidden and unrendered controls count                      rc 1 fail 1 -> RED
+F5 a closing sheet still traps Tab                           rc 1 fail 1 -> RED
+F6 the app behind is not inert                               rc 1 fail 2 -> RED
+F7 closing leaves the app inert                              rc 1 fail 1 -> RED
+F8 closing at once leaves the app inert                      rc 1 fail 1 -> RED
+F9 a sheet from a sheet forgets the first trigger            rc 1 fail 1 -> RED
+F10 no control: focus does not enter (no Cerrar fallback)    rc 1 fail 1 -> RED
+F11 the trigger gone: focus is lost, not sent to the content rc 1 fail 1 -> RED
+F12 closing at once steals focus with no sheet open          rc 1 fail 1 -> RED
+F13 the delayed first focus jumps into a closed sheet        rc 1 fail 1 -> RED
+F14 Escape does not close                                    rc 1 fail 1 -> RED
+F15 import is a label with tabindex 0 again                  rc 1 fail 2 -> RED
+F16 the import button opens nothing                          rc 1 fail 1 -> RED
+F17 a chip loses focus on repaint                            rc 1 fail 1 -> RED
+F18 the capa select loses focus                              rc 1 fail 1 -> RED
+F19 the artisan select loses focus                           rc 1 fail 1 -> RED
+F20 the status is not updated                                rc 1 fail 1 -> RED
+F21 no matches says nothing                                  rc 1 fail 1 -> RED
+F22 the status region lives in the view (repainted away)     rc 1 fail 1 -> RED
+F23 the status region is not polite                          rc 1 fail 1 -> RED
+F24 the English count is missing                             rc 1 fail 1 -> RED
+F25 no focus ring on camera and gallery                      rc 1 fail 1 -> RED
+F26 the portrait lock is back                                rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 5
+RESULT 26 of 26 mutations red

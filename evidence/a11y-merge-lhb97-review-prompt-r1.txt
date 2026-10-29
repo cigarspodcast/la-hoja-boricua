@@ -1,0 +1,378 @@
+You are reviewing one merge in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-64-wt (branch a11y-fixes, PR #36 to main, which the owner merges). The diff below is a11y-fixes HEAD (the merge of main 87ca9ef plus a one-line test comment fix) against its parent 538a096, limited to site/ and test/: it brings main's LHB-102 (PR #40, TIER 1 PASS, evidence/lhb-102-review-r1.txt) and LHB-97 (PR #41, TIER 1 PASS in round 2, evidence/lhb-97-review-r2.txt) onto this branch. TIER 1: one round.
+
+What they are on main:
+- LHB-102: app.js uploads() keeps only the objects of a stored vb_uploads list and reads anything else as an empty list; hoja.js legacyList applies the same rule in the backup export and the import merge. A read never rewrites the stored value.
+- LHB-97: hoja.js myResenasK keys each own public review by JSON of [diary id or null, the shown entry], counted only for exact twins; pfKey/pfFind restore focus and lastFocus by that key after a repaint. On main, the HOJA58 test mock sheet() leaves focus on a review's opener, because main's sheet() does.
+
+How the merge was resolved:
+- site/app.js and site/hoja.js merged without conflict.
+- Conflicts only in site/sw.js and test/site.test.js. Every cache pin goes to lhb-v111 (this branch had lhb-v107, main lhb-v109; 21 test pins plus sw.js). One test hunk differed beyond the version: this branch keeps its LHB-64 block, whose last test is closed by the shared line after the hunk.
+- This branch's sheet() (LHB-64) always takes focus into the sheet (its first control, else Cerrar) with the app inert. So the HOJA58 mock always moves focus into the sheet (keeping lastFocus when focus is already there), and the LHB-97 assertions after a sheet opens expect focus in the sheet, with lastFocus carrying the review. The ticket's focus mutation is unreachable here and survives as expected; the key mutations are 6 of 6 red (evidence/a11y-lhb97-mutations.out).
+- Full suite: 313 pass, 0 fail, 1 skipped (evidence/a11y-merge-lhb97-tests.txt).
+
+Check in particular:
+- Is the conflict resolution correct: nothing of LHB-64 lost, nothing of LHB-102 or LHB-97 lost or misapplied?
+- Does the HOJA58 mock now match this branch's sheet() (read it in site/hoja.js), and do the LHB-97 tests still prove the key fix here? Is there any path on this branch where focus can sit on a review button while a sheet is open?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 538a096 HEAD -- site/app.js site/hoja.js site/sw.js test/site.test.js =====
+diff --git a/site/app.js b/site/app.js
+index 90cf87a..2115a47 100644
+--- a/site/app.js
++++ b/site/app.js
+@@ -20,7 +20,8 @@ let D={artesanos:[],cigarros:[],places:[],events:{actividades:[],fuentes:[]}};
+ function setData(src){if(!src)return;D={artesanos:src.artesanos||D.artesanos,cigarros:src.cigarros||D.cigarros,places:src.places||D.places,events:src.events||D.events}}
+ setData(window.VB_DATA);
+ async function refreshData(){try{const r=await fetch('data/bundle.js',{cache:'no-cache'});if(!r.ok)return;const t=await r.text(),j=JSON.parse(t.slice(t.indexOf('{'),t.lastIndexOf('}')+1));let changed=false;for(const k of ['artesanos','cigarros','places','events'])if(j[k]&&JSON.stringify(j[k])!==JSON.stringify(D[k])){D[k]=j[k];changed=true}if(changed)route()}catch(e){}}
+-const uploads=()=>LS.get('uploads',[]);
++/* LHB-102: lo guardado que no es una lista de objetos (un {} o un texto de una versión rota) se lee como lista vacía, sin tocar lo guardado */
++const uploads=()=>{const v=LS.get('uploads',[]);return Array.isArray(v)?v.filter(u=>u&&typeof u==='object'&&!Array.isArray(u)):[]};
+ const allCigars=()=>[...D.cigarros,...uploads().map(u=>({...u,yours:true}))].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es',{sensitivity:'base'}));
+ const artisanById=id=>D.artesanos.find(a=>a.id===id);
+ const cigarById=id=>allCigars().find(c=>c.id===id);
+diff --git a/site/hoja.js b/site/hoja.js
+index fecd2b2..c834cd2 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -34,6 +34,8 @@ function normalize(o){const d=DEF();o=o&&typeof o==='object'?o:{};
+  if(!Array.isArray(o.humidor))o.humidor=[];if(!Array.isArray(o.diario))o.diario=[];if(!o.ratings||typeof o.ratings!=='object')o.ratings={};o.diario.forEach(entryDefaults);return o}
+ function upgrade(o){o=o||{};if(!o.schema)o.schema=1;while(o.schema<SCHEMA&&MIG[o.schema])o=MIG[o.schema](o);return normalize(o)}
+ const legacy=k=>{try{const v=localStorage.getItem('vb_'+k);return v==null?null:JSON.parse(v)}catch(e){return null}};
++/* LHB-102: una lista guardada que no es lista de objetos se lee vacía (el respaldo y su importación no se rompen por ella) */
++const legacyList=k=>{const v=legacy(k);return Array.isArray(v)?v.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)):[]};
+ let ST=null,STRAW=null;
+ function load(){const raw=localStorage.getItem(KEY);
+  if(raw){try{return upgrade(JSON.parse(raw))}catch(e){try{localStorage.setItem(KEY+'_danado_'+Date.now(),raw)}catch(_){}}}
+@@ -155,7 +157,7 @@ function humidorForm(cid,editId){const it=editId?S().humidor.find(x=>x.id===edit
+ /* ---------- respaldo ---------- */
+ function download(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},4000)}
+ function exportar(){const s=S();const data={app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:SCHEMA,exportado:new Date().toISOString(),url:APP_URL,
+- mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacy('uploads')||[]}};
++ mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacyList('uploads')}};
+  download(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}),`la-hoja-boricua-respaldo-${hoy()}.json`);
+  s.respaldo=new Date().toISOString();s.cambios=0;s.recordarDespues=null;write(s);lastBackup=LHB_MERGE.canon(s);toast(tt('h.respaldoDescargado'));if(location.hash.startsWith('#/mihoja'))setTimeout(()=>A.route(),300)}
+ const byId=(a,b,key='id')=>{const m=new Map(a.map(x=>[x[key],x]));for(const x of b){if(!x||!x[key])continue;const o=m.get(x[key]);if(!o||(x.actualizado||x.fecha||'')>(o.actualizado||o.fecha||''))m.set(x[key],x)}return [...m.values()]};
+@@ -167,7 +169,7 @@ function importar(file){const fr=new FileReader();fr.onload=()=>{let j;try{j=JSO
+  save(s=>{const m=LHB_MERGE.merge(null,s,inc,{prefer:'local'});s.humidor=m.humidor;s.diario=m.diario;s.pasaporte=m.pasaporte;s.favs=m.favs;s.ratings=m.ratings});
+  const x=j.extra||{};try{if(x.perfil&&!legacy('perfil'))localStorage.setItem('vb_perfil',JSON.stringify(x.perfil));
+   if(Array.isArray(x.sugeridas)&&x.sugeridas.length)localStorage.setItem('vb_sugeridas',JSON.stringify(byId(legacy('sugeridas')||[],x.sugeridas)));
+-  if(Array.isArray(x.subidas)&&x.subidas.length)localStorage.setItem('vb_uploads',JSON.stringify(byId(legacy('uploads')||[],x.subidas)))}catch(e){}
++  if(Array.isArray(x.subidas)&&x.subidas.length)localStorage.setItem('vb_uploads',JSON.stringify(byId(legacyList('uploads'),x.subidas)))}catch(e){}
+  const s=S();toast(`${tt('h.importadoCatasEnHumidor',{a:s.diario.length-n0.d,b:s.humidor.length-n0.h})}`);A.route()};fr.readAsText(file)}
+ function backupDue(){const s=S();const n=s.diario.length+s.humidor.length+Object.values(s.pasaporte).reduce((t,o)=>t+Object.keys(o).length,0);if(!n||!s.cambios)return false;
+  if(s.recordarDespues&&new Date(s.recordarDespues)>new Date())return false;if(!s.respaldo)return s.cambios>=3;return (Date.now()-new Date(s.respaldo))/864e5>=14}
+@@ -466,7 +468,11 @@ const pfTxt=(v,n)=>typeof v==='string'?[...v.trim()].slice(0,n).join(''):'';
+ const pfEntry=e=>({nombre:pfTxt(e.nombre,80),marca:pfTxt(e.marca,60),artesano:pfTxt(e.artesano,80),rating:Number.isInteger(e.rating)&&e.rating>=1&&e.rating<=5?e.rating:0,
+  tags:(Array.isArray(e.tags)?e.tags:[]).map(t=>pfTxt(t,40)).filter(Boolean).slice(0,30),notas:pfTxt(e.notas,1000),consumido:okDay(e.consumido)?e.consumido:null});
+ /* tus reseñas, de tu Mi Hoja en este teléfono: las públicas, la más reciente primero (por el día en que se fumó; a igual día, el orden del diario) */
+-const myResenas=s=>(s.diario||[]).filter(isPublica).map(pfEntry).map((e,i)=>[e,i]).sort((a,b)=>(b[0].consumido||'').localeCompare(a[0].consumido||'')||a[1]-b[1]).map(x=>x[0]);
++/* LHB-97: con la clave de cada una (el id de su cata junto con lo que se enseña), para que el foco vuelva a la misma aunque otra se vea igual; solo dos iguales en las dos cosas se cuentan en orden.
++   Codex ronda 1: el orden no hace de id cuando dos catas tienen el mismo id, porque cada una lleva también lo suyo */
++const myResenasK=s=>{const n=new Map();return (s.diario||[]).filter(isPublica).map((x,i)=>{const e=pfEntry(x);return [e,i,JSON.stringify([typeof x.id==='string'&&x.id?x.id:null,e])]})
++ .sort((a,b)=>(b[0].consumido||'').localeCompare(a[0].consumido||'')||a[1]-b[1]).map(([e,,k])=>{const c=(n.get(k)||0)+1;n.set(k,c);return {e,k:k+'#'+c}})};
++const myResenas=s=>myResenasK(s).map(x=>x.e);
+ const pfNum=v=>Number.isInteger(v)&&v>=0?v:0;
+ const pfIni=p=>{const w=String(p.display_name||'').split(/\s+/).filter(Boolean);const f=s=>[...s][0]||'';return (w.length?f(w[0])+(w.length>1?f(w[w.length-1]):''):f(p.handle||'')).toUpperCase()};
+ /* conteos y botón: c null mientras llegan; tu vista lleva Editar perfil (LHB-55), la de otra persona deja el lugar del botón de seguir (LHB-60).
+@@ -518,12 +524,12 @@ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct
+ /* tu Perfil (app.js vPerfil pone la foto, el nombre y el @ de la cuenta guardada, LHB-51): aquí van la bio, la marca y los conteos de /api/u/<tu @>, Editar perfil y las pestañas, que leen tu Mi Hoja.
+    PFO es tu Perfil abierto: su lugar (#pfOwn), la cuenta, lo que llegó del servidor y la pestaña abierta. Codex ronda 1: cuando llega una sincronización se pinta otra vez con tu Mi Hoja nueva (pfOwnSync), en la misma pestaña */
+ let PFO=null;
+-const pfOwnData=()=>{const s=S();return {own:true,resenas:myResenas(s),sellos:passCounts().c,favorite_brand:null,favs:s.favs.cigarros.map(A.cigarById).filter(Boolean),humidor:s.humidor}};
++const pfOwnData=()=>{const s=S();const r=myResenasK(s);return {own:true,resenas:r.map(x=>x.e),keys:r.map(x=>x.k),sellos:passCounts().c,favorite_brand:null,favs:s.favs.cigarros.map(A.cigarById).filter(Boolean),humidor:s.humidor}};
+ const pfCur=()=>{const sel=$$('[data-pftab]').find(b=>b.getAttribute('aria-selected')==='true');return sel?sel.dataset.pftab:'resenas'};
+ /* Codex ronda 2: pintar otra vez reemplaza los botones; el foco y el botón al que vuelve una tarjeta abierta (lastFocus) pasan al botón nuevo
+-   de la misma pestaña o de la misma reseña (aunque haya cambiado de lugar); si esa reseña ya no está, a la pestaña abierta */
+-const pfKey=(o,n)=>{if(!n)return null;const m=/^pfT-([a-z]+)$/.exec(n.id||'');if(m)return {tab:m[1]};const b=$$('[data-pfres]').find(x=>x===n);const e=b&&o.d&&o.d.resenas[+b.dataset.pfres];return e?{res:JSON.stringify(e)}:null};
+-const pfFind=(o,d,k)=>{const i=k.res?d.resenas.findIndex(e=>JSON.stringify(e)===k.res):-1;return (i>=0&&$$('[data-pfres]').find(b=>b.dataset.pfres===String(i)))||$('#pfT-'+(k.tab||o.cur))};
++   de la misma pestaña o de la misma reseña (aunque haya cambiado de lugar; LHB-97: por su clave, d.keys); si esa reseña ya no está, a la pestaña abierta */
++const pfKey=(o,n)=>{if(!n)return null;const m=/^pfT-([a-z]+)$/.exec(n.id||'');if(m)return {tab:m[1]};const b=$$('[data-pfres]').find(x=>x===n);const k=b&&o.d&&o.d.keys&&o.d.keys[+b.dataset.pfres];return k?{res:k}:null};
++const pfFind=(o,d,k)=>{const i=k.res?d.keys.indexOf(k.res):-1;return (i>=0&&$$('[data-pfres]').find(b=>b.dataset.pfres===String(i)))||$('#pfT-'+(k.tab||o.cur))};
+ /* tu número de reseñas sale enseguida de tu Mi Hoja; seguidores y siguiendo esperan al servidor */
+ function pfOwnPaint(o){const d=pfOwnData();const kf=pfKey(o,document.activeElement),kl=pfKey(o,lastFocus);
+  o.root.innerHTML=`<div id="pfAbout">${pfAbout(o.profile)}</div>`+pfCounts({...(o.counts||{}),resenas:d.resenas.length},true,o.a.handle)+pfTabsHTML(true,o.cur);pfBind(d,o.cur);o.d=d;
+diff --git a/site/sw.js b/site/sw.js
+index 1504676..a0109f6 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v107';
++const VERSION='lhb-v111';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+diff --git a/test/site.test.js b/test/site.test.js
+index 0dd8c57..87ebaf8 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v107'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v111'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,25 +61,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
+- assert.match(sw,/const VERSION='lhb-v107'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
++ assert.match(sw,/const VERSION='lhb-v111'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
+  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
+  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
+ 
+ test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v107'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v111'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
+  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ 
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v107'/);
++ assert.match(sw,/const VERSION='lhb-v111'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v107'/);
++ assert.match(sw,/const VERSION='lhb-v111'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
+  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
+@@ -105,12 +105,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v107'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v111'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v107'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v111'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -118,7 +118,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v107'/);});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v111'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -135,7 +135,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v107/);});
++ assert.match(read('sw.js'),/lhb-v111/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -148,17 +148,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v107'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v111'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v107'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v111'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v107'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v111'/);});
+ 
+-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v107'/);});
++test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v111'/);});
+ 
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+@@ -1218,7 +1218,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v107'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v111'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1465,7 +1465,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v107'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v111'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1643,7 +1643,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v107'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v111'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1890,7 +1890,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v107'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v111'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2191,7 +2191,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v107'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v111'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2474,7 +2474,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v107'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v111'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3441,7 +3441,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v107'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v111'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -4576,16 +4576,18 @@ function HOJA58(opts){opts=opts||{};
+  const fetch=async(u,o)=>{fetches.push(u);const r=await reply(u);if(r instanceof Error)throw r;return {status:r.status,json:async()=>{if(r.body===undefined)throw new Error('sin JSON');return r.body}}};
+  const acctBox={v:opts.acct===undefined?{sub:'u_a',handle:'ana',name:'Ana S.',avatar:''}:opts.acct};const sheets=[],log=[];const loc={hash:''};
+  /* LHB-60: la sesión y el adaptador de la API con sesión (api(C,method,path,body,uid)); sin opts.api contesta 500 */
+- const toasts=[],calls=[];
++ const toasts=[],calls=[],sheetOn={v:false};
+  const ctx={...TT(),window:{addEventListener(){}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
+   /* opts.token: la llave de la sesión tarda; go es el de api() en hoja.js: con la llave ya puesta, si dice que no el pedido no sale */
+   clerk:async()=>({user:{id:'u_a'}}),acctW:new Set(),api:async(C,method,path,body,uid,extra,go)=>{if(opts.token)await opts.token(method);if(go&&!go())throw new Error('gone');calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
+   A:{cigarById:id=>({c1:{id:'c1',nombre:'Yambú Toro'},c2:{id:'c2',nombre:'Don Collins'}})[id]||null,cigarCard:c=>'<a class="card" data-c="'+c.id+'">'+c.nombre+'</a>',hydrate:()=>log.push('hydrate'),route:()=>log.push('route')},
+-  acct:{get:()=>acctBox.v},sheet:(h,l)=>{ctx.lastFocus=foco.el;foco.el={id:'sheetPanel'};sheets.push([h,l])},lastFocus:null,document:{get activeElement(){return foco.el},body:{classList:{contains:k=>k==='sheet-on'&&foco.el.id==='sheetPanel'}}},dKeepFocus:()=>log.push('dKeepFocus'),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,
++  /* LHB-97, con LHB-64: como sheet() de LHB-64: anota lastFocus si el foco no está ya en la hoja, pone sheet-on y siempre lleva el foco a la hoja
++     (su primer control o Cerrar), con la app detrás inerte; por eso aquí el foco nunca queda en el botón de una reseña con la hoja abierta */
++  acct:{get:()=>acctBox.v},sheet:(h,l)=>{if(foco.el.id!=='sheetPanel')ctx.lastFocus=foco.el;sheetOn.v=true;foco.el={id:'sheetPanel'};sheets.push([h,l])},lastFocus:null,document:{get activeElement(){return foco.el},body:{classList:{contains:k=>k==='sheet-on'&&sheetOn.v}}},dKeepFocus:()=>log.push('dKeepFocus'),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,
+   localStorage,navigator:{},location:loc,setTimeout:()=>0,JSON,Date,subnav:k=>'<nav data-sub="'+k+'"></nav>'};
+  vm.createContext(ctx);
+  vm.runInContext(code+';this.X={vSiguiendo,vPersona,profileOwn,pfOwnSync:typeof pfOwnSync=="function"?pfOwnSync:undefined,pfPanel,pfHead,myResenas,pfEntry,isPublica,S}',ctx);
+- return {X:ctx.X,ctx,els,stubs,fetches,sheets,log,loc,acctBox,foco,toasts,calls,html:()=>html,all,setReply:f=>{reply=f},tab:t=>stubs['pftab:'+t]};
++ return {X:ctx.X,ctx,els,stubs,fetches,sheets,sheetOn,log,loc,acctBox,foco,toasts,calls,html:()=>html,all,setReply:f=>{reply=f},tab:t=>stubs['pftab:'+t]};
+ }
+ /* LHB-60: seguir desde la app. Respuestas que se sueltan a mano: cada pedido a /api/follow queda en espera hasta que la prueba lo contesta */
+ function FW60(o){o=o||{};const q=[];let inflight=0,most=0;
+@@ -4817,10 +4819,49 @@ test('LHB-58 (Codex ronda 2): pintar otra vez tu Perfil (la respuesta del servid
+  const b0=H.stubs['pfres:0'];b0.focus();b0.onclick();assert.equal(H.sheets.length,1);assert.equal(H.ctx.lastFocus,b0);
+  H.ctx.localStorage.setItem('lhb_mihoja_v1',LLEGA58());H.X.pfOwnSync();
+  const b1=H.stubs['pfres:1'];assert.ok(b1&&b1!==b0,'el botón viejo se fue');assert.equal(H.ctx.lastFocus,b1,'la tarjeta vuelve al botón de la misma reseña, ahora el segundo');
++ /* LHB-97, con LHB-64: la hoja siempre tiene el foco; la sincronización no lo saca de ella */
+  assert.equal(H.foco.el.id,'sheetPanel','el foco no sale de la tarjeta');
+  /* la reseña de la tarjeta ya no está: vuelve a la pestaña abierta */
+  H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario:[]}));H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas']);
+ });
++/* LHB-97: dos reseñas públicas que se ven iguales (otro id, los mismos campos): el foco y la tarjeta abierta vuelven a la que abriste, no a la primera; con la tarjeta de una reseña abierta, el foco sigue en su botón */
++test('LHB-97: dos reseñas iguales: tras una sincronización el foco y la tarjeta abierta vuelven a la segunda; con la tarjeta de una reseña abierta el foco no se cae a BODY; sin id, cada gemela por su orden',async()=>{
++ const gem={nombre:'Gemela',rating:4,tags:['cacao'],notas:'igual',publica:true,consumido:'2026-05-01'},llega={id:'d9',nombre:'Llegó Pública',publica:true,consumido:'2099-01-01'};
++ for(const ids of [['dA','dB'],[null,null]]){const como=ids[0]?'con id':'sin id';
++  const doc=extra=>JSON.stringify({...DOC58(),diario:[...(extra||[]),...ids.map(id=>id?{id,...gem}:{...gem})]});
++  const H=HOJA58({ls:{lhb_mihoja_v1:doc()},reply:()=>({status:503,body:{}})});
++  H.ctx.view.innerHTML='<div class="pf-own" id="pfOwn"></div>';await H.X.profileOwn({sub:'u_a',handle:'ana'});
++  assert.equal([...H.els.pfPanel.innerHTML.matchAll(/<b>Gemela<\/b>/g)].length,2,como+': las dos se ven');
++  /* abre la segunda: con LHB-64 la hoja toma el foco (su primer control o Cerrar); lastFocus guarda el botón de la reseña */
++  const s1=H.stubs['pfres:1'];s1.focus();s1.onclick();assert.equal(H.sheets.length,1);assert.equal(H.ctx.lastFocus,s1);assert.equal(H.foco.el.id,'sheetPanel',como+': el foco entra en la hoja (LHB-64)');
++  assert.ok(H.ctx.document.body.classList.contains('sheet-on'),como+': la tarjeta está abierta');
++  /* llega la misma Mi Hoja */
++  H.X.pfOwnSync();const n1=H.stubs['pfres:1'];assert.ok(n1&&n1!==s1,como+': botones nuevos');
++  assert.equal(H.ctx.lastFocus,n1,como+': la tarjeta vuelve a la segunda, no a la primera');assert.equal(H.foco.el.id,'sheetPanel',como+': el foco sigue en la hoja');
++  /* llega una reseña que va antes: la segunda gemela queda en el tercer lugar */
++  H.ctx.localStorage.setItem('lhb_mihoja_v1',doc([llega]));H.X.pfOwnSync();const n2=H.stubs['pfres:2'];assert.ok(n2,como+': tres botones');
++  assert.equal(H.ctx.lastFocus,n2,como+': la tarjeta vuelve a la segunda gemela, ahora la tercera');assert.equal(H.foco.el.id,'sheetPanel',como+': y el foco en la hoja');
++  /* con id: en otro teléfono se borra la primera gemela; la tarjeta y el foco siguen con la que abriste, ahora la única */
++  if(ids[0]){H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario:[{id:'dB',...gem}]}));H.X.pfOwnSync();const n3=H.stubs['pfres:0'];
++   assert.ok(n3&&!H.stubs['pfres:1'],como+': queda una');assert.equal(H.ctx.lastFocus,n3,como+': borrada la primera, vuelve a la que abriste');assert.equal(H.foco.el.id,'sheetPanel',como+': y el foco en la hoja')}
++ }
++ /* las reseñas que se enseñan no cambian: la clave no sale en la reseña */
++ const H=HOJA58();assert.deepEqual(Object.keys(H.X.myResenas({diario:[{id:'dA',...gem}]})[0]).sort(),['artesano','consumido','marca','nombre','notas','rating','tags']);
++});
++/* LHB-97 (Codex ronda 1): dos catas con el mismo id y distinto contenido; el lugar no hace de id: si se va una, la otra sigue siendo ella, y la que se fue no se confunde con la que queda */
++test('LHB-97 (Codex ronda 1): con dos catas del mismo id, la que abriste sigue siendo ella cuando la otra se va o se vuelve privada; si la que se va es la tuya, el foco va a la pestaña, no a la otra',async()=>{
++ const al={id:'dup',nombre:'Alfa',rating:4,publica:true,consumido:'2026-05-01'},be={id:'dup',nombre:'Beta',rating:3,publica:true,consumido:'2026-05-01'};
++ const put=(H,diario)=>H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario}));
++ const abre=async i=>{const H=HOJA58({reply:()=>({status:503,body:{}})});put(H,[al,be]);H.ctx.view.innerHTML='<div class="pf-own" id="pfOwn"></div>';await H.X.profileOwn({sub:'u_a',handle:'ana'});
++  assert.ok(H.els.pfPanel.innerHTML.indexOf('<b>Alfa</b>')<H.els.pfPanel.innerHTML.indexOf('<b>Beta</b>'),'Alfa y luego Beta');const b=H.stubs['pfres:'+i];b.focus();b.onclick();return H};
++ /* abre Beta; la otra sincronización deja solo Beta */
++ let H=await abre(1);put(H,[be]);H.X.pfOwnSync();let n=H.stubs['pfres:0'];assert.ok(n&&!H.stubs['pfres:1']);
++ assert.equal(H.ctx.lastFocus,n,'Beta sola: la tarjeta vuelve a Beta');assert.equal(H.foco.el.id,'sheetPanel','y el foco en la hoja');
++ /* abre Beta; Alfa se vuelve privada */
++ H=await abre(1);put(H,[{...al,publica:false},be]);H.X.pfOwnSync();n=H.stubs['pfres:0'];assert.equal(H.ctx.lastFocus,n,'Alfa privada: la tarjeta vuelve a Beta');assert.equal(H.foco.el.id,'sheetPanel');
++ /* abre Alfa; queda solo Beta: Alfa se fue, la tarjeta y el foco van a la pestaña, no a Beta */
++ H=await abre(0);put(H,[be]);H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas'],'Alfa se fue: a la pestaña');assert.equal(H.foco.el.id,'sheetPanel','y el foco en la hoja');
++});
+ /* LHB-96: la página pública /u/<handle> muestra los sabores de la rueda por su nombre, como la app; lo escrito a mano sale tal cual */
+ test('LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre (Madera, Cacao / café), lo escrito a mano como se escribió, todo escapado; los nombres son los de la app',async()=>{
+  const a=await API40();
+@@ -5058,7 +5099,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v107'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v111'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -5276,3 +5317,27 @@ test('LHB-101: un escape mal formado en el hash no tumba el router (se queda el
+  let s;assert.doesNotThrow(()=>{s=h.API.S()},'S() no lanza');assert.deepEqual(s.favs,{cigarros:[],artesanos:[],lugares:[]},'Mi Hoja vacía');
+  h.ctx.localStorage.getItem=real;assert.deepEqual(h.API.S().favs.cigarros,['c1'],'cuando se puede leer otra vez, lee lo guardado');
+ });
++/* LHB-102: las subidas guardadas (vb_uploads) que no son una lista de objetos no rompen nada: el lector de app.js de verdad (LS, uploads y
++   allCigars, que usan el catálogo y la búsqueda) con un almacenamiento de mentira, y el respaldo de hoja.js con HOJA38 */
++function UP102(raw){const vm=require('vm');const src=read('app.js').replace(/\r\n/g,'\n');const i=src.indexOf('const LS={'),j=src.indexOf('\nconst artisanById=',i);
++ assert.ok(i>0&&j>i,'el lector está en app.js');const ls=new Map();if(raw!==undefined)ls.set('vb_uploads',raw);
++ const code=src.slice(i,src.indexOf('\n/* ---------- IndexedDB',i))+'\n'+src.slice(src.indexOf('let D=',i),src.indexOf('\nasync function refreshData',i))+'\n'+src.slice(src.indexOf('const uploads=',i),j);
++ const ctx={localStorage:{getItem:k=>ls.has(k)?ls.get(k):null,setItem:(k,v)=>ls.set(k,String(v))},window:{VB_DATA:{cigarros:[{id:'c2',nombre:'Zafra'},{id:'c1',nombre:'Boricua'}]}}};
++ vm.createContext(ctx);vm.runInContext(code+';this.uploads=uploads;this.allCigars=allCigars',ctx);return {ctx,ls}}
++test('LHB-102: unas subidas guardadas rotas ({} , un texto, null, una lista con basura) se leen como lista vacía o solo con lo bueno, sin romper el catálogo ni la búsqueda, y sin tocar lo guardado',async()=>{
++ for(const raw of ['{}','"x"','null','7','true','{"0":{"id":"u0"}}']){const U=UP102(raw);let all;
++  assert.doesNotThrow(()=>{all=U.ctx.allCigars()},'allCigars no lanza con '+raw);assert.deepEqual(all.map(c=>c.id),['c1','c2'],'solo el catálogo con '+raw);
++  assert.deepEqual([...U.ctx.uploads()],[],'uploads() vacío con '+raw);assert.equal(U.ls.get('vb_uploads'),raw,'leer no reescribe lo guardado: '+raw)}
++ /* una lista con basura: se quedan los objetos */
++ const raw='[1,"a",null,[2],{"id":"u1","nombre":"Al Alba"}]',U=UP102(raw);const all=U.ctx.allCigars();
++ assert.deepEqual(all.map(c=>c.id),['u1','c1','c2'],'el objeto bueno entra, en su orden');assert.equal(all[0].yours,true);assert.equal(U.ls.get('vb_uploads'),raw);
++ /* sin nada guardado y con una lista buena, como antes */
++ assert.deepEqual(UP102().ctx.allCigars().map(c=>c.id),['c1','c2']);assert.deepEqual(UP102('[{"id":"u2","nombre":"Cemí"}]').ctx.allCigars().map(c=>c.id),['c1','u2','c2']);
++ /* hoja.js: el respaldo exporta subidas como lista y la importación junta las subidas aunque lo guardado esté roto */
++ const a=HOJA38({ls:{vb_uploads:'{}'}});a.API.exportar();const file=JSON.parse(await a.blobs[0].text());assert.deepEqual(file.extra.subidas,[],'el respaldo lleva una lista');
++ assert.equal(a.ls.get('vb_uploads'),'{}','exportar no toca lo guardado');
++ const b=HOJA38({ls:{vb_uploads:'{}'}});b.API.importar({__text:JSON.stringify({...file,extra:{subidas:[{id:'u9',nombre:'Del respaldo'}]}})});
++ assert.deepEqual(JSON.parse(b.ls.get('vb_uploads')).map(x=>x.id),['u9'],'la importación trae las subidas del respaldo');
++ const c=HOJA38({ls:{vb_uploads:JSON.stringify([{id:'u1',nombre:'Mía'}])}});c.API.importar({__text:JSON.stringify({...file,extra:{subidas:[{id:'u9',nombre:'Del respaldo'}]}})});
++ assert.deepEqual(JSON.parse(c.ls.get('vb_uploads')).map(x=>x.id).sort(),['u1','u9'],'con una lista buena, junta las dos como antes');
++});

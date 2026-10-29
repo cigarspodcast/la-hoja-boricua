@@ -80,6 +80,9 @@ function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" h
  <div class="body"><div class="name">${esc(c.nombre)}</div><div class="meta">${esc(artisanName(c))}${c.pueblo?' · '+esc(c.pueblo):''}</div>
  <div class="pills">${c.capa?`<span class="pill">${esc(fx(c,'capa'))}</span>`:''}${c.fortaleza?`<span class="pill f-${c.fortaleza}">${fortLabel(c.fortaleza)}</span>`:''}${c.yours?'<span class="pill yours">'+tt('card.yours')+'</span>':''}</div></div></a>`}
 /* ---------- views ---------- */
+/* LHB-64: una región de estado fuera de la vista (no se repinta con ella, ni la tapa una hoja abierta): el lector de pantalla anuncia cuántas vitolas quedan al filtrar */
+const RS=(()=>{let e=$('#resultStatus');if(!e){e=document.createElement('div');e.id='resultStatus';e.className='sr';e.setAttribute('role','status');e.setAttribute('aria-live','polite');e.setAttribute('aria-atomic','true');document.body.appendChild(e)}return e})();
+const resultStatus=t=>{if(RS.textContent!==t)RS.textContent=t};
 const state={q:'',capa:'',fort:'',art:'',lugMode:'mapa',lugCat:'',lugTown:''};
 function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.capa).filter(Boolean))].sort();const capaLbl=new Map();for(const c of cs)if(c.capa&&(!capaLbl.has(c.capa)||capaLbl.get(c.capa)===c.capa))capaLbl.set(c.capa,fx(c,'capa'));
  const q=state.q.toLowerCase();const list=cs.filter(c=>(!q||[c.nombre,artisanName(c),c.pueblo,fq(c,'capa'),fq(c,'notas')].join(' ').toLowerCase().includes(q))&&(!state.capa||c.capa===state.capa)&&(!state.fort||c.fortaleza===state.fort)&&(!state.art||c.artesano_id===state.art));
@@ -92,8 +95,10 @@ function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.ca
  ${list.length?`<div class="grid">${list.map(cigarCard).join('')}</div>`:emptyCoqui(tt('cat.empty'))}
  ${PROTO_NOTE}`;
  const qi=$('#q');qi.addEventListener('input',e=>{state.q=e.target.value;const pos=e.target.selectionStart;vCatalogo();const n=$('#q');n.focus();n.setSelectionRange(pos,pos)});
- $$('[data-fort]').forEach(b=>b.onclick=()=>{state.fort=b.dataset.fort;vCatalogo()});
- $('#fCapa').onchange=e=>{state.capa=e.target.value;vCatalogo()};$('#fArt').onchange=e=>{state.art=e.target.value;vCatalogo()};hydratePhotos()}
+ /* LHB-64: pintar el catálogo otra vez reemplaza los filtros; el foco vuelve al mismo filtro y el número de resultados se anuncia */
+ $$('[data-fort]').forEach(b=>b.onclick=()=>{const v=b.dataset.fort;state.fort=v;vCatalogo();const n=$$('[data-fort]').find(x=>x.dataset.fort===v);if(n)n.focus({preventScroll:true})});
+ $('#fCapa').onchange=e=>{state.capa=e.target.value;vCatalogo();$('#fCapa').focus({preventScroll:true})};$('#fArt').onchange=e=>{state.art=e.target.value;vCatalogo();$('#fArt').focus({preventScroll:true})};
+ resultStatus(list.length?tt('cat.count',{a:list.length}):tt('cat.noMatch'));hydratePhotos()}
 function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="empty">${tt('cig.notFound')}</div>`;return}
  const a=artisanById(c.artesano_id);const favs=EXT.S().favs.cigarros;const rat=EXT.S().ratings[c.id]||0;const isFav=favs.includes(c.id);
  view.innerHTML=`<button class="back" data-back>${tt('back')}</button>
