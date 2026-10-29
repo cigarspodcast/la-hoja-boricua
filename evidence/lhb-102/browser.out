@@ -1,0 +1,76 @@
+== before: origin/main app.js and hoja.js
+case: vb_uploads = {}
+chrome pid 28448
+  #/catalogo {"msg": true, "view": 0, "cards": 0}
+  shot evidence/lhb-102/before-seed0-catalogo-390x844.png
+  #/buscar {"msg": true, "view": 5220, "cards": 0}
+  shot evidence/lhb-102/before-seed0-buscar-390x844.png
+  stored after: "{}" (seed "{}")
+events: EXC TypeError: uploads.map is not a function or its return value is not iterable; EXC TypeError: uploads.map is not a function or its return value is not iterable
+RESULT FAIL
+case: vb_uploads = "x"
+chrome pid 46252
+  #/catalogo {"msg": true, "view": 0, "cards": 0}
+  shot evidence/lhb-102/before-seed1-catalogo-390x844.png
+  #/buscar {"msg": true, "view": 5220, "cards": 0}
+  shot evidence/lhb-102/before-seed1-buscar-390x844.png
+  stored after: "\"x\"" (seed "\"x\"")
+events: EXC TypeError: uploads.map is not a function or its return value is not iterable; EXC TypeError: uploads.map is not a function or its return value is not iterable
+RESULT FAIL
+case: vb_uploads = null
+chrome pid 34748
+  #/catalogo {"msg": true, "view": 0, "cards": 0}
+  shot evidence/lhb-102/before-seed2-catalogo-390x844.png
+  #/buscar {"msg": true, "view": 5220, "cards": 0}
+  shot evidence/lhb-102/before-seed2-buscar-390x844.png
+  stored after: "null" (seed "null")
+events: EXC TypeError: Cannot read properties of null (reading 'map'); EXC TypeError: Cannot read properties of null (reading 'map')
+RESULT FAIL
+case: vb_uploads = [1,"a",null,{"id":"u1","nombre":"Al Alba","capa":"Maduro"}]
+chrome pid 12124
+  #/catalogo {"msg": false, "view": 64069, "cards": 52}
+  shot evidence/lhb-102/before-seed3-catalogo-390x844.png
+  #/buscar {"msg": false, "view": 120287, "cards": 52}
+  shot evidence/lhb-102/before-seed3-buscar-390x844.png
+  stored after: "[1,\"a\",null,{\"id\":\"u1\",\"nombre\":\"Al Alba\",\"capa\":\"Maduro\"}]" (seed "[1,\"a\",null,{\"id\":\"u1\",\"nombre\":\"Al Alba\",\"capa\":\"Maduro\"}]")
+events: none
+RESULT PASS
+server pid 50100 stopped (rc 1)
+== after: this branch
+case: vb_uploads = {}
+chrome pid 50144
+  #/catalogo {"msg": false, "view": 56724, "cards": 48}
+  shot evidence/lhb-102/after-seed0-catalogo-390x844.png
+  #/buscar {"msg": false, "view": 112980, "cards": 48}
+  shot evidence/lhb-102/after-seed0-buscar-390x844.png
+  stored after: "{}" (seed "{}")
+events: none
+RESULT PASS
+case: vb_uploads = "x"
+chrome pid 53124
+  #/catalogo {"msg": false, "view": 56724, "cards": 48}
+  shot evidence/lhb-102/after-seed1-catalogo-390x844.png
+  #/buscar {"msg": false, "view": 112980, "cards": 48}
+  shot evidence/lhb-102/after-seed1-buscar-390x844.png
+  stored after: "\"x\"" (seed "\"x\"")
+events: none
+RESULT PASS
+case: vb_uploads = null
+chrome pid 49512
+  #/catalogo {"msg": false, "view": 56724, "cards": 48}
+  shot evidence/lhb-102/after-seed2-catalogo-390x844.png
+  #/buscar {"msg": false, "view": 112980, "cards": 48}
+  shot evidence/lhb-102/after-seed2-buscar-390x844.png
+  stored after: "null" (seed "null")
+events: none
+RESULT PASS
+case: vb_uploads = [1,"a",null,{"id":"u1","nombre":"Al Alba","capa":"Maduro"}]
+chrome pid 46684
+  #/catalogo {"msg": false, "view": 58597, "cards": 49}
+  shot evidence/lhb-102/after-seed3-catalogo-390x844.png
+  #/buscar {"msg": false, "view": 114815, "cards": 49}
+  shot evidence/lhb-102/after-seed3-buscar-390x844.png
+  stored after: "[1,\"a\",null,{\"id\":\"u1\",\"nombre\":\"Al Alba\",\"capa\":\"Maduro\"}]" (seed "[1,\"a\",null,{\"id\":\"u1\",\"nombre\":\"Al Alba\",\"capa\":\"Maduro\"}]")
+events: none
+RESULT PASS
+server pid 16204 stopped (rc 1)

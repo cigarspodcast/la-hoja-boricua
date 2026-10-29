@@ -1,0 +1,22 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-97-wt (branch lhb-97-focus, PR to main). The diff below is base ac79595 (origin/main) to HEAD. TIER 1: one round.
+
+Ticket LHB-97: two findings from your round 3 review of LHB-58 (own profile page, site/hoja.js).
+1. pfKey/pfFind keyed a review button by JSON.stringify of the projected entry, so two public diary entries with different ids and identical shown fields collided: open the second, let a sync land, close the sheet, and focus went back to the first.
+2. The HOJA58 test mock sheet() always moved focus to a fake panel, while the real sheet() in hoja.js leaves focus on the opener when the sheet holds no control (a review sheet). So changing if(kf) in pfOwnPaint to if(kf&&!document.body.classList.contains('sheet-on')) passed every profile test while in Chrome focus dropped to BODY.
+Scope: site/hoja.js (myResenas, pfOwnData, pfKey, pfFind), test/site.test.js (HOJA58 mock, profile tests), site/sw.js (cache), evidence/.
+Done when: both reproductions turn red in a test first, then pass, with a mutation proof.
+
+What changed:
+- hoja.js: myResenasK(s) returns {e,k} per own public review in the same order as before; k is 'id:'+diary id, or 'e:'+JSON of the shown entry when there is no id, with '#n' appended counting repeats of the same key in display order. myResenas(s) maps to e only (unchanged output). pfOwnData carries keys alongside resenas; pfKey returns {res:key}; pfFind looks the key up in d.keys. pfKey/pfFind are used only by the own profile (pfOwnPaint).
+- test: HOJA58's sheet mock now sets lastFocus, a sheet-on flag, and moves focus into the sheet only when the html has select, input, a, or a button without data-close (the real selector in sheet()). The existing round-2 test now expects focus on the new button of the same review instead of the fake panel. New test LHB-97: twins with ids and without ids; open the second; a sync of the same data; a review arriving ahead; with ids, the first twin deleted elsewhere; and myResenas output keys unchanged.
+- sw.js: lhb-v105 to lhb-v109 (v106 to v108 are taken), 21 test pins; main (LHB-102) merged in.
+
+Evidence: evidence/lhb-97-mutations.out (on f487421 the ticket's focus mutation passes all 10 LHB-58 tests, the hole; on this branch 6 of 6 mutations red, including the f487421 code and the ticket's mutation); evidence/lhb-97/before.out (the new test red on the unfixed code); evidence/lhb-97-tests.txt (305 pass, 0 fail, 1 skipped).
+
+Check in particular:
+- Can the key ever send focus or lastFocus to the wrong review, or lose it, in a case the old code handled (entries without ids, duplicate ids, a review edited to look like another, a review made private)?
+- Does the mock now match the real sheet() closely enough that the profile tests would catch a focus regression? Does any other test that uses HOJA58 now pass for the wrong reason?
+- Is the public view (vPersona, other people's reviews) untouched?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

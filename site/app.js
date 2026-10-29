@@ -20,7 +20,8 @@ let D={artesanos:[],cigarros:[],places:[],events:{actividades:[],fuentes:[]}};
 function setData(src){if(!src)return;D={artesanos:src.artesanos||D.artesanos,cigarros:src.cigarros||D.cigarros,places:src.places||D.places,events:src.events||D.events}}
 setData(window.VB_DATA);
 async function refreshData(){try{const r=await fetch('data/bundle.js',{cache:'no-cache'});if(!r.ok)return;const t=await r.text(),j=JSON.parse(t.slice(t.indexOf('{'),t.lastIndexOf('}')+1));let changed=false;for(const k of ['artesanos','cigarros','places','events'])if(j[k]&&JSON.stringify(j[k])!==JSON.stringify(D[k])){D[k]=j[k];changed=true}if(changed)route()}catch(e){}}
-const uploads=()=>LS.get('uploads',[]);
+/* LHB-102: lo guardado que no es una lista de objetos (un {} o un texto de una versión rota) se lee como lista vacía, sin tocar lo guardado */
+const uploads=()=>{const v=LS.get('uploads',[]);return Array.isArray(v)?v.filter(u=>u&&typeof u==='object'&&!Array.isArray(u)):[]};
 const allCigars=()=>[...D.cigarros,...uploads().map(u=>({...u,yours:true}))].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es',{sensitivity:'base'}));
 const artisanById=id=>D.artesanos.find(a=>a.id===id);
 const cigarById=id=>allCigars().find(c=>c.id===id);
