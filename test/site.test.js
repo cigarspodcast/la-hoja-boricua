@@ -4578,8 +4578,9 @@ function HOJA58(opts){opts=opts||{};
   /* opts.token: la llave de la sesión tarda; go es el de api() en hoja.js: con la llave ya puesta, si dice que no el pedido no sale */
   clerk:async()=>({user:{id:'u_a'}}),acctW:new Set(),api:async(C,method,path,body,uid,extra,go)=>{if(opts.token)await opts.token(method);if(go&&!go())throw new Error('gone');calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
   A:{cigarById:id=>({c1:{id:'c1',nombre:'Yambú Toro'},c2:{id:'c2',nombre:'Don Collins'}})[id]||null,cigarCard:c=>'<a class="card" data-c="'+c.id+'">'+c.nombre+'</a>',hydrate:()=>log.push('hydrate'),route:()=>log.push('route')},
-  /* LHB-97: como sheet() en hoja.js: anota lastFocus, pone sheet-on y lleva el foco a la tarjeta solo si tiene un control (select, input, a, un botón que no cierra); una reseña no tiene, y el foco se queda en el botón que la abrió */
-  acct:{get:()=>acctBox.v},sheet:(h,l)=>{ctx.lastFocus=foco.el;sheetOn.v=true;if(/<(select|input|a)\b|<button\b(?![^>]*data-close)/.test(h))foco.el={id:'sheetPanel'};sheets.push([h,l])},lastFocus:null,document:{get activeElement(){return foco.el},body:{classList:{contains:k=>k==='sheet-on'&&sheetOn.v}}},dKeepFocus:()=>log.push('dKeepFocus'),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,
+  /* LHB-97, en facelift: como sheet() de facelift (LHB-64): anota lastFocus si el foco no está ya en la hoja, pone sheet-on y siempre lleva el foco a la hoja
+     (su primer control o Cerrar), con la app detrás inerte; por eso aquí el foco nunca queda en el botón de una reseña con la hoja abierta */
+  acct:{get:()=>acctBox.v},sheet:(h,l)=>{if(foco.el.id!=='sheetPanel')ctx.lastFocus=foco.el;sheetOn.v=true;foco.el={id:'sheetPanel'};sheets.push([h,l])},lastFocus:null,document:{get activeElement(){return foco.el},body:{classList:{contains:k=>k==='sheet-on'&&sheetOn.v}}},dKeepFocus:()=>log.push('dKeepFocus'),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,
   localStorage,navigator:{},location:loc,setTimeout:()=>0,JSON,Date,subnav:k=>'<nav data-sub="'+k+'"></nav>'};
  vm.createContext(ctx);
  vm.runInContext(code+';this.X={vSiguiendo,vPersona,profileOwn,pfOwnSync:typeof pfOwnSync=="function"?pfOwnSync:undefined,pfPanel,pfHead,myResenas,pfEntry,isPublica,S}',ctx);
@@ -4815,8 +4816,8 @@ test('LHB-58 (Codex ronda 2): pintar otra vez tu Perfil (la respuesta del servid
  const b0=H.stubs['pfres:0'];b0.focus();b0.onclick();assert.equal(H.sheets.length,1);assert.equal(H.ctx.lastFocus,b0);
  H.ctx.localStorage.setItem('lhb_mihoja_v1',LLEGA58());H.X.pfOwnSync();
  const b1=H.stubs['pfres:1'];assert.ok(b1&&b1!==b0,'el botón viejo se fue');assert.equal(H.ctx.lastFocus,b1,'la tarjeta vuelve al botón de la misma reseña, ahora el segundo');
- /* LHB-97: la tarjeta de una reseña no tiene controles y el foco se queda en el botón que la abrió (sheet() en hoja.js); pasa al botón nuevo de la misma reseña */
- assert.equal(H.foco.el,b1,'el foco va al botón nuevo de la misma reseña, no se cae a BODY');
+ /* LHB-97, en facelift: la hoja siempre tiene el foco (LHB-64); la sincronización no lo saca de ella */
+ assert.equal(H.foco.el.id,'sheetPanel','el foco no sale de la tarjeta');
  /* la reseña de la tarjeta ya no está: vuelve a la pestaña abierta */
  H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario:[]}));H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas']);
 });
@@ -4829,17 +4830,17 @@ test('LHB-97: dos reseñas iguales: tras una sincronización el foco y la tarjet
   H.ctx.view.innerHTML='<div class="pf-own" id="pfOwn"></div>';await H.X.profileOwn({sub:'u_a',handle:'ana'});
   assert.equal([...H.els.pfPanel.innerHTML.matchAll(/<b>Gemela<\/b>/g)].length,2,como+': las dos se ven');
   /* abre la segunda: la tarjeta de una reseña no tiene controles, el foco se queda en su botón */
-  const s1=H.stubs['pfres:1'];s1.focus();s1.onclick();assert.equal(H.sheets.length,1);assert.equal(H.ctx.lastFocus,s1);assert.equal(H.foco.el,s1,como+': el foco sigue en el botón');
+  const s1=H.stubs['pfres:1'];s1.focus();s1.onclick();assert.equal(H.sheets.length,1);assert.equal(H.ctx.lastFocus,s1);assert.equal(H.foco.el.id,'sheetPanel',como+': el foco entra en la hoja (LHB-64)');
   assert.ok(H.ctx.document.body.classList.contains('sheet-on'),como+': la tarjeta está abierta');
   /* llega la misma Mi Hoja */
   H.X.pfOwnSync();const n1=H.stubs['pfres:1'];assert.ok(n1&&n1!==s1,como+': botones nuevos');
-  assert.equal(H.ctx.lastFocus,n1,como+': la tarjeta vuelve a la segunda, no a la primera');assert.equal(H.foco.el,n1,como+': el foco, en la segunda');
+  assert.equal(H.ctx.lastFocus,n1,como+': la tarjeta vuelve a la segunda, no a la primera');assert.equal(H.foco.el.id,'sheetPanel',como+': el foco sigue en la hoja');
   /* llega una reseña que va antes: la segunda gemela queda en el tercer lugar */
   H.ctx.localStorage.setItem('lhb_mihoja_v1',doc([llega]));H.X.pfOwnSync();const n2=H.stubs['pfres:2'];assert.ok(n2,como+': tres botones');
-  assert.equal(H.ctx.lastFocus,n2,como+': la tarjeta vuelve a la segunda gemela, ahora la tercera');assert.equal(H.foco.el,n2,como+': y el foco');
+  assert.equal(H.ctx.lastFocus,n2,como+': la tarjeta vuelve a la segunda gemela, ahora la tercera');assert.equal(H.foco.el.id,'sheetPanel',como+': y el foco en la hoja');
   /* con id: en otro teléfono se borra la primera gemela; la tarjeta y el foco siguen con la que abriste, ahora la única */
   if(ids[0]){H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario:[{id:'dB',...gem}]}));H.X.pfOwnSync();const n3=H.stubs['pfres:0'];
-   assert.ok(n3&&!H.stubs['pfres:1'],como+': queda una');assert.equal(H.ctx.lastFocus,n3,como+': borrada la primera, vuelve a la que abriste');assert.equal(H.foco.el,n3,como+': y el foco')}
+   assert.ok(n3&&!H.stubs['pfres:1'],como+': queda una');assert.equal(H.ctx.lastFocus,n3,como+': borrada la primera, vuelve a la que abriste');assert.equal(H.foco.el.id,'sheetPanel',como+': y el foco en la hoja')}
  }
  /* las reseñas que se enseñan no cambian: la clave no sale en la reseña */
  const H=HOJA58();assert.deepEqual(Object.keys(H.X.myResenas({diario:[{id:'dA',...gem}]})[0]).sort(),['artesano','consumido','marca','nombre','notas','rating','tags']);
@@ -4852,11 +4853,11 @@ test('LHB-97 (Codex ronda 1): con dos catas del mismo id, la que abriste sigue s
   assert.ok(H.els.pfPanel.innerHTML.indexOf('<b>Alfa</b>')<H.els.pfPanel.innerHTML.indexOf('<b>Beta</b>'),'Alfa y luego Beta');const b=H.stubs['pfres:'+i];b.focus();b.onclick();return H};
  /* abre Beta; la otra sincronización deja solo Beta */
  let H=await abre(1);put(H,[be]);H.X.pfOwnSync();let n=H.stubs['pfres:0'];assert.ok(n&&!H.stubs['pfres:1']);
- assert.equal(H.ctx.lastFocus,n,'Beta sola: la tarjeta vuelve a Beta');assert.equal(H.foco.el,n,'y el foco');
+ assert.equal(H.ctx.lastFocus,n,'Beta sola: la tarjeta vuelve a Beta');assert.equal(H.foco.el.id,'sheetPanel','y el foco en la hoja');
  /* abre Beta; Alfa se vuelve privada */
- H=await abre(1);put(H,[{...al,publica:false},be]);H.X.pfOwnSync();n=H.stubs['pfres:0'];assert.equal(H.ctx.lastFocus,n,'Alfa privada: la tarjeta vuelve a Beta');assert.equal(H.foco.el,n);
+ H=await abre(1);put(H,[{...al,publica:false},be]);H.X.pfOwnSync();n=H.stubs['pfres:0'];assert.equal(H.ctx.lastFocus,n,'Alfa privada: la tarjeta vuelve a Beta');assert.equal(H.foco.el.id,'sheetPanel');
  /* abre Alfa; queda solo Beta: Alfa se fue, la tarjeta y el foco van a la pestaña, no a Beta */
- H=await abre(0);put(H,[be]);H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas'],'Alfa se fue: a la pestaña');assert.equal(H.foco.el,H.els['pfT-resenas'],'y el foco');
+ H=await abre(0);put(H,[be]);H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas'],'Alfa se fue: a la pestaña');assert.equal(H.foco.el.id,'sheetPanel','y el foco en la hoja');
 });
 /* LHB-96: la página pública /u/<handle> muestra los sabores de la rueda por su nombre, como la app; lo escrito a mano sale tal cual */
 test('LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre (Madera, Cacao / café), lo escrito a mano como se escribió, todo escapado; los nombres son los de la app',async()=>{
