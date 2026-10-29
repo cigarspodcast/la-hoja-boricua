@@ -1,0 +1,339 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-65-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a186b1-58fb-7f83-ab3f-dc789d1be935
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 2 of a TIER 2 review of LHB-75. The round 1 brief and your review are evidence/lhb-75-review-brief-r1.txt and evidence/lhb-75-review-r1.txt. The diff below is the ticket's code since cedd37f: site/_headers and the LHB-75 test. The LHB-74 changes in the same test file are another ticket, outside this review.
+
+The ticket's Done-when (you could not locate it in round 1): "the Proof passes; the preview deploys from the branch; the review pack is committed and shown in full on screen; the owner holds the preview URL." The Proof is: "node --test --test-timeout=60000 test/site.test.js, output redirected to evidence/ and read to its last line. The preview URL answers 200 with the noindex header (curl output saved). Counting basis: screenshots counted from the pack's own manifest."
+
+Round 1 verdict: BLOCK. Your findings, and what changed:
+
+1. P2: committed files published the preview address.
+   - evidence/lhb-75-curl.sh now takes the address as its first argument, and the record shows it as <preview>.
+   - evidence/lhb-75-preview-curl.txt was regenerated that way. It is current: the preview serves lhb-v104, the tree's version.
+   - The LHB-75 test's example preview host is now rama-x.la-hoja-boricua.pages.dev, an example branch name.
+   - git grep finds the address in no current file except four dated review records: evidence/lhb-74-review-prompt-r4.txt, evidence/lhb-74-review-r4.txt, evidence/lhb-75-review-prompt-r1.txt and evidence/lhb-75-review-r1.txt, which embed an earlier diff verbatim. Dated records are not edited here, by rule.
+   - Stated plainly to the owner: the address stays in the public repository's pushed history, and the repository README already publishes the pattern https://<branch>.la-hoja-boricua.pages.dev. A committed-file fix cannot withdraw it. Restricting it needs Cloudflare Access on previews, a dashboard setting reserved to the owner.
+2. P2: Word numbering. md2docx.py now gives each numbered list its own numbering instance, a new w:num on the List Number abstract numbering with lvlOverride/startOverride 1, so every list restarts at 1.
+   - Nested bullets inside a numbered item do not break the count.
+   - Links are real hyperlinks, with relative targets.
+   - Read back from README.docx: 11 numbered lists with 42 items; each heading's list has its own numId; 39 hyperlinks.
+3. P3: README now says the preview's pages and files answer noindex, nofollow, and that the /u/ profile pages (made by the server) answer noindex, follow on the preview and the live site alike.
+
+Evidence: evidence/lhb-75-mutations.out, 6 of 6 red; evidence/lhb-75-tests.txt, 332 pass, 0 fail, 1 skipped.
+
+Check that each finding is closed, and anything else in the ticket. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff cedd37f HEAD -- site/_headers test/site.test.js =====
+diff --git a/site/_headers b/site/_headers
+new file mode 100644
+index 0000000..d098dd0
+--- /dev/null
++++ b/site/_headers
+@@ -0,0 +1,5 @@
++# LHB-75: branch previews (<branch>.la-hoja-boricua.pages.dev and <hash>.la-hoja-boricua.pages.dev) stay out of search engines.
++# Only those: a placeholder never crosses a dot, so lahojaboricua.com and la-hoja-boricua.pages.dev do not match this rule.
++# Pages already sends noindex on previews; this rule says it from the project too (and adds nofollow, which tells it apart).
++https://:version.:project.pages.dev/*
++  X-Robots-Tag: noindex, nofollow
+diff --git a/test/site.test.js b/test/site.test.js
+index 65850a1..451784e 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v103'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v104'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,23 +61,23 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
+- assert.match(sw,/const VERSION='lhb-v103'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
++ assert.match(sw,/const VERSION='lhb-v104'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
+  assert.ok(a.includes(f)&&a.includes("VEHICULO='guagua'"));
+  for(const g of ['img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
+  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
+ test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v103'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v104'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
+  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v103'/);
++ assert.match(sw,/const VERSION='lhb-v104'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v103'/);
++ assert.match(sw,/const VERSION='lhb-v104'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
+  const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%231EA8D7')&&em.includes('%23ED0000'),'bandera de los vacíos con el celeste y el rojo de la bandera (LHB-67: el celeste de la guagua)');
+@@ -98,12 +98,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v103'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v104'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v103'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v104'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -111,7 +111,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v103'/);});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v104'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -128,7 +128,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v103/);});
++ assert.match(read('sw.js'),/lhb-v104/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -141,19 +141,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v103'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v104'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v103'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v104'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v103'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v104'/);});
+ 
+ test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
+  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
+- for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v103'/);});
++ for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v104'/);});
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
+@@ -1215,7 +1215,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v104'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1462,7 +1462,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v103'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v104'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1640,7 +1640,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v104'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1887,7 +1887,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v104'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2188,7 +2188,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v104'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2471,7 +2471,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v104'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3438,7 +3438,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v103'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v104'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -5055,7 +5055,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v103'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v104'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -5706,6 +5706,13 @@ test('LHB-74: el sello recién puesto y la insignia que gana se celebran una vez
+  H=PASS74(ONE);H.P.vPasaporte();H.tap('cigarros:c1');H.run(100);H.tap('cigarros:c1');assert.deepEqual(H.news(),[],'quitado: nada');assert.equal(H.obs.size,0,'y nada queda esperando ni mirando la vista');
+  H.run(350);assert.deepEqual(H.news(),[]);H.run(400);H.tap('cigarros:c1');H.run(950);assert.deepEqual(H.news(),['cigarros:c1 -350ms'],'la limpieza de la primera (900) no corta la segunda (empezó a los 400, pintada a los 750)');
+  H.run(1300);assert.deepEqual(H.news(),[]);
++ /* Codex ronda 3: la misma insignia, perdida y ganada otra vez con otro sello, es una celebración nueva: no hereda el reloj ni la limpieza
++    de la vieja; y mientras está perdida no se marca */
++ H=PASS74({stamped:['cigarros:c0','cigarros:c1','cigarros:c2','cigarros:c3']});H.P.vPasaporte();H.tap('cigarros:c4');H.run(350);assert.deepEqual(H.news(),['catador 0ms','cigarros:c4 -350ms']);
++ H.run(400);H.tap('cigarros:c0');H.run(750);assert.deepEqual(H.news(),['cigarros:c4 -750ms'],'Catador perdida: no se marca');
++ H.run(800);H.tap('cigarros:c5');H.run(1150);assert.deepEqual(H.news(),['catador 0ms','cigarros:c5 -350ms'],'ganada otra vez: empieza de cero');
++ H.run(1250);assert.deepEqual(H.news(),['catador 0ms','cigarros:c5 -350ms'],'la limpieza de la vieja (1250) no la corta');
++ H.run(2050);assert.deepEqual(H.news(),[]);assert.equal(H.obs.size,0);
+  /* una insignia que no se ve ganada en 2 s caduca (se ganó en otra página y no se volvió a tiempo) */
+  H=PASS74({hash:'#/c/c4',stamped:['cigarros:c0','cigarros:c1','cigarros:c2','cigarros:c3']});H.page('cigarros:c4');H.tap('cigarros:c4');
+  H.run(2000);assert.equal(H.obs.size,0,'a los 2 s ya no espera');H.P.vPasaporte();assert.deepEqual(H.news(),[],'caducada');
+@@ -5739,3 +5746,31 @@ test('LHB-74: el pasaporte a color: cuatro colores de la paleta en ciclo, cada t
+  assert.ok(sb.includes('<span>'+ES['h.selladoEl'].replace('{d}','2026-10-29')+'</span>'),'sellado: aria-pressed y su texto, Sellado el...');
+  const bd=(h.match(/<div class="badge on" data-badge="primer"[^]*?<\/span><\/div>/)||[''])[0];assert.ok(bd.includes('<span>'+ES['h.lograda']+'</span>'),'la insignia ganada dice Lograda');
+ });
++/* LHB-75: _headers como lo lee Pages (developers.cloudflare.com/pages/configuration/headers): una regla es una URL o un camino, con
++   sus encabezados sangrados debajo; :nombre casa con todo menos el delimitador (en el host, el punto o la barra; en el camino, la barra),
++   * casa con todo, y una regla que empieza con / vale para todo host. Una petición recibe los encabezados de todas las reglas que casan. */
++function HEADERS75(text){const rules=[];let cur=null;
++ for(const raw of text.split(/\r?\n/)){if(!raw.trim()||/^\s*#/.test(raw))continue;
++  if(/^\s/.test(raw)){assert.ok(cur,'un encabezado sin regla: '+raw);const i=raw.indexOf(':');cur.h.push([raw.slice(0,i).trim().toLowerCase(),raw.slice(i+1).trim()])}
++  else{cur={url:raw.trim(),h:[]};rules.push(cur)}}
++ const rx=(s,delim)=>s.split(/(:[A-Za-z]\w*|\*)/).map(p=>p==='*'?'.*':/^:[A-Za-z]\w*$/.test(p)?'[^'+delim+']+':p.replace(/[.+?^${}()|[\]\\]/g,'\\$&')).join('');
++ const match=(rule,url)=>{const u=new URL(url);const m=rule.url.match(/^https:\/\/([^/]+)(\/.*)$/);
++  if(m)return new RegExp('^'+rx(m[1],'./')+'$').test(u.hostname)&&new RegExp('^'+rx(m[2],'/')+'$').test(u.pathname);
++  return new RegExp('^'+rx(rule.url,'/')+'$').test(u.pathname)};
++ const get=(url,name)=>{const v=rules.filter(r=>match(r,url)).flatMap(r=>r.h.filter(h=>h[0]===name).map(h=>h[1]));return v.length?v.join(', '):null};
++ return {rules,get}}
++test('LHB-75: las vistas previas de ramas no van a los buscadores; lahojaboricua.com y su dirección de pages.dev no cambian',()=>{
++ const H=HEADERS75(read('_headers'));
++ for(const u of ['https://rama-x.la-hoja-boricua.pages.dev/','https://rama-x.la-hoja-boricua.pages.dev/cigarros/cohoba-robusto-maduro','https://8f3a2b1c.la-hoja-boricua.pages.dev/index.html'])
++  assert.equal(H.get(u,'x-robots-tag'),'noindex, nofollow','vista previa: '+u);
++ for(const u of ['https://lahojaboricua.com/','https://lahojaboricua.com/cigarros/cohoba-robusto-maduro','https://www.lahojaboricua.com/','https://la-hoja-boricua.pages.dev/'])
++  assert.equal(H.get(u,'x-robots-tag'),null,'producción sin cambio: '+u);
++ /* nada más: una sola regla, solo para vistas previas, con un solo encabezado (lo demás de producción queda como está) */
++ assert.deepEqual(H.rules.map(r=>[r.url,r.h.map(h=>h[0])]),[['https://:version.:project.pages.dev/*',['x-robots-tag']]]);
++ /* el matcher distingue: una regla para todo, o para el nombre de pages.dev del proyecto, sí casaría con producción */
++ assert.equal(HEADERS75('/*\n  X-Robots-Tag: noindex').get('https://lahojaboricua.com/','x-robots-tag'),'noindex');
++ assert.equal(HEADERS75('https://:project.pages.dev/*\n  X-Robots-Tag: noindex').get('https://la-hoja-boricua.pages.dev/','x-robots-tag'),'noindex');
++ assert.equal(HEADERS75('https://:project.pages.dev/*\n  X-Robots-Tag: noindex').get('https://rama-x.la-hoja-boricua.pages.dev/','x-robots-tag'),null,'un marcador no cruza el punto');
++ /* las páginas que sirven Functions (/u/*) no reciben _headers: ya dicen noindex por su cuenta */
++ assert.ok(read('../functions/u/[handle].js').includes("const ROBOTS = 'noindex, follow';"));
++});
+
+2026-10-29T08:05:36.025973Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T08:05:38.097502Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The key gap is whether the corrected files and saved proof close the three findings. I’ll check those against round 1 and the Done-when, without editing files or loading skills.
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "Get-Content -LiteralPath 'C:\\Users\\Owner\\Documents\\Codex\\PRE_ENGINE_CONTROL_METHODOLOGY.md'; Get-Location; git status --short; git log -5 --oneline; Get-Content -LiteralPath 'evidence/lhb-75-review-brief-r1.txt'; Get-Content -LiteralPath 'evidence/lhb-75-review-r1.txt'" in C:\Users\Owner\lhb-65-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T08:05:50.102122Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The shell failed, but the Node fallback works. The corrected curl record shows v104 with the expected headers, and the source gives each numbered list its own restart. I’m checking the generated Word file and screenshot manifest next; the suite is running.
+mcp: node_repl/js started
+web search: 
+mcp: node_repl/js (completed)
+web search: https://developers.cloudflare.com/pages/configuration/headers/
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The Word file has 11 independently restarted lists, 42 numbered items and 39 relative screenshot hyperlinks. All 39 screenshots match the manifest’s hashes and dimensions. The guard passes and all six mutations fail. The suite rerun had five sandbox failures: four Python launches were denied and one temporary-directory write was denied. Live preview requests were also denied, so deployment verification rests on the saved curl record.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] No remaining merge-blocking defect found. The preview address remains disclosed in dated records and history; this patch does not restore secrecy.
+
+1. **P2, CONCUR with correction, nonblocking.** Files/symbols: [curl script, `P` and `mask()`](C:/Users/Owner/lhb-65-wt/evidence/lhb-75-curl.sh), `lhb-75-preview-curl.txt`, and `HEADERS75` fixtures in `test/site.test.js`. The previous failure scenario was obtaining the actual address from active proof artifacts. The script now requires an argument, the record shows `<preview>`, and fixtures use `rama-x`. Exact-host searching finds only the four declared dated review records. The pack contains no address. Residual public disclosure remains explicitly acknowledged and owner-controlled.
+
+2. **P2, CONCUR, closed, nonblocking.** File/symbol: [md2docx.py, `new_list_instance()`, `set_num()`, `hyperlink()`](C:/Users/Owner/lhb-65-wt/evidence/m7-review-pack/md2docx.py), affecting `README.docx`. The previous failure scenario was following TalkBack’s “steps 2 to 4” reference against continuously numbered Word lists. Generated XML now contains **11 separate numbering instances, 42 numbered items**, each list restarting at 1. Nested bullets preserve the enclosing count. All **39 screenshot hyperlinks** have valid relative targets. This was structural verification, not rendered Word inspection.
+
+3. **P3, CONCUR, closed, nonblocking.** File/symbol: [README.md, preview description](C:/Users/Owner/lhb-65-wt/evidence/m7-review-pack/README.md:11), also present in Word. The previous failure scenario was comparing “every page” with a `/u/` response. Both versions now explicitly state the profile-page exception, `noindex, follow`, matching the Function and saved curl evidence.
+
+[Certain] Additional checks:
+
+- `_headers` and `HEADERS75` match the relevant [Cloudflare header rules](https://developers.cloudflare.com/pages/configuration/headers/). Production hosts remain excluded; hash and dashed aliases match. Dotted branch names become hyphenated aliases under [Pages’ documented behavior](https://developers.cloudflare.com/pages/configuration/preview-deployments/#preview-aliases).
+- The guard passed, and all six mutations failed when reproduced in memory.
+- The committed manifest contains **39 screenshots across 13 screens and three sizes**. Every file matches its recorded hash, byte count and dimensions.
+- Saved suite proof was read through its last line: **332 pass, 0 fail, 1 skipped**. This sandbox rerun produced **327 pass, 5 fail, 1 skipped**: four denied Python launches and one denied temporary-directory write. LHB-75 passed.
+- Saved curl proof records **v104**, preview **200** responses and `noindex, nofollow`. Independent live requests were denied with `EACCES`.
+
+[Certain] The pack is committed. Full on-screen presentation, the owner’s possession of the URL, and exact deployed-commit identity are **NOT VERIFIED**. No files were edited and no skills were loaded.
+
+VERDICT: PASS
+tokens used
+78,443
+[Certain] No remaining merge-blocking defect found. The preview address remains disclosed in dated records and history; this patch does not restore secrecy.
+
+1. **P2, CONCUR with correction, nonblocking.** Files/symbols: [curl script, `P` and `mask()`](C:/Users/Owner/lhb-65-wt/evidence/lhb-75-curl.sh), `lhb-75-preview-curl.txt`, and `HEADERS75` fixtures in `test/site.test.js`. The previous failure scenario was obtaining the actual address from active proof artifacts. The script now requires an argument, the record shows `<preview>`, and fixtures use `rama-x`. Exact-host searching finds only the four declared dated review records. The pack contains no address. Residual public disclosure remains explicitly acknowledged and owner-controlled.
+
+2. **P2, CONCUR, closed, nonblocking.** File/symbol: [md2docx.py, `new_list_instance()`, `set_num()`, `hyperlink()`](C:/Users/Owner/lhb-65-wt/evidence/m7-review-pack/md2docx.py), affecting `README.docx`. The previous failure scenario was following TalkBack’s “steps 2 to 4” reference against continuously numbered Word lists. Generated XML now contains **11 separate numbering instances, 42 numbered items**, each list restarting at 1. Nested bullets preserve the enclosing count. All **39 screenshot hyperlinks** have valid relative targets. This was structural verification, not rendered Word inspection.
+
+3. **P3, CONCUR, closed, nonblocking.** File/symbol: [README.md, preview description](C:/Users/Owner/lhb-65-wt/evidence/m7-review-pack/README.md:11), also present in Word. The previous failure scenario was comparing “every page” with a `/u/` response. Both versions now explicitly state the profile-page exception, `noindex, follow`, matching the Function and saved curl evidence.
+
+[Certain] Additional checks:
+
+- `_headers` and `HEADERS75` match the relevant [Cloudflare header rules](https://developers.cloudflare.com/pages/configuration/headers/). Production hosts remain excluded; hash and dashed aliases match. Dotted branch names become hyphenated aliases under [Pages’ documented behavior](https://developers.cloudflare.com/pages/configuration/preview-deployments/#preview-aliases).
+- The guard passed, and all six mutations failed when reproduced in memory.
+- The committed manifest contains **39 screenshots across 13 screens and three sizes**. Every file matches its recorded hash, byte count and dimensions.
+- Saved suite proof was read through its last line: **332 pass, 0 fail, 1 skipped**. This sandbox rerun produced **327 pass, 5 fail, 1 skipped**: four denied Python launches and one denied temporary-directory write. LHB-75 passed.
+- Saved curl proof records **v104**, preview **200** responses and `noindex, nofollow`. Independent live requests were denied with `EACCES`.
+
+[Certain] The pack is committed. Full on-screen presentation, the owner’s possession of the URL, and exact deployed-commit identity are **NOT VERIFIED**. No files were edited and no skills were loaded.
+
+VERDICT: PASS

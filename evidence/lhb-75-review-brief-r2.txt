@@ -8,7 +8,7 @@ Round 1 verdict: BLOCK. Your findings, and what changed:
    - evidence/lhb-75-curl.sh now takes the address as its first argument, and the record shows it as <preview>.
    - evidence/lhb-75-preview-curl.txt was regenerated that way. It is current: the preview serves lhb-v104, the tree's version.
    - The LHB-75 test's example preview host is now rama-x.la-hoja-boricua.pages.dev, an example branch name.
-   - git grep finds the address in no current file except two dated review records: evidence/lhb-74-review-prompt-r4.txt and evidence/lhb-74-review-r4.txt, which embed an earlier diff verbatim. Dated records are not edited here, by rule.
+   - git grep finds the address in no current file except four dated review records: evidence/lhb-74-review-prompt-r4.txt, evidence/lhb-74-review-r4.txt, evidence/lhb-75-review-prompt-r1.txt and evidence/lhb-75-review-r1.txt, which embed an earlier diff verbatim. Dated records are not edited here, by rule.
    - Stated plainly to the owner: the address stays in the public repository's pushed history, and the repository README already publishes the pattern https://<branch>.la-hoja-boricua.pages.dev. A committed-file fix cannot withdraw it. Restricting it needs Cloudflare Access on previews, a dashboard setting reserved to the owner.
 2. P2: Word numbering. md2docx.py now gives each numbered list its own numbering instance, a new w:num on the List Number abstract numbering with lvlOverride/startOverride 1, so every list restarts at 1.
    - Nested bullets inside a numbered item do not break the count.
