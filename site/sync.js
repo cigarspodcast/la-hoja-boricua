@@ -231,7 +231,8 @@ window.LHB_SYNC=function(D){
     for(const x of ask){const o=oks.find(y=>isObj(y)&&y.id===x.op);if(!o)continue;
      if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(o.rev===x.rev+1){won=Math.max(won,o.rev);wonAt.add(x.rev)}if(x.ep!==ep0)voided=true;else if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
      else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true}}
-    if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}}
+    /* Codex r5: si otra pestaña ya anotó una base más nueva que la de esa subida, vale la nueva (saber que llegó no la reemplaza) */
+    if(best&&!(meta&&Number.isInteger(meta.rev)&&meta.rev>best.rev)){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}}
    /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
       LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
    if(!oks&&ask.some(x=>rev>=x.rev+2))voided=true;
@@ -307,7 +308,8 @@ window.LHB_SYNC=function(D){
    /* ...y lo que cambió en la copia mientras tanto (aunque el contador compartido no se haya podido escribir) */
    const edited=edits!==e0||readSeq()!==s0||!quiet;
    /* Codex r4: y al final tampoco se pisa una base más nueva que otra pestaña anotó mientras tanto (esta pasada se reintenta) */
-   {let mr;try{mr=D.ls.get(META)}catch(e){mr=metaRaw}if(mr!==metaRaw){const m2=pm(mr);if(m2&&Number.isInteger(m2.rev)&&m2.rev>newRev)return {fail:'conflict'}}}
+   /* Codex r5: si no se puede mirar, no se anota */
+   {let mr;try{mr=D.ls.get(META)}catch(e){return {fail:'storage'}}if(mr!==metaRaw){const m2=pm(mr);if(m2&&Number.isInteger(m2.rev)&&m2.rev>newRev)return {fail:'conflict'}}}
    mem={sub:uid,base:merged,rev:newRev,ep:ep0};unrecorded=false;
    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0})){staleBase=true;poison();return {fail:'storage'}}
    /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */

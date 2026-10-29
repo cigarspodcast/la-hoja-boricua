@@ -6892,6 +6892,33 @@ test('LHB-104 (Codex r4): otra pestaña anota una base más nueva justo antes de
   const r=await T.run('x');assert.ok(!r.ok,'esta pasada se reintenta');
   assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,3,'la base más nueva se queda');
  }finally{a.done()}});
+test('LHB-104 (Codex r5): la pestaña 1 se entera tarde de que su subida llegó (rev 2), cuando la 2 ya anotó la base del rev 3: no la reemplaza, y a1 que la persona volvió a poner se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la subida de la 1 llegó');
+  let late=null,hold=false;
+  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'&&hold&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)}};
+  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
+  A.edit(d=>{d.favs.artesanos=[]});assert.equal((await B.run('quita')).ok,true);assert.equal(srv28(a,'user_a').rev,3);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+  A.edit(d=>{d.favs.artesanos=['a1']});hold=true;await B.run('repone');assert.ok(late,'la que repone a1 quedó sin respuesta');
+  A.D.wait=async()=>{};await A.eng.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r5): si la última lectura de la meta antes de anotarla falla, no se anota',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.cigarros=['k1']});await P.sync();assert.equal(srv28(a,'user_a').rev,2);
+  /* las lecturas de la meta en la pasada: al empezar, después del GET y antes de anotar; falla la tercera */
+  let n=0;const D2=mk104(A,{get:k=>{if(k==='lhb_mihoja_v1_sync'&&++n===3)throw new Error('SecurityError')}});
+  const T=SYNC28().LHB_SYNC(D2);const r=await T.run('x');
+  assert.equal(n>=3,true);assert.ok(!r.ok,'la pasada no terminó');assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,1,'no se anotó sin mirar');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{

@@ -38,6 +38,8 @@ MUTS = [
     (SY, 'r3: a pass whose minimal meta does not fit stops instead of keeping the entries', 'if(gone.length&&(!(voided||staleBase)||poison())){', 'if(gone.length&&(voided||staleBase)&&!poison())return {fail:\'storage\'};if(gone.length){'),
     (SY, 'r4: a GET answer older than the recorded base is used', 'if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev)continue', ''),
     (SY, 'r4: the final meta overwrites a newer base', "if(m2&&Number.isInteger(m2.rev)&&m2.rev>newRev)return {fail:'conflict'}", ''),
+    (SY, 'r5: a late answer for an older upload replaces a newer base', 'if(best&&!(meta&&Number.isInteger(meta.rev)&&meta.rev>best.rev)){', 'if(best){'),
+    (SY, 'r5: an unreadable final meta read counts as unchanged', "catch(e){return {fail:'storage'}}if(mr!==metaRaw){const m2", 'catch(e){mr=metaRaw}if(mr!==metaRaw){const m2'),
 ]
 
 EQUIV = {}
