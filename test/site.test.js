@@ -5525,11 +5525,12 @@ function SOUND73(b){
  for(const t of traks){const tk=kids(t.s,t.e),md=tk&&tk.find(x=>x.ty==='mdia');if(!md)return 'unknown';const mc=kids(md.s,md.e),hd=mc&&mc.find(x=>x.ty==='hdlr');
   if(!hd||hd.e-hd.s<12)return 'unknown';const ht=b.toString('latin1',hd.s+8,hd.s+12);if(ht==='soun')snd=true;else if(!['vide','pict','auxv'].includes(ht))return 'unknown'}
  return snd?'sound':'silent'}
-/* un archivo es mudo solo si se demuestra: una imagen o una fuente por su firma, texto (UTF-8 sin bytes nulos: SVG, JSON, CSS), o un MP4 cuyas pistas son todas de imagen */
-function KIND73(b){const h=b.toString('latin1',0,12),u=b.length>=4?b.readUInt32BE(0):-1;
- if(h.startsWith('\x89PNG')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||h.startsWith('GIF8')||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h)||u===0x00010000||u===0x00000100)return 'silent';
+/* un archivo es mudo solo si se demuestra: primero se lee como MP4 (si se lee, eso manda); si no, una imagen o una fuente por una firma larga,
+   o texto (UTF-8 sin bytes nulos: SVG, JSON, CSS). Codex ronda 3: TrueType (00010000) e ICO (00000100) salen: son también el tamaño de una caja */
+function KIND73(b){const r=SOUND73(b);if(r!=='unknown')return r;const h=b.toString('latin1',0,12);
+ if(h.startsWith('\x89PNG\r\n')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||/^GIF8[79]a/.test(h)||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h))return 'silent';
  if(!b.subarray(0,4096).includes(0)){try{new TextDecoder('utf-8',{fatal:true}).decode(b.subarray(0,4096),{stream:true});return 'silent'}catch(e){}}
- return SOUND73(b)}
+ return 'unknown'}
 /* los archivos de site/assets que pueden llevar sonido: todos menos los que se demuestran mudos; el nombre no cuenta */
 function AUDIO73(root=path.join(S,'assets'),base=S){const out=[];
  const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory()){walk(p);continue}if(KIND73(fs.readFileSync(p))!=='silent')out.push(p)}};
@@ -5567,8 +5568,12 @@ test('LHB-73: cada archivo con sonido de site/assets tiene sus créditos (títul
   put('b/pista.mka',Buffer.alloc(40));put('b/foto.png',Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0,0,0,0]));put('b/logo.svg',Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'));
   put('b/poster.webp',Buffer.concat([Buffer.from('RIFF\0\0\0\0WEBPVP8 ','latin1'),Buffer.alloc(20)]));put('b/fuente.woff2',Buffer.concat([Buffer.from('wOF2','latin1'),Buffer.alloc(20)]));
   put('b/datos.json',Buffer.from('{"a":"ñ"}'));put('b/vacio.txt',Buffer.alloc(0));
-  assert.deepEqual(AUDIO73(tmp,tmp),['a/MAYUS.MP4','a/clip.3gp','a/cmov.mov','a/con-tiempo.mp4','a/ext64.mp4','a/libre-primero.dat','a/roto.mov','b/onda.dat','b/pista.mka','b/sin-nombre.bin'],
-   'cuenta todo lo que no se demuestra mudo; el video sin sonido, AVIF, PNG, WebP, WOFF2, SVG, JSON y un archivo vacío no')}
+  /* Codex ronda 3: la intro real con una caja free de 256 o de 65536 bytes delante (el tamaño se lee como ICO o TrueType) cuenta */
+  const real=fs.readFileSync(path.join(S,'assets/intro/intro-landscape.mp4'));for(const n of [256,65536]){const pad=BOX73('free',Buffer.alloc(n-8));assert.equal(pad.readUInt32BE(0),n);put('c/relleno-'+n+'.mp4',Buffer.concat([pad,real]))}
+  put('c/icono.ico',Buffer.concat([Buffer.from([0,0,1,0,1,0]),Buffer.alloc(30)]));
+  assert.deepEqual(AUDIO73(tmp,tmp),['a/MAYUS.MP4','a/clip.3gp','a/cmov.mov','a/con-tiempo.mp4','a/ext64.mp4','a/libre-primero.dat','a/roto.mov','b/onda.dat','b/pista.mka','b/sin-nombre.bin','c/icono.ico','c/relleno-256.mp4','c/relleno-65536.mp4'],
+   'cuenta todo lo que no se demuestra mudo (un ICO también: su firma es la de una caja); el video sin sonido, AVIF, PNG, WebP, WOFF2, SVG, JSON y un archivo vacío no');
+  for(const n of [256,65536])assert.equal(KIND73(fs.readFileSync(path.join(tmp,'c/relleno-'+n+'.mp4'))),'sound','relleno de '+n+': se lee como MP4')}
  finally{fs.rmSync(tmp,{recursive:true,force:true})}
  assert.deepEqual(GAPS73(C,files),[]);
  /* la prueba sí falla: sin una entrada, o con un archivo nuevo sin créditos */

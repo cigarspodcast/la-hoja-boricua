@@ -48,7 +48,8 @@ M = [
     ('K18 (Codex r2) compressed cmov is read as silent', lambda: edit(TS, "if(!mk||mk.some(x=>x.ty==='cmov'))return 'unknown';", "if(!mk)return 'unknown';")),
     ('K19 (Codex r2) ftyp must be the first box', lambda: edit(TS, "if(!top||!top.some(x=>x.ty==='ftyp'))return 'unknown';", "if(!top||top[0].ty!=='ftyp')return 'unknown';")),
     ('K20 (Codex r2) a track of another kind counts as silent', lambda: edit(TS, "else if(!['vide','pict','auxv'].includes(ht))return 'unknown'", '')),
-    ('K21 (Codex r2) any binary file counts as silent', lambda: edit(TS, ' return SOUND73(b)}', " return SOUND73(b)==='sound'?'sound':'silent'}")),
+    ('K21 (Codex r2) any binary file counts as silent', lambda: edit(TS, " return 'unknown'}\n/* los archivos de site/assets", " return 'silent'}\n/* los archivos de site/assets")),
+    ('K22 (Codex r3) signatures before the MP4 reading, with TrueType and ICO', lambda: edit(TS, "function KIND73(b){const r=SOUND73(b);if(r!=='unknown')return r;const h=b.toString('latin1',0,12);\n if(h.startsWith('\\x89PNG\\r\\n')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||/^GIF8[79]a/.test(h)||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h))return 'silent';", "function KIND73(b){const h=b.toString('latin1',0,12),u=b.length>=4?b.readUInt32BE(0):-1;\n if(h.startsWith('\\x89PNG')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||h.startsWith('GIF8')||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h)||u===0x00010000||u===0x00000100)return 'silent';")),
     ('K17 (Codex r1) the credits view drops the focus', lambda: edit(AP, "$('[data-back]').onclick=()=>{location.hash='#/acerca'};keepFocus()}", "$('[data-back]').onclick=()=>{location.hash='#/acerca'}}")),
     ('K13 the back button goes elsewhere', lambda: edit(AP, "$('[data-back]').onclick=()=>{location.hash='#/acerca'};", "$('[data-back]').onclick=()=>{location.hash='#/catalogo'};")),
 ]
