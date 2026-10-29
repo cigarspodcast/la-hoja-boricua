@@ -27,13 +27,13 @@ MUTS = [
     (AP, 'PUT without the column fails', 'catch (e) { if (!noOps(e)) throw e; r = await plain(); }', 'catch (e) { throw e; }'),
     (LB, 'any recorded id answers', 'x[0] === id && ', ''),
     (SY, 'the PUT does not send its id', ",'X-Op':op})", "})"),
-    (SY, 'a landed upload is not the base', 'if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:best.sent,rev:best.rev};staleBase=!writeMeta(meta)}', ''),
+    (SY, 'a landed upload is not the base', 'if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}', ''),
     (SY, 'an upload that cannot land any more is asked about forever', 'else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);', 'else if(0){'),
     (SY, 'r1: a missing id is trusted outside the recorded range', 'if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true', ''),
     (SY, 'an answer about another id is believed', 'const o=oks.find(y=>isObj(y)&&y.id===x.op);', 'const o=oks[0];'),
     (SY, 'r1: a 409 forgets every unresolved upload', 'pend=pend.filter(x=>x.op!==op);', 'pend=pend.filter(x=>x.sub!==uid);'),
     (SY, 'r1: a pass without a PUT forgets an upload that can still land', 'if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);', 'pend=pend.filter(x=>x.sub!==uid);'),
-    (SY, 'r1: a new upload replaces the unresolved one', 'pend.push({sub:uid,rev,op,sent:merged});', 'pend=[{sub:uid,rev,op,sent:merged}];'),
+    (SY, 'r1: a new upload replaces the unresolved one', 'pend.push({sub:uid,rev,op,sent:merged,ep:ep0});', 'pend=[{sub:uid,rev,op,sent:merged,ep:ep0}];'),
     (SY, 'r2: no fence while an upload can still land', 'canon(merged)!==canon(remote)||fence){', 'canon(merged)!==canon(remote)){'),
     (SY, 'r2: an evicted upload leaves no trace', '{const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}', '{const x=mine[0];pend=pend.filter(y=>y!==x)}'),
     (SY, 'r2: an evicted upload never voids the base', 'if(!(oks&&won===evict.get(uid)+1))voided=true;', ''),
@@ -42,6 +42,10 @@ MUTS = [
     (SY, 'r2: settled ignores uploads that can still land', "  if(pend.some(x=>x.sub===acc.sub)||evict.has(acc.sub))return {ok:false,why:'pending'};", ''),
     (SY, 'r3: the OPS_ASK limit counts every account', 'const mine=pend.filter(x=>x.sub===uid);', 'const mine=pend;'),
     (SY, 'r3: one eviction record for every account', 'evict.set(uid,x.rev)', 'evict.clear(),evict.set(uid,x.rev)'),
+    (SY, 'r4: a pass survives an account round trip', 'ownerOf()===uid&&epochOf()===ep0};', 'ownerOf()===uid};'),
+    (SY, 'r4: a change of owner keeps the epoch', 'if(ownerOf()!==uid)D.ls.set(EPOCH,', 'if(false)D.ls.set(EPOCH,'),
+    (SY, 'r4: the cached base is not bound to its copy', 'mem.sub===uid&&mem.ep===ep0&&', 'mem.sub===uid&&'),
+    (SY, 'r4: an upload sent from another copy is a base', 'if(x.ep!==ep0)voided=true;else if(', 'if('),
 ]
 
 
@@ -52,9 +56,10 @@ EQUIV = {
     'r1: a pass without a PUT forgets an upload that can still land': 'the fence leaves nothing unresolved at the current rev when a pass completes',
     'r2: settled ignores uploads that can still land': 'settled() needs an ok pass, and an ok pass ends with nothing unresolved (the fence)',
     # Codex r3: eviction happens after the pass's GET resolved every lower rev, so the account's other OPS_ASK uploads in pend share the evicted If-Match
-    # (its fence and settled() do not need the record); and after another account used the device, isolate starts this account with no base, so the void
-    # decision changes nothing. The per-account limit (mutant above) is what closes round 3; the Map is kept as round 3 asked.
-    'r3: one eviction record for every account': 'the account keeps its other uploads at the same If-Match, and returning after another account starts with no base',
+    # (its fence and settled() do not need the record). Codex r4 refuted the rest of the round 3 argument: the in-memory base (memOk) survived a switch, and
+    # its counter-example (the 'A sin meta guardada' test) fails this mutant on the round 3 and 4 code. Since the epoch fix, no base survives a switch (setOwner
+    # resets the stored one, mem and landed uploads are bound to their epoch), so the record of an account after another one used the device decides nothing.
+    'r3: one eviction record for every account': 'since the epoch fix no base outlives an account switch, and the account keeps its other uploads at the same If-Match',
 }
 
 

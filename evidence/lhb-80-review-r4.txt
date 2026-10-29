@@ -1,0 +1,275 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\lhb-80-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a188bd-acb5-7861-8fde-da831e4df17e
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-80-wt (branch lhb-80-sync-op). TIER 2, round 4.
+
+Ticket LHB-80: an idempotency token (X-Op) on PUT /api/mihoja so a pass can learn whether an upload whose answer was lost landed. Round 3 (evidence/lhb-80-review-r3.txt) blocked on one P1 finding, through which it maintained round 2's two findings: with two accounts on one device, account B's ninth lost upload replaced the single eviction record of account A while A's removal could still land, so on A's return no fence ran, settled() said ok, and the late removal deleted A's re-add. Round 3 otherwise found the single-account orderings closed, the fence unable to overwrite a newer write or loop, and the two named equivalent mutants observationally equivalent.
+
+The diff below (one commit, f54f1e1, against the round 3 prompt commit) changes site/sync.js:
+- evict is a Map from account (sub) to the If-Match of that account's dropped upload. Every read and write goes through the current account's key: the GET check (account past its rev: merge with no base unless an asked upload landed exactly at rev + 1, then delete), the fence (its rev equals the account's current rev), the 200 (delete when its rev <= the If-Match just used), settled() (pending while the account has a key), forget() (a new Map, as pend=[]).
+- The OPS_ASK limit counts only this account's uploads in pend, and the upload dropped is the oldest of this account's, so another account's uploads never push this account's out.
+Test: Codex's round 3 reproduction (A's removal in flight, A re-adds, B makes nine lost uploads on the same engine, back to A: the sign-out pass fences, settled ok, the late removal answers 409, the re-add stays here and on the server). Seen failing on the round 3 code. Two mutants added: the limit counting every account (caught), and one record for every account (survives, named equivalent in the script with this reason: eviction happens after the pass's GET has resolved every lower rev, so the account's other OPS_ASK uploads in pend share the evicted If-Match and its fence and settled() do not need the record; and when the account returns after another one used the device, isolate starts it with no base, so the merge-with-no-base decision changes nothing. The Map is kept because round 3 asked for per-account records and it does not depend on that argument). Evidence: evidence/lhb-80-mutations.out 28 of 31 red, 3 named equivalent, 0 unexpected survivors; evidence/lhb-80-tests.txt full suite 362 tests, 361 pass, 0 fail, 1 skipped.
+
+Also check whether that equivalence argument holds (any path where an account's eviction record is the only thing that keeps a fence, a void or settled() correct).
+
+Check that the round 3 finding is closed in every order of account switches, lost answers and late writes (including the switch happening mid-pass and three accounts), and anything else that still applies a stale base or lets sign-out discard an upload that can still land.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 760d790 f54f1e10ee5023cdd28059227d048e5ffa565c1d -- site test functions =====
+diff --git a/site/sync.js b/site/sync.js
+index cc73c8a..340335f 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -83,7 +83,7 @@ const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
+ /* LHB-80 (Codex r1): cuántas subidas sin respuesta se recuerdan y se preguntan en un GET (OPS_ASK en functions/_lib/mihoja.js) */
+ const OPS_ASK=8;
+ window.LHB_SYNC=function(D){
+- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,pend=[],evict=null,mem=null,held=false,state={state:'idle',err:null};
++ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,pend=[],evict=new Map(),mem=null,held=false,state={state:'idle',err:null};
+  /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
+  const newOp=()=>{if(D.opId)return D.opId();try{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)};
+  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
+@@ -159,7 +159,8 @@ window.LHB_SYNC=function(D){
+    if(!oks&&ask.some(x=>rev>=x.rev+2))voided=true;
+    /* Codex r2: una subida olvidada por exceso (más de OPS_ASK sin respuesta) puede llegar mientras la cuenta siga en su If-Match. Cuando la cuenta pasa de ese rev:
+       si una de las preguntadas llegó justo ahí, la olvidada perdió (con un mismo If-Match llega una sola); si no, no se sabe si fue ella y se junta sin dar nada por borrado */
+-   if(evict&&evict.sub===uid&&rev>evict.rev){if(!(oks&&won===evict.rev+1))voided=true;evict=null}
++   /* Codex r3: una por cuenta (evict es un Map de sub a If-Match): otra cuenta en este teléfono no borra la de esta */
++   if(evict.has(uid)&&rev>evict.get(uid)){if(!(oks&&won===evict.get(uid)+1))voided=true;evict.delete(uid)}
+    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
+       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
+    const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
+@@ -174,13 +175,15 @@ window.LHB_SYNC=function(D){
+    let newRev=rev,pushed=false;
+    /* Codex r2: si alguna subida sin respuesta (o la olvidada) todavía puede llegar porque la cuenta sigue en su If-Match, esta pasada sube aunque no haya nada nuevo:
+       con el mismo If-Match, si esta llega ninguna de aquellas puede llegar despues (la valla); si una de aquellas llega antes, esta da 409 y se pregunta otra vez */
+-   const fence=pend.some(x=>x.sub===uid&&x.rev===rev)||(!!evict&&evict.sub===uid&&evict.rev===rev);
++   const fence=pend.some(x=>x.sub===uid&&x.rev===rev)||evict.get(uid)===rev;
+    if(!remote||canon(merged)!==canon(remote)||fence){
+     /* se anota antes de mandar: si la respuesta no llega, no se puede leer, o la cuenta cambia mientras tanto, el PUT pudo haber llegado. Solo una respuesta clara (409, otro error 4xx o un 200 con revisión) lo borra */
+     /* LHB-80: con su id y lo que se manda, para saber después si llegó */
+     /* Codex r1: se suma a las que siguen sin saberse (no las reemplaza); si son demasiadas, la más vieja deja de preguntarse.
+        Codex r2: pero queda anotado su If-Match (evict) hasta que la cuenta pase de él, y mientras tanto cada pasada pone la valla */
+-    const op=newOp();pend.push({sub:uid,rev,op,sent:merged});if(pend.length>OPS_ASK){const x=pend.shift();if(!evict||evict.sub!==x.sub||x.rev>evict.rev)evict={sub:x.sub,rev:x.rev}}
++    /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
++    const op=newOp();pend.push({sub:uid,rev,op,sent:merged});const mine=pend.filter(x=>x.sub===uid);
++    if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
+     let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
+     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
+     if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
+@@ -188,7 +191,7 @@ window.LHB_SYNC=function(D){
+     if(p.status===409)continue;
+     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
+     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
+-    pend=pend.filter(x=>x.sub!==uid);if(evict&&evict.sub===uid&&evict.rev<=rev)evict=null;newRev=p.body.rev;pushed=true}
++    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true}
+    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
+    let now0,Ln,quiet,final,wrote=true;
+    for(let k=0;k<4;k++){
+@@ -257,7 +260,7 @@ window.LHB_SYNC=function(D){
+   const m=readMeta(),acc=D.acct();
+   if(dirty||!m||!acc||m.sub!==acc.sub||m.dirty||!m.base||canon(d)!==canon(m.base))return {ok:false,why:'pending'};
+   /* Codex r2: una subida sin respuesta que todavía puede llegar cambiaría la cuenta despues de salir, con la copia de aqui ya borrada: no está a salvo (la pasada de salir pone la valla; si su respuesta tampoco llega, queda el respaldo) */
+-  if(pend.some(x=>x.sub===acc.sub)||(evict&&evict.sub===acc.sub))return {ok:false,why:'pending'};
++  if(pend.some(x=>x.sub===acc.sub)||evict.has(acc.sub))return {ok:false,why:'pending'};
+   return {ok:true,via:'sync',mark}}
+  const markNow=()=>{let raw=null;try{raw=D.ls.get(KEY)}catch(e){raw={}}return {raw,seq:readSeq()}};
+  /* LHB-34: mientras se sale o se borra la cuenta no corre ninguna pasada (una a destiempo volvería a llevar Mi Hoja a la cuenta). hold(true) espera la que esté corriendo */
+@@ -277,7 +280,7 @@ window.LHB_SYNC=function(D){
+    await D.wait(FENCE_MS);
+    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
+    if(!same(mark))return back()}
+-  hold(true);mem=null;pend=[];evict=null;dirty=false;let ok=true;
++  hold(true);mem=null;pend=[];evict=new Map();dirty=false;let ok=true;
+   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
+   set('off');return ok}
+  function start(){
+diff --git a/test/site.test.js b/test/site.test.js
+index 3d6ebc3..d3ef7e6 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -6241,6 +6241,23 @@ test('LHB-80 (Codex r2): tras nueve subidas sin respuesta, cuando se sabe que la
+    assert.equal((await A.sync()).ok,true,how);
+    assert.deepEqual(A.doc().favs.artesanos,[],how+': a2 no vuelve aquí');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],how+': ni en la cuenta');
+   }finally{a.done()}}});
++test('LHB-80 (Codex r3): otra cuenta en el mismo teléfono hace nueve subidas sin respuesta: no borra la subida de la primera que todavía puede llegar; al volver, la valla y salir siguen esperándola',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let late=null;
++  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(C.user.id==='user_a'&&!late)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  /* entra user_b en este mismo teléfono y sube nueve veces sin respuesta */
++  A.st.acct=A.st.user='user_b';for(let i=0;i<9;i++)await A.sync();
++  A.st.acct=A.st.user='user_a';A.D.api=api;
++  const st=await A.eng.settled({});assert.equal(st.ok,true,'la pasada de salir puso la valla y llegó');assert.equal(srv28(a,'user_a').rev,2);
++  assert.equal((await late()).status,409,'la quita de antes ya no puede llegar');
++  assert.equal((await A.sync()).ok,true);
++  assert.deepEqual(A.doc().favs.artesanos,['a1'],'en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y en la cuenta');
++ }finally{a.done()}});
+ test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
+  for(const lose of [false,true]){const a=await ENG28();
+   try{
+
+2026-10-29T17:38:19.225905Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T17:38:21.553041Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The new regression covers one switch sequence; it does not establish the broader ordering or equivalence claims. I’ll inspect the full sync flow, prior finding, and tests without editing files or loading skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\LHB\lhb-80-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T17:38:27.259970Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The per-account limit prevents B’s uploads from evicting A’s pending IDs, closing the exact round 3 sequence structurally. I’m checking the remaining paths: account changes during a pass, sign-out clearing other accounts’ records, and whether a missing eviction record can leave a stale base trusted.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] I reproduced a mid-pass gap: A switches to B and back to A while a GET waits, and the resumed pass treats isolation’s empty copy as a deletion. It returns success after emptying A’s server document. I’m checking that path with a lost upload and three accounts, and testing the equivalence claim when metadata storage has failed.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The single-record mutant is not equivalent. After a metadata save failure, `mem` can retain A’s old base across isolation; the Map’s eviction record prevents a deletion that the mutant allows. I also reproduced that cached base emptying A’s document on a fresh pass, without a mid-pass switch.
+
+[Certain] All 30 focused tests and 20 added ordering cases passed. The full suite had 356 passes, five failures, and one skip; the failures involve Python-backed LHB-44/45 checks and an LHB-73 temporary-directory operation.
+
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. **[Certain] P1, blocks: an account round trip during a pass can empty the server document.** File: [site/sync.js:129](C:/LHB/lhb-80-wt/site/sync.js:129), symbols: `once()`, `alive()`, final merge.
+
+   | Claim | Artifact |
+   |---|---|
+   | Returning to A makes an old pass appear valid despite intervening isolation. | `a.sub===uid&&ownerOf()===uid` |
+   | Isolation’s empty copy is interpreted as a user deletion. | `final=quiet?merged:merge(L,Ln,merged)` at line 199 |
+
+   Reproduced against the real route on SQLite with 0008 applied, without reloading:
+
+   - Sync A’s `DOC28` to rev 1. Delay its removal PUT, lose the answer, then re-add `a1`.
+   - Start `settled({})`. While its GET waits, switch A → B → C → A, calling `isolate()` at each transition.
+   - The resumed pass accepts its old snapshots. It fences the removal, then interprets the isolation-cleared local document as deletions and uploads them.
+   - **Result:** `settled()` returns `{ok:true,via:'sync'}`; A’s local and server documents have empty collections at rev 3. The delayed removal returns 409.
+
+   Invalidate in-flight snapshots when isolation changes the active copy, including a return to the same account. Checking only the current account and owner misses this transition.
+
+2. **[Certain] P1, blocks: a fresh pass can reuse the returning account’s stale cached base.** File: [site/sync.js:169](C:/LHB/lhb-80-wt/site/sync.js:169), symbols: `isolate()`, `memOk`, `base0`.
+
+   | Claim | Artifact |
+   |---|---|
+   | Isolation resets stored metadata but retains `mem` and `staleBase`. | `setOwner()` writes `base:null`; `isolate()` never invalidates the cached base. |
+   | The returning account can therefore acquire that old base again. | `staleBase&&!!mem&&mem.sub===uid` |
+
+   Reproduction: let A’s initial PUT succeed but reject its large metadata save (`failBigKey='lhb_mihoja_v1_sync'`, `failBig=150`). Switch to B and lose its first PUT answer. Return to A, restore storage availability, and call `settled({})`.
+
+   **Result:** it returns success and uploads empty collections over A’s intact rev 1 document. No user deletion or mid-pass switch is required. Isolation must invalidate or appropriately bind the cached fallback base to the local copy it describes.
+
+3. **[Certain] Nonblocking evidence finding: the new single-record mutant is not equivalent.** File: [evidence/lhb-80-mutations.py:54](C:/LHB/lhb-80-wt/evidence/lhb-80-mutations.py:54), symbol: `EQUIV`.
+
+   The claim “returning after another account starts with no base” overlooks `memOk`.
+
+   After A’s metadata-save failure, make nine unanswered removal uploads, re-add `a1`, then make nine unanswered uploads as B. Return to A, restore its copy through normal edits, and let A’s oldest removal land before the GET. The remaining IDs correctly report missing within coverage, so they do not void the cached base.
+
+   **Measured result:** current Map code preserves `a1` locally and remotely at rev 3; the single-record mutant deletes it at rev 2. A’s eviction record is the only guard that voids the stale base in this case. Keep the Map and replace the equivalence exemption with a regression test.
+
+[Certain] **Prior rejection disposition: CONCUR that the specific round 3 overflow defect is closed.** Its regression and 20 additional ordering cases passed. Findings 1 and 2 concern unchanged paths covered by this round’s requested stale-base and mid-pass checks.
+
+[Certain] Verification: **30 focused tests passed**. Full suite: **356 passed, 5 failed, 1 skipped**; Python execution was rejected with EPERM, and LHB-73 temporary-directory creation was rejected. Live Cloudflare D1 behavior is **NOT VERIFIED**. No files were edited or skills loaded.
+
+VERDICT: BLOCK
+tokens used
+79,760
+1. **[Certain] P1, blocks: an account round trip during a pass can empty the server document.** File: [site/sync.js:129](C:/LHB/lhb-80-wt/site/sync.js:129), symbols: `once()`, `alive()`, final merge.
+
+   | Claim | Artifact |
+   |---|---|
+   | Returning to A makes an old pass appear valid despite intervening isolation. | `a.sub===uid&&ownerOf()===uid` |
+   | Isolation’s empty copy is interpreted as a user deletion. | `final=quiet?merged:merge(L,Ln,merged)` at line 199 |
+
+   Reproduced against the real route on SQLite with 0008 applied, without reloading:
+
+   - Sync A’s `DOC28` to rev 1. Delay its removal PUT, lose the answer, then re-add `a1`.
+   - Start `settled({})`. While its GET waits, switch A → B → C → A, calling `isolate()` at each transition.
+   - The resumed pass accepts its old snapshots. It fences the removal, then interprets the isolation-cleared local document as deletions and uploads them.
+   - **Result:** `settled()` returns `{ok:true,via:'sync'}`; A’s local and server documents have empty collections at rev 3. The delayed removal returns 409.
+
+   Invalidate in-flight snapshots when isolation changes the active copy, including a return to the same account. Checking only the current account and owner misses this transition.
+
+2. **[Certain] P1, blocks: a fresh pass can reuse the returning account’s stale cached base.** File: [site/sync.js:169](C:/LHB/lhb-80-wt/site/sync.js:169), symbols: `isolate()`, `memOk`, `base0`.
+
+   | Claim | Artifact |
+   |---|---|
+   | Isolation resets stored metadata but retains `mem` and `staleBase`. | `setOwner()` writes `base:null`; `isolate()` never invalidates the cached base. |
+   | The returning account can therefore acquire that old base again. | `staleBase&&!!mem&&mem.sub===uid` |
+
+   Reproduction: let A’s initial PUT succeed but reject its large metadata save (`failBigKey='lhb_mihoja_v1_sync'`, `failBig=150`). Switch to B and lose its first PUT answer. Return to A, restore storage availability, and call `settled({})`.
+
+   **Result:** it returns success and uploads empty collections over A’s intact rev 1 document. No user deletion or mid-pass switch is required. Isolation must invalidate or appropriately bind the cached fallback base to the local copy it describes.
+
+3. **[Certain] Nonblocking evidence finding: the new single-record mutant is not equivalent.** File: [evidence/lhb-80-mutations.py:54](C:/LHB/lhb-80-wt/evidence/lhb-80-mutations.py:54), symbol: `EQUIV`.
+
+   The claim “returning after another account starts with no base” overlooks `memOk`.
+
+   After A’s metadata-save failure, make nine unanswered removal uploads, re-add `a1`, then make nine unanswered uploads as B. Return to A, restore its copy through normal edits, and let A’s oldest removal land before the GET. The remaining IDs correctly report missing within coverage, so they do not void the cached base.
+
+   **Measured result:** current Map code preserves `a1` locally and remotely at rev 3; the single-record mutant deletes it at rev 2. A’s eviction record is the only guard that voids the stale base in this case. Keep the Map and replace the equivalence exemption with a regression test.
+
+[Certain] **Prior rejection disposition: CONCUR that the specific round 3 overflow defect is closed.** Its regression and 20 additional ordering cases passed. Findings 1 and 2 concern unchanged paths covered by this round’s requested stale-base and mid-pass checks.
+
+[Certain] Verification: **30 focused tests passed**. Full suite: **356 passed, 5 failed, 1 skipped**; Python execution was rejected with EPERM, and LHB-73 temporary-directory creation was rejected. Live Cloudflare D1 behavior is **NOT VERIFIED**. No files were edited or skills loaded.
+
+VERDICT: BLOCK
