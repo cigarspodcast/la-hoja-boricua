@@ -4128,7 +4128,9 @@ function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').
  const log=[],toasts=[],ss=new Map();dev.D.ls.remove=k=>dev.ls.delete(k);
  /* la espera de la valla (sync.js forget): o.duringFence corre en medio, como otra pestaña que escribe antes de verla */
  dev.D.wait=async ms=>{log.push('espera '+ms);if(o.duringFence)await o.duringFence()};
- const C={user:o.clerkUser===undefined?{id:'user_a'}:o.clerkUser,signOut:async opt=>{log.push('signOut '+JSON.stringify(opt));if(o.signOutFails&&o.signOutFails-->0)throw new Error('sin red')}};
+ /* o.signOutWait: Clerk tarda en cerrar la sesión (Codex r6); ivs: los setInterval de la página, que la prueba dispara a mano */
+ const C={user:o.clerkUser===undefined?{id:'user_a'}:o.clerkUser,signOut:async opt=>{log.push('signOut '+JSON.stringify(opt));if(o.signOutWait)await o.signOutWait();if(o.signOutFails&&o.signOutFails-->0)throw new Error('sin red')}};
+ const ivs=[];
  const SYNC=o.afterSettled?{...dev.eng,settled:async x=>{const r=await dev.eng.settled(x);o.afterSettled();return r}}:dev.eng;
  const ctx={...TT(),SYNC,KEY:'lhb_mihoja_v1',$,$$:()=>[],esc:s=>String(s),toast:m=>toasts.push(m),exportar:()=>log.push('exportar'),LHB_MERGE:dev.X,
   /* o.markStore: la marca del borrado no se guarda ('throw': el almacenamiento está lleno; 'lost': no falla pero no queda) */
@@ -4137,9 +4139,10 @@ function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').
   clerk:async()=>{if(o.offlineClerk)throw new Error('sin red');return C},
   api:async(Cx,method,path,body,uid)=>{log.push([method,path,JSON.stringify(body),uid]);log.push('pasada '+JSON.stringify(await dev.eng.run('durante')));if(o.api)return o.api(body);return {status:200,body:{ok:true}}},
   sessionStorage:{getItem:k=>ss.has(k)?ss.get(k):null,setItem:(k,v)=>ss.set(k,String(v)),removeItem:k=>ss.delete(k)},location:{assign:u=>log.push('assign '+u)},setTimeout:()=>0,
+  setInterval:(f,ms)=>{const t={f,ms,live:true};ivs.push(t);return t},clearInterval:t=>{if(t)t.live=false},
   window:{addEventListener:(t,f)=>listeners.push([t,f])}};const listeners=[];
  vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW="x";'+src.slice(i,j)+';this.X={salir,borrar,resumeDelete,accountPanel,bindAccount,setBackup:v=>{lastBackup=v},st:()=>ST}',ctx);
- return {X:ctx.X,els,log,toasts,ss,C,listeners,outs:()=>log.filter(x=>typeof x==='string'&&/^(signOut|assign|acct|intent)/.test(x))}}
+ return {X:ctx.X,els,log,toasts,ss,C,listeners,ivs,outs:()=>log.filter(x=>typeof x==='string'&&/^(signOut|assign|acct|intent)/.test(x))}}
 const DOC34=()=>({schema:1,creado:'2026-10-01T00:00:00.000Z',humidor:[{id:'h1',marca:'Don Rey',actualizado:'2026-10-02'}],diario:[],pasaporte:{},favs:{},ratings:{}});
 const KEYS34=['lhb_mihoja_v1','lhb_mihoja_v1_sync','lhb_mihoja_v1_owner','lhb_mihoja_v1_seq'];
 const OUT34=['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','assign /'];
@@ -4197,6 +4200,29 @@ test('LHB-34 (Codex r5): cerrar la sesión falla, la valla caduca y se vuelve a 
   assert.ok(hid28(srv28(a,'user_a').doc).includes('nuevo'),'la cuenta tiene lo nuevo');for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado otra vez '+k);
   assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','acct.clear','intent.clear','signOut {"redirectUrl":"/"}','assign /']);
  }finally{a.done()}});
+test('LHB-34 (Codex r6): mientras Clerk cierra la sesión la valla se renueva, en el primer intento y en el reintento: nadie escribe aunque Clerk tarde; si falla, se deja de renovar y caduca',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();let d=null;
+  const h=ACCT34(dev,{signOutFails:1,signOutWait:()=>new Promise(r=>{d=r})});
+  const wait=async()=>{for(let i=0;i<200&&!d;i++)await tick()};const beat=()=>{for(const t of h.ivs.filter(x=>x.live))t.f()};
+  /* primer intento: Clerk tarda más que la valla, y luego falla */
+  let p=h.X.salir();await wait();assert.ok(d,'esperando a Clerk');for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);
+  assert.deepEqual(h.ivs.map(t=>[t.ms,t.live]),[[3e3,true]],'la valla se renueva cada 3 s');
+  dev.advance(11e3);beat();assert.equal(dev.eng.fenced(),true,'Clerk tarda 11 s: la valla sigue puesta');
+  const r=d;d=null;r();await p;assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
+  assert.equal(h.ivs[0].live,false,'al fallar se deja de renovar');dev.advance(11e3);assert.equal(dev.eng.fenced(),false,'y caduca sola');
+  /* reintento sin copia nueva: la valla se pone otra vez antes de pedirle a Clerk, y se renueva hasta que termina */
+  p=h.X.salir();await wait();assert.ok(d);assert.equal(dev.eng.fenced(),true,'la valla vuelve a estar puesta');
+  dev.advance(11e3);beat();assert.equal(dev.eng.fenced(),true,'sigue puesta mientras Clerk tarda');
+  d();await p;assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','signOut {"redirectUrl":"/"}','assign /']);
+  assert.deepEqual(h.ivs.map(t=>t.live),[false,false],'nada se queda renovando');
+  /* al borrar la cuenta pasa lo mismo: borrado lo de este teléfono, la valla sigue mientras Clerk cierra la sesión */
+  dev.seed(DOC34());dev.eng.hold(false);await dev.sync();d=null;const g=ACCT34(dev,{signOutWait:()=>new Promise(r=>{d=r})});
+  const beat2=()=>{for(const t of g.ivs.filter(x=>x.live))t.f()};
+  p=g.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');await wait();assert.ok(d,'esperando a Clerk');for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);
+  assert.equal(dev.eng.fenced(),true);dev.advance(11e3);beat2();assert.equal(dev.eng.fenced(),true,'Clerk tarda 11 s: la valla sigue puesta');
+  d();await p;assert.ok(g.log.includes('assign /'));assert.deepEqual(g.ivs.map(t=>t.live),[false]);
+ }finally{a.done()}});
 test('LHB-34 (Codex r2): otra pestaña escribe mientras se lee la copia que se revisa: no se sale; y cuando una pestaña sale, las otras sueltan su copia',async()=>{
  const a=await ENG28();const dev=DEV28(a,'user_a');try{
   dev.seed(DOC34());await dev.sync();const h=ACCT34(dev);
@@ -4230,6 +4256,10 @@ test('LHB-34 (Codex r3): otra pestaña escribe entre la última revisión y el b
   dev.ls.set(F,String(dev.st.clock+5000));assert.equal(dev.eng.fenced(),true,'5 s en el futuro: todavía cuenta');dev.ls.set(F,String(dev.st.clock+10001));assert.equal(dev.eng.fenced(),false,'más de 10 s en el futuro: no cuenta');
   const d3=DEV28(a,'user_a');d3.seed(DOC34());await d3.sync();h=ACCT34(d3,{duringFence:()=>{d3.st.clock+=20000}});await h.X.salir();
   for(const k of KEYS34)assert.ok(!d3.ls.has(k),'borrado '+k);assert.equal(d3.ls.get(F),String(d3.st.clock),'la valla es de después de la espera');assert.equal(d3.eng.fenced(),true);
+  /* Codex r6: salir la renueva después (leaving), así que forget se revisa sola: deja la valla puesta al borrar, de después de la espera */
+  const d4=DEV28(a,'user_a');d4.seed(DOC34());await d4.sync();d4.D.ls.remove=k=>d4.ls.delete(k);d4.D.wait=async()=>{d4.st.clock+=20000};
+  const r4=await d4.eng.settled({});assert.equal(r4.ok,true);assert.equal(await d4.eng.forget(r4.mark),true);
+  for(const k of KEYS34)assert.ok(!d4.ls.has(k),'forget borró '+k);assert.equal(d4.ls.get(F),String(d4.st.clock),'forget deja la valla, de después de la espera');assert.equal(d4.eng.fenced(),true);
  }finally{a.done()}});
 test('LHB-34 (Codex r3): con la valla puesta nadie escribe: ni hoja.js (Mi Hoja), ni el motor (la meta, el contador, la dueña); una valla vieja ya no frena',async()=>{
  const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/^function write\(s,quiet\)\{.*$/m)[0];

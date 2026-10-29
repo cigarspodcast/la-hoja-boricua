@@ -93,6 +93,11 @@ M = [
     ('M68 Codex r4: the waiting resume uses the mark it read before its turn', lambda: (edit(HO, "async function resumeDelete(){if(!delMark.get())return;", "async function resumeDelete(){const m0=delMark.get();if(!m0)return;"), edit(HO, "const m=delMark.get();if(!m||!C", "const m=m0;if(!m||!C"))),
     ('M69 Codex r5: a sign-out retry skips the check after new writes', lambda: edit(HO, "if(back!==null){outDone=false;SYNC.hold(false)}", "")),
     ('M70 Codex r5: the retry checks again but leaves the sync held', lambda: edit(HO, "if(back!==null){outDone=false;SYNC.hold(false)}", "if(back!==null){outDone=false}")),
+    ('M71 Codex r6: the fence is not renewed while Clerk signs out', lambda: edit(HO, "const beat=setInterval(SYNC.fenceUp,3e3);", "const beat=0;")),
+    ('M72 Codex r6: a retry does not put the fence back first', lambda: edit(HO, "async function leaving(C){SYNC.fenceUp();", "async function leaving(C){")),
+    ('M73 Codex r6: the renewal never stops', lambda: edit(HO, "finally{clearInterval(beat)}}", "finally{}}")),
+    ('M74 Codex r6: fenceUp writes nothing', lambda: edit(SY, "const fenceUp=()=>{try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){}};", "const fenceUp=()=>{};")),
+    ('M75 Codex r6: delete signs out without the fence', lambda: edit(HO, "bye('del');try{await leaving(C)}", "bye('del');try{await signOutClerk(C)}")),
 ]
 red = 0
 ran = 0

@@ -202,6 +202,8 @@ const delMark={get:()=>{try{const v=JSON.parse(localStorage.getItem(DELMARK));re
    Con mark (de SYNC.settled), solo si la copia sigue como se revisó; si alguien escribió desde entonces no se toca nada */
 const dropLocal=async mark=>{if(!(await SYNC.forget(mark)))return false;acct.clear();intent.clear();ST=null;STRAW=null;return true};
 async function signOutClerk(C){await C.signOut({redirectUrl:'/'});location.assign('/')}
+/* Codex r6: mientras Clerk cierra la sesión (al salir y al borrar) la valla se renueva, así nadie escribe Mi Hoja hasta que termine; si falla, se deja de renovar y caduca sola */
+async function leaving(C){SYNC.fenceUp();const beat=setInterval(SYNC.fenceUp,3e3);try{await signOutClerk(C)}finally{clearInterval(beat)}}
 const typedOk=(a,v)=>String(v||'').trim().replace(/^@/,'').toLowerCase()===String(a.handle).toLowerCase();
 function accountPanel(){const a=acct.get();if(!a||!a.handle)return '';
  return `<section class="acct-p" id="acctP"><div class="section-title"><h2>${tt('ac.h')}</h2></div>
@@ -225,13 +227,13 @@ async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
    if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}
    if(!(await dropLocal(r.mark))){acMsg(tt('ac.pending'));return}
    outDone=true;bye('out')}
-  try{await signOutClerk(C)}catch(e){acMsg(tt('ac.outFail'))}}
+  try{await leaving(C)}catch(e){acMsg(tt('ac.outFail'))}}
  finally{acBusy=false}}
 /* el pedido de borrar. 200: se borra lo de este teléfono y se cierra la sesión. La marca se quita si el servidor dice que no borró nada: confirm-mismatch
    (el perfil sigue entero), o un 4xx o 503 de un primer pedido (had: ya había una marca de antes). Con una marca de antes, un error así puede ser pasajero
    (Clerk no contestó, la sesión venció) y el borrado a medias sigue pendiente: la marca se queda (Codex r2) */
 async function askDelete(C,sub,confirm,had){let r=null;try{r=await api(C,'DELETE','/api/account',{confirm},sub)}catch(e){r=null}
- if(r&&r.status===200){delMark.clear();await dropLocal();bye('del');try{await signOutClerk(C)}catch(e){location.assign('/')}return r}
+ if(r&&r.status===200){delMark.clear();await dropLocal();bye('del');try{await leaving(C)}catch(e){location.assign('/')}return r}
  if(r&&r.body&&r.body.error==='confirm-mismatch')delMark.clear();
  else if(!had&&r&&((r.status>=400&&r.status<500)||r.status===503))delMark.clear();
  return r}

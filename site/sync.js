@@ -85,6 +85,8 @@ window.LHB_SYNC=function(D){
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
  /* Codex r4: un reloj que se atrasa no hace eterna la valla; uno que se adelanta en medio de la espera lo cubre forget, que la vuelve a poner antes de revisar */
  const fenced=()=>{let t=0;try{t=parseInt(D.ls.get(FENCE),10)}catch(e){}const d=D.nowMs()-t;return t>0&&d<FENCE_TTL&&d>-FENCE_TTL};
+ /* Codex r6: salir la renueva mientras Clerk cierra la sesión, para que nadie escriba entre el borrado y la salida aunque Clerk tarde más que FENCE_TTL */
+ const fenceUp=()=>{try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){}};
  const writeMeta=m=>{if(fenced())return false;try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
  /* un contador chico compartido entre pestañas: cada escritura de la persona lo sube, y una pasada sabe si alguien escribió (aquí o en otra pestaña) mientras esperaba la red */
  const readSeq=()=>{try{const n=parseInt(D.ls.get(SEQ),10);return n>0?n:0}catch(e){return 0}};
@@ -246,5 +248,5 @@ window.LHB_SYNC=function(D){
   D.listen('online',()=>run('en-linea'));
   D.listen('visible',()=>run('visible',{minAge:30e3}));
   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
- return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
+ return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
 })();
