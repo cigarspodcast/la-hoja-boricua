@@ -1,0 +1,28 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-61-wt (branch lhb-61-feed). The diff below is origin/main..HEAD (main is merged in). This is round 2 of a TIER 2 review.
+
+Ticket LHB-61 (M6-S7): the Siguiendo feed, the public reviews of the people you follow. The round 1 brief and verdict are in evidence/lhb-61-review-brief-r1.txt and evidence/lhb-61-review-r1.txt; read them for the pinned decisions and the design.
+
+Round 1 found three blockers. What changed, all in functions/_lib/feed.js:
+1. P1, the author name. The author now goes out with publicName(first_name, last_name), the same derivation as passport.js publicPassport and people.js, or null when either is missing. The stored display_name is no longer selected.
+2. P2, a visibility change skipped an entry. The window function and the position in the cursor are gone.
+   - A group is one person's public entries on one day ('' for no valid day). Rows are ordered day DESC, handle DESC, then the diary index (json_each key) ASC, which is the profile order.
+   - A page always ends with a whole group. PAGE + 1 rows are read; when the extra row belongs to the last group of the page, that group is dropped from the page and starts the next one.
+   - If the very first group is bigger than a page (more than 20 public entries of one person on one day), the whole group is read and returned as its own page; one more LIMIT 1 read says whether anything follows. Its size is bounded by Mi Hoja's limits (LIST_MAX 5000 entries, BODY_MAX 1,000,000 characters).
+   - The cursor is "day~handle" ("-" for no day), parsed by /^(\d{4}-\d{2}-\d{2}|-)~([a-z0-9_]{3,20})$/. The next page is day < ?2 OR (day = ?2 AND handle < ?3). It carries no entry id and no count of private entries.
+   - Known limit, not addressed: an author who changes their @handle between two page loads can be skipped or repeated, because the handle is the group key; the user_id is private and cannot go in the cursor. An edit of an entry's day moves that entry, as on the profile.
+3. P2, a NUL in the day. The day counts only when the JSON text of the value, (j.value -> '$.consumido'), GLOBs as exactly a quoted "YYYY-MM-DD"; the JSON text escapes a NUL, so "2026-10-28\u0000x" is no day, sorts last and goes out with consumido null (publicEntry). Measured with node:sqlite 3.53.4: -> returns "\"2026-10-28\\u0000suffix\"" and the GLOB is 0.
+
+Tests (test/site.test.js):
+- New "LHB-61 (Codex ronda 1): una página termina con un grupo entero...": your E0..E21 reproduction in two people (15 + 10 + a private older entry made public between pages, in the unseen group and in a seen group), the NUL day with every emitted cursor fetched, a 25-entry group on its own page, and a big group with nothing after it (next null).
+- Test 1: bea's stored display_name is "Bea Soto" with first_name Bea and last_name soto; the feed shows "Bea S." and neither "Soto" nor "soto" appears.
+- Test 2: a NUL-suffixed day among the broken entries; the old three-part cursor and other new shapes are rejected.
+- Test 3: the 51-entry paging test now asserts at least 3 pages (the page sizes follow the groups) and the new cursor shape.
+
+Evidence:
+- evidence/lhb-61-red-before-r1fix.txt: the LHB-61 tests against the round 1 feed.js, 4 red.
+- evidence/lhb-61-mutations-r1fix.out: RESULT 31 of 31 mutations red (new S7, S15, S16, S17, S18; S5, S6, S11, S13 retargeted).
+- evidence/lhb-61-tests-r1fix.txt: the full suite before the merge, 273 pass, 1 skipped.
+- evidence/lhb-61-tests-merged.txt: the full suite after merging main (LHB-34 landed, cache v88 on main, v89 here), 297 pass, 1 skipped.
+- evidence/lhb-61-tests-merged2.txt: the full suite after merging main again (LHB-96 landed), 298 pass, 1 skipped. Two earlier round 2 attempts ended with "Selected model is at capacity" and no verdict; they are kept as evidence/lhb-61-review-r2-transport-fail-1.txt and -2.txt. The merge kept both sides of the LHB-28 mihoja-readers guard (account.js from LHB-34, feed.js from here).
+
+Check the three fixes, whether the whole-group paging can still skip or repeat an entry that stayed public, the big-group path, the SQL on D1/SQLite (the -> operator, the GLOB, the ordering on the json_each key, NULL and type edges, cost), privacy (items and cursor), the merge, and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

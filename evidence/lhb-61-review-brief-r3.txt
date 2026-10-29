@@ -1,0 +1,27 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-61-wt (branch lhb-61-feed). The diff below is origin/main..HEAD (main is merged in). This is round 3 of a TIER 2 review.
+
+Ticket LHB-61 (M6-S7): the Siguiendo feed. The earlier briefs and verdicts are in evidence/ (lhb-61-review-brief-r1.txt, lhb-61-review-r1.txt, lhb-61-review-brief-r2.txt, lhb-61-review-r2.txt); read them for the pinned decisions and the design.
+
+Round 2 found two blockers and one evidence defect. What changed:
+1. P1, a NUL in a key. functions/_lib/feed.js no longer reads any member by a '$.key' path.
+   - member(obj, key, pick) is a subquery over json_each(obj) with x.key = 'key' ORDER BY x.id DESC LIMIT 1, so the key must match whole and, as JSON.parse, the last of a repeated key wins. Measured with node:sqlite 3.53.4: for {"publica\u0000x":true,"publica":false}, json_type(v,'$.publica') is 'true', while json_each's key = 'publica' matches only the real key (type false).
+   - DIARIO: the last top-level "diario" member when it is an array, of a document that is valid JSON, else '[]'.
+   - PUBLICA: the last "publica" member is of type true.
+   - DAY: the last "consumido" member when it is text of exactly 10 bytes (length(CAST(x.value AS BLOB)) = 10) that GLOBs as YYYY-MM-DD, else ''.
+   - Second check: the parsed entry is skipped unless e.publica === true (publicDoc's rule).
+   - Mi Hoja stores JSON.stringify(b.doc) (functions/_lib/mihoja.js), so a repeated key cannot be stored in production; a NUL inside a key can.
+2. P2, the pinned 20 per page. A group bigger than PAGE is now split 20 at a time (groupPage).
+   - The cursor inside such a group is "day~handle~n", with n the place of the last entry among the group's public entries counted from the oldest (1 is the oldest). Counting from the oldest keeps a new entry (unshifted to the front of the diary) from moving the others.
+   - The next page of the group is its entries with a smaller n; after the last part, next is "day~handle" when anything follows, else null.
+   - A three-part cursor whose group shrank returns what is left (possibly nothing) and goes on after the group.
+   - Accepted limit, escalated to the owner on the ticket: inside a group bigger than a page, an older entry that turns public between two loads can skip another. Fixing it needs either a cursor that reveals the count of private entries, an entry id in the cursor, or a signed cursor (a new secret); the pinned page size and the privacy of the cursor rank above it. Outside such groups, the whole-group paging of round 1 still applies.
+3. Evidence. evidence/lhb-61-red-before.py copies the whole worktree, migrations included, and swaps in feed.js from a revision. evidence/lhb-61-red-before-r0.txt (feed.js of ba5425f, before round 1): 5 LHB-61 tests red. evidence/lhb-61-red-before-r1.txt (feed.js of round 1): 2 red, both on assertions. The first, invalid attempt is kept as evidence/lhb-61-red-before-r1fix.txt.
+
+Tests (test/site.test.js):
+- New "LHB-61 (Codex ronda 2): una llave con un carácter nulo...": your publica\u0000x reproduction; 21 such entries on a newer day (they must not cut the page or name their day in a cursor); a hidden "diario\u0000x"; "consumido\u0000x" with a day beside a non-day consumido; a 10-character non-day; publica 'true' and 1 (21 of them); a repeated publica key both ways, stored as raw text; parity with the /u/<handle> page.
+- The round 1 test's big-group part: 25 entries give 20, then 5 with cursor "...~ana~6", then the rest; the whole walk has 27 entries at no more than 20 a page; a new entry between pages repeats and skips nothing; a big group with nothing after it ends in null; a shrunken group goes on.
+- The LHB-28 guard asserts the PUBLICA member read and the second check. Two cursors that are now valid left the bad-cursor list; new bad ones were added.
+
+Evidence: mutations 39 of 39 red (evidence/lhb-61-mutations-r2fix.out). Every SQL-only mutation of the visibility rules is red on its own through the page shape, though the second check hides the entry itself (S1b, S2, S19, S20, S23, S25); S19b removes both. Full suite 299 pass, 0 fail, 1 skipped (evidence/lhb-61-tests-r2fix.txt).
+
+Check the exact-member reads (correctness on D1/SQLite, NULL and type edges, json_each on nested values, cost), the split of a big group (its cursor, the boundaries, the shrink case, the claim that n counted from the oldest survives a new entry), privacy of items and cursor, and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

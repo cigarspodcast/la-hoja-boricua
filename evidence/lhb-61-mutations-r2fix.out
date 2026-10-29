@@ -1,0 +1,41 @@
+S1 private entries too (the query and the second check) rc 1 fail 6 -> RED
+S1b the query lets private entries in (the second check alone hides them) rc 1 fail 5 -> RED
+S2 anything truthy counts as public                  rc 1 fail 2 -> RED
+S3 hidden profiles too                               rc 1 fail 1 -> RED
+S4 anyone's follows, not mine                        rc 1 fail 1 -> RED
+S5 the cursor is ignored                             rc 1 fail 2 -> RED
+S6 oldest first within a person and day              rc 1 fail 4 -> RED
+S7 a page ends in the middle of a group (Codex r1 P2) rc 1 fail 2 -> RED
+S15 the stored display_name goes out (Codex r1 P1)   rc 1 fail 1 -> RED
+S16 the day read past a NUL (Codex r1 P2)            rc 1 fail 2 -> RED
+S16b ten characters that are not a day               rc 1 fail 1 -> RED
+S17 a group bigger than a page goes out whole (Codex r2 P2) rc 1 fail 1 -> RED
+S18 after a big group, always a next page            rc 1 fail 1 -> RED
+S19 publica read by path, a NUL key passes (Codex r2 P1) rc 1 fail 2 -> RED
+S19b the same, and no second check: the private entry goes out rc 1 fail 2 -> RED
+S20 diario read by path, a NUL key hides a second diary (Codex r2 P1) rc 1 fail 1 -> RED
+S25 keys matched by prefix, not whole (Codex r2 P1)  rc 1 fail 1 -> RED
+S23 the first of a repeated key wins, not the last   rc 1 fail 1 -> RED
+S24 a group page restarts at its beginning           rc 1 fail 1 -> RED
+S8 a broken document is not guarded                  rc 1 fail 1 -> RED
+S9 the whole entry goes out                          rc 1 fail 4 -> RED
+S10 a bad cursor reads as none                       rc 1 fail 1 -> RED
+S11 no look-ahead row, so never a next page          rc 1 fail 2 -> RED
+S12 no profile is fine                               rc 1 fail 1 -> RED
+S13 an undated entry sorts by its raw value          rc 1 fail 3 -> RED
+C1 the name is not escaped                           rc 1 fail 1 -> RED
+C2 a stale answer paints                             rc 1 fail 1 -> RED
+C3 a request still goes out after leaving            rc 1 fail 1 -> RED
+C4 the next page without the cursor                  rc 1 fail 1 -> RED
+C5 an invalid @ is shown                             rc 1 fail 1 -> RED
+C6 the empty state has no way to find people         rc 1 fail 1 -> RED
+C7 a tap opens the wrong entry                       rc 1 fail 2 -> RED
+C8 numbering restarts on each page                   rc 1 fail 1 -> RED
+C9 an error cannot be retried                        rc 1 fail 1 -> RED
+C10 tags in a div inside the button                  rc 1 fail 1 -> RED
+C13 tagChips ignores inline                          rc 1 fail 1 -> RED
+S14 the mihoja guard: a second read of mihoja        rc 1 fail 1 -> RED
+C11 no Siguiendo tab in Mi Hoja                      rc 1 fail 1 -> RED
+C12 the route does not open the screen               rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 9
+RESULT 39 of 39 mutations red
