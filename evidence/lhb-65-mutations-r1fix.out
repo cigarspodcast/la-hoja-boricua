@@ -1,0 +1,20 @@
+T1 a pale muted text (#A0A090 on paper)                  rc 1 fail 1 -> RED  contraste: 39 pares, 35 pasan, 4 no
+T2 the text on the accent is the accent                  rc 1 fail 3 -> RED  contraste: 39 pares, 38 pasan, 1 no
+T3 sun as text on paper                                  rc 1 fail 2 -> RED  contraste: 39 pares, 35 pasan, 4 no
+T4 celeste as text on paper                              rc 1 fail 2 -> RED  contraste: 39 pares, 35 pasan, 4 no
+T5 white on celeste                                      rc 1 fail 2 -> RED  contraste: 39 pares, 38 pasan, 1 no
+T6 ink on amber at the small-text threshold (no -lg)     rc 1 fail 1 -> RED  contraste: 39 pares, 38 pasan, 1 no
+T7 a dark raised surface                                 rc 1 fail 1 -> RED  contraste: 39 pares, 31 pasan, 8 no
+T8 red as small text on card-2 (4.42)                    rc 1 fail 2 -> RED  contraste: 39 pares, 38 pasan, 1 no
+T9 a text token that is not a color                      rc 1 fail 1 -> RED  contraste: 39 pares, 35 pasan, 4 no
+N1 an old name back (--gold as tobacco)                  rc 1 fail 1 -> RED  contraste: 39 pares, 39 pasan, 0 no
+N2 a rule reads the palette directly                     rc 1 fail 1 -> RED  contraste: 39 pares, 39 pasan, 0 no
+N3 a JS reader of an old name                            rc 1 fail 1 -> RED  contraste: 39 pares, 39 pasan, 0 no
+N4 the manifest keeps the dark theme color               rc 1 fail 1 -> RED  contraste: 39 pares, 39 pasan, 0 no
+N5 no light color-scheme                                 rc 1 fail 1 -> RED  contraste: 39 pares, 39 pasan, 0 no
+E1 the later .seg override keeps dark text on inverse (Codex r1 P2) rc 1 fail 1 -> RED  contraste: 39 pares, 39 pasan, 0 no
+E2 pale gallery captions on card-2 (Codex r1 P2)         rc 1 fail 1 -> RED  contraste: 39 pares, 39 pasan, 0 no
+E3 the pale Suave pill (background from .pill) (Codex r1 P2) rc 1 fail 1 -> RED  contraste: 39 pares, 39 pasan, 0 no
+E4 the later Fuerte override (Codex r1 P2)               rc 1 fail 1 -> RED  contraste: 39 pares, 39 pasan, 0 no
+baseline after restore: rc 0 pass 4  contraste: 39 pares, 39 pasan, 0 no
+RESULT 18 of 18 mutations red

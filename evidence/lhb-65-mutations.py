@@ -38,6 +38,10 @@ M = [
     ('N3 a JS reader of an old name', lambda: edit(AP, 'style="color:var(--accent-ink);font-size:15px"', 'style="color:var(--gold);font-size:15px"')),
     ('N4 the manifest keeps the dark theme color', lambda: edit(MF, '"theme_color": "#F4F1EA",', '"theme_color": "#0e2417",')),
     ('N5 no light color-scheme', lambda: edit(CS, ' color-scheme:light;\r\n', '')),
+    ('E1 the later .seg override keeps dark text on inverse (Codex r1 P2)', lambda: edit(CS, '.seg button[aria-pressed="true"]{color:var(--on-inverse)}', '.seg button[aria-pressed="true"]{color:#0e2417}')),
+    ('E2 pale gallery captions on card-2 (Codex r1 P2)', lambda: edit(CS, 'background:var(--card-2);color:var(--on-surface);font-size:11.5px', 'background:var(--card-2);color:#f8f8f4;font-size:11.5px')),
+    ('E3 the pale Suave pill (background from .pill) (Codex r1 P2)', lambda: edit(CS, '.pill.f-suave{color:var(--accent-ink)}', '.pill.f-suave{color:#cfe0b0}')),
+    ('E4 the later Fuerte override (Codex r1 P2)', lambda: edit(CS, '\r\n.pill.f-fuerte{color:var(--danger-ink)}\r\n', '\r\n.pill.f-fuerte{color:#ff9a82}\r\n')),
 ]
 red = 0
 for name, mut in M:

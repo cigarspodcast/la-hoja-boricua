@@ -5008,3 +5008,23 @@ test('LHB-65: ningún token se llama por lo contrario de lo que es: los nombres 
  assert.match(css.match(/:root\{([^}]*)\}/)[1],/color-scheme:light/);
  const m=JSON.parse(read('manifest.webmanifest'));assert.equal(m.theme_color,'#F4F1EA');assert.equal(m.background_color,'#F4F1EA');
 });
+/* LHB-65 (Codex ronda 1): los pares que la app pinta de verdad, no solo los que los tokens declaran. Las reglas de un mismo selector se
+   juntan en orden (la última gana); un selector sin fondo lo toma de su base (el mismo selector sin su última clase, atributo o
+   seudoclase, como .pill.f-suave de .pill). Cuenta cada selector con color y con un fondo que es un token */
+function effPairs65(css){const {val}=TOKENS65(css);const c0=css.replace(/\/\*[\s\S]*?\*\//g,'');
+ const flat=c0.replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g,'').replace(/@media[^{]*\{((?:[^{}]*\{[^{}]*\})*)[^{}]*\}/g,'$1');
+ const eff={};for(const m of flat.matchAll(/([^{}]+)\{([^{}]*)\}/g))for(const sel of m[1].split(',').map(x=>x.trim())){if(sel.startsWith(':root'))continue;const e=eff[sel]||(eff[sel]={});
+  for(const d of m[2].split(';')){const i=d.indexOf(':');if(i<0)continue;const p=d.slice(0,i).trim(),v=d.slice(i+1).trim();if(p==='background'||p==='background-color')e.bg=v;else if(p==='color')e.color=v}}
+ const hex=v=>{v=v.replace('!important','').trim();const r=/^var\(--([a-z0-9-]+)\)$/.exec(v);if(r)return val(r[1]);if(/^#[0-9a-fA-F]{6}$/.test(v))return v;if(/^#[0-9a-fA-F]{3}$/.test(v))return '#'+[...v.slice(1)].map(c=>c+c).join('');return null};
+ const base=s=>{const m=/^(.*?)(\.[a-zA-Z0-9_-]+|\[[^\]]*\]|::?[a-zA-Z-]+(\([^)]*\))?)$/.exec(s);return m&&m[1]&&!m[1].endsWith(' ')?m[1]:null};
+ const out=[];for(const [sel,e] of Object.entries(eff)){if(!e.color)continue;let b=e.bg,s=sel;while(b==null&&s){s=base(s);if(s&&eff[s]&&eff[s].bg)b=eff[s].bg}
+  if(b==null||!b.includes('var(--'))continue;const bv=hex(b),fv=hex(e.color);if(!bv||!fv)continue;out.push({sel,color:e.color,bg:b,r:contrast65(fv,bv)})}
+ return out}
+test('LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de token pasa 4.5, aunque otra regla del mismo selector lo cambie después o el fondo venga de la regla base',t=>{
+ const ps=effPairs65(read('styles.css')),bad=ps.filter(p=>p.r<4.5).map(p=>p.sel+': '+p.color+' sobre '+p.bg+' '+p.r.toFixed(2));
+ t.diagnostic('pares pintados: '+ps.length+', '+(ps.length-bad.length)+' pasan, '+bad.length+' no');
+ assert.deepEqual(bad,[],'pares pintados que no pasan');
+ /* los cuatro de Codex: la regla que gana es la última, y el fondo de la píldora viene de .pill */
+ const f=s=>ps.find(p=>p.sel===s);for(const s of ['.seg button[aria-pressed="true"]','.foto-th span','.pill.f-suave','.pill.f-fuerte'])assert.ok(f(s),'se mide '+s);
+ assert.equal(f('.pill.f-suave').bg,'var(--card-2)');assert.equal(f('.seg button[aria-pressed="true"]').color,'var(--on-inverse)');assert.ok(ps.length>=50,'al menos 50 pares pintados: '+ps.length);
+});
