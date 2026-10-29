@@ -3013,7 +3013,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
  /* LHB-98: la valla mira también el candado de Mi Hoja, salvo en lo que la app escribe sola (quiet) */
- assert.ok(/function write\(s,quiet\)\{if\(SYNC&&SYNC\.fenced\(quiet\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(quiet\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
+ assert.ok(/function write\(s,quiet\)\{if\(quiet&&typeof wlClosed==='function'&&wlClosed\(\)\)return true;if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else pfOwnSync()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
@@ -4140,10 +4140,10 @@ function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').
   acct:{get:()=>o.acct===undefined?{sub:'user_a',handle:'ana_a'}:o.acct,clear:()=>log.push('acct.clear')},intent:{clear:()=>log.push('intent.clear')},
   clerk:async()=>{if(o.offlineClerk)throw new Error('sin red');return C},
   api:async(Cx,method,path,body,uid)=>{log.push([method,path,JSON.stringify(body),uid]);log.push('pasada '+JSON.stringify(await dev.eng.run('durante')));if(o.api)return o.api(body);return {status:200,body:{ok:true}}},
-  sessionStorage:{getItem:k=>ss.has(k)?ss.get(k):null,setItem:(k,v)=>ss.set(k,String(v)),removeItem:k=>ss.delete(k)},location:{assign:u=>log.push('assign '+u)},setTimeout:()=>0,
+  sessionStorage:{getItem:k=>ss.has(k)?ss.get(k):null,setItem:(k,v)=>ss.set(k,String(v)),removeItem:k=>ss.delete(k)},location:{assign:u=>log.push('assign '+u)},setTimeout:(f,ms)=>{if(!o.timers)return 0;o.timers.push({f,ms});return o.timers.length},
   setInterval:(f,ms)=>{const t={f,ms,live:true};ivs.push(t);return t},clearInterval:t=>{if(t)t.live=false},
-  /* LHB-98: o.locks, los Web Locks de mentira (LOCKS98) que comparte con otra pestaña (TAB98) */
-  clearTimeout:()=>{},AbortController,...(o.locks?{navigator:{locks:o.locks}}:{}),
+  /* LHB-98: o.locks, los Web Locks de mentira (LOCKS98) que comparte con otra pestaña (TAB98); o.timers (Codex r1): los setTimeout de la página, que la prueba corre a mano */
+  clearTimeout:i=>{if(o.timers&&i&&o.timers[i-1])o.timers[i-1].f=null},AbortController,...(o.locks?{navigator:{locks:o.locks}}:{}),
   window:{addEventListener:(t,f)=>listeners.push([t,f])}};const listeners=[];
  vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW="x";'+src.slice(i,j)+';this.X={salir,borrar,resumeDelete,accountPanel,bindAccount,setBackup:v=>{lastBackup=v},st:()=>ST,wlClosed:typeof wlClosed==="function"?wlClosed:null}',ctx);
  if(ctx.X.wlClosed)dev.D.closed=()=>ctx.X.wlClosed();
@@ -6079,7 +6079,7 @@ test('LHB-98 (reproducción 1): una pestaña dormida a mitad de una escritura cu
   assert.deepEqual(h.outs(),[],'y la sesión no se cerró con él dentro');
   assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');
  }finally{a.done()}});
-test('LHB-98: sin el candado compartido en la mano, lo que escribe la persona no se guarda (ni la meta, el contador o la dueña del motor); lo que la app escribe sola al abrir, sí',async()=>{
+test('LHB-98: sin el candado compartido en la mano, lo que escribe la persona no se guarda (ni la meta, el contador o la dueña del motor); lo que la app escribe sola al abrir tampoco hasta tenerlo (Codex r1)',async()=>{
  const a=await ENG28();const dev=DEV28(a,'user_a');try{
   dev.seed(DOC34());await dev.sync();
   const L=LOCKS98();
@@ -6093,9 +6093,10 @@ test('LHB-98: sin el candado compartido en la mano, lo que escribe la persona no
   /* sin dueña anotada (ni la llave ni la meta) */
   dev.ls.delete('lhb_mihoja_v1_owner');dev.ls.delete('lhb_mihoja_v1_sync');assert.equal(B.eng.ensureOwner(),false,'ni la dueña');assert.ok(!dev.ls.has('lhb_mihoja_v1_owner'));
   dev.ls.set('lhb_mihoja_v1_owner',before[2]);dev.ls.set('lhb_mihoja_v1_sync',before[1]);
-  assert.equal(B.X.write(d,true),true,'lo que la app escribe sola sí (no espera al candado, solo a la valla con tiempo)');
+  assert.equal(B.X.write(d,true),true,'lo que la app escribe sola se queda en memoria');assert.deepEqual(KEYS34.map(k=>dev.ls.get(k)),before,'pero sin el candado no se guarda (Codex r1)');
   /* se suelta el exclusivo: llega el compartido y se escribe */
   dev.seed(DOC34());free();await tick98();assert.equal(B.X.wlClosed(),false);
+  assert.equal(B.X.write(d,true),true);assert.ok(hid28(dev.doc()).includes('x1'),'con el candado, lo que la app escribe sola se guarda');dev.seed(DOC34());
   assert.equal(B.X.write(d),true);assert.ok(hid28(dev.doc()).includes('x1'));
  }finally{a.done()}});
 test('LHB-98: al ver la valla de otra pestaña, esta suelta el compartido y vuelve a la fila detrás de la salida; cuando la salida termina lo tiene otra vez',async()=>{
@@ -6111,7 +6112,7 @@ test('LHB-98: al ver la valla de otra pestaña, esta suelta el compartido y vuel
   B.tell({key:'lhb_mihoja_v1_saliendo',newValue:null});await tick98();assert.deepEqual(L.queue.map(q=>q.mode),['shared']);
   free();await p;await tick98();assert.equal(B.X.wlClosed(),false,'terminó la salida: B lo tiene otra vez');
  }finally{a.done()}});
-test('LHB-98: salir pide el exclusivo antes de poner la valla y lo tiene hasta que Clerk termina; si otra pestaña no lo suelta en WL_WAIT sale con la valla con tiempo; si Clerk falla, la página vuelve a tener el compartido',async()=>{
+test('LHB-98: salir pide el exclusivo antes de poner la valla y lo tiene hasta que Clerk termina; si otra pestaña no lo suelta en WL_WAIT no sale ni borra nada (Codex r1) y otro intento sale cuando la suelta; si Clerk falla, la página vuelve a tener el compartido',async()=>{
  const a=await ENG28();const dev=DEV28(a,'user_a');try{
   dev.seed(DOC34());await dev.sync();
   const L=LOCKS98();const modes=[];let pend=null;
@@ -6124,16 +6125,22 @@ test('LHB-98: salir pide el exclusivo antes de poner la valla y lo tiene hasta q
   assert.deepEqual(modes,['exclusive'],'Clerk cierra la sesión con el exclusivo en la mano');
   assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
   assert.deepEqual(L.held.map(x=>x.mode),['shared'],'Clerk falló: la página tiene otra vez el compartido');
-  /* otra pestaña dormida que nunca suelta su compartido: a los WL_WAIT se sale sin el exclusivo */
+  /* Codex r1: otra pestaña que no suelta su compartido: a los WL_WAIT se deja de pedir y no se sale (no se borra nada); se dice por qué */
   const dev2=DEV28(a,'user_a');dev2.seed(DOC34());await dev2.sync();const L2=LOCKS98();
-  L2.request('lhb_mihoja',{mode:'shared'},()=>new Promise(()=>{}));await tick98();
-  const h2=ACCT34(dev2,{locks:L2});
+  let free2=null;L2.request('lhb_mihoja',{mode:'shared'},()=>new Promise(r=>{free2=r}));await tick98();
+  const h2=ACCT34(dev2,{locks:L2});const before2=KEYS34.map(k=>dev2.ls.get(k));
   const src=read('hoja.js');assert.match(src,/const WL_WAIT=5e3;/,'WL_WAIT es de 5 s');
   /* la espera: el setTimeout de la prueba no corre solo; se aborta a mano el pedido que quedó en la fila */
   const pr=h2.X.salir();for(let i=0;i<200&&!L2.queue.some(x=>x.mode==='exclusive');i++)await tick98(5);assert.ok(!h2.log.includes('assign /'),'espera a la otra pestaña');
   const q=L2.queue.find(x=>x.mode==='exclusive');assert.ok(q,'el exclusivo está en la fila');
   L2.queue.splice(L2.queue.indexOf(q),1);const e=new Error('aborted');e.name='AbortError';q.rej(e);
-  await pr;await tick98();assert.ok(h2.log.includes('assign /'),'salió con la valla con tiempo');for(const k of KEYS34)assert.ok(!dev2.ls.has(k),'borrado '+k);
+  await pr;await tick98();
+  assert.deepEqual(h2.outs(),[],'no se cerró la sesión');assert.deepEqual(KEYS34.map(k=>dev2.ls.get(k)),before2,'no se borró nada');assert.ok(dev2.ls.has('lhb_mihoja_v1'));
+  assert.equal(h2.els.acMsg.textContent,'Otra pestaña de La Hoja Boricua todavía está usando Mi Hoja, así que no saliste. Ciérrala o espera unos segundos e intenta otra vez.');
+  assert.deepEqual(L2.held.map(x=>x.mode),['shared','shared'],'la página tiene otra vez el compartido');
+  /* la otra pestaña se cierra: pasada la valla con tiempo, otro intento sale */
+  free2();await tick98();dev2.st.clock+=10001;
+  await h2.X.salir();await tick98();assert.ok(h2.log.includes('assign /'),'ahora sí');for(const k of KEYS34)assert.ok(!dev2.ls.has(k),'borrado '+k);
  }finally{a.done()}});
 test('LHB-98: borrar la cuenta también borra este teléfono y cierra la sesión con el exclusivo en la mano',async()=>{
  const a=await ENG28();const dev=DEV28(a,'user_a');try{
@@ -6142,4 +6149,34 @@ test('LHB-98: borrar la cuenta también borra este teléfono y cierra la sesión
   const h=ACCT34(dev,{locks:L,signOutWait:async()=>{modes.push(L.held.map(x=>x.mode).join())}});await tick98();
   await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');await tick98();
   assert.deepEqual(modes,['exclusive']);for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
+ }finally{a.done()}});
+test('LHB-98 (Codex r1): la cuenta ya se borró y otra pestaña no suelta su compartido: a los WL_WAIT se avisa y se sigue esperando; nada se borra de este teléfono sin el exclusivo; cuando lo suelta se termina',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  const L=LOCKS98();const T=[];const modes=[];
+  let free=null;L.request('lhb_mihoja',{mode:'shared'},()=>new Promise(r=>{free=r}));await tick98();
+  const h=ACCT34(dev,{locks:L,timers:T,signOutWait:async()=>{modes.push(L.held.map(x=>x.mode).join())}});await tick98();
+  const before=KEYS34.map(k=>dev.ls.get(k));const p=h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
+  for(let i=0;i<200&&!L.queue.some(x=>x.mode==='exclusive');i++)await tick98(5);assert.ok(L.queue.some(x=>x.mode==='exclusive'),'el exclusivo está en la fila');
+  const w=T.filter(t=>t.ms===5e3&&t.f);assert.equal(w.length,1,'una espera de WL_WAIT');w[0].f();await tick98();
+  assert.equal(h.els.acMsg.textContent,'Tu cuenta ya se borró. Para terminar de borrar Mi Hoja de este teléfono, cierra las otras pestañas de La Hoja Boricua.');
+  assert.ok(L.queue.some(x=>x.mode==='exclusive'),'sigue en la fila');assert.deepEqual(KEYS34.map(k=>dev.ls.get(k)),before,'sin el exclusivo no se borra nada');assert.ok(dev.ls.has('lhb_mihoja_v1'));assert.deepEqual(h.outs(),[]);
+  free();await p;await tick98();
+  assert.deepEqual(modes,['exclusive'],'se termina con el exclusivo en la mano');for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
+ }finally{a.done()}});
+test('LHB-98 (Codex r1): mientras la salida tiene el exclusivo, otra pestaña que abre Mi Hoja sin copia (lo que la app escribe sola, quiet) no guarda nada aunque la valla con tiempo ya caducó; con el candado, sí',async()=>{
+ const a=await ENG28();const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC34());await dev.sync();
+  const L=LOCKS98();let done=null;
+  const h=ACCT34(dev,{locks:L,signOutWait:async()=>{await new Promise(r=>{done=r})}});await tick98();
+  const p=h.X.salir();for(let i=0;i<200&&!done;i++)await tick98(5);assert.ok(done,'Clerk está cerrando la sesión');
+  for(const k of KEYS34)assert.ok(!dev.ls.has(k),'ya se borró '+k);
+  /* el reloj salta: la valla con tiempo caducó */
+  dev.st.clock+=11000;
+  const B=TAB98(dev,L);await tick98();assert.equal(B.X.wlClosed(),true,'la otra pestaña espera el compartido');
+  const d=DOC34();d.migrado='v5';
+  assert.equal(B.X.write(d,true),true,'se queda en memoria');assert.ok(!dev.ls.has('lhb_mihoja_v1'),'pero no se guarda');
+  done();await p;await tick98();assert.ok(h.log.includes('assign /'),'la sesión se cerró');assert.ok(!dev.ls.has('lhb_mihoja_v1'),'y no quedó nada en este teléfono');
+  /* la salida soltó el exclusivo: con el compartido en la mano, sí */
+  dev.st.clock+=11000;assert.equal(B.X.wlClosed(),false);assert.equal(B.X.write(d,true),true);assert.ok(dev.ls.has('lhb_mihoja_v1'));
  }finally{a.done()}});

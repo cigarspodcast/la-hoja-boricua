@@ -10,15 +10,17 @@ shutil.copytree(WT, D, ignore=shutil.ignore_patterns('.git', 'node_modules', 'ev
 PAT = 'LHB-98|LHB-34|LHB-28'
 SY, HJ = 'site/sync.js', 'site/hoja.js'
 MUTS = [
-    (SY, 'writes ignore the lock (the state before this ticket)', 'if(!soft&&D.closed&&D.closed())return true;', ''),
-    (SY, 'quiet writes wait for the lock too', 'if(!soft&&D.closed&&D.closed())return true;', 'if(D.closed&&D.closed())return true;'),
-    (HJ, 'write() does not pass quiet to the fence', 'function write(s,quiet){if(SYNC&&SYNC.fenced(quiet)){', 'function write(s,quiet){if(SYNC&&SYNC.fenced()){'),
+    (SY, 'writes ignore the lock (the state before this ticket)', 'if(D.closed&&D.closed())return true;', ''),
+    (HJ, 'r1: quiet writes skip the lock', "if(quiet&&typeof wlClosed==='function'&&wlClosed())return true;", ''),
     (HJ, 'a tab does not yield on the fence', "if(e.key==='lhb_mihoja_v1_saliendo'&&e.newValue)wlYield();", ''),
     (HJ, 'a tab that yielded never asks again', 'if(!w||!w.lm||!w.have)return;wlDrop(w);wlTake()}', 'if(!w||!w.lm||!w.have)return;wlDrop(w)}'),
-    (HJ, 'sign-out without the exclusive', '  await wlOnly(async()=>{\n   if(!outDone)', '  await (async f=>f())(async()=>{\n   if(!outDone)'),
+    (HJ, 'sign-out without the exclusive', 'const ok=await wlOnly(async()=>{\n   if(!outDone)', 'const ok=await (async f=>f())(async()=>{\n   if(!outDone)'),
     (HJ, 'account deletion without the exclusive', 'await wlOnly(async()=>{await dropLocal();', 'await (async f=>f())(async()=>{await dropLocal();'),
     (HJ, 'the fence goes up before the exclusive is asked', 'try{const p=w.lm.request(', 'try{SYNC.fenceUp();const p=w.lm.request('),
-    (HJ, 'no fallback when a tab never yields', 'if(!ran)out=await f();', ''),
+    (HJ, 'r1: sign-out runs without the exclusive after WL_WAIT', 'wlTake();return out}', 'if(!ran&&!onWait)out=await f();wlTake();return out}'),
+    (HJ, 'r1: deletion gives up at WL_WAIT', 'const ac=!onWait&&typeof AbortController', 'const ac=typeof AbortController'),
+    (HJ, 'r1: deletion waits without a word', 'else if(onWait)onWait()}', 'else if(0)onWait()}'),
+    (HJ, 'r1: a refused sign-out says nothing', "if(ok===WL_NO)acMsg(tt('ac.wlBusy'))", "if(0)acMsg(tt('ac.wlBusy'))"),
     (HJ, 'the page does not take the shared lock back', 'wlTake();return out}', 'return out}'),
     (HJ, 'closed without Web Locks', 'function wlClosed(){const w=WLS;return !!(w&&w.lm)&&!w.have}', 'function wlClosed(){const w=WLS;return !w||!w.have}'),
     (HJ, 'the page never takes the shared lock', ' WLS={lm,have:false,ask:false,free:null,mine:false};wlTake()}', ' WLS={lm,have:false,ask:false,free:null,mine:false}}'),

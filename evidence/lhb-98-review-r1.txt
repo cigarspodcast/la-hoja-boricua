@@ -1,0 +1,445 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-98-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18860-6285-70d0-b13a-e762c23c7b57
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-98-wt (branch lhb-98-weblocks, from main 27835c0). TIER 2: rounds until no blocking finding.
+
+Ticket LHB-98: Mi Hoja writes through Web Locks, full cross-tab exclusion during sign-out (LHB-34 residuals). The sign-out fence was a timestamp lease in localStorage (site/sync.js fenced, fenceUp; site/hoja.js leaving, write), with two accepted residuals:
+1. A writer tab whose renderer is suspended for more than 1 s inside one synchronous step (between its last fence check and localStorage.setItem), at the moment another tab signs out, can keep that one edit locally.
+2. A forward wall-clock jump larger than the 10 s TTL, while Clerk's sign-out is pending and between two 3 s renewals, lets another tab write an entry that stays on the phone after the sign-out. Reproduction: fail the first sign-out and let its fence expire; retry with no local copy and keep Clerk pending; advance the clock 11 s; open Mi Hoja in another tab and write an entry; complete the sign-out: the local copy keeps the entry.
+The ticket's hypothesis was to route every write through navigator.locks.request (making write() asynchronous). Measured first: 13 save( sites and 8 write( sites in hoja.js, and S() compares the stored text, so an asynchronous write() touches every caller.
+
+The design shipped instead keeps write() synchronous:
+- Each Mi Hoja tab holds the Web Lock 'lhb_mihoja' in shared mode (hoja.js wlInit, wlTake, in the LHB-34 block; functions and var because SYNC calls wlClosed before that block runs).
+- sync.js fenced(soft) also returns true when D.closed() (hoja.js wlClosed: Web Locks present and this tab does not hold the shared lock), except for soft: hoja.js write(s,quiet) passes quiet, so what the app writes by itself at startup (the migration write in load) waits only for the time fence. The engine's writeMeta, bumpSeq and setOwner call fenced() and so need the lock.
+- Sign-out (salir) and account deletion (askDelete) run their part from the deletion (dropLocal, forget's final check) to the end of Clerk's sign-out (leaving) inside wlOnly: it drops this tab's shared lock, asks for the exclusive, then raises the fence (SYNC.fenceUp) so other tabs see it after the exclusive is queued. Each other tab's storage listener, on a new value of lhb_mihoja_v1_saliendo, drops its shared lock and asks again (wlYield), queuing behind the exclusive. A tab releases only from that listener, between tasks, never inside write(): a tab suspended inside write() still holds the lock, the sign-out waits for it, its change alters forget's mark, and nothing is deleted.
+- Fallbacks to the LHB-34 time fence: no Web Locks (wlOnly runs f directly; wlClosed false), or the exclusive not granted within WL_WAIT (5 s, aborted with an AbortController) because a tab never yields. After wlOnly, the page asks for its shared lock again (a failed Clerk sign-out leaves the page usable).
+Tests (test/site.test.js, end of file): LOCKS98 (fake Web Locks by name, FIFO, shared and exclusive, abort), TAB98 (a second tab: hoja.js write() with its own lock block and engine over the same storage, storage events delivered as separate tasks, optionally held while the tab is asleep). Both reproductions are tests and were seen failing on the old code (reproduction 2: the other tab wrote; reproduction 1: the session was closed with the late edit on the device). Four more tests cover the gate, yielding and re-queuing, the order of exclusive then fence, the WL_WAIT fallback, the re-take after a failed Clerk sign-out, and deletion. ACCT34 gained o.locks, clearTimeout and AbortController; the LHB-28 source check reads fenced(quiet).
+Evidence: evidence/lhb-98-mutations.out 12 of 12 red; evidence/lhb-98-tests.txt full suite 345 tests, 344 pass, 0 fail, 1 skipped. The cache version is not bumped yet (it will be, above LHB-62's lhb-v114, when this is merged with main).
+
+Check in particular:
+- Is there any interleaving where a tab writes Mi Hoja (or the engine's meta, seq or owner) between forget's final check and the end of Clerk's sign-out, with Web Locks present? Including a tab opened during the sign-out, a tab whose shared request is still pending at startup, the signer tab itself, and the engine's own pass (its lock 'lhb_mihoja_sync' and setDoc).
+- Deadlocks: the exclusive inside the delete flow's 'lhb_borrar' lock and the sync pass's 'lhb_mihoja_sync'; the signer's own shared lock; a tab that yields while its pass is running.
+- The quiet exception: can a quiet write leave an account's data on the device after sign-out?
+- The fallback paths, the fence storage listener (newValue on every renewal), and what happens after a failed sign-out.
+- Costs: a held Web Lock and the back/forward cache, background tab freezing.
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-timeout=60000 --test-name-pattern=LHB-98 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main 483f9f0f838689fe77fde8b647d69713d64f3e63 -- site test =====
+diff --git a/site/hoja.js b/site/hoja.js
+index 3d27fdd..569619a 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -52,7 +52,7 @@ let SYNC=null;
+    Codex ronda 2: irse a otra página lo borra, y con otra cuenta no vale */
+ let DFOC=null;window.addEventListener('hashchange',()=>{DFOC=null});
+ /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
+-function write(s,quiet){if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
++function write(s,quiet){if(SYNC&&SYNC.fenced(quiet)){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced(quiet)){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
+ /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
+ /* LHB-101: si el navegador bloquea leer el almacenamiento, Mi Hoja vacía; nunca un error dentro de una pintura (un catálogo en blanco) */
+ const S=()=>{try{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST}catch(e){ST=null;return DEF()}};
+@@ -201,7 +201,7 @@ function clerk(){if(clerkP)return clerkP;
+ async function api(C,method,path,body,uid,extra,go){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');if(go&&!go())throw new Error('gone');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
+ /* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
+ SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+- lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),
++ lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),closed:()=>wlClosed(),
+  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),wait:ms=>new Promise(r=>setTimeout(r,ms)),toast,
+  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
+  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
+@@ -211,6 +211,32 @@ SYNC.start();
+ /* lastBackup: el canon del último respaldo descargado en esta página; si Mi Hoja sigue igual, salir no pierde nada aunque no haya red.
+    outDone: lo de este teléfono ya se borró y falta cerrar la sesión de Clerk; si eso falló, el botón lo vuelve a intentar sin revisar otra vez */
+ let lastBackup=null,acBusy=false,outDone=false;
++/* LHB-98: Mi Hoja se escribe con el candado compartido 'lhb_mihoja' (Web Locks) en la mano. Salir y borrar lo piden exclusivo desde la última revisión
++   hasta que Clerk cierra la sesión (wlOnly): al ver la valla, cada pestaña deja de escribir y lo suelta, y vuelve a la fila detrás de la salida.
++   Se suelta en el aviso de la valla (storage), entre una tarea y otra, nunca a mitad de una escritura: una pestaña dormida a mitad de write() tiene el candado
++   y la salida la espera, así que su cambio cambia la marca y no se borra nada. No hay reloj: una pestaña que se cierra suelta el candado sola.
++   Sin Web Locks, o si una pestaña no lo suelta en WL_WAIT, queda la valla con tiempo (LHB-34). Funciones y var: SYNC las llama antes de que corra este bloque */
++var WLS=null;const WL_WAIT=5e3;
++function wlInit(){let lm=null;try{lm=typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.request==='function'?navigator.locks:null}catch(e){}
++ WLS={lm,have:false,ask:false,free:null,mine:false};wlTake()}
++/* pide el compartido; mientras no llega, o después de soltarlo por una salida, lo que escribe la persona no se guarda (sync.js fenced) */
++function wlTake(){const w=WLS;if(!w||!w.lm||w.ask||w.have||w.mine)return;w.ask=true;
++ w.lm.request('lhb_mihoja',{mode:'shared'},()=>{w.ask=false;if(w.mine)return;w.have=true;ST=null;return new Promise(r=>{w.free=r})}).catch(()=>{w.ask=false})}
++function wlClosed(){const w=WLS;return !!(w&&w.lm)&&!w.have}
++const wlDrop=w=>{const r=w.free;w.have=false;w.free=null;ST=null;if(r)r()};
++/* otra pestaña sale: se suelta y se pide otra vez, en la fila detrás de la salida */
++function wlYield(){const w=WLS;if(!w||!w.lm||!w.have)return;wlDrop(w);wlTake()}
++/* f corre con el exclusivo; la valla se pone después de pedirlo (así las otras pestañas, al soltar, quedan en la fila detrás). Si no llega en WL_WAIT, f corre sin él */
++async function wlOnly(f){const w=WLS;if(!w||!w.lm)return f();
++ w.mine=true;wlDrop(w);
++ const ac=typeof AbortController==='function'?new AbortController():null;const t=ac?setTimeout(()=>ac.abort(),WL_WAIT):0;
++ let ran=false,out;
++ try{const p=w.lm.request('lhb_mihoja',ac?{mode:'exclusive',signal:ac.signal}:{mode:'exclusive'},async()=>{clearTimeout(t);ran=true;out=await f()});SYNC.fenceUp();await p}
++ catch(e){if(ran)throw e}
++ finally{clearTimeout(t);w.mine=false}
++ if(!ran)out=await f();
++ wlTake();return out}
++wlInit();
+ const acMsg=t=>{const el=$('#acMsg');if(el){el.textContent=t;el.hidden=!t}};
+ /* lo que queda de esta página después de salir o de borrar: el aviso para la página que abre después */
+ const bye=k=>{try{sessionStorage.setItem('lhb_bye',k)}catch(e){}};
+@@ -247,17 +273,19 @@ async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
+  try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.outFail'));return}
+   /* Codex r5: si después del borrado alguien volvió a escribir Mi Hoja (la valla ya caducó), el reintento revisa todo otra vez y las pasadas vuelven */
+   if(outDone){let back=null;try{back=localStorage.getItem(KEY)}catch(e){}if(back!==null){outDone=false;SYNC.hold(false)}}
+-  if(!outDone){const r=await SYNC.settled({backup:lastBackup});
+-   if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}
+-   if(!(await dropLocal(r.mark))){acMsg(tt('ac.pending'));return}
+-   outDone=true;bye('out')}
+-  try{await leaving(C)}catch(e){acMsg(tt('ac.outFail'))}}
++  let r=null;if(!outDone){r=await SYNC.settled({backup:lastBackup});
++   if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}}
++  /* LHB-98: del borrado hasta que Clerk termina, ninguna otra pestaña escribe Mi Hoja (el reintento con la copia ya borrada, también) */
++  await wlOnly(async()=>{
++   if(!outDone){if(!(await dropLocal(r.mark))){acMsg(tt('ac.pending'));return}
++    outDone=true;bye('out')}
++   try{await leaving(C)}catch(e){acMsg(tt('ac.outFail'))}})}
+  finally{acBusy=false}}
+ /* el pedido de borrar. 200: se borra lo de este teléfono y se cierra la sesión. La marca se quita si el servidor dice que no borró nada: confirm-mismatch
+    (el perfil sigue entero), o un 4xx o 503 de un primer pedido (had: ya había una marca de antes). Con una marca de antes, un error así puede ser pasajero
+    (Clerk no contestó, la sesión venció) y el borrado a medias sigue pendiente: la marca se queda (Codex r2) */
+ async function askDelete(C,sub,confirm,had){let r=null;try{r=await api(C,'DELETE','/api/account',{confirm},sub)}catch(e){r=null}
+- if(r&&r.status===200){delMark.clear();await dropLocal();bye('del');try{await leaving(C)}catch(e){location.assign('/')}return r}
++ if(r&&r.status===200){delMark.clear();await wlOnly(async()=>{await dropLocal();bye('del');try{await leaving(C)}catch(e){location.assign('/')}});return r}
+  if(r&&r.body&&r.body.error==='confirm-mismatch')delMark.clear();
+  else if(!had&&r&&((r.status>=400&&r.status<500)||r.status===503))delMark.clear();
+  return r}
+@@ -285,7 +313,9 @@ async function resumeDelete(){if(!delMark.get())return;let C;try{C=await clerk()
+   if(!delMark.get())SYNC.hold(false);else if(r&&r.status===502)toast(tt('ac.del.half'))})}
+ if(delMark.get())setTimeout(resumeDelete,1500);
+ /* otra pestaña salió de la cuenta o la borró (sync.js forget quita el dueño): esta suelta su Mi Hoja en memoria, para no volver a escribirla, y abre de nuevo */
+-window.addEventListener('storage',e=>{if(e.key==='lhb_mihoja_v1_owner'&&e.oldValue&&e.newValue===null){SYNC.hold(true);ST=null;STRAW=null;location.assign('/')}});
++/* LHB-98: otra pestaña está saliendo (puso la valla): esta suelta el candado de Mi Hoja */
++window.addEventListener('storage',e=>{if(e.key==='lhb_mihoja_v1_saliendo'&&e.newValue)wlYield();
++ if(e.key==='lhb_mihoja_v1_owner'&&e.oldValue&&e.newValue===null){SYNC.hold(true);ST=null;STRAW=null;location.assign('/')}});
+ function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
+ function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
+  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}
+diff --git a/site/sync.js b/site/sync.js
+index 1983d89..e937208 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -84,7 +84,9 @@ window.LHB_SYNC=function(D){
+  let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
+  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
+  /* Codex r4: un reloj que se atrasa no hace eterna la valla; uno que se adelanta en medio de la espera lo cubre forget, que la vuelve a poner antes de revisar */
+- const fenced=()=>{let t=0;try{t=parseInt(D.ls.get(FENCE),10)}catch(e){}const d=D.nowMs()-t;return t>0&&d<FENCE_TTL&&d>-FENCE_TTL};
++ /* LHB-98: con Web Locks, D.closed() dice si esta pestaña no tiene en la mano el candado compartido de Mi Hoja (hoja.js wlClosed): entonces tampoco se escribe.
++    soft: lo que la app escribe por sí sola al abrir (write quiet) no espera al candado, solo a la valla con tiempo */
++ const fenced=soft=>{if(!soft&&D.closed&&D.closed())return true;let t=0;try{t=parseInt(D.ls.get(FENCE),10)}catch(e){}const d=D.nowMs()-t;return t>0&&d<FENCE_TTL&&d>-FENCE_TTL};
+  /* Codex r6: salir la renueva mientras Clerk cierra la sesión, para que nadie escriba entre el borrado y la salida aunque Clerk tarde más que FENCE_TTL */
+  const fenceUp=()=>{try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){}};
+  const writeMeta=m=>{if(fenced())return false;try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
+diff --git a/test/site.test.js b/test/site.test.js
+index 839f3ea..6df5b7a 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -3012,7 +3012,8 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
+  const h=read('hoja.js').replace(/\r\n/g,'\n'),ix=read('index.html'),sw=read('sw.js');
+  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
+  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
+- assert.ok(/function write\(s,quiet\)\{if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
++ /* LHB-98: la valla mira también el candado de Mi Hoja, salvo en lo que la app escribe sola (quiet) */
++ assert.ok(/function write\(s,quiet\)\{if\(SYNC&&SYNC\.fenced\(quiet\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(quiet\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
+  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
+  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
+  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else pfOwnSync()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
+@@ -4141,8 +4142,11 @@ function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').
+   api:async(Cx,method,path,body,uid)=>{log.push([method,path,JSON.stringify(body),uid]);log.push('pasada '+JSON.stringify(await dev.eng.run('durante')));if(o.api)return o.api(body);return {status:200,body:{ok:true}}},
+   sessionStorage:{getItem:k=>ss.has(k)?ss.get(k):null,setItem:(k,v)=>ss.set(k,String(v)),removeItem:k=>ss.delete(k)},location:{assign:u=>log.push('assign '+u)},setTimeout:()=>0,
+   setInterval:(f,ms)=>{const t={f,ms,live:true};ivs.push(t);return t},clearInterval:t=>{if(t)t.live=false},
++  /* LHB-98: o.locks, los Web Locks de mentira (LOCKS98) que comparte con otra pestaña (TAB98) */
++  clearTimeout:()=>{},AbortController,...(o.locks?{navigator:{locks:o.locks}}:{}),
+   window:{addEventListener:(t,f)=>listeners.push([t,f])}};const listeners=[];
+- vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW="x";'+src.slice(i,j)+';this.X={salir,borrar,resumeDelete,accountPanel,bindAccount,setBackup:v=>{lastBackup=v},st:()=>ST}',ctx);
++ vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW="x";'+src.slice(i,j)+';this.X={salir,borrar,resumeDelete,accountPanel,bindAccount,setBackup:v=>{lastBackup=v},st:()=>ST,wlClosed:typeof wlClosed==="function"?wlClosed:null}',ctx);
++ if(ctx.X.wlClosed)dev.D.closed=()=>ctx.X.wlClosed();
+  return {X:ctx.X,els,log,toasts,ss,C,listeners,ivs,outs:()=>log.filter(x=>typeof x==='string'&&/^(signOut|assign|acct|intent)/.test(x))}}
+ const DOC34=()=>({schema:1,creado:'2026-10-01T00:00:00.000Z',humidor:[{id:'h1',marca:'Don Rey',actualizado:'2026-10-02'}],diario:[],pasaporte:{},favs:{},ratings:{}});
+ const KEYS34=['lhb_mihoja_v1','lhb_mihoja_v1_sync','lhb_mihoja_v1_owner','lhb_mihoja_v1_seq'];
+@@ -6001,3 +6005,141 @@ test('LHB-102: unas subidas guardadas rotas ({} , un texto, null, una lista con
+  const c=HOJA38({ls:{vb_uploads:JSON.stringify([{id:'u1',nombre:'Mía'}])}});c.API.importar({__text:JSON.stringify({...file,extra:{subidas:[{id:'u9',nombre:'Del respaldo'}]}})});
+  assert.deepEqual(JSON.parse(c.ls.get('vb_uploads')).map(x=>x.id).sort(),['u1','u9'],'con una lista buena, junta las dos como antes');
+ });
++
++/* ===================== LHB-98: Mi Hoja se escribe con el candado de Web Locks en la mano; salir lo tiene exclusivo ===================== */
++/* Web Locks de mentira: por nombre, compartido con compartido, exclusivo solo; la fila es en orden (un compartido detrás de un exclusivo espera).
++   held y queue son los de 'lhb_mihoja'; onBlocked: alguien quedó esperando en esa fila detrás de lo que está en la mano */
++function LOCKS98(){const names=new Map();const of=n=>{if(!names.has(n))names.set(n,{held:[],queue:[]});return names.get(n)};
++ const M=of('lhb_mihoja');const L={held:M.held,queue:M.queue,onBlocked:null,grants:[]};
++ const can=(x,r)=>r.mode==='shared'?!x.held.some(h=>h.mode==='exclusive'):x.held.length===0;
++ const pump=x=>{while(x.queue.length&&can(x,x.queue[0])){const r=x.queue.shift();x.held.push(r);if(x===M)L.grants.push(r.mode);
++   Promise.resolve().then(()=>r.cb({name:r.name,mode:r.mode})).then(v=>{rel(x,r);r.res(v)},e=>{rel(x,r);r.rej(e)})}
++  if(x===M&&x.queue.length&&L.onBlocked)L.onBlocked(x.queue[0])};
++ const rel=(x,r)=>{const i=x.held.indexOf(r);if(i>=0)x.held.splice(i,1);pump(x)};
++ L.request=(name,o,cb)=>{if(typeof o==='function'){cb=o;o={}}const x=of(name);return new Promise((res,rej)=>{const r={name,mode:o.mode||'exclusive',cb,res,rej};
++  if(o.signal)o.signal.addEventListener('abort',()=>{const i=x.queue.indexOf(r);if(i>=0){x.queue.splice(i,1);const e=new Error('aborted');e.name='AbortError';rej(e);pump(x)}});
++  x.queue.push(r);pump(x)})};
++ return L}
++/* otra pestaña de Mi Hoja: write() de hoja.js con su propio candado (el bloque LHB-98) y su propio motor sobre el mismo almacenamiento.
++   Los avisos storage de la valla le llegan como una tarea aparte; o.suspend: la pestaña está dormida y los avisos esperan hasta resume() */
++function TAB98(dev,locks,o){o=o||{};const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
++ const wline=src.match(/^function write\(s,quiet\)\{.*$/m)[0];
++ const i=src.indexOf('var WLS=null'),j=src.indexOf('\nwlInit();',i);const gate=i>=0&&j>i?src.slice(i,j)+'\nwlInit();\n':'';
++ const lst=(src.match(/^window\.addEventListener\('storage',e=>\{if\(e\.key==='lhb_mihoja_v1_saliendo'[\s\S]*?\}\}\);$/m)||[''])[0];
++ const toasts=[],listeners=[];let eng=null;
++ const ctx={...TT(),KEY:'lhb_mihoja_v1',PEND:[],toast:m=>toasts.push(m),navigator:{locks},AbortController,setTimeout:()=>0,clearTimeout:()=>{},location:{assign:()=>{}},
++  localStorage:{getItem:k=>dev.ls.has(k)?dev.ls.get(k):null,setItem:(k,v)=>dev.ls.set(k,String(v))},window:{addEventListener:(t,f)=>listeners.push([t,f])}};
++ eng=SYNC28().LHB_SYNC({...dev.D,closed:()=>!!ctx.X.wlClosed&&ctx.X.wlClosed()});ctx.SYNC=eng;
++ vm.createContext(ctx);vm.runInContext('let ST=null,STRAW=null;'+wline+';'+gate+lst+';this.X={write,wlClosed:typeof wlClosed==="function"?wlClosed:null}',ctx);
++ let asleep=!!o.suspend;const waiting=[];
++ const deliver=e=>{for(const [t,f] of listeners)if(t==='storage')f(e)};
++ /* la otra pestaña escribe la valla: el aviso le llega a esta como una tarea, o espera si está dormida */
++ const tell=e=>{if(asleep)waiting.push(e);else setImmediate(()=>deliver(e))};
++ return {X:ctx.X,toasts,eng,tell,resume:()=>{if(!asleep)return false;asleep=false;for(const e of waiting.splice(0))deliver(e);return true}}}
++/* la valla que pone la pestaña que sale le llega a la otra como un aviso storage */
++const FENCE98=(dev,tab)=>{const set=dev.D.ls.set;dev.D.ls.set=(k,v)=>{set(k,v);if(k==='lhb_mihoja_v1_saliendo')tab.tell({key:k,newValue:String(v)})}};
++const tick98=async(n)=>{for(let i=0;i<(n||30);i++)await new Promise(r=>setImmediate(r))};
++test('LHB-98 (reproducción 2): la salida reintentada con la copia ya borrada y Clerk tardando: aunque el reloj salte 11 s, otra pestaña que abre Mi Hoja no escribe nada que se quede',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  const L=LOCKS98();let done=null;
++  /* 1. la primera salida falla en Clerk, y su valla caduca */
++  const h=ACCT34(dev,{locks:L,signOutFails:1,signOutWait:async()=>{if(done)await new Promise(r=>{done.go=r})}});
++  await tick98();await h.X.salir();await tick98();
++  for(const k of KEYS34)assert.ok(!dev.ls.has(k),'la copia ya se borró: '+k);assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
++  dev.st.clock+=10001;assert.equal(dev.eng.fenced(true),false,'la valla caducó');
++  /* 2. se reintenta y Clerk tarda */
++  done={};const p=h.X.salir();await tick98();assert.ok(done.go,'Clerk está cerrando la sesión');
++  /* 3. el reloj salta 11 s antes de que la valla se renueve */
++  dev.st.clock+=11000;
++  /* 4. otra pestaña abre Mi Hoja y escribe una entrada */
++  const B=TAB98(dev,L);FENCE98(dev,B);await tick98();
++  const d=DOC34();d.humidor.push({id:'otra',marca:'Escrita en la otra pestaña',actualizado:'2026-10-29'});
++  const wrote=B.X.write(d);
++  /* 5. Clerk termina */
++  done.go();await p;await tick98();
++  assert.ok(h.log.includes('assign /'),'la sesión se cerró');
++  assert.equal(wrote,false,'la otra pestaña no pudo escribir');
++  assert.ok(!dev.ls.has('lhb_mihoja_v1'),'y en este teléfono no quedó nada');
++  assert.deepEqual(B.toasts,['Se está saliendo de la cuenta en este teléfono. Espera unos segundos e intenta otra vez.']);
++ }finally{a.done()}});
++test('LHB-98 (reproducción 1): una pestaña dormida a mitad de una escritura cuando otra sale: la salida la espera, su cambio cambia la marca, no se borra nada ni se cierra la sesión',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  const L=LOCKS98();
++  /* la otra pestaña tiene el candado y se queda dormida justo después de revisar la valla, antes de guardar */
++  const B=TAB98(dev,L,{suspend:true});FENCE98(dev,B);await tick98();
++  const late=DOC34();late.humidor.push({id:'tarde',marca:'Guardada al despertar',actualizado:'2026-10-29'});
++  /* se despierta cuando la salida la espera (Web Locks) o, sin candado, cuando la salida ya cerró la sesión: termina de guardar y luego lee sus avisos */
++  const wake=()=>{if(B.resume===undefined)return;const w=B.resume;B.resume=undefined;dev.ls.set('lhb_mihoja_v1',JSON.stringify(late));w()};
++  L.onBlocked=r=>{if(r.mode==='exclusive')wake()};
++  const h=ACCT34(dev,{locks:L,signOutWait:async()=>{wake()}});await tick98();
++  await h.X.salir();await tick98();
++  assert.ok(hid28(dev.doc()).includes('tarde'),'el cambio de la pestaña dormida está en el teléfono');
++  assert.deepEqual(h.outs(),[],'y la sesión no se cerró con él dentro');
++  assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');
++ }finally{a.done()}});
++test('LHB-98: sin el candado compartido en la mano, lo que escribe la persona no se guarda (ni la meta, el contador o la dueña del motor); lo que la app escribe sola al abrir, sí',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  const L=LOCKS98();
++  /* alguien tiene el exclusivo (una salida): la pestaña nueva pide el compartido y espera */
++  let free=null;L.request('lhb_mihoja',{mode:'exclusive'},()=>new Promise(r=>{free=r}));await tick98();
++  const B=TAB98(dev,L);await tick98();assert.equal(B.X.wlClosed(),true,'sin el compartido');
++  const before=KEYS34.map(k=>dev.ls.get(k));
++  const d=DOC34();d.humidor.push({id:'x1',marca:'No va',actualizado:'2026-10-29'});
++  assert.equal(B.X.write(d),false,'la persona no escribe');assert.deepEqual(KEYS34.map(k=>dev.ls.get(k)),before,'nada cambió');
++  B.eng.changed(null);assert.deepEqual(KEYS34.map(k=>dev.ls.get(k)),before,'ni el contador ni la meta del motor');
++  /* sin dueña anotada (ni la llave ni la meta) */
++  dev.ls.delete('lhb_mihoja_v1_owner');dev.ls.delete('lhb_mihoja_v1_sync');assert.equal(B.eng.ensureOwner(),false,'ni la dueña');assert.ok(!dev.ls.has('lhb_mihoja_v1_owner'));
++  dev.ls.set('lhb_mihoja_v1_owner',before[2]);dev.ls.set('lhb_mihoja_v1_sync',before[1]);
++  assert.equal(B.X.write(d,true),true,'lo que la app escribe sola sí (no espera al candado, solo a la valla con tiempo)');
++  /* se suelta el exclusivo: llega el compartido y se escribe */
++  dev.seed(DOC34());free();await tick98();assert.equal(B.X.wlClosed(),false);
++  assert.equal(B.X.write(d),true);assert.ok(hid28(dev.doc()).includes('x1'));
++ }finally{a.done()}});
++test('LHB-98: al ver la valla de otra pestaña, esta suelta el compartido y vuelve a la fila detrás de la salida; cuando la salida termina lo tiene otra vez',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  const L=LOCKS98();const B=TAB98(dev,L);await tick98();assert.equal(B.X.wlClosed(),false,'tiene el compartido');assert.deepEqual(L.held.map(h=>h.mode),['shared']);
++  /* la salida pide el exclusivo: espera a B */
++  let inside=false,free=null;const p=L.request('lhb_mihoja',{mode:'exclusive'},()=>{inside=true;return new Promise(r=>{free=r})});await tick98();assert.equal(inside,false,'la salida espera');
++  /* la valla: B suelta y pide otra vez */
++  B.tell({key:'lhb_mihoja_v1_saliendo',newValue:'1'});await tick98();
++  assert.equal(inside,true,'la salida tiene el exclusivo');assert.equal(B.X.wlClosed(),true,'B no escribe');assert.deepEqual(L.queue.map(q=>q.mode),['shared'],'B está en la fila');
++  /* una valla que no es nueva (vacía) no cambia nada */
++  B.tell({key:'lhb_mihoja_v1_saliendo',newValue:null});await tick98();assert.deepEqual(L.queue.map(q=>q.mode),['shared']);
++  free();await p;await tick98();assert.equal(B.X.wlClosed(),false,'terminó la salida: B lo tiene otra vez');
++ }finally{a.done()}});
++test('LHB-98: salir pide el exclusivo antes de poner la valla y lo tiene hasta que Clerk termina; si otra pestaña no lo suelta en WL_WAIT sale con la valla con tiempo; si Clerk falla, la página vuelve a tener el compartido',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  const L=LOCKS98();const modes=[];let pend=null;
++  const h=ACCT34(dev,{locks:L,signOutFails:1,signOutWait:async()=>{modes.push(L.held.map(x=>x.mode).join());if(pend)await pend}});await tick98();
++  assert.deepEqual(L.held.map(x=>x.mode),['shared'],'la página tiene el compartido');
++  /* la valla se pone después de pedir el exclusivo */
++  const set=dev.D.ls.set;const order=[];dev.D.ls.set=(k,v)=>{if(k==='lhb_mihoja_v1_saliendo')order.push('valla:'+L.queue.concat(L.held).map(x=>x.mode).join());set(k,v)};
++  await h.X.salir();await tick98();dev.D.ls.set=set;
++  assert.ok(/^valla:.*exclusive/.test(order[0]),'la valla sale con el exclusivo ya pedido: '+order[0]);
++  assert.deepEqual(modes,['exclusive'],'Clerk cierra la sesión con el exclusivo en la mano');
++  assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
++  assert.deepEqual(L.held.map(x=>x.mode),['shared'],'Clerk falló: la página tiene otra vez el compartido');
++  /* otra pestaña dormida que nunca suelta su compartido: a los WL_WAIT se sale sin el exclusivo */
++  const dev2=DEV28(a,'user_a');dev2.seed(DOC34());await dev2.sync();const L2=LOCKS98();
++  L2.request('lhb_mihoja',{mode:'shared'},()=>new Promise(()=>{}));await tick98();
++  const h2=ACCT34(dev2,{locks:L2});
++  const src=read('hoja.js');assert.match(src,/const WL_WAIT=5e3;/,'WL_WAIT es de 5 s');
++  /* la espera: el setTimeout de la prueba no corre solo; se aborta a mano el pedido que quedó en la fila */
++  const pr=h2.X.salir();for(let i=0;i<200&&!L2.queue.some(x=>x.mode==='exclusive');i++)await tick98(5);assert.ok(!h2.log.includes('assign /'),'espera a la otra pestaña');
++  const q=L2.queue.find(x=>x.mode==='exclusive');assert.ok(q,'el exclusivo está en la fila');
++  L2.queue.splice(L2.queue.indexOf(q),1);const e=new Error('aborted');e.name='AbortError';q.rej(e);
++  await pr;await tick98();assert.ok(h2.log.includes('assign /'),'salió con la valla con tiempo');for(const k of KEYS34)assert.ok(!dev2.ls.has(k),'borrado '+k);
++ }finally{a.done()}});
++test('LHB-98: borrar la cuenta también borra este teléfono y cierra la sesión con el exclusivo en la mano',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  const L=LOCKS98();const modes=[];
++  const h=ACCT34(dev,{locks:L,signOutWait:async()=>{modes.push(L.held.map(x=>x.mode).join())}});await tick98();
++  await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');await tick98();
++  assert.deepEqual(modes,['exclusive']);for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
++ }finally{a.done()}});
+
+2026-10-29T15:56:25.139749Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T15:56:27.055569Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The five-second fallback and quiet-write exception weaken the claimed full exclusion. I’ll check whether either permits the residuals to recur, using only this repository and the supplied review contract.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\Users\Owner\lhb-98-wt
+2026-10-29T15:56:32.702424Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All six LHB-98 tests pass. The timeout test checks that sign-out proceeds without the exclusive lock, but never resumes the blocked writer afterward. I’m checking that case and the real `load()` quiet-write path; the quiet-write test calls `write(d,true)` directly.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The full suite returned 339 passes, 5 failures and 1 skip here, so I cannot confirm the supplied 344-pass result. The failures are outside LHB-98 and include a denied temporary-directory write. I’m running targeted reproductions in memory without changing files.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Two targeted reproductions retained data after completed sign-out: resuming the delayed write after the timeout fallback, and calling real `load()` during an exclusive sign-out after an 11-second clock jump. The second restored a legacy favorite while the new tab’s shared request was still pending.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Full cross-tab exclusion is not achieved, even with Web Locks present. Two blocking findings remain.
+
+1. **[Certain] P1, BLOCKING: timeout fallback restores both original residuals.**  
+   File/symbol: [site/hoja.js:230](C:/Users/Owner/lhb-98-wt/site/hoja.js:230), `wlOnly`.
+
+   Claim: exclusion lasts through Clerk sign-out. Artifact: after aborting the exclusive request, `if(!ran)out=await f();` performs deletion and sign-out without it.
+
+   Concrete failing scenario:
+
+   - An existing tab retains its shared lock while frozen.
+   - `WL_WAIT` expires; the signer aborts its exclusive request and clears local data.
+   - Clerk remains pending. Advance the clock 11 seconds before renewal.
+   - A new tab obtains a shared lock and calls the real `write(d)`.
+   - Complete Clerk sign-out.
+
+   The in-memory reproduction returned `wrote:true`, completed sign-out, and retained `actual_write_after_timeout` locally. A separate schedule also retained the suspended writer’s late edit after `forget`’s final check.
+
+   This follows the documented fallback, so it is a **design-contract conflict**, not an accidental deviation. Preserving full exclusion requires failing or postponing sign-out when the exclusive cannot be acquired, rather than proceeding with the timestamp fence.
+
+2. **[Certain] P1, BLOCKING: quiet migration writes bypass an exclusive sign-out.**  
+   Files/symbols: [site/sync.js:89](C:/Users/Owner/lhb-98-wt/site/sync.js:89), `fenced`; [site/hoja.js:40](C:/Users/Owner/lhb-98-wt/site/hoja.js:40), `load` and `write`.
+
+   Claim: startup writes are harmless without the shared lock. Artifacts: `if(!soft&&D.closed&&D.closed())return true` skips the lock gate for quiet writes; `load()` imports `vb_favs` and `vb_ratings`, then calls `write(s,true)`.
+
+   Concrete failing scenario:
+
+   - Seed legacy favorite data and start sign-out.
+   - After local deletion, keep Clerk pending while the signer holds the exclusive.
+   - Advance the clock 11 seconds.
+   - Open another tab whose shared request queues behind the exclusive, then call its real `load()`.
+   - Complete sign-out.
+
+   The reproduction confirmed the new tab lacked its shared lock, yet `load()` restored `legacy_private_favorite` into Mi Hoja. Sign-out completed with that favorite retained and no owner key. Defer migration persistence until the shared lock is held; returning an in-memory document does not require bypassing exclusion.
+
+[Likely] The inspected lock ordering has no inherent cycle: the sync pass does not await `lhb_mihoja`, the signer drops its shared lock before requesting exclusive, and yielding does not await the sync pass. Lifetime lock holding remains a cost: no lifecycle release is implemented. Native-browser freezing and BFCache behavior are **NOT VERIFIED**; a non-yielding holder already reaches finding 1.
+
+[Certain] Validation: all 45 related LHB-98/LHB-34/LHB-28 tests passed. The full suite returned **339 pass, 5 fail, 1 skip** here; failures involved Python-dependent checks and denied temporary-directory creation. The targeted reproductions used repository helpers in memory, with timeout rejection injected as in the existing test. Native-browser reproduction and the supplied mutation results were not independently executed. No files were edited.
+
+VERDICT: BLOCK
+tokens used
+80,671
+[Certain] Full cross-tab exclusion is not achieved, even with Web Locks present. Two blocking findings remain.
+
+1. **[Certain] P1, BLOCKING: timeout fallback restores both original residuals.**  
+   File/symbol: [site/hoja.js:230](C:/Users/Owner/lhb-98-wt/site/hoja.js:230), `wlOnly`.
+
+   Claim: exclusion lasts through Clerk sign-out. Artifact: after aborting the exclusive request, `if(!ran)out=await f();` performs deletion and sign-out without it.
+
+   Concrete failing scenario:
+
+   - An existing tab retains its shared lock while frozen.
+   - `WL_WAIT` expires; the signer aborts its exclusive request and clears local data.
+   - Clerk remains pending. Advance the clock 11 seconds before renewal.
+   - A new tab obtains a shared lock and calls the real `write(d)`.
+   - Complete Clerk sign-out.
+
+   The in-memory reproduction returned `wrote:true`, completed sign-out, and retained `actual_write_after_timeout` locally. A separate schedule also retained the suspended writer’s late edit after `forget`’s final check.
+
+   This follows the documented fallback, so it is a **design-contract conflict**, not an accidental deviation. Preserving full exclusion requires failing or postponing sign-out when the exclusive cannot be acquired, rather than proceeding with the timestamp fence.
+
+2. **[Certain] P1, BLOCKING: quiet migration writes bypass an exclusive sign-out.**  
+   Files/symbols: [site/sync.js:89](C:/Users/Owner/lhb-98-wt/site/sync.js:89), `fenced`; [site/hoja.js:40](C:/Users/Owner/lhb-98-wt/site/hoja.js:40), `load` and `write`.
+
+   Claim: startup writes are harmless without the shared lock. Artifacts: `if(!soft&&D.closed&&D.closed())return true` skips the lock gate for quiet writes; `load()` imports `vb_favs` and `vb_ratings`, then calls `write(s,true)`.
+
+   Concrete failing scenario:
+
+   - Seed legacy favorite data and start sign-out.
+   - After local deletion, keep Clerk pending while the signer holds the exclusive.
+   - Advance the clock 11 seconds.
+   - Open another tab whose shared request queues behind the exclusive, then call its real `load()`.
+   - Complete sign-out.
+
+   The reproduction confirmed the new tab lacked its shared lock, yet `load()` restored `legacy_private_favorite` into Mi Hoja. Sign-out completed with that favorite retained and no owner key. Defer migration persistence until the shared lock is held; returning an in-memory document does not require bypassing exclusion.
+
+[Likely] The inspected lock ordering has no inherent cycle: the sync pass does not await `lhb_mihoja`, the signer drops its shared lock before requesting exclusive, and yielding does not await the sync pass. Lifetime lock holding remains a cost: no lifecycle release is implemented. Native-browser freezing and BFCache behavior are **NOT VERIFIED**; a non-yielding holder already reaches finding 1.
+
+[Certain] Validation: all 45 related LHB-98/LHB-34/LHB-28 tests passed. The full suite returned **339 pass, 5 fail, 1 skip** here; failures involved Python-dependent checks and denied temporary-directory creation. The targeted reproductions used repository helpers in memory, with timeout rejection injected as in the existing test. Native-browser reproduction and the supplied mutation results were not independently executed. No files were edited.
+
+VERDICT: BLOCK

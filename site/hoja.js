@@ -51,8 +51,9 @@ let SYNC=null;
 /* LHB-39 (Codex ronda 1): el campo de la búsqueda del diario que tenía el foco cuando llegó una sincronización, y de qué cuenta; la página del diario lo usa una vez.
    Codex ronda 2: irse a otra página lo borra, y con otra cuenta no vale */
 let DFOC=null;window.addEventListener('hashchange',()=>{DFOC=null});
-/* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
-function write(s,quiet){if(SYNC&&SYNC.fenced(quiet)){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced(quiet)){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
+/* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona.
+   LHB-98 (Codex r1): sin el candado compartido en la mano (wlClosed) tampoco se guarda: se queda en memoria, y al llegar el candado (wlTake suelta ST) se lee y se escribe otra vez */
+function write(s,quiet){if(quiet&&typeof wlClosed==='function'&&wlClosed())return true;if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
 /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
 /* LHB-101: si el navegador bloquea leer el almacenamiento, Mi Hoja vacía; nunca un error dentro de una pintura (un catálogo en blanco) */
 const S=()=>{try{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST}catch(e){ST=null;return DEF()}};
@@ -226,15 +227,17 @@ function wlClosed(){const w=WLS;return !!(w&&w.lm)&&!w.have}
 const wlDrop=w=>{const r=w.free;w.have=false;w.free=null;ST=null;if(r)r()};
 /* otra pestaña sale: se suelta y se pide otra vez, en la fila detrás de la salida */
 function wlYield(){const w=WLS;if(!w||!w.lm||!w.have)return;wlDrop(w);wlTake()}
-/* f corre con el exclusivo; la valla se pone después de pedirlo (así las otras pestañas, al soltar, quedan en la fila detrás). Si no llega en WL_WAIT, f corre sin él */
-async function wlOnly(f){const w=WLS;if(!w||!w.lm)return f();
+/* f corre con el exclusivo; la valla se pone después de pedirlo (así las otras pestañas, al soltar, quedan en la fila detrás).
+   Codex r1: sin el exclusivo f no corre. Si otra pestaña no lo suelta en WL_WAIT: sin onWait se deja de pedir y devuelve WL_NO (salir no sale ni borra nada);
+   con onWait (la cuenta ya se borró en el servidor) se avisa y se sigue esperando */
+const WL_NO={};
+async function wlOnly(f,onWait){const w=WLS;if(!w||!w.lm)return f();
  w.mine=true;wlDrop(w);
- const ac=typeof AbortController==='function'?new AbortController():null;const t=ac?setTimeout(()=>ac.abort(),WL_WAIT):0;
- let ran=false,out;
+ const ac=!onWait&&typeof AbortController==='function'?new AbortController():null;const t=setTimeout(()=>{if(ac)ac.abort();else if(onWait)onWait()},WL_WAIT);
+ let ran=false,out=WL_NO;
  try{const p=w.lm.request('lhb_mihoja',ac?{mode:'exclusive',signal:ac.signal}:{mode:'exclusive'},async()=>{clearTimeout(t);ran=true;out=await f()});SYNC.fenceUp();await p}
  catch(e){if(ran)throw e}
  finally{clearTimeout(t);w.mine=false}
- if(!ran)out=await f();
  wlTake();return out}
 wlInit();
 const acMsg=t=>{const el=$('#acMsg');if(el){el.textContent=t;el.hidden=!t}};
@@ -276,16 +279,17 @@ async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
   let r=null;if(!outDone){r=await SYNC.settled({backup:lastBackup});
    if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}}
   /* LHB-98: del borrado hasta que Clerk termina, ninguna otra pestaña escribe Mi Hoja (el reintento con la copia ya borrada, también) */
-  await wlOnly(async()=>{
+  const ok=await wlOnly(async()=>{
    if(!outDone){if(!(await dropLocal(r.mark))){acMsg(tt('ac.pending'));return}
     outDone=true;bye('out')}
-   try{await leaving(C)}catch(e){acMsg(tt('ac.outFail'))}})}
+   try{await leaving(C)}catch(e){acMsg(tt('ac.outFail'))}});
+  if(ok===WL_NO)acMsg(tt('ac.wlBusy'))}
  finally{acBusy=false}}
 /* el pedido de borrar. 200: se borra lo de este teléfono y se cierra la sesión. La marca se quita si el servidor dice que no borró nada: confirm-mismatch
    (el perfil sigue entero), o un 4xx o 503 de un primer pedido (had: ya había una marca de antes). Con una marca de antes, un error así puede ser pasajero
    (Clerk no contestó, la sesión venció) y el borrado a medias sigue pendiente: la marca se queda (Codex r2) */
 async function askDelete(C,sub,confirm,had){let r=null;try{r=await api(C,'DELETE','/api/account',{confirm},sub)}catch(e){r=null}
- if(r&&r.status===200){delMark.clear();await wlOnly(async()=>{await dropLocal();bye('del');try{await leaving(C)}catch(e){location.assign('/')}});return r}
+ if(r&&r.status===200){delMark.clear();await wlOnly(async()=>{await dropLocal();bye('del');try{await leaving(C)}catch(e){location.assign('/')}},()=>{const m=tt('ac.wlWait');if($('#acMsg'))acMsg(m);else toast(m)});return r}
  if(r&&r.body&&r.body.error==='confirm-mismatch')delMark.clear();
  else if(!had&&r&&((r.status>=400&&r.status<500)||r.status===503))delMark.clear();
  return r}
