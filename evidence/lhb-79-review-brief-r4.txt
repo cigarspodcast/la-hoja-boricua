@@ -1,0 +1,13 @@
+You are reviewing one ticket in this repository (La Hoja Boricua). Review only; do not edit files. Do not load or run any skills. Do NOT make any network call; do NOT run tools/ai_proof.py or tools/ai_leakcheck.py as scripts (the first makes paid calls, both read the real keys). Importing them is safe. The worktree is C:/Users/Owner/lhb-79-wt (branch lhb-79-ai-routes, from main f1ea0d0). TIER 2, round 4.
+
+Round 3 (evidence/lhb-79-review-r3.txt) returned BLOCK with two scanner completeness findings and concurred with the other round 2 fixes. The diff below is the fix commit against its parent:
+1. Merge-written content: added_text now lists history with git log -m --raw, so a merge is listed against each parent and a file the merge itself wrote (a resolved conflict) is read. Test: a conflict resolved with text neither side had, then deleted in a later commit.
+2. Missing objects: a new blobs() reads git cat-file --batch output record by record and checks each record's sha, type (blob) and byte count, the trailing newline, and that nothing extra came back; a "missing" answer, another type, or a short read exits 3 instead of being searched as content. Tests: a sha that does not exist exits 3; a binary blob reads back byte for byte.
+
+Evidence: evidence/lhb-79/unit.txt 16 tests OK; evidence/lhb-79/mutations.out 21 of 21 red (round 3 adds: merges not listed, missing object searched as content); evidence/lhb-79/leakcheck.txt on this commit: not found for all three keys.
+
+Check that both are fully fixed and whether the record parser can be fooled (for example a blob whose content contains a line that looks like a record header, an empty blob, or a sha listed twice).
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

@@ -1,0 +1,15 @@
+You are reviewing one ticket in this repository (La Hoja Boricua). Review only; do not edit files. Do not load or run any skills. Do NOT make any network call and do NOT run tools/ai_proof.py as a script (it makes paid calls with real keys). tools/ai_leakcheck.py makes no call but reads the real keys; do not run it either. Importing either module is safe. The worktree is C:/Users/Owner/lhb-79-wt (branch lhb-79-ai-routes, from main f1ea0d0). TIER 2, round 3.
+
+Round 2 (evidence/lhb-79-review-r2.txt) returned BLOCK: it concurred with round 1 fixes 1, 2, 3, 4 and 7, and kept three open. The diff below is the fix commit 2a818f5 against its parent. What each became:
+1. Leak scan missed a content line starting with ++ and binary files. added_text no longer parses diffs: it lists every file version each commit since BASE wrote (git log --raw --no-abbrev --no-renames, skipping deletions and submodules) and reads each blob whole with git cat-file --batch, text or binary; then it reads whole every file the working tree changed (git diff --name-only -z HEAD), every untracked file, and the call log. Any git failure exits 3. Test covers a ++ line and a binary file committed and then deleted.
+2. A rejected Together case was copied into the log: the status is now the fixed text "refused: not a fallback case". Test passes the fake key as the case.
+3. A RecursionError from json.dumps escaped: serialization now catches any exception and refuses with one log line. Test nests 50000 deep (Python 3.14's C encoder passes 1100 and raises by 20000).
+Also: the redirect test's servers now read the request body and send Content-Length (a Windows connection reset made it flaky: 8 of 8 runs pass now); tools/ai_leakcheck.py runs the leak check alone, with no AI call.
+
+Evidence: evidence/lhb-79/unit.txt 14 tests OK; evidence/lhb-79/mutations.out 19 of 19 red (round 2 adds four: history blobs not read, worktree changes not read, rejected case logged, only TypeError and ValueError refused); evidence/lhb-79/leakcheck.txt on 2a818f5: not found for all three keys, exit 0. The last live proof (evidence/lhb-79/proof.txt, 14:27Z on 12f8440) is unchanged: this round changes no code a successful call runs through.
+
+Check whether these three are fully fixed and whether the new scanner has a false-negative path (for example: a rename, a mode-only change, a merge commit, a file git treats as a submodule, a blob larger than memory, or cat-file output for a missing object).
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

@@ -1,0 +1,109 @@
+You are reviewing one ticket in this repository (La Hoja Boricua). Review only; do not edit files. Do not load or run any skills. Do NOT make any network call; do NOT run tools/ai_proof.py or tools/ai_leakcheck.py as scripts (the first makes paid calls, both read the real keys). Importing them is safe. The worktree is C:/Users/Owner/lhb-79-wt (branch lhb-79-ai-routes, from main f1ea0d0). TIER 2, round 4.
+
+Round 3 (evidence/lhb-79-review-r3.txt) returned BLOCK with two scanner completeness findings and concurred with the other round 2 fixes. The diff below is the fix commit against its parent:
+1. Merge-written content: added_text now lists history with git log -m --raw, so a merge is listed against each parent and a file the merge itself wrote (a resolved conflict) is read. Test: a conflict resolved with text neither side had, then deleted in a later commit.
+2. Missing objects: a new blobs() reads git cat-file --batch output record by record and checks each record's sha, type (blob) and byte count, the trailing newline, and that nothing extra came back; a "missing" answer, another type, or a short read exits 3 instead of being searched as content. Tests: a sha that does not exist exits 3; a binary blob reads back byte for byte.
+
+Evidence: evidence/lhb-79/unit.txt 16 tests OK; evidence/lhb-79/mutations.out 21 of 21 red (round 3 adds: merges not listed, missing object searched as content); evidence/lhb-79/leakcheck.txt on this commit: not found for all three keys.
+
+Check that both are fully fixed and whether the record parser can be fooled (for example a blob whose content contains a line that looks like a record header, an empty blob, or a sha listed twice).
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff f751280~1 f751280 -- tools =====
+diff --git a/tools/ai_proof.py b/tools/ai_proof.py
+index 34dbe13..ad8c6da 100644
+--- a/tools/ai_proof.py
++++ b/tools/ai_proof.py
+@@ -40,16 +40,43 @@ def git(*args, stdin=None):
+     return r.stdout
+ 
+ 
++def fail(why):
++    print('leak check FAILED: %s; nothing is reported clean' % why)
++    sys.exit(3)
++
++
++def blobs(shas):
++    """each blob's whole content, read with git cat-file --batch. Every record is checked (Codex ronda 3): a sha git answers
++    "missing", a record of another kind or a short read fails the check instead of being searched as if it were the content"""
++    out = git('cat-file', '--batch', stdin=('\n'.join(shas) + '\n').encode())
++    texts, i = [], 0
++    for sha in shas:
++        j = out.find(b'\n', i)
++        head = out[i:j].split() if j >= 0 else []
++        if len(head) != 3 or head[0].decode('ascii', 'replace') != sha or head[1] != b'blob' or not head[2].isdigit():
++            fail('git could not read object %s (%s)' % (sha, b' '.join(head[1:]).decode('ascii', 'replace') or 'no answer'))
++        n = int(head[2])
++        body = out[j + 1:j + 1 + n]
++        if len(body) != n or out[j + 1 + n:j + 2 + n] != b'\n':
++            fail('object %s was cut short' % sha)
++        texts.append(body.decode('utf-8', 'replace'))
++        i = j + 2 + n
++    if i != len(out):
++        fail('git answered more than was asked')
++    return texts
++
++
+ def added_text(base):
+     """everything the branch adds, as one text: each file version written by a commit since BASE, read whole from git, and each
+     file the working tree changed or added, plus the call log, read whole from disk"""
+     parts = []
+     # one line per file each commit wrote: ":oldmode newmode oldsha newsha status<TAB>path"; a deletion's new sha is all zeros,
+-    # and a submodule (mode 160000) is a commit, not a file
+-    raw = git('log', '--raw', '--no-abbrev', '--no-renames', '--format=', base + '..HEAD').decode('utf-8', 'replace')
++    # and a submodule (mode 160000) is a commit, not a file. -m lists a merge against each parent (Codex ronda 3), so a file the
++    # merge itself wrote (a resolved conflict) is read too
++    raw = git('log', '-m', '--raw', '--no-abbrev', '--no-renames', '--format=', base + '..HEAD').decode('utf-8', 'replace')
+     shas = sorted({f[3] for f in (l.split('\t')[0].split() for l in raw.splitlines() if l.startswith(':')) if len(f) >= 4 and f[1] != '160000' and set(f[3]) != {'0'}})
+     if shas:
+-        parts.append(git('cat-file', '--batch', stdin=('\n'.join(shas) + '\n').encode()).decode('utf-8', 'replace'))
++        parts += blobs(shas)
+     names = [n for n in git('diff', '--name-only', '-z', 'HEAD', '--').decode('utf-8', 'replace').split('\0') if n]
+     names += [n for n in git('ls-files', '-z', '--others', '--exclude-standard').decode('utf-8', 'replace').split('\0') if n]
+     names.append(os.path.relpath(A.LOG))
+diff --git a/tools/test_ai_routes.py b/tools/test_ai_routes.py
+index 9bcf3fb..02e02e5 100644
+--- a/tools/test_ai_routes.py
++++ b/tools/test_ai_routes.py
+@@ -304,6 +304,38 @@ class LeakScan(unittest.TestCase):
+         self.assertIn(k3, text, 'the call log, ignored by *.log')
+         self.assertIn(k4, text, 'an uncommitted change to a tracked file')
+ 
++    def test_a_key_a_merge_wrote_is_found(self):
++        # Codex ronda 3: a conflict resolved in the merge commit with text neither side had, then deleted later
++        k7 = 'KSEV' + 't' * 20
++        with open('m.txt', 'w') as f:
++            f.write('base\n')
++        self.g('add', 'm.txt')
++        self.g('commit', '-q', '-m', 'm base')
++        self.g('checkout', '-q', '-b', 'side')
++        with open('m.txt', 'w') as f:
++            f.write('side\n')
++        self.g('commit', '-q', '-am', 'side')
++        self.g('checkout', '-q', '-')
++        with open('m.txt', 'w') as f:
++            f.write('main\n')
++        self.g('commit', '-q', '-am', 'main')
++        subprocess.run(['git', 'merge', '-q', 'side'], capture_output=True)
++        with open('m.txt', 'w') as f:
++            f.write(k7 + '\n')
++        self.g('commit', '-q', '-am', 'resolve')
++        os.remove('m.txt')
++        self.g('commit', '-q', '-am', 'drop')
++        text, n = self.P.added_text(self.base)
++        self.assertIn(k7, text, 'text only the merge commit wrote')
++
++    def test_a_missing_object_is_not_clean(self):
++        with self.assertRaises(SystemExit) as c:
++            self.P.blobs(['0' * 39 + '1'])
++        self.assertEqual(c.exception.code, 3)
++        # and a real blob reads back whole, binary included
++        sha = subprocess.run(['git', 'hash-object', '-w', '--stdin'], input=b'\x00bin\nKEY', capture_output=True).stdout.decode().strip()
++        self.assertEqual(self.P.blobs([sha]), ['\x00bin\nKEY'])
++
+     def test_git_failure_is_not_clean(self):
+         with self.assertRaises(SystemExit) as c:
+             self.P.added_text('no-such-commit')
