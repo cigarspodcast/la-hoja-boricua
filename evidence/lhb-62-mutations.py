@@ -51,6 +51,11 @@ MUTS = [
     (HJ, 'r1: list from the old session is painted', 'if(subNow()!==sub0)return vFwList(h,dir);', ''),
     (HJ, 'r1: list not repainted on an account change', 'pfRedo(live,sub0,()=>vFwList(h,dir));', ''),
     (HJ, 'r1: a late block closes another sheet', "if($('#blkGo')===go)closeSheet();", 'closeSheet();'),
+    # Codex round 2
+    ('site/cuenta.js', 'r2: cuenta.js does not tell of a Clerk change', "  if(typeof D.onAccount==='function')D.onAccount(id);\n", ''),
+    (HJ, 'r2: the Clerk change count is not part of the session token', "return acctGen+'|'+(a&&", "return '|'+(a&&"),
+    (HJ, 'r2: hoja.js does not count a Clerk change', 'onAccount:()=>{acctGen++;acctTell()}', 'onAccount:()=>{acctTell()}'),
+    (HJ, 'r2: stale page watchers stay', '{for(const f of [...acctW])f();const w=()=>', '{const w=()=>'),
     (HJ, 'r1: a late block tells another account', '   if(!ok())return;\n   if(r.status===200&&r.body&&r.body.blocked===true)', '   if(r.status===200&&r.body&&r.body.blocked===true)'),
 ]
 

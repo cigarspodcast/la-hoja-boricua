@@ -4579,7 +4579,7 @@ function HOJA58(opts){opts=opts||{};
  const toasts=[],calls=[],sheetOn={v:false};
  const ctx={...TT(),window:{addEventListener(){}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
   /* opts.token: la llave de la sesión tarda; go es el de api() en hoja.js: con la llave ya puesta, si dice que no el pedido no sale */
-  clerk:async()=>({user:{id:'u_a'}}),acctW:new Set(),api:async(C,method,path,body,uid,extra,go)=>{if(opts.token)await opts.token(method);if(go&&!go())throw new Error('gone');calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
+  clerk:async()=>({user:{id:'u_a'}}),acctW:new Set(),acctGen:0,api:async(C,method,path,body,uid,extra,go)=>{if(opts.token)await opts.token(method);if(go&&!go())throw new Error('gone');calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
   A:{cigarById:id=>({c1:{id:'c1',nombre:'Yambú Toro'},c2:{id:'c2',nombre:'Don Collins'}})[id]||null,cigarCard:c=>'<a class="card" data-c="'+c.id+'">'+c.nombre+'</a>',hydrate:()=>log.push('hydrate'),route:()=>log.push('route')},
   /* LHB-97, en facelift: como sheet() de facelift (LHB-64): anota lastFocus si el foco no está ya en la hoja, pone sheet-on y siempre lleva el foco a la hoja
      (su primer control o Cerrar), con la app detrás inerte; por eso aquí el foco nunca queda en el botón de una reseña con la hoja abierta */
@@ -6280,6 +6280,36 @@ test('LHB-62 (Codex r1): en la app, la respuesta tardía de Bloquear no cierra o
  /* los rechazos nuevos tienen su aviso */
  T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();T.H.els.blkGo.onclick();await tick();T.rel({status:429,body:{error:'block-cap'}});await tick();
  assert.deepEqual(T.H.toasts,['Llegaste al máximo de personas que puedes bloquear.']);
+});
+test('LHB-62 (Codex r2): cuenta.js avisa de cada cambio de cuenta de Clerk aunque lo guardado ya esté vacío, y hoja.js lo cuenta',async()=>{
+ const seen=[];const h=CUENTA_HARNESS({onAccount:id=>seen.push(id)});
+ h.cache({sub:'u_a',handle:'ana'});h.C.user={id:'u_a'};await h.A.reconcile();assert.deepEqual(seen,[],'abrir con la misma cuenta no avisa');
+ h.C.signIn('u_b');assert.deepEqual(seen,['u_b']);
+ h.C.signIn('u_c');assert.deepEqual(seen,['u_b','u_c'],'de B a C, con lo guardado ya vacío, también');
+ h.C.signIn(null);h.C.signIn(null);assert.deepEqual(seen,['u_b','u_c',null],'salir avisa una vez');
+ assert.match(read('hoja.js'),/window\.LHB_CUENTA\(\{clerk,api,onAccount:\(\)=>\{acctGen\+\+;acctTell\(\)\},/,'hoja.js cuenta el cambio y avisa a los que miran');
+});
+test('LHB-62 (Codex r2): en la app, el perfil y las listas se pintan otra vez en cada cambio de Clerk (de A a B y de B a C con la cuenta guardada vacía); los que miran páginas que ya no están se van',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const clerkChange=H=>{H.acctBox.v=null;H.ctx.acctGen++;for(const f of [...H.ctx.acctW])f()};
+ /* el perfil: A puede verlo, B también, C no (404) */
+ let n=0;let H=HOJA58({reply:u=>u.startsWith('/api/u/')?(++n<=2?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
+ await H.X.vPersona('bea');assert.equal(n,1);
+ clerkChange(H);await tick();assert.equal(n,2,'de A a B se pide otra vez');assert.ok(H.all().includes('id="pfMore"'),'B lo ve');
+ clerkChange(H);await tick();assert.equal(n,3,'de B a C, con la cuenta guardada vacía, también');
+ assert.ok(H.all().includes('Este perfil no está disponible.')&&!H.all().includes('id="pfMore"'),'C ya no lo ve');
+ /* una respuesta que llega después de un cambio de Clerk con la cuenta guardada vacía no se pinta */
+ let rel=null;n=0;H=HOJA58({acct:null,reply:u=>{if(!u.startsWith('/api/u/'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
+ const p=H.X.vPersona('bea');await tick();H.ctx.acctGen++;rel({status:200,body:API58JSON()});await p;await tick();
+ assert.equal(n,2,'se preguntó otra vez');assert.ok(!H.all().includes('id="pfMore"'));
+ /* las listas */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'dani',display_name:'Dani R.',avatar_key:null}],next:null}}:{status:404,body:{}}):{status:404,body:{}}});
+ H.loc.hash='#/u/bea/seguidores';await H.X.vPersona('bea');await tick();assert.ok(H.all().includes('dani'));
+ clerkChange(H);await tick();assert.equal(n,2);assert.ok(!H.all().includes('dani'),'la lista se pinta otra vez sin esa fila');
+ /* sin cuenta (sin botón de seguir), diez perfiles seguidos dejan uno solo mirando, el de la página que está */
+ H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?{status:200,body:API58JSON()}:{status:404,body:{}}});
+ for(let i=0;i<10;i++){await H.X.vPersona('bea');await tick()}
+ assert.equal(H.ctx.acctW.size,1,'los de páginas que se fueron no se quedan');
 });
 test('LHB-62: Bloqueados en Editar perfil: la lista de a quién bloqueaste, cada fila con Desbloquear; quitar una pasa el foco a la siguiente; sin la tabla la sección no sale',async()=>{
  const sent=[];

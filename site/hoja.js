@@ -188,6 +188,8 @@ const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 /* LHB-60 (Codex r1): acctW son los que miran la cuenta guardada (los botones de seguir); se les avisa al guardarla o borrarla */
 const acctW=new Set(),acctTell=()=>{for(const f of [...acctW])f()};
 const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar();acctTell()}};
+/* LHB-62 (Codex r2): cuántas veces cambió la cuenta de Clerk en esta página (cuenta.js onAccount), aunque la cuenta guardada siga vacía */
+let acctGen=0;
 /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
 const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
 let clerkP=null;
@@ -371,7 +373,7 @@ function onboardingForm(submit,picture,mode,init,check){const marcas=[...new Set
    mientras está abierto se nombra con su propio título (aria-labelledby), sin tocar su estilo. Clerk cambia el título al cambiar de paso: se vuelve a apuntar. */
 function nameClerkDialog(doc){let n=0;for(const d of doc.querySelectorAll('.cl-modalContent[role="dialog"]')){if(d.getAttribute('aria-label'))continue;const h=d.querySelector('.cl-headerTitle');if(!h||!String(h.textContent||'').trim())continue;if(!h.id)h.id='lhb-clerk-title-'+(nameClerkDialog.k=(nameClerkDialog.k||0)+1);if(d.getAttribute('aria-labelledby')!==h.id)d.setAttribute('aria-labelledby',h.id);n++}return n}
 function watchClerkDialog(){if(typeof MutationObserver!=='function')return;let seen=false;const tick=()=>{nameClerkDialog(document);if(document.querySelector('.cl-modalContent'))seen=true;else if(seen)mo.disconnect()};const mo=new MutationObserver(tick);mo.observe(document.body,{childList:true,subtree:true});tick();setTimeout(()=>mo.disconnect(),600000)}
-const CUENTA=window.LHB_CUENTA({clerk,api,hasLocal:()=>LHB_MERGE.hasData(S()),here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>{C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href});watchClerkDialog()},ui:{card:accountCard,notice:accountNotice,onboarding:(submit,picture,check)=>onboardingForm(submit,picture,undefined,undefined,check),identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,'edit',prof,check),toast,closeAll:closeSheetNow}});
+const CUENTA=window.LHB_CUENTA({clerk,api,onAccount:()=>{acctGen++;acctTell()},hasLocal:()=>LHB_MERGE.hasData(S()),here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>{C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href});watchClerkDialog()},ui:{card:accountCard,notice:accountNotice,onboarding:(submit,picture,check)=>onboardingForm(submit,picture,undefined,undefined,check),identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,'edit',prof,check),toast,closeAll:closeSheetNow}});
 /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
 const requireAccount=(go,o)=>CUENTA.require(go,o);
 /* LHB-51: con una cuenta guardada, un poco después de abrir la app se confirma con Clerk que sigue siendo esa cuenta (si no, el encabezado vuelve a la estrella) */
@@ -509,10 +511,11 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
    y con ella el servidor esconde a quien tiene el par bloqueado contigo */
 async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
 /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
-/* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado) */
-const subNow=()=>{const a=acct.get();return a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:null};
-/* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva; el que mira se quita solo cuando su página ya no está */
-const pfRedo=(live,sub0,redo)=>{const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
+/* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado).
+   Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen) */
+const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')};
+/* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva. Codex r2: al poner uno se quitan los de páginas que ya no están */
+const pfRedo=(live,sub0,redo)=>{for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
 async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow();
  /* LHB-60: #/u/<handle>/seguidores y #/u/<handle>/siguiendo (el enrutador de app.js pasa solo el @; lo que sigue se lee del hash), también las tuyas */
  const seg=String(location.hash||'').replace(/^#\/?/,'').split('/')[2]||'';
