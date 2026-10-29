@@ -1,16 +1,51 @@
 /* LHB-56: seguir. Una vía, sin aprobación (estilo Instagram), no amistad. Las reglas viven aquí; los pedidos en api/follow.js, api/followers.js y api/following.js.
    Lo que sale hacia los demás es solo lo público: @, nombre público (nombre e inicial del apellido) y foto. Nunca fecha de nacimiento, género, correo ni user_id. */
-import { checkHandle } from './profile.js';
-import { json } from './auth.js';
+import { checkHandle, requireProfile } from './profile.js';
+import { json, tokenOf, issuersOf, userOf } from './auth.js';
 
 export const PAGE = 20;
 // TOPES DE PRUEBA (placeholder): los números definitivos son del dueño (LHB-56, No es mío). Por cuenta y por hora, y el total de personas que una cuenta puede seguir.
 export const FOLLOW_PER_HOUR = 60;
 export const FOLLOW_MAX = 5000;
 
-// LHB-62 (bloquear) completa esto. Hasta entonces ningún par está bloqueado; los puntos que lo preguntan ya existen.
+/* LHB-62: bloquear (migrations/0007_blocks.sql). Un bloqueo vale en las dos direcciones: ninguno ve al otro ni lo puede seguir.
+   Sin la tabla todavía (0007 sin aplicar) nadie está bloqueado y bloquear contesta 503 blocks-off: el código sale antes que la migración. */
+export const noBlocks = e => /no such table: blocks/i.test(String(e && e.message));
+// corre q(true), la lectura con el filtro de bloqueos; si la tabla todavía no existe, la misma lectura sin él, q(false)
+export async function blockAware(q) {
+  try { return await q(true); } catch (e) { if (!noBlocks(e)) throw e; return q(false); }
+}
+// lo que se añade a un WHERE para dejar fuera a quien tiene el par bloqueado con quien mira: v es el número del parámetro con el user_id de quien mira,
+// col la columna con el user_id de la otra persona
+export const notBlocked = (v, col) =>
+  ` AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = ?${v} AND b.blocked_id = ${col}) OR (b.blocker_id = ${col} AND b.blocked_id = ?${v}))`;
 export async function isBlocked(db, a, b) {
-  return false;
+  if (!a || !b || a === b) return false;
+  return blockAware(async on => on && !!(await db.prepare(
+    'SELECT 1 AS n FROM blocks WHERE (blocker_id = ?1 AND blocked_id = ?2) OR (blocker_id = ?2 AND blocked_id = ?1)'
+  ).bind(a, b).first()));
+}
+// quien mira, en una lectura pública: su user_id con una sesión válida, o null (sin sesión, vencida, o si la verificación falla: se contesta como a cualquiera)
+export async function viewerOf(request, env) {
+  try {
+    if (!request || !request.headers || !tokenOf(request) || !issuersOf(env).length) return null;
+    const u = await userOf(request, env);
+    return u ? u.sub : null;
+  } catch (e) { return null; }
+}
+
+// LHB-56, compartida con LHB-62: la sesión con perfil, el cuerpo JSON y a quién se apunta: { me, who } o la respuesta de rechazo
+export async function intake(request, env, { hidden = false } = {}) {
+  const g = await requireProfile(request, env);
+  if (g instanceof Response) return { res: g };
+  // solo JSON: un formulario de otro sitio no puede mandarlo sin preflight
+  if (!/^application\/json\b/i.test(request.headers.get('Content-Type') || '')) return { res: json({ error: 'bad-type' }, 415) };
+  let body;
+  try { body = await request.json(); } catch (e) { return { res: json({ error: 'bad-body' }, 400) }; }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return { res: json({ error: 'bad-body' }, 400) };
+  const who = await targetOf(env.DB, body.handle, { hidden });
+  if (!who) return { res: json({ error: 'not-found' }, 404) };
+  return { me: g.user.sub, who };
 }
 
 // la persona a la que se apunta por su @: nunca un perfil oculto (a menos que se pida, para dejar de seguirlo). null si no existe.
@@ -43,14 +78,19 @@ export function parseCursor(raw) {
 }
 
 // dir 'followers': quienes siguen a userId; 'following': a quienes sigue userId. Más nuevos primero, PAGE por página.
-export async function listOf(db, userId, dir, cursor) {
+// LHB-62: con viewer (quien mira, con sesión), sin las personas que tienen el par bloqueado con quien mira
+export async function listOf(db, userId, dir, cursor, viewer = null) {
   const [mine, other] = dir === 'followers' ? ['followee_id', 'follower_id'] : ['follower_id', 'followee_id'];
-  const sql = 'SELECT p.handle, p.display_name, p.avatar_key, f.created_at FROM follows f JOIN profiles p ON p.user_id = f.' + other +
-    ' WHERE f.' + mine + ' = ?1 AND p.hidden = 0' +
-    (cursor ? ' AND (f.created_at < ?2 OR (f.created_at = ?2 AND p.handle < ?3))' : '') +
-    ' ORDER BY f.created_at DESC, p.handle DESC LIMIT ' + (PAGE + 1);
-  const st = db.prepare(sql);
-  const rows = (await (cursor ? st.bind(userId, cursor.at, cursor.handle) : st.bind(userId)).all()).results || [];
+  const args = cursor ? [userId, cursor.at, cursor.handle] : [userId];
+  const rows = await blockAware(async on => {
+    const filter = on && viewer;
+    const sql = 'SELECT p.handle, p.display_name, p.avatar_key, f.created_at FROM follows f JOIN profiles p ON p.user_id = f.' + other +
+      ' WHERE f.' + mine + ' = ?1 AND p.hidden = 0' +
+      (cursor ? ' AND (f.created_at < ?2 OR (f.created_at = ?2 AND p.handle < ?3))' : '') +
+      (filter ? notBlocked(args.length + 1, 'p.user_id') : '') +
+      ' ORDER BY f.created_at DESC, p.handle DESC LIMIT ' + (PAGE + 1);
+    return (await db.prepare(sql).bind(...args, ...(filter ? [viewer] : [])).all()).results || [];
+  });
   const more = rows.length > PAGE;
   const page = more ? rows.slice(0, PAGE) : rows;
   const last = page[page.length - 1];
@@ -60,7 +100,8 @@ export async function listOf(db, userId, dir, cursor) {
   };
 }
 
-// GET /api/followers?handle=x&cursor=y y GET /api/following?handle=x&cursor=y: públicas; un perfil oculto o que no existe da 404
+// GET /api/followers?handle=x&cursor=y y GET /api/following?handle=x&cursor=y: públicas; un perfil oculto o que no existe da 404.
+// LHB-62: con sesión, el de alguien que tiene el par bloqueado con quien mira también da 404, y de la lista salen los que lo tienen
 export async function listResponse(request, env, dir) {
   if (!env.DB) return json({ error: 'no-db' }, 503);
   const q = new URL(request.url).searchParams;
@@ -68,5 +109,7 @@ export async function listResponse(request, env, dir) {
   if (c.error) return json({ error: c.error }, 400);
   const who = await targetOf(env.DB, q.get('handle'));
   if (!who) return json({ error: 'not-found' }, 404);
-  return json(await listOf(env.DB, who.user_id, dir, c.cursor));
+  const me = await viewerOf(request, env);
+  if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'not-found' }, 404);
+  return json(await listOf(env.DB, who.user_id, dir, c.cursor, me));
 }

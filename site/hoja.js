@@ -317,8 +317,9 @@ function onboardingForm(submit,picture,mode,init,check){const marcas=[...new Set
  ${idm?'':`<div class="field"><label for="obB">${tt('h.unaDescripcionCortaOpcional')}</label><textarea id="obB" maxlength="160" rows="3"></textarea><p class="hint"><span id="obBn">0</span>/160</p></div><div class="field"><label for="obM">${tt('h.tuMarcaFavoritaOpcional')}</label><input id="obM" maxlength="60" list="obML"><datalist id="obML">${marcas.map(m=>`<option value="${esc(m)}">`).join('')}</datalist></div>`}
  <p class="hint">${tt('h.leeQueGuardamosY')} <a href="/privacidad">${tt('h.privacidadYCuenta')}</a>.</p>
  <p class="hint" id="obErr" role="alert" hidden></p>
- <button class="btn" type="submit" id="obGo">${idm||edm?tt('h.guardar'):tt('h.crearMiPerfil')}</button>${edm?'<a class="lbtn" href="#/mihoja/perfil" id="obCancel">'+tt('h.cancelar')+'</a>':''}</form>`;
- const form=$('#obForm');
+ <button class="btn" type="submit" id="obGo">${idm||edm?tt('h.guardar'):tt('h.crearMiPerfil')}</button>${edm?'<a class="lbtn" href="#/mihoja/perfil" id="obCancel">'+tt('h.cancelar')+'</a>':''}</form>
+ ${edm?`<section class="blk" id="blkSec" aria-labelledby="blkT" hidden><h2 class="ob-pic-t" id="blkT" tabindex="-1">${tt('h.blkBloqueados')}</h2><ul class="people" id="blkL"></ul><p class="hint" id="blkH" aria-live="polite"></p></section>`:''}`;
+ const form=$('#obForm');if(edm)blkList();
  if(edm){$('#obH').value=pf.handle||'';$('#obFn').value=pf.first_name||'';$('#obLn').value=pf.last_name||'';$('#obGM').checked=pf.gender==='M';$('#obGF').checked=pf.gender==='F';$('#obD').value=pf.birth_date||'';$('#obB').value=pf.bio||'';$('#obM').value=pf.favorite_brand||'';const n=$('#obBn');if(n)n.textContent=[...String(pf.bio||'')].length}
  /* un error del formulario tiene que verse: caja roja con borde, texto grande, y la pantalla baja hasta ella (en un teléfono quedaba debajo del botón y pasaba desapercibido) */
  const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m;
@@ -480,7 +481,7 @@ const pfIni=p=>{const w=String(p.display_name||'').split(/\s+/).filter(Boolean);
    LHB-60: seguidores y siguiendo llevan a sus listas */
 const pfCounts=(c,own,h)=>{const n=k=>c&&c[k]!=null?pfNum(c[k]):'·';const to=s=>'#/u/'+encodeURIComponent(h)+'/'+s;
  return `<ul class="pf-counts" id="pfCounts"><li><b>${n('resenas')}</b><span>${tt('h.pfResenas')}</span></li><li><a href="${to('seguidores')}"><b id="pfNFollowers">${n('followers')}</b><span>${tt('h.pfSeguidores')}</span></a></li><li><a href="${to('siguiendo')}"><b>${n('following')}</b><span>${tt('h.pfSiguiendo')}</span></a></li></ul>
- <div class="pf-act">${own?`<a class="btn" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div>`}</div>`};
+ <div class="pf-act">${own?`<a class="btn" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div><div class="pf-more" id="pfMore"></div>`}</div>`};
 const pfAbout=p=>`${p.bio?`<p class="pf-bio">${esc(p.bio)}</p>`:''}${p.favorite_brand?`<p class="pf-fav">${tt('h.pfMarcaFav')}: <b>${esc(p.favorite_brand)}</b></p>`:''}`;
 /* el encabezado de otra persona: su foto de Clerk o sus iniciales */
 function pfHead(p,c){const pic=typeof p.avatar_key==='string'&&p.avatar_key.startsWith(PF_IMG)?`<img src="${esc(p.avatar_key)}" alt="${tt('h.pfFotoDe',{a:'@'+esc(p.handle)})}" width="88" height="88">`:`<span aria-hidden="true">${esc(pfIni(p))}</span>`;
@@ -504,7 +505,8 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
  const order=pfTabsFor(d.own);
  $$('[data-pftab]').forEach(b=>{b.onclick=()=>paint(b.dataset.pftab);b.onkeydown=e=>{const i=order.indexOf(b.dataset.pftab),j={ArrowRight:i+1,ArrowLeft:i-1,Home:0,End:order.length-1}[e.key];if(j===undefined||i<0)return;e.preventDefault();
   const t=order[(j+order.length)%order.length];paint(t);const el=$('#pfT-'+t);if(el&&el.focus)el.focus()}});paint(cur)}
-/* GET /api/u/<handle>: pública, sin sesión */
+/* GET /api/u/<handle>: pública, sin pedir la llave. LHB-62: la cookie de sesión de Clerk (__session, de este mismo sitio) va sola con el pedido,
+   y con ella el servidor esconde a quien tiene el par bloqueado contigo */
 async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
 /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
 async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();
@@ -521,6 +523,7 @@ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct
  const b=r.body;if(r.status!==200||!b.profile||typeof b.profile!=='object'||!b.counts||typeof b.counts!=='object'){el.innerHTML=`<div class="empty">${tt('h.pfError')}</div>`;return}
  const d={own:false,resenas:(Array.isArray(b.resenas)?b.resenas:[]).filter(e=>e&&typeof e==='object').map(pfEntry),sellos:b.counts.sellos,favorite_brand:b.profile.favorite_brand};
  el.innerHTML=pfHead(b.profile,b.counts)+pfTabsHTML(false,'resenas');pfBind(d,'resenas');
+ blkMount('pfMore',h,()=>$('#pfX')===el);
  await fwMount('pfFollow',h,()=>$('#pfX')===el,n=>{const c=$('#pfNFollowers');if(c)c.textContent=String(n)})}
 /* tu Perfil (app.js vPerfil pone la foto, el nombre y el @ de la cuenta guardada, LHB-51): aquí van la bio, la marca y los conteos de /api/u/<tu @>, Editar perfil y las pestañas, que leen tu Mi Hoja.
    PFO es tu Perfil abierto: su lugar (#pfOwn), la cuenta, lo que llegó del servidor y la pestaña abierta. Codex ronda 1: cuando llega una sincronización se pinta otra vez con tu Mi Hoja nueva (pfOwnSync), en la misma pestaña */
@@ -591,6 +594,35 @@ async function vFwList(h,dir){
   await Promise.all(ppl.map(p=>fwMount('fwR-'+p.handle,p.handle,live)))};
  $('#fwMore').onclick=()=>page();
  await page()}
+/* ---------- bloquear y reportar (LHB-62): en el perfil de otra persona, y la lista Bloqueados en Editar perfil (functions/api/block.js) ---------- */
+const CONTACTO='sergio@cigarspodcast.com';/* el contacto de privacidad.html y de la página /u/<handle> */
+/* Reportar abre un correo ya escrito con el @ y el enlace del perfil, como la página /u/<handle>; no manda nada por sí solo: lo manda la persona desde su correo */
+const reportHref=h=>'mailto:'+CONTACTO+'?subject='+encodeURIComponent('Reportar @'+h)+'&body='+encodeURIComponent(location.origin+'/u/'+h);
+const blkErr=e=>e==='blocks-off'?tt('h.blkOff'):tt('h.blkFail');
+/* Reportar para todos; Bloquear para una cuenta con perfil y otra persona, con una hoja que pregunta antes. Al bloquear, el perfil ya no se ve: se vuelve a tu Perfil */
+function blkMount(id,h,live){const box=$('#'+id);if(!box)return;const a=meAcct();
+ box.innerHTML=`<a class="lbtn" id="pfReport" href="${esc(reportHref(h))}">${tt('h.blkReportar')}</a>${a&&a.handle!==h?`<button class="lbtn" type="button" id="pfBlock">${tt('h.blkBloquear')}</button>`:''}`;
+ const b=$('#pfBlock');if(!b)return;
+ b.onclick=()=>{sheet(`<h2 class="sheet-h">${tt('h.blkPregunta',{a:'@'+esc(h)})}</h2><p>${tt('h.blkExplica')}</p><p><button class="btn" type="button" id="blkGo">${tt('h.blkBloquear')}</button> <button class="lbtn" type="button" data-close>${tt('h.cancelar')}</button></p>`,tt('h.blkPregunta',{a:'@'+h}));
+  const go=$('#blkGo');go.onclick=async()=>{go.disabled=true;const ok=()=>fwSame(a.sub);let r;
+   try{const C=await clerk();r=await api(C,'POST','/api/block',{handle:h},a.sub,undefined,ok)}catch(e){r={status:0,body:{}}}
+   closeSheet();
+   if(r.status===200&&r.body&&r.body.blocked===true){toast(tt('h.blkHecho',{a:'@'+h}));if(live())location.hash='#/mihoja/perfil'}
+   else toast(blkErr(r.body&&r.body.error))}}}
+/* Bloqueados, debajo del formulario de Editar perfil: cada fila con Desbloquear (no devuelve los seguir). Sin la tabla todavía (blocks-off) o sin red, la sección no sale.
+   Al quitar una fila el foco pasa al Desbloquear siguiente, o al título de la sección */
+async function blkList(){const sec=$('#blkSec'),a=meAcct();if(!sec||!a)return;const live=()=>$('#blkSec')===sec&&fwSame(a.sub);
+ let r;try{const C=await clerk();r=await api(C,'GET','/api/block',null,a.sub,undefined,live)}catch(e){r={status:0,body:{}}}
+ if(!live()||r.status!==200||!r.body||!Array.isArray(r.body.people))return;
+ const ppl=r.body.people.filter(p=>p&&typeof p.handle==='string'&&PF_HANDLE.test(p.handle));
+ const say=()=>{$('#blkH').textContent=$$('[data-unblk]',sec).length?'':tt('h.blkNadie')};
+ $('#blkL').innerHTML=ppl.map(p=>personRow(p).replace(/<\/li>$/,`<button class="lbtn" type="button" data-unblk="${esc(p.handle)}">${tt('h.blkDesbloquear')}</button></li>`)).join('');sec.hidden=false;say();
+ $$('[data-unblk]',sec).forEach(b=>b.onclick=async()=>{const h=b.dataset.unblk;b.disabled=true;let x;
+  try{const C=await clerk();x=await api(C,'DELETE','/api/block',{handle:h},a.sub,undefined,live)}catch(e){x={status:0,body:{}}}
+  if(!live())return;
+  if(x.status===200&&x.body&&x.body.blocked===false){const all=$$('[data-unblk]',sec),nx=all[all.indexOf(b)+1]||all[all.indexOf(b)-1];const li=b.closest('li');if(li)li.remove();
+   say();const f=nx&&nx.isConnected?nx:$('#blkT');if(f&&f.focus)f.focus({preventScroll:true});toast(tt('h.blkDesHecho',{a:'@'+h}))}
+  else{b.disabled=false;toast(tt('h.blkDesFail'))}})}
 /* ---------- fin del perfil (LHB-58) ---------- */
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);
  view.innerHTML=`${subnav('humidor')}

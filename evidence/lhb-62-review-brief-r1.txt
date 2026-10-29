@@ -1,0 +1,28 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Functions in functions/ and D1 behind them). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block, from main 36e9fb7). The diff below is the branch against main. TIER 2: rounds until no blocking finding.
+
+Ticket LHB-62 (M6-S8): block and report.
+Pinned: a blocks table (blocker_id, blocked_id, created_at; unique pair). A block removes follows in both directions and hides each profile from the other everywhere (profile page, search, feed, lists). Account deletion removes both sides of block rows. "Reportar" opens a pre-filled email to the project contact address with the reported @handle; nothing is ever sent for anyone. Unblock is available from a "Bloqueados" list on the edit-profile screen and does not restore follows. A blocked person is not told. The feature stays dark until the migration is applied; the code ships first.
+
+What changed:
+- migrations/0007_blocks.sql (0005 and 0006 were already taken): the table, the pair as primary key, CHECK no self-block, both columns REFERENCES profiles ON DELETE CASCADE, index blocks_by_blocked.
+- functions/_lib/follow.js: isBlocked is real (either direction); noBlocks (the "no such table: blocks" error); blockAware(q) runs q(true) and, only on that error, q(false); notBlocked(v, col) is the WHERE clause; viewerOf(request, env) is the optional session (Authorization or the __session cookie), null on any failure; intake moved here from api/follow.js; listOf and listResponse filter for the viewer and 404 a blocked pair.
+- functions/api/block.js: POST (block, and delete follows both ways in one D1 batch), DELETE (unblock; a hidden profile only if it was blocked), GET (my block list, at most 500, hidden ones included so they can be unblocked); 503 blocks-off without the table.
+- functions/api/follow.js: GET answers 404 for a blocked pair; POST's INSERT carries NOT EXISTS blocks in the same statement (a block racing the follow), and a zero-change insert rechecks the block before answering 429.
+- functions/_lib/people.js: search excludes blocked pairs. functions/_lib/feed.js: comment only (its isBlocked call was already there). functions/api/u/[handle].js and functions/u/[handle].js (the server-rendered page): 404 for a viewer on either side of a block. functions/_lib/account.js: blocks in USER_TABLES.
+- site/hoja.js: on another person's profile, Reportar (a mailto link built by reportHref) for everyone and Bloquear (with a confirm sheet) for a signed-in account; a Bloqueados section under the Edit profile form (blkList) with Desbloquear per row. site/i18n.js strings in Spanish and English; site/styles.css; site/sw.js cache lhb-v113 to lhb-v114 (21 test pins). The app's public reads (fetch /api/u, the lists) stay plain fetches: the __session cookie travels with a same-origin fetch.
+- test/site.test.js: 10 LHB-62 tests; the LHB-34 unknown-table test now uses a table named reports as its example (blocks became known); the HOJA58 harness's $$ knows data-unblk; FORM_HARNESS has a blkList stub. test/lhb-29-hoja-exceptions.txt: the Spanish mail subject "Reportar @" is an annotated exception, like the /u page's own subject.
+
+Evidence: evidence/lhb-62-mutations.out 22 of 22 red (the first is isBlocked always false, the state before this ticket); evidence/lhb-62-tests.txt the full suite.
+
+Check in particular:
+- Is there any read that still shows a blocked pair to each other (any endpoint returning people or profiles: counts, lists, search, feed, /api/u, /u, /api/me, anything else in functions/)? Can the blocked person learn they were blocked (an error code or count that differs from a nonexistent or hidden profile)?
+- blockAware: can it hide a real error, or turn a filtered read into an unfiltered one when the table exists? Are parameter numbers right in every notBlocked use?
+- Races and atomicity: block vs follow, block vs account deletion, the batch.
+- The dark-until-migrated order: with the code live and the table absent, does everything answer exactly as before? With the table present and old code, account deletion fails closed (unknown table): is the order in the migration header enough?
+- viewerOf on the public /u page and /api/u: cache headers, cost of verifying a cookie on every view, failure modes.
+- The UI: focus, the confirm sheet, a stale response after navigation or an account switch, the mailto content.
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-timeout=60000 --test-name-pattern=LHB-62 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.

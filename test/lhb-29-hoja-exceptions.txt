@@ -36,6 +36,8 @@ str: La Hoja Boricua
 str: Bearer
 str: hint hs-ok
 str: hint hs-bad
+# LHB-62: el asunto del correo de Reportar va en español, como el de la página /u/<handle>: lo lee el contacto del proyecto
+str: Reportar @
 str: Suave a media
 str: Media a fuerte
 str: Ligero a medio

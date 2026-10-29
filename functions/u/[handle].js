@@ -3,6 +3,7 @@
    Lo que se lee sale de publicPassport (functions/_lib/passport.js), la misma lectura de la app. Un perfil oculto o que no existe da el mismo 404.
    noindex, follow al lanzar (para compartir; indexar se decide en M5). La imagen para compartir es og.jpg: las fotos de las catas viven en el teléfono hasta LHB-35. */
 import { publicPassport } from '../_lib/passport.js';
+import { isBlocked, viewerOf } from '../_lib/follow.js';
 
 export const CONTACT = 'sergio@cigarspodcast.com'; // el contacto de privacidad.html
 const ROBOTS = 'noindex, follow';
@@ -90,7 +91,12 @@ const unavailable = () => html(shell('<title>No disponible | La Hoja Boricua</ti
 export async function onRequestGet({ request, env, params }) {
   if (!env.DB) return unavailable();
   let r;
-  try { r = await publicPassport(env.DB, params && params.handle); } catch (e) { return unavailable(); }
-  if (!r) return notFound();
+  // LHB-62: con la cookie de sesión de la app, a quien tiene el par bloqueado con la persona del perfil le sale el mismo 404 que a un perfil oculto
+  let blocked = false;
+  try {
+    r = await publicPassport(env.DB, params && params.handle);
+    if (r) blocked = await isBlocked(env.DB, await viewerOf(request, env), r.uid);
+  } catch (e) { return unavailable(); }
+  if (!r || blocked) return notFound();
   return html(renderPassport(r.view, new URL(request.url).origin), 200);
 }
