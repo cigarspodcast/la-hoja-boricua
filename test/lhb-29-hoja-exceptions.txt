@@ -36,6 +36,9 @@ str: La Hoja Boricua
 str: Bearer
 str: hint hs-ok
 str: hint hs-bad
+# LHB-62 (Codex r6): la llave de la sesión en la cabecera Authorization, como en api(): el perfil y las listas preguntan otra vez con ella
+str: Bearer
+str: Bearer
 # LHB-62: el asunto del correo de Reportar va en español, como el de la página /u/<handle>: lo lee el contacto del proyecto
 str: Reportar @
 str: Suave a media
