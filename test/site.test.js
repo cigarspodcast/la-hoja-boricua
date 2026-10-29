@@ -6862,6 +6862,36 @@ test('LHB-104 (Codex r3): sin la columna ops (0008 sin aplicar) nadie puede deci
   const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.run('x')).ok,true);
   assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
  }finally{a.done()}});
+test('LHB-104 (Codex r4): la respuesta del GET de la pestaña 2 (rev 1, con a1) llega tarde, después de que la 1 anotó la base del rev 2: la 2 no la usa ni la anota, y a1 se queda tras salir',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0,late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  let open=null,paused=false;
+  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)},wait:async()=>{}};
+  const T2=SYNC28().LHB_SYNC(D2);const pB=T2.settled({});
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la respuesta del rev 1 espera');
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.ok(late,'la subida que repone a1 quedó sin respuesta');
+  open();await pB;await T2.settled({});const st=await T2.settled({});
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y en el teléfono');
+  if(st.ok)assert.equal(await T2.forget(st.mark),true);
+  assert.equal((await late()).status,409,'la de la pestaña 1 ya no llega');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue');
+ }finally{a.done()}});
+test('LHB-104 (Codex r4): otra pestaña anota una base más nueva justo antes de que esta escriba la suya: esta no la pisa',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.cigarros=['k1']});await P.sync();assert.equal(srv28(a,'user_a').rev,2);
+  /* esta pestaña trae k1 (rev 2); al aplicarlo, otra pestaña ya anotó la base del rev 3 */
+  const T=SYNC28().LHB_SYNC(A.D);
+  A.st.beforeApply=()=>{const m=JSON.parse(A.ls.get('lhb_mihoja_v1_sync'));A.ls.set('lhb_mihoja_v1_sync',JSON.stringify({...m,rev:3,dirty:false}))};
+  const r=await T.run('x');assert.ok(!r.ok,'esta pasada se reintenta');
+  assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,3,'la base más nueva se queda');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{

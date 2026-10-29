@@ -1,0 +1,40 @@
+✖ LHB-104 (Codex r4): la respuesta del GET de la pestaña 2 (rev 1, con a1) llega tarde, después de que la 1 anotó la base del rev 2: la 2 no la usa ni la anota, y a1 se queda tras salir (190.4775ms)
+✖ LHB-104 (Codex r4): otra pestaña anota una base más nueva justo antes de que esta escriba la suya: esta no la pisa (88.1025ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 478.3832
+
+✖ failing tests:
+
+test at test\site.test.js:6869:1
+✖ LHB-104 (Codex r4): la respuesta del GET de la pestaña 2 (rev 1, con a1) llega tarde, después de que la 1 anotó la base del rev 2: la 2 no la usa ni la anota, y a1 se queda tras salir (190.4775ms)
+  AssertionError [ERR_ASSERTION]: a1 en la cuenta
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r4\test\site.test.js:6883:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6887:1
+✖ LHB-104 (Codex r4): otra pestaña anota una base más nueva justo antes de que esta escriba la suya: esta no la pisa (88.1025ms)
+  AssertionError [ERR_ASSERTION]: esta pasada se reintenta
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r4\test\site.test.js:6896:35)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

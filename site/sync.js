@@ -217,7 +217,8 @@ window.LHB_SYNC=function(D){
    /* Codex r3: después de la respuesta, primero las anotaciones y luego la base otra vez: si otra pestaña quitó una anotación mientras esta esperaba, antes anotó
       la base nueva, y esa es la que se lee aquí */
    const now=shRead();see(now);
-   {let mr;try{mr=D.ls.get(META)}catch(e){return {fail:'storage'}}if(mr!==metaRaw){metaRaw=mr;meta=pm(mr)}}
+   /* Codex r4: si la base que otra pestaña anotó mientras tanto es más nueva que esta respuesta, la respuesta es vieja: se pregunta otra vez */
+   {let mr;try{mr=D.ls.get(META)}catch(e){return {fail:'storage'}}if(mr!==metaRaw){metaRaw=mr;meta=pm(mr);if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev)continue}}
    /* LHB-80: el servidor dice de cada una si llegó. Llegó en el rev n: lo que se mandó es lo que la cuenta tenía en n, y esa es la base (se anota ya, así vale también
       si esta pasada repite tras un 409). No está y la cuenta ya pasó del rev que pedía (If-Match): ya no puede llegar. Que no llegó se sabe solo si la lista cubre ese rev
       (opsFrom; Codex r1: lo que llegó antes de 0008, o ya olvidado, no está); si no, no se sabe y se junta sin dar nada por borrado.
@@ -305,6 +306,8 @@ window.LHB_SYNC=function(D){
    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
    /* ...y lo que cambió en la copia mientras tanto (aunque el contador compartido no se haya podido escribir) */
    const edited=edits!==e0||readSeq()!==s0||!quiet;
+   /* Codex r4: y al final tampoco se pisa una base más nueva que otra pestaña anotó mientras tanto (esta pasada se reintenta) */
+   {let mr;try{mr=D.ls.get(META)}catch(e){mr=metaRaw}if(mr!==metaRaw){const m2=pm(mr);if(m2&&Number.isInteger(m2.rev)&&m2.rev>newRev)return {fail:'conflict'}}}
    mem={sub:uid,base:merged,rev:newRev,ep:ep0};unrecorded=false;
    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0})){staleBase=true;poison();return {fail:'storage'}}
    /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */

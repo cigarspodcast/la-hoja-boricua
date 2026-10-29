@@ -36,6 +36,8 @@ MUTS = [
     (SY, 'r3: an upload known to have landed at that If-Match does not clear the others', '     if(wonAt.has(e.r))continue;', ''),
     (SY, 'r3: one overflow key per upload, not shared', "const k=full?PEND+'x.'+rev+'.'+uid:PEND+op", "const k=full?PEND+'x.'+rev+'.'+uid+'.'+op:PEND+op"),
     (SY, 'r3: a pass whose minimal meta does not fit stops instead of keeping the entries', 'if(gone.length&&(!(voided||staleBase)||poison())){', 'if(gone.length&&(voided||staleBase)&&!poison())return {fail:\'storage\'};if(gone.length){'),
+    (SY, 'r4: a GET answer older than the recorded base is used', 'if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev)continue', ''),
+    (SY, 'r4: the final meta overwrites a newer base', "if(m2&&Number.isInteger(m2.rev)&&m2.rev>newRev)return {fail:'conflict'}", ''),
 ]
 
 EQUIV = {}
