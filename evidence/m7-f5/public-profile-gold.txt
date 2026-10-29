@@ -1,0 +1,5 @@
+LHB-74: public profile golden, measured 2026-10-29T07:03Z at facelift 2ff42937a9e74fa4acc9075e241632433915f0ad (before any LHB-74 change).
+Fixture: DOC40 with pasaporte artesanos 5, cigarros 6, lugares 5 (earns primer, catador, artesanos5, lugares5).
+/api/u/ana body sha256 7c4a70704ca7b74c81925e5a8262e7503ad514ec78b30ba1b1efa71b5932d16a, 572 bytes
+/u/ana body sha256 df1de1c8142c921a227253e91627bf4d89f2639626d39a2fc08d29f3b0b25a74, 3137 bytes
+Pinned as GOLD74 in test/site.test.js.

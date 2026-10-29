@@ -1,0 +1,9 @@
+You are reviewing one small change in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 5 of a TIER 2 review of LHB-73. Round 4 (evidence/lhb-73-review-r4.txt) gave VERDICT: PASS with one non-blocking P3: KIND73 in test/site.test.js recognized PNG by six bytes although the commit said eight.
+
+The only change since round 4 is commit 5205b7d. The diff below is scoped to it (base abea83a).
+- KIND73 now checks the full PNG signature 89 50 4E 47 0D 0A 1A 0A.
+- A fixture casi.png, holding only the six-byte prefix, is counted.
+- Mutation K23, which restores the six-byte check, turns red: 23 of 23 red with a clean baseline (evidence/lhb-73-mutations.out).
+- The suite is 328 pass, 0 fail, 1 skipped (evidence/lhb-73-tests.txt).
+
+Check that the P3 is closed and that the change introduces nothing new. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

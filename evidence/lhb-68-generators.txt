@@ -1,0 +1,20 @@
+== python tools/build_lugares.py
+guías 21
+páginas 41 lounges 28 venta 13
+rc 0
+== python tools/build_artesanos.py
+cigarros 48
+artesanos 32 sitemap urls 271
+rc 0
+== python tools/build_cigarros.py
+cigarros 48
+rc 0
+== python tools/build_guias.py
+guías 21
+rc 0
+== git status of site/ after the generators (generated pages, sitemap, robots)
+ M site/llms.txt
+changed generated files: 1
+== site/llms.txt: git diff with line endings normalized (empty means content identical; the generator writes LF, the tree keeps CRLF)
+warning: in the working copy of 'site/llms.txt', LF will be replaced by CRLF the next time Git touches it
+== restored with git checkout

@@ -1,0 +1,20 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-68-wt (branch facelift-f1c, cut from facelift; all staged, nothing merged to main). The diff below is origin/facelift..HEAD: only this ticket. This is round 3 of a TIER 2 review.
+
+Ticket LHB-68 (M7-F1c): the static pages (site/lugares/l.css, shared by every lugares, artesanos, cigarros and guias page, their /en/ copies, privacidad.html and 404.html) and the public passport (site/u.css, served by functions/u/[handle].js) on the app's light tokens. Pinned: the same brand as the app; tokens ported from site/styles.css :root; generated pages regenerated, never hand-edited, with JSON-LD, URLs and sitemap byte-identical; the privacy text is not edited.
+
+Round 1 found that the passport CSP blocked the new fonts. Fixed with font-src 'self' (round 2 concurred: evidence/lhb-68-review-r2.txt).
+
+Round 2 found one blocker: l.css and u.css keep their URLs, and the service worker serves static files cache first, so a returning user with the installed worker kept the old dark stylesheets, because the worker's VERSION (lhb-v91) did not change.
+
+The fix in this round (commit 653e2d8):
+- site/sw.js: VERSION goes from lhb-v91 to lhb-v92. The existing activate handler deletes every cache except VERSION and vb-tiles, so the old copies of l.css and u.css are dropped and the next request goes to the network. The 21 test pins of the version string move from lhb-v91 to lhb-v92, as every earlier version bump did.
+- New test "LHB-68 (Codex ronda 2)": runs the real sw.js in a vm with an lhb-v91 cache that holds dark copies of /lugares/l.css and /u.css. It asserts:
+  - VERSION is not lhb-v91, the last cache that stored the dark styles;
+  - activate deletes the lhb-v91 cache and keeps vb-tiles;
+  - a fetch of either stylesheet then goes to the network and returns the new copy.
+- evidence/lhb-68-mutations-r2fix.out: two new mutations, both red. G13 puts the version back to lhb-v91. G14 makes activate keep the old caches. RESULT 14 of 14 red.
+- evidence/lhb-68-tests-r2fix.txt: full suite, 316 pass, 0 fail, 1 skipped.
+
+Note for context: a later ticket on the same staged stack (LHB-67) also edits sw.js and will bump the version again when it is merged on top; that is not part of this diff.
+
+Check that the bump reaches every cached copy a returning user could hold (for example /lugares/l.css requested with a query string, or the en/ pages' relative paths to l.css), that the new test exercises the real activate and fetch handlers, and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

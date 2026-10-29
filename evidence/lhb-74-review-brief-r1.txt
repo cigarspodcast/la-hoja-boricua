@@ -1,0 +1,70 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket (base 2ff4293, the end of LHB-73). This is round 1 of a TIER 2 review.
+
+Ticket LHB-74 (M7-F5): passport color and the stamp celebration on the existing eight badges. Scope: site/hoja.js (passport and badge rendering only), site/styles.css, site/i18n.js, site/sw.js, test/site.test.js, evidence/.
+
+Contract impact: none. The Mi Hoja document format and the sync merge are untouched. The celebration is derived from a stamp that was just added; nothing new is stored. Whether a badge is public follows the profile visibility rules already built, and the profile endpoint must not be widened.
+
+Pinned decisions:
+- The built passport structure wins; the package supplies only the color treatment and the stamp celebration.
+- The celebration is static or a short animation that stops by itself, is fully skipped under reduced motion, and never blocks input.
+- No points, levels or counters are added (that is M7-F8).
+- Strings as es and en keys (none were needed: the toast and labels already exist).
+
+Proof asked for:
+- a test that the celebration is absent under prefers-reduced-motion and after one run, seen failing against a mutated source;
+- a test that the public profile response is byte-identical before and after (no new field), compared in the test itself;
+- screenshots at 390 px.
+
+What changed:
+- styles.css (tokens only):
+  - .pass-hero on var(--info), with text in var(--on-info) and the em underlined in var(--warn).
+  - Stamps and earned badges cycle by nth-child through four roles. Each role uses its -soft surface and -ink color:
+    - 1: info-ink on info-soft;
+    - 2 (4n+2): warm;
+    - 3 (4n+3): danger;
+    - 4 (4n): warn.
+  - Unstamped stamps keep a dashed border in the cycle ink. The check mark on a stamped stamp is var(--card) on the ink.
+  - The text stays: "Sellado el ..." and "Lograda".
+  - @keyframes lhb-stamp: .stamp.is-new::after, .stampbtn.is-new svg and .badge.is-new .bico animate once for 0.58 s. Under prefers-reduced-motion, animation is none.
+- hoja.js:
+  - celebrate(arg, on, badge, st, repaint) is called by the stamp handler after the toast. If the stamp was removed or reduced motion is on, nothing happens.
+  - On #/mihoja/pasaporte (which repaints 350 ms later through A.route), it sets CELEB = {arg, badge, at}. vPasaporte calls celebrated(), which takes CELEB once and ignores it when older than 2 s or under reduced motion. The stamp and badge it names get class is-new, and a 900 ms timer removes is-new.
+  - Elsewhere (a cigar page's stamp button, the route's town sheet) the tapped button gets is-new and loses it after 900 ms.
+  - Badges get data-badge="<id>".
+- sw.js: lhb-v100 to lhb-v101 (21 test pins).
+- Tests:
+  - PASS74 runs the real passport block of hoja.js in a vm with an injected clock and timers. It checks:
+    - once, then not on the next paint;
+    - the badge;
+    - reduced motion, on the passport and on a button;
+    - the button path and its removal;
+    - a removed stamp;
+    - expiry;
+    - the handler call;
+    - nothing saved;
+    - the CSS: one iteration, the reduced-motion rule, no pointer-events, infinite or position:fixed.
+  - A contrast test measures 22 pairs: ink on soft, card on ink, on-surface, on-surface-2 and muted on each soft, on-info on info, on-warn on warn.
+  - The public-profile test runs /api/u/ana and /u/ana in real SQLite, for a person whose stamps earn four badges. It pins sha256 and length to the output captured at 2ff4293 before any change (evidence/m7-f5/public-profile-gold.txt).
+  - The LHB-48 action harness gains a celebrate stub.
+
+Evidence:
+- evidence/lhb-74-tests.txt: 331 pass, 0 fail, 1 skipped.
+- evidence/lhb-74-mutations.out: 14 of 14 red with a clean baseline, including a field added to the public profile object.
+- evidence/m7-f5/shoot74.out: real headless Chrome at 390 px against the local mock with a stand-in signed-in Clerk, 8 of 8 checks:
+  - the fifth cigar stamp and Catador celebrate;
+  - a tap at the celebrating stamp's center reaches it;
+  - lhb-stamp runs once;
+  - the class is gone after one run;
+  - reduced motion puts the stamp with no celebration.
+  Screenshots are in evidence/m7-f5/shots.
+
+Check in particular:
+- Can the celebration replay (a sync repaint through onApplied, the language switch re-rendering, Back to the passport within 2 s, a double tap that removes and re-adds), or survive reduced motion turned on mid-visit?
+- Can it block input, or cause layout shift?
+- Is every text pair in the new color rules at least 4.5:1, including any the contrast test does not measure (unstamped stamps, zone badges, the hero's ring)?
+- Is color the only signal anywhere?
+- Is the public-profile pin a real before/after comparison?
+- Does anything change what a viewer of another person's profile sees?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

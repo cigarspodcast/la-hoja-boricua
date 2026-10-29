@@ -1,0 +1,4 @@
+LHB-70 generator determinism, run 2026-10-29T14:03Z on ed652f9
+command: python tools/build_icons.py
+git status --porcelain of tracked files under site/ after the run (empty means byte-identical):
+END

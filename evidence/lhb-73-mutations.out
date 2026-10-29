@@ -1,0 +1,25 @@
+K1 the nature bed entry is removed                           rc 1 fail 3 -> RED
+K2 one video has no credits                                  rc 1 fail 1 -> RED
+K3 the engine license is misstated                           rc 1 fail 2 -> RED
+K4 a credit loses its license link                           rc 1 fail 1 -> RED
+K5 Ver intro without intro=1                                 rc 1 fail 1 -> RED
+K6 About is not in the menu                                  rc 1 fail 3 -> RED
+K7 the credits page is not a detail of About                 rc 1 fail 1 -> RED
+K8 Ver intro offered with reduced motion                     rc 1 fail 1 -> RED
+K9 the bus credit drops the artist link                      rc 1 fail 1 -> RED
+K10 no endorsement note                                      rc 1 fail 2 -> RED
+K11 the credit claims the plate                              rc 1 fail 1 -> RED
+K12 Ver intro has no English value                           rc 1 fail 2 -> RED
+K14 (Codex r1) the census goes back to the byte regex        rc 1 fail 1 -> RED
+K15 (Codex r1) the box walker ignores 64-bit sizes           rc 1 fail 1 -> RED
+K16 (Codex r2) an unknown file counts as silent              rc 1 fail 1 -> RED
+K18 (Codex r2) compressed cmov is read as silent             rc 1 fail 1 -> RED
+K19 (Codex r2) ftyp must be the first box                    rc 1 fail 1 -> RED
+K20 (Codex r2) a track of another kind counts as silent      rc 1 fail 1 -> RED
+K21 (Codex r2) any binary file counts as silent              rc 1 fail 1 -> RED
+K22 (Codex r3) signatures before the MP4 reading, with TrueType and ICO rc 1 fail 1 -> RED
+K23 (Codex r4) PNG judged by six bytes                       rc 1 fail 1 -> RED
+K17 (Codex r1) the credits view drops the focus              rc 1 fail 1 -> RED
+K13 the back button goes elsewhere                           rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 6 fail 0
+RESULT 23 of 23 mutations red

@@ -1,0 +1,5 @@
+# LHB-75: branch previews (<branch>.la-hoja-boricua.pages.dev and <hash>.la-hoja-boricua.pages.dev) stay out of search engines.
+# Only those: a placeholder never crosses a dot, so lahojaboricua.com and la-hoja-boricua.pages.dev do not match this rule.
+# Pages already sends noindex on previews; this rule says it from the project too (and adds nofollow, which tells it apart).
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex, nofollow

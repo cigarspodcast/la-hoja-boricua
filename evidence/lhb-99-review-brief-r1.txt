@@ -1,0 +1,28 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket (base c1b7b99, the end of LHB-75). This is a TIER 1 review: one round.
+
+Ticket LHB-99, a follow-up of LHB-67: the color-literal scan in test/site.test.js (LIT67 and scan67) missed hsl(), uppercase RGB(), named colors and a partly encoded hex such as %23%31EA8D7. Scope: test/site.test.js (LIT67 and scan67) and evidence/lhb-67-mutations.py. Nothing else; no visual change.
+
+Pinned decisions:
+- Detect hsla?( and rgba?( case-insensitively.
+- Named colors only inside color-bearing CSS properties (color, background, fill, stroke, border, box-shadow) and style attributes, so plain words in strings are not false positives.
+- Decode percent-encoding before matching data URIs.
+
+What changed:
+- LIT67 is /(?:#|%23)[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\(/gi.
+- dec99 decodes every %xx in the file text (after comments are blanked) and keeps a map from decoded index to original index; scan67 matches on the decoded text and maps each hit back, so ALLOW67 spans, counts and mirror checks still run on the original text.
+- named99: after PROP99 (a color-bearing property name followed by : or =, preceded by start, ; { space quote backtick . ( or ,), the value up to ; } a quote < > or a newline is searched for one of the 148 CSS named colors as a whole word. Inside ${...} (found by brace counting from the value) identifiers do not count, but a quoted name does.
+- The LHB-67 test adds nine probes that must each be seen once and four that must be seen zero times.
+- evidence/lhb-67-mutations.py adds nine source mutations, one per syntax, and a record of the same nine against the old test file.
+
+Evidence:
+- evidence/lhb-67-mutations.out: 27 of 27 red; before LHB-99, 8 of the 9 new ones survived (H25 was red there through a different pin).
+- evidence/lhb-99-tests.txt: 332 pass, 0 fail, 1 skipped.
+
+Check in particular:
+- Can a color literal still pass the scan (a named color in a property PROP99 does not list, such as stop-color or a CSS custom property set in a rule outside :root, a value split across a quote, an uppercase or mixed-case name, hwb() lab() lch() oklch() color(), a hex written with an HTML entity)? Say which of these you consider in the ticket's scope.
+- Can decoding create a false hit, or move an index so an ALLOW67 span no longer covers its hit, or double count?
+- False positives a future edit would hit (words in strings, token names, identifiers).
+- Is each mutation a real test of the syntax it names?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

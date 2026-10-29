@@ -1,0 +1,23 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 4 of a TIER 2 review of LHB-74 (M7-F5: passport color and the stamp celebration). Earlier briefs and your reviews are evidence/lhb-74-review-brief-r1.txt to -r3.txt and evidence/lhb-74-review-r1.txt to -r3.txt. The diff below is the whole ticket (base 2ff4293). The same branch also carries LHB-75 (site/_headers and one LHB-75 test at the end of test/site.test.js); that is a separate ticket, outside this review.
+
+Round 3 verdict: BLOCK, one P2. Records were deduplicated only by stamp argument, so two records from different stamps could own the same [data-badge] element. In your case, c4 earned Catador, c0 was removed (Catador lost), and c5 earned it again. The old record then marked the new celebration with its own clock (-800ms) and its cleanup removed the new one.
+
+What changed (site/hoja.js celebrate and celMark):
+- One owner per element: add() first drops any live record with the same selector (celDrop removes its class and its timers become no-ops), then adds the new record. So a badge earned again by another stamp is a new celebration, with its own start and its own cleanup.
+- Only a ready element is ever marked: celMark checks c.ready(e) for every element, not only to start the record. A badge that was lost (no class on) or a stamp that was removed (aria-pressed false) is never marked, even while its record is live.
+
+Tests:
+- Your scenario is added, through ACTIONS.stamp and the real renderer:
+  - c4 at 0 ms (Catador starts at 350 ms);
+  - c0 removed at 400 ms: at 750 ms Catador is not marked;
+  - c5 at 800 ms: at 1150 ms Catador is marked 0ms;
+  - at 1250 ms the old cleanup does not remove it;
+  - at 2050 ms everything is clear and the observer is disconnected.
+- Mutations L20 (no per-selector ownership) and L21 (marking without ready) are added and turn red; evidence/lhb-74-mutations.out has the whole run.
+- site/sw.js goes from lhb-v103 to lhb-v104 (21 pins), because the preview served v103 with the round 2 hoja.js.
+
+Your other round 3 notes, not changed:
+- Observation can last up to about 2.9 s (a badge starting just before its 2 s expiry, plus 900 ms).
+- A record survives a mid-visit switch to reduced motion until its cleanup; the CSS rule stops the animation meanwhile.
+
+Check that the finding is closed, and look again for any way two celebrations can share an element, replay, leak, or touch another stamp's element. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

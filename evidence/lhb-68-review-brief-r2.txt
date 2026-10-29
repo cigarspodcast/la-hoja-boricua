@@ -1,0 +1,15 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-68-wt (branch facelift-f1c, cut from facelift; all staged, nothing merged to main). The diff below is origin/facelift..HEAD: only this ticket. This is round 2 of a TIER 2 review.
+
+Ticket LHB-68 (M7-F1c): the static pages (site/lugares/l.css, shared by every lugares, artesanos, cigarros and guias page, their /en/ copies, privacidad.html and 404.html) and the public passport (site/u.css, served by functions/u/[handle].js) on the app's light tokens. Pinned: the same brand as the app; tokens ported from site/styles.css :root; generated pages regenerated, never hand-edited, with JSON-LD, URLs and sitemap byte-identical; the privacy text is not edited.
+
+Round 1 (evidence/lhb-68-review-r1.txt) found one blocker: the passport response's CSP was default-src 'none' with no font-src, so the new @font-face files in u.css could not load on /u/<handle>.
+
+The fix in this round:
+- functions/u/[handle].js HEADERS: the CSP now carries font-src 'self'. Nothing else in the policy changed (still no script-src; default-src 'none', style-src 'self', img-src 'self' https://img.clerk.com, base-uri, form-action, frame-ancestors unchanged).
+- test "LHB-68 (Codex ronda 1): la política del pasaporte /u/ deja cargar lo que u.css pide": reads the CSP string from the source, resolves each directive with default-src as the fallback, and asserts style-src allows 'self', every @font-face url in u.css is allowed by font-src, and any other url() in u.css is allowed by img-src.
+- evidence/lhb-68-mutations-r1fix.out: mutation G12 (remove font-src 'self') turns it red; RESULT 12 of 12 red.
+- evidence/lhb-68-tests-r1fix.txt: the full suite, 315 pass, 0 fail, 1 skipped.
+
+The static pages under l.css are served by Pages with no CSP header (there is no site/_headers), so their fonts are not blocked; check that claim too.
+
+Check that the fix is complete (any other response serving u.css or l.css with a CSP, the older LHB-40 CSP test still passing), that it does not widen the policy beyond fonts from the same origin, and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

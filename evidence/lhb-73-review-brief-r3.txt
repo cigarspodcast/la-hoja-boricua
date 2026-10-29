@@ -1,0 +1,23 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 3 of a TIER 2 review of LHB-73 (M7-F4b: About screen, intro credits page, Ver intro link). Earlier briefs and your reviews are evidence/lhb-73-review-brief-r1.txt, -r2.txt and evidence/lhb-73-review-r1.txt, -r2.txt. The diff below is the whole ticket (base 73ddbbe); the round 2 fix is commit 78624d9 and touches only test/site.test.js and evidence (site files are as in round 2).
+
+Round 2 verdict: BLOCK, two P2 findings on the same gate (the sound census in test/site.test.js): a moov compressed in cmov read as silent, and a file whose ftyp is not the first box was not checked at all. The census was turned around so that silence must be proven:
+- KIND73(buffer) returns silent only for:
+  - an image or font by its signature: PNG, JPEG, GIF, RIFF WEBP, wOFF, wOF2, OTTO, TrueType 00010000, ICO 00000100;
+  - UTF-8 text with no NUL byte in the first 4096 bytes (SVG, JSON, CSS);
+  - what SOUND73 calls silent.
+  Anything else goes to SOUND73, and AUDIO73 counts every file that is not silent, whatever its name.
+- SOUND73 reads the top-level boxes in any order (each type must be four printable ASCII bytes; sizes are 32-bit, 64-bit or to the end; a box must fit its parent). It needs an ftyp somewhere. Its results:
+  - silent: an AVIF or HEIF brand (avif, heic, heix, mif1) with no moov;
+  - unknown: no ftyp, any other file without a moov, more than one moov, a cmov in moov, no trak, a trak without mdia or hdlr, or a handler other than soun, vide, pict or auxv;
+  - sound: any soun track;
+  - silent: when every track is vide, pict or auxv.
+- Fixtures in a temporary folder:
+  - counted: a 64-bit-box MP4, a 3GP, an uppercase .MP4, a cut MOV, a cmov MOV with a video track beside the cmov, a free box before ftyp renamed .dat, an MP4 with a tmcd track, a WAV named .dat, an Ogg named .bin, a zero-filled .mka;
+  - not counted: a video-only MP4, an AVIF, a PNG, a WebP, a WOFF2, an SVG, a JSON file and an empty file.
+  Separate SOUND73 cases cover each result.
+- Your two bypasses, rebuilt from the real landscape intro: evidence/lhb-73-codex-r2-repro.js. The round 1 census (c85336e) gives RESULT FAIL, missing both. The current census counts both; output in evidence/lhb-73-codex-r2-repro.out.
+- Mutations K16 and K18 to K21 add these cases: an unknown file counts as silent, cmov read as silent, ftyp must be first, another track kind counts as silent, and any binary counts as silent. The result is 21 of 21 red with a clean baseline (evidence/lhb-73-mutations.out). The suite has 328 pass, 0 fail, 1 skipped (evidence/lhb-73-tests.txt).
+
+Check that both findings are closed and that the proven-silent rule cannot classify a file with sound as silent by any path (text detection on a binary audio file with no NUL in its first 4 KB, an image or font signature on a media file, an ISO file whose visual-only tracks hide sound elsewhere, such as an mdat with no trak, or a meta or udta box). Also check that the gate still lets the real assets through without false positives, and look at anything else in the full ticket diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. A finding that needs a deliberately forged file to defeat a test whose purpose is to catch an honest omission should say so plainly, and block only if a realistic asset could slip through. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

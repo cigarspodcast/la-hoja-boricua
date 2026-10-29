@@ -46,12 +46,12 @@ function cigarSVG(c){const [w1,w2]=CAPA_COLORS[capaKey(c.capa)];const ix=allCiga
  <path d="M60 140 C 140 134 260 146 345 138 M70 160 C 160 166 250 154 340 162" stroke="#000" stroke-opacity=".14" stroke-width="2" fill="none"/>
  <circle cx="352" cy="151" r="20" fill="${w2}"/><circle cx="356" cy="151" r="15" fill="#3a2214" opacity=".35"/>
  <rect x="248" y="124" width="46" height="54" rx="5" fill="#ed0000"/><rect x="248" y="141" width="46" height="20" fill="#f4e9d6"/>
- <path d="${starPath(271,151,9)}" fill="#0050f0"/></g></svg>`}
-const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0'];
+ <path d="${starPath(271,151,9)}" fill="#1EA8D7"/></g></svg>`}
+const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7'];
 function initials(n){const ov=(D.artesanos||[]).find(x=>x.nombre===n&&x.iniciales);if(ov)return ov.iniciales;const f=String(n).trim().split(/\s+/)[0].replace(/[^A-Z]/g,'');if(f.length>=2&&f.length<=4&&f===String(n).trim().split(/\s+/)[0].replace(/[.,]/g,''))return f;return String(n).replace(/[^\p{L}\p{N} ]/gu,' ').split(/\s+/).filter(w=>w&&!/^(de|del|la|las|los|el|y|cigar|cigars|cigarros|tabacalera|corp)$/i.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'VB'}
 const LOGOS=new Set(["jfc-hoja-boricua", "don-rey-cigar", "el-club-del-turro", "don-collins", "finca-neo-jibairo", "willys-cigars", "san-pedrito-cigars", "yambo-cigars", "el-chapu-pr", "el-buho-ricamontes", "cohoba-cigars", "cigarros-caimito", "tabacalera-la-trascendencia", "pitirre-cigars", "villareno-cigars"]);
 function logoId(n){const a=(D.artesanos||[]).find(x=>x.nombre===n);return a&&LOGOS.has(a.id)?a.id:null}
-function mono(name,size){const lid=logoId(name);if(lid)return `<span class="mono has-logo" style="width:${size}px;height:${size}px"><img src="img/logos/${lid}.webp" width="${size}" height="${size}" alt="" ${size>80?'':'loading="lazy" '}decoding="async"></span>`;const bg=FACADE[hash(name)%FACADE.length];return `<span class="mono" style="width:${size}px;height:${size}px;background:${bg};font-size:${Math.round(size*.38)}px"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8 C 72 22 78 46 70 66 C 64 80 56 88 50 90 C 44 88 36 80 30 66 C 22 46 28 22 50 8Z" fill="#fff" opacity=".22"/></svg><b>${esc(initials(name))}</b></span>`}
+function mono(name,size){const lid=logoId(name);if(lid)return `<span class="mono has-logo" style="width:${size}px;height:${size}px"><img src="img/logos/${lid}.webp" width="${size}" height="${size}" alt="" ${size>80?'':'loading="lazy" '}decoding="async"></span>`;const bg=FACADE[hash(name)%FACADE.length],red=/^#ed0000$/i.test(bg);return `<span class="mono" style="width:${size}px;height:${size}px;background:${bg};color:${red?'var(--on-danger)':'var(--on-surface)'};font-size:${Math.round(size*.38)}px"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8 C 72 22 78 46 70 66 C 64 80 56 88 50 90 C 44 88 36 80 30 66 C 22 46 28 22 50 8Z" fill="${red?'#000':'#fff'}" opacity="${red?'.12':'.22'}"/></svg><b>${esc(initials(name))}</b></span>`}
 const FACADES_BAR=`<div class="facades" aria-hidden="true">${FACADE.map(c=>`<i style="background:${c}"></i>`).join('')}</div>`;
 const ICON={yt:'<svg viewBox="0 0 24 24"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg>',ig:'<svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zM17.3 5.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM12 2c-2.7 0-3 0-4.1.1C4.3 2.3 2.3 4.3 2.1 7.9 2 9 2 9.3 2 12s0 3 .1 4.1c.2 3.6 2.2 5.6 5.8 5.8 1.1.1 1.4.1 4.1.1s3 0 4.1-.1c3.6-.2 5.6-2.2 5.8-5.8.1-1.1.1-1.4.1-4.1s0-3-.1-4.1c-.2-3.6-2.2-5.6-5.8-5.8C15 2 14.7 2 12 2z"/></svg>',
  wa:'<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 2 1.1 1 2 1.3 2.3 1.4.3.2.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.1z"/></svg>',
@@ -84,10 +84,37 @@ function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" h
 const RS=(()=>{let e=$('#resultStatus');if(!e){e=document.createElement('div');e.id='resultStatus';e.className='sr';e.setAttribute('role','status');e.setAttribute('aria-live','polite');e.setAttribute('aria-atomic','true');document.body.appendChild(e)}return e})();
 const resultStatus=t=>{if(RS.textContent!==t)RS.textContent=t};
 const state={q:'',capa:'',fort:'',art:'',lugMode:'mapa',lugCat:'',lugTown:''};
+/* LHB-71: los íconos del menú y de la portada, uno por destino (trazo, toman el color del texto) */
+const BRAND_ICONS={cigar:'<path d="m4 16 12-9 4 5-12 9zM13 9l4 5M5 4c0 2 3 2 3 4M11 2c0 2 3 2 3 4"/>',
+ maker:'<path d="M5 21v-7l3-4 3 1 3-3 4 2 1 4v7M7 16l4 2 5-4M11 18v3"/><circle cx="9" cy="4" r="3"/>',
+ place:'<path d="M19 10c0 6-7 11-7 11S5 16 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+ leaf:'<path d="M5 19C0 8 9 3 21 3c1 11-4 18-14 17M3 22 17 7M8 17l-2-5M12 12l5 1"/>',
+ pen:'<path d="m4 20 1-5L16 4l4 4L9 19ZM14 6l4 4"/>',
+ people:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
+ taste:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/>',
+ coffee:'<path d="M4 9h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5ZM16 10h2a3 3 0 0 1 0 6h-2M3 22h15M7 2v3M12 2v3"/>',
+ upload:'<rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7l2-3h4l2 3"/><circle cx="12" cy="14" r="4"/>',
+ event:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 2v6M16 2v6M4 10h16M8 14h2M14 14h2M8 17h2"/>',
+ podcast:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/>',
+ search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+ install:'<path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5"/>',
+ arrow:'<path d="M5 12h14m-5-5 5 5-5 5"/>',
+ info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+ play:'<path d="M8 5v14l11-7Z"/>'};
+const brandIcon=(n,cls='')=>`<svg class="brand-icon ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${BRAND_ICONS[n]||BRAND_ICONS.leaf}</svg>`;
+/* LHB-71: los tres caminos de la portada; Cigarros baja hasta la lista sin mover el foco (no abre el teclado) */
+const homePaths=()=>`<nav class="home-paths" aria-label="${tt('home.paths')}">${[['#/catalogo','cigar','menu.cigarros','menu.cigarrosSub',' data-catalog-start'],['#/artesanos','maker','menu.artesanos','menu.artesanosSub',''],['#/lugares','place','menu.lugares','menu.lugaresSub','']].map(([h,i,t,s,x])=>`<a href="${h}"${x}><span class="path-ico">${brandIcon(i)}</span><span class="path-copy"><b>${tt(t)}</b><small>${tt(s)}</small></span></a>`).join('')}</nav>`;
+function catalogStart(e){if(e.defaultPrevented||e.button>0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;const a=e.target&&e.target.closest&&e.target.closest('[data-catalog-start]');if(!a)return;const h=$('#catalogStart');if(!h)return;e.preventDefault();h.scrollIntoView({block:'start',behavior:REDUCED_ALL?'auto':'smooth'})}
+document.addEventListener('click',catalogStart);
+/* LHB-71: la portada se decide una vez por carga: escribir en el buscador o tocar un filtro repinta, y no puede cambiar la portada a mitad de la visita */
+let homeCompact=null;
 function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.capa).filter(Boolean))].sort();const capaLbl=new Map();for(const c of cs)if(c.capa&&(!capaLbl.has(c.capa)||capaLbl.get(c.capa)===c.capa))capaLbl.set(c.capa,fx(c,'capa'));
  const q=state.q.toLowerCase();const list=cs.filter(c=>(!q||[c.nombre,artisanName(c),c.pueblo,fq(c,'capa'),fq(c,'notas')].join(' ').toLowerCase().includes(q))&&(!state.capa||c.capa===state.capa)&&(!state.fort||c.fortaleza===state.fort)&&(!state.art||c.artesano_id===state.art));
- view.innerHTML=`<section class="hero">${FACADES_BAR}<img class="hero-bg" src="img/hero/banner.webp" alt="" width="760" height="422" decoding="async"><div class="eyebrow">${tt('cat.eyebrow')}</div><h1>${tt('cat.title')}</h1><p>${tt('cat.lead')}</p></section><button type="button" class="btn-add" id="btnAdd"${installHidden(window)?' hidden':''}>${tt('cat.install')}</button>
- <nav class="tiles" aria-label="${tt('cat.explore')}"><a href="#/cata">${VBArt.leaf('#8fd162')}<b>${tt('tile.cata')}</b><small>${tt('tile.cataSub')}</small></a><a href="#/maridajes">${VBArt.leaf('#ffd27a')}<b>${tt('tile.mar')}</b><small>${tt('tile.marSub')}</small></a><a href="#/eventos">${VBArt.leaf('#ff8a80')}<b>${tt('tile.ev')}</b><small>${tt('tile.evSub')}</small></a><a href="#/podcast">${VBArt.leaf('#8fb8ff')}<b>Podcast</b><small>Cigars Podcast</small></a></nav>
+ /* LHB-71: quien ya vino ve la portada compacta: la presentación sin foto ni párrafo y sin los cuadros, para llegar a la lista */
+ if(homeCompact===null){homeCompact=!!LS.get('homeSeen',false);try{LS.set('homeSeen',true)}catch(e){}}const compact=homeCompact;
+ view.innerHTML=`<section class="hero${compact?' compact':''}">${FACADES_BAR}<img class="hero-bg" src="img/hero/banner.webp" alt="" width="760" height="422" decoding="async"><div class="eyebrow">${tt('cat.eyebrow')}</div><h1>${tt('cat.title')}</h1><p>${tt('cat.lead')}</p></section><button type="button" class="btn-add" id="btnAdd"${installHidden(window)?' hidden':''}>${tt('cat.install')}</button>
+ ${homePaths()}${compact?'':`<nav class="tiles" aria-label="${tt('cat.explore')}"><a href="#/cata">${VBArt.leaf('#8fd162')}<b>${tt('tile.cata')}</b><small>${tt('tile.cataSub')}</small></a><a href="#/maridajes">${VBArt.leaf('#ffd27a')}<b>${tt('tile.mar')}</b><small>${tt('tile.marSub')}</small></a><a href="#/eventos">${VBArt.leaf('#ff8a80')}<b>${tt('tile.ev')}</b><small>${tt('tile.evSub')}</small></a><a href="#/podcast">${VBArt.leaf('#8fb8ff')}<b>Podcast</b><small>Cigars Podcast</small></a></nav>`}
+ <h2 class="cat-h" id="catalogStart">${tt('menu.cigarros')}</h2>
  <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr">${tt('cat.search')}</span><input id="q" type="search" placeholder="${tt('cat.searchPh')}" value="${esc(state.q)}" autocomplete="off"></label>
  <div class="chips" role="group" aria-label="${tt('f.fortaleza')}"><button class="chip" data-fort="" aria-pressed="${!state.fort}">${tt('cat.allFort')}</button>${FORT.map(f=>`<button class="chip" data-fort="${f}" aria-pressed="${state.fort===f}">${fortLabel(f)}</button>`).join('')}</div>
  <div class="filter-row"><select id="fCapa" aria-label="${tt('f.capa')}"><option value="">${tt('cat.allCapa')}</option>${capas.map(x=>`<option value="${esc(x)}" ${state.capa===x?'selected':''}>${esc(capaLbl.get(x))}</option>`).join('')}</select>
@@ -161,7 +188,7 @@ function vSubir(){pendingPhoto=null;let fort='';
   const artSel=$('#uArt').value;const item={id,nombre:name,artesano_id:artSel&&artSel!=='__otro'?artSel:'',artesano_texto:artSel==='__otro'?$('#uArtTxt').value.trim():'',capa:$('#uCapa').value.trim(),fortaleza:fort||null,pueblo:$('#uPueblo').value.trim(),vitolas:$('#uVit').value.trim()?[$('#uVit').value.trim()]:[],notas:$('#uNotes').value.trim(),foto,creado:new Date().toISOString()};
   LS.set('uploads',[item,...uploads()]);toast(tt('up.saved'));location.hash='#/c/'+id}}
 /* ---------- lugares ---------- */
-let leafletMap=null;const LEAFC={lounge:'#ed2a2a',venta:'#7fae55'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let leafletMap=null;const LEAFC={lounge:'var(--danger)',venta:'var(--info)'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* LHB-87: pines que se tapan se juntan en un grupo (axe target-size). Entra [{x,y,m}] en píxeles del mapa; sale [{x,y,ms}].
    Un pin solo ocupa 26 x 34 con la punta abajo; un grupo, un círculo de 36; dos cajas a menos de 2 px se juntan, hasta que ninguna toca a otra. */
 const pinBox=(x,y,n)=>n>1?[x-18,y-18,x+18,y+18]:[x-13,y-32,x+13,y+2];
@@ -268,7 +295,7 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
  <div class="field"><label for="pC">${tt('pf.favCapa')}</label><select id="pC"><option value="">\u2014</option>${['Claro','Connecticut','Natural','Colorado','Habano','Corojo','Criollo','Maduro','Oscuro'].map(x=>`<option ${p.capa===x?'selected':''}>${x}</option>`).join('')}</select></div>
  <button class="btn" type="submit">${tt('pf.save')}</button></form></details>
  <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
- <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--gold);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
+ <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--accent-ink);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
  ${EXT.accountPanel()}<p class="note">${tt('pf.note')}</p>`;
  if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));EXT.bindAccount();
  /* LHB-58: el perfil pasaporte primero (bio, marca, conteos, Editar perfil y las pestañas) lo pone hoja.js en #pfOwn */
@@ -277,13 +304,68 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
 /* sin una cuenta guardada el círculo es la estrella: la foto y el nombre locales son de todo el teléfono, y a quien acaba de entrar con otra cuenta no se le muestra la foto de otra persona */
 function topAvatar(){const el=$('#topAvatar');if(!el)return;const a=acctNow();if(a)paintAvatar(el,a,'');else el.innerHTML='<span>\u2606</span>'}
 /* ---------- v6: Mi Hoja y demás (hoja.js) ---------- */
-const EXT=window.LHB_EXT({topAvatar,$,$$,esc,toast,view,VBArt,LS,D:()=>D,allCigars,artisanById,cigarById,artisanName,fx,fq,cigarSVG,mono,linkBtn,ICON,FORT,fortLabel,PROTO_NOTE,head,cigarCard,goLink,evDate,route:()=>route(),vPerfil,resizeImage,hydrate:r=>hydratePhotos(r||view)});
+const EXT=window.LHB_EXT({topAvatar,$,$$,esc,toast,view,VBArt,LS,D:()=>D,allCigars,artisanById,cigarById,artisanName,fx,fq,cigarSVG,mono,linkBtn,ICON,FORT,fortLabel,PROTO_NOTE,head,cigarCard,goLink,evDate,route:()=>route(),menuHTML:h=>menuHTML(h),vPerfil,resizeImage,hydrate:r=>hydratePhotos(r||view)});
+/* LHB-73: Acerca de y los créditos de la intro. CREDITS dice qué sonido con licencia lleva cada archivo de site/assets; la prueba
+   recorre site/assets y no deja pasar un archivo con sonido sin sus créditos. Las licencias se comprobaron en su página el 2026-10-29. */
+const CREDITS={audio:[
+ {id:'motor',part:()=>tt('cred.motor'),title:'Volkswagen Type 2_revving up2.wav',author:'nhaudio',href:'https://freesound.org/people/nhaudio/sounds/332695/',license:'CC BY 4.0',licenseHref:'https://creativecommons.org/licenses/by/4.0/',changes:()=>tt('cred.motorChanges')},
+ {id:'selva',part:()=>tt('cred.selva'),title:'Jungle, Tropical birds and insects',author:'myrinvp',href:'https://freesound.org/people/myrinvp/sounds/423711/',license:'CC0 1.0',licenseHref:'https://creativecommons.org/publicdomain/zero/1.0/',changes:()=>tt('cred.selvaChanges')}],
+ files:{'assets/intro/intro-portrait.mp4':['motor','selva'],'assets/intro/intro-landscape.mp4':['motor','selva']}};
+const ext=(href,txt)=>`<a href="${href}" target="_blank" rel="noopener">${txt}</a>`;
+/* el enlace que se tocó desaparece al pintar: el foco pasa a la vista, no se pierde en la página (Codex ronda 1) */
+const keepFocus=()=>{const a=document.activeElement;if(!a||a===document.body||!a.isConnected)view.focus({preventScroll:true})};
+/* Ver intro: ?intro=1 la repite una vez aunque no hayan pasado los 14 días, y vuelve aquí; con menos movimiento o ahorro de datos la intro no sale, así que no se ofrece (se mira al pintar: el ajuste puede cambiar sin recargar) */
+function vAcerca(){const off=matchMedia('(prefers-reduced-motion: reduce)').matches||!!(navigator.connection&&navigator.connection.saveData);
+ view.innerHTML=`${head(tt('about.eyebrow'),tt('about.title'),tt('about.lead'),VBArt.leaf('#ffd27a'))}
+ <section class="about-sec" aria-labelledby="ab-intro"><h2 id="ab-intro">${tt('about.introH')}</h2>${off?`<p class="hint">${tt('about.introOff')}</p>`:`<p class="hint">${tt('about.replayNote')}</p><a class="lbtn about-replay" href="/?intro=1#/acerca" data-intro-replay>${brandIcon('play')}<span>${tt('about.replay')}</span></a>`}</section>
+ <section class="about-sec" aria-labelledby="ab-more"><h2 id="ab-more">${tt('about.moreH')}</h2>
+ <a class="menu-dest" href="#/creditos"><span class="menu-ico">${brandIcon('info')}</span><span class="menu-copy"><b>${tt('about.credits')}</b><small>${tt('about.creditsSub')}</small></span>${brandIcon('arrow','menu-go')}</a>
+ <a class="menu-dest" href="/privacidad"><span class="menu-ico">${brandIcon('people')}</span><span class="menu-copy"><b>${tt('about.privacy')}</b><small>${tt('about.privacySub')}</small></span>${brandIcon('arrow','menu-go')}</a></section>`;keepFocus()}
+function vCreditos(){
+ view.innerHTML=`<button class="back" type="button" data-back>${tt('cred.back')}</button>${head(tt('about.eyebrow'),tt('cred.title'),tt('cred.lead'),VBArt.leaf('#8fd162'))}
+ <section class="about-sec" aria-labelledby="cr-bus"><h2 id="cr-bus">${tt('cred.busH')}</h2><p class="cred-p">${tt('cred.bus')} ${ext('https://callepomarrosas.com/',tt('intro.creditName'))}.</p></section>
+ <section class="about-sec" aria-labelledby="cr-sound"><h2 id="cr-sound">${tt('cred.soundH')}</h2><p class="hint">${tt('cred.soundLead')}</p>
+ <ul class="cred-list">${CREDITS.audio.map(c=>`<li class="cred-item" data-credit="${c.id}"><b>${c.part()}</b><span>${ext(c.href,esc(c.title))} ${tt('cred.by')} ${esc(c.author)}</span><span>${tt('cred.license')}: ${ext(c.licenseHref,esc(c.license))}</span><span>${tt('cred.changes')}: ${c.changes()}</span></li>`).join('')}</ul>
+ <p class="hint">${tt('cred.breeze')}</p></section><p class="hint cred-endorse">${tt('cred.endorse')}</p>`;
+ $('[data-back]').onclick=()=>{location.hash='#/acerca'};keepFocus()}
+/* LHB-73: fin */
 /* ---------- router ---------- */
+/* LHB-71: la tabla de rutas. El enrutador y el menú salen de aquí, así que una ruta nueva no se queda fuera del menú.
+   menu: [grupo, ícono, clave del nombre, clave de la línea, subruta]; of: la ruta de la que es detalle o alias (sale en el menú por ella) */
+const MENU_GROUPS=[['descubre',()=>tt('menu.g.descubre')],['experiencia',()=>tt('menu.g.experiencia')],['comunidad',()=>tt('menu.g.comunidad')],['app',()=>tt('menu.g.app')]];
+const ROUTES=[
+ {r:'catalogo',go:()=>vCatalogo(),menu:[['descubre','cigar','menu.cigarros','menu.cigarrosSub']]},
+ {r:'c',go:id=>vCigar(id),of:'catalogo'},
+ {r:'lugares',go:id=>vLugares(id),menu:[['descubre','place','menu.lugares','menu.lugaresSub']]},
+ {r:'artesanos',go:()=>vArtesanos(),menu:[['descubre','maker','menu.artesanos','menu.artesanosSub']]},
+ {r:'a',go:id=>vArtesano(id),of:'artesanos'},
+ {r:'mihoja',go:id=>EXT.routes.mihoja(id),menu:[['experiencia','leaf','menu.mihoja','menu.mihojaSub'],['experiencia','pen','menu.editar','menu.editarSub','editar'],['comunidad','people','menu.personas','menu.personasSub','personas']]},
+ {r:'perfil',go:()=>EXT.routes.mihoja('perfil'),of:'mihoja'},
+ {r:'u',go:id=>EXT.routes.persona(id),of:'mihoja'},
+ {r:'cata',go:id=>EXT.routes.cata(id),menu:[['experiencia','taste','menu.cata','menu.cataSub']]},
+ {r:'maridajes',go:()=>EXT.routes.maridajes(),menu:[['experiencia','coffee','menu.maridajes','menu.maridajesSub']]},
+ {r:'subir',go:()=>EXT.requireAccount(vSubir,{fast:true}),menu:[['experiencia','upload','menu.subir','menu.subirSub']]},
+ {r:'eventos',go:id=>EXT.routes.eventos(id),menu:[['comunidad','event','menu.eventos','menu.eventosSub']]},
+ {r:'actividades',go:id=>EXT.routes.eventos(id),of:'eventos'},
+ {r:'podcast',go:()=>EXT.routes.podcast(),menu:[['comunidad','podcast','menu.podcast','menu.podcastSub']]},
+ {r:'buscar',go:()=>EXT.routes.buscar(),menu:[['app','search','menu.buscar','menu.buscarSub']]},
+ {r:'acerca',go:()=>vAcerca(),menu:[['app','info','menu.acerca','menu.acercaSub']]},
+ {r:'creditos',go:()=>vCreditos(),of:'acerca'},
+];
+const ROUTE_OF=Object.fromEntries(ROUTES.map(x=>[x.r,x]));
+/* el menú: los grupos en su orden, cada destino con su ícono, y la página en la que está marcada (aria-current y «Aquí») */
+function menuHTML(hash){const [r0,a0]=String(hash==null?location.hash:hash).replace(/^#\/?/,'').split('/');let arg0=a0||'';try{arg0=decodeURIComponent(arg0)}catch(e){}
+ const r=ROUTE_OF[r0]?r0:'catalogo',x=ROUTE_OF[r],home=x&&x.of?x.of:r;
+ const ipad=/ipad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),ia=ipad?'ipad':/iphone|ipod/i.test(navigator.userAgent)?'ios':'';
+ const rows=g=>ROUTES.flatMap(x=>(x.menu||[]).filter(m=>m[0]===g).map(m=>{const sub=m[4]||'',href='#/'+x.r+(sub?'/'+sub:''),subs=(x.menu||[]).map(n=>n[4]).filter(Boolean);
+   const cur=home===x.r&&(sub?r===x.r&&arg0===sub:!(r===x.r&&subs.includes(arg0)));
+   return `<a class="menu-dest" href="${href}"${cur?' aria-current="page"':''}><span class="menu-ico">${brandIcon(m[1])}</span><span class="menu-copy"><b>${tt(m[2])}</b><small>${tt(m[3])}</small></span>${cur?`<span class="menu-here">${tt('menu.aqui')}</span>`:brandIcon('arrow','menu-go')}</a>`}));
+ const extra={app:[`<button type="button" class="menu-dest" data-sheet="instalar" data-arg="${ia}"><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`]};
+ return `<header class="menu-welcome"><div class="eyebrow">${tt('menu.welcome')}</div><h2 class="sheet-h">${tt('menu.title')}</h2></header><nav class="menu-groups" aria-label="${tt('h.menu')}">${MENU_GROUPS.map(([g,label])=>`<section aria-labelledby="mg-${g}"><h3 id="mg-${g}">${label()}</h3>${rows(g).join('')}${(extra[g]||[]).join('')}</section>`).join('')}</nav>`}
 function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');let id='';if(arg){try{id=decodeURIComponent(arg)}catch(e){id=arg}}
  const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',u:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});
  if(leafletMap&&r!=='lugares'){leafletMap.remove();leafletMap=null}
- const R=EXT.routes;
- ({catalogo:vCatalogo,c:()=>vCigar(id),artesanos:vArtesanos,a:()=>vArtesano(id),subir:()=>EXT.requireAccount(vSubir,{fast:true}),lugares:()=>vLugares(id),actividades:()=>R.eventos(id),eventos:()=>R.eventos(id),perfil:()=>R.mihoja('perfil'),u:()=>R.persona(id),mihoja:()=>R.mihoja(id),cata:()=>R.cata(id),maridajes:R.maridajes,podcast:R.podcast,buscar:R.buscar}[r]||vCatalogo)();
+ (ROUTE_OF[r]||ROUTE_OF.catalogo).go(id);
  if(r!==route._last){window.scrollTo(0,0)}route._last=h;
  /* LHB-100: pintó una vista; el guardián de index.html quita el aviso si estaba (también cuando una ruta posterior sí carga) */
  if(window.LHB_BOOT)window.LHB_BOOT.ok()}
@@ -299,40 +381,5 @@ document.addEventListener('click',async e=>{if(!e.target.closest('#btnAdd'))retu
  if(deferred){const d=deferred;deferred=null;d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted'){window.__lhbInstalled=true;syncInstall();toast(tt('inst.ok'))}return}
  EXT.openSheet('instalar',isIOS?(/ipad/i.test(navigator.userAgent)||navigator.platform==='MacIntel'?'ipad':'ios'):'')});
 if('serviceWorker' in navigator){const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.update&&r.update()).catch(()=>{}))}
-(function splash(){const sp=$('#splash');if(!sp)return;const fl=$('#splashFlor');if(fl&&window.VBArt)fl.innerHTML=VBArt.flor('sf');const seen=sessionStorage.getItem('vb_splash');
- let gone=false;const done=()=>{if(gone)return;gone=true;sp.classList.add('out');setTimeout(()=>sp.remove(),450)};if(seen){done();return}sessionStorage.setItem('vb_splash','1');
- sp.addEventListener('click',done);sp.addEventListener('touchstart',done,{passive:true});
- /* v9: guagua por capas (sombra, ruedas que giran, carrocería que rebota, luz del campo) */
- const VS='img/guagua/guagua_recorte.webp',car=$('#splashCar'),cz=$('#cz'),campo=$('#campo');
- car.innerHTML=`<i class="vsh"></i><i class="vsh2"></i><img class="van-i" src="${VS}" alt="" draggable="false"><span class="whl w1"><i></i></span><span class="whl w2"><i></i></span><div class="vb"><img class="van-i" src="${VS}" alt="" draggable="false"><i class="vlit"></i><i class="vhaze"></i></div>`;
- const PTS=[[0,1.16,.745,.4],[.18,.84,.755,.48],[.5,.52,.785,.66],[.78,.24,.815,.84],[1,-.34,.835,1.02]];
- const path=u=>{let i=1;while(i<PTS.length-1&&u>PTS[i][0])i++;const a=PTS[i-1],b=PTS[i],k=(u-a[0])/(b[0]-a[0]);return[1,2,3].map(j=>a[j]+(b[j]-a[j])*k)};
- const ease=u=>u*.65+u*u*(3-2*u)*.35;
- let W=campo.clientWidth,H=campo.clientHeight;const vw=()=>W*.46,vh=()=>W*.46/1.5;
- const at=u=>{const[cx,gy,s]=path(ease(u));return{cx:cx*W,gy:gy*H,s}};
- const tf=p=>`translate(${(p.cx-vw()/2).toFixed(1)}px,${(p.gy-vh()).toFixed(1)}px) scale(${p.s.toFixed(3)})`;
- const haze=car.querySelector('.vhaze');
- if(REDUCED_ALL){const p=at(.55);car.style.transform=tf(p);haze.style.opacity=.15;setTimeout(done,1500);return}
- const imgs=[...sp.querySelectorAll('img')].map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve());
- Promise.race([Promise.all(imgs),new Promise(r=>setTimeout(r,1200))]).then(()=>{if(gone)return;W=campo.clientWidth;H=campo.clientHeight;sp.classList.add('go');
-  const D=3300,DL=150,N=26,kf=[];for(let i=0;i<=N;i++){const u=i/N,p=at(u);kf.push({transform:tf(p),opacity:u>.9?Math.max(0,1-(u-.9)/.1):1,offset:u})}
-  const van=car.animate(kf,{duration:D,delay:DL,easing:'linear',fill:'both'});
-  haze.animate([{opacity:.7},{opacity:.25,offset:.5},{opacity:0}],{duration:D,delay:DL,fill:'both'});
-  const pan=(el,a)=>el&&el.animate([{transform:`translateX(${-a*W}px)`},{transform:`translateX(${a*W}px)`}],{duration:D+400,easing:'cubic-bezier(.4,0,.5,1)',fill:'both'});
-  pan($('.l-hills',sp),.018);pan($('.l-field',sp),.04);pan($('.l-mid',sp),.045);pan($('.l-fg',sp),.075);pan($('.l-fg2',sp),.13);
-  cz.animate([{transform:'scale(1)'},{transform:'scale(1.06)'}],{duration:D+400,easing:'ease-in-out',fill:'both'});
-  const dust=$('#dust'),wake=$('#wake'),R=(a,b)=>a+Math.random()*(b-a),K=W/360;
-  const puff=(x,y,s)=>{const e=document.createElement('i');e.className='puff';const z=R(36,56)*s*K;e.style.width=e.style.height=z+'px';dust.appendChild(e);
-   const dx=R(14,34)*s*K,dy=R(10,24)*s*K;e.animate([{transform:`translate(${x-z/2}px,${y-z/2}px) scale(.35)`,opacity:.85},{transform:`translate(${x-z/2+dx}px,${y-z/2-dy}px) scale(2.3)`,opacity:0}],{duration:R(750,1100),easing:'cubic-bezier(.2,.7,.4,1)',fill:'forwards'}).onfinish=()=>e.remove()};
-  const COL=['#7aa646','#5f8a35','#c99a4a','#a3b85a','#8a6a34'];
-  const leaf=(x,y,s)=>{const e=document.createElement('i');e.className='wleaf';const z=R(9,16)*s*K;
-   e.innerHTML=`<svg width="${z}" height="${z*1.3}" viewBox="0 0 20 26"><path d="M10 0C18 6 19 16 14 22 12 24 11 25 10 26 9 25 8 24 6 22 1 16 2 6 10 0Z" fill="${COL[Math.random()*5|0]}"/><path d="M10 3V25" stroke="rgba(40,30,10,.45)" stroke-width="1.2"/></svg>`;wake.appendChild(e);
-   const dx=R(25,60)*s*K,dy=R(30,70)*s*K,r=R(-1,1)>0?1:-1;
-   e.animate([{transform:`translate(${x}px,${y}px) rotate(0) scale(.4)`,opacity:0},{transform:`translate(${x+dx*.3}px,${y-dy*.6}px) rotate(${r*140}deg) rotateY(60deg) scale(1)`,opacity:1,offset:.25},{transform:`translate(${x+dx*.75}px,${y-dy}px) rotate(${r*300}deg) rotateY(180deg) scale(1)`,opacity:1,offset:.6},{transform:`translate(${x+dx}px,${y-dy*.55}px) rotate(${r*460}deg) rotateY(300deg) scale(.9)`,opacity:0}],{duration:R(1200,1600),easing:'ease-out',fill:'forwards'}).onfinish=()=>e.remove()};
-  let nl=0;const iv=setInterval(()=>{const t=van.currentTime-DL;if(gone||t>D){clearInterval(iv);return}if(t<0)return;const u=t/D;if(u<.06||u>.93)return;
-   const p=at(u),L=p.cx-vw()*p.s/2,vs=vw()*p.s,hs=vh()*p.s;
-   puff(L+.92*vs,p.gy-.08*hs,p.s);if(Math.random()<.6)puff(L+.2*vs,p.gy-.02*hs,p.s*.8);
-   if(u>.2&&nl<12&&Math.random()<.4){nl++;leaf(L+R(.7,1)*vs,p.gy-R(.1,.5)*hs,p.s)}},75);
-  setTimeout(done,DL+D+300)})})();
 route();topAvatar();refreshData();
 })();

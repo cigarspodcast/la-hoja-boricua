@@ -1,0 +1,51 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket. This is round 1 of a TIER 2 review.
+
+Ticket LHB-67 (M7-F1b): a literal-color audit of the app screens (site/styles.css, site/app.js, site/hoja.js, site/cuenta.js), including every screen built for the profile work. The app moved from a dark theme to a light one in LHB-65, which added semantic tokens to styles.css :root (surface, card, on-surface, muted, accent, the X-ink inks, and so on; the pair convention is in the :root comment). Pinned decisions:
+- Replace every color literal with a token. Re-count and record the before and after counts (basis: grep of #[0-9a-fA-F]{3,8} and rgba?\( per file).
+- Screens drawn for the dark theme are redrawn in the light one: avatar header, profile editor, People search, follow buttons, the sync status line, the badge row.
+- Badges stay visible on the public profile (owner decision).
+- A literal left in a script or style needs a one-line reason in an allowlist in the test.
+- Every image of the flag uses the celeste #1EA8D7 (owner rule), never the old #0050f0.
+
+What changed:
+- styles.css:
+  - 95 declarations move from a literal to a token (evidence/lhb-67-css-edits.txt lists each one: selector, property, old value, new value).
+  - New :root tokens: --accent-soft, --info-soft, --warn-soft, --danger-soft and --warm-soft (soft tints that text sits on); --bar, --veil and --veil-soft (translucent paper for the top bar, the tab bar and the hero veil); --shadow and --shadow-strong; and --scrim.
+  - .pop .lbtn lost its color, and .pop .lbtn.web is var(--on-info-strong).
+  - The Instagram button gradient ends at #b23a30 in place of #d9a75a, so its white text passes.
+- hoja.js:
+  - The share image (cardBlob, a canvas PNG) was dark green with the old flag blue. It is now drawn with the app's tokens, read with getComputedStyle when it is drawn (tk()), with the flag band from --flag-blue, --flag-red and --flag-white. The leaf art keeps its greens.
+  - The form error box background is var(--danger-soft).
+  - The unearned badge and zone leaf is #D7D8CC, a mirror of --line, because an SVG fill attribute cannot read var().
+  - The flavor chip fallback is var(--card-2).
+- app.js:
+  - FACADE and the cigar band star use #1EA8D7.
+  - LEAFC (the map pin leaves) mirrors the CSS pins: #D12A1B (--red, behind --danger) and #1EA8D7 (--celeste, behind --info).
+  - The initials avatar (mono) on the red flag stripe had dark ink at about 2.7 to 1. It now uses var(--on-danger) with a dark watermark (#000 at .12) in place of the white one (#fff at .22).
+
+Tests (test/site.test.js):
+- "LHB-67: ningún color suelto...": scans the four files (styles.css outside :root, comments blanked). Every literal must sit inside one span of ALLOW67, a list of [file, span regex, exact count, reason, optional mirror tokens]. It also checks:
+  - each span appears exactly its count, so the list follows the code;
+  - each mirror equals its token's value;
+  - an injected .x{color:#fff} is caught.
+- "LHB-67: lo que queda con color propio se lee...": measures the brand buttons (white or dark text on each gradient stop), the flavor wheel colors under the --on-surface chip text, and the flag initials (ink on each FACADE color and on that color with its watermark blended in). Each must reach 4.5.
+- LHB-65's declared-pair helper (pairs65) now also treats the five -soft tints as surfaces, so every text ink is measured on them: 79 pairs, all pass.
+- Two older tests were updated for the new values: v16 (FACADE string) and LHB-52 (the error box background).
+
+Evidence:
+- evidence/lhb-67-literals-counts.txt: before and after counts.
+- evidence/lhb-67-red-before.txt: the new tests on the pre-change files: 144 literals outside the list, both red.
+- evidence/lhb-67-mutations.out: 15 of 15 red.
+- evidence/lhb-67-tests.txt: the full suite.
+
+Check:
+- that each replacement keeps or improves what the element shows in the light theme (a token that renders invisible or unreadable, a shadow or veil that now looks wrong, a hover or pressed state that lost its contrast);
+- that each allowlist reason is true (is that literal really art, a brand, a mask or a mirror, or should it be a token);
+- whether the scan can miss a literal (a file or a syntax it does not see);
+- the canvas share image drawn from tokens (what happens if a token is empty);
+- the contrast of every text these screens paint, including the profile-era screens listed above;
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+Also in this diff: site/sw.js VERSION goes from lhb-v92 to lhb-v93, because styles.css, app.js and hoja.js are cached app-shell files and returning users must get the new ones; the 21 test pins of the version string move with it. The diff base is origin/facelift-f1c (LHB-68, already reviewed and merged into facelift), so the diff holds only this ticket.

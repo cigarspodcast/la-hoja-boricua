@@ -1,0 +1,16 @@
+G1 l.css keeps a dark literal (body background)                rc 1 fail 2 -> RED
+G2 a token value drifts from the app (l.css --muted)           rc 1 fail 1 -> RED
+G3 pale stars on the public passport (u.css --warn-ink as sun) rc 1 fail 2 -> RED
+G4 a light accent ink fails contrast and the app value (l.css) rc 1 fail 2 -> RED
+G5 headings back to Georgia alone (l.css h1)                   rc 1 fail 1 -> RED
+G6 a token the app does not have (u.css --gold)                rc 1 fail 1 -> RED
+G7 the dark color scheme (l.css)                               rc 1 fail 1 -> RED
+G8 privacy page carries its own <style>                        rc 1 fail 1 -> RED
+G9 a lounge page with an inline color                          rc 1 fail 1 -> RED
+G10 a lounge page without l.css                                rc 1 fail 1 -> RED
+G11 white text on the scrim card (u.css .pp-x)                 rc 1 fail 1 -> RED
+G12 the passport CSP without font-src (Codex round 1)          rc 1 fail 1 -> RED
+G13 the service worker cache not bumped (Codex round 2)        rc 1 fail 1 -> RED
+G14 activate keeps the old caches (Codex round 2)              rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 5
+RESULT 14 of 14 mutations red

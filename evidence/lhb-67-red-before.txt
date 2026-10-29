@@ -1,0 +1,99 @@
+✖ LHB-67: ningún color suelto en las pantallas de la app; lo que queda está en la lista con su razón (y un espejo vale lo que su token) (7.7906ms)
+ℹ colores fuera de la lista: 144; tramos de la lista: 28
+✖ LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera (4.186ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 110.9312
+
+✖ failing tests:
+
+test at test\site.test.js:5303:1
+✖ LHB-67: ningún color suelto en las pantallas de la app; lo que queda está en la lista con su razón (y un espejo vale lo que su token) (7.7906ms)
+  AssertionError [ERR_ASSERTION]: un color suelto nuevo: cámbielo por un token o póngalo en ALLOW67 con su razón
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m67\test\site.test.js:5305:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [
+      'styles.css: rgba(208, en «adial-gradient(120% 60% at 100% 0%, rgba(208,25,»', 'styles.css: rgba(143, en « radial-gradient(90% 50% at 0% 10%, rgba(143,184»',
+      'styles.css: rgba(14,3 en «alc(var(--sal) + 16px); background:rgba(14,36,2»',  'styles.css: #1d4a30,# en « background:linear-gradient(135deg,#1d4a30,#0b1»',
+      'styles.css: #0b1d12); en «ound:linear-gradient(135deg,#1d4a30,#0b1d12);bor»', 'styles.css: rgba(14,3 en «solute;top:8px;right:8px;background:rgba(14,36,2»',
+      'styles.css: #5a4330}  en «;font-size:30px;line-height:1;color:#5a4330} .st»', 'styles.css: #0e2417;p en «:var(--serif);font-weight:600;color:#0e2417;posi»',
+      'styles.css: #fff;box- en «ight:600} .mono.has-logo{background:#fff;box-sha»', 'styles.css: rgba(14,3 en «und:#fff;box-shadow:inset 0 0 0 1px rgba(14,36,2»',
+      'styles.css: #1a2a33;h en «er:1px solid var(--line);background:#1a2a33;heig»', 'styles.css: #d9cbb4;f en «et:0} .leaflet-container{background:#d9cbb4;font»',
+      'styles.css: #24414f,# en «r;background:linear-gradient(180deg,#24414f,#1a2»', 'styles.css: #1a2f3a)} en «ound:linear-gradient(180deg,#24414f,#1a2f3a)} .m»',
+      'styles.css: #e9dcc3;s en «height:auto} .map-offline .isl{fill:#e9dcc3;stro»', 'styles.css: #c9b48e;s en «ap-offline .isl{fill:#e9dcc3;stroke:#c9b48e;stro»',
+      'styles.css: #cfe0e6}  en «;bottom:10px;font-size:11.5px;color:#cfe0e6} .le»', 'styles.css: #fff} .pi en «ertical-align:-1px;border:2px solid #fff} .pin{w»',
+      'styles.css: #fff;box- en «m:rotate(-45deg);border:2.5px solid #fff;box-sha»', 'styles.css: rgba(0,0, en «5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.»',
+      'styles.css: #fff} .po en «adding:9px 6px;font-size:13px;color:#fff} .pop .»', 'styles.css: #fff} .pl en «px;color:#fff} .pop .lbtn.web{color:#fff} .place»',
+      'styles.css: rgba(10,2 en «) calc(var(--sal) + 6px);background:rgba(10,28,1»', 'styles.css: rgba(208, en «gin-top:-18px;box-shadow:0 6px 18px rgba(208,25,»',
+      'styles.css: rgba(255, en «rgba(208,25,46,.45),inset 0 0 0 2px rgba(255,255»', 'styles.css: #1d4a30,# en «:radial-gradient(80% 60% at 50% 35%,#1d4a30,#0e2»',
+      'styles.css: #0e2417); en «gradient(80% 60% at 50% 35%,#1d4a30,#0e2417);dis»', 'styles.css: rgba(0,0, en «-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.»',
+      'styles.css: rgba(0,0, en «dding:0 16px;text-shadow:0 2px 10px rgba(0,0,0,.»', 'styles.css: rgba(0,0, en «:100%;filter:drop-shadow(0 6px 12px rgba(0,0,0,.»',
+      'styles.css: rgba(255, en «low:hidden;border-bottom:4px dashed rgba(255,210»', 'styles.css: rgba(0,0, en «t:34px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.»',
+      'styles.css: #fff;box- en «var(--on-danger);border:2.5px solid #fff;box-sha»', 'styles.css: rgba(0,0, en «5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.»',
+      'styles.css: rgba(0,0, en «h:66px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.»', 'styles.css: rgba(96,1 en «-spacing:.01em} .atag.rd{background:rgba(96,140,»',
+      'styles.css: #a9c4ee;b en «ckground:rgba(96,140,210,.16);color:#a9c4ee;bord»', 'styles.css: rgba(140, en «.16);color:#a9c4ee;border:1px solid rgba(140,175»',
+      'styles.css: rgba(214, en «,175,230,.4)} .atag.pend{background:rgba(214,160»', 'styles.css: #e9bf72;b en «ckground:rgba(214,160,72,.16);color:#e9bf72;bord»',
+      'styles.css: rgba(233, en «.16);color:#e9bf72;border:1px solid rgba(233,191»', 'styles.css: #1f5a36 0 en «o{background:linear-gradient(160deg,#1f5a36 0%,#»',
+      'styles.css: #123a24 5 en «d:linear-gradient(160deg,#1f5a36 0%,#123a24 55%,»', 'styles.css: #0b1d12 1 en «dient(160deg,#1f5a36 0%,#123a24 55%,#0b1d12 100%»',
+      'styles.css: rgba(7,24 en «ne;background:linear-gradient(90deg,rgba(7,24,14»', 'styles.css: rgba(7,24 en «gradient(90deg,rgba(7,24,14,.94) 0%,rgba(7,24,14»',
+      'styles.css: rgba(7,24 en «24,14,.94) 0%,rgba(7,24,14,.84) 40%,rgba(7,24,14»', 'styles.css: rgba(7,24 en «4,14,.84) 40%,rgba(7,24,14,.42) 66%,rgba(7,24,14»',
+      'styles.css: rgba(7,24 en «,14,.05) 100%),linear-gradient(0deg,rgba(7,24,14»', 'styles.css: rgba(7,24 en «r-gradient(0deg,rgba(7,24,14,.8) 0%,rgba(7,24,14»',
+      'styles.css: rgba(0,0, en «er-radius:3px;box-shadow:0 3px 10px rgba(0,0,0,.»', 'styles.css: rgba(143, en «.97)}} .tabbar{border-top:1px solid rgba(143,184»',
+      'styles.css: rgba(4,14 en «osition:absolute;inset:0;background:rgba(4,14,8,»', 'styles.css: rgba(0,0, en «r-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.»',
+      'styles.css: #21452f;b en «ar(--on-accent)} .remind{background:#21452f;bord»', 'styles.css: #5d8f68;b en «background:#21452f;border:1px solid #5d8f68;bord»',
+      'styles.css: rgba(0,0, en «otate(-1.2deg);box-shadow:0 2px 8px rgba(0,0,0,.»', 'styles.css: #4d6b55}  en «-space:nowrap} .stars-ro span{color:#4d6b55} .ta»',
+      'styles.css: #0e2417;b en «} .tchip{background:var(--wc);color:#0e2417;bord»', 'styles.css: #1f5a36,# en «r;background:linear-gradient(160deg,#1f5a36,#123»',
+      'styles.css: #123a24); en «ound:linear-gradient(160deg,#1f5a36,#123a24);bor»', 'styles.css: #123a24 7 en «ground:radial-gradient(closest-side,#123a24 78%,»',
+      'styles.css: #2c5a3d 0 en «ent(var(--accent) calc(var(--p)*1%),#2c5a3d 0)} »', 'styles.css: #24533a;o en «ht:8px;border-radius:9px;background:#24533a;over»',
+      'styles.css: #24533a;m en «:grid;place-items:center;background:#24533a;marg»', 'styles.css: rgba(255, en «);background:linear-gradient(180deg,rgba(255,255»',
+      'styles.css: #0e2417;b en «parent)} .badge.on .bico{background:#0e2417;box-»', 'styles.css: #4f7f5e;b en «der-radius:14px;border:1.5px dashed #4f7f5e;back»',
+      'styles.css: rgba(143, en «:1.5px solid var(--info);background:rgba(143,184»', 'styles.css: #fff}.pop en «t .heart[aria-pressed="true"]{color:#fff}.pop .p»',
+      'styles.css: #0e2417}  en «stampbtn[aria-pressed="true"]{color:#0e2417} .ac»', 'styles.css: #21452f;b en «:8px;margin-top:8px} .pr{background:#21452f;bord»',
+      'styles.css: rgba(143, en «n:14px 0 10px;box-shadow:0 6px 18px rgba(143,209»', 'styles.css: #1d3a4a,# en «t;background:linear-gradient(160deg,#1d3a4a,#143»',
+      'styles.css: #14301f); en «ound:linear-gradient(160deg,#1d3a4a,#14301f);bor»', 'styles.css: #3d6b7a;b en «g,#1d3a4a,#14301f);border:1px solid #3d6b7a;bord»',
+      'styles.css: #21452f;b en «argin:8px 0 14px} .learn{background:#21452f;bord»', 'styles.css: #5c7a62}  en «inter} .stars button:not(.on){color:#5c7a62} .wh»',
+      'styles.css: #1e4730;s en «inter;outline:none} .wseg path{fill:#1e4730;stro»', 'styles.css: #f8f8f4}  en «.wseg.on path{fill:var(--wc);stroke:#f8f8f4} .ws»',
+      'styles.css: #0e2417}  en «;stroke:#f8f8f4} .wseg.on text{fill:#0e2417} .ws»', 'styles.css: #fff;stro en «17} .wseg:focus-visible path{stroke:#fff;stroke-»',
+      'styles.css: #25603a,# en «e;background:linear-gradient(160deg,#25603a,#123»', 'styles.css: #123a24 7 en «ound:linear-gradient(160deg,#25603a,#123a24 70%)»',
+      'styles.css: rgba(0,0, en «n:4px 0 16px;box-shadow:0 10px 26px rgba(0,0,0,.»', 'styles.css: rgba(14,3 en «t:space-between;gap:10px;background:rgba(14,36,2»',
+      'styles.css: #2b5c3d;c en «--on-surface-2)} .cd.has{background:#2b5c3d;colo»', 'styles.css: #0e2417}  en «r(--on-accent)}.cd.anc i{background:#0e2417} .cd»',
+      'styles.css: #2b5c3d;b en «und:var(--accent)}.lg-ev{background:#2b5c3d;bord»', 'styles.css: #fff;filt en «32px} .card .ph.has-foto{background:#fff;filter:»',
+      'styles.css: #fff;aspe en «n:0} .detail-ph.has-foto{background:#fff;aspect-»', 'styles.css: rgba(0,0, en «er-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.»',
+      'styles.css: #fff} .fo en «o img{object-fit:contain;background:#fff} .foto-»', 'styles.css: #fff;curs en «-line);border-radius:8px;background:#fff;cursor:»',
+      'styles.css: #1d4a30;b en «t:12px;border-radius:50%;background:#1d4a30;bord»', 'styles.css: #0e2417;b en «background:#1d4a30;border:2px solid #0e2417;box-»',
+      'styles.css: #6f9c7c}  en «olid #0e2417;box-shadow:0 0 0 1.5px #6f9c7c} .rp»', 'styles.css: rgba(143, en «%;background:radial-gradient(circle,rgba(143,209»',
+      'styles.css: rgba(143, en «radient(circle,rgba(143,209,98,.75),rgba(143,209»', 'styles.css: rgba(0,0, en «t:23px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.»',
+      ... 44 more items
+    ],
+    expected: [],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:5308:1
+✖ LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera (4.186ms)
+  AssertionError [ERR_ASSERTION]: .lbtn.ig{backg #FFFFFF sobre #d9a75a: 2.18
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m67\test\site.test.js:5313:28)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

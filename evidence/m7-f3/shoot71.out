@@ -1,0 +1,31 @@
+chrome pid 54656 for 320 by 568
+  after reload: scrollY 0
+first visit    inicio-primera-320x568.png compact False first result {'top': 920, 'bottom': 1153, 'vh': 568, 'bar': 507, 'href': '#/c/turro-angel-david', 'active': 'BODY'}
+same visit, after a keystroke: compact False
+  after reload: scrollY 0
+returning      inicio-vuelve-320x568.png compact True first result {'top': 435, 'bottom': 669, 'vh': 568, 'bar': 507, 'href': '#/c/turro-angel-david', 'active': 'BODY'} VISIBLE
+Cigarros card  inicio-cigarros-320x568.png first result {'top': 280, 'bottom': 514, 'vh': 568, 'bar': 507, 'href': '#/c/turro-angel-david', 'active': 'BODY'}
+menu           menu-catalogo-320x568.png current ['#/catalogo']
+menu (cigar)   menu-cigarro-320x568.png #/c/turro-angel-david current ['#/catalogo']
+chrome pid 54656 exited 0
+chrome pid 46544 for 390 by 844
+  after reload: scrollY 0
+first visit    inicio-primera-390x844.png compact False first result {'top': 855, 'bottom': 1115, 'vh': 844, 'bar': 783, 'href': '#/c/turro-angel-david', 'active': 'BODY'}
+same visit, after a keystroke: compact False
+  after reload: scrollY 0
+returning      inicio-vuelve-390x844.png compact True first result {'top': 442, 'bottom': 702, 'vh': 844, 'bar': 783, 'href': '#/c/turro-angel-david', 'active': 'BODY'} VISIBLE
+Cigarros card  inicio-cigarros-390x844.png first result {'top': 280, 'bottom': 540, 'vh': 844, 'bar': 783, 'href': '#/c/turro-angel-david', 'active': 'BODY'}
+menu           menu-catalogo-390x844.png current ['#/catalogo']
+menu (cigar)   menu-cigarro-390x844.png #/c/turro-angel-david current ['#/catalogo']
+chrome pid 46544 exited 0
+chrome pid 12788 for 768 by 1024
+  after reload: scrollY 0
+first visit    inicio-primera-768x1024.png compact False first result {'top': 726, 'bottom': 1007, 'vh': 1024, 'bar': 963, 'href': '#/c/turro-angel-david', 'active': 'BODY'}
+same visit, after a keystroke: compact False
+  after reload: scrollY 0
+returning      inicio-vuelve-768x1024.png compact True first result {'top': 387, 'bottom': 668, 'vh': 1024, 'bar': 963, 'href': '#/c/turro-angel-david', 'active': 'BODY'} VISIBLE
+Cigarros card  inicio-cigarros-768x1024.png first result {'top': 280, 'bottom': 561, 'vh': 1024, 'bar': 963, 'href': '#/c/turro-angel-david', 'active': 'BODY'}
+menu           menu-catalogo-768x1024.png current ['#/catalogo']
+menu (cigar)   menu-cigarro-768x1024.png #/c/turro-angel-david current ['#/catalogo']
+chrome pid 12788 exited 0
+RESULT first result visible on the returning home at 3 of 3 sizes

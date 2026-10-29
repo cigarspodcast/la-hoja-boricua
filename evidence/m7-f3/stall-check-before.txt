@@ -1,0 +1,16 @@
+before the backlog fix (mock request_queue_size 5): 320x568 runs, timeouts per run
+run 1: 0 timeouts
+run 2: 1 timeouts
+run 3: 0 timeouts
+run 4: 0 timeouts
+run 5: 0 timeouts
+run 6: 0 timeouts
+run 7: 0 timeouts
+run 8: 0 timeouts
+run 9: 2 timeouts
+stall causes captured:
+    EXC TypeError: Cannot read properties of undefined (reading 'leaf')
+  state {"u":"http://127.0.0.1:8767/#/catalogo","rs":"complete","ss":"1","sp":true,"view":0,"ext":"undefined","ctl":false,"va":"object","ext2":"function","scripts":"i18n.js:200:80168:80468:- bundle.js
+    EXC TypeError: window.LHB_SYNC is not a function
+  state {"u":"http://127.0.0.1:8767/#/catalogo","rs":"complete","ss":"1","sp":true,"view":0,"ext":"undefined","ctl":false,"va":"object","ext2":"function","scripts":"i18n.js:200:80168:80468:- bundle.js
+    EXC TypeError: window.LHB_SYNC is not a function

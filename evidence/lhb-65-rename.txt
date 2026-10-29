@@ -1,0 +1,408 @@
+LHB-65 rename of the old color tokens in site/styles.css: one line per var() read (counting basis: each var() occurrence outside :root)
+readers renamed or kept: 360
+
+html,body                                                  background     --bg        -> --surface
+html,body                                                  color          --cream     -> --on-surface
+:focus-visible                                             outline        --gold      -> --focus
+.app                                                       background     --bg        -> --surface
+.brand-name em                                             color          --gold      -> --accent-ink
+.brand-sub                                                 color          --muted     -> --muted
+.avatar-link                                               background     --card2     -> --card-2
+.avatar-link                                               border         --gold      -> --accent-ink
+.avatar-link                                               color          --gold      -> --accent-ink
+.flag-band                                                 background     --pr-blue   -> --flag-blue
+.flag-band                                                 background     --pr-red    -> --flag-red
+.flag-band                                                 background     --cream     -> --flag-white
+.flag-band                                                 background     --pr-red    -> --flag-red
+.flag-band                                                 background     --cream     -> --flag-white
+.flag-band                                                 background     --pr-red    -> --flag-red
+h1 em,h2 em                                                color          --gold      -> --accent-ink
+.lead                                                      color          --cream2    -> --on-surface-2
+.eyebrow                                                   color          --ado       -> --info-ink
+.hero                                                      border         --line      -> --line
+.hero p                                                    color          --cream2    -> --on-surface-2
+.search                                                    background     --card      -> --card
+.search                                                    border         --line      -> --line
+.search svg                                                stroke         --muted     -> --muted
+.search input::placeholder                                 color          --muted     -> --muted
+.chip                                                      border         --line      -> --line
+.chip                                                      background     --card      -> --card
+.chip                                                      color          --cream2    -> --on-surface-2
+.chip[aria-pressed="true"]                                 background     --cream     -> --inverse
+.chip[aria-pressed="true"]                                 border-color   --cream     -> --inverse
+.chip[aria-pressed="true"]                                 color          #0e2417     -> --on-inverse
+.filter-row select                                         background     --card      -> --card
+.filter-row select                                         border         --line      -> --line
+.filter-row select                                         background-image --muted     -> --muted
+.filter-row select                                         background-image --muted     -> --muted
+.card                                                      background     --card      -> --card
+.card                                                      border         --line      -> --line
+.card .ph                                                  background     --card2     -> --card-2
+.card .meta                                                color          --muted     -> --muted
+.card .fav-dot                                             color          --flam2     -> --danger-ink
+.pill                                                      background     --card2     -> --card-2
+.pill                                                      color          --cream2    -> --on-surface-2
+.pill                                                      border         --line      -> --line
+.pill.f-media                                              color          --amarillo  -> --warn-ink
+.pill.f-fuerte                                             color          --flam2     -> --danger-ink
+.pill.yours                                                color          --turq      -> --info-ink
+.empty                                                     color          --muted     -> --muted
+.empty                                                     border         --line      -> --line
+.note                                                      color          --muted     -> --muted
+.note b                                                    color          --cream2    -> --on-surface-2
+.section-title a                                           color          --gold      -> --accent-ink
+.back                                                      color          --cream2    -> --on-surface-2
+.detail-ph                                                 background     --card2     -> --card-2
+.detail-ph                                                 border         --line      -> --line
+.fav-btn                                                   border         --line      -> --line
+.fav-btn                                                   background     --card      -> --card
+.fav-btn[aria-pressed="true"]                              background     --flam      -> --danger
+.fav-btn[aria-pressed="true"]                              border-color   --flam      -> --danger
+.fav-btn[aria-pressed="true"]                              color          #fff        -> --on-danger
+.spec                                                      background     --card      -> --card
+.spec                                                      border         --line      -> --line
+.spec small                                                color          --muted     -> --muted
+.stars button.on                                           color          --gold      -> --accent-ink
+.artisan-link                                              background     --card      -> --card
+.artisan-link                                              border         --line      -> --line
+.artisan-link .go                                          color          --gold      -> --accent-ink
+.notes                                                     color          --cream2    -> --on-surface-2
+.sources                                                   color          --muted     -> --muted
+.sources a                                                 color          --ado       -> --info-ink
+.row                                                       background     --card      -> --card
+.row                                                       border         --line      -> --line
+.row .s                                                    color          --muted     -> --muted
+.row .go                                                   color          --muted     -> --muted
+.profile-hero .town                                        color          --muted     -> --muted
+.story                                                     color          --cream2    -> --on-surface-2
+.lbtn                                                      border         --line      -> --line
+.lbtn                                                      background     --card      -> --card
+.lbtn.web                                                  background     --ado-d     -> --info-strong
+.lbtn.web                                                  color          #fff        -> --on-info-strong
+.lbtn.buy                                                  background     --gold      -> --accent
+.lbtn.buy                                                  color          #0e2417     -> --on-accent
+.lbtn.go-map                                               background     --flam      -> --danger
+.lbtn.go-map                                               color          #fff        -> --on-danger
+.field label                                               color          --cream2    -> --on-surface-2
+.field input,.field select,.field textarea                 background     --card      -> --card
+.field input,.field select,.field textarea                 border         --line      -> --line
+ield input:focus,.field select:focus,.field textarea:focus border-color   --gold      -> --accent-ink
+.seg button                                                border         --line      -> --line
+.seg button                                                background     --card      -> --card
+.seg button[aria-pressed="true"]                           background     --cream     -> --inverse
+.seg button[aria-pressed="true"]                           border-color   --cream     -> --inverse
+.seg button[aria-pressed="true"]                           color          #0e2417     -> --on-inverse
+.photo-drop                                                border         --line      -> --line
+.photo-drop                                                background     --card      -> --card
+.photo-drop .ph-empty                                      color          --muted     -> --muted
+.photo-btns label                                          background     --card2     -> --card-2
+.photo-btns label                                          border         --line      -> --line
+ en su botón */
+.photo-btns label:has(input:focus-visible) outline        --gold      -> --focus
+.btn                                                       background     --flam      -> --danger
+.btn                                                       color          #fff        -> --on-danger
+.btn.secondary                                             background     --card2     -> --card-2
+.btn.secondary                                             color          --cream     -> --on-surface
+.btn.secondary                                             border         --line      -> --line
+.toggle                                                    background     --card      -> --card
+.toggle                                                    border         --line      -> --line
+.toggle button                                             color          --cream2    -> --on-surface-2
+.toggle button[aria-pressed="true"]                        background     --cream     -> --inverse
+.toggle button[aria-pressed="true"]                        color          #0e2417     -> --on-inverse
+.map-wrap                                                  border         --line      -> --line
+.legend                                                    color          --cream2    -> --on-surface-2
+.pin.lounge,.legend .lounge                                background     --flam      -> --danger
+.pin.venta,.legend .venta                                  background     --ado       -> --info
+.leaflet-popup-content-wrapper                             background     --card      -> --card
+.leaflet-popup-content-wrapper                             color          --cream     -> --on-surface
+.leaflet-popup-tip                                         background     --card      -> --card
+.pop .s                                                    color          --muted     -> --muted
+.ev                                                        background     --card      -> --card
+.ev                                                        border         --line      -> --line
+.ev .date                                                  background     --cream     -> --inverse
+.ev .date                                                  color          #0e2417     -> --on-inverse
+.ev .s                                                     color          --cream2    -> --on-surface-2
+.ev .src                                                   color          --ado       -> --info-ink
+.updated                                                   color          --muted     -> --muted
+.me                                                        background     --card      -> --card
+.me                                                        border         --line      -> --line
+.me .pic                                                   background     --card2     -> --card-2
+.me .pic                                                   color          --gold      -> --accent-ink
+.me .pic                                                   border         --gold      -> --accent-ink
+.me .c                                                     color          --muted     -> --muted
+.stat                                                      background     --card      -> --card
+.stat                                                      border         --line      -> --line
+.stat b                                                    color          --gold      -> --accent-ink
+.stat span                                                 color          --muted     -> --muted
+details.edit                                               background     --card      -> --card
+details.edit                                               border         --line      -> --line
+.tabbar                                                    border-top     --line      -> --line
+.tabbar a                                                  color          --muted     -> --muted
+.tabbar a.active                                           color          --gold      -> --accent-ink
+.tab-plus .plus                                            background     --flam      -> --danger
+.tab-plus .plus                                            color          #fff        -> --on-danger
+.tab-plus.active .plus                                     background     --gold      -> --accent
+.tab-plus.active .plus                                     color          #0e2417     -> --on-accent
+.toast                                                     background     --cream     -> --inverse
+.toast                                                     color          #0e2417     -> --on-inverse
+.offline-badge                                             background     --ado-d     -> --info-strong
+.offline-badge                                             color          #fff        -> --on-info-strong
+.splash-name em                                            color          --gold      -> --accent-ink
+.splash-sub                                                color          --cream2    -> --on-surface-2
+.pin-group span                                            background     --flam      -> --danger
+.pin-group span                                            color          #fff        -> --on-danger
+.pin-group:focus span,.pin-group:hover span                outline        --gold      -> --focus
+.near                                                      background     --card2     -> --card-2
+.near                                                      border         --line      -> --line
+h1 em,h2 em,.brand-name em,.splash-name em                 color          --gold      -> --accent-ink
+.eyebrow                                                   color          --celeste   -> --info-ink
+.card                                                      background     --card      -> --card
+.card .ph                                                  border         --photo     -> --photo
+.tabbar button                                             color          --muted     -> --muted
+.tabbar a[aria-current]                                    color          --gold      -> --accent-ink
+.icon-btn                                                  background     --card      -> --card
+.icon-btn                                                  border         --line      -> --line
+.icon-btn                                                  color          --cream     -> --on-surface
+ label for an English reader moves nothing */
+.lang-switch background     --card      -> --card
+ label for an English reader moves nothing */
+.lang-switch border         --line      -> --line
+ label for an English reader moves nothing */
+.lang-switch color          --cream     -> --on-surface
+.count                                                     color          --cream2    -> --on-surface-2
+.hint                                                      color          --cream2    -> --on-surface-2
+.hint a                                                    color          --gold      -> --accent-ink
+.hint.hs-ok                                                color          --gold      -> --accent-ink
+.hint.hs-bad                                               color          --flam2     -> --danger-ink
+.linkish                                                   color          --gold      -> --accent-ink
+.lbtn                                                      color          --cream     -> --on-surface
+.tiles a                                                   background     --card      -> --card
+.tiles a                                                   border         --line      -> --line
+.tiles small                                               color          --cream2    -> --on-surface-2
+.sheet-panel                                               background     --bg2       -> --surface-2
+.sheet-panel                                               border-top     --line      -> --line
+.sheet-grip                                                background     --line      -> --line
+.sheet-x                                                   background     --card      -> --card
+.sheet-x                                                   color          --cream     -> --on-surface
+.subnav a                                                  border         --line      -> --line
+.subnav a                                                  background     --card      -> --card
+.subnav a                                                  color          --cream2    -> --on-surface-2
+.subnav a[aria-current]                                    background     --gold      -> --accent
+.subnav a[aria-current]                                    border-color   --gold      -> --accent-ink
+.subnav a[aria-current]                                    color          #0e2417     -> --on-accent
+.backup                                                    border-top     --line      -> --line
+.hum-ph                                                    border         --photo     -> --photo
+.hum-ph                                                    background     --card2     -> --card-2
+.qty                                                       border         --line      -> --line
+.qty                                                       background     --card      -> --card
+.qty button                                                background     --card2     -> --card-2
+.qty button                                                color          --cream     -> --on-surface
+.mini                                                      border         --line      -> --line
+.mini                                                      background     --card2     -> --card-2
+.mini                                                      color          --cream     -> --on-surface
+.dentry                                                    background     --card      -> --card
+.dentry                                                    border         --line      -> --line
+.dhead .s                                                  color          --muted     -> --muted
+.stars-ro                                                  color          --gold      -> --accent-ink
+.dnote                                                     color          --cream2    -> --on-surface-2
+.dst-top .s                                                color          --muted     -> --muted
+.dentry summary                                            color          --gold      -> --accent-ink
+.dl dt                                                     color          --celeste   -> --info-ink
+.dl dd                                                     color          --cream     -> --on-surface
+.pass-hero                                                 border         --line      -> --line
+.pass-hero h2 em                                           color          --gold      -> --accent-ink
+.pass-hero p                                               color          --cream2    -> --on-surface-2
+.pass-ring                                                 background     --gold      -> --accent
+.pass-ring span                                            color          --cream2    -> --on-surface-2
+.pbar i                                                    background     --gold      -> --accent
+.badge                                                     background     --card      -> --card
+.badge                                                     border         --line      -> --line
+.badge small                                               color          --cream2    -> --on-surface-2
+.badge span                                                color          --cream2    -> --on-surface-2
+.badge.on span                                             color          --gold      -> --accent-ink
+.stamp                                                     color          --cream     -> --on-surface
+.stamp small                                               color          --muted     -> --muted
+.stamp span                                                color          --cream2    -> --on-surface-2
+.stamp[aria-pressed="true"]                                border         --celeste   -> --info
+.stamp[aria-pressed="true"] span                           color          --celeste   -> --info-ink
+.stamp[aria-pressed="true"]::after                         background     --celeste   -> --info
+.stamp[aria-pressed="true"]::after                         color          #0e2417     -> --on-info
+.heart,.stampbtn                                           border         --line      -> --line
+.heart,.stampbtn                                           background     --card      -> --card
+.heart,.stampbtn                                           color          --cream     -> --on-surface
+.heart                                                     color          --cream     -> --on-surface
+.heart[aria-pressed="true"]                                background     --flam      -> --danger
+.heart[aria-pressed="true"]                                border-color   --flam      -> --danger
+.heart[aria-pressed="true"]                                color          #fff        -> --on-danger
+.stampbtn[aria-pressed="true"]                             background     --celeste   -> --info
+.stampbtn[aria-pressed="true"]                             border-color   --celeste   -> --info
+.stampbtn[aria-pressed="true"]                             color          #0e2417     -> --on-info
+.pop .pl-act .heart,.pop .pl-act .stampbtn                 color          --cream     -> --on-surface
+.act,.stampbtn.act                                         border         --line      -> --line
+.act,.stampbtn.act                                         background     --card      -> --card
+.act,.stampbtn.act                                         color          --cream     -> --on-surface
+.pairbox                                                   background     --card      -> --card
+.pairbox                                                   border         --line      -> --line
+.pr small                                                  color          --celeste   -> --info-ink
+.pr p                                                      color          --cream2    -> --on-surface-2
+.pidelo                                                    background     --gold      -> --accent
+.pidelo                                                    color          #0e2417     -> --on-accent
+.pod .mic                                                  background     --celeste   -> --info
+.pod .mic                                                  color          #0e2417     -> --on-info
+.pod-a small                                               color          --cream2    -> --on-surface-2
+.pod-s                                                     color          --cream2    -> --on-surface-2
+.pod-more                                                  color          --celeste   -> --info-ink
+.list .row .mic                                            background     --celeste   -> --info
+.list .row .mic                                            color          #0e2417     -> --on-info
+.cata-n                                                    color          --cream2    -> --on-surface-2
+.learn                                                     border-left    --gold      -> --accent-ink
+.learn p                                                   color          --cream     -> --on-surface
+.seg.wrap button                                           color          --cream     -> --on-surface
+.seg button                                                color          --cream     -> --on-surface
+.or                                                        color          --cream2    -> --on-surface-2
+.cata-nav                                                  background     --bg        -> --surface
+.sum-card                                                  background     --card      -> --card
+.sum-card                                                  border         --line      -> --line
+.sum-card .s                                               color          --cream2    -> --on-surface-2
+.check                                                     border         --line      -> --line
+.check                                                     background     --card      -> --card
+.check input                                               accent-color   --gold      -> --accent
+.wseg text                                                 fill           --cream     -> --on-surface
+.whub                                                      fill           --bg        -> --surface
+.whub                                                      stroke         --line      -> --line
+.whub-n                                                    fill           --gold      -> --accent-ink
+.whub-t                                                    fill           --cream2    -> --on-surface-2
+.pair-tool                                                 background     --card      -> --card
+.pair-tool                                                 border         --line      -> --line
+.pcard                                                     background     --card      -> --card
+.pcard                                                     border         --line      -> --line
+.pcard p                                                   color          --cream     -> --on-surface
+.pcard .pp                                                 color          --cream2    -> --on-surface-2
+.tips                                                      color          --cream     -> --on-surface
+.anchor                                                    border         --gold      -> --accent-ink
+.anchor-tag                                                background     --gold      -> --accent
+.anchor-tag                                                color          #0e2417     -> --on-accent
+.anchor .s                                                 color          --cream2    -> --on-surface-2
+.anchor-d                                                  color          --cream     -> --on-surface
+.date.big,.ev .date                                        background     --cream     -> --inverse
+.date.big,.ev .date                                        color          #0e2417     -> --on-inverse
+.ath                                                       border         --celeste   -> --info
+.ath small                                                 color          --cream2    -> --on-surface-2
+.ev .src a                                                 color          --cream2    -> --on-surface-2
+0%,40%                                                     box-shadow     --gold      -> --accent-ink
+.cal                                                       background     --card      -> --card
+.cal                                                       border         --line      -> --line
+.dw                                                        color          --cream2    -> --on-surface-2
+.cd                                                        color          --cream2    -> --on-surface-2
+.cd.today                                                  outline        --cream2    -> --on-surface-2
+.cd.has                                                    color          --cream     -> --on-surface
+.cd.has i                                                  background     --celeste   -> --info
+.cd.anc                                                    background     --gold      -> --accent
+.cd.anc                                                    color          #0e2417     -> --on-accent
+.cd.sel                                                    box-shadow     --cream     -> --on-surface
+.cal-legend                                                color          --cream2    -> --on-surface-2
+.lg-anc                                                    background     --gold      -> --accent
+.lg-ev                                                     border         --celeste   -> --info
+.count-line                                                color          --cream2    -> --on-surface-2
+.detail-ph.has-foto                                        border         --photo     -> --photo
+.foto-cred                                                 color          --muted     -> --muted
+.foto-linea                                                color          --celeste   -> --info-ink
+.foto-th                                                   border         --line      -> --line
+.foto-th span                                              background     --card2     -> --card-2
+.foto-th[aria-pressed="true"]                              border-color   --gold      -> --accent-ink
+.ruta-h em                                                 color          --gold      -> --accent-ink
+.ruta-h p                                                  color          --cream2    -> --on-surface-2
+.ruta-h p b                                                color          --gold      -> --accent-ink
+.rhint                                                     color          --cream2    -> --on-surface-2
+.ruta-card                                                 border         --gold      -> --accent-ink
+.ruta-card                                                 color          --cream     -> --on-surface
+.ruta-card small                                           color          --cream2    -> --on-surface-2
+.ruta-card span                                            color          --gold      -> --accent-ink
+.zs.ok                                                     border         --flam      -> --danger
+.zs.ok                                                     color          #ff8a8a     -> --danger-ink
+.zs.ok b                                                   color          --cream     -> --on-surface
+.zt                                                        border         --line      -> --line
+.zt                                                        color          --muted     -> --muted
+.zt.on                                                     border-color   --gold      -> --accent-ink
+.zt.on                                                     color          --cream     -> --on-surface
+.rsub                                                      color          --cream2    -> --on-surface-2
+.ri                                                        background     --card      -> --card
+.ri                                                        border         --line      -> --line
+.ri small                                                  color          --muted     -> --muted
+.zcel p                                                    color          --cream2    -> --on-surface-2
+.btn-add                                                   background     --gold      -> --accent
+.btn-add                                                   color          #0e2417     -> --on-accent
+.inst-p                                                    color          --cream     -> --on-surface
+.seo-foot a                                                color          --cream2    -> --on-surface-2
+.ob-pic-t                                                  color          --cream2    -> --on-surface-2
+.ob-pic-img                                                background     --card2     -> --card-2
+.ob-pic-img                                                border         --gold      -> --accent-ink
+.ob-pic-img                                                color          --gold      -> --accent-ink
+.person                                                    background     --card      -> --card
+.person                                                    border         --line      -> --line
+.person-t .s                                               color          --muted     -> --muted
+.pf-head                                                   background     --card      -> --card
+.pf-head                                                   border         --line      -> --line
+.pf-pic                                                    background     --card2     -> --card-2
+.pf-pic                                                    color          --gold      -> --accent-ink
+.pf-pic                                                    border         --gold      -> --accent-ink
+.pf-h                                                      color          --muted     -> --muted
+.pf-bio                                                    color          --cream2    -> --on-surface-2
+.pf-fav                                                    color          --cream2    -> --on-surface-2
+.pf-counts li                                              background     --card      -> --card
+.pf-counts li                                              border         --line      -> --line
+.pf-counts b                                               color          --gold      -> --accent-ink
+.pf-counts span                                            color          --muted     -> --muted
+.fw-b.on                                                   color          --gold      -> --accent-ink
+.fw-b.on                                                   border         --gold      -> --accent-ink
+.pf-tabs button                                            border         --line      -> --line
+.pf-tabs button                                            background     --card      -> --card
+.pf-tabs button                                            color          --cream2    -> --on-surface-2
+.pf-tabs button[aria-selected="true"]                      background     --gold      -> --accent
+.pf-tabs button[aria-selected="true"]                      border-color   --gold      -> --accent-ink
+.pf-tabs button[aria-selected="true"]                      color          #0e2417     -> --on-accent
+.pf-res                                                    background     --card      -> --card
+.pf-res                                                    border         --line      -> --line
+.pf-res                                                    color          --cream     -> --on-surface
+.pf-res small                                              color          --muted     -> --muted
+
+rules whose fill is now a semantic fill, with the text color in the same rule:
+.chip[aria-pressed="true"] { fill: inverse ; text: ['color:var(--on-inverse)'] }
+.fav-btn[aria-pressed="true"] { fill: danger ; text: ['color:var(--on-danger)'] }
+.lbtn.web { fill: info-strong ; text: ['color:var(--on-info-strong)'] }
+.lbtn.buy { fill: accent ; text: ['color:var(--on-accent)'] }
+.lbtn.go-map { fill: danger ; text: ['color:var(--on-danger)'] }
+.seg button[aria-pressed="true"] { fill: inverse ; text: ['color:var(--on-inverse)'] }
+.btn { fill: danger ; text: ['color:var(--on-danger)'] }
+.toggle button[aria-pressed="true"] { fill: inverse ; text: ['color:var(--on-inverse)'] }
+.pin.lounge,.legend .lounge { fill: danger ; text: none in rule }
+.pin.venta,.legend .venta { fill: info ; text: none in rule }
+.ev .date { fill: inverse ; text: ['color:var(--on-inverse)'] }
+.tab-plus .plus { fill: danger ; text: ['color:var(--on-danger)'] }
+.tab-plus.active .plus { fill: accent ; text: ['color:var(--on-accent)'] }
+.toast { fill: inverse ; text: ['color:var(--on-inverse)'] }
+.offline-badge { fill: info-strong ; text: ['color:var(--on-info-strong)'] }
+.pin-group span { fill: danger ; text: ['color:var(--on-danger)'] }
+.subnav a[aria-current] { fill: accent ; text: ['color:var(--on-accent)'] }
+.pass-ring { fill: accent ; text: none in rule }
+.pbar i { fill: accent ; text: none in rule }
+.stamp[aria-pressed="true"] { fill: info ; text: none in rule }
+.stamp[aria-pressed="true"]::after { fill: info ; text: ['color:var(--on-info)'] }
+.heart[aria-pressed="true"] { fill: danger ; text: ['color:var(--on-danger)'] }
+.stampbtn[aria-pressed="true"] { fill: info ; text: ['color:var(--on-info)'] }
+.pidelo { fill: accent ; text: ['color:var(--on-accent)'] }
+.pod .mic { fill: info ; text: ['color:var(--on-info)'] }
+.list .row .mic { fill: info ; text: ['color:var(--on-info)'] }
+.check input { fill: accent ; text: none in rule }
+.anchor-tag { fill: accent ; text: ['color:var(--on-accent)'] }
+.date.big,.ev .date { fill: inverse ; text: ['color:var(--on-inverse)'] }
+.ath { fill: info ; text: none in rule }
+.cd.has i { fill: info ; text: none in rule }
+.cd.anc { fill: accent ; text: ['color:var(--on-accent)'] }
+.lg-anc { fill: accent ; text: none in rule }
+.lg-ev { fill: info ; text: none in rule }
+.zs.ok { fill: danger ; text: ['color:var(--danger-ink)'] }
+.btn-add { fill: accent ; text: ['color:var(--on-accent)'] }
+.pf-tabs button[aria-selected="true"] { fill: accent ; text: ['color:var(--on-accent)'] }
+
+old names still read outside :root: none
