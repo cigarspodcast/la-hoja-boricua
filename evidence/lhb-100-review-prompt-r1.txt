@@ -1,0 +1,388 @@
+You are reviewing two tickets in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-100-wt (branch lhb-100-101-robust, PR to main). The diff below is base f92ff9c (origin/main) to HEAD. This is round 1 of a TIER 2 review (LHB-100 is TIER 2; LHB-101 is TIER 1 and rides in the same round).
+
+Ticket LHB-100: one failed script load leaves a blank page behind a splash that never leaves. index.html loads eight deferred scripts (i18n, bundle, art, fotos, cuenta, sync, hoja, app). If one fails (a weak phone network), the boot in app.js throws before the splash's done() and before the view is painted. Measured before the fix with a local server that answers 500 once (evidence/lhb-100/before.out): art.js failed left a blank view with no message; sync.js failed left the splash up for the whole 15 s window.
+Scope: site/app.js (boot and splash), site/index.html only if needed, site/sw.js, test/site.test.js, evidence/.
+Pinned decisions:
+- The splash must always leave, whatever the boot does. A timer started before any other boot code, not depending on code that may have failed.
+- A boot failure shows a short message with a reload button, as i18n keys with es and en values. Never a blank view.
+- No retry loop that can hammer the network.
+Not mine: any change to what a healthy load shows.
+
+Ticket LHB-101: route() throws URIError on a malformed hash escape (#/a/%E0%A4%A), so the view does not change; hoja.js S() throws when storage reads throw SecurityError, which can abort a catalog render before view.innerHTML is assigned.
+Pinned decisions: route() decodes the way menuHTML does, inside a try, keeping the raw text on failure. S() falls back to its empty default state when a read throws; it never throws into a render.
+
+What changed:
+- index.html: an inline script before every script tag. It defines window.LHB_BOOT.ok(). On DOMContentLoaded (after all deferred scripts ran) it schedules a 0 ms check; if ok() was not called, fail() runs: the splash gets class out and is removed after 450 ms, and a div#bootFail.boot-fail role=alert with a paragraph and a Reload button (location.reload on click) is appended to body. A 12 s timer runs out() if ok, otherwise fail(). ok() later removes #bootFail. Text: LHB_I18N.t('boot.fail' / 'boot.reload') when i18n loaded and returns a real string, else a copy in es or en chosen by LHB_I18N.lang or navigator.language.
+- app.js: the boot tail is now route();if(window.LHB_BOOT)window.LHB_BOOT.ok();topAvatar();refreshData(); and route() decodes inside a try.
+- hoja.js: S() body inside try; catch sets ST=null and returns DEF().
+- i18n.js: boot.fail and boot.reload in es and en.
+- styles.css: .boot-fail (fixed, centered card, z-index 101, above the splash's 100) and its p.
+- sw.js: lhb-v89 to lhb-v105 (and 21 test pins).
+- Tests: BOOT100 runs the real guard text from index.html in a vm with a fake DOM and manual timers (failure, en fallback, i18n text, healthy boot, 12 s backstop, late boot, single message, fallback copy equals i18n.js, guard before other scripts, ok() placement, CSS present). ROUTE101 runs the real route() source in a vm with stub views. The LHB-101 S() case uses the real hoja.js with a throwing getItem. The LHB-27 key census also scans index.html for LHB_I18N.t('...'); the LHB-31 pin follows the new S().
+
+Evidence:
+- evidence/lhb-100-tests.txt: 303 pass, 0 fail, 1 skipped.
+- evidence/lhb-100-mutations.out: 10 of 10 red with a clean baseline, including B0 = the original origin/main files.
+- evidence/lhb-100/after.out: headless Chrome at 390 px against failserver.py; art.js failed once and sync.js failed once both show the message with the splash gone at 1.0 s; a healthy load shows no message. Screenshots beside it.
+
+Check in particular:
+- Can a healthy load ever show the message (ok() timing versus DOMContentLoaded, a slow first route(), a cached service-worker load, a hash route that throws inside its view, the intro or onboarding paths)? Does the guard change anything a healthy load shows, including the splash's own timing?
+- Does any failure path still strand the splash or leave a blank view without the message (a script that hangs rather than fails, a throw inside route() itself, a throw after ok())?
+- Can the message and a working app both be on screen, or two messages?
+- Is there any retry loop?
+- Is the fallback text correct when i18n.js loaded but another script failed, and when i18n.js itself failed?
+- Accessibility of the message (role, focus, contrast in both themes, the button target size).
+- Do the LHB-101 changes hide a real error a caller relied on, or change behavior for valid input?
+- Is the cache version bump complete (every pin)?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff f92ff9c HEAD -- site/index.html site/app.js site/hoja.js site/i18n.js site/styles.css site/sw.js test/site.test.js =====
+diff --git a/site/app.js b/site/app.js
+index a1e93c7..acd6d9a 100644
+--- a/site/app.js
++++ b/site/app.js
+@@ -271,7 +271,7 @@ function topAvatar(){const el=$('#topAvatar');if(!el)return;const a=acctNow();if
+ /* ---------- v6: Mi Hoja y demás (hoja.js) ---------- */
+ const EXT=window.LHB_EXT({topAvatar,$,$$,esc,toast,view,VBArt,LS,D:()=>D,allCigars,artisanById,cigarById,artisanName,fx,fq,cigarSVG,mono,linkBtn,ICON,FORT,fortLabel,PROTO_NOTE,head,cigarCard,goLink,evDate,route:()=>route(),vPerfil,resizeImage,hydrate:r=>hydratePhotos(r||view)});
+ /* ---------- router ---------- */
+-function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');const id=arg?decodeURIComponent(arg):'';
++function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');let id='';if(arg){try{id=decodeURIComponent(arg)}catch(e){id=arg}}
+  const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',u:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});
+  if(leafletMap&&r!=='lugares'){leafletMap.remove();leafletMap=null}
+  const R=EXT.routes;
+@@ -324,5 +324,5 @@ if('serviceWorker' in navigator){const hadSW=!!navigator.serviceWorker.controlle
+    puff(L+.92*vs,p.gy-.08*hs,p.s);if(Math.random()<.6)puff(L+.2*vs,p.gy-.02*hs,p.s*.8);
+    if(u>.2&&nl<12&&Math.random()<.4){nl++;leaf(L+R(.7,1)*vs,p.gy-R(.1,.5)*hs,p.s)}},75);
+   setTimeout(done,DL+D+300)})})();
+-route();topAvatar();refreshData();
++route();if(window.LHB_BOOT)window.LHB_BOOT.ok();/* LHB-100: arrancó; el guardián de index.html ya no muestra el aviso */topAvatar();refreshData();
+ })();
+diff --git a/site/hoja.js b/site/hoja.js
+index 5dfeea9..c3971f3 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -52,7 +52,8 @@ let DFOC=null;window.addEventListener('hashchange',()=>{DFOC=null});
+ /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
+ function write(s,quiet){if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
+ /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
+-const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};
++/* LHB-101: si el navegador bloquea leer el almacenamiento, Mi Hoja vacía; nunca un error dentro de una pintura (un catálogo en blanco) */
++const S=()=>{try{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST}catch(e){ST=null;return DEF()}};
+ window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null});
+ function save(mut){const s=S();mut&&mut(s);s.cambios=(s.cambios||0)+1;write(s);return s}
+ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
+diff --git a/site/i18n.js b/site/i18n.js
+index b1d8f30..e526e62 100644
+--- a/site/i18n.js
++++ b/site/i18n.js
+@@ -24,6 +24,8 @@ const T={es:{
+  "sources": "Fuentes:",
+  "back": "‹ Volver",
+  "soon": "Pronto.",
++ "boot.fail": "La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.",
++ "boot.reload": "Recargar",
+  "dir": "Cómo llegar",
+  "link.web": "Sitio web",
+  "link.buy": "Dónde comprar",
+@@ -782,6 +784,8 @@ en:{
+  "sources": "Sources:",
+  "back": "‹ Back",
+  "soon": "Coming soon.",
++ "boot.fail": "The app did not load completely. Check your connection and try again.",
++ "boot.reload": "Reload",
+  "dir": "Directions",
+  "link.web": "Website",
+  "link.buy": "Where to buy",
+diff --git a/site/index.html b/site/index.html
+index aecd92f..0d2ceda 100644
+--- a/site/index.html
++++ b/site/index.html
+@@ -56,6 +56,18 @@
+   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+ </div>
+ <noscript>La Hoja Boricua necesita JavaScript.</noscript>
++<script>/* LHB-100: la app siempre sale del splash. Esto corre antes que cualquier otro script y no depende de ninguno: si al terminar de cargar
++   los scripts (DOMContentLoaded) la app no avisó que arrancó (LHB_BOOT.ok, al final de su arranque), o a los 12 s, quita el splash y dice
++   que la app no cargó completa, con un botón para recargar (sin reintentos solos). Si la app arranca tarde, el aviso se va. Los textos son
++   boot.fail y boot.reload de los idiomas; si los idiomas no cargaron, usa la copia de abajo (una prueba la compara con la de los idiomas) */
++(function(w,d){var ok=false,shown=false,T={es:['La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.','Recargar'],en:['The app did not load completely. Check your connection and try again.','Reload']};
++function txt(i){var I=w.LHB_I18N;try{if(I&&I.t){var v=i?w.LHB_I18N.t('boot.reload'):w.LHB_I18N.t('boot.fail');if(v&&v.indexOf('boot.')!==0)return v}}catch(e){}return T[/^en/i.test((I&&I.lang)||navigator.language||'')?'en':'es'][i]}
++function out(){var s=d.getElementById('splash');if(!s)return;s.classList.add('out');setTimeout(function(){if(s.parentNode)s.parentNode.removeChild(s)},450)}
++function fail(){if(ok||shown)return;shown=true;out();var b=d.createElement('div'),p=d.createElement('p'),r=d.createElement('button');b.id='bootFail';b.className='boot-fail';b.setAttribute('role','alert');
++ p.textContent=txt(0);r.type='button';r.className='btn';r.textContent=txt(1);r.onclick=function(){location.reload()};b.appendChild(p);b.appendChild(r);d.body.appendChild(b)}
++w.LHB_BOOT={ok:function(){ok=true;var b=d.getElementById('bootFail');if(b&&b.parentNode)b.parentNode.removeChild(b)}};
++d.addEventListener('DOMContentLoaded',function(){setTimeout(function(){if(!ok)fail()},0)});
++setTimeout(function(){if(ok)out();else fail()},12000)})(window,document);</script>
+ <script src="i18n.js" defer></script>
+ <script src="data/bundle.js" defer></script>
+ <script src="art.js" defer></script>
+diff --git a/site/styles.css b/site/styles.css
+index 76b0d7d..76873a1 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -205,6 +205,9 @@ details.edit .form{padding:6px 0 14px}
+ @media (display-mode:standalone){.btn-install{display:none!important}}
+ .splash{position:fixed;inset:0;z-index:100;background:radial-gradient(80% 60% at 50% 35%,#1d4a30,#0e2417);display:grid;place-items:center;transition:opacity .45s}
+ .splash.out{opacity:0;pointer-events:none}
++/* LHB-100: el aviso cuando la app no cargó completa (lo pinta el guardián de index.html) */
++.boot-fail{position:fixed;left:16px;right:16px;top:28%;z-index:101;padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--card);text-align:center}
++.boot-fail p{margin:0 0 14px;font-size:16px;line-height:1.4}
+ .splash-inner{text-align:center;width:100%}
+ .splash-inner img{margin:0 auto 12px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+ .splash-name{font-family:var(--serif);font-size:clamp(22px,7vw,30px);font-weight:600;line-height:1.15;padding:0 16px;text-shadow:0 2px 10px rgba(0,0,0,.35)}
+diff --git a/site/sw.js b/site/sw.js
+index bc0c97f..40b89ae 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v89';
++const VERSION='lhb-v105';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+diff --git a/test/site.test.js b/test/site.test.js
+index 0f29cfd..af00283 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v89'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v105'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,25 +61,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
+- assert.match(sw,/const VERSION='lhb-v89'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
++ assert.match(sw,/const VERSION='lhb-v105'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
+  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
+  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
+ 
+ test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v89'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v105'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
+  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ 
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v89'/);
++ assert.match(sw,/const VERSION='lhb-v105'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v89'/);
++ assert.match(sw,/const VERSION='lhb-v105'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
+  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
+@@ -105,12 +105,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v89'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v105'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v89'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v105'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -118,7 +118,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v89'/);});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v105'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -135,7 +135,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v89/);});
++ assert.match(read('sw.js'),/lhb-v105/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -148,17 +148,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v89'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v105'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v89'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v105'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v89'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v105'/);});
+ 
+-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v89'/);});
++test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v105'/);});
+ 
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+@@ -238,7 +238,7 @@ test('LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las
+  const used=new Set([...read('app.js').matchAll(/\btt\('([^']+)'/g)].map(m=>m[1]).filter(k=>k!=='fort.'));
+  /* LHB-29: también hoja.js y art.js (tt), index.html (data-i18n, data-i18n-attr) y cada val.* de un valor que hoja.js guarda (STORED) */
+  for(const f of ['hoja.js','art.js','cuenta.js'])for(const m of read(f).matchAll(/\b(?:tt|LHB_I18N\.t)\('([^']+)'/g))if(m[1]!=='val.')used.add(m[1]);
+- const ixh=read('index.html');for(const m of ixh.matchAll(/data-i18n="([^"]+)"/g))used.add(m[1]);for(const m of ixh.matchAll(/data-i18n-attr="([^"]+)"/g))for(const p of m[1].split(';'))used.add(p.slice(p.indexOf(':')+1));
++ const ixh=read('index.html');for(const m of ixh.matchAll(/data-i18n="([^"]+)"/g))used.add(m[1]);for(const m of ixh.matchAll(/\bLHB_I18N\.t\('([^']+)'/g))used.add(m[1]);/* LHB-100: el guardián del arranque */for(const m of ixh.matchAll(/data-i18n-attr="([^"]+)"/g))for(const p of m[1].split(';'))used.add(p.slice(p.indexOf(':')+1));
+  const st=STORED();for(const k of es)if(k.startsWith('val.')&&st.includes(k.slice(4)))used.add(k);
+  for(const f of ['suave','media','fuerte'])used.add('fort.'+f);for(const k of ['arts.nVitola','arts.nVitolas'])used.add(k);
+  assert.ok(used.size>100,'claves usadas: '+used.size);
+@@ -1218,7 +1218,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v89'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v105'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1465,7 +1465,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v89'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v105'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1643,7 +1643,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v89'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v105'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1890,7 +1890,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v89'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v105'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2191,7 +2191,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v89'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v105'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2474,7 +2474,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v89'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v105'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3430,7 +3430,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+  const h=readR('hoja.js').replace(/\r\n/g,'\n');
+  assert.ok(h.includes("getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST}"),'la sincronización lee del almacenamiento y no de la copia en memoria');
+  assert.ok(h.includes("window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null})"),'otra pestaña que escribe invalida la copia en memoria');
+- assert.ok(h.includes("const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};"),'S aparta lo de otra cuenta antes de leer, no muestra lo de la otra si no pudo y solo confía en la copia en memoria si el texto guardado no cambió');
++ assert.ok(h.includes("const S=()=>{try{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST}catch(e){ST=null;return DEF()}};"),/* LHB-101: dentro de un try */'S aparta lo de otra cuenta antes de leer, no muestra lo de la otra si no pudo y solo confía en la copia en memoria si el texto guardado no cambió');
+  assert.ok(h.includes("if(SYNC&&!SYNC.isolate()){ST=null;toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}"),'write no escribe si no se pudo apartar lo de la otra cuenta y suelta la copia en memoria');
+  assert.ok(h.includes("if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}")&&h.includes("STRAW=txt}catch(e){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}"),'una escritura rechazada suelta la copia en memoria, que ya traía el cambio rechazado');
+  assert.ok(read('sync.js').includes('if(inIso)return true;'),'aislar dentro de aislar se corta (write llama a isolate y isolate escribe por setDoc)');
+@@ -3441,7 +3441,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v89'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v105'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -5058,5 +5058,60 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v89'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v105'/);
++});
++/* LHB-100: el guardián de index.html (el script en línea antes de los demás), de verdad, con un documento de mentira: el splash, los
++   eventos y los temporizadores que la prueba dispara a mano */
++function BOOT100(o={}){const vm=require('vm');const ix=read('index.html');const m=ix.match(/<script>(\/\* LHB-100[\s\S]*?)<\/script>/);assert.ok(m,'el guardián está en index.html');
++ const timers=[],ev={},body=[],reloads=[];const el=(tag)=>({tag,cls:new Set(),attrs:{},children:[],textContent:'',parentNode:null,classList:{add(c){this._s.add(c)},contains(c){return this._s.has(c)}},
++  setAttribute(k,v){this.attrs[k]=v},appendChild(c){c.parentNode=this;this.children.push(c)},removeChild(c){this.children=this.children.filter(x=>x!==c);c.parentNode=null}});
++ const mk=t=>{const e=el(t);e.classList._s=e.cls;return e};
++ const root=mk('body');const splash=mk('div');splash.id='splash';if(!o.noSplash)root.appendChild(splash);
++ const find=(n,id)=>{if(n.id===id)return n;for(const c of n.children){const f=find(c,id);if(f)return f}return null};
++ const document={getElementById:id=>find(root,id),createElement:mk,addEventListener:(t,f)=>{(ev[t]=ev[t]||[]).push(f)},body:root};
++ const win={LHB_I18N:o.i18n};
++ const ctx={window:win,document,navigator:{language:o.lang||'es-PR'},location:{reload:()=>reloads.push(1)},setTimeout:(f,ms)=>{timers.push([f,ms]);return timers.length}};
++ vm.createContext(ctx);vm.runInContext(m[1].replace(/\(window,document\);\s*$/,'(window,document);'),ctx);
++ const fire=ms=>{for(const t of timers.filter(t=>t[1]===ms&&!t.done)){t.done=true;t[0]()}};
++ return {win,root,splash,ev,timers,reloads,fire,msg:()=>find(root,'bootFail'),loaded:()=>{for(const f of ev.DOMContentLoaded||[])f();fire(0)}}}
++test('LHB-100: si el arranque falla (un script que no cargó), el splash se va y sale un aviso con Recargar; si arranca, nada cambia; el aviso no depende de i18n.js',()=>{
++ /* un script falló: app.js nunca avisa; al terminar de cargar los scripts, el splash se va y sale el aviso */
++ let B=BOOT100();B.loaded();assert.ok(B.splash.cls.has('out'),'el splash se va');B.fire(450);assert.equal(B.splash.parentNode,null,'y se quita');
++ let m=B.msg();assert.ok(m,'sale el aviso');assert.equal(m.attrs.role,'alert');const [p,btn]=m.children;
++ assert.equal(p.textContent,I18N().T.es['boot.fail'],'el texto de i18n.js (sin i18n.js cargado, la copia en español)');assert.equal(btn.textContent,I18N().T.es['boot.reload']);
++ btn.onclick();assert.equal(B.reloads.length,1,'Recargar recarga');B.fire(12000);assert.equal(B.reloads.length,1,'y nada reintenta solo');
++ /* en inglés, sin i18n.js: la copia en inglés, igual a la de i18n.js */
++ B=BOOT100({lang:'en-US'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.en['boot.fail']);assert.equal(B.msg().children[1].textContent,I18N().T.en['boot.reload']);
++ /* con i18n.js cargado, el texto sale de ahí (el idioma que la persona eligió) */
++ B=BOOT100({i18n:{lang:'en',t:k=>'T:'+k}});B.loaded();assert.equal(B.msg().children[0].textContent,'T:boot.fail');
++ /* arranque bueno: app.js avisa antes de que terminen de cargar los scripts; no hay aviso y el splash sigue a lo suyo */
++ B=BOOT100();B.win.LHB_BOOT.ok();B.loaded();assert.equal(B.msg(),null,'sin aviso');assert.ok(!B.splash.cls.has('out'),'el splash lo maneja la app');
++ B.fire(12000);assert.ok(B.splash.cls.has('out'),'a los 12 s, si el splash sigue, se va igual');assert.equal(B.msg(),null);
++ /* nunca terminan de cargar (un script colgado): a los 12 s se va el splash y sale el aviso; si la app arranca después, el aviso se va */
++ B=BOOT100();B.fire(12000);assert.ok(B.splash.cls.has('out')&&B.msg(),'a los 12 s, aviso');B.win.LHB_BOOT.ok();assert.equal(B.msg(),null,'arrancó tarde: el aviso se quita');
++ /* un solo aviso */
++ B=BOOT100();B.loaded();B.fire(12000);assert.equal(B.root.children.filter(c=>c.id==='bootFail').length,1);
++ /* la copia de los textos en el guardián es la misma de i18n.js */
++ const g=read('index.html').match(/<script>(\/\* LHB-100[\s\S]*?)<\/script>/)[1];
++ for(const l of ['es','en'])for(const k of ['boot.fail','boot.reload'])assert.ok(g.includes("'"+I18N().T[l][k]+"'"),'copia de '+l+' '+k);
++ /* va antes que cualquier otro script, y app.js avisa al final del arranque, después de pintar la primera vista */
++ const ix=read('index.html');assert.ok(ix.indexOf('/* LHB-100')<ix.indexOf('<script src='),'el guardián corre antes que los demás scripts');
++ assert.ok(read('app.js').includes('route();if(window.LHB_BOOT)window.LHB_BOOT.ok();'),'app.js avisa justo después de route()');
++ assert.ok(read('styles.css').includes('.boot-fail{position:fixed;'),'el aviso tiene su estilo');
++});
++/* LHB-101: route() de app.js, de verdad, con las vistas de mentira */
++function ROUTE101(hash){const vm=require('vm');const src=read('app.js').replace(/\r\n/g,'\n');const i=src.indexOf('function route(){'),j=src.indexOf('\nwindow.addEventListener(\'hashchange\',route);',i);assert.ok(i>0&&j>i);
++ const log=[];const v=n=>(...a)=>log.push([n,...a]);
++ const ctx={location:{hash},$$:()=>[],leafletMap:null,EXT:{routes:new Proxy({},{get:(t,k)=>v('R.'+String(k))}),requireAccount:v('requireAccount')},
++  vCatalogo:v('vCatalogo'),vCigar:v('vCigar'),vArtesanos:v('vArtesanos'),vArtesano:v('vArtesano'),vSubir:v('vSubir'),vLugares:v('vLugares'),window:{scrollTo:()=>{}}};
++ vm.createContext(ctx);vm.runInContext(src.slice(i,j)+';this.route=route',ctx);return {route:ctx.route,log}}
++test('LHB-101: un escape mal formado en el hash no tumba el router (se queda el texto tal cual); si leer el almacenamiento está bloqueado, Mi Hoja sale vacía y no rompe la pintura',()=>{
++ let R=ROUTE101('#/a/%E0%A4%A');assert.doesNotThrow(()=>R.route());assert.deepEqual(R.log,[['vArtesano','%E0%A4%A']],'abre la vista de artesano con el texto tal cual');
++ R=ROUTE101('#/a/casa%20robles');R.route();assert.deepEqual(R.log,[['vArtesano','casa robles']],'un escape bueno se decodifica como antes');
++ R=ROUTE101('#/c/');R.route();assert.deepEqual(R.log,[['vCigar','']]);
++ /* S(): una lectura bloqueada (SecurityError) da el estado vacío, sin error; cuando vuelve a poder leer, lee de verdad */
++ const h=HOJA38();h.set('lhb_mihoja_v1',{schema:1,favs:{cigarros:['c1'],artesanos:[],lugares:[]}});
++ const real=h.ctx.localStorage.getItem;h.ctx.localStorage.getItem=()=>{const e=new Error('blocked');e.name='SecurityError';throw e};
++ let s;assert.doesNotThrow(()=>{s=h.API.S()},'S() no lanza');assert.deepEqual(s.favs,{cigarros:[],artesanos:[],lugares:[]},'Mi Hoja vacía');
++ h.ctx.localStorage.getItem=real;assert.deepEqual(h.API.S().favs.cigarros,['c1'],'cuando se puede leer otra vez, lee lo guardado');
+ });

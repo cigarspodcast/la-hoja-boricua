@@ -1,0 +1,19 @@
+You are reviewing two tickets in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-100-wt (branch lhb-100-101-robust, PR to main). The diff below is base f92ff9c (origin/main) to HEAD a958ea1. This is round 2 of a TIER 2 review (LHB-100 TIER 2; LHB-101 TIER 1 rides in the same rounds). Round 1 is in evidence/lhb-100-review-r1.txt; its brief, with the tickets' pinned decisions, is evidence/lhb-100-review-brief-r1.txt. Read both first.
+
+Round 1 found three blocking defects in LHB-100 and none in LHB-101. Fixed in a958ea1:
+1. A normal service-worker upgrade could show a false failure (new index.html with an older cached app.js that never calls ok()). Now a painted #view counts as a boot even if nobody calls ok(): checked at DOMContentLoaded and at 12 s, and a MutationObserver on #view (set when the guard runs, right after the view element in the page) clears the notice and counts the boot as soon as the view gets content. A browser run with this index.html and the app.js of f92ff9c shows no notice (evidence/lhb-100/after.out, the mixed case).
+2. A later successful route left the failure notice. Now route() calls LHB_BOOT.ok() at its end, after the view it dispatched returned; a view that throws does not report. The boot tail is back to route();topAvatar();refreshData();.
+3. The 12 s watchdog cut a slow but healthy splash. Now once the boot succeeded the guard does not touch the splash at 12 s; it removes it only if it is still there 10 s after the boot (the splash's own run is about 3.75 s plus up to 1.2 s of image wait after app.js starts it, then a 450 ms fade).
+
+Known limit, stated so you can judge it: with an older cached app.js and an initial route whose view paints asynchronously after DOMContentLoaded, the notice can show until the view paints; the observer then removes it.
+
+Tests: BOOT100 adds the painted-view case, the observer case (and a mutation that does not paint), the no-cut-at-12-s case and the 10 s backstop. ROUTE101 checks that route() reports ok after the view and not when the view throws, and that a page without the guard does not break. Mutations: 14 of 14 red (evidence/lhb-100-mutations.out), four new for these findings. Full suite: 303 pass, 0 fail, 1 skipped (evidence/lhb-100-tests.txt). The four suite failures you saw in round 1 were the sandbox refusing Python subprocesses (EPERM), not the code.
+
+Check in particular:
+- Is each round 1 finding fixed, by the code and not only by the test?
+- Can the new rules make a real failure look like a success (a view partly painted before a script threw, an error message some view paints into #view, a view a later script empties again)? Does the observer ever hide the notice while the app is broken?
+- Can a healthy load still show the notice or have its splash changed?
+- Does calling ok() on every route have any cost or side effect (timers, observer, the splash)?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

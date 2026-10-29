@@ -1,0 +1,18 @@
+B0 the original main code (no guard, raw decode, S() unguarded)    rc 1 fail 2 -> RED
+B1 route() does not report a painted view                          rc 1 fail 2 -> RED
+B2 the guard does not act when the scripts finish loading          rc 1 fail 1 -> RED
+B3 no 12 s backstop                                                rc 1 fail 1 -> RED
+B4 the fallback text differs from i18n.js                          rc 1 fail 1 -> RED
+B5 a failed boot reloads by itself (a retry loop)                  rc 1 fail 1 -> RED
+B6 a late boot leaves the message up                               rc 1 fail 1 -> RED
+B7 the splash stays on a failed boot                               rc 1 fail 1 -> RED
+B8 a painted view does not count (an older cached app.js; Codex r1) rc 1 fail 1 -> RED
+B9 the guard cuts a healthy splash at 12 s (Codex r1)              rc 1 fail 1 -> RED
+B10 no splash backstop after the boot                              rc 1 fail 1 -> RED
+B11 a view painted later does not clear the message (Codex r1)     rc 1 fail 1 -> RED
+B12 app.js does not say hello (Codex r2)                           rc 1 fail 1 -> RED
+B13 a half-painted view counts after hello (Codex r2)              rc 1 fail 1 -> RED
+R1 route() decodes without a guard                                 rc 1 fail 1 -> RED
+R2 S() lets a blocked read throw                                   rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 2 fail 0
+RESULT 16 of 16 mutations red
