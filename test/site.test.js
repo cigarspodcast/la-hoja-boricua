@@ -5254,16 +5254,38 @@ test('LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de toke
    [archivo, el tramo que lo contiene, cuántas veces aparece ese tramo, la razón, y si es espejo de un token, los tokens que puede valer].
    Un color escrito %23 (dentro de un SVG en data URI) cuenta igual que uno escrito # (Codex ronda 1). */
 const LIT67=/(?:#|%23)[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\(/gi;
-/* LHB-99: también hsl() y RGB() en mayúsculas; un color con nombre (red, white...) solo donde pinta: tras una propiedad de color
-   (color, background, fill, stroke, border, sombras, fillStyle del lienzo) en el CSS, un atributo style o un atributo SVG; dentro de un ${}
-   el código no cuenta, solo un nombre entre comillas. Y el texto se lee con el %xx ya decodificado (un # escrito %23%31... cuenta igual). */
+/* LHB-99: también hsl() y RGB() en mayúsculas (arriba), y los colores con nombre. */
+/* LHB-99 (Codex ronda 1): un color con nombre se busca solo donde pinta, leyendo la estructura y no una línea suelta:
+   - en el CSS, en cada declaración de una propiedad de color (el valor sigue hasta su ; aunque cruce líneas o comillas);
+   - en el código, en los atributos style y en los atributos de color del SVG de las plantillas, y en una asignación de style.<propiedad>,
+     fillStyle, strokeStyle o shadowColor con un texto entre comillas;
+   - dentro de un ${} el código no cuenta (palette.red, una variable red), solo un texto entre comillas que es exactamente un nombre;
+   - url(...) no cuenta (un archivo red.svg), y solo un data URI de SVG se lee con el %xx decodificado (su # y sus atributos cuentan). */
 const NAMES99=new Set('aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen'.split(' '));
-const PROP99=/(?<=^|[;{\s"'`.(,])(?:(?:[a-z]+-)*color|background|fill|stroke|border(?:-[a-z]+)*|box-shadow|text-shadow|outline|fillStyle|strokeStyle|shadowColor)\s*[:=]\s*["'`]?([^;}"'`<>\n]*)/gi;
+const CPROP99=/^(?:--[\w-]+|[a-z-]*color|background(?:-image)?|fill|stroke|border(?:-[a-z]+)*|outline|box-shadow|text-shadow|text-decoration|column-rule)$/i;
+const q99=(s,i)=>{const c=s[i];for(let j=i+1;j<s.length;j++){if(s[j]==='\\'){j++;continue}if(s[j]===c)return j+1}return s.length};
+const interp99=(s,i)=>{let dep=1,j=i+2;while(j<s.length&&dep){const c=s[j];if(c==="'"||c==='"'||c==='`'){j=q99(s,j);continue}if(c==='{')dep++;else if(c==='}')dep--;j++}return j};
+const exact99=(s,a,b,at)=>{const m=/^(\s*)([a-zA-Z]+)\s*$/.exec(s.slice(a,b));if(m&&NAMES99.has(m[2].toLowerCase()))at.push(a+m[1].length)};
+function val99(s,a,b,at){for(let j=a;j<b;){const c=s[j];
+  if(c==='$'&&s[j+1]==='{'){const e=Math.min(interp99(s,j),b);for(let k=j+2;k<e;){if(/['"`]/.test(s[k])){const z=q99(s,k);exact99(s,k+1,z-1,at);k=z}else k++}j=e;continue}
+  if(/['"`]/.test(c)){const z=Math.min(q99(s,j),b);exact99(s,j+1,z-1,at);j=z;continue}
+  if(/^url\(/i.test(s.slice(j,j+4))&&!/[\w-]/.test(s[j-1]||'')){let k=j+4,dep=1;while(k<b&&dep){if(/['"]/.test(s[k])){k=q99(s,k);continue}if(s[k]==='(')dep++;else if(s[k]===')')dep--;k++}j=k;continue}
+  if(/[a-zA-Z]/.test(c)&&!/[\w$.#-]/.test(s[j-1]||'')){let k=j;while(k<b&&/[\w-]/.test(s[k]))k++;if(NAMES99.has(s.slice(j,k).toLowerCase())&&s[k]!=='(')at.push(j);j=k;continue}
+  j++}}
+function decl99(s,a,b,at){for(let j=a;j<b;){while(j<b&&/[\s;]/.test(s[j]))j++;const n=j;while(j<b&&/[-\w]/.test(s[j]))j++;const name=s.slice(n,j);while(j<b&&/\s/.test(s[j]))j++;
+  const colon=name&&s[j]===':';if(colon)j++;const v=j;let dep=0;
+  while(j<b){const c=s[j];if(c==='$'&&s[j+1]==='{'){j=interp99(s,j);continue}if(/['"`]/.test(c)){j=q99(s,j);continue}if(c==='(')dep++;else if(c===')')dep--;else if(c===';'&&dep<=0)break;j++}
+  if(colon&&CPROP99.test(name))val99(s,v,Math.min(j,b),at);if(j===n)j++}}
+function js99(s,at){const close=(i,q)=>{for(let j=i;j<s.length;){if(s[j]==='$'&&s[j+1]==='{'){j=interp99(s,j);continue}if(s.startsWith(q,j))return j;j++}return s.length};
+ for(const m of s.matchAll(/(?<![\w-])style=(\\?["'])/g)){const a=m.index+m[0].length;decl99(s,a,close(a,m[1]),at)}
+ for(const m of s.matchAll(/(?<![\w-])(?:fill|stroke|stop-color|flood-color|lighting-color|color)=(\\?["'])/g)){const a=m.index+m[0].length;val99(s,a,close(a,m[1]),at)}
+ for(const m of s.matchAll(/\.(?:style\.([a-zA-Z]+)|fillStyle|strokeStyle|shadowColor)\s*=\s*(['"`])/g)){if(m[1]&&!CPROP99.test(m[1].replace(/[A-Z]/g,c=>'-'+c.toLowerCase())))continue;const a=m.index+m[0].length;val99(s,a,q99(s,a-1)-1,at)}}
 function dec99(s){let d='';const map=[];for(let i=0;i<s.length;){if(s[i]==='%'&&/^[0-9a-fA-F]{2}$/.test(s.slice(i+1,i+3))){d+=String.fromCharCode(parseInt(s.slice(i+1,i+3),16));map.push(i);i+=3}else{d+=s[i];map.push(i);i++}}return {d,map}}
-function named99(d){const at=[];for(const m of d.matchAll(PROP99)){const v=m[1],o=m.index+m[0].length-v.length,code=[];
-  for(let k=v.indexOf('${');k>=0;k=v.indexOf('${',k+2)){let j=o+k+2,dep=1;while(j<d.length&&dep){if(d[j]==='{')dep++;else if(d[j]==='}')dep--;j++}code.push([o+k,j]);
-   for(const q of d.slice(o+k,j).matchAll(/(['"`])\s*([a-zA-Z]+)\s*\1/g))if(NAMES99.has(q[2].toLowerCase()))at.push(o+k+q.index+q[0].indexOf(q[2]))}
-  for(const w of v.matchAll(/(?<![\w$-])[a-zA-Z]+(?![\w-])/g)){const i=o+w.index;if(NAMES99.has(w[0].toLowerCase())&&!code.some(([a,b])=>i>=a&&i<b))at.push(i)}}
+function extra99(f,s){const at=[];
+ if(/\.css$/.test(f)){for(const m of s.matchAll(/\{([^{}]*)\}/g))decl99(s,m.index+1,m.index+1+m[1].length,at)}else js99(s,at);
+ for(const m of s.matchAll(/data:image\/svg\+xml(?:;[\w=.-]+)*,/gi)){const a=m.index+m[0].length,q=s[m.index-1];let b=a;
+  if(q==='"'||q==="'"){b=s.indexOf(q,a);if(b<0)b=s.length}else while(b<s.length&&!/[)\s"'`]/.test(s[b]))b++;
+  const {d,map}=dec99(s.slice(a,b)),sub=[];for(const h of d.matchAll(LIT67))sub.push(h.index);js99(d,sub);for(const i of sub)at.push(a+map[i])}
  return at}
 const ALLOW67=[
  ['styles.css',/\.lbtn\.ig\{[^}]*\}/,1,'marca de Instagram: su degradado (el texto blanco pasa 4.5 en cada parada, abajo)'],
@@ -5291,7 +5313,7 @@ const ALLOW67=[
 function scan67(over={}){const app=TOKENS65(read('styles.css')),bad=[],stale=[],mirror=[];
  for(const f of ['styles.css','app.js','hoja.js','cuenta.js','intro.js']){let s=over[f]!=null?over[f]:read(f);const blank=m=>' '.repeat(m.length);
   if(f==='styles.css')s=s.replace(/:root\{[^}]*\}/,blank);s=s.replace(/\/\*[\s\S]*?\*\//g,blank);
-  const {d,map}=dec99(s),at=[...new Set([...[...d.matchAll(LIT67)].map(m=>m.index),...named99(d)].map(i=>map[i]))].sort((a,b)=>a-b),cov=new Set();
+  const at=[...new Set([...[...s.matchAll(LIT67)].map(m=>m.index),...extra99(f,s)])].sort((a,b)=>a-b),cov=new Set();
   for(const [,re,n,why,mir] of ALLOW67.filter(a=>a[0]===f)){assert.ok(why&&why.length>10,f+': cada color que queda lleva su razón');
    const ms=[...s.matchAll(new RegExp(re.source,'g'))];if(ms.length!==n)stale.push(f+' '+re.source+': '+ms.length+' veces, la lista dice '+n);
    for(const m of ms)for(const i of at)if(i>=m.index&&i<m.index+m[0].length){cov.add(i);
@@ -5304,12 +5326,21 @@ test('LHB-67: ningún color suelto en las pantallas de la app; lo que queda est�
  const inj=scan67({'styles.css':read('styles.css')+'\n.x{color:#fff}'});assert.equal(inj.bad.length,1,'la prueba ve un #fff inyectado');
  /* LHB-99: la prueba ve cada forma nueva, una vez; y no ve un color en una palabra que no pinta */
  const probe=(f,x)=>scan67({[f]:read(f)+x}).bad.length;
- for(const [f,x] of [['styles.css','\n.x{color:hsl(0 100% 50%)}'],['styles.css','\n.x{color:HSLA(0,0%,0%,.5)}'],['styles.css','\n.x{background:RGB(1,2,3)}'],
-  ['styles.css','\n.x{border:1px solid Red}'],['styles.css','\n.x{background:url("data:image/svg+xml,%3Csvg%3E%3Crect fill=%22%23%31EA8D7%22/%3E%3C/svg%3E")}'],
-  ['app.js','\nconst x99=`<b style="color:white">`;'],['app.js',"\nconst x99='<path fill=\"navy\"/>';"],['app.js',"\nel.style.background='gold';"],
-  ['app.js',"\nconst x99=`<i style=\"color:${on?'red':'var(--info)'}\">`;"]])assert.equal(probe(f,x),1,'la prueba ve '+x.trim());
- for(const [f,x] of [['app.js',"\nconst x99='red de tiendas, white label';"],['styles.css','\n.x{color:var(--flag-red)}'],
-  ['app.js',"\nconst x99=`<i style=\"color:${red?'var(--a)':'var(--b)'}\">`;"],['styles.css','\n.x{transition:color .2s,background .2s}']])assert.equal(probe(f,x),0,'no es un color suelto: '+x.trim());
+ for(const [f,x,n] of [['styles.css','\n.x{color:hsl(0 100% 50%)}',1],['styles.css','\n.x{color:HSLA(0,0%,0%,.5)}',1],['styles.css','\n.x{background:RGB(1,2,3)}',1],
+  ['styles.css','\n.x{border:1px solid Red}',1],['styles.css','\n.x{stop-color:ReD}',1],['styles.css','\n.x{--paint:red;color:var(--paint)}',1],
+  ['styles.css','\n.x{background:url("data:image/svg+xml,%3Csvg%3E%3Crect fill=%22%23%31EA8D7%22/%3E%3C/svg%3E")}',1],
+  ['styles.css','\n.x{background:url("data:image/svg+xml,%3Csvg%3E%3Crect fill=%22white%22/%3E%3C/svg%3E")}',1],
+  /* Codex ronda 1: el valor sigue tras unas comillas, a través de líneas y tras un %3B dentro de url() */
+  ['styles.css','\n.x{background:url("/assets/paper.svg") ReD}',1],['styles.css','\n.x{background:linear-gradient(\n red, blue)}',2],['styles.css','\n.x{background:url(/img/50%3B.svg) red}',1],
+  ['app.js','\nconst x99=`<b style="color:white">`;',1],['app.js',"\nconst x99='<path fill=\"navy\"/>';",1],['app.js',"\nel.style.background='gold';",1],
+  ['app.js',"\nel.style.border='1px solid red';",1],['app.js',"\nx.fillStyle='white';",1],['app.js',"\nconst x99='<b style=\"color:'+'red'+'\">';",1],
+  ['app.js',"\nconst x99=`<i style=\"color:${on?'red':'var(--info)'}\">`;",1],['app.js',"\nconst y99=`<i style=\"color:${label==='}'?'red':'var(--info)'}\">`;",1],
+  /* y no ve un color en una palabra que no pinta: un texto, un token, un archivo, una variable o un texto con %xx */
+  ['app.js',"\nconst x99='red de tiendas, white label';",0],['app.js',"\nconst note99='color: red de tiendas';",0],['app.js',"\nconst note99='%63olor%3A%72ed';",0],
+  ['app.js','\nel.style.color=palette.red;',0],['app.js',"\nconst x99=`<i style=\"color:${red?'var(--a)':'var(--b)'}\">`;",0],['app.js',"\nconst x99=`<i style=\"color:${palette.red}\">`;",0],
+  ['app.js',"\nel.style.width='red';",0],['styles.css','\n.x{color:var(--flag-red)}',0],['styles.css','\n.x{background:url(/assets/red.svg)}',0],
+  ['styles.css','\n.x{transition:color .2s,background .2s}',0],['styles.css','\n.x{font-family:"Red Hat",sans-serif;content:"red"}',0]])
+  assert.equal(probe(f,x),n,(n?'la prueba ve ':'no es un color suelto: ')+x.trim());
 });
 test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera',()=>{
  const app=TOKENS65(read('styles.css')),css=read('styles.css'),a=read('app.js'),h=read('hoja.js'),ink=app.val('on-surface');

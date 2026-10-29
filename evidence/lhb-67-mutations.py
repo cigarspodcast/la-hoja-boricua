@@ -59,6 +59,9 @@ M99 = [
     ('H25 a quoted name inside ${} on the flag initials (LHB-99)', lambda: edit(AP, "color:${red?'var(--on-danger)':'var(--on-surface)'}", "color:${red?'white':'var(--on-surface)'}")),
     ('H26 a partly encoded # in a new data URI (LHB-99)', lambda: append(CS, '\n.lhb99g{background:url("data:image/svg+xml,%3Csvg%3E%3Crect fill=%22%23%31EA8D7%22/%3E%3C/svg%3E")}\n')),
     ('H27 the share image paints a named color (fillStyle, LHB-99)', lambda: edit(HJ, "x.fillStyle=tk('card');rr(x,X,by,bw,110,18);", "x.fillStyle='white';rr(x,X,by,bw,110,18);")),
+    ('H28 a named color after a quoted url() (LHB-99 Codex r1)', lambda: append(CS, '\n.lhb99h{background:url("/img/x.svg") red}\n')),
+    ('H29 a named color on the next line of a gradient (LHB-99 Codex r1)', lambda: append(CS, '\n.lhb99i{background:linear-gradient(\n red,var(--card))}\n')),
+    ('H30 a quoted brace before the name inside ${} (LHB-99 Codex r1)', lambda: append(AP, "\nconst lhb99j=`<i style=\"color:${a==='}'?'red':'var(--info)'}\">`;\n")),
 ]
 M = M + M99
 red = 0

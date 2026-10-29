@@ -25,8 +25,11 @@ H24 a named color in an SVG fill in hoja.js (LHB-99)           rc 1 fail 1 -> RE
 H25 a quoted name inside ${} on the flag initials (LHB-99)     rc 1 fail 2 -> RED
 H26 a partly encoded # in a new data URI (LHB-99)              rc 1 fail 1 -> RED
 H27 the share image paints a named color (fillStyle, LHB-99)   rc 1 fail 1 -> RED
+H28 a named color after a quoted url() (LHB-99 Codex r1)       rc 1 fail 1 -> RED
+H29 a named color on the next line of a gradient (LHB-99 Codex r1) rc 1 fail 1 -> RED
+H30 a quoted brace before the name inside ${} (LHB-99 Codex r1) rc 1 fail 1 -> RED
 baseline after restore: rc 0 pass 7
-RESULT 27 of 27 mutations red
+RESULT 30 of 30 mutations red
 before LHB-99: H19 hsl() in styles.css (LHB-99)                 rc 0 fail 0 -> SURVIVED
 before LHB-99: H20 uppercase RGB() in hoja.js (LHB-99)          rc 0 fail 0 -> SURVIVED
 before LHB-99: H21 uppercase HSLA() in cuenta.js (LHB-99)       rc 0 fail 0 -> SURVIVED
@@ -36,4 +39,7 @@ before LHB-99: H24 a named color in an SVG fill in hoja.js (LHB-99) rc 0 fail 0 
 before LHB-99: H25 a quoted name inside ${} on the flag initials (LHB-99) rc 1 fail 1 -> RED
 before LHB-99: H26 a partly encoded # in a new data URI (LHB-99) rc 0 fail 0 -> SURVIVED
 before LHB-99: H27 the share image paints a named color (fillStyle, LHB-99) rc 0 fail 0 -> SURVIVED
-BEFORE LHB-99: 8 of 9 new mutations survived the old scan
+before LHB-99: H28 a named color after a quoted url() (LHB-99 Codex r1) rc 0 fail 0 -> SURVIVED
+before LHB-99: H29 a named color on the next line of a gradient (LHB-99 Codex r1) rc 0 fail 0 -> SURVIVED
+before LHB-99: H30 a quoted brace before the name inside ${} (LHB-99 Codex r1) rc 0 fail 0 -> SURVIVED
+BEFORE LHB-99: 11 of 12 new mutations survived the old scan

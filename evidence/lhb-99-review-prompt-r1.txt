@@ -1,0 +1,130 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket (base c1b7b99, the end of LHB-75). This is a TIER 1 review: one round.
+
+Ticket LHB-99, a follow-up of LHB-67: the color-literal scan in test/site.test.js (LIT67 and scan67) missed hsl(), uppercase RGB(), named colors and a partly encoded hex such as %23%31EA8D7. Scope: test/site.test.js (LIT67 and scan67) and evidence/lhb-67-mutations.py. Nothing else; no visual change.
+
+Pinned decisions:
+- Detect hsla?( and rgba?( case-insensitively.
+- Named colors only inside color-bearing CSS properties (color, background, fill, stroke, border, box-shadow) and style attributes, so plain words in strings are not false positives.
+- Decode percent-encoding before matching data URIs.
+
+What changed:
+- LIT67 is /(?:#|%23)[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\(/gi.
+- dec99 decodes every %xx in the file text (after comments are blanked) and keeps a map from decoded index to original index; scan67 matches on the decoded text and maps each hit back, so ALLOW67 spans, counts and mirror checks still run on the original text.
+- named99: after PROP99 (a color-bearing property name followed by : or =, preceded by start, ; { space quote backtick . ( or ,), the value up to ; } a quote < > or a newline is searched for one of the 148 CSS named colors as a whole word. Inside ${...} (found by brace counting from the value) identifiers do not count, but a quoted name does.
+- The LHB-67 test adds nine probes that must each be seen once and four that must be seen zero times.
+- evidence/lhb-67-mutations.py adds nine source mutations, one per syntax, and a record of the same nine against the old test file.
+
+Evidence:
+- evidence/lhb-67-mutations.out: 27 of 27 red; before LHB-99, 8 of the 9 new ones survived (H25 was red there through a different pin).
+- evidence/lhb-99-tests.txt: 332 pass, 0 fail, 1 skipped.
+
+Check in particular:
+- Can a color literal still pass the scan (a named color in a property PROP99 does not list, such as stop-color or a CSS custom property set in a rule outside :root, a value split across a quote, an uppercase or mixed-case name, hwb() lab() lch() oklch() color(), a hex written with an HTML entity)? Say which of these you consider in the ticket's scope.
+- Can decoding create a false hit, or move an index so an ALLOW67 span no longer covers its hit, or double count?
+- False positives a future edit would hit (words in strings, token names, identifiers).
+- Is each mutation a real test of the syntax it names?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff c1b7b99 HEAD -- test/site.test.js evidence/lhb-67-mutations.py =====
+diff --git a/evidence/lhb-67-mutations.py b/evidence/lhb-67-mutations.py
+index 78f07fe..c6939da 100644
+--- a/evidence/lhb-67-mutations.py
++++ b/evidence/lhb-67-mutations.py
+@@ -48,6 +48,19 @@ M = [
+     ('H17 an encoded color in a new data URI (Codex round 1)', lambda: append(CS, '\n.lhb67y{background:url("data:image/svg+xml,%3Csvg%3E%3Crect fill=%22%23fff%22/%3E%3C/svg%3E")}\n')),
+     ('H18 the unearned leaf back to a literal (Codex round 1)', lambda: edit(HJ, "VBArt.leaf(on?b.c:'var(--line)')", "VBArt.leaf(on?b.c:'#D7D8CC')")),
+ ]
++# LHB-99: one mutation per syntax the scan did not see before (hsl(), uppercase RGB(), named colors where they paint, a partly encoded #)
++M99 = [
++    ('H19 hsl() in styles.css (LHB-99)', lambda: append(CS, '\n.lhb99a{color:hsl(0 100% 50%)}\n')),
++    ('H20 uppercase RGB() in hoja.js (LHB-99)', lambda: append(HJ, "\nconst lhb99b='RGB(1,2,3)';\n")),
++    ('H21 uppercase HSLA() in cuenta.js (LHB-99)', lambda: append(CU, "\nconst lhb99c='HSLA(0,0%,0%,.5)';\n")),
++    ('H22 a named color in a CSS border (LHB-99)', lambda: append(CS, '\n.lhb99d{border:1px solid red}\n')),
++    ('H23 a named color in a style attribute in app.js (LHB-99)', lambda: append(AP, '\nconst lhb99e=`<b style="color:white">`;\n')),
++    ('H24 a named color in an SVG fill in hoja.js (LHB-99)', lambda: append(HJ, "\nconst lhb99f='<path fill=\"navy\"/>';\n")),
++    ('H25 a quoted name inside ${} on the flag initials (LHB-99)', lambda: edit(AP, "color:${red?'var(--on-danger)':'var(--on-surface)'}", "color:${red?'white':'var(--on-surface)'}")),
++    ('H26 a partly encoded # in a new data URI (LHB-99)', lambda: append(CS, '\n.lhb99g{background:url("data:image/svg+xml,%3Csvg%3E%3Crect fill=%22%23%31EA8D7%22/%3E%3C/svg%3E")}\n')),
++    ('H27 the share image paints a named color (fillStyle, LHB-99)', lambda: edit(HJ, "x.fillStyle=tk('card');rr(x,X,by,bw,110,18);", "x.fillStyle='white';rr(x,X,by,bw,110,18);")),
++]
++M = M + M99
+ red = 0
+ for name, mut in M:
+     snap = {rel: open(os.path.join(D, rel), 'rb').read() for rel in FILES}
+@@ -65,3 +78,25 @@ r = runp()
+ n = re.findall(r'^ℹ pass (\d+)', r.stdout, re.M)
+ print('baseline after restore: rc %d pass %s' % (r.returncode, n[-1] if n else '?'))
+ print('RESULT %d of %d mutations red' % (red, len(M)))
++# LHB-99 before: the same new mutations against the test file as it was before LHB-99 (c1b7b99); they are expected to SURVIVE there,
++# which is the gap the ticket reports. This is a record, not a pass condition.
++TF = os.path.join(D, 'test', 'site.test.js')
++cur = open(TF, 'rb').read()
++open(TF, 'wb').write(subprocess.run(['git', 'show', 'c1b7b99:test/site.test.js'], cwd=WT, capture_output=True, check=True).stdout)
++survived = 0
++try:
++    for name, mut in M99:
++        snap = {rel: open(os.path.join(D, rel), 'rb').read() for rel in FILES}
++        try:
++            mut()
++            r = runp()
++            fails = re.findall(r'^ℹ fail (\d+)', r.stdout, re.M)
++            ok = r.returncode != 0 and fails and int(fails[-1]) > 0
++            survived += not ok
++            print('before LHB-99: %-48s rc %d fail %s -> %s' % (name, r.returncode, fails[-1] if fails else '?', 'RED' if ok else 'SURVIVED'), flush=True)
++        finally:
++            for rel, b in snap.items():
++                open(os.path.join(D, rel), 'wb').write(b)
++finally:
++    open(TF, 'wb').write(cur)
++print('BEFORE LHB-99: %d of %d new mutations survived the old scan' % (survived, len(M99)))
+diff --git a/test/site.test.js b/test/site.test.js
+index 451784e..34dc9da 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -5253,7 +5253,18 @@ test('LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de toke
+ /* LHB-67: ningún color suelto en las pantallas de la app (styles.css fuera de :root, app.js, hoja.js, cuenta.js). Lo que queda está en ALLOW67:
+    [archivo, el tramo que lo contiene, cuántas veces aparece ese tramo, la razón, y si es espejo de un token, los tokens que puede valer].
+    Un color escrito %23 (dentro de un SVG en data URI) cuenta igual que uno escrito # (Codex ronda 1). */
+-const LIT67=/(?:#|%23)[0-9a-fA-F]{3,8}\b|rgba?\(/g;
++const LIT67=/(?:#|%23)[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\(/gi;
++/* LHB-99: también hsl() y RGB() en mayúsculas; un color con nombre (red, white...) solo donde pinta: tras una propiedad de color
++   (color, background, fill, stroke, border, sombras, fillStyle del lienzo) en el CSS, un atributo style o un atributo SVG; dentro de un ${}
++   el código no cuenta, solo un nombre entre comillas. Y el texto se lee con el %xx ya decodificado (un # escrito %23%31... cuenta igual). */
++const NAMES99=new Set('aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen'.split(' '));
++const PROP99=/(?<=^|[;{\s"'`.(,])(?:(?:[a-z]+-)*color|background|fill|stroke|border(?:-[a-z]+)*|box-shadow|text-shadow|outline|fillStyle|strokeStyle|shadowColor)\s*[:=]\s*["'`]?([^;}"'`<>\n]*)/gi;
++function dec99(s){let d='';const map=[];for(let i=0;i<s.length;){if(s[i]==='%'&&/^[0-9a-fA-F]{2}$/.test(s.slice(i+1,i+3))){d+=String.fromCharCode(parseInt(s.slice(i+1,i+3),16));map.push(i);i+=3}else{d+=s[i];map.push(i);i++}}return {d,map}}
++function named99(d){const at=[];for(const m of d.matchAll(PROP99)){const v=m[1],o=m.index+m[0].length-v.length,code=[];
++  for(let k=v.indexOf('${');k>=0;k=v.indexOf('${',k+2)){let j=o+k+2,dep=1;while(j<d.length&&dep){if(d[j]==='{')dep++;else if(d[j]==='}')dep--;j++}code.push([o+k,j]);
++   for(const q of d.slice(o+k,j).matchAll(/(['"`])\s*([a-zA-Z]+)\s*\1/g))if(NAMES99.has(q[2].toLowerCase()))at.push(o+k+q.index+q[0].indexOf(q[2]))}
++  for(const w of v.matchAll(/(?<![\w$-])[a-zA-Z]+(?![\w-])/g)){const i=o+w.index;if(NAMES99.has(w[0].toLowerCase())&&!code.some(([a,b])=>i>=a&&i<b))at.push(i)}}
++ return at}
+ const ALLOW67=[
+  ['styles.css',/\.lbtn\.ig\{[^}]*\}/,1,'marca de Instagram: su degradado (el texto blanco pasa 4.5 en cada parada, abajo)'],
+  ['styles.css',/\.lbtn\.wa\{[^}]*\}/,1,'marca de WhatsApp: su verde (el texto blanco pasa 4.5, abajo)'],
+@@ -5280,7 +5291,7 @@ const ALLOW67=[
+ function scan67(over={}){const app=TOKENS65(read('styles.css')),bad=[],stale=[],mirror=[];
+  for(const f of ['styles.css','app.js','hoja.js','cuenta.js','intro.js']){let s=over[f]!=null?over[f]:read(f);const blank=m=>' '.repeat(m.length);
+   if(f==='styles.css')s=s.replace(/:root\{[^}]*\}/,blank);s=s.replace(/\/\*[\s\S]*?\*\//g,blank);
+-  const at=[...s.matchAll(LIT67)].map(m=>m.index),cov=new Set();
++  const {d,map}=dec99(s),at=[...new Set([...[...d.matchAll(LIT67)].map(m=>m.index),...named99(d)].map(i=>map[i]))].sort((a,b)=>a-b),cov=new Set();
+   for(const [,re,n,why,mir] of ALLOW67.filter(a=>a[0]===f)){assert.ok(why&&why.length>10,f+': cada color que queda lleva su razón');
+    const ms=[...s.matchAll(new RegExp(re.source,'g'))];if(ms.length!==n)stale.push(f+' '+re.source+': '+ms.length+' veces, la lista dice '+n);
+    for(const m of ms)for(const i of at)if(i>=m.index&&i<m.index+m[0].length){cov.add(i);
+@@ -5291,6 +5302,14 @@ test('LHB-67: ningún color suelto en las pantallas de la app; lo que queda est
+  const {bad,stale,mirror}=scan67();t.diagnostic('colores fuera de la lista: '+bad.length+'; tramos de la lista: '+ALLOW67.length);
+  assert.deepEqual(bad,[],'un color suelto nuevo: cámbielo por un token o póngalo en ALLOW67 con su razón');assert.deepEqual(stale,[],'la lista sigue al código');assert.deepEqual(mirror,[],'cada espejo vale su token');
+  const inj=scan67({'styles.css':read('styles.css')+'\n.x{color:#fff}'});assert.equal(inj.bad.length,1,'la prueba ve un #fff inyectado');
++ /* LHB-99: la prueba ve cada forma nueva, una vez; y no ve un color en una palabra que no pinta */
++ const probe=(f,x)=>scan67({[f]:read(f)+x}).bad.length;
++ for(const [f,x] of [['styles.css','\n.x{color:hsl(0 100% 50%)}'],['styles.css','\n.x{color:HSLA(0,0%,0%,.5)}'],['styles.css','\n.x{background:RGB(1,2,3)}'],
++  ['styles.css','\n.x{border:1px solid Red}'],['styles.css','\n.x{background:url("data:image/svg+xml,%3Csvg%3E%3Crect fill=%22%23%31EA8D7%22/%3E%3C/svg%3E")}'],
++  ['app.js','\nconst x99=`<b style="color:white">`;'],['app.js',"\nconst x99='<path fill=\"navy\"/>';"],['app.js',"\nel.style.background='gold';"],
++  ['app.js',"\nconst x99=`<i style=\"color:${on?'red':'var(--info)'}\">`;"]])assert.equal(probe(f,x),1,'la prueba ve '+x.trim());
++ for(const [f,x] of [['app.js',"\nconst x99='red de tiendas, white label';"],['styles.css','\n.x{color:var(--flag-red)}'],
++  ['app.js',"\nconst x99=`<i style=\"color:${red?'var(--a)':'var(--b)'}\">`;"],['styles.css','\n.x{transition:color .2s,background .2s}']])assert.equal(probe(f,x),0,'no es un color suelto: '+x.trim());
+ });
+ test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera',()=>{
+  const app=TOKENS65(read('styles.css')),css=read('styles.css'),a=read('app.js'),h=read('hoja.js'),ink=app.val('on-surface');
