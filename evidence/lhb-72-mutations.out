@@ -16,6 +16,10 @@ J15 the intro loads after the app                            rc 1 fail 1 -> RED
 J16 a splash rule comes back                                 rc 1 fail 1 -> RED
 J18 no stall limit after it starts                           rc 1 fail 1 -> RED
 J19 no 9 s ceiling                                           rc 1 fail 1 -> RED
+J20 (Codex r1) a date in the future counts as none           rc 1 fail 1 -> RED
+J21 (Codex r1) ?intro=1 stays in the address                 rc 1 fail 1 -> RED
+J22 (Codex r1) an old cached shell still opens it            rc 1 fail 1 -> RED
+J23 (Codex r1) styles.css loses its marker                   rc 1 fail 1 -> RED
 J17 an intro key without its English value                   rc 1 fail 2 -> RED
 baseline after restore: rc 0 pass 11
-RESULT 19 of 19 mutations red
+RESULT 23 of 23 mutations red

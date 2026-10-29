@@ -1,0 +1,828 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-65-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18629-cfa7-7c01-aef5-d82a4f563118
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket (base bcb5e3b). This is round 1 of a TIER 2 review.
+
+Ticket LHB-72 (M7-F4a): the intro player, its play policy, a poster, the reduced-motion and data-saver paths, and the removal of the legacy splash. Pinned decisions:
+- Play policy: first run, then at most once every 14 days; never again in the same session. Replay from About ("Ver intro"; the About link itself is another ticket). Installed-app cold starts do not replay it.
+- A small webp poster so there is no blank paper flash.
+- Keep from the source package: muted start with a sound button, skip, Escape, reduced motion, data saver, deep links skip it, hard time limits, no loop.
+- The videos are NOT precached by the service worker.
+- New copy as i18n keys with es and en values; no Spanish literal in a script.
+- One new localStorage key records when the intro last played; local to the device, never synced.
+
+What changed:
+- site/intro.js (new, deferred, loads after i18n.js and before app.js). decide(o) is pure: hidden, reduced, saveData, storage unreadable, then replay (?intro=1) plays, then deep link, same session, first run plays, installed app (display-mode standalone or navigator.standalone) does not replay, else now-last>=14 days plays. inputs(now) reads the browser; a stored date that is not a positive number or is in the future counts as none. play(now) writes vb_introAt and sessionStorage vb_intro first (and bails out if storage throws), builds a section role=dialog aria-modal with a muted, non-looping video (portrait or landscape by innerHeight>innerWidth, poster per orientation), the name and tagline, Saltar, a sound toggle (aria-pressed), and the illustrator credit link. It makes #app inert, focuses Saltar, keeps Tab inside, and closes on Saltar, Escape, ended, error, hashchange, hidden page, a reduced-motion change, play() rejection, 1.8 s without starting, a 0.7 s stall after starting, or 9 s total; on close it pauses, drops the src, restores #app and focuses #view.
+- site/assets/intro/: two MP4s moved from the Codex handoff folder (byte-identical to the package's audio variant) and two first-frame webp posters (29 KB, 37 KB). The ticket says one poster; two are used because the orientations open on different frames (recorded deviation).
+- Legacy splash removed: index.html markup, the splash function in app.js, every .splash rule and the scene block in styles.css (keyframes included), and the keys ix.flag, ix.splashName, ix.splashSub. Its scene images leave the service worker precache; the files stay.
+- site/styles.css: an LHB-72 block, tokens only; under prefers-reduced-motion the overlay is display:none.
+- site/sw.js: intro.js added to the shell; /assets/intro/ returns before any caching (never precached or cached, so range requests stay out of the cache); VERSION lhb-v95 to lhb-v96 and 21 test pins.
+- site/i18n.js: 8 intro.* keys in es and en.
+
+Tests: v8, v9, v12, v16, v28 rewritten (they pinned the splash); LHB-27 counts intro.js keys; LHB-67 drops seven splash art spans from ALLOW67 and scans intro.js. New (INTRO72 runs the real intro.js in a vm over DOM64 with an injected clock and storage): the 14-day policy (first run, same session, day 13, 14 days minus 1 ms, day 14, installed app, bad stored dates); the skip conditions and ?intro=1; the player (dialog, muted, no loop, orientation and poster, inert, focus, sound toggle, Escape, Saltar, ended, the 1.8 s, 0.7 s and 9 s limits fired by delay, play() rejection, Tab ring, credit link); the splash gone and the wiring (script order, shell, the network bypass placed before the cache, sizes, i18n scan, keys).
+
+Evidence: evidence/lhb-72-tests.txt (326 pass, 0 fail, 1 skipped); evidence/lhb-72-mutations.out (19 of 19 red); evidence/m7-f4a/shoot72.out and PNGs (headless Chrome against a local mock: first run plays muted and closes by itself at about 10 s with the date stored, a same-session reload shows nothing, landscape on a wide screen, Saltar and Escape close it with focus on #view, reduced motion and a deep link never show it: 8 of 8); evidence/m7-f4a/splash-gone-grep.txt; evidence/m7-f4a/INTRO-SOURCE.md.
+
+Check:
+- the policy against the pinned decisions, including edge cases (clock changes, a replay link left in the URL, a first visit that lands on a deep link and later visits the home, the installed app's very first start);
+- the player's lifecycle: every close path restores the app and focus; nothing can leave #app inert or the overlay stuck; timers and listeners are released; the video stops downloading on close;
+- accessibility of the dialog (name, focus, Tab ring, Escape, the sound toggle's state, the link leaving the app, contrast of the overlay text and buttons on the video);
+- that removing the splash removed nothing another screen uses (CSS classes, keyframes, images, keys);
+- the service worker change (the bypass placement, a cached old shell during the update, range requests);
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff bcb5e3b HEAD -- site/intro.js site/index.html site/app.js site/styles.css site/sw.js site/i18n.js test/site.test.js evidence/lhb-72-mutations.py =====
+diff --git a/evidence/lhb-72-mutations.py b/evidence/lhb-72-mutations.py
+new file mode 100644
+index 0000000..5d156e9
+--- /dev/null
++++ b/evidence/lhb-72-mutations.py
+@@ -0,0 +1,66 @@
++"""LHB-72 proof: each mutation breaks one rule of the intro player, its play policy, or the splash removal on a scratch copy of the worktree,
++runs the LHB-72 tests plus the old tests rewritten for it, and must turn them red; the copy is restored after each.
++usage: python evidence/lhb-72-mutations.py WORKTREE SCRATCH"""
++import os, re, shutil, subprocess, sys
++
++WT, D = sys.argv[1], sys.argv[2]
++if os.path.exists(D):
++    shutil.rmtree(D)
++shutil.copytree(WT, D, ignore=shutil.ignore_patterns('.git', 'node_modules', 'evidence', '*.mp4'))
++# the size test reads the videos: copy them small-for-real is not possible, so link the real files in
++for f in ('intro-portrait.mp4', 'intro-landscape.mp4'):
++    shutil.copyfile(os.path.join(WT, 'site', 'assets', 'intro', f), os.path.join(D, 'site', 'assets', 'intro', f))
++PAT = 'LHB-72|v8:|v9:|v12:|v16:|v28|LHB-27: cada clave|LHB-67: ningún color'
++IJ, IX, CSS, SW, I18 = 'site/intro.js', 'site/index.html', 'site/styles.css', 'site/sw.js', 'site/i18n.js'
++FILES = (IJ, IX, CSS, SW, I18)
++
++
++def runp():
++    return subprocess.run(['node', '--test', '--test-timeout=60000', '--test-name-pattern=' + PAT, 'test/site.test.js'], cwd=D, capture_output=True, text=True, encoding='utf-8', errors='replace')
++
++
++def edit(rel, old, new):
++    p = os.path.join(D, rel)
++    s = open(p, 'rb').read().decode('utf-8')
++    assert s.count(old) == 1, (rel, old, s.count(old))
++    open(p, 'wb').write(s.replace(old, new).encode('utf-8'))
++
++
++M = [
++    ('J1 every 13 days (day 13 plays)', lambda: edit(IJ, 'EVERY=14;', 'EVERY=13;')),
++    ('J2 strictly more than 14 days (day 14 does not play)', lambda: edit(IJ, "o.now-o.last>=EVERY*DAY?'play':'recent'", "o.now-o.last>EVERY*DAY?'play':'recent'")),
++    ('J3 no same-session rule', lambda: edit(IJ, " if(o.session)return 'session';\n", '')),
++    ('J4 reduced motion ignored', lambda: edit(IJ, " if(o.reduced)return 'reduced';\n", '')),
++    ('J5 data saver ignored', lambda: edit(IJ, " if(o.saveData)return 'saveData';\n", '')),
++    ('J6 every link counts as the home (deep links play)', lambda: edit(IJ, "deep:!!h&&!/^#\\/?(catalogo\\/?)?$/.test(h)", 'deep:false')),
++    ('J7 the installed app replays it', lambda: edit(IJ, " if(o.standalone)return 'standalone';\n", '')),
++    ('J8 playing does not note the date', lambda: edit(IJ, "try{w.localStorage.setItem(KEY,String(now));w.sessionStorage.setItem(SKEY,'1')}catch(e){return}", "try{w.sessionStorage.setItem(SKEY,'1')}catch(e){return}")),
++    ('J9 the video loops', lambda: edit(IJ, 'v.loop=false;', 'v.loop=true;')),
++    ('J10 Escape does nothing', lambda: edit(IJ, "if(e.key==='Escape'){e.preventDefault();finish();return}", '')),
++    ('J11 no load time limit', lambda: edit(IJ, 'tLoad=setTimeout(finish,1800);', '')),
++    ('J12 a future or broken date counts', lambda: edit(IJ, 'if(Number.isFinite(n)&&n>0&&n<=now)last=n;', 'if(n)last=n;')),
++    ('J13 blocked storage plays every visit', lambda: edit(IJ, " if(o.storage===false)return 'storage';\n", '')),
++    ('J14 the service worker caches the videos', lambda: edit(SW, "\n if(url.pathname.startsWith('/assets/intro/'))return;", '')),
++    ('J15 the intro loads after the app', lambda: (edit(IX, '<script src="intro.js" defer></script>', ''), edit(IX, '<script src="app.js" defer></script>', '<script src="app.js" defer></script><script src="intro.js" defer></script>'))),
++    ('J16 a splash rule comes back', lambda: edit(CSS, '/* LHB-72: la intro (intro.js).', '.splash{display:none}\n/* LHB-72: la intro (intro.js).')),
++    ('J18 no stall limit after it starts', lambda: edit(IJ, "v.addEventListener('waiting',()=>{if(started){clearTimeout(tStall);tStall=setTimeout(finish,700)}});", '')),
++    ('J19 no 9 s ceiling', lambda: edit(IJ, 'tMax=setTimeout(finish,9000);', '')),
++    ('J17 an intro key without its English value', lambda: edit(I18, ' "intro.skip": "Skip intro",', '')),
++]
++red = 0
++for name, mut in M:
++    snap = {rel: open(os.path.join(D, rel), 'rb').read() for rel in FILES}
++    try:
++        mut()
++        r = runp()
++        fails = re.findall(r'^ℹ fail (\d+)', r.stdout, re.M)
++        ok = r.returncode != 0 and fails and int(fails[-1]) > 0
++        red += bool(ok)
++        print('%-60s rc %d fail %s -> %s' % (name, r.returncode, fails[-1] if fails else '?', 'RED' if ok else 'SURVIVED'), flush=True)
++    finally:
++        for rel, b in snap.items():
++            open(os.path.join(D, rel), 'wb').write(b)
++r = runp()
++n = re.findall(r'^ℹ pass (\d+)', r.stdout, re.M)
++print('baseline after restore: rc %d pass %s' % (r.returncode, n[-1] if n else '?'))
++print('RESULT %d of %d mutations red' % (red, len(M)))
+diff --git a/site/app.js b/site/app.js
+index 18b1ecb..0aa7713 100644
+--- a/site/app.js
++++ b/site/app.js
+@@ -348,40 +348,5 @@ document.addEventListener('click',async e=>{if(!e.target.closest('#btnAdd'))retu
+  if(deferred){const d=deferred;deferred=null;d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted'){window.__lhbInstalled=true;syncInstall();toast(tt('inst.ok'))}return}
+  EXT.openSheet('instalar',isIOS?(/ipad/i.test(navigator.userAgent)||navigator.platform==='MacIntel'?'ipad':'ios'):'')});
+ if('serviceWorker' in navigator){const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.update&&r.update()).catch(()=>{}))}
+-(function splash(){const sp=$('#splash');if(!sp)return;const fl=$('#splashFlor');if(fl&&window.VBArt)fl.innerHTML=VBArt.flor('sf');const seen=sessionStorage.getItem('vb_splash');
+- let gone=false;const done=()=>{if(gone)return;gone=true;sp.classList.add('out');setTimeout(()=>sp.remove(),450)};if(seen){done();return}sessionStorage.setItem('vb_splash','1');
+- sp.addEventListener('click',done);sp.addEventListener('touchstart',done,{passive:true});
+- /* v9: guagua por capas (sombra, ruedas que giran, carrocería que rebota, luz del campo) */
+- const VS='img/guagua/guagua_recorte.webp',car=$('#splashCar'),cz=$('#cz'),campo=$('#campo');
+- car.innerHTML=`<i class="vsh"></i><i class="vsh2"></i><img class="van-i" src="${VS}" alt="" draggable="false"><span class="whl w1"><i></i></span><span class="whl w2"><i></i></span><div class="vb"><img class="van-i" src="${VS}" alt="" draggable="false"><i class="vlit"></i><i class="vhaze"></i></div>`;
+- const PTS=[[0,1.16,.745,.4],[.18,.84,.755,.48],[.5,.52,.785,.66],[.78,.24,.815,.84],[1,-.34,.835,1.02]];
+- const path=u=>{let i=1;while(i<PTS.length-1&&u>PTS[i][0])i++;const a=PTS[i-1],b=PTS[i],k=(u-a[0])/(b[0]-a[0]);return[1,2,3].map(j=>a[j]+(b[j]-a[j])*k)};
+- const ease=u=>u*.65+u*u*(3-2*u)*.35;
+- let W=campo.clientWidth,H=campo.clientHeight;const vw=()=>W*.46,vh=()=>W*.46/1.5;
+- const at=u=>{const[cx,gy,s]=path(ease(u));return{cx:cx*W,gy:gy*H,s}};
+- const tf=p=>`translate(${(p.cx-vw()/2).toFixed(1)}px,${(p.gy-vh()).toFixed(1)}px) scale(${p.s.toFixed(3)})`;
+- const haze=car.querySelector('.vhaze');
+- if(REDUCED_ALL){const p=at(.55);car.style.transform=tf(p);haze.style.opacity=.15;setTimeout(done,1500);return}
+- const imgs=[...sp.querySelectorAll('img')].map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve());
+- Promise.race([Promise.all(imgs),new Promise(r=>setTimeout(r,1200))]).then(()=>{if(gone)return;W=campo.clientWidth;H=campo.clientHeight;sp.classList.add('go');
+-  const D=3300,DL=150,N=26,kf=[];for(let i=0;i<=N;i++){const u=i/N,p=at(u);kf.push({transform:tf(p),opacity:u>.9?Math.max(0,1-(u-.9)/.1):1,offset:u})}
+-  const van=car.animate(kf,{duration:D,delay:DL,easing:'linear',fill:'both'});
+-  haze.animate([{opacity:.7},{opacity:.25,offset:.5},{opacity:0}],{duration:D,delay:DL,fill:'both'});
+-  const pan=(el,a)=>el&&el.animate([{transform:`translateX(${-a*W}px)`},{transform:`translateX(${a*W}px)`}],{duration:D+400,easing:'cubic-bezier(.4,0,.5,1)',fill:'both'});
+-  pan($('.l-hills',sp),.018);pan($('.l-field',sp),.04);pan($('.l-mid',sp),.045);pan($('.l-fg',sp),.075);pan($('.l-fg2',sp),.13);
+-  cz.animate([{transform:'scale(1)'},{transform:'scale(1.06)'}],{duration:D+400,easing:'ease-in-out',fill:'both'});
+-  const dust=$('#dust'),wake=$('#wake'),R=(a,b)=>a+Math.random()*(b-a),K=W/360;
+-  const puff=(x,y,s)=>{const e=document.createElement('i');e.className='puff';const z=R(36,56)*s*K;e.style.width=e.style.height=z+'px';dust.appendChild(e);
+-   const dx=R(14,34)*s*K,dy=R(10,24)*s*K;e.animate([{transform:`translate(${x-z/2}px,${y-z/2}px) scale(.35)`,opacity:.85},{transform:`translate(${x-z/2+dx}px,${y-z/2-dy}px) scale(2.3)`,opacity:0}],{duration:R(750,1100),easing:'cubic-bezier(.2,.7,.4,1)',fill:'forwards'}).onfinish=()=>e.remove()};
+-  const COL=['#7aa646','#5f8a35','#c99a4a','#a3b85a','#8a6a34'];
+-  const leaf=(x,y,s)=>{const e=document.createElement('i');e.className='wleaf';const z=R(9,16)*s*K;
+-   e.innerHTML=`<svg width="${z}" height="${z*1.3}" viewBox="0 0 20 26"><path d="M10 0C18 6 19 16 14 22 12 24 11 25 10 26 9 25 8 24 6 22 1 16 2 6 10 0Z" fill="${COL[Math.random()*5|0]}"/><path d="M10 3V25" stroke="rgba(40,30,10,.45)" stroke-width="1.2"/></svg>`;wake.appendChild(e);
+-   const dx=R(25,60)*s*K,dy=R(30,70)*s*K,r=R(-1,1)>0?1:-1;
+-   e.animate([{transform:`translate(${x}px,${y}px) rotate(0) scale(.4)`,opacity:0},{transform:`translate(${x+dx*.3}px,${y-dy*.6}px) rotate(${r*140}deg) rotateY(60deg) scale(1)`,opacity:1,offset:.25},{transform:`translate(${x+dx*.75}px,${y-dy}px) rotate(${r*300}deg) rotateY(180deg) scale(1)`,opacity:1,offset:.6},{transform:`translate(${x+dx}px,${y-dy*.55}px) rotate(${r*460}deg) rotateY(300deg) scale(.9)`,opacity:0}],{duration:R(1200,1600),easing:'ease-out',fill:'forwards'}).onfinish=()=>e.remove()};
+-  let nl=0;const iv=setInterval(()=>{const t=van.currentTime-DL;if(gone||t>D){clearInterval(iv);return}if(t<0)return;const u=t/D;if(u<.06||u>.93)return;
+-   const p=at(u),L=p.cx-vw()*p.s/2,vs=vw()*p.s,hs=vh()*p.s;
+-   puff(L+.92*vs,p.gy-.08*hs,p.s);if(Math.random()<.6)puff(L+.2*vs,p.gy-.02*hs,p.s*.8);
+-   if(u>.2&&nl<12&&Math.random()<.4){nl++;leaf(L+R(.7,1)*vs,p.gy-R(.1,.5)*hs,p.s)}},75);
+-  setTimeout(done,DL+D+300)})})();
+ route();topAvatar();refreshData();
+ })();
+diff --git a/site/i18n.js b/site/i18n.js
+index 94938dd..bb4ce9c 100644
+--- a/site/i18n.js
++++ b/site/i18n.js
+@@ -32,6 +32,14 @@ const T={es:{
+  "cat.eyebrow": "Catálogo",
+  "home.paths": "Empieza a explorar",
+  "menu.welcome": "A tu ritmo, por la isla",
++ "intro.label": "Introducción a La Hoja Boricua",
++ "intro.name": "La Hoja Boricua",
++ "intro.tagline": "Descubre el tabaco de Puerto Rico.",
++ "intro.skip": "Saltar intro",
++ "intro.soundOn": "Activar sonido",
++ "intro.soundOff": "Silenciar",
++ "intro.credit": "Ilustración original de la guagua:",
++ "intro.creditName": "Calle Pomarrosas",
+  "menu.title": "¿Por dónde seguimos?",
+  "menu.aqui": "Aquí",
+  "menu.g.descubre": "Descubre",
+@@ -736,9 +744,6 @@ const T={es:{
+  "a.flor": "Flor de tabaco",
+  "a.flamboyan": "Flamboyán",
+  "ix.title": "La Hoja Boricua · Cigar lounges y cigarros boricuas en Puerto Rico",
+- "ix.flag": "Bandera de Puerto Rico",
+- "ix.splashName": "La Ruta <em>del Tabaco</em> <br>en Puerto Rico",
+- "ix.splashSub": "Cigarros de Puerto Rico",
+  "ix.brandSub": "Hecho en Borinquen",
+  "ix.searchAll": "Buscar en toda la app",
+  "ix.footLug": "Cigar lounges en Puerto Rico",
+@@ -817,6 +822,14 @@ en:{
+  "cat.eyebrow": "Catalog",
+  "home.paths": "Start exploring",
+  "menu.welcome": "At your pace, around the island",
++ "intro.label": "Introduction to La Hoja Boricua",
++ "intro.name": "La Hoja Boricua",
++ "intro.tagline": "Discover the tobacco of Puerto Rico.",
++ "intro.skip": "Skip intro",
++ "intro.soundOn": "Turn sound on",
++ "intro.soundOff": "Mute",
++ "intro.credit": "Original bus illustration:",
++ "intro.creditName": "Calle Pomarrosas",
+  "menu.title": "Where to next?",
+  "menu.aqui": "Here",
+  "menu.g.descubre": "Discover",
+@@ -1521,9 +1534,6 @@ en:{
+  "a.flor": "Tobacco flower",
+  "a.flamboyan": "Flamboyán",
+  "ix.title": "La Hoja Boricua · Cigar lounges and Boricua cigars in Puerto Rico",
+- "ix.flag": "Flag of Puerto Rico",
+- "ix.splashName": "The <em>Tobacco</em> Route <br>in Puerto Rico",
+- "ix.splashSub": "Puerto Rican cigars",
+  "ix.brandSub": "Made in Borinquen",
+  "ix.searchAll": "Search the whole app",
+  "ix.footLug": "Cigar lounges in Puerto Rico",
+diff --git a/site/index.html b/site/index.html
+index 720afb4..86e1478 100644
+--- a/site/index.html
++++ b/site/index.html
+@@ -28,7 +28,6 @@
+ <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://lahojaboricua.com/#website","name":"La Hoja Boricua","url":"https://lahojaboricua.com/","inLanguage":"es-PR","publisher":{"@id":"https://lahojaboricua.com/#org"}},{"@type":"Organization","@id":"https://lahojaboricua.com/#org","name":"La Hoja Boricua","url":"https://lahojaboricua.com/","logo":"https://lahojaboricua.com/icons/icon-512.png"}]}</script>
+ </head>
+ <body>
+-<div class="splash" id="splash" aria-hidden="true"><div class="splash-inner"><div class="splash-flor" id="splashFlor"></div><div class="splash-name" data-i18n="ix.splashName">La Ruta <em>del Tabaco</em> <br>en Puerto Rico</div><div class="splash-sub" data-i18n="ix.splashSub">Cigarros de Puerto Rico</div><div class="campo" id="campo"><div class="cz" id="cz"><div class="lay l-hills"><img class="campo-bg" src="img/guagua/campo.webp" alt="" width="720" height="480" decoding="async"></div><i class="nube n1"></i><i class="nube n2"></i><i class="nube n3"></i><div class="lay l-field"><img class="campo-bg" src="img/guagua/campo.webp" alt="" width="720" height="480" decoding="async"></div><div class="lay l-mid"><div class="sway"><img class="hj" src="img/guagua/hojas.webp" alt="" width="900" height="170" decoding="async"><img class="hj hjb" src="img/guagua/hojas.webp" alt="" width="900" height="170" decoding="async"></div></div><div class="fx" id="dust"></div><div class="splash-car" id="splashCar"></div><div class="lay l-fg"><div class="sway"><img class="campo-hojas" src="img/guagua/hojas.webp" alt="" width="900" height="170" decoding="async"></div></div><div class="l-fg2"><div class="sway"><img class="hj2" src="img/guagua/hojas.webp" alt="" width="900" height="170" decoding="async"></div></div><div class="fx" id="wake"></div></div></div><div class="splash-bandera" aria-hidden="true"><svg role="img" aria-label="Bandera de Puerto Rico" data-i18n-attr="aria-label:ix.flag" viewBox="0 0 100 120"><ellipse cx="15" cy="114" rx="13" ry="3.6" fill="#1a3a22" opacity=".55"/><path d="M7 114 Q15 106 23 114Z" fill="#5b7a3a" stroke="#2a1a12" stroke-width="2"/><path d="M15 5 L15 113" stroke="#2a1a12" stroke-width="8.5" stroke-linecap="round"/><path d="M15 5 L15 113" stroke="#9a6a3c" stroke-width="4.6" stroke-linecap="round"/><path d="M13.6 10 L13.6 110" stroke="#c89660" stroke-width="1.3" stroke-linecap="round"/><circle cx="15" cy="5" r="4.4" fill="#e9c98f" stroke="#2a1a12" stroke-width="2.4"/><path d="M15 14 L19 14 M15 57 L19 57" stroke="#2a1a12" stroke-width="2.4" stroke-linecap="round"/><g class="tela"><path d="M19 12 25 12.7 31 13.3 37 13.6 43 13.3 49 12.5 55 11.3 61 10.1 67 9.4 73 9.5 79 10.5 85 12.2 91 14 91 23.4 85 21.6 79 19.9 73 18.9 67 18.8 61 19.5 55 20.7 49 21.9 43 22.7 37 23 31 22.7 25 22.1 19 21.4Z" fill="#E92A2F"/><path d="M19 21.4 25 22.1 31 22.7 37 23 43 22.7 49 21.9 55 20.7 61 19.5 67 18.8 73 18.9 79 19.9 85 21.6 91 23.4 91 32.8 85 31 79 29.3 73 28.3 67 28.2 61 28.9 55 30.1 49 31.3 43 32.1 37 32.4 31 32.1 25 31.5 19 30.8Z" fill="#fbfaf5"/><path d="M19 30.8 25 31.5 31 32.1 37 32.4 43 32.1 49 31.3 55 30.1 61 28.9 67 28.2 73 28.3 79 29.3 85 31 91 32.8 91 42.2 85 40.4 79 38.7 73 37.7 67 37.6 61 38.3 55 39.5 49 40.7 43 41.5 37 41.8 31 41.5 25 40.9 19 40.2Z" fill="#E92A2F"/><path d="M19 40.2 25 40.9 31 41.5 37 41.8 43 41.5 49 40.7 55 39.5 61 38.3 67 37.6 73 37.7 79 38.7 85 40.4 91 42.2 91 51.6 85 49.8 79 48.1 73 47.1 67 47 61 47.7 55 48.9 49 50.1 43 50.9 37 51.2 31 50.9 25 50.3 19 49.6Z" fill="#fbfaf5"/><path d="M19 49.6 25 50.3 31 50.9 37 51.2 43 50.9 49 50.1 55 48.9 61 47.7 67 47 73 47.1 79 48.1 85 49.8 91 51.6 91 61 85 59.2 79 57.5 73 56.5 67 56.4 61 57.1 55 58.3 49 59.5 43 60.3 37 60.6 31 60.3 25 59.7 19 59Z" fill="#E92A2F"/><path d="M19 12 L59.7 33.9 L19 59Z" fill="#5FB4E5"/><path d="M32.6 29.9 L34.2 34.7 L39.3 34.7 L35.1 37.7 L36.7 42.6 L32.6 39.6 L28.4 42.6 L30 37.7 L25.9 34.7 L31 34.7Z" fill="#fbfaf5"/><g fill="none" stroke-linecap="round"><path d="M34.8 14.5 L34.8 59.5" stroke="#2a1a12" stroke-width="5" opacity="0.16"/><path d="M52.8 12.8 L52.8 57.8" stroke="#2a1a12" stroke-width="3" opacity="0.1"/><path d="M70.8 10.4 L70.8 55.4" stroke="#2a1a12" stroke-width="5" opacity="0.16"/><path d="M86 13.5 L86 58.5" stroke="#2a1a12" stroke-width="3" opacity="0.1"/><path d="M43.5 15.3 L43.5 58.3" stroke="#fff" stroke-width="2" opacity=".12"/><path d="M62.2 11.9 L62.2 54.9" stroke="#fff" stroke-width="2" opacity=".12"/><path d="M79.5 12.6 L79.5 55.6" stroke="#fff" stroke-width="2" opacity=".12"/></g><path d="M19 12 25 12.7 31 13.3 37 13.6 43 13.3 49 12.5 55 11.3 61 10.1 67 9.4 73 9.5 79 10.5 85 12.2 91 14 91 61 85 59.2 79 57.5 73 56.5 67 56.4 61 57.1 55 58.3 49 59.5 43 60.3 37 60.6 31 60.3 25 59.7 19 59Z" fill="none" stroke="#2a1a12" stroke-width="3" stroke-linejoin="round"/></g></svg></div></div></div>
+ <div class="app" id="app">
+   <header class="topbar">
+     <a class="brand" href="#/catalogo">
+@@ -57,6 +56,7 @@
+ <div class="toast" id="toast" role="status" aria-live="polite"></div>
+ <noscript>La Hoja Boricua necesita JavaScript.</noscript>
+ <script src="i18n.js" defer></script>
++<script src="intro.js" defer></script>
+ <script src="data/bundle.js" defer></script>
+ <script src="art.js" defer></script>
+ <script src="fotos.js" defer></script>
+diff --git a/site/intro.js b/site/intro.js
+new file mode 100644
+index 0000000..409e484
+--- /dev/null
++++ b/site/intro.js
+@@ -0,0 +1,61 @@
++/* LHB-72: la intro, la guagua que pasa por la montaña (seis segundos, sin bucle). Se ve la primera vez y luego a lo sumo una vez cada 14 días,
++   nunca dos veces en la misma sesión. No sale con menos movimiento, con ahorro de datos, con la página escondida, en un enlace directo, ni
++   al abrir la app instalada si ya se vio. Empieza sin sonido (botón para oírla), se salta con el botón o con Escape y tiene límites de tiempo.
++   Lo esencial de la app no depende de ella. La vuelve a mostrar ?intro=1 (el enlace "Ver intro" de Acerca de). */
++(()=>{'use strict';
++const KEY='vb_introAt',SKEY='vb_intro',DAY=864e5,EVERY=14;
++/* la decisión, sin tocar el navegador: devuelve 'play' o la razón para no mostrarla */
++function decide(o){
++ if(o.hidden)return 'hidden';
++ if(o.reduced)return 'reduced';
++ if(o.saveData)return 'saveData';
++ if(o.storage===false)return 'storage';
++ if(o.replay)return 'play';
++ if(o.deep)return 'deep';
++ if(o.session)return 'session';
++ if(o.last==null)return 'play';
++ if(o.standalone)return 'standalone';
++ return o.now-o.last>=EVERY*DAY?'play':'recent';
++}
++/* lo que el navegador dice ahora; una fecha guardada que no es un número, o que está en el futuro, cuenta como ninguna */
++function inputs(now){
++ const w=window,mm=q=>{try{return !!(w.matchMedia&&w.matchMedia(q).matches)}catch(e){return false}};
++ let last=null,session=false,storage=true;
++ try{const n=Number(w.localStorage.getItem(KEY));if(Number.isFinite(n)&&n>0&&n<=now)last=n;session=w.sessionStorage.getItem(SKEY)==='1'}catch(e){storage=false}
++ const h=w.location.hash||'';let replay=false;try{replay=new URLSearchParams(w.location.search).get('intro')==='1'}catch(e){}
++ return {now,last,session,storage,replay,hidden:!!w.document.hidden,reduced:mm('(prefers-reduced-motion: reduce)'),
++  saveData:!!(w.navigator.connection&&w.navigator.connection.saveData),deep:!!h&&!/^#\/?(catalogo\/?)?$/.test(h),
++  standalone:mm('(display-mode: standalone)')||w.navigator.standalone===true}
++}
++function play(now){
++ const w=window,d=w.document,app=d.getElementById('app');if(!app)return;
++ try{w.localStorage.setItem(KEY,String(now));w.sessionStorage.setItem(SKEY,'1')}catch(e){return}
++ const tt=k=>w.LHB_I18N?w.LHB_I18N.t(k):k,o=w.innerHeight>w.innerWidth?'portrait':'landscape';
++ const ov=d.createElement('section');ov.className='intro';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label',tt('intro.label'));
++ ov.innerHTML=`<video muted playsinline preload="auto" aria-hidden="true" poster="assets/intro/poster-${o}.webp"></video><div class="intro-mark"><b>${tt('intro.name')}</b><span>${tt('intro.tagline')}</span></div><button type="button" class="intro-skip">${tt('intro.skip')}</button><button type="button" class="intro-sound" aria-pressed="false">${tt('intro.soundOn')}</button><p class="intro-credit">${tt('intro.credit')} <a href="https://callepomarrosas.com/" target="_blank" rel="noopener">${tt('intro.creditName')}</a></p>`;
++ const v=ov.querySelector('video'),skip=ov.querySelector('.intro-skip'),sound=ov.querySelector('.intro-sound'),link=ov.querySelector('a'),ring=[skip,sound,link];
++ v.muted=true;v.loop=false;v.volume=.75;v.src='assets/intro/intro-'+o+'.mp4';
++ const motion=w.matchMedia?w.matchMedia('(prefers-reduced-motion: reduce)'):null;
++ let done=false,started=false,tLoad=0,tMax=0,tStall=0;
++ const onHidden=()=>{if(d.hidden)finish()};
++ function finish(){if(done)return;done=true;clearTimeout(tLoad);clearTimeout(tMax);clearTimeout(tStall);try{v.pause();v.removeAttribute('src');v.load()}catch(e){}
++  app.inert=false;ov.remove();w.removeEventListener('hashchange',finish);d.removeEventListener('visibilitychange',onHidden);if(motion&&motion.removeEventListener)motion.removeEventListener('change',finish);
++  const view=d.getElementById('view');if(view)view.focus({preventScroll:true})}
++ skip.addEventListener('click',finish);v.addEventListener('ended',finish);v.addEventListener('error',finish);
++ sound.addEventListener('click',()=>{if(done)return;v.muted=!v.muted;sound.setAttribute('aria-pressed',String(!v.muted));sound.textContent=v.muted?tt('intro.soundOn'):tt('intro.soundOff')});
++ ov.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();finish();return}if(e.key!=='Tab')return;const i=ring.indexOf(d.activeElement);
++  if(e.shiftKey&&i<=0){e.preventDefault();ring[ring.length-1].focus()}else if(!e.shiftKey&&(i===ring.length-1||i<0)){e.preventDefault();ring[0].focus()}});
++ d.body.appendChild(ov);app.inert=true;skip.focus({preventScroll:true});
++ w.addEventListener('hashchange',finish);d.addEventListener('visibilitychange',onHidden);if(motion&&motion.addEventListener)motion.addEventListener('change',finish);
++ /* límites: si no arranca en 1,8 s, si se traba más de 0,7 s después de arrancar, o a los 9 s pase lo que pase, se cierra */
++ tLoad=setTimeout(finish,1800);tMax=setTimeout(finish,9000);
++ v.addEventListener('playing',()=>{started=true;clearTimeout(tLoad);clearTimeout(tStall)});
++ v.addEventListener('waiting',()=>{if(started){clearTimeout(tStall);tStall=setTimeout(finish,700)}});
++ try{const p=v.play();if(p&&p.catch)p.catch(finish)}catch(e){finish()}
++ api.finish=finish;
++}
++function boot(now){const why=decide(inputs(now));if(why==='play')api.play(now);return why}
++const api={decide,inputs,play,boot,KEY,SKEY,EVERY,finish:()=>{}};
++window.LHB_INTRO=api;
++api.last=boot(Date.now());
++})();
+diff --git a/site/styles.css b/site/styles.css
+index ba63c0a..5f93498 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -220,14 +220,6 @@ details.edit .form{padding:6px 0 14px}
+ .offline-badge{display:inline-block;font-size:11px;background:var(--info-strong);color:var(--on-info-strong);border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:2px}
+ .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ @media (display-mode:standalone){.btn-install{display:none!important}}
+-.splash{position:fixed;inset:0;z-index:100;background:radial-gradient(80% 60% at 50% 35%,var(--surface-2),var(--surface));display:grid;place-items:center;transition:opacity .45s}
+-.splash.out{opacity:0;pointer-events:none}
+-.splash-inner{text-align:center;width:100%}
+-.splash-inner img{margin:0 auto 12px;border-radius:20px;box-shadow:0 10px 30px var(--shadow-strong)}
+-.splash-name{font-family:var(--serif);font-size:clamp(22px,7vw,30px);font-weight:600;line-height:1.15;padding:0 16px;text-shadow:none}
+-.splash-name em{font-style:italic;font-weight:500;color:var(--accent-ink)}
+-.splash-sub{color:var(--on-surface-2);font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-top:8px}
+-.splash-flor{width:58px;height:72px;margin:0 auto 6px}.splash-flor svg{display:block;width:100%;height:100%;filter:drop-shadow(0 6px 12px var(--shadow))}
+ .road{position:relative;height:118px;margin:18px 0 6px;overflow:hidden;border-bottom:4px dashed var(--warn)}
+ .volky{display:block;width:100%;height:auto;overflow:visible}
+ @keyframes spin{to{transform:rotate(360deg)}}
+@@ -272,8 +264,8 @@ details.edit .form{padding:6px 0 14px}
+ .atag.pend{background:var(--warn-soft);color:var(--warn-ink);border:1px solid var(--warn)}
+ .art-note{margin:6px 16px 0;text-align:center}
+ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:300;background-image:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%22.85%22 numOctaves=%222%22 stitchTiles=%22stitch%22/%3E%3CfeColorMatrix values=%220 0 0 0 .5  0 0 0 0 .45  0 0 0 0 .35  0 0 0 .55 0%22/%3E%3C/filter%3E%3Crect width=%22160%22 height=%22160%22 filter=%22url%28%23n%29%22/%3E%3C/svg%3E");background-size:160px;opacity:.07;mix-blend-mode:overlay}
+-h1,.brand-name,.splash-name,.section-title h2,.profile-hero h1{font-family:var(--display);font-weight:400;letter-spacing:.2px}
+-h1 em,h2 em,.brand-name em,.splash-name em{font-style:normal;font-weight:400;color:var(--accent-ink)}
++h1,.brand-name,.section-title h2,.profile-hero h1{font-family:var(--display);font-weight:400;letter-spacing:.2px}
++h1 em,h2 em,.brand-name em{font-style:normal;font-weight:400;color:var(--accent-ink)}
+ .eyebrow{color:var(--info-ink)}
+ .hero{background:var(--card-2)}
+ .hero::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,var(--veil) 0%,var(--veil) 40%,var(--veil-soft) 66%,transparent 100%),linear-gradient(0deg,var(--veil) 0%,transparent 60%)}
+@@ -285,10 +277,6 @@ h1 em,h2 em,.brand-name em,.splash-name em{font-style:normal;font-weight:400;col
+ .card .ph{border:5px solid var(--photo);border-bottom-width:12px;border-radius:3px;box-shadow:0 3px 10px var(--shadow);filter:sepia(.14) saturate(1.06) contrast(1.02)}
+ .card:nth-child(odd) .ph{transform:rotate(-.6deg)} .card:nth-child(even) .ph{transform:rotate(.6deg)}
+ .empty::before{content:"";display:block;width:54px;height:64px;margin:0 auto 10px;background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 120%22%3E%3Cellipse cx=%2215%22 cy=%22114%22 rx=%2213%22 ry=%223.6%22 fill=%22%231a3a22%22 opacity=%22.55%22/%3E%3Cpath d=%22M7 114 Q15 106 23 114Z%22 fill=%22%235b7a3a%22 stroke=%22%232a1a12%22 stroke-width=%222%22/%3E%3Cpath d=%22M15 5 L15 113%22 stroke=%22%232a1a12%22 stroke-width=%228.5%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M15 5 L15 113%22 stroke=%22%239a6a3c%22 stroke-width=%224.6%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M13.6 10 L13.6 110%22 stroke=%22%23c89660%22 stroke-width=%221.3%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2215%22 cy=%225%22 r=%224.4%22 fill=%22%23e9c98f%22 stroke=%22%232a1a12%22 stroke-width=%222.4%22/%3E%3Cpath d=%22M15 14 L19 14 M15 57 L19 57%22 stroke=%22%232a1a12%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3Cg class=%22tela%22%3E%3Cpath d=%22M19 12 25 12.7 31 13.3 37 13.6 43 13.3 49 12.5 55 11.3 61 10.1 67 9.4 73 9.5 79 10.5 85 12.2 91 14 91 23.4 85 21.6 79 19.9 73 18.9 67 18.8 61 19.5 55 20.7 49 21.9 43 22.7 37 23 31 22.7 25 22.1 19 21.4Z%22 fill=%22%23ED0000%22/%3E%3Cpath d=%22M19 21.4 25 22.1 31 22.7 37 23 43 22.7 49 21.9 55 20.7 61 19.5 67 18.8 73 18.9 79 19.9 85 21.6 91 23.4 91 32.8 85 31 79 29.3 73 28.3 67 28.2 61 28.9 55 30.1 49 31.3 43 32.1 37 32.4 31 32.1 25 31.5 19 30.8Z%22 fill=%22%23fbfaf5%22/%3E%3Cpath d=%22M19 30.8 25 31.5 31 32.1 37 32.4 43 32.1 49 31.3 55 30.1 61 28.9 67 28.2 73 28.3 79 29.3 85 31 91 32.8 91 42.2 85 40.4 79 38.7 73 37.7 67 37.6 61 38.3 55 39.5 49 40.7 43 41.5 37 41.8 31 41.5 25 40.9 19 40.2Z%22 fill=%22%23ED0000%22/%3E%3Cpath d=%22M19 40.2 25 40.9 31 41.5 37 41.8 43 41.5 49 40.7 55 39.5 61 38.3 67 37.6 73 37.7 79 38.7 85 40.4 91 42.2 91 51.6 85 49.8 79 48.1 73 47.1 67 47 61 47.7 55 48.9 49 50.1 43 50.9 37 51.2 31 50.9 25 50.3 19 49.6Z%22 fill=%22%23fbfaf5%22/%3E%3Cpath d=%22M19 49.6 25 50.3 31 50.9 37 51.2 43 50.9 49 50.1 55 48.9 61 47.7 67 47 73 47.1 79 48.1 85 49.8 91 51.6 91 61 85 59.2 79 57.5 73 56.5 67 56.4 61 57.1 55 58.3 49 59.5 43 60.3 37 60.6 31 60.3 25 59.7 19 59Z%22 fill=%22%23ED0000%22/%3E%3Cpath d=%22M19 12 L59.7 33.9 L19 59Z%22 fill=%22%231EA8D7%22/%3E%3Cpath d=%22M32.6 29.9 L34.2 34.7 L39.3 34.7 L35.1 37.7 L36.7 42.6 L32.6 39.6 L28.4 42.6 L30 37.7 L25.9 34.7 L31 34.7Z%22 fill=%22%23fbfaf5%22/%3E%3Cg fill=%22none%22 stroke-linecap=%22round%22%3E%3Cpath d=%22M34.8 14.5 L34.8 59.5%22 stroke=%22%232a1a12%22 stroke-width=%225%22 opacity=%220.16%22/%3E%3Cpath d=%22M52.8 12.8 L52.8 57.8%22 stroke=%22%232a1a12%22 stroke-width=%223%22 opacity=%220.1%22/%3E%3Cpath d=%22M70.8 10.4 L70.8 55.4%22 stroke=%22%232a1a12%22 stroke-width=%225%22 opacity=%220.16%22/%3E%3Cpath d=%22M86 13.5 L86 58.5%22 stroke=%22%232a1a12%22 stroke-width=%223%22 opacity=%220.1%22/%3E%3Cpath d=%22M43.5 15.3 L43.5 58.3%22 stroke=%22%23fff%22 stroke-width=%222%22 opacity=%22.12%22/%3E%3Cpath d=%22M62.2 11.9 L62.2 54.9%22 stroke=%22%23fff%22 stroke-width=%222%22 opacity=%22.12%22/%3E%3Cpath d=%22M79.5 12.6 L79.5 55.6%22 stroke=%22%23fff%22 stroke-width=%222%22 opacity=%22.12%22/%3E%3C/g%3E%3Cpath d=%22M19 12 25 12.7 31 13.3 37 13.6 43 13.3 49 12.5 55 11.3 61 10.1 67 9.4 73 9.5 79 10.5 85 12.2 91 14 91 61 85 59.2 79 57.5 73 56.5 67 56.4 61 57.1 55 58.3 49 59.5 43 60.3 37 60.6 31 60.3 25 59.7 19 59Z%22 fill=%22none%22 stroke=%22%232a1a12%22 stroke-width=%223%22 stroke-linejoin=%22round%22/%3E%3C/g%3E%3C/svg%3E") no-repeat center/contain}
+-.splash::before,.splash::after{content:"";position:absolute;width:120px;height:430px;background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 440%22%3E%3Cpath d=%22M60 436 L60 30%22 stroke=%22%23a7d46f%22 stroke-width=%225%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408 C34 370 18 320 14 250 C10 160 24 70 60 22Z%22 fill=%22%233f9150%22/%3E%3Cpath d=%22M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408Z%22 fill=%22%232c7a3e%22/%3E%3Cg stroke=%22%231e5a2d%22 stroke-width=%222.4%22 opacity=%22.75%22%3E%3Cpath d=%22M60 70 L27 56 M60 70 L93 56%22/%3E%3Cpath d=%22M60 92 L25 78 M60 92 L95 78%22/%3E%3Cpath d=%22M60 114 L24 100 M60 114 L96 100%22/%3E%3Cpath d=%22M60 136 L22 122 M60 136 L98 122%22/%3E%3Cpath d=%22M60 158 L21 144 M60 158 L99 144%22/%3E%3Cpath d=%22M60 180 L19 166 M60 180 L101 166%22/%3E%3Cpath d=%22M60 202 L18 188 M60 202 L102 188%22/%3E%3Cpath d=%22M60 224 L16 210 M60 224 L104 210%22/%3E%3Cpath d=%22M60 246 L17 232 M60 246 L103 232%22/%3E%3Cpath d=%22M60 268 L18 254 M60 268 L102 254%22/%3E%3Cpath d=%22M60 290 L20 276 M60 290 L100 276%22/%3E%3Cpath d=%22M60 312 L21 298 M60 312 L99 298%22/%3E%3Cpath d=%22M60 334 L23 320 M60 334 L97 320%22/%3E%3Cpath d=%22M60 356 L25 342 M60 356 L95 342%22/%3E%3Cpath d=%22M60 378 L26 364 M60 378 L94 364%22/%3E%3C/g%3E%3Cg stroke=%22%230e2417%22 stroke-width=%224.5%22 stroke-linecap=%22round%22%3E%3Cpath d=%22M14 196 L40 186 M107 262 L80 252 M20 318 L44 306 M104 150 L82 141%22/%3E%3C/g%3E%3C/svg%3E") no-repeat center/contain;opacity:.55;pointer-events:none}
+-.splash::before{left:-36px;top:-60px;transform:rotate(28deg)}
+-.splash::after{right:-40px;bottom:-90px;transform:rotate(-150deg)}
+-.splash-bandera{width:44px;height:52px;margin:-6px auto 4px}.splash-bandera svg{display:block;width:100%;height:100%;overflow:visible}.splash-bandera .tela{transform-box:view-box;transform-origin:14px 36px;animation:ondea 2.6s ease-in-out infinite}@keyframes ondea{0%,100%{transform:skewY(0) scaleX(1)}50%{transform:skewY(-2.5deg) scaleX(.97)}}
+ .tabbar{border-top:1px solid var(--line)}
+ .hero p{max-width:50%}
+ .tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;background:none;border:0;padding:4px 0;min-height:48px;color:var(--muted);cursor:pointer}
+@@ -553,43 +541,6 @@ body.sheet-on{overflow:hidden}
+ .foto-th img{display:block;width:100%;height:auto}
+ .foto-th span{display:block;background:var(--card-2);color:var(--on-surface);font-size:11.5px;padding:3px 0;text-align:center}
+ .foto-th[aria-pressed="true"]{border-color:var(--accent-ink)}
+-.campo{position:relative;width:100%;max-width:600px;aspect-ratio:5/4;margin:10px auto 2px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 90%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 90%,transparent 100%)}
+-.campo img{margin:0!important;border-radius:0!important;box-shadow:none!important;max-width:none;display:block}
+-.cz{position:absolute;inset:0;transform-origin:35% 72%;will-change:transform}
+-.lay{position:absolute;top:0;bottom:0;left:-10%;right:-10%;will-change:transform}
+-.campo-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+-.l-field{-webkit-mask-image:linear-gradient(to bottom,transparent 34%,#000 41%);mask-image:linear-gradient(to bottom,transparent 34%,#000 41%)}
+-.nube{position:absolute;display:block;border-radius:50%;background:radial-gradient(closest-side,rgba(255,252,240,.8),rgba(255,252,240,0));will-change:transform;animation:drift 4.4s linear forwards}
+-.n1{left:8%;top:9%;width:34%;height:9%;--d:7%}.n2{left:56%;top:5%;width:26%;height:7%;opacity:.7;--d:10%}.n3{left:30%;top:20%;width:22%;height:6%;opacity:.55;--d:5%}
+-@keyframes drift{to{transform:translateX(calc(var(--d)*4))}}
+-.sway{position:absolute;inset:0;transform-origin:50% 100%;animation:sway 1.7s ease-in-out infinite alternate}
+-@keyframes sway{from{transform:skewX(2.2deg)}to{transform:skewX(-2.4deg)}}
+-.l-mid .sway{animation-duration:2.3s;animation-delay:-.6s}
+-.l-mid .hj{position:absolute;bottom:33%;left:0;width:52%;height:auto;filter:brightness(.78) saturate(.85) blur(.4px)}
+-.l-mid .hjb{left:46%;width:56%;transform:scaleX(-1)}
+-.campo-hojas{position:absolute;left:-8%;bottom:-3%;width:116%;height:auto;filter:saturate(1.05)}
+-.l-fg .sway{animation-duration:1.5s;animation-delay:-.3s}
+-.l-fg2{position:absolute;left:-24%;bottom:0;width:58%;aspect-ratio:900/300;will-change:transform}
+-.l-fg2 .sway{animation-duration:1.25s;animation-delay:-.8s}
+-.hj2{position:absolute;bottom:0;left:0;width:100%;height:auto;transform:scaleX(-1) scaleY(1.8);transform-origin:50% 100%;filter:brightness(.62) saturate(.9) blur(1.6px)}
+-.fx{position:absolute;inset:0;pointer-events:none}
+-#wake{z-index:6}
+-.splash .splash-car{position:absolute;left:0;top:0;width:46%;aspect-ratio:3/2;transform-origin:50% 100%;transform:translate(130vw,0);will-change:transform,opacity}
+-.vsh{position:absolute;left:3%;right:-3%;bottom:-4%;height:14%;background:radial-gradient(closest-side,rgba(28,22,8,.62),rgba(28,22,8,.3) 55%,rgba(28,22,8,0));transform-origin:50% 50%;animation:shd .44s ease-in-out infinite}
+-.vsh2{position:absolute;left:30%;right:-26%;bottom:-2%;height:12%;background:radial-gradient(closest-side,rgba(28,22,8,.28),rgba(28,22,8,0));transform:skewX(-35deg)}
+-.van-i{position:absolute;inset:0;width:100%;height:100%;filter:saturate(.9) sepia(.1) contrast(.97)}
+-.vb{position:absolute;inset:0;transform-origin:60% 92%;animation:rock .44s ease-in-out infinite}
+-.vb .van-i{-webkit-mask-image:radial-gradient(ellipse 8.4% 16% at 65% 85%,transparent 80%,#000 100%),radial-gradient(ellipse 6% 13% at 90.8% 77.5%,transparent 80%,#000 100%),radial-gradient(ellipse 8.5% 9% at 17% 91%,transparent 80%,#000 100%);-webkit-mask-composite:source-in;mask-image:radial-gradient(ellipse 8.4% 16% at 65% 85%,transparent 80%,#000 100%),radial-gradient(ellipse 6% 13% at 90.8% 77.5%,transparent 80%,#000 100%),radial-gradient(ellipse 8.5% 9% at 17% 91%,transparent 80%,#000 100%);mask-composite:intersect}
+-.vlit,.vhaze{position:absolute;inset:0;-webkit-mask:url(img/guagua/guagua_recorte.webp) center/100% 100% no-repeat;mask:url(img/guagua/guagua_recorte.webp) center/100% 100% no-repeat}
+-.vlit{background:linear-gradient(115deg,rgba(255,214,140,.26),rgba(255,214,140,0) 45%),linear-gradient(to top,rgba(38,60,20,.32),rgba(38,60,20,0) 30%)}
+-.vhaze{background:rgba(205,222,232,.55);will-change:opacity}
+-.whl{position:absolute;border-radius:50%;overflow:hidden;opacity:.6}
+-.whl i{position:absolute;left:50%;top:50%;width:150%;aspect-ratio:1;margin:-75% 0 0 -75%;border-radius:50%;background:repeating-conic-gradient(rgba(20,16,10,.55) 0 12deg,rgba(20,16,10,0) 12deg 36deg);filter:blur(.7px);animation:spin .2s linear infinite}
+-.w1{left:59%;top:71.5%;width:12%;height:27%}.w2{left:86.6%;top:66.5%;width:8.4%;height:22%}
+-@keyframes rock{0%,100%{transform:translateY(0) rotate(0)}35%{transform:translateY(-2.6px) rotate(-.7deg)}65%{transform:translateY(-1px) rotate(.35deg)}}
+-@keyframes shd{0%,100%{transform:scaleX(1);opacity:1}35%{transform:scaleX(.95);opacity:.82}}
+-.puff{position:absolute;left:0;top:0;border-radius:50%;background:radial-gradient(closest-side,rgba(246,230,198,.85),rgba(228,206,166,.45) 55%,rgba(228,206,166,0));will-change:transform,opacity;opacity:0}
+-.wleaf{position:absolute;left:0;top:0;will-change:transform,opacity;opacity:0}
+ .lbtn.spotify{grid-column:1/-1;background:#1DB954;border:0;color:#0e2417;font-weight:800;font-size:16px;padding:14px 10px;box-shadow:0 4px 14px rgba(29,185,84,.35)}
+ .lbtn.spotify svg{width:22px;height:22px}
+ .lbtn.spotify svg path{fill:none}
+@@ -691,3 +642,16 @@ body.sheet-on{overflow:hidden}
+ .hero.compact~.home-paths small{display:none}
+ .hero.compact~.home-paths .path-ico{width:30px;height:30px}
+ @media (max-width:360px){.hero.compact~.home-paths a{grid-template-columns:1fr;justify-items:center;text-align:center}}
++/* LHB-72: la intro (intro.js). Papel de la app detrás del video, para que no haya un destello en blanco; el póster es el primer cuadro */
++.intro{position:fixed;inset:0;z-index:120;background:var(--surface);color:var(--on-surface);overflow:hidden}
++.intro video{width:100%;height:100%;display:block;object-fit:contain;pointer-events:none}
++.intro-mark{position:absolute;top:calc(var(--sat) + 18px);left:18px;max-width:240px;padding:8px 14px 10px;border-radius:12px;background:var(--veil)}
++.intro-mark b{display:block;font-family:var(--display);font-weight:400;font-size:22px;line-height:1.1}.intro-mark span{display:block;margin-top:2px;font-size:12px;color:var(--on-surface-2)}
++.intro-skip,.intro-sound{position:absolute;bottom:calc(var(--sab) + 64px);min-height:44px;padding:10px 16px;border-radius:999px;font:700 14px/1.2 var(--sans);cursor:pointer}
++.intro-skip{right:18px;background:var(--accent);color:var(--on-accent);border:1px solid var(--accent)}
++.intro-sound{left:18px;background:var(--surface);color:var(--accent-ink);border:1px solid var(--accent-ink)}
++.intro-credit{position:absolute;left:18px;right:18px;bottom:calc(var(--sab) + 14px);margin:0;padding:6px 10px;border-radius:8px;background:var(--veil);color:var(--on-surface-2);font-size:11px;line-height:1.5}
++.intro-credit a{color:var(--accent-ink);text-underline-offset:3px}
++.intro :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
++@media (min-width:700px){.intro-skip,.intro-sound{top:calc(var(--sat) + 22px);bottom:auto}.intro-sound{left:auto;right:150px}.intro-credit{right:auto}}
++@media (prefers-reduced-motion:reduce){.intro{display:none}}
+diff --git a/site/sw.js b/site/sw.js
+index 2a37516..33ced48 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,10 +1,10 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v95';
++const VERSION='lhb-v96';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+- 'fonts/figtree.woff2','fonts/fraunces-normal-600.woff2','fonts/fraunces-italic-500.woff2','fonts/shrikhand.woff2',
+- 'img/hero/banner.webp','img/logos/jfc-hoja-boricua.webp','img/logos/don-rey-cigar.webp','img/logos/el-club-del-turro.webp','img/logos/don-collins.webp','img/logos/finca-neo-jibairo.webp','img/logos/willys-cigars.webp','img/logos/san-pedrito-cigars.webp','img/logos/yambo-cigars.webp','img/logos/el-chapu-pr.webp','img/logos/el-buho-ricamontes.webp','img/logos/cohoba-cigars.webp','img/logos/cigarros-caimito.webp','img/logos/tabacalera-la-trascendencia.webp','img/logos/pitirre-cigars.webp','img/logos/villareno-cigars.webp','img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp','img/cigarros/galiz-spirit_thumb.webp','img/cigarros/villareno-surtido_thumb.webp','img/cigarros/don-collins-corona-grande_thumb.webp','img/cigarros/don-collins-linea_thumb.webp','img/cigarros/hoja-boricua-gran-reserva_thumb.webp','img/cigarros/hoja-boricua_thumb.webp','img/cigarros/puerto-rico-965_thumb.webp','img/cigarros/turro-albizu-campos_thumb.webp','img/cigarros/turro-angel-david_thumb.webp','img/cigarros/turro-barber-pole_thumb.webp','img/cigarros/turro-cartucho_thumb.webp','img/cigarros/turro-deja-el-drama_thumb.webp','img/cigarros/turro-don-pepe_thumb.webp','img/cigarros/turro-el-turrito_thumb.webp','img/cigarros/turro-escopeta_thumb.webp','img/cigarros/turro-gallo-pinto_thumb.webp','img/cigarros/turro-hva-robusto_thumb.webp','img/cigarros/turro-lancero_thumb.webp','img/cigarros/turro-mamposteao_thumb.webp','img/cigarros/turro-naturola_thumb.webp','img/cigarros/turro-timber-blues_thumb.webp','img/cigarros/monte-mistica-connecticut_thumb.webp','img/cigarros/monte-mistica-corojo_thumb.webp','img/cigarros/monte-mistica-maduro_thumb.webp','img/cigarros/yambo-toro_thumb.webp','img/cigarros/yambo_a_oscuro_thumb.webp','img/cigarros/yambo_a_pareja_thumb.webp','img/cigarros/yambo_a_torpedo_thumb.webp','img/cigarros/willys-banda-negra-oro_thumb.webp','img/cigarros/willys-banda-azul-oro_thumb.webp','img/cigarros/willys-banda-azul-roja-oro_thumb.webp','img/cigarros/willys-banda-azul-coleta_thumb.webp','img/cigarros/willys-banda-azul-ovalada_thumb.webp','img/cigarros/willys-tripa-corta_thumb.webp','img/cigarros/san-pedrito-linea_thumb.webp','img/cigarros/san-pedrito-barber-pole_thumb.webp','img/cigarros/galiz-spirit_thumb-s.webp','img/cigarros/villareno-surtido_thumb-s.webp','img/cigarros/don-collins-corona-grande_thumb-s.webp','img/cigarros/don-collins-linea_thumb-s.webp','img/cigarros/hoja-boricua-gran-reserva_thumb-s.webp','img/cigarros/hoja-boricua_thumb-s.webp','img/cigarros/puerto-rico-965_thumb-s.webp','img/cigarros/turro-albizu-campos_thumb-s.webp','img/cigarros/turro-angel-david_thumb-s.webp','img/cigarros/turro-barber-pole_thumb-s.webp','img/cigarros/turro-cartucho_thumb-s.webp','img/cigarros/turro-deja-el-drama_thumb-s.webp','img/cigarros/turro-don-pepe_thumb-s.webp','img/cigarros/turro-el-turrito_thumb-s.webp','img/cigarros/turro-escopeta_thumb-s.webp','img/cigarros/turro-gallo-pinto_thumb-s.webp','img/cigarros/turro-hva-robusto_thumb-s.webp','img/cigarros/turro-lancero_thumb-s.webp','img/cigarros/turro-mamposteao_thumb-s.webp','img/cigarros/turro-naturola_thumb-s.webp','img/cigarros/turro-timber-blues_thumb-s.webp','img/cigarros/monte-mistica-connecticut_thumb-s.webp','img/cigarros/monte-mistica-corojo_thumb-s.webp','img/cigarros/monte-mistica-maduro_thumb-s.webp','img/cigarros/yambo-toro_thumb-s.webp','img/cigarros/yambo_a_oscuro_thumb-s.webp','img/cigarros/yambo_a_pareja_thumb-s.webp','img/cigarros/yambo_a_torpedo_thumb-s.webp','img/cigarros/willys-banda-negra-oro_thumb-s.webp','img/cigarros/willys-banda-azul-oro_thumb-s.webp','img/cigarros/willys-banda-azul-roja-oro_thumb-s.webp','img/cigarros/willys-banda-azul-coleta_thumb-s.webp','img/cigarros/willys-banda-azul-ovalada_thumb-s.webp','img/cigarros/willys-tripa-corta_thumb-s.webp','img/cigarros/san-pedrito-linea_thumb-s.webp','img/cigarros/san-pedrito-barber-pole_thumb-s.webp'];
++ 'intro.js','fonts/figtree.woff2','fonts/fraunces-normal-600.woff2','fonts/fraunces-italic-500.woff2','fonts/shrikhand.woff2',
++ 'img/hero/banner.webp','img/logos/jfc-hoja-boricua.webp','img/logos/don-rey-cigar.webp','img/logos/el-club-del-turro.webp','img/logos/don-collins.webp','img/logos/finca-neo-jibairo.webp','img/logos/willys-cigars.webp','img/logos/san-pedrito-cigars.webp','img/logos/yambo-cigars.webp','img/logos/el-chapu-pr.webp','img/logos/el-buho-ricamontes.webp','img/logos/cohoba-cigars.webp','img/logos/cigarros-caimito.webp','img/logos/tabacalera-la-trascendencia.webp','img/logos/pitirre-cigars.webp','img/logos/villareno-cigars.webp','img/guagua/guagua_recorte.webp','img/cigarros/galiz-spirit_thumb.webp','img/cigarros/villareno-surtido_thumb.webp','img/cigarros/don-collins-corona-grande_thumb.webp','img/cigarros/don-collins-linea_thumb.webp','img/cigarros/hoja-boricua-gran-reserva_thumb.webp','img/cigarros/hoja-boricua_thumb.webp','img/cigarros/puerto-rico-965_thumb.webp','img/cigarros/turro-albizu-campos_thumb.webp','img/cigarros/turro-angel-david_thumb.webp','img/cigarros/turro-barber-pole_thumb.webp','img/cigarros/turro-cartucho_thumb.webp','img/cigarros/turro-deja-el-drama_thumb.webp','img/cigarros/turro-don-pepe_thumb.webp','img/cigarros/turro-el-turrito_thumb.webp','img/cigarros/turro-escopeta_thumb.webp','img/cigarros/turro-gallo-pinto_thumb.webp','img/cigarros/turro-hva-robusto_thumb.webp','img/cigarros/turro-lancero_thumb.webp','img/cigarros/turro-mamposteao_thumb.webp','img/cigarros/turro-naturola_thumb.webp','img/cigarros/turro-timber-blues_thumb.webp','img/cigarros/monte-mistica-connecticut_thumb.webp','img/cigarros/monte-mistica-corojo_thumb.webp','img/cigarros/monte-mistica-maduro_thumb.webp','img/cigarros/yambo-toro_thumb.webp','img/cigarros/yambo_a_oscuro_thumb.webp','img/cigarros/yambo_a_pareja_thumb.webp','img/cigarros/yambo_a_torpedo_thumb.webp','img/cigarros/willys-banda-negra-oro_thumb.webp','img/cigarros/willys-banda-azul-oro_thumb.webp','img/cigarros/willys-banda-azul-roja-oro_thumb.webp','img/cigarros/willys-banda-azul-coleta_thumb.webp','img/cigarros/willys-banda-azul-ovalada_thumb.webp','img/cigarros/willys-tripa-corta_thumb.webp','img/cigarros/san-pedrito-linea_thumb.webp','img/cigarros/san-pedrito-barber-pole_thumb.webp','img/cigarros/galiz-spirit_thumb-s.webp','img/cigarros/villareno-surtido_thumb-s.webp','img/cigarros/don-collins-corona-grande_thumb-s.webp','img/cigarros/don-collins-linea_thumb-s.webp','img/cigarros/hoja-boricua-gran-reserva_thumb-s.webp','img/cigarros/hoja-boricua_thumb-s.webp','img/cigarros/puerto-rico-965_thumb-s.webp','img/cigarros/turro-albizu-campos_thumb-s.webp','img/cigarros/turro-angel-david_thumb-s.webp','img/cigarros/turro-barber-pole_thumb-s.webp','img/cigarros/turro-cartucho_thumb-s.webp','img/cigarros/turro-deja-el-drama_thumb-s.webp','img/cigarros/turro-don-pepe_thumb-s.webp','img/cigarros/turro-el-turrito_thumb-s.webp','img/cigarros/turro-escopeta_thumb-s.webp','img/cigarros/turro-gallo-pinto_thumb-s.webp','img/cigarros/turro-hva-robusto_thumb-s.webp','img/cigarros/turro-lancero_thumb-s.webp','img/cigarros/turro-mamposteao_thumb-s.webp','img/cigarros/turro-naturola_thumb-s.webp','img/cigarros/turro-timber-blues_thumb-s.webp','img/cigarros/monte-mistica-connecticut_thumb-s.webp','img/cigarros/monte-mistica-corojo_thumb-s.webp','img/cigarros/monte-mistica-maduro_thumb-s.webp','img/cigarros/yambo-toro_thumb-s.webp','img/cigarros/yambo_a_oscuro_thumb-s.webp','img/cigarros/yambo_a_pareja_thumb-s.webp','img/cigarros/yambo_a_torpedo_thumb-s.webp','img/cigarros/willys-banda-negra-oro_thumb-s.webp','img/cigarros/willys-banda-azul-oro_thumb-s.webp','img/cigarros/willys-banda-azul-roja-oro_thumb-s.webp','img/cigarros/willys-banda-azul-coleta_thumb-s.webp','img/cigarros/willys-banda-azul-ovalada_thumb-s.webp','img/cigarros/willys-tripa-corta_thumb-s.webp','img/cigarros/san-pedrito-linea_thumb-s.webp','img/cigarros/san-pedrito-barber-pole_thumb-s.webp'];
+ self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
+ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION&&k!=='vb-tiles').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+ self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const url=new URL(req.url);
+@@ -15,6 +15,8 @@ self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')retu
+  if(url.pathname.startsWith('/api/'))return;
+  // pasaporte público (LHB-40): /u/ siempre va a la red, nunca se guarda como el shell de la app
+  if(url.pathname.startsWith('/u/'))return;
++ // LHB-72: la intro en video va siempre a la red: ni se precachea ni se guarda (las peticiones por rangos no van al caché)
++ if(url.pathname.startsWith('/assets/intro/'))return;
+  // data: network first (fresh events), fall back to cache
+  if(url.pathname.includes('/data/')){e.respondWith(fetch(req).then(r=>{if(r.ok){const cp=r.clone();caches.open(VERSION).then(c=>c.put(req,cp))}return r}).catch(()=>caches.match(req,{ignoreSearch:true})));return}
+  // navigations: app shell
+diff --git a/test/site.test.js b/test/site.test.js
+index b97b910..83bcb23 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v95'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v96'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -60,35 +60,28 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(F['yambo-toro'].galeria.length>=4&&F['yambo-toro'].credito==='Foto: Yambó');
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+-test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
+- assert.match(sw,/const VERSION='lhb-v95'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+- assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
+- assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
+- for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
+-
+-test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v95'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+- for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
+- assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+-
++test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
++ assert.match(sw,/const VERSION='lhb-v96'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
++ assert.ok(a.includes(f)&&a.includes("VEHICULO='guagua'"));
++ for(const g of ['img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
++ assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
++test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
++ assert.match(sw,/const VERSION='lhb-v96'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
++ for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
++ assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v95'/);
++ assert.match(sw,/const VERSION='lhb-v96'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v95'/);
++ assert.match(sw,/const VERSION='lhb-v96'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+- assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
+- const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
+- assert.equal((svg.match(/fill="#E92A2F"/g)||[]).length,3,'3 franjas rojas');assert.ok(svg.includes('class="tela"'));
+- const tri=svg.match(/<path d="M[^"]*Z" fill="(#5FB4E5)"/i);assert.ok(/#9a6a3c/.test(svg)&&/#5b7a3a/.test(svg),'asta de madera + grama');assert.ok(tri,'triángulo');
+- const hex=tri[1].slice(1),r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+- assert.ok(b>200&&g>150&&r>60&&r<130,'triángulo celeste: '+tri[1]);assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
++ assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
+  const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%231EA8D7')&&em.includes('%23ED0000'),'bandera de los vacíos con el celeste y el rojo de la bandera (LHB-67: el celeste de la guagua)');
+- assert.ok(/\.tela\{[^}]*animation:ondea/.test(css)&&/@media \(prefers-reduced-motion:reduce\)\{\*,\*::before,\*::after\{animation:none!important/.test(css));
++ assert.ok(!/\.tela\{|ondea/.test(css),'LHB-72: la bandera que ondeaba en el splash se fue con él');assert.ok(/@media \(prefers-reduced-motion:reduce\)\{\*,\*::before,\*::after\{animation:none!important/.test(css));
+  const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));assert.equal(Object.keys(F).length,33);
+  assert.equal(F['galiz-spirit'].credito,'Foto: Entre Humos');assert.equal(F['galiz-spirit'].match,'linea');
+  assert.equal(F['villareno-surtido'].credito,'Foto: Villareño Cigars');assert.equal(F['villareno-surtido'].match,'exacta');
+@@ -105,20 +98,20 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v95'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v96'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v95'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v96'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+  for(const v of ['--paper:#F4F1EA','--tobacco:#344C31','--amber:#C77943','--celeste:#1EA8D7','--red:#D12A1B','--sun:#EAB91B','--flag-blue:var(--celeste)','--flag-red:#ED0000'])assert.ok(c.includes(v),v);
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+- assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v95'/);});
++ assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v96'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -135,7 +128,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v95/);});
++ assert.match(read('sw.js'),/lhb-v96/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -148,18 +141,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v95'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v96'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v95'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v96'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v95'/);});
+-
+-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v95'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v96'/);});
+ 
++test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
++ const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
++ for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v96'/);});
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
+@@ -237,7 +231,7 @@ test('LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las
+  const {T}=I18N();const es=Object.keys(T.es).sort(),en=Object.keys(T.en).sort();assert.deepEqual(en,es,'mismas claves');
+  const used=new Set([...read('app.js').matchAll(/\btt\('([^']+)'/g)].map(m=>m[1]).filter(k=>k!=='fort.'));
+  /* LHB-29: también hoja.js y art.js (tt), index.html (data-i18n, data-i18n-attr) y cada val.* de un valor que hoja.js guarda (STORED) */
+- for(const f of ['hoja.js','art.js','cuenta.js'])for(const m of read(f).matchAll(/\b(?:tt|LHB_I18N\.t)\('([^']+)'/g))if(m[1]!=='val.')used.add(m[1]);
++ for(const f of ['hoja.js','art.js','cuenta.js','intro.js'])for(const m of read(f).matchAll(/\b(?:tt|LHB_I18N\.t)\('([^']+)'/g))if(m[1]!=='val.')used.add(m[1]);
+  const ixh=read('index.html');for(const m of ixh.matchAll(/data-i18n="([^"]+)"/g))used.add(m[1]);for(const m of ixh.matchAll(/data-i18n-attr="([^"]+)"/g))for(const p of m[1].split(';'))used.add(p.slice(p.indexOf(':')+1));
+  const st=STORED();for(const k of es)if(k.startsWith('val.')&&st.includes(k.slice(4)))used.add(k);
+  /* LHB-71: las claves que nombra la tabla de rutas (el menú las pinta con tt) */
+@@ -1220,7 +1214,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v95'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v96'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1467,7 +1461,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v95'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v96'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1645,7 +1639,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v95'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v96'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1892,7 +1886,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v95'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v96'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2193,7 +2187,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v95'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v96'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2476,7 +2470,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v95'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v96'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3443,7 +3437,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v95'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v96'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -5060,7 +5054,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v95'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v96'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -5263,10 +5257,6 @@ const ALLOW67=[
+  ['styles.css',/\.lbtn\.ig\{[^}]*\}/,1,'marca de Instagram: su degradado (el texto blanco pasa 4.5 en cada parada, abajo)'],
+  ['styles.css',/\.lbtn\.wa\{[^}]*\}/,1,'marca de WhatsApp: su verde (el texto blanco pasa 4.5, abajo)'],
+  ['styles.css',/\.lbtn\.spotify\{[^}]*\}/,1,'marca de Spotify: su verde con su tinta (pasa 4.5, abajo)'],
+- ['styles.css',/\.campo\{[^}]*\}/,1,'máscara: solo cuenta la opacidad, el color no se pinta'],
+- ['styles.css',/\.l-field\{[^}]*\}/,1,'máscara: solo cuenta la opacidad, el color no se pinta'],
+- ['styles.css',/\.vb \.van-i\{[^}]*\}/,1,'máscara: solo cuenta la opacidad, el color no se pinta'],
+- ['styles.css',/\.(?:nube|vsh2?|vlit|vhaze|puff)\{[^}]*\}|\.whl i\{[^}]*\}/,8,'arte de la intro (nubes, sombras, luz, bruma, polvo y ruedas de la guagua): luz y sombra de la escena, no texto'],
+  ['app.js',/const CAPA_COLORS=\{[^;]*\};/,1,'arte: el color de cada capa de tabaco en el dibujo del cigarro'],
+  ['app.js',/const BG=\[[^\]]*\];/,1,'arte: el fondo del dibujo del cigarro'],
+  ['app.js',/function cigarSVG[\s\S]*?<\/svg>`\}/,1,'arte: el dibujo del cigarro (su anilla en rojo de la bandera y la estrella en el celeste)'],
+@@ -5276,21 +5266,18 @@ const ALLOW67=[
+  ['app.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,6,'la paleta de los íconos de hoja (art.js les pone un borde oscuro: se ven en el tema claro)'],
+  ['app.js',/const cols=\[color\|\|'#d9a75a'[^\]]*\]/,1,'arte: las hojas que caen al marcar un favorito'],
+  ['app.js',/stroke="#2a1a12"/,1,'arte: el borde de la hoja del pin, el mismo de art.js'],
+- ['app.js',/const COL=\[[^\]]*\]/,1,'arte de la intro: las hojas que levanta la guagua'],
+- ['app.js',/stroke="rgba\(40,30,10,\.45\)"/,1,'arte de la intro: la vena de esas hojas'],
+  ['hoja.js',/WHEEL=\[[\s\S]*?\];/,1,'la paleta de la rueda de sabores, una por categoría (su texto pasa 4.5, abajo)'],
+  ['hoja.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,9,'la paleta de los íconos de hoja (art.js les pone un borde oscuro)'],
+  ['hoja.js',/VBArt\.leaf\(p\.categoria==='venta'\?'#ffd27a':'#8fd162'\)/,1,'la paleta de los íconos de hoja'],
+  ['hoja.js',/VBArt\.leaf\(lit\.length\?'#8fd162'/,1,'la paleta de los íconos de hoja: la hoja ganada'],
+  ['hoja.js',/const BADGES=\[[\s\S]*?\];/,1,'la paleta de las hojas de cada insignia (la hoja lleva borde oscuro; el nombre va en texto)'],
+  ['hoja.js',/return v\|\|'#263723'/,1,'respaldo de tk() si un token faltara al pintar la imagen para compartir: espejo de --on-surface',['on-surface']],
+- ['styles.css',/\.splash::before,\.splash::after\{[^}]*\}/,1,'arte: las hojas de tabaco de la pantalla de entrada, un SVG en data URI que no lee las variables de la página'],
+  ['styles.css',/\.empty::before\{[^}]*\}/,1,'arte: la bandera en su asta del estado vacío, un SVG en data URI que no lee las variables de la página (su azul y su rojo se miden abajo)'],
+  ['hoja.js',/<circle cx="12" cy="12" r="11" fill="#0e2417"\/>[\s\S]*?<\/svg>/,1,'marca de Spotify: su ícono, sobre el botón verde de la marca'],
+  ['hoja.js',/function drawLeaf[\s\S]*?x\.restore\(\)\}/,1,'arte: la hoja de tabaco dibujada en la imagen para compartir'],
+ ];
+ function scan67(over={}){const app=TOKENS65(read('styles.css')),bad=[],stale=[],mirror=[];
+- for(const f of ['styles.css','app.js','hoja.js','cuenta.js']){let s=over[f]!=null?over[f]:read(f);const blank=m=>' '.repeat(m.length);
++ for(const f of ['styles.css','app.js','hoja.js','cuenta.js','intro.js']){let s=over[f]!=null?over[f]:read(f);const blank=m=>' '.repeat(m.length);
+   if(f==='styles.css')s=s.replace(/:root\{[^}]*\}/,blank);s=s.replace(/\/\*[\s\S]*?\*\//g,blank);
+   const at=[...s.matchAll(LIT67)].map(m=>m.index),cov=new Set();
+   for(const [,re,n,why,mir] of ALLOW67.filter(a=>a[0]===f)){assert.ok(why&&why.length>10,f+': cada color que queda lleva su razón');
+@@ -5436,3 +5423,64 @@ test('LHB-71 (Codex ronda 1): sin espacio para guardar la visita el catálogo se
+  assert.deepEqual(cur('#/ruta-que-no-existe'),['#/catalogo'],'una ruta desconocida pinta el catálogo y el menú lo marca');
+  assert.deepEqual(cur('#/a/%E0%A4%A'),['#/artesanos'],'un código roto no rompe el menú');
+ });
++/* LHB-72: intro.js de verdad, con el navegador de mentira: el reloj, los dos almacenamientos, las preferencias y la ruta los pone la prueba */
++function INTRO72(o={}){const vm=require('vm');const D=DOM64(),doc=D.doc;const P=Object.getPrototypeOf(doc.createElement('x'));
++ P.pause=function(){this.paused=true};P.load=function(){};P.removeEventListener=function(){};P.play=function(){this.started=true;return o.playReject?Promise.reject(new Error('sin permiso')):Promise.resolve()};
++ doc.getElementById=id=>doc.querySelector('#'+id);doc.removeEventListener=()=>{};doc.hidden=!!o.hidden;
++ const store=init=>{const m=Object.assign({},init);return {m,getItem(k){if(o.blocked)throw new Error('bloqueado');return k in m?m[k]:null},setItem(k,v){if(o.blocked)throw new Error('bloqueado');m[k]=String(v)}}};
++ const ls=store(o.ls),ss=store(o.ss),mq={'(prefers-reduced-motion: reduce)':!!o.reduced,'(display-mode: standalone)':!!o.standalone};
++ const win={document:doc,localStorage:ls,sessionStorage:ss,location:{hash:o.hash||'',search:o.search||''},navigator:{connection:o.saveData?{saveData:true}:undefined},
++  matchMedia:q=>({matches:!!mq[q],addEventListener(){},removeEventListener(){}}),innerWidth:o.w||390,innerHeight:o.h||844,LHB_I18N:{t:k=>'<'+k+'>'},addEventListener(){},removeEventListener(){}};
++ const tm=[];const ctx={window:win,URLSearchParams,Date:{now:()=>o.now||0},setTimeout:(fn,ms)=>{tm.push({fn,ms,live:true});return tm.length},clearTimeout:id=>{if(tm[id-1])tm[id-1].live=false}};
++ /* fire(ms): corre los relojes vivos de esa duración (o de todas, sin argumento) */
++ const fire=ms=>{for(const t of tm)if(t.live&&(ms==null||t.ms===ms)){t.live=false;t.fn()}};
++ vm.createContext(ctx);vm.runInContext(read('intro.js'),ctx);return {D,api:win.LHB_INTRO,ls,ss,fire,ov:()=>D.$('.intro')}}
++const DAY72=864e5,T72=1.7e12;
++test('LHB-72: la intro sale la primera vez, después a lo sumo cada 14 días (el día 13 no, el 14 sí), nunca dos veces en la misma sesión, y la app instalada no la repite',()=>{
++ let r=INTRO72({now:T72});assert.equal(r.api.last,'play','primera vez');assert.ok(r.ov(),'se ve');assert.equal(r.ls.m.vb_introAt,String(T72),'anota cuándo');assert.equal(r.ss.m.vb_intro,'1','y la sesión');
++ r=INTRO72({now:T72+60e3,ls:{vb_introAt:String(T72)},ss:{vb_intro:'1'}});assert.equal(r.api.last,'session');assert.equal(r.ov(),null);
++ r=INTRO72({now:T72+60e3,search:'?intro=0',ls:{vb_introAt:String(T72)},ss:{vb_intro:'1'},hash:'#/catalogo'});assert.equal(r.api.last,'session','la misma sesión, nunca otra vez');
++ r=INTRO72({now:T72+13*DAY72,ls:{vb_introAt:String(T72)}});assert.equal(r.api.last,'recent','día 13: no');assert.equal(r.ov(),null);
++ r=INTRO72({now:T72+14*DAY72-1,ls:{vb_introAt:String(T72)}});assert.equal(r.api.last,'recent','un instante antes del día 14: no');
++ r=INTRO72({now:T72+14*DAY72,ls:{vb_introAt:String(T72)}});assert.equal(r.api.last,'play','día 14: sí');assert.equal(r.ls.m.vb_introAt,String(T72+14*DAY72),'y vuelve a contar desde hoy');
++ r=INTRO72({now:T72+30*DAY72,ls:{vb_introAt:String(T72)},standalone:true});assert.equal(r.api.last,'standalone','la app instalada no la repite');
++ r=INTRO72({now:T72,standalone:true});assert.equal(r.api.last,'play','pero la primera vez sí');
++ for(const bad of ['x','-5',String(T72+DAY72)]){r=INTRO72({now:T72,ls:{vb_introAt:bad}});assert.equal(r.api.last,'play','una fecha que no sirve cuenta como ninguna: '+bad)}
++});
++test('LHB-72: no sale con menos movimiento, con ahorro de datos, con la página escondida, en un enlace directo ni sin almacenamiento; ?intro=1 la repite',()=>{
++ for(const [o,why] of [[{reduced:true},'reduced'],[{saveData:true},'saveData'],[{hidden:true},'hidden'],[{hash:'#/c/turro'},'deep'],[{hash:'#/mihoja/perfil'},'deep'],[{blocked:true},'storage'],[{reduced:true,search:'?intro=1'},'reduced']]){
++  const r=INTRO72({now:T72,...o});assert.equal(r.api.last,why,JSON.stringify(o));assert.equal(r.ov(),null,'sin intro: '+why);assert.equal(r.ls.m.vb_introAt,undefined,'no anota nada: '+why)}
++ for(const hash of ['','#','#/','#/catalogo','#/catalogo/'])assert.equal(INTRO72({now:T72,hash}).api.last,'play','la portada no es un enlace directo: '+JSON.stringify(hash));
++ const r=INTRO72({now:T72+60e3,search:'?intro=1',ls:{vb_introAt:String(T72)},ss:{vb_intro:'1'},hash:'#/c/turro'});assert.equal(r.api.last,'play','Ver intro la repite');
++});
++test('LHB-72: el reproductor: diálogo, empieza sin sonido, sin bucle, video según la orientación con su póster, se salta con el botón o con Escape, y tiene límites de tiempo',async()=>{
++ let r=INTRO72({now:T72});const ov=r.ov(),v=ov.querySelector('video');
++ assert.equal(ov.getAttribute('role'),'dialog');assert.equal(ov.getAttribute('aria-modal'),'true');assert.equal(ov.getAttribute('aria-label'),'<intro.label>');
++ assert.ok(v.muted&&v.loop===false,'sin sonido y sin bucle');assert.equal(v.src,'assets/intro/intro-portrait.mp4');assert.equal(v.getAttribute('poster'),'assets/intro/poster-portrait.webp');assert.ok(v.started,'arranca');
++ assert.ok(r.D.app.inert,'la app detrás no se alcanza');assert.equal(r.D.active(),ov.querySelector('.intro-skip'),'el foco en Saltar');
++ const snd=ov.querySelector('.intro-sound');assert.equal(snd.getAttribute('aria-pressed'),'false');snd.ls.click[0]();assert.ok(!v.muted&&snd.getAttribute('aria-pressed')==='true'&&snd.textContent==='<intro.soundOff>','el sonido se enciende con el botón');
++ ov.ls.keydown[0]({key:'Escape',preventDefault(){}});assert.equal(r.ov(),null,'Escape la cierra');assert.ok(!r.D.app.inert,'la app vuelve');assert.equal(r.D.active(),r.D.view,'el foco a la vista');assert.ok(v.paused);
++ r=INTRO72({now:T72,w:1024,h:576});assert.equal(r.ov().querySelector('video').src,'assets/intro/intro-landscape.mp4');assert.equal(r.ov().querySelector('video').getAttribute('poster'),'assets/intro/poster-landscape.webp');
++ r.ov().querySelector('.intro-skip').ls.click[0]();assert.equal(r.ov(),null,'Saltar la cierra');
++ r=INTRO72({now:T72});r.ov().querySelector('video').ls.ended[0]();assert.equal(r.ov(),null,'al terminar se cierra');
++ r=INTRO72({now:T72});r.fire(1800);assert.equal(r.ov(),null,'si no arranca en 1,8 s, se cierra sola');
++ r=INTRO72({now:T72});const vv=r.ov().querySelector('video');vv.ls.playing[0]();r.fire(1800);assert.ok(r.ov(),'arrancó: el reloj de arranque ya no cuenta');
++ vv.ls.waiting[0]();r.fire(700);assert.equal(r.ov(),null,'trabada más de 0,7 s después de arrancar, se cierra');
++ r=INTRO72({now:T72});r.ov().querySelector('video').ls.playing[0]();r.fire(9000);assert.equal(r.ov(),null,'a los 9 s se cierra pase lo que pase');
++ r=INTRO72({now:T72,playReject:true});await new Promise(s=>setImmediate(s));assert.equal(r.ov(),null,'si el navegador no la deja sonar ni mudo, se cierra');
++ /* Tab no sale del diálogo */
++ r=INTRO72({now:T72});const o2=r.ov(),ring=[o2.querySelector('.intro-skip'),o2.querySelector('.intro-sound'),o2.querySelector('a')];ring[2].focus();let pd=false;
++ o2.ls.keydown[0]({key:'Tab',shiftKey:false,preventDefault(){pd=true}});assert.ok(pd&&r.D.active()===ring[0],'Tab desde el último vuelve al primero');
++ pd=false;o2.ls.keydown[0]({key:'Tab',shiftKey:true,preventDefault(){pd=true}});assert.ok(pd&&r.D.active()===ring[2],'Mayús+Tab desde el primero va al último');
++ assert.equal(o2.querySelector('a').getAttribute('href'),'https://callepomarrosas.com/');assert.equal(o2.querySelector('a').getAttribute('rel'),'noopener');
++});
++test('LHB-72: el splash viejo se fue; la intro carga antes que la app, sus videos nunca pasan por el caché y sus textos están en los dos idiomas',()=>{
++ const ix=read('index.html'),ap=read('app.js'),css=read('styles.css'),sw=read('sw.js');for(const [f,t] of [['index.html',ix],['app.js',ap],['styles.css',css]])assert.ok(!/splash/i.test(t),'sin splash en '+f);
++ const i=ix.indexOf('<script src="i18n.js" defer></script>'),j=ix.indexOf('<script src="intro.js" defer></script>'),k=ix.indexOf('<script src="app.js" defer></script>');assert.ok(i>=0&&i<j&&j<k,'i18n, intro, app');
++ const shell=sw.slice(sw.indexOf('const SHELL='),sw.indexOf('];',sw.indexOf('const SHELL=')));assert.ok(shell.includes("'intro.js'"));assert.ok(!/\.mp4|assets\/intro/.test(shell),'los videos no se precachean');
++ const fe=sw.slice(sw.indexOf("self.addEventListener('fetch'"));assert.ok(fe.indexOf("if(url.pathname.startsWith('/assets/intro/'))return;")>=0&&fe.indexOf("if(url.pathname.startsWith('/assets/intro/'))return;")<fe.indexOf('// static: cache first'),'la intro va a la red antes del caché');
++ const dir=path.join(__dirname,'..','site','assets','intro');for(const [f,max] of [['intro-portrait.mp4',700e3],['intro-landscape.mp4',700e3],['poster-portrait.webp',60e3],['poster-landscape.webp',60e3]])assert.ok(fs.statSync(path.join(dir,f)).size<max,f);
++ const {scan}=require('./i18n-scan.js');assert.deepEqual(scan(read('intro.js')),[],'sin texto escrito en intro.js');
++ const {T}=I18N();const keys=[...new Set([...read('intro.js').matchAll(/\btt\('(intro\.[\w.]+)'\)/g)].map(m=>m[1]))];assert.equal(keys.length,8);for(const k of keys)assert.ok(T.es[k]&&T.en[k],'es y en: '+k);
++ assert.ok(/@media \(prefers-reduced-motion:reduce\)\{\.intro\{display:none\}\}/.test(css),'tampoco se ve si el sistema pide menos movimiento después de cargar');
++});
+
+2026-10-29T05:37:34.459183Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T05:37:35.677767Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The replay parameter is checked before the same-session guard, so the “never again in the same session” claim needs scrutiny. I’ll inspect the repository and run the available checks without editing files or loading skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Location; git status --short; git diff --stat bcb5e3b HEAD; Get-Content site/intro.js; Get-Content site/sw.js' in C:\Users\Owner\lhb-65-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T05:37:41.781628Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The Node fallback works, and the suite is running. A stale `?intro=1` makes every reload return `play`, including in the same session; I’m checking clock rollback and service-worker update behavior next.
+
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The run finished with 322 passed, 4 failed, and 1 skipped. All four failures reach Python subprocess calls, which this sandbox rejects with `EPERM`; the LHB-72 tests passed. The VM also confirms that rolling the clock back one hour permits an immediate replay, including in installed mode, because the stored timestamp becomes “none.”
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The old-worker VM reproduction returns the new HTML and `intro.js` alongside cached v95 CSS and translations, which lack the intro rules and labels. The intro then sets `#app` inert before the worker update completes. The supplied browser harness unregisters the service worker, so its 8 checks do not cover this transition. The close paths passed the additional VM cleanup checks.
+
+codex
+1. **[Certain] P2, BLOCKING: A replay URL causes repeated automatic playback.** [intro.js:13](C:/Users/Owner/lhb-65-wt/site/intro.js:13), `decide()` / `inputs()`.
+
+   Contract: “never again in the same session.” Artifact: `if(o.replay)return 'play'` precedes the session guard, and nothing consumes `?intro=1`.
+
+   Scenario: open the replay URL, dismiss the intro, then reload. It plays again despite `vb_intro='1'` and a recent timestamp. Reproduced with the real script in the VM. Consume the replay request so subsequent reloads follow the normal policy while preserving deliberate About replays.
+
+2. **[Certain] P2, BLOCKING: Existing service-worker clients can run the intro without its styles or translations.** [index.html:59](C:/Users/Owner/lhb-65-wt/site/index.html:59), script wiring; [intro.js:60](C:/Users/Owner/lhb-65-wt/site/intro.js:60), immediate `boot()`; `sw.js`, fetch handler.
+
+   Claim: a styled, named modal protects access to the app. Artifacts: the v95 worker serves navigation from the network but static assets cache-first; the new script immediately executes `app.inert=true`.
+
+   Scenario: a returning visitor with the v95 shell cached opens the newly deployed homepage. The old worker supplies new HTML and uncached `intro.js`, but old CSS and i18n. The intro has no overlay styling and displays labels such as `intro.skip` while the app becomes inert. Executing the base worker against a populated cache reproduced this asset combination. Browser presentation is NOT VERIFIED.
+
+   Gate playback on compatible shell assets or ensure the required assets update together. The eventual controller-change reload does not prevent this initial failure.
+
+3. **[Certain] P2, BLOCKING: Clock rollback defeats both repeat restrictions.** [intro.js:24](C:/Users/Owner/lhb-65-wt/site/intro.js:24), `inputs()`; `decide()`.
+
+   Contract: “at most once every 14 days” and installed-app cold starts do not replay. Artifacts: `n<=now` discards a future timestamp; `if(o.last==null)return 'play'` precedes the installed-app guard.
+
+   Scenario: play once, close the session, move the clock back one hour, then reopen. The valid previous-play timestamp is treated as missing, causing immediate playback, including in installed mode. Both reproduced in the VM. Handle future positive timestamps conservatively instead of interpreting them as a first run.
+
+[Certain] Validation: 11/11 ticket-focused tests passed. The full suite returned 322 passed, 4 failed, 1 skipped; all four failures involve Python subprocesses rejected with sandbox `EPERM`. Additional VM checks confirmed cleanup, restored focus and cleared inert state across the examined close paths. Actual network cancellation and browser service-worker migration remain NOT VERIFIED. No files were edited or skills loaded.
+
+VERDICT: BLOCK
+tokens used
+109,194
+1. **[Certain] P2, BLOCKING: A replay URL causes repeated automatic playback.** [intro.js:13](C:/Users/Owner/lhb-65-wt/site/intro.js:13), `decide()` / `inputs()`.
+
+   Contract: “never again in the same session.” Artifact: `if(o.replay)return 'play'` precedes the session guard, and nothing consumes `?intro=1`.
+
+   Scenario: open the replay URL, dismiss the intro, then reload. It plays again despite `vb_intro='1'` and a recent timestamp. Reproduced with the real script in the VM. Consume the replay request so subsequent reloads follow the normal policy while preserving deliberate About replays.
+
+2. **[Certain] P2, BLOCKING: Existing service-worker clients can run the intro without its styles or translations.** [index.html:59](C:/Users/Owner/lhb-65-wt/site/index.html:59), script wiring; [intro.js:60](C:/Users/Owner/lhb-65-wt/site/intro.js:60), immediate `boot()`; `sw.js`, fetch handler.
+
+   Claim: a styled, named modal protects access to the app. Artifacts: the v95 worker serves navigation from the network but static assets cache-first; the new script immediately executes `app.inert=true`.
+
+   Scenario: a returning visitor with the v95 shell cached opens the newly deployed homepage. The old worker supplies new HTML and uncached `intro.js`, but old CSS and i18n. The intro has no overlay styling and displays labels such as `intro.skip` while the app becomes inert. Executing the base worker against a populated cache reproduced this asset combination. Browser presentation is NOT VERIFIED.
+
+   Gate playback on compatible shell assets or ensure the required assets update together. The eventual controller-change reload does not prevent this initial failure.
+
+3. **[Certain] P2, BLOCKING: Clock rollback defeats both repeat restrictions.** [intro.js:24](C:/Users/Owner/lhb-65-wt/site/intro.js:24), `inputs()`; `decide()`.
+
+   Contract: “at most once every 14 days” and installed-app cold starts do not replay. Artifacts: `n<=now` discards a future timestamp; `if(o.last==null)return 'play'` precedes the installed-app guard.
+
+   Scenario: play once, close the session, move the clock back one hour, then reopen. The valid previous-play timestamp is treated as missing, causing immediate playback, including in installed mode. Both reproduced in the VM. Handle future positive timestamps conservatively instead of interpreting them as a first run.
+
+[Certain] Validation: 11/11 ticket-focused tests passed. The full suite returned 322 passed, 4 failed, 1 skipped; all four failures involve Python subprocesses rejected with sandbox `EPERM`. Additional VM checks confirmed cleanup, restored focus and cleared inert state across the examined close paths. Actual network cancellation and browser service-worker migration remain NOT VERIFIED. No files were edited or skills loaded.
+
+VERDICT: BLOCK

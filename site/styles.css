@@ -643,6 +643,8 @@ body.sheet-on{overflow:hidden}
 .hero.compact~.home-paths .path-ico{width:30px;height:30px}
 @media (max-width:360px){.hero.compact~.home-paths a{grid-template-columns:1fr;justify-items:center;text-align:center}}
 /* LHB-72: la intro (intro.js). Papel de la app detrás del video, para que no haya un destello en blanco; el póster es el primer cuadro */
+/* intro.js no abre la intro si no ve esta marca: un styles.css viejo en caché no la trae */
+:root{--intro-ready:1}
 .intro{position:fixed;inset:0;z-index:120;background:var(--surface);color:var(--on-surface);overflow:hidden}
 .intro video{width:100%;height:100%;display:block;object-fit:contain;pointer-events:none}
 .intro-mark{position:absolute;top:calc(var(--sat) + 18px);left:18px;max-width:240px;padding:8px 14px 10px;border-radius:12px;background:var(--veil)}

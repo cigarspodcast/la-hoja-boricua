@@ -1,0 +1,31 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket (base bcb5e3b). This is round 1 of a TIER 2 review.
+
+Ticket LHB-72 (M7-F4a): the intro player, its play policy, a poster, the reduced-motion and data-saver paths, and the removal of the legacy splash. Pinned decisions:
+- Play policy: first run, then at most once every 14 days; never again in the same session. Replay from About ("Ver intro"; the About link itself is another ticket). Installed-app cold starts do not replay it.
+- A small webp poster so there is no blank paper flash.
+- Keep from the source package: muted start with a sound button, skip, Escape, reduced motion, data saver, deep links skip it, hard time limits, no loop.
+- The videos are NOT precached by the service worker.
+- New copy as i18n keys with es and en values; no Spanish literal in a script.
+- One new localStorage key records when the intro last played; local to the device, never synced.
+
+What changed:
+- site/intro.js (new, deferred, loads after i18n.js and before app.js). decide(o) is pure: hidden, reduced, saveData, storage unreadable, then replay (?intro=1) plays, then deep link, same session, first run plays, installed app (display-mode standalone or navigator.standalone) does not replay, else now-last>=14 days plays. inputs(now) reads the browser; a stored date that is not a positive number or is in the future counts as none. play(now) writes vb_introAt and sessionStorage vb_intro first (and bails out if storage throws), builds a section role=dialog aria-modal with a muted, non-looping video (portrait or landscape by innerHeight>innerWidth, poster per orientation), the name and tagline, Saltar, a sound toggle (aria-pressed), and the illustrator credit link. It makes #app inert, focuses Saltar, keeps Tab inside, and closes on Saltar, Escape, ended, error, hashchange, hidden page, a reduced-motion change, play() rejection, 1.8 s without starting, a 0.7 s stall after starting, or 9 s total; on close it pauses, drops the src, restores #app and focuses #view.
+- site/assets/intro/: two MP4s moved from the Codex handoff folder (byte-identical to the package's audio variant) and two first-frame webp posters (29 KB, 37 KB). The ticket says one poster; two are used because the orientations open on different frames (recorded deviation).
+- Legacy splash removed: index.html markup, the splash function in app.js, every .splash rule and the scene block in styles.css (keyframes included), and the keys ix.flag, ix.splashName, ix.splashSub. Its scene images leave the service worker precache; the files stay.
+- site/styles.css: an LHB-72 block, tokens only; under prefers-reduced-motion the overlay is display:none.
+- site/sw.js: intro.js added to the shell; /assets/intro/ returns before any caching (never precached or cached, so range requests stay out of the cache); VERSION lhb-v95 to lhb-v96 and 21 test pins.
+- site/i18n.js: 8 intro.* keys in es and en.
+
+Tests: v8, v9, v12, v16, v28 rewritten (they pinned the splash); LHB-27 counts intro.js keys; LHB-67 drops seven splash art spans from ALLOW67 and scans intro.js. New (INTRO72 runs the real intro.js in a vm over DOM64 with an injected clock and storage): the 14-day policy (first run, same session, day 13, 14 days minus 1 ms, day 14, installed app, bad stored dates); the skip conditions and ?intro=1; the player (dialog, muted, no loop, orientation and poster, inert, focus, sound toggle, Escape, Saltar, ended, the 1.8 s, 0.7 s and 9 s limits fired by delay, play() rejection, Tab ring, credit link); the splash gone and the wiring (script order, shell, the network bypass placed before the cache, sizes, i18n scan, keys).
+
+Evidence: evidence/lhb-72-tests.txt (326 pass, 0 fail, 1 skipped); evidence/lhb-72-mutations.out (19 of 19 red); evidence/m7-f4a/shoot72.out and PNGs (headless Chrome against a local mock: first run plays muted and closes by itself at about 10 s with the date stored, a same-session reload shows nothing, landscape on a wide screen, Saltar and Escape close it with focus on #view, reduced motion and a deep link never show it: 8 of 8); evidence/m7-f4a/splash-gone-grep.txt; evidence/m7-f4a/INTRO-SOURCE.md.
+
+Check:
+- the policy against the pinned decisions, including edge cases (clock changes, a replay link left in the URL, a first visit that lands on a deep link and later visits the home, the installed app's very first start);
+- the player's lifecycle: every close path restores the app and focus; nothing can leave #app inert or the overlay stuck; timers and listeners are released; the video stops downloading on close;
+- accessibility of the dialog (name, focus, Tab ring, Escape, the sound toggle's state, the link leaving the app, contrast of the overlay text and buttons on the video);
+- that removing the splash removed nothing another screen uses (CSS classes, keyframes, images, keys);
+- the service worker change (the bypass placement, a cached old shell during the update, range requests);
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

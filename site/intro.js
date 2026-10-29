@@ -1,7 +1,7 @@
 /* LHB-72: la intro, la guagua que pasa por la montaña (seis segundos, sin bucle). Se ve la primera vez y luego a lo sumo una vez cada 14 días,
    nunca dos veces en la misma sesión. No sale con menos movimiento, con ahorro de datos, con la página escondida, en un enlace directo, ni
    al abrir la app instalada si ya se vio. Empieza sin sonido (botón para oírla), se salta con el botón o con Escape y tiene límites de tiempo.
-   Lo esencial de la app no depende de ella. La vuelve a mostrar ?intro=1 (el enlace "Ver intro" de Acerca de). */
+   Lo esencial de la app no depende de ella. La vuelve a mostrar ?intro=1 (el enlace "Ver intro" de Acerca de), una vez: sale de la dirección. */
 (()=>{'use strict';
 const KEY='vb_introAt',SKEY='vb_intro',DAY=864e5,EVERY=14;
 /* la decisión, sin tocar el navegador: devuelve 'play' o la razón para no mostrarla */
@@ -10,6 +10,7 @@ function decide(o){
  if(o.reduced)return 'reduced';
  if(o.saveData)return 'saveData';
  if(o.storage===false)return 'storage';
+ if(o.assets===false)return 'assets';
  if(o.replay)return 'play';
  if(o.deep)return 'deep';
  if(o.session)return 'session';
@@ -17,13 +18,16 @@ function decide(o){
  if(o.standalone)return 'standalone';
  return o.now-o.last>=EVERY*DAY?'play':'recent';
 }
-/* lo que el navegador dice ahora; una fecha guardada que no es un número, o que está en el futuro, cuenta como ninguna */
+/* lo que el navegador dice ahora; una fecha guardada que no es un número cuenta como ninguna; una en el futuro (el reloj se atrasó) cuenta como ahora, salvo que pase de 14 días */
 function inputs(now){
  const w=window,mm=q=>{try{return !!(w.matchMedia&&w.matchMedia(q).matches)}catch(e){return false}};
  let last=null,session=false,storage=true;
- try{const n=Number(w.localStorage.getItem(KEY));if(Number.isFinite(n)&&n>0&&n<=now)last=n;session=w.sessionStorage.getItem(SKEY)==='1'}catch(e){storage=false}
+ try{const n=Number(w.localStorage.getItem(KEY));if(Number.isFinite(n)&&n>0&&n<=now+EVERY*DAY)last=Math.min(n,now);session=w.sessionStorage.getItem(SKEY)==='1'}catch(e){storage=false}
  const h=w.location.hash||'';let replay=false;try{replay=new URLSearchParams(w.location.search).get('intro')==='1'}catch(e){}
- return {now,last,session,storage,replay,hidden:!!w.document.hidden,reduced:mm('(prefers-reduced-motion: reduce)'),
+ /* lo que la intro necesita del resto de la app: sus estilos (styles.css marca --intro-ready) y sus textos (i18n.js); un shell viejo en caché no los trae */
+ let css='';try{css=w.getComputedStyle(w.document.documentElement).getPropertyValue('--intro-ready').trim()}catch(e){}
+ const assets=css==='1'&&!!w.LHB_I18N&&w.LHB_I18N.t('intro.skip')!=='intro.skip';
+ return {now,last,session,storage,assets,replay,hidden:!!w.document.hidden,reduced:mm('(prefers-reduced-motion: reduce)'),
   saveData:!!(w.navigator.connection&&w.navigator.connection.saveData),deep:!!h&&!/^#\/?(catalogo\/?)?$/.test(h),
   standalone:mm('(display-mode: standalone)')||w.navigator.standalone===true}
 }
@@ -54,7 +58,9 @@ function play(now){
  try{const p=v.play();if(p&&p.catch)p.catch(finish)}catch(e){finish()}
  api.finish=finish;
 }
-function boot(now){const why=decide(inputs(now));if(why==='play')api.play(now);return why}
+function boot(now){const i=inputs(now),why=decide(i);
+ if(i.replay)try{const w=window,u=new URL(w.location.href);u.searchParams.delete('intro');w.history.replaceState(w.history.state,'',u.pathname+u.search+u.hash)}catch(e){}
+ if(why==='play')api.play(now);return why}
 const api={decide,inputs,play,boot,KEY,SKEY,EVERY,finish:()=>{}};
 window.LHB_INTRO=api;
 api.last=boot(Date.now());

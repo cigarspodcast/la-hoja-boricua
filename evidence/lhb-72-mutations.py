@@ -22,6 +22,8 @@ def runp():
 def edit(rel, old, new):
     p = os.path.join(D, rel)
     s = open(p, 'rb').read().decode('utf-8')
+    if '\r\n' in s:  # a checkout with autocrlf writes CRLF: the anchors follow the file
+        old, new = old.replace('\r\n', '\n').replace('\n', '\r\n'), new.replace('\r\n', '\n').replace('\n', '\r\n')
     assert s.count(old) == 1, (rel, old, s.count(old))
     open(p, 'wb').write(s.replace(old, new).encode('utf-8'))
 
@@ -38,13 +40,17 @@ M = [
     ('J9 the video loops', lambda: edit(IJ, 'v.loop=false;', 'v.loop=true;')),
     ('J10 Escape does nothing', lambda: edit(IJ, "if(e.key==='Escape'){e.preventDefault();finish();return}", '')),
     ('J11 no load time limit', lambda: edit(IJ, 'tLoad=setTimeout(finish,1800);', '')),
-    ('J12 a future or broken date counts', lambda: edit(IJ, 'if(Number.isFinite(n)&&n>0&&n<=now)last=n;', 'if(n)last=n;')),
+    ('J12 a future or broken date counts', lambda: edit(IJ, 'if(Number.isFinite(n)&&n>0&&n<=now+EVERY*DAY)last=Math.min(n,now);', 'if(n)last=Math.min(n,now);')),
     ('J13 blocked storage plays every visit', lambda: edit(IJ, " if(o.storage===false)return 'storage';\n", '')),
     ('J14 the service worker caches the videos', lambda: edit(SW, "\n if(url.pathname.startsWith('/assets/intro/'))return;", '')),
     ('J15 the intro loads after the app', lambda: (edit(IX, '<script src="intro.js" defer></script>', ''), edit(IX, '<script src="app.js" defer></script>', '<script src="app.js" defer></script><script src="intro.js" defer></script>'))),
     ('J16 a splash rule comes back', lambda: edit(CSS, '/* LHB-72: la intro (intro.js).', '.splash{display:none}\n/* LHB-72: la intro (intro.js).')),
     ('J18 no stall limit after it starts', lambda: edit(IJ, "v.addEventListener('waiting',()=>{if(started){clearTimeout(tStall);tStall=setTimeout(finish,700)}});", '')),
     ('J19 no 9 s ceiling', lambda: edit(IJ, 'tMax=setTimeout(finish,9000);', '')),
+    ('J20 (Codex r1) a date in the future counts as none', lambda: edit(IJ, 'n<=now+EVERY*DAY)last=Math.min(n,now);', 'n<=now)last=n;')),
+    ('J21 (Codex r1) ?intro=1 stays in the address', lambda: edit(IJ, "\n if(i.replay)try{const w=window,u=new URL(w.location.href);u.searchParams.delete('intro');w.history.replaceState(w.history.state,'',u.pathname+u.search+u.hash)}catch(e){}", '')),
+    ('J22 (Codex r1) an old cached shell still opens it', lambda: edit(IJ, " if(o.assets===false)return 'assets';\n", '')),
+    ('J23 (Codex r1) styles.css loses its marker', lambda: edit(CSS, ':root{--intro-ready:1}', '')),
     ('J17 an intro key without its English value', lambda: edit(I18, ' "intro.skip": "Skip intro",', '')),
 ]
 red = 0
