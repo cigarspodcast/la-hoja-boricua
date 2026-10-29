@@ -1,0 +1,30 @@
+case: fail art.js, expect fail
+chrome pid 40056
+  t= 0.5s {"splash": true, "msg": "La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.Recargar", "view": 0}
+  t= 1.0s {"splash": false, "msg": "La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.Recargar", "view": 0}
+  shot evidence/lhb-100/after-art-6s-390x844.png
+  shot evidence/lhb-100/after-art-15s-390x844.png
+events: HTTP 500 art.js; NETFAIL net::ERR_ABORTED; EXC TypeError: Cannot read properties of undefined (reading 'leaf')
+RESULT PASS (expected fail)
+chrome pid 40056 exited 0
+server pid 38584 stopped (rc 1)
+case: fail sync.js, expect fail
+chrome pid 23656
+  t= 0.5s {"splash": true, "msg": "La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.Recargar", "view": 0}
+  t= 1.0s {"splash": false, "msg": "La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.Recargar", "view": 0}
+  shot evidence/lhb-100/after-sync-6s-390x844.png
+  shot evidence/lhb-100/after-sync-15s-390x844.png
+events: HTTP 500 sync.js; NETFAIL net::ERR_ABORTED; EXC TypeError: window.LHB_SYNC is not a function
+RESULT PASS (expected fail)
+chrome pid 23656 exited 0
+server pid 5744 stopped (rc 1)
+case: fail none, expect ok
+chrome pid 43788
+  t= 0.5s {"splash": true, "msg": null, "view": 56724}
+  t= 4.5s {"splash": false, "msg": null, "view": 56724}
+  shot evidence/lhb-100/after-healthy-6s-390x844.png
+  shot evidence/lhb-100/after-healthy-15s-390x844.png
+events: none
+RESULT PASS (expected ok)
+chrome pid 43788 exited 0
+server pid 23296 stopped (rc 1)

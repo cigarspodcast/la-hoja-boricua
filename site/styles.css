@@ -205,6 +205,9 @@ details.edit .form{padding:6px 0 14px}
 @media (display-mode:standalone){.btn-install{display:none!important}}
 .splash{position:fixed;inset:0;z-index:100;background:radial-gradient(80% 60% at 50% 35%,#1d4a30,#0e2417);display:grid;place-items:center;transition:opacity .45s}
 .splash.out{opacity:0;pointer-events:none}
+/* LHB-100: el aviso cuando la app no cargó completa (lo pinta el guardián de index.html) */
+.boot-fail{position:fixed;left:16px;right:16px;top:28%;z-index:101;padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--card);text-align:center}
+.boot-fail p{margin:0 0 14px;font-size:16px;line-height:1.4}
 .splash-inner{text-align:center;width:100%}
 .splash-inner img{margin:0 auto 12px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .splash-name{font-family:var(--serif);font-size:clamp(22px,7vw,30px);font-weight:600;line-height:1.15;padding:0 16px;text-shadow:0 2px 10px rgba(0,0,0,.35)}
