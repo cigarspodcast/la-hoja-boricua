@@ -40,6 +40,10 @@ MUTS = [
     (SY, 'r4: the final meta overwrites a newer base', "if(m2&&Number.isInteger(m2.rev)&&m2.rev>newRev)return {fail:'conflict'}", ''),
     (SY, 'r5: a late answer for an older upload replaces a newer base', 'if(best&&!(meta&&Number.isInteger(meta.rev)&&meta.rev>best.rev)){', 'if(best){'),
     (SY, 'r5: an unreadable final meta read counts as unchanged', "catch(e){return {fail:'storage'}}if(mr!==metaRaw){const m2", 'catch(e){mr=metaRaw}if(mr!==metaRaw){const m2'),
+    (SY, 'r6: the poisoned meta forgets the rev', 'return writeMeta({sub:uid,rev:topRev,base:null', 'return writeMeta({sub:uid,rev:0,base:null'),
+    (SY, 'r6: the poisoned meta ignores a newer stored rev', 'try{const x=pm(D.ls.get(META));top(x&&x.rev)}catch(e){}', ''),
+    (SY, 'r6: changed() replaces an unreadable meta', 'let m=null,ch=false,bad=false;try{m=readMetaHard()}catch(e){bad=true}', 'let m=readMeta(),ch=false,bad=false;'),
+    (SY, 'r6: setOwner() replaces an unreadable meta', 'const m=readMetaHard();if(!m||m.sub!==uid)', 'const m=readMeta();if(!m||m.sub!==uid)'),
 ]
 
 EQUIV = {}

@@ -6919,6 +6919,69 @@ test('LHB-104 (Codex r5): si la última lectura de la meta antes de anotarla fal
   const T=SYNC28().LHB_SYNC(D2);const r=await T.run('x');
   assert.equal(n>=3,true);assert.ok(!r.ok,'la pasada no terminó');assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,1,'no se anotó sin mirar');
  }finally{a.done()}});
+test('LHB-104 (Codex r6): la base del rev 3 no se puede anotar y queda tachada: la tachada guarda el rev 3, y la subida vieja de la pestaña 1 (rev 2) no vuelve a valer',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* la pestaña 1 (A) sube una nota; llega (rev 2) y su respuesta se pierde */
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la subida de la 1 llegó');
+  /* la pestaña 2 quita a1 (llega, rev 3, sin respuesta); al saberlo no puede anotar la meta del rev 3 y la tacha */
+  let failed=false,n=0,late=null;
+  const D2=mk104(A,{set:(k,v)=>{if(k==='lhb_mihoja_v1_sync'&&!failed){let x=null;try{x=JSON.parse(v)}catch(e){}if(x&&x.rev===3){failed=true;throw new Error('QuotaExceededError')}}}});
+  D2.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
+  A.edit(d=>{d.favs.artesanos=[]});await B.run('quita');assert.equal(srv28(a,'user_a').rev,3,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});await B.run('aprende');assert.ok(failed,'la meta del rev 3 no se pudo anotar');assert.ok(late,'la que repone a1 quedó sin respuesta');
+  A.D.wait=async()=>{};await A.eng.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r6): una edición cuando la meta no se puede leer no la reemplaza por una nueva: la subida vieja de la pestaña 1 no vuelve a valer',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* la pestaña 1 (A) sube una nota; llega (rev 2) y su respuesta se pierde */
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la subida de la 1 llegó');
+  let late=null,hold=false;
+  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'&&hold&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)}};
+  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
+  A.edit(d=>{d.favs.artesanos=[]});assert.equal((await B.run('quita')).ok,true);assert.equal(srv28(a,'user_a').rev,3);
+  A.edit(d=>{d.favs.artesanos=['a1']});hold=true;await B.run('repone');assert.ok(late);
+  /* otra edición, y la lectura de la meta dentro de changed() falla una vez */
+  const g=A.D.ls.get;let bad=true;A.D.ls.get=k=>{if(bad&&k==='lhb_mihoja_v1_sync'){bad=false;throw new Error('SecurityError')}return g(k)};
+  A.edit(d=>{d.ratings.c3=4});A.D.ls.get=g;assert.equal(bad,false,'la lectura falló');
+  assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,3,'la meta del rev 3 sigue');
+  A.D.wait=async()=>{};await A.eng.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r6): ensureOwner con la dueña y la meta sin poder leerse no reemplaza la meta',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();const before=A.ls.get('lhb_mihoja_v1_sync');assert.equal(JSON.parse(before).rev,1);
+  const g=A.D.ls.get;let left={'lhb_mihoja_v1_owner':1,'lhb_mihoja_v1_sync':2};
+  A.D.ls.get=k=>{if(left[k]>0){left[k]--;throw new Error('SecurityError')}return g(k)};
+  const ok=A.eng.ensureOwner();A.D.ls.get=g;
+  assert.equal(ok,false,'no se pudo saber');assert.equal(A.ls.get('lhb_mihoja_v1_sync'),before,'la meta no cambió');
+ }finally{a.done()}});
+test('LHB-104 (Codex r6): si otra pestaña anotó una base más nueva mientras esta pasada subía, la meta que esta tacha guarda ese rev más nuevo',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.cigarros=['k1']});await P.sync();
+  const T=SYNC28().LHB_SYNC(A.D);
+  /* la subida llega (rev 3); al aplicar, otra pestaña ya anotó el rev 5, y la copia no se puede escribir */
+  A.st.beforeApply=()=>{const m=JSON.parse(A.ls.get('lhb_mihoja_v1_sync'));A.ls.set('lhb_mihoja_v1_sync',JSON.stringify({...m,rev:5}));A.st.failSet=true};
+  A.edit(d=>{d.ratings.c2=3});A.edit(d=>{d.favs.artesanos=[]});const r=await T.run('x');A.st.failSet=false;
+  assert.ok(!r.ok,'la pasada no terminó');assert.equal(srv28(a,'user_a').rev,3,'la subida llegó');
+  const m=JSON.parse(A.ls.get('lhb_mihoja_v1_sync'));assert.equal(m.base,null,'tachada');assert.equal(m.rev,5,'con el rev más nuevo');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{

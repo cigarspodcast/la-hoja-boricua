@@ -1,0 +1,70 @@
+✖ LHB-104 (Codex r6): la base del rev 3 no se puede anotar y queda tachada: la tachada guarda el rev 3, y la subida vieja de la pestaña 1 (rev 2) no vuelve a valer (166.0447ms)
+✖ LHB-104 (Codex r6): una edición cuando la meta no se puede leer no la reemplaza por una nueva: la subida vieja de la pestaña 1 no vuelve a valer (120.0037ms)
+✖ LHB-104 (Codex r6): ensureOwner con la dueña y la meta sin poder leerse no reemplaza la meta (78.3345ms)
+✖ LHB-104 (Codex r6): si otra pestaña anotó una base más nueva mientras esta pasada subía, la meta que esta tacha guarda ese rev más nuevo (115.8565ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 634.7148
+
+✖ failing tests:
+
+test at test\site.test.js:6926:1
+✖ LHB-104 (Codex r6): la base del rev 3 no se puede anotar y queda tachada: la tachada guarda el rev 3, y la subida vieja de la pestaña 1 (rev 2) no vuelve a valer (166.0447ms)
+  AssertionError [ERR_ASSERTION]: en el teléfono
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r6\test\site.test.js:6943:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6945:1
+✖ LHB-104 (Codex r6): una edición cuando la meta no se puede leer no la reemplaza por una nueva: la subida vieja de la pestaña 1 no vuelve a valer (120.0037ms)
+  AssertionError [ERR_ASSERTION]: la meta del rev 3 sigue
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r6\test\site.test.js:6962:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 3,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6966:1
+✖ LHB-104 (Codex r6): ensureOwner con la dueña y la meta sin poder leerse no reemplaza la meta (78.3345ms)
+  AssertionError [ERR_ASSERTION]: no se pudo saber
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r6\test\site.test.js:6974:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6976:1
+✖ LHB-104 (Codex r6): si otra pestaña anotó una base más nueva mientras esta pasada subía, la meta que esta tacha guarda ese rev más nuevo (115.8565ms)
+  AssertionError [ERR_ASSERTION]: con el rev más nuevo
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r6\test\site.test.js:6987:97)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 5,
+    operator: '==',
+    diff: 'simple'
+  }
