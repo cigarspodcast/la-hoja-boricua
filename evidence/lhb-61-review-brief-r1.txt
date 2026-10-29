@@ -1,0 +1,58 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-61-wt (branch lhb-61-feed). The diff below is origin/main..HEAD. This is round 1 of a TIER 2 review.
+
+Ticket LHB-61 (M6-S7): the Siguiendo feed, the public reviews of the people you follow. Scope: functions/api/feed.js, functions/_lib/ helpers (reusing the public-entry read of LHB-38 and LHB-40), site/hoja.js (the Siguiendo screen), site/styles.css, site/sw.js, test/site.test.js and evidence/. No new storage.
+
+Pinned decisions:
+- Newest first, cursor pagination, 20 per page.
+- Each card shows the author (first name plus last initial, @handle, picture), the cigar, stars, tags and the note.
+- Tapping the author opens the profile page (M6-S3). Tapping the card opens the same entry detail the profile page uses.
+- Blocked and hidden people are excluded. The block check completes with M6-S8 (LHB-62); today isBlocked always answers false.
+- The empty state tells the person to find people (a link to M6-S6 Personas).
+- No ranking and no recommendations.
+- An entry with no public flag never appears.
+
+What was built:
+- Server:
+  - functions/_lib/feed.js feedOf(db, me, cursor) runs one SQL query: follows (follower = me), joined to profiles (hidden = 0), joined to mihoja, then json_each over '$.diario'.
+    - An invalid document, or one whose diario is not an array, contributes nothing.
+    - It keeps object entries with json_type(publica) = 'true', the same rule as passport.js publicDoc (publica === true).
+  - Sort key:
+    - the day, consumido when it has the YYYY-MM-DD form, else '' (last, like publicEntry);
+    - then the handle;
+    - then pos, the entry's ROW_NUMBER among that person's public entries counted from the oldest. A new entry, unshifted to the front of the diario, moves nobody.
+    - Order: day DESC, handle DESC, pos DESC. That is the profile order: newest day first, and on the same day the diario order.
+  - The cursor is "day~handle~pos" ("-" for no day). It has no entry id and no saved date, and pos counts only public entries.
+  - parseFeedCursor rejects anything else (400 bad-cursor).
+  - PAGE + 1 rows are read to know if there is a next page.
+  - Each entry goes out through passport.js publicEntry (the closed list), with the author's handle, display_name and checkAvatar'd avatar_key. user_id never goes out.
+  - isBlocked is called per author, and a blocked author is skipped. The cursor stays the last row read.
+- functions/api/feed.js: GET with requireProfile (401 no-session, 403 no-profile).
+- Client, site/hoja.js:
+  - a Siguiendo entry in the Mi Hoja subnav (#/mihoja/siguiendo), and vSiguiendo;
+  - each card is the Personas personRow for the author (link to #/u/<handle>) plus a button with the entry, closed by pfEntry and escaped;
+  - tapping the button opens pfResSheet, the profile's review sheet;
+  - "Ver más" sends the cursor; an empty feed links to #/mihoja/personas; an error shows "Intentar otra vez" for the same page;
+  - a stale answer (seq) or a page that is gone paints nothing, and api()'s go check (LHB-60) keeps a request from going out once its page is gone or a newer one started;
+  - tagChips gained an inline flag, so the chips are a span inside the button (a div cannot be).
+- Styles: .feed, .feed-c, .feed-b and .feed-n. Cache: lhb-v89 (LHB-34, still in review, holds v88).
+
+Tests (test/site.test.js):
+- Server, real SQLite: "LHB-61: Siguiendo trae solo...", "...pide sesión...", "...pagina de 20 en 20...". They cover:
+  - only public entries of the people I follow;
+  - hidden, private, not-followed and someone else's follows never appear;
+  - unfollow, a private toggle and hiding make entries vanish;
+  - no secrets in the output;
+  - 401 and 403;
+  - broken documents, and undated entries last;
+  - bad cursors;
+  - 51 entries over 3 pages in an independently computed order, and a new entry between pages causing no repeat or skip.
+- Client (the LHB-58 harness, now loading the Siguiendo block): "LHB-61: Siguiendo en Mi Hoja...", "...pagina con el cursor...", "...por dónde se llega...".
+- The LHB-28 guard on which server files read mihoja now admits _lib/feed.js, with assertions that it reads mihoja once, joined by followee, with the publica filter and publicEntry.
+- The LHB-57 subnav assertion includes the new tab.
+
+Evidence:
+- evidence/lhb-61-tests.txt: the full suite, 272 pass and 1 skipped (the LHB-95 browser test).
+- evidence/lhb-61-tests-first.txt: the first run, 2 failures, both guards seeing the new code (LHB-28 mihoja readers; LHB-29 flagged a '<span ' string literal, replaced by tagChips' inline flag). Kept.
+- evidence/lhb-61-mutations.out: RESULT 27 of 27 mutations red. The earlier runs are kept as -first.out (25 of 25, before the guard mutation S14 and C13) and -stale-target.out (stopped on a target the tagChips change had moved).
+
+Check the pinned decisions, the SQL (correctness on D1/SQLite, the json functions, the window function, the cursor comparison, NULL and type edge cases, cost), privacy (nothing private in items or cursor), the client (escaping, stale responses, the review sheet), and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

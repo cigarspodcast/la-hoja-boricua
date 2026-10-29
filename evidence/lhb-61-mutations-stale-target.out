@@ -1,0 +1,24 @@
+S1 private entries too                               rc 1 fail 2 -> RED
+S2 anything truthy counts as public                  rc 1 fail 2 -> RED
+S3 hidden profiles too                               rc 1 fail 1 -> RED
+S4 anyone's follows, not mine                        rc 1 fail 1 -> RED
+S5 the cursor is ignored                             rc 1 fail 1 -> RED
+S6 oldest first within a person and day              rc 1 fail 2 -> RED
+S7 the place counted from the newest                 rc 1 fail 2 -> RED
+S8 a broken document is not guarded                  rc 1 fail 1 -> RED
+S9 the whole entry goes out                          rc 1 fail 3 -> RED
+S10 a bad cursor reads as none                       rc 1 fail 1 -> RED
+S11 no look-ahead row, so never a next page          rc 1 fail 1 -> RED
+S12 no profile is fine                               rc 1 fail 1 -> RED
+S13 an undated entry sorts by its raw value          rc 1 fail 1 -> RED
+Traceback (most recent call last):
+  File "C:\Users\Owner\lhb-61-wt\evidence\lhb-61-mutations.py", line 55, in <module>
+    mut()
+    ~~~^^
+  File "C:\Users\Owner\lhb-61-wt\evidence\lhb-61-mutations.py", line 36, in <lambda>
+    ('C1 the name is not escaped', lambda: edit(HO, "<b>${esc(e.nombre||tt('h.pfCigarro'))}</b>${e.rating?stars(e.rating):''}${tagChips(e.tags).replace", "<b>${e.nombre||tt('h.pfCigarro')}</b>${e.rating?stars(e.rating):''}${tagChips(e.tags).replace")),
+                                           ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Owner\lhb-61-wt\evidence\lhb-61-mutations.py", line 18, in edit
+    assert s.count(old) == 1, (rel, old, s.count(old))
+           ^^^^^^^^^^^^^^^^^
+AssertionError: ('site/hoja.js', "<b>${esc(e.nombre||tt('h.pfCigarro'))}</b>${e.rating?stars(e.rating):''}${tagChips(e.tags).replace", 0)

@@ -1,0 +1,29 @@
+S1 private entries too                               rc 1 fail 2 -> RED
+S2 anything truthy counts as public                  rc 1 fail 2 -> RED
+S3 hidden profiles too                               rc 1 fail 1 -> RED
+S4 anyone's follows, not mine                        rc 1 fail 1 -> RED
+S5 the cursor is ignored                             rc 1 fail 1 -> RED
+S6 oldest first within a person and day              rc 1 fail 2 -> RED
+S7 the place counted from the newest                 rc 1 fail 2 -> RED
+S8 a broken document is not guarded                  rc 1 fail 1 -> RED
+S9 the whole entry goes out                          rc 1 fail 3 -> RED
+S10 a bad cursor reads as none                       rc 1 fail 1 -> RED
+S11 no look-ahead row, so never a next page          rc 1 fail 1 -> RED
+S12 no profile is fine                               rc 1 fail 1 -> RED
+S13 an undated entry sorts by its raw value          rc 1 fail 1 -> RED
+C1 the name is not escaped                           rc 1 fail 1 -> RED
+C2 a stale answer paints                             rc 1 fail 1 -> RED
+C3 a request still goes out after leaving            rc 1 fail 1 -> RED
+C4 the next page without the cursor                  rc 1 fail 1 -> RED
+C5 an invalid @ is shown                             rc 1 fail 1 -> RED
+C6 the empty state has no way to find people         rc 1 fail 1 -> RED
+C7 a tap opens the wrong entry                       rc 1 fail 2 -> RED
+C8 numbering restarts on each page                   rc 1 fail 1 -> RED
+C9 an error cannot be retried                        rc 1 fail 1 -> RED
+C10 tags in a div inside the button                  rc 1 fail 1 -> RED
+C13 tagChips ignores inline                          rc 1 fail 1 -> RED
+S14 the mihoja guard: a second read of mihoja        rc 1 fail 1 -> RED
+C11 no Siguiendo tab in Mi Hoja                      rc 1 fail 1 -> RED
+C12 the route does not open the screen               rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 7
+RESULT 27 of 27 mutations red
