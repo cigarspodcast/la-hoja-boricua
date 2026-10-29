@@ -667,3 +667,36 @@ body.sheet-on{overflow:hidden}
 .cred-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .cred-item{display:grid;gap:4px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);line-height:1.45;font-size:14px}
 .cred-item b{font-size:15px}
+/* LHB-74: el pasaporte a color. La portada en el celeste de la guagua; los sellos y las insignias ganadas en cuatro colores de la paleta
+   (celeste, ámbar, rojo y sol), siempre con su fondo suave y su tinta oscura, y el texto de siempre (Sellado el..., Lograda): el color no es lo único */
+.pass-hero{background:var(--info);border-color:var(--info-ink)}
+.pass-hero h2,.pass-hero p{color:var(--on-info)}
+.pass-hero h2 em{color:var(--on-info);background:linear-gradient(transparent 62%,var(--warn) 62% 92%,transparent 92%)}
+.stamps .stamp{border-color:var(--info-ink)}
+.stamps .stamp:nth-child(4n+2){border-color:var(--warm-ink)}
+.stamps .stamp:nth-child(4n+3){border-color:var(--danger-ink)}
+.stamps .stamp:nth-child(4n){border-color:var(--warn-ink)}
+.stamps .stamp[aria-pressed="true"]{border:2px solid var(--info-ink);background:var(--info-soft)}
+.stamps .stamp[aria-pressed="true"] span{color:var(--info-ink)}
+.stamps .stamp[aria-pressed="true"]::after{background:var(--info-ink);color:var(--card)}
+.stamps .stamp:nth-child(4n+2)[aria-pressed="true"]{border-color:var(--warm-ink);background:var(--warm-soft)}
+.stamps .stamp:nth-child(4n+2)[aria-pressed="true"] span{color:var(--warm-ink)}
+.stamps .stamp:nth-child(4n+2)[aria-pressed="true"]::after{background:var(--warm-ink);color:var(--card)}
+.stamps .stamp:nth-child(4n+3)[aria-pressed="true"]{border-color:var(--danger-ink);background:var(--danger-soft)}
+.stamps .stamp:nth-child(4n+3)[aria-pressed="true"] span{color:var(--danger-ink)}
+.stamps .stamp:nth-child(4n+3)[aria-pressed="true"]::after{background:var(--danger-ink);color:var(--card)}
+.stamps .stamp:nth-child(4n)[aria-pressed="true"]{border-color:var(--warn-ink);background:var(--warn-soft)}
+.stamps .stamp:nth-child(4n)[aria-pressed="true"] span{color:var(--warn-ink)}
+.stamps .stamp:nth-child(4n)[aria-pressed="true"]::after{background:var(--warn-ink);color:var(--card)}
+.badges .badge.on{background:var(--info-soft);border-color:var(--info-ink)}
+.badges .badge.on span{color:var(--info-ink)}
+.badges .badge.on:nth-child(4n+2){background:var(--warm-soft);border-color:var(--warm-ink)}
+.badges .badge.on:nth-child(4n+2) span{color:var(--warm-ink)}
+.badges .badge.on:nth-child(4n+3){background:var(--danger-soft);border-color:var(--danger-ink)}
+.badges .badge.on:nth-child(4n+3) span{color:var(--danger-ink)}
+.badges .badge.on:nth-child(4n){background:var(--warn-soft);border-color:var(--warn-ink)}
+.badges .badge.on:nth-child(4n) span{color:var(--warn-ink)}
+/* LHB-74: la celebración: el sello cae una vez (0,58 s) y para; con menos movimiento, nada */
+@keyframes lhb-stamp{0%{transform:translateY(-14px) scale(1.3) rotate(-14deg);opacity:0}65%{transform:translateY(2px) scale(.94) rotate(-5deg);opacity:1}100%{transform:translateY(0) scale(1) rotate(-12deg);opacity:1}}
+.stamp.is-new::after,.stampbtn.is-new svg,.badge.is-new .bico{animation:lhb-stamp .58s cubic-bezier(.2,.75,.3,1) 1}
+@media (prefers-reduced-motion:reduce){.stamp.is-new::after,.stampbtn.is-new svg,.badge.is-new .bico{animation:none}}
