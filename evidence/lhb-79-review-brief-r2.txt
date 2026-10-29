@@ -1,0 +1,20 @@
+You are reviewing one ticket in this repository (La Hoja Boricua). Review only; do not edit files. Do not load or run any skills. Do NOT make any network call and do NOT run tools/ai_proof.py as a script: it makes paid calls with real keys (importing it is safe now; its calls run only under __main__). The worktree is C:/Users/Owner/lhb-79-wt (branch lhb-79-ai-routes, from main f1ea0d0). TIER 2, round 2.
+
+Round 1 (evidence/lhb-79-review-r1.txt) returned BLOCK with seven findings. The diff below is the fix commit 12f8440 against its parent, then the whole branch file list. What each finding became:
+1. Redirects: _post now opens through an opener whose redirect handler follows nothing (_NoRedirect); a 3xx is a refusal. Test test_redirects_are_not_followed uses two loopback servers and a 302 (urllib follows a 302 for a POST as a GET, keeping Authorization; it refuses a 307 by itself).
+2. Provider error text: never kept. Only the error kind (type or code) is kept, when it is a short identifier holding no 6-character window of the key. Test covers the key at character 292, unicode-escaped, inside the type field, and in a non-JSON body.
+3. Transport exceptions: any exception other than HTTPError is reported by its class name only and logged once (BadStatusLine, IncompleteRead, RuntimeError carrying the key).
+4. Key echoed in a 200: dropped as status key-echo, checked in the raw text and in the decoded JSON. ai_proof prints an answer only when it equals the expected one.
+5. Leak scan (ai_proof.added_text): every added line of every commit since BASE (git log -p), uncommitted changes against HEAD, untracked files listed with -z and read whole, and evidence/ai-calls.log; any git failure exits 3. evidence/ai-calls.log is now tracked (!evidence/ai-calls.log in .gitignore). Tests on a throwaway repo.
+6. Refusals before sending (missing ticket or reason, body not JSON, bad Together case, empty reason with a case) are logged once with status refused: ... and send nothing.
+7. The log replaces every line break str.splitlines knows, and tabs, with a space.
+
+Evidence: evidence/lhb-79/unit.txt (14 tests OK); evidence/lhb-79/mutations.out 15 of 15 red (one mutation per finding plus the earlier four); evidence/lhb-79/proof.txt run 14:27Z on 12f8440: jev PASS, opencode-go PASS, together refused 503 service_unavailable (recorded, not retried; the same model answered at 14:05Z and 14:20Z), leak check not found for all three keys.
+
+Recorded on the ticket, not defects to re-raise: three unintended live calls at 14:19:57Z to 14:20:01Z, made when the round 1 proof was imported by a test run in a temp folder; their log lines were copied into evidence/ai-calls.log. The call count is above the brief's one per route.
+
+Check in particular whether any of the seven is only partly fixed, and whether the fixes opened a new path (for example, the key-echo check, the _kind window test with short keys, the scanner's handling of binary or renamed files, or a log line whose status field can still carry provider text).
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: python -m unittest tools/test_ai_routes.py. If no tool works at all, review from the diff embedded below and say which claims you could not run.
