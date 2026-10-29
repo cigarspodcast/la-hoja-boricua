@@ -94,6 +94,8 @@ window.LHB_SYNC=function(D){
  /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
  const newOp=()=>{if(D.opId)return D.opId();try{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
+ /* Codex r6: para quien la va a reemplazar, una meta que no se puede leer no es una meta que no hay: la lectura que falla sube */
+ const readMetaHard=()=>{const raw=D.ls.get(META);if(raw==null)return null;try{const m=JSON.parse(raw);return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
  /* Codex r4: un reloj que se atrasa no hace eterna la valla; uno que se adelanta en medio de la espera lo cubre forget, que la vuelve a poner antes de revisar */
  /* LHB-98: con Web Locks, D.closed() dice si esta pestaña no tiene en la mano el candado compartido de Mi Hoja (hoja.js wlClosed): entonces tampoco se escribe.
     (Codex r1: lo que la app escribe por sí sola, write quiet, tampoco: hoja.js lo deja en memoria hasta tener el candado) */
@@ -123,7 +125,7 @@ window.LHB_SYNC=function(D){
  /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
     que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
  const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
- const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false,ep:epochOf()}));return true}catch(e){return false}};
+ const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMetaHard();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false,ep:epochOf()}));return true}catch(e){return false}};
  /* antes de guardar lo que escribe la persona hay que poder anotar de quién es; si no se puede, no se guarda */
  const ensureOwner=()=>{const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;if(ownerOf()!==null)return true;return setOwner(acc.sub)};
  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
@@ -199,7 +201,10 @@ window.LHB_SYNC=function(D){
   let opsSeen=false;
   const first=!meta||!meta.at;
   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
-  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});poisonNow=poison;
+  /* Codex r6: la meta tachada guarda el rev más alto que se conoce (el de la cuenta, el de la meta leída o la guardada): sin base, pero una subida o una respuesta
+     más vieja no vuelve a valer contra ella */
+  let topRev=0;const top=n=>{if(Number.isInteger(n)&&n>topRev)topRev=n};
+  const poison=()=>{top(meta&&meta.rev);try{const x=pm(D.ls.get(META));top(x&&x.rev)}catch(e){}return writeMeta({sub:uid,rev:topRev,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0})};poisonNow=poison;
   for(let i=0;i<TRIES;i++){
    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
    /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
@@ -213,7 +218,7 @@ window.LHB_SYNC=function(D){
    if(!alive())return {skip:'other-account'};
    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
    if(g.body.rev>0&&(!isObj(g.body.doc)||!(g.body.schema<=1)))return {fail:'schema'};
-   const rev=g.body.rev,remote=rev>0?g.body.doc:null;
+   const rev=g.body.rev,remote=rev>0?g.body.doc:null;top(rev);
    /* Codex r3: después de la respuesta, primero las anotaciones y luego la base otra vez: si otra pestaña quitó una anotación mientras esta esperaba, antes anotó
       la base nueva, y esa es la que se lee aquí */
    const now=shRead();see(now);
@@ -289,7 +294,7 @@ window.LHB_SYNC=function(D){
     if(p.status===409)continue;
     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
-    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true;unrecorded=true;
+    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;top(newRev);pushed=true;unrecorded=true;
     /* LHB-104: tampoco las de otras pestañas con ese If-Match o uno más viejo; se quitan cuando la base nueva ya está anotada (Codex r3) */
     clean=rev}
    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
@@ -344,8 +349,9 @@ window.LHB_SYNC=function(D){
   /* lo escrito pertenece a quien lo escribió, aunque la cuenta cambie antes de la primera pasada */
   ensureOwner();
   /* sin base guardada, lo que había en este teléfono antes de esta primera edición queda como semilla (meta.seed) para la primera pasada */
-  {const acc=D.acct(),sub=acc&&typeof acc.sub==='string'?acc.sub:'';let m=readMeta(),ch=false;
-   if(sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false,ep:epochOf()};ch=true}
+  /* Codex r6: si la meta no se puede leer, no se toca (no se reemplaza por una nueva) */
+  {const acc=D.acct(),sub=acc&&typeof acc.sub==='string'?acc.sub:'';let m=null,ch=false,bad=false;try{m=readMetaHard()}catch(e){bad=true}
+   if(!bad&&sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false,ep:epochOf()};ch=true}
    if(m){if(!m.dirty){m.dirty=true;ch=true}
     if(sub&&m.sub===sub&&!m.base&&!m.seed&&prev!=null){try{const p=JSON.parse(prev);if(isObj(p)){m.seed=std(p);ch=true}}catch(e){}}
     if(ch)writeMeta(m)}}
