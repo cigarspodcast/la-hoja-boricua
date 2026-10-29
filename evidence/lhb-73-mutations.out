@@ -1,0 +1,15 @@
+K1 the nature bed entry is removed                           rc 1 fail 3 -> RED
+K2 one video has no credits                                  rc 1 fail 1 -> RED
+K3 the engine license is misstated                           rc 1 fail 2 -> RED
+K4 a credit loses its license link                           rc 1 fail 1 -> RED
+K5 Ver intro without intro=1                                 rc 1 fail 1 -> RED
+K6 About is not in the menu                                  rc 1 fail 3 -> RED
+K7 the credits page is not a detail of About                 rc 1 fail 1 -> RED
+K8 Ver intro offered with reduced motion                     rc 1 fail 1 -> RED
+K9 the bus credit drops the artist link                      rc 1 fail 1 -> RED
+K10 no endorsement note                                      rc 1 fail 2 -> RED
+K11 the credit claims the plate                              rc 1 fail 1 -> RED
+K12 Ver intro has no English value                           rc 1 fail 2 -> RED
+K13 the back button goes elsewhere                           rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 6 fail 0
+RESULT 13 of 13 mutations red

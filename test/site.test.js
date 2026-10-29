@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v98'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v99'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -61,23 +61,23 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
- assert.match(sw,/const VERSION='lhb-v98'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
+ assert.match(sw,/const VERSION='lhb-v99'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
  assert.ok(a.includes(f)&&a.includes("VEHICULO='guagua'"));
  for(const g of ['img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
 test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v98'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v99'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v98'/);
+ assert.match(sw,/const VERSION='lhb-v99'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v98'/);
+ assert.match(sw,/const VERSION='lhb-v99'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
  const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%231EA8D7')&&em.includes('%23ED0000'),'bandera de los vacíos con el celeste y el rojo de la bandera (LHB-67: el celeste de la guagua)');
@@ -98,12 +98,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v98'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v99'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v98'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v99'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -111,7 +111,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v98'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v99'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -128,7 +128,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v98/);});
+ assert.match(read('sw.js'),/lhb-v99/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -141,19 +141,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v98'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v99'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v98'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v99'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v98'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v99'/);});
 
 test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
- for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v98'/);});
+ for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v99'/);});
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
@@ -243,7 +243,8 @@ test('LHB-27: cada clave tt() existe en español e inglés, y los dos tienen las
  for(const k of es)assert.deepEqual((T.en[k].match(/\{\w+\}/g)||[]).sort(),(T.es[k].match(/\{\w+\}/g)||[]).sort(),'mismas variables '+k);
 });
 test('LHB-27: ningún texto en español queda escrito en las vistas de app.js (antes: 161)',()=>{
- const {scan}=require('./i18n-scan.js');assert.deepEqual(scan(read('app.js')),[]);
+ /* LHB-73: el título y la licencia de cada obra con créditos son nombres propios, iguales en los dos idiomas; solo esos cuatro */
+ const {scan}=require('./i18n-scan.js');assert.deepEqual(scan(read('app.js')),['str: Volkswagen Type 2_revving up2.wav','str: CC BY 4.0','str: Jungle, Tropical birds and insects','str: CC0 1.0']);
  const before=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-27-scan-before.txt'),'utf8').trim().split(/\r?\n/);assert.equal(before[before.length-1],'TOTAL 161');
 });
 test('LHB-27: idioma por navigator.language, se recuerda (encendido en E6, LHB-36)',()=>{
@@ -1214,7 +1215,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v98'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v99'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1461,7 +1462,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v98'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v99'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1639,7 +1640,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v98'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v99'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1886,7 +1887,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
- assert.match(read('sw.js'),/const VERSION='lhb-v98'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v99'/,'el shell nuevo se publica con otra versión del caché');
  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
@@ -2187,7 +2188,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v98'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v99'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -2470,7 +2471,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
 });
 test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
- assert.match(read('sw.js'),/const VERSION='lhb-v98'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v99'/,'el shell nuevo se publica con otra versión del caché');
  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
@@ -3437,7 +3438,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
 });
 test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v98'/);
+ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v99'/);
  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
@@ -5054,7 +5055,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
- assert.match(read('sw.js'),/const VERSION='lhb-v98'/);
+ assert.match(read('sw.js'),/const VERSION='lhb-v99'/);
 });
 /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
 function DOM64(){
@@ -5263,7 +5264,7 @@ const ALLOW67=[
  ['app.js',/const FACADE=\[[^\]]*\];/,1,'la fachada de las iniciales con la bandera (azul y rojo de --flag-blue y --flag-red; su blanco de pared); la tinta se mide abajo'],
  ['app.js',/red=\/\^#ed0000\$\/i/,1,'no es un color pintado: la prueba de si el fondo de las iniciales es el rojo de la bandera'],
  ['app.js',/fill="\$\{red\?'#000':'#fff'\}"/,1,'la hoja de agua de las iniciales (oscurece el rojo para que la tinta blanca pase, abajo)'],
- ['app.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,6,'la paleta de los íconos de hoja (art.js les pone un borde oscuro: se ven en el tema claro)'],
+ ['app.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,8,'la paleta de los íconos de hoja (art.js les pone un borde oscuro: se ven en el tema claro)'],
  ['app.js',/const cols=\[color\|\|'#d9a75a'[^\]]*\]/,1,'arte: las hojas que caen al marcar un favorito'],
  ['app.js',/stroke="#2a1a12"/,1,'arte: el borde de la hoja del pin, el mismo de art.js'],
  ['hoja.js',/WHEEL=\[[\s\S]*?\];/,1,'la paleta de la rueda de sabores, una por categoría (su texto pasa 4.5, abajo)'],
@@ -5498,4 +5499,66 @@ test('LHB-72: el splash viejo se fue; la intro carga antes que la app, sus video
  const {scan}=require('./i18n-scan.js');assert.deepEqual(scan(read('intro.js')),[],'sin texto escrito en intro.js');
  const {T}=I18N();const keys=[...new Set([...read('intro.js').matchAll(/\btt\('(intro\.[\w.]+)'\)/g)].map(m=>m[1]))];assert.equal(keys.length,8);for(const k of keys)assert.ok(T.es[k]&&T.en[k],'es y en: '+k);
  assert.ok(/@media \(prefers-reduced-motion:reduce\)\{\.intro\{display:none\}\}/.test(css),'tampoco se ve si el sistema pide menos movimiento después de cargar');
+});
+/* LHB-73: el bloque de Acerca de y créditos de app.js, de verdad, en el DOM de prueba */
+function ABOUT73(o={}){const vm=require('vm');const D=DOM64();const src=read('app.js').replace(/\r\n/g,'\n');
+ const code=src.slice(src.indexOf('/* LHB-73: Acerca de'),src.indexOf('/* LHB-73: fin */'));
+ const loc={hash:''};let last='';const view={set innerHTML(v){last=v;D.view.innerHTML=v},get innerHTML(){return last}};
+ const ctx={view,$:D.$,esc:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'),tt:k=>'['+k+']',head:(e,t,l)=>`<header><h1>${t}</h1><p>${l}</p></header>`,VBArt:{leaf:()=>''},
+  brandIcon:n=>`<svg data-i="${n}"></svg>`,matchMedia:q=>({matches:!!o.reduced&&q==='(prefers-reduced-motion: reduce)'}),navigator:{connection:o.saveData?{saveData:true}:undefined},location:loc};
+ vm.createContext(ctx);vm.runInContext(code+';this.CREDITS=CREDITS;this.vAcerca=vAcerca;this.vCreditos=vCreditos',ctx);return {...D,ctx,loc,html:()=>last}}
+/* los archivos de site/assets que llevan sonido: audio por su extensión, y video si trae una pista de sonido (hdlr soun en el MP4) */
+function AUDIO73(){const root=path.join(S,'assets'),out=[];
+ const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory()){walk(p);continue}const x=path.extname(e.name).toLowerCase();
+  if(['.mp3','.wav','.ogg','.oga','.opus','.m4a','.aac','.flac','.weba'].includes(x))out.push(p);
+  else if(['.mp4','.m4v','.mov'].includes(x)){if(/hdlr[\s\S]{8}soun/.test(fs.readFileSync(p).toString('latin1')))out.push(p)}else if(x==='.webm')out.push(p)}};
+ walk(root);return out.map(p=>path.relative(S,p).split(path.sep).join('/')).sort()}
+/* lo que falta para que cada archivo con sonido tenga sus créditos completos */
+function GAPS73(C,files){const out=[];
+ for(const f of files){const ids=C.files[f];if(!ids||!ids.length){out.push(f+': sin créditos');continue}
+  for(const id of ids){const e=C.audio.find(x=>x.id===id);if(!e){out.push(f+': '+id+' no está en la lista');continue}
+   for(const k of ['part','title','author','href','license','licenseHref','changes'])if(!e[k])out.push(id+': falta '+k);
+   for(const k of ['href','licenseHref'])if(e[k]&&!/^https?:\/\//.test(e[k]))out.push(id+': '+k+' no es un enlace')}}
+ for(const f of Object.keys(C.files))if(!files.includes(f))out.push(f+': en los créditos pero no en site/assets');
+ for(const e of C.audio)if(!Object.values(C.files).some(ids=>ids.includes(e.id)))out.push(e.id+': ningún archivo lo usa');
+ return out}
+test('LHB-73: cada archivo con sonido de site/assets tiene sus créditos (título, autor, licencia y enlaces), y la página de créditos los muestra',t=>{
+ const a=ABOUT73(),C=a.ctx.CREDITS,files=AUDIO73();
+ t.diagnostic('archivos con sonido en site/assets: '+files.length+' ('+files.join(', ')+'); entradas de créditos: '+C.audio.length);
+ assert.deepEqual(files,['assets/intro/intro-landscape.mp4','assets/intro/intro-portrait.mp4'],'los dos videos de la intro llevan sonido');
+ assert.deepEqual(GAPS73(C,files),[]);
+ /* la prueba sí falla: sin una entrada, o con un archivo nuevo sin créditos */
+ for(const e of C.audio){const C2={audio:C.audio.filter(x=>x!==e),files:C.files};assert.ok(GAPS73(C2,files).length>0,'sin '+e.id+' no pasa')}
+ assert.deepEqual(GAPS73(C,[...files,'assets/intro/nuevo.mp3']),['assets/intro/nuevo.mp3: sin créditos']);
+ /* las licencias como se comprobaron en su página el 2026-10-29 (evidence/lhb-73/license-recheck.md) */
+ const by=Object.fromEntries(C.audio.map(e=>[e.id,e]));
+ assert.deepEqual([by.motor.title,by.motor.author,by.motor.license,by.motor.href,by.motor.licenseHref],['Volkswagen Type 2_revving up2.wav','nhaudio','CC BY 4.0','https://freesound.org/people/nhaudio/sounds/332695/','https://creativecommons.org/licenses/by/4.0/']);
+ assert.deepEqual([by.selva.title,by.selva.author,by.selva.license,by.selva.href,by.selva.licenseHref],['Jungle, Tropical birds and insects','myrinvp','CC0 1.0','https://freesound.org/people/myrinvp/sounds/423711/','https://creativecommons.org/publicdomain/zero/1.0/']);
+ a.ctx.vCreditos();const h=a.html();
+ for(const e of C.audio){assert.ok(a.$('[data-credit="'+e.id+'"]'),'la página muestra '+e.id);const x=(h.match(new RegExp('data-credit="'+e.id+'">([\\s\\S]*?)</li>'))||[])[1]||'';
+  for(const v of [e.title,e.author,e.license,'href="'+e.href+'"','href="'+e.licenseHref+'"',e.part(),e.changes()])assert.ok(x.includes(v),e.id+': '+v)}
+ assert.deepEqual(C.audio.map(e=>[e.part(),e.changes()]),[['[cred.motor]','[cred.motorChanges]'],['[cred.selva]','[cred.selvaChanges]']]);
+ assert.equal((h.match(/target="_blank" rel="noopener"/g)||[]).length,1+2*C.audio.length,'cada enlace de fuera abre aparte');
+ assert.ok(h.includes('href="https://callepomarrosas.com/"')&&h.includes('[cred.bus]')&&h.includes('[intro.creditName]'),'la guagua nombra a Calle Pomarrosas con su enlace');
+ assert.ok(h.includes('[cred.endorse]'),'sin dar a entender que respaldan la app');
+ const T=I18N().T;for(const m of h.matchAll(/\[((?:cred|about|intro)\.[\w.]+)\]/g))assert.ok(T.es[m[1]]&&T.en[m[1]],'es y en: '+m[1]);
+ /* el crédito dice solo lo que es cierto: la tablilla se ve borrosa en el video (evidence/lhb-73/frames), así que no se menciona */
+ for(const L of ['es','en'])for(const k of Object.keys(T[L]).filter(k=>/^(cred|about)\./.test(k)))assert.ok(!/tablilla|placa|plate|firma|signature|permiso|permission/i.test(T[L][k]),L+' '+k+': '+T[L][k]);
+ a.$('[data-back]').onclick();assert.equal(a.loc.hash,'#/acerca','Volver lleva a Acerca de');
+});
+test('LHB-73: Acerca de sale en el menú y trae Ver intro, que repite la intro (?intro=1) aunque no hayan pasado los 14 días, y vuelve a Acerca de',()=>{
+ const c=ROUTES71();assert.ok(c.ROUTE_OF.acerca&&c.ROUTE_OF.acerca.menu.some(m=>m[0]==='app'&&m[2]==='menu.acerca'),'Acerca de en el grupo La app');
+ assert.equal(c.ROUTE_OF.creditos.of,'acerca','los créditos son detalle de Acerca de');assert.deepEqual(MISSING71(c),[]);
+ assert.ok(c.menuHTML('#/catalogo').includes('href="#/acerca"'));
+ assert.deepEqual([...c.menuHTML('#/creditos').matchAll(/<a class="menu-dest" href="([^"]+)" aria-current="page">/g)].map(m=>m[1]),['#/acerca'],'desde los créditos el menú marca Acerca de');
+ const a=ABOUT73();a.ctx.vAcerca();const r=a.$('[data-intro-replay]');assert.ok(r,'Ver intro está en Acerca de');
+ assert.equal(r.getAttribute('href'),'/?intro=1#/acerca');assert.equal(r.textContent,'[about.replay]');
+ const T=I18N().T;assert.equal(T.es['about.replay'],'Ver intro');assert.equal(T.en['about.replay'],'Watch intro');
+ assert.ok(a.html().includes('href="#/creditos"')&&a.html().includes('href="/privacidad"'),'enlaza los créditos y la privacidad');
+ /* lo que hace el enlace: la intro vista hace un minuto, en la misma sesión, vuelve a salir, y la dirección queda en Acerca de */
+ const v=INTRO72({now:T72+60e3,search:'?intro=1',hash:'#/acerca',ls:{vb_introAt:String(T72)},ss:{vb_intro:'1'}});
+ assert.equal(v.api.last,'play','Ver intro la repite');assert.deepEqual(v.hist,['/#/acerca'],'y vuelve a Acerca de sin intro=1');
+ assert.equal(INTRO72({now:T72+60e3,hash:'#/acerca',ls:{vb_introAt:String(T72)},ss:{vb_intro:'1'}}).api.last,'deep','sin el enlace no se repite (Acerca de es un enlace hondo)');
+ /* con menos movimiento o ahorro de datos la intro no sale: no se ofrece un botón que no hace nada */
+ for(const o of [{reduced:true},{saveData:true}]){const b=ABOUT73(o);b.ctx.vAcerca();assert.equal(b.$('[data-intro-replay]'),null,JSON.stringify(o));assert.ok(b.html().includes('[about.introOff]'))}
 });

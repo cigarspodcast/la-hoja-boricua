@@ -95,7 +95,9 @@ const BRAND_ICONS={cigar:'<path d="m4 16 12-9 4 5-12 9zM13 9l4 5M5 4c0 2 3 2 3 4
  podcast:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/>',
  search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
  install:'<path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5"/>',
- arrow:'<path d="M5 12h14m-5-5 5 5-5 5"/>'};
+ arrow:'<path d="M5 12h14m-5-5 5 5-5 5"/>',
+ info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+ play:'<path d="M8 5v14l11-7Z"/>'};
 const brandIcon=(n,cls='')=>`<svg class="brand-icon ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${BRAND_ICONS[n]||BRAND_ICONS.leaf}</svg>`;
 /* LHB-71: los tres caminos de la portada; Cigarros baja hasta la lista sin mover el foco (no abre el teclado) */
 const homePaths=()=>`<nav class="home-paths" aria-label="${tt('home.paths')}">${[['#/catalogo','cigar','menu.cigarros','menu.cigarrosSub',' data-catalog-start'],['#/artesanos','maker','menu.artesanos','menu.artesanosSub',''],['#/lugares','place','menu.lugares','menu.lugaresSub','']].map(([h,i,t,s,x])=>`<a href="${h}"${x}><span class="path-ico">${brandIcon(i)}</span><span class="path-copy"><b>${tt(t)}</b><small>${tt(s)}</small></span></a>`).join('')}</nav>`;
@@ -300,6 +302,28 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
 function topAvatar(){const el=$('#topAvatar');if(!el)return;const a=acctNow();if(a)paintAvatar(el,a,'');else el.innerHTML='<span>\u2606</span>'}
 /* ---------- v6: Mi Hoja y demás (hoja.js) ---------- */
 const EXT=window.LHB_EXT({topAvatar,$,$$,esc,toast,view,VBArt,LS,D:()=>D,allCigars,artisanById,cigarById,artisanName,fx,fq,cigarSVG,mono,linkBtn,ICON,FORT,fortLabel,PROTO_NOTE,head,cigarCard,goLink,evDate,route:()=>route(),menuHTML:h=>menuHTML(h),vPerfil,resizeImage,hydrate:r=>hydratePhotos(r||view)});
+/* LHB-73: Acerca de y los créditos de la intro. CREDITS dice qué sonido con licencia lleva cada archivo de site/assets; la prueba
+   recorre site/assets y no deja pasar un archivo con sonido sin sus créditos. Las licencias se comprobaron en su página el 2026-10-29. */
+const CREDITS={audio:[
+ {id:'motor',part:()=>tt('cred.motor'),title:'Volkswagen Type 2_revving up2.wav',author:'nhaudio',href:'https://freesound.org/people/nhaudio/sounds/332695/',license:'CC BY 4.0',licenseHref:'https://creativecommons.org/licenses/by/4.0/',changes:()=>tt('cred.motorChanges')},
+ {id:'selva',part:()=>tt('cred.selva'),title:'Jungle, Tropical birds and insects',author:'myrinvp',href:'https://freesound.org/people/myrinvp/sounds/423711/',license:'CC0 1.0',licenseHref:'https://creativecommons.org/publicdomain/zero/1.0/',changes:()=>tt('cred.selvaChanges')}],
+ files:{'assets/intro/intro-portrait.mp4':['motor','selva'],'assets/intro/intro-landscape.mp4':['motor','selva']}};
+const ext=(href,txt)=>`<a href="${href}" target="_blank" rel="noopener">${txt}</a>`;
+/* Ver intro: ?intro=1 la repite una vez aunque no hayan pasado los 14 días, y vuelve aquí; con menos movimiento o ahorro de datos la intro no sale, así que no se ofrece (se mira al pintar: el ajuste puede cambiar sin recargar) */
+function vAcerca(){const off=matchMedia('(prefers-reduced-motion: reduce)').matches||!!(navigator.connection&&navigator.connection.saveData);
+ view.innerHTML=`${head(tt('about.eyebrow'),tt('about.title'),tt('about.lead'),VBArt.leaf('#ffd27a'))}
+ <section class="about-sec" aria-labelledby="ab-intro"><h2 id="ab-intro">${tt('about.introH')}</h2>${off?`<p class="hint">${tt('about.introOff')}</p>`:`<p class="hint">${tt('about.replayNote')}</p><a class="lbtn about-replay" href="/?intro=1#/acerca" data-intro-replay>${brandIcon('play')}<span>${tt('about.replay')}</span></a>`}</section>
+ <section class="about-sec" aria-labelledby="ab-more"><h2 id="ab-more">${tt('about.moreH')}</h2>
+ <a class="menu-dest" href="#/creditos"><span class="menu-ico">${brandIcon('info')}</span><span class="menu-copy"><b>${tt('about.credits')}</b><small>${tt('about.creditsSub')}</small></span>${brandIcon('arrow','menu-go')}</a>
+ <a class="menu-dest" href="/privacidad"><span class="menu-ico">${brandIcon('people')}</span><span class="menu-copy"><b>${tt('about.privacy')}</b><small>${tt('about.privacySub')}</small></span>${brandIcon('arrow','menu-go')}</a></section>`}
+function vCreditos(){
+ view.innerHTML=`<button class="back" type="button" data-back>${tt('cred.back')}</button>${head(tt('about.eyebrow'),tt('cred.title'),tt('cred.lead'),VBArt.leaf('#8fd162'))}
+ <section class="about-sec" aria-labelledby="cr-bus"><h2 id="cr-bus">${tt('cred.busH')}</h2><p class="cred-p">${tt('cred.bus')} ${ext('https://callepomarrosas.com/',tt('intro.creditName'))}.</p></section>
+ <section class="about-sec" aria-labelledby="cr-sound"><h2 id="cr-sound">${tt('cred.soundH')}</h2><p class="hint">${tt('cred.soundLead')}</p>
+ <ul class="cred-list">${CREDITS.audio.map(c=>`<li class="cred-item" data-credit="${c.id}"><b>${c.part()}</b><span>${ext(c.href,esc(c.title))} ${tt('cred.by')} ${esc(c.author)}</span><span>${tt('cred.license')}: ${ext(c.licenseHref,esc(c.license))}</span><span>${tt('cred.changes')}: ${c.changes()}</span></li>`).join('')}</ul>
+ <p class="hint">${tt('cred.breeze')}</p></section><p class="hint cred-endorse">${tt('cred.endorse')}</p>`;
+ $('[data-back]').onclick=()=>{location.hash='#/acerca'}}
+/* LHB-73: fin */
 /* ---------- router ---------- */
 /* LHB-71: la tabla de rutas. El enrutador y el menú salen de aquí, así que una ruta nueva no se queda fuera del menú.
    menu: [grupo, ícono, clave del nombre, clave de la línea, subruta]; of: la ruta de la que es detalle o alias (sale en el menú por ella) */
@@ -320,6 +344,8 @@ const ROUTES=[
  {r:'actividades',go:id=>EXT.routes.eventos(id),of:'eventos'},
  {r:'podcast',go:()=>EXT.routes.podcast(),menu:[['comunidad','podcast','menu.podcast','menu.podcastSub']]},
  {r:'buscar',go:()=>EXT.routes.buscar(),menu:[['app','search','menu.buscar','menu.buscarSub']]},
+ {r:'acerca',go:()=>vAcerca(),menu:[['app','info','menu.acerca','menu.acercaSub']]},
+ {r:'creditos',go:()=>vCreditos(),of:'acerca'},
 ];
 const ROUTE_OF=Object.fromEntries(ROUTES.map(x=>[x.r,x]));
 /* el menú: los grupos en su orden, cada destino con su ícono, y la página en la que está marcada (aria-current y «Aquí») */

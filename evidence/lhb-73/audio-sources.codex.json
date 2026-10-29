@@ -1,0 +1,34 @@
+{
+  "verified_date": "2026-10-27",
+  "assets": [
+    {
+      "asset": "Volkswagen Type 2_revving up2.wav",
+      "creator": "nhaudio",
+      "source_page": "https://freesound.org/people/nhaudio/sounds/332695/",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "file": "sources/vw-type2-revving-nhaudio.mp3",
+      "sha256": "18948f9919035d27fb4241833d5d855b75b37ff8b0faa569161a9117067d9818",
+      "modifications": "Public high-quality MP3 preview excerpt; trim, band-pass EQ, slight variable playback pitch, gain fades and stereo pan. Mixed with ambience.",
+      "endorsement": "No endorsement implied."
+    },
+    {
+      "asset": "Jungle, Tropical birds and insects",
+      "creator": "myrinvp",
+      "source_page": "https://freesound.org/people/myrinvp/sounds/423711/",
+      "license": "CC0 1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "file": "sources/birds-insects-myrinvp.mp3",
+      "sha256": "b4a65118fe111b891dfaeb3773479867008fce39d40ef8484eb38a60a3cd7ab2",
+      "modifications": "Public high-quality MP3 preview excerpt; trim, EQ and quiet mix.",
+      "location_note": "Source recording is from the Netherlands. Used as a generic artistic nature bed, not represented as authentic Puerto Rico fauna."
+    },
+    {
+      "asset": "Gentle breeze layer",
+      "creator": "Original procedural sound design for this project",
+      "license": "Project-created layer",
+      "modifications": "Filtered noise, stereo, gentle volume shaping."
+    }
+  ],
+  "not_used": "Forest Ambience by TinyWorlds was evaluated but is not in the mix."
+}
