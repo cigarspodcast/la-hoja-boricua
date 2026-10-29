@@ -22,7 +22,8 @@ Evidence:
 - evidence/lhb-61-red-before-r1fix.txt: the LHB-61 tests against the round 1 feed.js, 4 red.
 - evidence/lhb-61-mutations-r1fix.out: RESULT 31 of 31 mutations red (new S7, S15, S16, S17, S18; S5, S6, S11, S13 retargeted).
 - evidence/lhb-61-tests-r1fix.txt: the full suite before the merge, 273 pass, 1 skipped.
-- evidence/lhb-61-tests-merged.txt: the full suite after merging main (LHB-34 landed, cache v88 on main, v89 here), 297 pass, 1 skipped. The merge kept both sides of the LHB-28 mihoja-readers guard (account.js from LHB-34, feed.js from here).
+- evidence/lhb-61-tests-merged.txt: the full suite after merging main (LHB-34 landed, cache v88 on main, v89 here), 297 pass, 1 skipped.
+- evidence/lhb-61-tests-merged2.txt: the full suite after merging main again (LHB-96 landed), 298 pass, 1 skipped. Two earlier round 2 attempts ended with "Selected model is at capacity" and no verdict; they are kept as evidence/lhb-61-review-r2-transport-fail-1.txt and -2.txt. The merge kept both sides of the LHB-28 mihoja-readers guard (account.js from LHB-34, feed.js from here).
 
 Check the three fixes, whether the whole-group paging can still skip or repeat an entry that stayed public, the big-group path, the SQL on D1/SQLite (the -> operator, the GLOB, the ordering on the json_each key, NULL and type edges, cost), privacy (items and cursor), the merge, and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
 
@@ -240,7 +241,7 @@ index b575946..bc0c97f 100644
   'data/bundle.js',
   'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
 diff --git a/test/site.test.js b/test/site.test.js
-index 5751762..3159b02 100644
+index 42d377a..4da3402 100644
 --- a/test/site.test.js
 +++ b/test/site.test.js
 @@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
@@ -438,10 +439,10 @@ index 5751762..3159b02 100644
   return {X:ctx.X,ctx,els,stubs,fetches,sheets,log,loc,acctBox,foco,toasts,calls,html:()=>html,all,setReply:f=>{reply=f},tab:t=>stubs['pftab:'+t]};
  }
  /* LHB-60: seguir desde la app. Respuestas que se sueltan a mano: cada pedido a /api/follow queda en espera hasta que la prueba lo contesta */
-@@ -4818,3 +4821,140 @@ test('LHB-58 (Codex ronda 2): pintar otra vez tu Perfil (la respuesta del servid
-  /* la reseña de la tarjeta ya no está: vuelve a la pestaña abierta */
-  H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario:[]}));H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas']);
- });
+@@ -4835,3 +4838,140 @@ test('LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre (Madera
+   const es=k=>{const m=i18.match(new RegExp('"'+k.replace(/\./g,'\\.')+'": "([^"]*)"'));return m&&m[1]};
+   assert.deepEqual(WHEEL_NAME,Object.fromEntries(ids.map(([id,k])=>[id,es(k)])),'los mismos ids y los mismos nombres que la app');
+  }finally{a.done&&a.done()}});
 +/* LHB-61: Siguiendo (functions/api/feed.js, _lib/feed.js) en SQLite real: las catas públicas de las personas que sigues */
 +async function API61(){
 + const a=await API40();const FD=await a.imp('api/feed.js'),FL61=await a.imp('_lib/feed.js');
