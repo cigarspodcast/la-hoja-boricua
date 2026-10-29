@@ -4402,10 +4402,10 @@ test('LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre (Madera
  const a=await API40();
  try{
   a.mk('u_ana','ana');
-  a.doc('u_ana',{schema:1,diario:[{id:'d1',nombre:'Toro',rating:4,tags:['madera','cacao','nuez','Mi sabor <b>libre</b>','constructor','__proto__','Madera'],notas:'n',publica:true,consumido:'2026-03-03'}]});
+  a.doc('u_ana',{schema:1,diario:[{id:'d1',nombre:'Toro',rating:4,tags:['madera','cacao','nuez','Mi sabor <b>libre</b>','constructor','__proto__','Madera','Cacao'],notas:'n',publica:true,consumido:'2026-03-03'}]});
   const p=await a.page('ana');assert.equal(p.status,200);
   const ul=(p.body.match(/<ul class="pp-tags">([\s\S]*?)<\/ul>/)||[])[1]||'';
-  assert.deepEqual([...ul.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m=>m[1]),['Madera','Cacao / café','Nuez','Mi sabor &lt;b&gt;libre&lt;/b&gt;','constructor','__proto__','Madera'],'los de la rueda por su nombre; lo demás como se escribió (y escapado)');
+  assert.deepEqual([...ul.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m=>m[1]),['Madera','Cacao / café','Nuez','Mi sabor &lt;b&gt;libre&lt;/b&gt;','constructor','__proto__','Madera','Cacao'],'los de la rueda por su nombre; lo demás como se escribió (y escapado)');
   assert.ok(!/<li>(madera|cacao|nuez)<\/li>/.test(p.body),'ningún id de la rueda a la vista');
   /* los mismos nueve de la app, con el texto en español de i18n.js */
   const {WHEEL_NAME}=await a.imp('u/[handle].js');

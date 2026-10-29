@@ -25,6 +25,7 @@ M = [
     ('T4 a name differs from the app', lambda: edit(U, "cacao: 'Cacao / café'", "cacao: 'Cacao'")),
     ('T5 an id missing from the map', lambda: edit(U, ", nuez: 'Nuez' }", " }")),
     ('T6 case-blind matching (Madera typed by hand)', lambda: edit(U, "call(WHEEL_NAME, t) ? WHEEL_NAME[t] : t", "call(WHEEL_NAME, t.toLowerCase()) ? WHEEL_NAME[t.toLowerCase()] : t.toLowerCase()")),
+    ('T7 case-blind match, typed text kept (Codex r1: Cacao typed by hand)', lambda: edit(U, "call(WHEEL_NAME, t) ? WHEEL_NAME[t] : t", "call(WHEEL_NAME, t.toLowerCase()) ? WHEEL_NAME[t.toLowerCase()] : t")),
 ]
 red = 0
 for name, mut in M:
