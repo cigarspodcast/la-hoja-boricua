@@ -1,0 +1,28 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, cut from a11y-fixes, LHB-64, staged). The diff below is origin/a11y-fixes..HEAD: only this ticket. This is round 2 of a TIER 2 review.
+
+Ticket LHB-65 (M7-F1a): semantic color tokens and the contrast test, light theme. The round 1 brief and verdict are in evidence/lhb-65-review-brief-r1.txt and evidence/lhb-65-review-r1.txt; read them for the pinned decisions and the design. Round 1 confirmed the palette values and the 39 declared pairs, and found three blockers, all effective pairs that the token matrix did not measure.
+
+What changed in site/styles.css:
+1. The later `.seg button[aria-pressed="true"]{color:#0e2417}` override now reads var(--on-inverse). Before, it won over the earlier rule and gave dark text on inverse at 1.29.
+2. `.foto-th span` text is var(--on-surface) on its var(--card-2). It was #f8f8f4, at 1.10.
+3. `.pill.f-suave` is var(--accent-ink), and the later `.pill.f-fuerte` override is var(--danger-ink). They were #cfe0b0 and #ff9a82 on .pill's card-2, at 1.20 and 1.76.
+
+New test, "LHB-65 (Codex ronda 1): cada texto que la app pinta...", measures the pairs the app actually paints, emulating the cascade statically:
+- rules with the same exact selector merge in source order, and the last color or background wins;
+- @media blocks are flattened and @keyframes dropped;
+- a selector with no background takes the one from its base selector (the same selector with its last class, attribute or pseudo part removed, repeatedly), so .pill.f-suave gets .pill's background;
+- every selector whose effective color and background both resolve to a hex, with the background a token, must reach 4.5.
+
+Its tally: 55 painted pairs, 55 pass. It names your four selectors and checks that the winning values are measured. The declared-token matrix is unchanged at 39 of 39.
+
+Not covered by the new test, by design:
+- text whose background comes from an ancestor element instead of the rule's own selector chain;
+- rgba or gradient colors;
+- hex literals that are not paired with a token background. Those literals are M7-F1b, the literal audit, which also takes the ancestor-background screens with browser screenshots.
+
+Evidence:
+- evidence/lhb-65-red-before-r1fix.txt: round 1's site files, where the new test is red and the other LHB-65 tests are green;
+- evidence/lhb-65-mutations-r1fix.out: RESULT 18 of 18 red, including E1 to E4 (each of your four pairs put back);
+- evidence/lhb-65-tests-r1fix.txt: full suite 301 pass, 0 fail, 1 skipped.
+
+Check the four fixes, the effective-pair emulation (a selector pair it measures wrongly, a base-selector inheritance that gives a wrong background, a painted pair inside this ticket's scope that it misses), and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

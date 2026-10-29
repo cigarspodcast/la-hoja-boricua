@@ -1,0 +1,8 @@
+V1 the rule covers every host (production too)               rc 1 fail 1 -> RED
+V2 the rule covers the production pages.dev name instead     rc 1 fail 1 -> RED
+V3 the header says index                                     rc 1 fail 1 -> RED
+V4 no _headers file                                          rc 1 fail 1 -> RED
+V5 a second rule changes production headers                  rc 1 fail 1 -> RED
+V6 the header sits on a path rule, not the preview host      rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 1 fail 0
+RESULT 6 of 6 mutations red

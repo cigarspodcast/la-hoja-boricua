@@ -1,0 +1,24 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 4 of a TIER 2 review of LHB-73 (M7-F4b: About screen, intro credits page, Ver intro link). Earlier briefs and reviews: evidence/lhb-73-review-brief-r1.txt to -r3.txt and evidence/lhb-73-review-r1.txt to -r3.txt. The diff below is the whole ticket (base 73ddbbe); the round 3 fix is commit abea83a and touches only test/site.test.js and evidence.
+
+Round 3 verdict: BLOCK, one P2 finding. KIND73 classified a file as silent by four-byte TrueType (00010000) and ICO (00000100) signatures before reading it as an MP4. As a result, the real intro with a 256-byte or 65,536-byte free box in front read as silent.
+
+What changed:
+- KIND73 now calls SOUND73 first and returns its answer whenever it is not 'unknown' (sound or silent).
+- Only a file whose boxes do not read as ISO BMFF falls through to the signature and text checks.
+- The TrueType and ICO signatures are removed.
+- PNG needs its full eight-byte signature, and GIF needs GIF87a or GIF89a. JPEG FFD8FF, RIFF WEBP, wOFF, wOF2 and OTTO stay. The text check (UTF-8 with no NUL in the first 4 KB) is unchanged. Anything else is 'unknown' and counts.
+- New fixtures:
+  - the real landscape intro with a 256-byte free box in front counts, and KIND73 says sound;
+  - the same with a 65,536-byte free box counts, and KIND73 says sound;
+  - an ICO counts, because it is not provable as silent.
+- Mutation K22 restores the round 2 KIND73 and turns red. The mutation run is 22 of 22 red with a clean baseline (evidence/lhb-73-mutations.out). The suite is 328 pass, 0 fail, 1 skipped (evidence/lhb-73-tests.txt). The round 2 reproduction still passes (node evidence/lhb-73-codex-r2-repro.js).
+
+In round 3 you also reported that deliberately concealed payloads can still produce 'silent': forged prefixes, and unreferenced sound bytes inside visual-only containers. You judged them not realistic assets and not blocking. That judgment stands unless you find a realistic, honest asset that slips through.
+
+Check:
+- that the round 3 finding is closed;
+- whether any other short signature or the text rule collides with a realistic media file;
+- that the real assets still pass with no false positive;
+- anything else in the full ticket diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

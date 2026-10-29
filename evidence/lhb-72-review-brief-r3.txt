@@ -1,0 +1,11 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 3 of a TIER 2 review of LHB-72 (M7-F4a: the intro player and the removal of the legacy splash). The earlier briefs and your reviews are in evidence/lhb-72-review-brief-r1.txt, -r2.txt and evidence/lhb-72-review-r1.txt, -r2.txt in the worktree.
+
+Round 2 verdict: BLOCK. What changed (commit 3e4d585):
+1. P2 (round 1 finding 1 maintained): a replay could repeat when history.replaceState threw. boot() now sets gone=true only after replaceState returns; if it throws, i.replay is set to false before decide() runs, so the normal policy decides (same session, deep link, 14 days and so on).
+2. P3: the "14 days ahead" rollback case only covered one hour. The policy test now stores exactly now+14 days (recent) and now+14 days+1 ms (play, a broken date).
+
+Tests: a throwing history with ?intro=1 and a same-session marker now returns 'session' with no overlay; it fails on the round 2 intro.js. Mutations J24 (replay kept when cleanup throws) and J25 (one day of tolerance in place of fourteen) added, J21 re-anchored; 25 of 25 red (evidence/lhb-72-mutations.out). Suite 326 pass, 0 fail, 1 skipped (evidence/lhb-72-tests.txt). site/sw.js lhb-v97 to lhb-v98 because the preview at 4db2c01 served v97; 21 pins move.
+
+Check that both findings are closed, that dropping the replay on a cleanup failure cannot block a legitimate replay in a normal browser, the cache bump, and anything else in the full ticket diff you have not covered.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

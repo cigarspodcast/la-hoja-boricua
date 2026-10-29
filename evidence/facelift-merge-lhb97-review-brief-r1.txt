@@ -1,0 +1,19 @@
+You are reviewing one merge in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is facelift HEAD ba6a82e (the merge commit b956eb5 plus one follow-up commit) against the facelift parent dc2361e, limited to site/ and test/: it brings main's LHB-102 (PR #40, TIER 1 PASS, evidence/lhb-102-review-r1.txt) and LHB-97 (PR #41, TIER 1 PASS in round 2, evidence/lhb-97-review-r2.txt) onto facelift. TIER 1: one round.
+
+What they are on main:
+- LHB-102: app.js uploads() keeps only the objects of a stored vb_uploads list and reads anything else as an empty list; hoja.js legacyList applies the same rule in the backup export and the import merge. A read never rewrites the stored value.
+- LHB-97: hoja.js myResenasK keys each own public review by JSON of [diary id or null, the shown entry], counted only for exact twins; pfKey/pfFind restore focus and lastFocus by that key after a repaint. The HOJA58 test mock sheet() now does what sheet() does: focus moves into the sheet only when it holds a control, and sheet-on is its own flag.
+
+How the merge was resolved:
+- site/app.js and site/hoja.js merged without conflict.
+- Conflicts only in site/sw.js and test/site.test.js. Every cache pin goes to lhb-v110 (facelift had lhb-v106, main lhb-v109; 21 test pins plus sw.js).
+- Four test hunks differed beyond the version. Facelift keeps its own side in all four, as in the previous merge (evidence/facelift-merge-lhb100-review-r1.txt): its splash-free v8, v9 and v17 tests and v23/v24 (main's v28 splash test is not on facelift, which removed the splash in LHB-72), and its LHB-64 to LHB-75 block, whose last test is closed by the shared line after the hunk.
+- Follow-up ba6a82e: facelift's sheet() (LHB-64) always takes focus into the sheet (its first control, else Cerrar) with the app inert, unlike main's, which leaves focus on a review's opener. So on facelift the HOJA58 mock always moves focus into the sheet (and keeps lastFocus when focus is already there), and the LHB-97 assertions after a sheet opens expect focus in the sheet, with lastFocus carrying the review. The ticket's focus mutation is unreachable here and survives as expected; the key mutations are 6 of 6 red (evidence/facelift-lhb97-mutations.out).
+- Full suite at ba6a82e: 337 pass, 0 fail, 1 skipped (evidence/facelift-merge-lhb97-tests.txt).
+
+Check in particular:
+- Is the conflict resolution correct: nothing of facelift lost, nothing of LHB-102 or LHB-97 lost or misapplied on facelift (its uploads readers, its profile code, its own focus and sheet tests from LHB-64 that may share HOJA58 or sheet behaviour)?
+- Does the facelift HOJA58 mock now match facelift's sheet() (read it in site/hoja.js), and do the LHB-97 tests still prove the key fix on this branch? Is there any facelift path where focus can sit on a review button while a sheet is open, which would make the surviving mutation reachable?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before it is staged).

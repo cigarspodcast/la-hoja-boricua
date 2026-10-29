@@ -1,0 +1,117 @@
+.app                                             background         radial-gradient(120% 60% at 100% 0%, rgba(208,25,46,.1), transparent 60%),
+  radial-gradient(90% 50% at 0% 10%
+.topbar                                          background         rgba(14,36,23,.88)
+.hero                                            background         linear-gradient(135deg,#1d4a30,#0b1d12)
+.card .fav-dot                                   background         rgba(14,36,23,.75)
+.stars button                                    color              #5a4330
+.mono                                            color              #0e2417
+.mono.has-logo                                   background         #fff
+.mono.has-logo                                   box-shadow         inset 0 0 0 1px rgba(14,36,23,.12)
+.lbtn.ig                                         background         linear-gradient(135deg,#6e3b8f,#c2453a 60%,#d9a75a)
+.lbtn.ig                                         color              #fff
+.lbtn.wa                                         background         #1f6b45
+.lbtn.wa                                         color              #fff
+.map-wrap                                        background         #1a2a33
+.leaflet-container                               background         #d9cbb4
+.map-offline                                     background         linear-gradient(180deg,#24414f,#1a2f3a)
+.map-offline .isl                                fill               #e9dcc3
+.map-offline .isl                                stroke             #c9b48e
+.map-offline .cap                                color              #cfe0e6
+.legend i                                        border             2px solid #fff
+.pin                                             border             2.5px solid #fff
+.pin                                             box-shadow         0 2px 6px rgba(0,0,0,.45)
+.pop .lbtn                                       color              #fff
+.pop .lbtn.web                                   color              #fff
+.tabbar                                          background         rgba(10,28,18,.94)
+.tab-plus .plus                                  box-shadow         0 6px 18px rgba(208,25,46,.45),inset 0 0 0 2px rgba(255,255,255,.12)
+.splash                                          background         radial-gradient(80% 60% at 50% 35%,#1d4a30,#0e2417)
+.splash-inner img                                box-shadow         0 10px 30px rgba(0,0,0,.4)
+.splash-name                                     text-shadow        0 2px 10px rgba(0,0,0,.35)
+.splash-flor svg                                 filter             drop-shadow(0 6px 12px rgba(0,0,0,.35))
+.road                                            border-bottom      4px dashed rgba(255,210,122,.35)
+.leaf-pin svg                                    filter             drop-shadow(0 2px 3px rgba(0,0,0,.45))
+.pin-group span                                  border             2.5px solid #fff
+.pin-group span                                  box-shadow         0 2px 6px rgba(0,0,0,.45)
+.volky.mini                                      filter             drop-shadow(0 2px 3px rgba(0,0,0,.45))
+.atag.rd                                         background         rgba(96,140,210,.16)
+.atag.rd                                         color              #a9c4ee
+.atag.rd                                         border             1px solid rgba(140,175,230,.4)
+.atag.pend                                       background         rgba(214,160,72,.16)
+.atag.pend                                       color              #e9bf72
+.atag.pend                                       border             1px solid rgba(233,191,114,.45)
+.hero                                            background         linear-gradient(160deg,#1f5a36 0%,#123a24 55%,#0b1d12 100%)
+.hero::before                                    background         linear-gradient(90deg,rgba(7,24,14,.94) 0%,rgba(7,24,14,.84) 40%,rgba(7,24,14,.42) 66%,rgba(7,24,14,.05) 100%)
+.card .ph                                        box-shadow         0 3px 10px rgba(0,0,0,.35)
+.tabbar                                          border-top         1px solid rgba(143,184,255,.22)
+.sheet-bg                                        background         rgba(4,14,8,.62)
+.share-prev img                                  box-shadow         0 8px 24px rgba(0,0,0,.45)
+.remind                                          background         #21452f
+.remind                                          border             1px solid #5d8f68
+.hum-ph                                          box-shadow         0 2px 8px rgba(0,0,0,.35)
+.stars-ro span                                   color              #4d6b55
+.tchip                                           color              #0e2417
+.pass-hero                                       background         linear-gradient(160deg,#1f5a36,#123a24)
+.pass-ring                                       background         radial-gradient(closest-side,#123a24 78%,transparent 79%),conic-gradient(var(--accent) calc(var(--p)*1%),#2c5a
+.pbar                                            background         #24533a
+.badge .bico                                     background         #24533a
+.badge.on                                        background         linear-gradient(180deg,rgba(255,255,255,.06),transparent)
+.badge.on .bico                                  background         #0e2417
+.stamp                                           border             1.5px dashed #4f7f5e
+.stamp[aria-pressed="true"]                      background         rgba(143,184,255,.08)
+.pop .pl-act .heart[aria-pressed="true"]         color              #fff
+.pop .pl-act .stampbtn[aria-pressed="true"]      color              #0e2417
+.pr                                              background         #21452f
+.pidelo                                          box-shadow         0 6px 18px rgba(143,209,98,.22)
+.pod                                             background         linear-gradient(160deg,#1d3a4a,#14301f)
+.pod                                             border             1px solid #3d6b7a
+.learn                                           background         #21452f
+.stars button:not(.on)                           color              #5c7a62
+.wseg path                                       fill               #1e4730
+.wseg.on path                                    stroke             #f8f8f4
+.wseg.on text                                    fill               #0e2417
+.wseg:focus-visible path                         stroke             #fff
+.anchor                                          background         linear-gradient(160deg,#25603a,#123a24 70%)
+.anchor                                          box-shadow         0 10px 26px rgba(0,0,0,.3)
+.ath                                             background         rgba(14,36,23,.55)
+.cd.has                                          background         #2b5c3d
+.cd.anc i                                        background         #0e2417
+.lg-ev                                           background         #2b5c3d
+.card .ph.has-foto                               background         #fff
+.detail-ph.has-foto                              background         #fff
+.detail-ph.has-foto                              box-shadow         0 4px 14px rgba(0,0,0,.35)
+.detail-ph.has-foto img                          background         #fff
+.foto-th                                         background         #fff
+.campo                                           -webkit-mask-image linear-gradient(to bottom,transparent 0,#000 9%,#000 90%,transparent 100%)
+.campo                                           mask-image         linear-gradient(to bottom,transparent 0,#000 9%,#000 90%,transparent 100%)
+.l-field                                         -webkit-mask-image linear-gradient(to bottom,transparent 34%,#000 41%)
+.l-field                                         mask-image         linear-gradient(to bottom,transparent 34%,#000 41%)
+.nube                                            background         radial-gradient(closest-side,rgba(255,252,240,.8),rgba(255,252,240,0))
+.vsh                                             background         radial-gradient(closest-side,rgba(28,22,8,.62),rgba(28,22,8,.3) 55%,rgba(28,22,8,0))
+.vsh2                                            background         radial-gradient(closest-side,rgba(28,22,8,.28),rgba(28,22,8,0))
+.vb .van-i                                       -webkit-mask-image radial-gradient(ellipse 8.4% 16% at 65% 85%,transparent 80%,#000 100%),radial-gradient(ellipse 6% 13% at 90.8%
+.vb .van-i                                       mask-image         radial-gradient(ellipse 8.4% 16% at 65% 85%,transparent 80%,#000 100%),radial-gradient(ellipse 6% 13% at 90.8%
+.vlit                                            background         linear-gradient(115deg,rgba(255,214,140,.26),rgba(255,214,140,0) 45%),linear-gradient(to top,rgba(38,60,20,.32
+.vhaze                                           background         rgba(205,222,232,.55)
+.whl i                                           background         repeating-conic-gradient(rgba(20,16,10,.55) 0 12deg,rgba(20,16,10,0) 12deg 36deg)
+.puff                                            background         radial-gradient(closest-side,rgba(246,230,198,.85),rgba(228,206,166,.45) 55%,rgba(228,206,166,0))
+.lbtn.spotify                                    background         #1DB954
+.lbtn.spotify                                    color              #0e2417
+.lbtn.spotify                                    box-shadow         0 4px 14px rgba(29,185,84,.35)
+.rpin b                                          background         #1d4a30
+.rpin b                                          border             2px solid #0e2417
+.rpin b                                          box-shadow         0 0 0 1.5px #6f9c7c
+.rpin i                                          background         radial-gradient(circle,rgba(143,209,98,.75),rgba(143,209,98,0) 70%)
+.rpin svg                                        filter             drop-shadow(0 1px 2px rgba(0,0,0,.6))
+.rpt .dot                                        fill               #1d4a30
+.rpt .dot                                        stroke             #0e2417
+.rpt .gl                                         fill               #8fd162
+.rpt .gl                                         stroke             #0e2417
+.ruta-card                                       background         linear-gradient(170deg,#173a26,#0e2417)
+.ruta-card .bico                                 background         #0e2417
+.ruta-card .bico                                 box-shadow         0 0 0 2px #2c5a3d
+.zs                                              border             2px dashed #2c5a3d
+.zs                                              color              #4f7d5c
+.zs.ok                                           background         rgba(208,25,46,.12)
+.zt.on                                           background         rgba(143,209,98,.16)
+.btn-add                                         box-shadow         0 2px 10px rgba(0,0,0,.25)
+literals 151

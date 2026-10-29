@@ -1,0 +1,589 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-65-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a1869f-e2d0-7361-a0f3-1b27b3088d41
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 3 of a TIER 2 review of LHB-74 (M7-F5: passport color and the stamp celebration). The earlier briefs and your reviews are evidence/lhb-74-review-brief-r1.txt, -r2.txt and evidence/lhb-74-review-r1.txt, -r2.txt. The diff below is the whole ticket (base 2ff4293).
+
+Round 2 verdict: BLOCK, one P2. A repaint during the animation replaced the animated elements: the 350 ms stamp repaint, a sync repaint (onApplied), a second or third stamp, or any unrelated repaint cut the celebration short or restarted it.
+
+What changed (site/hoja.js celebrate, celMark, celDrop; vPasaporte no longer marks anything in its template):
+- celebrate(arg, on, badge), called by ACTIONS.stamp:
+  - drops any live record for the same stamp (an unstamp or a restamp);
+  - returns if the stamp was removed or reduced motion is on;
+  - adds a record for the stamp's selector ([data-stamp="arg"], ready when aria-pressed is true) and, when a badge was earned, one for [data-badge="id"] (ready when it has class on). A record that has not started within 2 s expires.
+- A MutationObserver on document.body (childList, subtree) is connected while any record is live, and disconnected when the last one is dropped.
+- celMark runs at celebrate and on each mutation. For each live record and each element matching its selector:
+  - it starts the record the first time an element is ready (start = now) and schedules the record's own cleanup 900 ms later;
+  - for an element that does not have is-new yet, it sets --cel-at to (start - now) ms and adds is-new.
+  - So a repainted element continues the animation where it was, with a negative animation-delay, instead of restarting. An element that already has the class is not re-timed.
+  - Under reduced motion it drops every record.
+- celDrop removes the record and the is-new class from that record's current elements only. The cleanup timer acts only if its own record is still live, so an old timer cannot cut a restamp.
+- CSS: .stamp.is-new::after, .stampbtn.is-new svg, .badge.is-new .bico get animation: lhb-stamp .58s cubic-bezier(.2,.75,.3,1) var(--cel-at,0ms) 1. The reduced-motion rule (animation: none) is unchanged.
+- The stamp handler call is now celebrate(arg,on,nb[0]).
+
+Tests:
+- PASS74 now runs the real ACTIONS block together with the real passport block in a vm. A.route repaints the real vPasaporte. Timers run in time order. A fake MutationObserver fires on each paint. The fake view makes new elements on every paint.
+- Scenarios, each driven through ACTIONS.stamp:
+  - one stamp: 0 ms at the tap, -350ms on the 350 ms repaint, gone at 900 ms, observer disconnected, no replay;
+  - stamps at 0 and 100 ms: both continue through both repaints; A's cleanup does not touch B;
+  - a sync repaint at 100 ms;
+  - three stamps;
+  - an unrelated repaint at 450 ms;
+  - every mark of one stamp counts from the same start;
+  - the badge starts on the first paint that shows it earned;
+  - the first stamp earns Primer sello;
+  - reduced motion;
+  - a button on a cigar page (no repaint);
+  - unstamp leaves nothing waiting, and a restamp is not cut by the first stamp's cleanup;
+  - a badge never shown within 2 s expires.
+- Mutations: 19 (L1 to L19), evidence/lhb-74-mutations.out.
+- Real browser at 390 px (evidence/m7-f5/shoot74.out, 10 of 10 checks): in one page call, tap the fifth cigar stamp, wait 470 ms, then read every running lhb-stamp animation's elapsed active time (localTime minus delay).
+  - The stamp had run 458 ms at 479 ms, so it continued through the 350 ms repaint.
+  - Catador had run 100 ms, so it started at the repaint.
+  - The same driver against the round 1 code (c73d68a) FAILS this check: the stamp had run 67 ms, so it restarted at the repaint (evidence/m7-f5/shoot74-on-round1-code.out).
+- site/sw.js goes from lhb-v102 to lhb-v103 (21 pins), because the preview served v102 with the round 1 hoja.js.
+
+Check that the finding is closed. Also look for any new way the celebration can:
+- replay or loop;
+- leak (an observer or a timer left running);
+- touch another stamp's element;
+- survive reduced motion turned on mid-visit;
+- block input.
+And check anything else in the full ticket diff, including the cost of observing document.body while a record is live (at most about 2 s).
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 2ff4293 HEAD -- site/hoja.js site/styles.css site/sw.js test/site.test.js =====
+diff --git a/site/hoja.js b/site/hoja.js
+index 98c4e06..1920315 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -386,6 +386,7 @@ const ACTIONS={
+   const before=badgeIds(),r0=ruta();const on=toggleStamp(k,id),r1=ruta(),nz=r1.ok.find(x=>!r0.ok.includes(x));RLIT=r1.lit.find(x=>!r0.lit.includes(x));if(RLIT&&(st&&st.closest('.rl')))closeSheet();if(nz)setTimeout(()=>zonaSheet(nz),1500);
+   $$(`[data-stamp="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);const sp=b.querySelector(':scope>span:last-child');if(sp)sp.textContent=b.classList.contains('stamp')?(on?tt('h.selladoEl',{d:fmtF(hoy())}):tt('h.sinSello')):(on?tt('h.sellado'):tt('h.sellarPasaporte'))});
+   const nb=badgeIds().filter(x=>!before.includes(x));if(nb.length){const b=BADGES.find(x=>x.id===nb[0]);toast(tt('h.nuevaInsignia')+b.n)}else toast(on?tt('h.selloPuestoEnTu'):tt('h.selloQuitado'));
++  celebrate(arg,on,nb[0]);
+   if(/^#\/(mihoja\/pasaporte|lugares\/ruta)/.test(location.hash))setTimeout(()=>{const y=scrollY;A.route();scrollTo(0,y)},350)},
+  rate(arg){const [id,n]=split2(arg);const v=+n;if(!id||id in Object.prototype||!Number.isInteger(v)||v<1||v>5)return;setRating(id,v);keepScroll()},
+  humidor(arg){openSheet('humidor',txt(arg)?arg:undefined)}
+@@ -698,6 +699,24 @@ function rutaCard(){const {ts,lit}=ruta();return `<a class="ruta-card" href="#/l
+ function townSheet(n){const t=ruta().ts.find(x=>x.n==n);if(!t)return;const it=[...t.it].sort((a,b)=>b.on-a.on),c=it.filter(i=>i.on).length,L={artesanos:tt('f.artesano'),cigarros:tt('h.cigarro'),lugares:tt('h.lugar')};
+  sheet(`<h2 class="sheet-h">${t.on?'🌿 ':''}${esc(n)}</h2><p class="rsub">${tt('h.zonaDeSellados',{a:ZN[t.z],b:c,c:it.length,d:c<it.length?` ${tt('h.teFaltan',{a:it.length-c})}`:''})}</p><div class="rl">${it.map(i=>`<div class="ri"><div><b>${esc(i.x.nombre)}</b><small>${L[i.k]}${i.on?tt('h.sellado2')+fmtF(S().pasaporte[i.k][i.x.id]):tt('h.teFalta')}</small></div>${stampBtn(i.k,i.x.id)}</div>`).join('')}</div>`,n)}
+ function zonaSheet(k){const l=ruta().z[k];sheet(`<div class="zcel">${zSello(k,1,tt('h.zonaCompleta'))}<h2 class="sheet-h">${tt('h.zonaCompleta2',{a:ZN[k]})}</h2><p>${tt('h.sellasteLosPueblosEste',{a:l.length,b:l.map(t=>t.n).join(', ')})}</p><button type="button" class="btn" data-close>${tt('h.wepa')}</button></div>`,tt('h.zonaCompleta'))}
++/* LHB-74: la celebración del sello. El sello recién puesto (y la insignia que gana) se anima una vez y para solo; con menos movimiento no hay nada.
++   No se guarda nada: sale del sello que se acaba de poner. La animación no tapa nada ni quita el toque.
++   La vista se vuelve a pintar mientras se anima (el pasaporte a los 350 ms, la sincronización, el idioma, otro sello): cada elemento nuevo se
++   marca otra vez con el reloj corrido (--cel-at negativo), así la animación sigue donde iba y ni empieza de nuevo ni se corta (Codex ronda 2).
++   El sello empieza al tocarlo (ya sale puesto); la insignia, en la primera pintura que la muestra ganada; lo que no empieza en 2 s, caduca */
++const CEL_OFF=900,CEL_WAIT=2000,LIVE=new Set();let celObs=null;
++const lessMotion=()=>!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
++function celDrop(c){LIVE.delete(c);document.querySelectorAll(c.sel).forEach(e=>e.classList.remove('is-new'));if(!LIVE.size&&celObs){celObs.disconnect();celObs=null}}
++function celMark(){if(lessMotion()){[...LIVE].forEach(celDrop);return}const now=Date.now();
++ for(const c of [...LIVE])for(const e of document.querySelectorAll(c.sel)){
++  if(c.start==null){if(!c.ready(e))continue;c.start=now;setTimeout(()=>{if(LIVE.has(c))celDrop(c)},CEL_OFF)}
++  if(!e.classList.contains('is-new')){e.style.setProperty('--cel-at',(c.start-now)+'ms');e.classList.add('is-new')}}}
++function celebrate(arg,on,badge){[...LIVE].filter(c=>c.arg===arg).forEach(celDrop);if(!on||lessMotion())return;
++ const add=(sel,ready)=>{const c={arg,sel,ready,start:null};LIVE.add(c);setTimeout(()=>{if(LIVE.has(c)&&c.start==null)celDrop(c)},CEL_WAIT)};
++ add(`[data-stamp="${CSS.escape(arg)}"]`,e=>e.getAttribute('aria-pressed')==='true');
++ if(badge)add(`[data-badge="${CSS.escape(badge)}"]`,e=>e.classList.contains('on'));
++ if(!celObs&&typeof MutationObserver==='function'){celObs=new MutationObserver(celMark);celObs.observe(document.body,{childList:true,subtree:true})}
++ celMark()}
+ function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got=badgeIds();const pct=all.total?Math.round(c.total*100/all.total):0;
+  const sec=(k,title,items,name,sub)=>`<div class="section-title"><h2>${title}</h2><span class="count">${tt('h.de2',{a:c[k],b:all[k]})}</span></div><div class="pbar" role="progressbar" aria-label="${tt('h.de3',{a:title,b:c[k],c:all[k]})}" aria-valuemin="0" aria-valuemax="${all[k]}" aria-valuenow="${c[k]}"><i style="width:${all[k]?c[k]*100/all[k]:0}%"></i></div>
+   <div class="stamps">${items.map(x=>{const on=isStamp(k,x.id);return `<button type="button" class="stamp" data-stamp="${k}:${esc(x.id)}" aria-pressed="${on}">${A.mono(name(x),44)}<b>${esc(name(x))}</b><small>${esc(sub(x)||'')}</small><span>${on?tt('h.selladoEl',{d:fmtF(S().pasaporte[k][x.id])}):tt('h.sinSello')}</span></button>`}).join('')}</div>`;
+@@ -705,7 +724,7 @@ function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got
+  <section class="pass-hero"><div class="pass-ring" style="--p:${pct}" role="img" aria-label="${tt('h.delPasaporte',{a:pct})}"><b>${pct}%</b><span>${tt('h.de2',{a:c.total,b:all.total})}</span></div><div><h2>${tt('h.pasaporteBoricuaH')}</h2><p>${tt('h.marcaLosArtesanosQue')}</p></div></section>
+  ${rutaCard()}
+  <div class="section-title"><h2>${tt('h.insignias')}</h2><span class="count">${tt('h.de2',{a:got.length+ru.ok.length,b:BADGES.length+6})}</span></div>
+- <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:var(--flag-red)"><div class="bico">${VBArt.leaf(on?'var(--flag-red)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
++ <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" data-badge="${b.id}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:var(--flag-red)"><div class="bico">${VBArt.leaf(on?'var(--flag-red)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
+  ${sec('artesanos',tt('arts.eyebrow'),d.artesanos,x=>x.nombre,x=>x.pueblo)}
+  ${sec('cigarros',tt('h.cigarros2'),d.cigarros,x=>x.nombre,x=>A.artisanName(x))}
+  ${sec('lugares',tt('lug.eyebrow'),d.places,x=>x.nombre,x=>x.pueblo)}
+diff --git a/site/styles.css b/site/styles.css
+index f3ce35f..22e0b41 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -667,3 +667,36 @@ body.sheet-on{overflow:hidden}
+ .cred-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ .cred-item{display:grid;gap:4px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);line-height:1.45;font-size:14px}
+ .cred-item b{font-size:15px}
++/* LHB-74: el pasaporte a color. La portada en el celeste de la guagua; los sellos y las insignias ganadas en cuatro colores de la paleta
++   (celeste, ámbar, rojo y sol), siempre con su fondo suave y su tinta oscura, y el texto de siempre (Sellado el..., Lograda): el color no es lo único */
++.pass-hero{background:var(--info);border-color:var(--info-ink)}
++.pass-hero h2,.pass-hero p{color:var(--on-info)}
++.pass-hero h2 em{color:var(--on-info);background:linear-gradient(transparent 62%,var(--warn) 62% 92%,transparent 92%)}
++.stamps .stamp{border-color:var(--info-ink)}
++.stamps .stamp:nth-child(4n+2){border-color:var(--warm-ink)}
++.stamps .stamp:nth-child(4n+3){border-color:var(--danger-ink)}
++.stamps .stamp:nth-child(4n){border-color:var(--warn-ink)}
++.stamps .stamp[aria-pressed="true"]{border:2px solid var(--info-ink);background:var(--info-soft)}
++.stamps .stamp[aria-pressed="true"] span{color:var(--info-ink)}
++.stamps .stamp[aria-pressed="true"]::after{background:var(--info-ink);color:var(--card)}
++.stamps .stamp:nth-child(4n+2)[aria-pressed="true"]{border-color:var(--warm-ink);background:var(--warm-soft)}
++.stamps .stamp:nth-child(4n+2)[aria-pressed="true"] span{color:var(--warm-ink)}
++.stamps .stamp:nth-child(4n+2)[aria-pressed="true"]::after{background:var(--warm-ink);color:var(--card)}
++.stamps .stamp:nth-child(4n+3)[aria-pressed="true"]{border-color:var(--danger-ink);background:var(--danger-soft)}
++.stamps .stamp:nth-child(4n+3)[aria-pressed="true"] span{color:var(--danger-ink)}
++.stamps .stamp:nth-child(4n+3)[aria-pressed="true"]::after{background:var(--danger-ink);color:var(--card)}
++.stamps .stamp:nth-child(4n)[aria-pressed="true"]{border-color:var(--warn-ink);background:var(--warn-soft)}
++.stamps .stamp:nth-child(4n)[aria-pressed="true"] span{color:var(--warn-ink)}
++.stamps .stamp:nth-child(4n)[aria-pressed="true"]::after{background:var(--warn-ink);color:var(--card)}
++.badges .badge.on{background:var(--info-soft);border-color:var(--info-ink)}
++.badges .badge.on span{color:var(--info-ink)}
++.badges .badge.on:nth-child(4n+2){background:var(--warm-soft);border-color:var(--warm-ink)}
++.badges .badge.on:nth-child(4n+2) span{color:var(--warm-ink)}
++.badges .badge.on:nth-child(4n+3){background:var(--danger-soft);border-color:var(--danger-ink)}
++.badges .badge.on:nth-child(4n+3) span{color:var(--danger-ink)}
++.badges .badge.on:nth-child(4n){background:var(--warn-soft);border-color:var(--warn-ink)}
++.badges .badge.on:nth-child(4n) span{color:var(--warn-ink)}
++/* LHB-74: la celebración: el sello cae una vez (0,58 s) y para; con menos movimiento, nada */
++@keyframes lhb-stamp{0%{transform:translateY(-14px) scale(1.3) rotate(-14deg);opacity:0}65%{transform:translateY(2px) scale(.94) rotate(-5deg);opacity:1}100%{transform:translateY(0) scale(1) rotate(-12deg);opacity:1}}
++.stamp.is-new::after,.stampbtn.is-new svg,.badge.is-new .bico{animation:lhb-stamp .58s cubic-bezier(.2,.75,.3,1) var(--cel-at,0ms) 1}
++@media (prefers-reduced-motion:reduce){.stamp.is-new::after,.stampbtn.is-new svg,.badge.is-new .bico{animation:none}}
+diff --git a/site/sw.js b/site/sw.js
+index b654093..1a249d5 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v100';
++const VERSION='lhb-v103';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+diff --git a/test/site.test.js b/test/site.test.js
+index d3bc98f..65850a1 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v100'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v103'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,23 +61,23 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
+- assert.match(sw,/const VERSION='lhb-v100'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
++ assert.match(sw,/const VERSION='lhb-v103'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
+  assert.ok(a.includes(f)&&a.includes("VEHICULO='guagua'"));
+  for(const g of ['img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
+  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
+ test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v100'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v103'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
+  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v100'/);
++ assert.match(sw,/const VERSION='lhb-v103'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v100'/);
++ assert.match(sw,/const VERSION='lhb-v103'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
+  const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%231EA8D7')&&em.includes('%23ED0000'),'bandera de los vacíos con el celeste y el rojo de la bandera (LHB-67: el celeste de la guagua)');
+@@ -98,12 +98,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v100'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v103'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v100'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v103'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -111,7 +111,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v100'/);});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v103'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -128,7 +128,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v100/);});
++ assert.match(read('sw.js'),/lhb-v103/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -141,19 +141,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v100'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v103'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v100'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v103'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v100'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v103'/);});
+ 
+ test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
+  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
+- for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v100'/);});
++ for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v103'/);});
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
+@@ -599,7 +599,7 @@ function GATE_ACTIONS(over){
+  const calls=[];const rec=n=>(...a)=>{calls.push([n,...a]);return n==='toggleFav'||n==='toggleStamp'?true:undefined};
+  const S=()=>({favs:{cigarros:[],artesanos:[],lugares:[]},pasaporte:{cigarros:{},artesanos:{},lugares:{}}});
+  const deps={S,toggleFav:rec('toggleFav'),toggleStamp:rec('toggleStamp'),setRating:rec('setRating'),openSheet:rec('openSheet'),toast:rec('toast'),closeSheet:rec('closeSheet'),zonaSheet:rec('zonaSheet'),
+-  badgeIds:()=>[],ruta:()=>({ok:[],lit:[]}),fmtF:x=>x,hoy:()=>'hoy',BADGES:[],$:()=>null,$$:()=>[],A:{route:rec('route')},scrollTo:()=>{},scrollY:0,CSS:{escape:x=>x},
++  badgeIds:()=>[],ruta:()=>({ok:[],lit:[]}),celebrate:rec('celebrate'),fmtF:x=>x,hoy:()=>'hoy',BADGES:[],$:()=>null,$$:()=>[],A:{route:rec('route')},scrollTo:()=>{},scrollY:0,CSS:{escape:x=>x},
+   location:{hash:'#/c/yambo-toro'},window:{LHB_I18N:{t:k=>k}},setTimeout:()=>0,...TT(),...over};
+  const names=Object.keys(deps);
+  const f=new Function(...names,'var RLIT=0;'+src.slice(i,j)+'\nreturn ACTIONS');
+@@ -1215,7 +1215,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v100'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1462,7 +1462,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v100'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v103'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1640,7 +1640,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v100'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1887,7 +1887,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v100'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2188,7 +2188,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v100'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2471,7 +2471,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v100'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v103'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3438,7 +3438,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v100'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v103'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -5055,7 +5055,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v100'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v103'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -5614,3 +5614,128 @@ test('LHB-73: Acerca de sale en el menú y trae Ver intro, que repite la intro (
+  /* con menos movimiento o ahorro de datos la intro no sale: no se ofrece un botón que no hace nada */
+  for(const o of [{reduced:true},{saveData:true}]){const b=ABOUT73(o);b.ctx.vAcerca();assert.equal(b.$('[data-intro-replay]'),null,JSON.stringify(o));assert.ok(b.html().includes('[about.introOff]'))}
+ });
++/* LHB-74: el perfil público no cambia: la misma respuesta, byte por byte, que antes de este ticket (2ff4293, medida el 2026-10-29),
++   para una persona con sellos que ganan insignias. La app solo cambia cómo se VEN el pasaporte y las insignias; el servidor no manda nada nuevo */
++const GOLD74={api:['7c4a70704ca7b74c81925e5a8262e7503ad514ec78b30ba1b1efa71b5932d16a',572],page:['df1de1c8142c921a227253e91627bf4d89f2639626d39a2fc08d29f3b0b25a74',3137]};
++test('LHB-74: el perfil público (/api/u/<handle> y /u/<handle>) es idéntico byte por byte al de antes: ningún campo nuevo',async t=>{
++ const a=await API58();const sha=x=>require('crypto').createHash('sha256').update(x,'utf8').digest('hex');
++ try{
++  a.mk('u_ana','ana');const d=DOC40();const n=(p,k)=>Object.fromEntries(Array.from({length:k},(_,i)=>[p+i,'2026-02-0'+(1+i%9)]));
++  d.pasaporte={artesanos:n('art-',5),cigarros:n('cig-',6),lugares:n('lug-',5)};a.doc('u_ana',d);
++  const r=await a.get('ana'),pg=await a.page('ana');assert.equal(r.status,200);assert.equal(pg.status,200);
++  t.diagnostic('api '+sha(r.text)+' '+Buffer.byteLength(r.text)+'; page '+sha(pg.body)+' '+Buffer.byteLength(pg.body));
++  assert.deepEqual([sha(r.text),Buffer.byteLength(r.text)],GOLD74.api,'la respuesta de /api/u/ana es la misma de antes');
++  assert.deepEqual([sha(pg.body),Buffer.byteLength(pg.body)],GOLD74.page,'la página /u/ana es la misma de antes');
++  const j=JSON.parse(r.text);assert.deepEqual(Object.keys(j),['profile','counts','resenas']);assert.deepEqual(Object.keys(j.counts),['resenas','followers','following','sellos']);
++  assert.deepEqual(j.counts.sellos,{artesanos:5,cigarros:6,lugares:5},'solo los conteos de sellos por tipo, como antes');
++  for(const w of ['badge','insignia','celebr','is-new'])assert.ok(!r.text.includes(w)&&!pg.body.includes(w),'nada de insignias ni celebración en lo público: '+w);
++ }finally{a.done()}
++});
++/* LHB-74: el bloque del pasaporte de hoja.js (desde el comentario pasaporte hasta vFavoritos) y el de las acciones (ACTIONS.stamp, con su
++   repintado a los 350 ms), de verdad, con lo que necesitan de mentira: el reloj y los temporizadores (corren en orden con run), matchMedia,
++   un MutationObserver que avisa en cada pintura, y una vista que hace elementos nuevos en cada pintura, que el documento encuentra por selector */
++function PASS74(o={}){const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
++ const code=src.slice(src.indexOf('/* pasaporte */'),src.indexOf('\nfunction vFavoritos('));
++ const ai=src.indexOf('const txt=v=>typeof v'),aj=src.indexOf('\nObject.keys(ACTIONS)',ai);assert.ok(ai>0&&aj>ai,'bloque de acciones');
++ let now=o.now||1.8e12,html='',paint=[],extra=[];const t0=now,timers=[],obs=new Set(),log=[];
++ const el=(kind,id,cls,pressed)=>{const c=new Set(cls.split(/\s+/).filter(Boolean)),at={'aria-pressed':pressed};const e={kind,id,delay:null,
++  classList:{add:x=>{c.add(x);if(x==='is-new')log.push(['on',id,now-t0,e.delay])},remove:x=>{if(c.delete(x)&&x==='is-new')log.push(['off',id,now-t0])},contains:x=>c.has(x)},
++  getAttribute:k=>at[k]===undefined?null:at[k],setAttribute:(k,v)=>{at[k]=String(v)},querySelector:()=>null,closest:()=>null,style:{setProperty:(k,v)=>{if(k==='--cel-at')e.delay=v}}};return e};
++ const parse=h=>[...h.matchAll(/<(?:button|div) ([^>]*?data-(stamp|badge)="([^"]+)"[^>]*)>/g)].map(m=>el(m[2],m[3],(m[1].match(/class="([^"]*)"/)||['',''])[1],(m[1].match(/aria-pressed="([^"]*)"/)||[])[1]));
++ const view={set innerHTML(v){html=v;paint=parse(v);for(const x of [...obs])x.cb([])},get innerHTML(){return html}};
++ const all=()=>[...paint,...extra];
++ const document={body:{},querySelectorAll:s=>{if(s==='.is-new')return all().filter(e=>e.classList.contains('is-new'));const m=s.match(/^\[data-(stamp|badge)="([^"]+)"\]$/);return m?all().filter(e=>e.kind===m[1]&&e.id===m[2]):[]}};
++ class MutationObserver{constructor(cb){this.cb=cb}observe(){obs.add(this)}disconnect(){obs.delete(this)}}
++ const setTimeout=(f,ms)=>{timers.push({f,due:now+ms,done:false});return timers.length};
++ const run=ms=>{const to=t0+ms;for(;;){const t=timers.filter(x=>!x.done&&x.due<=to).sort((a,b)=>a.due-b.due)[0];if(!t)break;t.done=true;now=t.due;t.f()}now=to};
++ const mk=(p,n,extra)=>Array.from({length:n},(_,i)=>({id:p+i,nombre:p.toUpperCase()+' '+i,pueblo:'Caguas',...(extra||{})}));
++ const data={artesanos:mk('a',5),cigarros:mk('c',8,{artesano_id:'a0'}),places:mk('l',3)};const st={pasaporte:{artesanos:{},cigarros:{},lugares:{}}};
++ for(const id of o.stamped||[]){const [k,i]=id.split(':');st.pasaporte[k][i]='2026-10-29'}
++ const loc={hash:o.hash||'#/mihoja/pasaporte'};
++ const ctx={...TT(),view,document,MutationObserver,S:()=>st,D:()=>data,isStamp:(k,id)=>!!st.pasaporte[k][id],VBArt:{leaf:()=>''},esc:x=>String(x),fmtF:x=>x,hoy:()=>'2026-10-29',
++  subnav:k=>'<nav data-sub="'+k+'"></nav>',backupPanel:()=>'',sheet:()=>{},stampBtn:()=>'',toast:()=>{},closeSheet:()=>{},zonaSheet:()=>{},scrollTo:()=>{},scrollY:0,location:loc,
++  toggleStamp:(k,id)=>{const on=!st.pasaporte[k][id];if(on)st.pasaporte[k][id]='2026-10-29';else delete st.pasaporte[k][id];return on},
++  A:{mono:()=>'',artisanName:()=>'Art',artisanById:id=>data.artesanos.find(x=>x.id===id),route:()=>{log.push(['route',now-t0]);ctx.P.vPasaporte()}},
++  $:s=>document.querySelectorAll(s)[0]||null,$$:s=>document.querySelectorAll(s),CSS:{escape:x=>x},setTimeout,Date:{now:()=>now},
++  window:{matchMedia:q=>({matches:!!o.reduced&&q==='(prefers-reduced-motion: reduce)'}),LHB_I18N:{t:k=>k}}};
++ vm.createContext(ctx);vm.runInContext(code+'\n'+src.slice(ai,aj)+'\n;this.P={celebrate,vPasaporte,badgeIds,BADGES,ACTIONS}',ctx);
++ /* lo que se celebra ahora: id y reloj de cada elemento con la clase */
++ const news=()=>all().filter(e=>e.classList.contains('is-new')).map(e=>e.id+' '+e.delay).sort();
++ return {P:ctx.P,st,html:()=>html,log,obs,run,news,tap:arg=>ctx.P.ACTIONS.stamp(arg),repaint:()=>ctx.A.route(),
++  page:(...ids)=>{extra=ids.map(id=>el('stamp',id,'stampbtn','false'))},ons:id=>log.filter(x=>x[0]==='on'&&x[1]===id)}}
++test('LHB-74: el sello recién puesto y la insignia que gana se celebran una vez, de corrido aunque la vista se repinte; con menos movimiento, al quitar un sello o tarde, no hay celebración',()=>{
++ const ONE={stamped:['cigarros:c0']};/* ya hay un sello: Primer sello está ganada y no se mezcla */
++ /* un sello en el pasaporte, por el manejador de verdad: empieza al tocarlo, el repintado de los 350 ms lo sigue donde iba, y se quita solo */
++ let H=PASS74(ONE);H.P.vPasaporte();H.tap('cigarros:c1');
++ assert.deepEqual(H.news(),['cigarros:c1 0ms'],'el sello que se tocó, al momento');
++ H.run(350);assert.ok(H.log.some(x=>x[0]==='route'&&x[1]===350),'el pasaporte se repinta a los 350 ms');
++ assert.deepEqual(H.news(),['cigarros:c1 -350ms'],'el elemento nuevo sigue la animación donde iba, no la empieza otra vez');
++ H.run(900);assert.deepEqual(H.news(),[],'a los 900 ms se quita');assert.equal(H.obs.size,0,'y deja de mirar la vista');
++ H.repaint();assert.deepEqual(H.news(),[],'después de una vez, la siguiente pintura no la repite');
++ /* Codex ronda 2: los repintados mientras se anima no la cortan ni la reinician */
++ // dos sellos: A a los 0 ms, B a los 100; el repintado de A (350) y el de B (450) siguen los dos
++ H=PASS74(ONE);H.P.vPasaporte();H.tap('cigarros:c1');H.run(100);H.tap('cigarros:c2');
++ H.run(350);assert.deepEqual(H.news(),['cigarros:c1 -350ms','cigarros:c2 -250ms']);
++ H.run(450);assert.deepEqual(H.news(),['cigarros:c1 -450ms','cigarros:c2 -350ms'],'el repintado de B no corta a nadie');
++ H.run(950);assert.deepEqual(H.news(),['cigarros:c2 -350ms'],'la limpieza de A (900) no le quita la clase a B (marcada en la pintura de 450)');
++ H.run(1000);assert.deepEqual(H.news(),[]);
++ // la sincronización repinta a los 100 ms y el sello a los 350: una sola animación, de corrido
++ H=PASS74(ONE);H.P.vPasaporte();H.tap('cigarros:c1');H.run(100);H.repaint();assert.deepEqual(H.news(),['cigarros:c1 -100ms']);
++ H.run(350);assert.deepEqual(H.news(),['cigarros:c1 -350ms']);
++ // tres sellos (0, 100, 200 ms) y sus tres repintados (350, 450, 550): los tres siguen
++ H=PASS74(ONE);H.P.vPasaporte();H.tap('cigarros:c1');H.run(100);H.tap('cigarros:c2');H.run(200);H.tap('cigarros:c3');
++ H.run(550);assert.deepEqual(H.news(),['cigarros:c1 -550ms','cigarros:c2 -450ms','cigarros:c3 -350ms']);
++ // otro repintado cualquiera (450) después del del sello (350)
++ H=PASS74(ONE);H.P.vPasaporte();H.tap('cigarros:c1');H.run(450);H.repaint();assert.deepEqual(H.news(),['cigarros:c1 -450ms']);
++ for(const id of ['cigarros:c1'])assert.ok(H.ons(id).every(x=>x[2]+parseInt(x[3],10)===0),'cada marca cuenta desde el mismo comienzo: nunca vuelve a empezar');
++ /* la insignia que el sello gana (Catador con el quinto cigarro): empieza cuando la pintura la muestra ganada */
++ H=PASS74({stamped:['cigarros:c0','cigarros:c1','cigarros:c2','cigarros:c3']});H.P.vPasaporte();H.tap('cigarros:c4');
++ assert.deepEqual(H.news(),['cigarros:c4 0ms'],'la insignia todavía no sale ganada: espera');
++ H.run(350);assert.deepEqual(H.news(),['catador 0ms','cigarros:c4 -350ms'],'el repintado la muestra ganada y ahí empieza');
++ H.run(450);H.repaint();assert.deepEqual(H.news(),['catador -100ms','cigarros:c4 -450ms']);assert.ok(H.html().includes('class="badge on" data-badge="catador"'));
++ H.run(1250);assert.deepEqual(H.news(),[],'cada una se quita a los 900 ms de empezar');assert.equal(H.obs.size,0);
++ /* el primer sello gana Primer sello: los dos celebran */
++ H=PASS74();H.P.vPasaporte();H.tap('cigarros:c1');H.run(350);assert.deepEqual(H.news(),['cigarros:c1 -350ms','primer 0ms']);
++ /* menos movimiento: nada, ni en el pasaporte ni en el botón de otra página */
++ H=PASS74({reduced:true});H.P.vPasaporte();H.tap('cigarros:c1');H.run(350);assert.deepEqual(H.news(),[],'con menos movimiento no hay celebración');assert.equal(H.obs.size,0);
++ H=PASS74({reduced:true,hash:'#/c/c1'});H.page('cigarros:c1');H.tap('cigarros:c1');assert.deepEqual(H.news(),[],'tampoco en el botón');
++ /* en otra página (sin volver a pintar): el botón que se tocó, y se quita solo */
++ H=PASS74({hash:'#/c/c1',...ONE});H.page('cigarros:c1');H.tap('cigarros:c1');assert.deepEqual(H.news(),['cigarros:c1 0ms']);
++ H.run(900);assert.deepEqual(H.news(),[],'para sola');assert.equal(H.obs.size,0);
++ /* quitar un sello no se celebra y le quita la clase; volver a ponerlo empieza otra, que la limpieza de la primera no corta */
++ H=PASS74(ONE);H.P.vPasaporte();H.tap('cigarros:c1');H.run(100);H.tap('cigarros:c1');assert.deepEqual(H.news(),[],'quitado: nada');assert.equal(H.obs.size,0,'y nada queda esperando ni mirando la vista');
++ H.run(350);assert.deepEqual(H.news(),[]);H.run(400);H.tap('cigarros:c1');H.run(950);assert.deepEqual(H.news(),['cigarros:c1 -350ms'],'la limpieza de la primera (900) no corta la segunda (empezó a los 400, pintada a los 750)');
++ H.run(1300);assert.deepEqual(H.news(),[]);
++ /* una insignia que no se ve ganada en 2 s caduca (se ganó en otra página y no se volvió a tiempo) */
++ H=PASS74({hash:'#/c/c4',stamped:['cigarros:c0','cigarros:c1','cigarros:c2','cigarros:c3']});H.page('cigarros:c4');H.tap('cigarros:c4');
++ H.run(2000);assert.equal(H.obs.size,0,'a los 2 s ya no espera');H.P.vPasaporte();assert.deepEqual(H.news(),[],'caducada');
++ /* el manejador del sello la llama con lo que ya tiene (el sello, si se puso, y la insignia nueva) */
++ const hs=read('hoja.js');assert.ok(hs.includes('  celebrate(arg,on,nb[0]);\n')||hs.includes('  celebrate(arg,on,nb[0]);\r\n'),'el manejador llama a celebrate');
++ /* no se guarda nada: la celebración no toca el documento de Mi Hoja */
++ const blk=hs.slice(hs.indexOf('/* LHB-74: la celebración del sello'),hs.indexOf('function vPasaporte('));assert.ok(!/save\(|write\(|localStorage|LS\./.test(blk),'la celebración no guarda nada');
++ /* el CSS: una sola vuelta que para sola, con el reloj corrido de cada marca, nada que tape o quite el toque, y nada con menos movimiento */
++ const css=read('styles.css');const SEL='.stamp.is-new::after,.stampbtn.is-new svg,.badge.is-new .bico';
++ assert.ok(css.includes(SEL+'{animation:lhb-stamp .58s cubic-bezier(.2,.75,.3,1) var(--cel-at,0ms) 1}'),'0,58 s, una vez, desde donde iba');assert.ok(css.includes('@keyframes lhb-stamp{'));
++ assert.ok(css.includes('@media (prefers-reduced-motion:reduce){'+SEL+'{animation:none}}'),'con menos movimiento, sin animación');
++ assert.ok(!/is-new[^{]*\{[^}]*(pointer-events|infinite|position:fixed)/.test(css),'no tapa, no quita el toque y no se repite');
++});
++test('LHB-74: el pasaporte a color: cuatro colores de la paleta en ciclo, cada texto con su fondo pasa 4.5, y el color no es lo único que dice que está sellado',t=>{
++ const css=read('styles.css'),{val}=TOKENS65(css);
++ const quad=[['info-ink','info-soft'],['warm-ink','warm-soft'],['danger-ink','danger-soft'],['warn-ink','warn-soft']];
++ const rows=[];for(const [ink,soft] of quad){rows.push([ink,soft]);rows.push(['card',ink]);rows.push(['on-surface',soft]);rows.push(['muted',soft]);rows.push(['on-surface-2',soft])}
++ rows.push(['on-info','info']);rows.push(['on-warn','warn']);
++ const bad=rows.map(([f,b])=>[f,b,contrast65(val(f),val(b))]).filter(r=>r[2]<4.5).map(r=>r[0]+' sobre '+r[1]+' '+r[2].toFixed(2));
++ t.diagnostic('pares medidos: '+rows.length+', no pasan: '+bad.length);assert.deepEqual(bad,[]);
++ /* el ciclo: sellos e insignias ganadas, en las cuatro posiciones, cada una con su tinta y su fondo */
++ const nth=['',':nth-child(4n+2)',':nth-child(4n+3)',':nth-child(4n)'];
++ quad.forEach(([ink,soft],i)=>{assert.ok(css.includes('.stamps .stamp'+nth[i]+'[aria-pressed="true"]{'+(i?'border-color:':'border:2px solid ')+'var(--'+ink+');background:var(--'+soft+')}'),'sello '+i);
++  assert.ok(css.includes('.stamps .stamp'+nth[i]+'[aria-pressed="true"] span{color:var(--'+ink+')}'));assert.ok(css.includes('.stamps .stamp'+nth[i]+'[aria-pressed="true"]::after{background:var(--'+ink+');color:var(--card)}'));
++  assert.ok(css.includes('.badges .badge.on'+nth[i]+'{background:var(--'+soft+');border-color:var(--'+ink+')}'),'insignia '+i);assert.ok(css.includes('.badges .badge.on'+nth[i]+' span{color:var(--'+ink+')}'))});
++ assert.equal(new Set(quad.map(q=>val(q[0]))).size,4,'cuatro tintas distintas');
++ assert.ok(css.includes('.pass-hero{background:var(--info);border-color:var(--info-ink)}')&&css.includes('.pass-hero h2,.pass-hero p{color:var(--on-info)}'),'la portada en celeste con su texto');
++ /* el color no es lo único: sellado dice Sellado el... y lleva la marca; la insignia dice Lograda */
++ const ES=I18N().T.es,H=PASS74({stamped:['cigarros:c0']});H.P.vPasaporte();const h=H.html();
++ const sb=(h.match(/<button type="button" class="stamp" data-stamp="cigarros:c0" aria-pressed="true">[^]*?<\/button>/)||[''])[0];
++ assert.ok(sb.includes('<span>'+ES['h.selladoEl'].replace('{d}','2026-10-29')+'</span>'),'sellado: aria-pressed y su texto, Sellado el...');
++ const bd=(h.match(/<div class="badge on" data-badge="primer"[^]*?<\/span><\/div>/)||[''])[0];assert.ok(bd.includes('<span>'+ES['h.lograda']+'</span>'),'la insignia ganada dice Lograda');
++});
+
+2026-10-29T07:46:30.128566Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T07:46:31.223123Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] Passing scenarios alone do not establish closure. I’ll check the corrected diff against the prior rejection, then examine record ownership, reduced motion, cleanup, and observer cost. I will not edit files or load skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Content evidence/lhb-74-review-brief-r1.txt, evidence/lhb-74-review-brief-r2.txt, evidence/lhb-74-review-r1.txt, evidence/lhb-74-review-r2.txt' in C:\Users\Owner\lhb-65-wt
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'git status --short; git diff 2ff4293 HEAD --stat; git diff --stat; Get-Content AGENTS.md' in C:\Users\Owner\lhb-65-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T07:46:39.497711Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+2026-10-29T07:46:39.497716Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Content C:/Users/Owner/Documents/Codex/PRE_ENGINE_CONTROL_METHODOLOGY.md' in C:\Users\Owner\lhb-65-wt
+2026-10-29T07:46:39.765702Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The shell failed with `helper_unknown_error`; the Node fallback works. The corrected code and tests are present on `facelift`. I’m checking lifecycle gaps that the listed scenarios may miss, especially preference changes and overlapping badge records.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The round 2 repaint defect is closed by the carried animation clock, and all three LHB-74 tests pass. I reproduced a separate ownership defect: losing and re-earning Catador through different stamps creates two records for the same badge. The old record gives the new badge an expired animation offset, then clears its class.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The new badge failure disappears when records are deduplicated by selector in memory; no files were changed. The observer is bounded, but can remain connected for almost 2.9 seconds if a waiting badge starts near its 2-second expiry. The full suite finished with 326 passes, five sandbox-related failures, and one skip.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] **P2, blocking: re-earning a badge through another stamp reuses the old celebration’s clock and cleanup.**
+
+**File/symbol:** [site/hoja.js:709](C:/Users/Owner/lhb-65-wt/site/hoja.js:709), `celebrate()`, `celMark()`, `celDrop()`.
+
+**Claim versus artifact:** independent celebrations require independent ownership. Records are deduplicated only by stamp argument, `filter(c=>c.arg===arg)`, but different stamps can create records sharing `[data-badge="catador"]`. Both records then mark and clear that same element.
+
+[Certain] Reproduced through the real `ACTIONS.stamp()` and passport renderer:
+
+| Time | Action/result |
+|---|---|
+| 0 ms | With four cigar stamps, add `c4`. |
+| 350 ms | Catador starts celebrating. |
+| 400 ms | Remove `c0`, losing Catador. |
+| 800 ms | Add `c5`, earning Catador again. |
+| 1,150 ms | Repaint marks Catador with **`-800ms`**, inherited from its old record. The 580 ms animation is already exhausted. |
+| 1,250 ms | The old record’s cleanup removes the new celebration’s class. |
+
+[Certain] Deduplicating badge records by selector in memory changes the second celebration to `0ms` and prevents the old cleanup from removing it. Fix badge ownership and add this regression before merge.
+
+[Certain] **CONCUR: the round 2 repaint finding is closed.** The handler-driven tests now preserve elapsed time through stamp, sync, consecutive-stamp, and unrelated repaints. The original round 1 cleanup defect remains closed for distinct stamp selectors.
+
+[Certain] Other checks:
+
+- The observer does not observe its own class/style writes, preventing a self-generated mutation loop. Timers are bounded. A badge starting just before expiry can keep observation active for almost **2.9 seconds**, rather than approximately two.
+- All three LHB-74 tests pass, including profile hashes and 22 contrast pairs. Server handlers are unchanged; v103 and all 21 cache pins agree.
+- Full suite: **326 passed, five failed, one skipped**. Four failures involve denied Python execution; one involves denied temporary-directory creation.
+- Mid-visit reduced motion suppresses animation through CSS. Without a mutation, the JavaScript record survives until cleanup; live preference-toggle replay and browser input checks remain **NOT VERIFIED** because browser access was unavailable.
+- I made no edits. A concurrent LHB-75 test addition appeared during review and was excluded.
+
+VERDICT: BLOCK
+tokens used
+112,257
+[Certain] **P2, blocking: re-earning a badge through another stamp reuses the old celebration’s clock and cleanup.**
+
+**File/symbol:** [site/hoja.js:709](C:/Users/Owner/lhb-65-wt/site/hoja.js:709), `celebrate()`, `celMark()`, `celDrop()`.
+
+**Claim versus artifact:** independent celebrations require independent ownership. Records are deduplicated only by stamp argument, `filter(c=>c.arg===arg)`, but different stamps can create records sharing `[data-badge="catador"]`. Both records then mark and clear that same element.
+
+[Certain] Reproduced through the real `ACTIONS.stamp()` and passport renderer:
+
+| Time | Action/result |
+|---|---|
+| 0 ms | With four cigar stamps, add `c4`. |
+| 350 ms | Catador starts celebrating. |
+| 400 ms | Remove `c0`, losing Catador. |
+| 800 ms | Add `c5`, earning Catador again. |
+| 1,150 ms | Repaint marks Catador with **`-800ms`**, inherited from its old record. The 580 ms animation is already exhausted. |
+| 1,250 ms | The old record’s cleanup removes the new celebration’s class. |
+
+[Certain] Deduplicating badge records by selector in memory changes the second celebration to `0ms` and prevents the old cleanup from removing it. Fix badge ownership and add this regression before merge.
+
+[Certain] **CONCUR: the round 2 repaint finding is closed.** The handler-driven tests now preserve elapsed time through stamp, sync, consecutive-stamp, and unrelated repaints. The original round 1 cleanup defect remains closed for distinct stamp selectors.
+
+[Certain] Other checks:
+
+- The observer does not observe its own class/style writes, preventing a self-generated mutation loop. Timers are bounded. A badge starting just before expiry can keep observation active for almost **2.9 seconds**, rather than approximately two.
+- All three LHB-74 tests pass, including profile hashes and 22 contrast pairs. Server handlers are unchanged; v103 and all 21 cache pins agree.
+- Full suite: **326 passed, five failed, one skipped**. Four failures involve denied Python execution; one involves denied temporary-directory creation.
+- Mid-visit reduced motion suppresses animation through CSS. Without a mutation, the JavaScript record survives until cleanup; live preference-toggle replay and browser input checks remain **NOT VERIFIED** because browser access was unavailable.
+- I made no edits. A concurrent LHB-75 test addition appeared during review and was excluded.
+
+VERDICT: BLOCK

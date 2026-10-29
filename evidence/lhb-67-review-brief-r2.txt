@@ -1,0 +1,32 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). The diff below is origin/facelift-f1c..HEAD for site/ and test/: only this ticket (LHB-68 is the base and was reviewed separately). This is round 2 of a TIER 2 review.
+
+Ticket LHB-67 (M7-F1b): a literal-color audit of the app screens (site/styles.css, app.js, hoja.js, cuenta.js) after the move to a light theme with semantic tokens. Pinned:
+- every color literal becomes a token;
+- a literal that stays needs a one-line reason in an allowlist in the test;
+- every image of the flag uses the celeste #1EA8D7 (owner rule).
+The round 1 brief (evidence/lhb-67-review-brief-r1.txt) describes the whole change.
+
+Round 1 (evidence/lhb-67-review-r1.txt) blocked on one finding and made two non-blocking notes. The fixes, in the commit after 669b1ce:
+
+1. Blocking: the scan missed URL-encoded colors (%23RRGGBB inside a data-URI SVG). The empty-state flag (.empty::before) still used #5FB4E5 and #E92A2F.
+   - LIT67 now matches (?:#|%23)[0-9a-fA-F]{3,8}.
+   - The empty-state flag now uses %231EA8D7 (celeste, --flag-blue) and %23ED0000 (--flag-red).
+   - The scan then also found the splash's leaf drawing (.splash::before,.splash::after, another data-URI SVG). It is allowlisted as art, because an SVG in a data URI cannot read the page's variables.
+   - The second LHB-67 test decodes the .empty SVG and asserts it holds the --flag-blue and --flag-red values and none of #5FB4E5, #0050F0 or #E92A2F.
+   - The old v12 test pinned %235FB4E5 and %23E92A2F in .empty. It now pins the flag colors, per the owner rule.
+   - The splash flag in index.html still uses #5FB4E5. index.html is outside this ticket's scope, and LHB-72 removes that legacy splash.
+2. Non-blocking, done: tk() returns the --on-surface value (#263723, a mirror entry checked against the token) when a token is empty. shareCard catches a rejected cardBlob, so the existing "could not make the image" message shows.
+3. Non-blocking, done: the SVG-fill mirrors are now token references, not literals. I measured that Chrome resolves var() in an inline SVG fill attribute (a rect with fill="var(--x)" painted pure red, 255,0,0).
+   - LEAFC = {lounge:'var(--danger)', venta:'var(--info)'}: the map pins, the list leaves, the legend and the leaf burst.
+   - The unearned badge leaf is var(--line).
+   - The zone badge uses var(--flag-red) for its --bc and its leaf.
+   - Those mirror entries left ALLOW67. The only mirror left is the tk() fallback.
+
+Evidence:
+- evidence/lhb-67-mutations-r1fix.out: 18 of 18 red. New: H16 (empty flag back to #5FB4E5), H17 (an encoded color in a new data URI), H18 (the unearned leaf back to a literal). H6 is now the tk() fallback drifting from its token.
+- evidence/lhb-67-literals-counts-r1fix.txt: counts against the facelift base 373833a.
+- evidence/lhb-67-tests-r1fix.txt: full suite, 318 pass, 0 fail, 1 skipped.
+
+The service worker stays at lhb-v93 (bumped in round 1). v93 has never shipped beyond the staged preview, so these further changes to the same cached files ride the same bump.
+
+Check that the round 1 finding is closed (any other encoded or otherwise unusual color syntax the scan still misses, for example rgb() without the a, hsl(), named colors in style attributes, or colors built from strings in JS), that var() in these inline SVG fills works wherever VBArt.leaf output is used (inside Leaflet divIcons, the legend, the badge row), and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

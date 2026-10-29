@@ -95,7 +95,7 @@ function wheel(sel,key){const N=WHEEL.length,R=150,r0=48,cx=160,cy=160;const pt=
  return `<div class="wheel-wrap"><svg class="wheel" viewBox="0 0 320 320" role="group" aria-label="${tt('h.ruedaDeSaboresToca')}">${segs}<circle cx="160" cy="160" r="42" class="whub"/><text x="160" y="157" text-anchor="middle" class="whub-n">${sel.length}</text><text x="160" y="176" text-anchor="middle" class="whub-t">${sel.length===1?tt('h.sabor'):tt('h.sabores')}</text></svg></div>`}
 function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{const k=g.dataset.wk,id=g.dataset.w;const cur=get(k);set(k,cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);rerender(k,id)};g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})})}
 /* inl: dentro de un botón (LHB-61) va en span, que un botón no puede llevar un div */
-const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'#dde3dc'}">${esc(WN(t))}</span>`).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
+const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'var(--card-2)'}">${esc(WN(t))}</span>`).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
 /* ---------- hoja de acciones (sheet) ---------- */
 let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
 let owed=false; /* LHB-64: se abrió una hoja y el foco todavía no ha vuelto */
@@ -126,10 +126,10 @@ document.addEventListener('keydown',e=>{if(e.key!=='Escape'&&e.key!=='Tab')retur
  const first=fs[0],last=fs[fs.length-1],at=document.activeElement;
  if(!el.contains(at)){e.preventDefault();(e.shiftKey?last:first).focus()}else if(e.shiftKey&&at===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&at===last){e.preventDefault();first.focus()}});
 window.addEventListener('hashchange',closeSheet);
-const MENU=[['#/catalogo',tt('cat.eyebrow'),tt('h.lasVitolasHechasEn')],['#/artesanos',tt('arts.eyebrow'),tt('h.manosBoricuas')],['#/lugares',tt('lug.eyebrow'),tt('h.loungesYPuntosDe')],['#/eventos',tt('tile.ev'),tt('h.calendarioRsvpYHumo')],['#/mihoja',tt('h.miHoja'),tt('h.humidorDiarioPasaporteY')],['#/cata',tt('tile.cata'),tt('h.pasoAPasoCon')],['#/maridajes',tt('tile.mar'),tt('h.ronYCafeDe')],['#/podcast',tt('h.escuchaEnCigarsPodcast'),tt('h.lanzamientosResenasYCultura')],['#/buscar',tt('cat.search'),tt('h.enTodaLaApp')]];
 function openSheet(kind,arg){
  if(kind==='instalar'){const ios=arg==='ios'||arg==='ipad';sheet(`<h2 class="sheet-h">${tt('h.anadirATuPantalla')}</h2><p class="inst-p">${ios?`${tt('h.tocaElBoton')} <b>${tt('h.compartir')}</b> ${tt('h.subeYLuego',{a:arg==='ipad'?tt('h.arriba'):tt('h.abajo')})} <b>${tt('h.anadirAPantallaDe')}</b>.`:`${tt('h.abreElMenuDel')}<b>⋮</b> ${tt('h.o')} <b>⋯</b>${tt('h.yToca')} <b>${tt('h.instalarApp')}</b> ${tt('h.o')} <b>${tt('h.anadirAPantallaDe')}</b>.`}</p><button type="button" class="lbtn buy inst-ok" data-close>${tt('h.entendido')}</button>`,tt('h.anadirATuPantalla'));return}
- if(kind==='menu'){sheet(`<h2 class="sheet-h">${tt('h.menu')}</h2><nav class="menu-list" aria-label="${tt('h.menu')}">${MENU.map(([h,t,s])=>`<a href="${h}" class="row"><div><div class="t">${t}</div><div class="s">${s}</div></div><span class="go">›</span></a>`).join('')}</nav>`,tt('h.menu'));return}
+ /* LHB-71: el menú sale de la tabla de rutas de app.js (agrupado, con íconos y la página actual marcada) */
+ if(kind==='menu'){sheet(A.menuHTML(),tt('h.menu'));return}
  if(kind==='plus'){sheet(`<h2 class="sheet-h">${tt('h.queQuieresHacer')}</h2><div class="menu-list">
   <a href="#/cata" class="row big"><span class="ico">${VBArt.leaf('#8fd162')}</span><div><div class="t">${tt('h.empezarUnaCataGuiada')}</div><div class="s">${tt('h.pasoAPasoSe')}</div></div></a>
   <button type="button" class="row big" data-sheet="humidor"><span class="ico">${VBArt.leaf('#ffd27a')}</span><div><div class="t">${tt('h.anadirAlHumidor')}</div><div class="s">${tt('h.delCatalogoOUno')}</div></div></button>
@@ -322,7 +322,7 @@ function onboardingForm(submit,picture,mode,init,check){const marcas=[...new Set
  if(edm){$('#obH').value=pf.handle||'';$('#obFn').value=pf.first_name||'';$('#obLn').value=pf.last_name||'';$('#obGM').checked=pf.gender==='M';$('#obGF').checked=pf.gender==='F';$('#obD').value=pf.birth_date||'';$('#obB').value=pf.bio||'';$('#obM').value=pf.favorite_brand||'';const n=$('#obBn');if(n)n.textContent=[...String(pf.bio||'')].length}
  /* un error del formulario tiene que verse: caja roja con borde, texto grande, y la pantalla baja hasta ella (en un teléfono quedaba debajo del botón y pasaba desapercibido) */
  const err=m=>{const e=$('#obErr');if(!e)return;e.textContent=m||'';e.hidden=!m;
-  if(e.style)e.style.cssText=m?'border:2px solid var(--flam);background:rgba(208,25,46,.2);color:var(--cream);padding:12px 14px;border-radius:12px;font-size:16px;font-weight:600;line-height:1.4;margin:14px 0':'';
+  if(e.style)e.style.cssText=m?'border:2px solid var(--danger);background:var(--danger-soft);color:var(--on-surface);padding:12px 14px;border-radius:12px;font-size:16px;font-weight:600;line-height:1.4;margin:14px 0':'';
   if(m&&typeof e.scrollIntoView==='function')e.scrollIntoView({block:'center',behavior:'smooth'})};
  /* LHB-49: la foto es obligatoria. Viene la de la cuenta (Google, Apple) si la hay; la persona puede escoger otra, que se achica aquí antes de subirla a su cuenta */
  let own=false;
@@ -389,6 +389,7 @@ const ACTIONS={
   const before=badgeIds(),r0=ruta();const on=toggleStamp(k,id),r1=ruta(),nz=r1.ok.find(x=>!r0.ok.includes(x));RLIT=r1.lit.find(x=>!r0.lit.includes(x));if(RLIT&&(st&&st.closest('.rl')))closeSheet();if(nz)setTimeout(()=>zonaSheet(nz),1500);
   $$(`[data-stamp="${CSS.escape(arg)}"]`).forEach(b=>{b.setAttribute('aria-pressed',on);const sp=b.querySelector(':scope>span:last-child');if(sp)sp.textContent=b.classList.contains('stamp')?(on?tt('h.selladoEl',{d:fmtF(hoy())}):tt('h.sinSello')):(on?tt('h.sellado'):tt('h.sellarPasaporte'))});
   const nb=badgeIds().filter(x=>!before.includes(x));if(nb.length){const b=BADGES.find(x=>x.id===nb[0]);toast(tt('h.nuevaInsignia')+b.n)}else toast(on?tt('h.selloPuestoEnTu'):tt('h.selloQuitado'));
+  celebrate(arg,on,nb[0]);
   if(/^#\/(mihoja\/pasaporte|lugares\/ruta)/.test(location.hash))setTimeout(()=>{const y=scrollY;A.route();scrollTo(0,y)},350)},
  rate(arg){const [id,n]=split2(arg);const v=+n;if(!id||id in Object.prototype||!Number.isInteger(v)||v<1||v>5)return;setRating(id,v);keepScroll()},
  humidor(arg){openSheet('humidor',txt(arg)?arg:undefined)}
@@ -701,10 +702,30 @@ const zSello=(k,ok,sub)=>`<div class="zs${ok?' ok':''}"><svg viewBox="-6-6 12 12
 function vRuta(){const {ts,z,lit}=ruta();return `<section class="ruta"><div class="ruta-h"><h2>${tt('h.laRutaDelTabacoH')}</h2><p><b>${lit.length}</b> ${tt('h.dePueblos',{a:ts.length})}</p></div><p class="rhint">${tt('h.sellaArtesanosCigarrosO')}</p>
  <div class="map-wrap rmw"><div id="map" role="region" aria-label="${tt('h.mapaDeLaRuta',{a:lit.length,b:ts.length})}"></div></div>
  <div class="zonas">${Object.keys(ZN).map(k=>{const l=z[k]||[],c=l.filter(t=>t.on).length;return `<div class="zona">${zSello(k,c==l.length,c==l.length?tt('h.completa'):c+tt('h.de')+l.length)}<div class="zts">${l.map(t=>`<button type="button" class="zt${t.on?' on':''}" data-town="${t.n}">${t.n}</button>`).join('')}</div></div>`}).join('')}</div></section>`}
-function rutaCard(){const {ts,lit}=ruta();return `<a class="ruta-card" href="#/lugares/ruta"><span class="bico">${VBArt.leaf(lit.length?'#8fd162':'#2c5a3d')}</span><div><b>${tt('h.laRutaDelTabaco')}</b><small>${tt('h.dePueblosEncendidos',{a:lit.length,b:ts.length})}</small><span>${tt('h.verMiRutaDel')}</span></div></a>`}
+function rutaCard(){const {ts,lit}=ruta();return `<a class="ruta-card" href="#/lugares/ruta"><span class="bico">${VBArt.leaf(lit.length?'#8fd162':'var(--line)')}</span><div><b>${tt('h.laRutaDelTabaco')}</b><small>${tt('h.dePueblosEncendidos',{a:lit.length,b:ts.length})}</small><span>${tt('h.verMiRutaDel')}</span></div></a>`}
 function townSheet(n){const t=ruta().ts.find(x=>x.n==n);if(!t)return;const it=[...t.it].sort((a,b)=>b.on-a.on),c=it.filter(i=>i.on).length,L={artesanos:tt('f.artesano'),cigarros:tt('h.cigarro'),lugares:tt('h.lugar')};
  sheet(`<h2 class="sheet-h">${t.on?'🌿 ':''}${esc(n)}</h2><p class="rsub">${tt('h.zonaDeSellados',{a:ZN[t.z],b:c,c:it.length,d:c<it.length?` ${tt('h.teFaltan',{a:it.length-c})}`:''})}</p><div class="rl">${it.map(i=>`<div class="ri"><div><b>${esc(i.x.nombre)}</b><small>${L[i.k]}${i.on?tt('h.sellado2')+fmtF(S().pasaporte[i.k][i.x.id]):tt('h.teFalta')}</small></div>${stampBtn(i.k,i.x.id)}</div>`).join('')}</div>`,n)}
 function zonaSheet(k){const l=ruta().z[k];sheet(`<div class="zcel">${zSello(k,1,tt('h.zonaCompleta'))}<h2 class="sheet-h">${tt('h.zonaCompleta2',{a:ZN[k]})}</h2><p>${tt('h.sellasteLosPueblosEste',{a:l.length,b:l.map(t=>t.n).join(', ')})}</p><button type="button" class="btn" data-close>${tt('h.wepa')}</button></div>`,tt('h.zonaCompleta'))}
+/* LHB-74: la celebración del sello. El sello recién puesto (y la insignia que gana) se anima una vez y para solo; con menos movimiento no hay nada.
+   No se guarda nada: sale del sello que se acaba de poner. La animación no tapa nada ni quita el toque.
+   La vista se vuelve a pintar mientras se anima (el pasaporte a los 350 ms, la sincronización, el idioma, otro sello): cada elemento nuevo se
+   marca otra vez con el reloj corrido (--cel-at negativo), así la animación sigue donde iba y ni empieza de nuevo ni se corta (Codex ronda 2).
+   El sello empieza al tocarlo (ya sale puesto); la insignia, en la primera pintura que la muestra ganada; lo que no empieza en 2 s, caduca.
+   Cada elemento tiene un solo dueño: un registro nuevo para el mismo elemento (la misma insignia ganada otra vez con otro sello) deja
+   el viejo, con su reloj y su limpieza; y solo se marca lo que está listo (sello puesto, insignia ganada), nunca lo que se perdió (Codex ronda 3) */
+const CEL_OFF=900,CEL_WAIT=2000,LIVE=new Set();let celObs=null;
+const lessMotion=()=>!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+function celDrop(c){LIVE.delete(c);document.querySelectorAll(c.sel).forEach(e=>e.classList.remove('is-new'));if(!LIVE.size&&celObs){celObs.disconnect();celObs=null}}
+function celMark(){if(lessMotion()){[...LIVE].forEach(celDrop);return}const now=Date.now();
+ for(const c of [...LIVE])for(const e of document.querySelectorAll(c.sel)){if(!c.ready(e))continue;
+  if(c.start==null){c.start=now;setTimeout(()=>{if(LIVE.has(c))celDrop(c)},CEL_OFF)}
+  if(!e.classList.contains('is-new')){e.style.setProperty('--cel-at',(c.start-now)+'ms');e.classList.add('is-new')}}}
+function celebrate(arg,on,badge){[...LIVE].filter(c=>c.arg===arg).forEach(celDrop);if(!on||lessMotion())return;
+ const add=(sel,ready)=>{[...LIVE].filter(c=>c.sel===sel).forEach(celDrop);const c={arg,sel,ready,start:null};LIVE.add(c);setTimeout(()=>{if(LIVE.has(c)&&c.start==null)celDrop(c)},CEL_WAIT)};
+ add(`[data-stamp="${CSS.escape(arg)}"]`,e=>e.getAttribute('aria-pressed')==='true');
+ if(badge)add(`[data-badge="${CSS.escape(badge)}"]`,e=>e.classList.contains('on'));
+ if(!celObs&&typeof MutationObserver==='function'){celObs=new MutationObserver(celMark);celObs.observe(document.body,{childList:true,subtree:true})}
+ celMark()}
 function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got=badgeIds();const pct=all.total?Math.round(c.total*100/all.total):0;
  const sec=(k,title,items,name,sub)=>`<div class="section-title"><h2>${title}</h2><span class="count">${tt('h.de2',{a:c[k],b:all[k]})}</span></div><div class="pbar" role="progressbar" aria-label="${tt('h.de3',{a:title,b:c[k],c:all[k]})}" aria-valuemin="0" aria-valuemax="${all[k]}" aria-valuenow="${c[k]}"><i style="width:${all[k]?c[k]*100/all[k]:0}%"></i></div>
   <div class="stamps">${items.map(x=>{const on=isStamp(k,x.id);return `<button type="button" class="stamp" data-stamp="${k}:${esc(x.id)}" aria-pressed="${on}">${A.mono(name(x),44)}<b>${esc(name(x))}</b><small>${esc(sub(x)||'')}</small><span>${on?tt('h.selladoEl',{d:fmtF(S().pasaporte[k][x.id])}):tt('h.sinSello')}</span></button>`}).join('')}</div>`;
@@ -712,7 +733,7 @@ function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got
  <section class="pass-hero"><div class="pass-ring" style="--p:${pct}" role="img" aria-label="${tt('h.delPasaporte',{a:pct})}"><b>${pct}%</b><span>${tt('h.de2',{a:c.total,b:all.total})}</span></div><div><h2>${tt('h.pasaporteBoricuaH')}</h2><p>${tt('h.marcaLosArtesanosQue')}</p></div></section>
  ${rutaCard()}
  <div class="section-title"><h2>${tt('h.insignias')}</h2><span class="count">${tt('h.de2',{a:got.length+ru.ok.length,b:BADGES.length+6})}</span></div>
- <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'#2c5a3d')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:#ED0000"><div class="bico">${VBArt.leaf(on?'#ED0000':'#2c5a3d')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
+ <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" data-badge="${b.id}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:var(--flag-red)"><div class="bico">${VBArt.leaf(on?'var(--flag-red)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
  ${sec('artesanos',tt('arts.eyebrow'),d.artesanos,x=>x.nombre,x=>x.pueblo)}
  ${sec('cigarros',tt('h.cigarros2'),d.cigarros,x=>x.nombre,x=>A.artisanName(x))}
  ${sec('lugares',tt('lug.eyebrow'),d.places,x=>x.nombre,x=>x.pueblo)}
@@ -972,29 +993,31 @@ function drawLeaf(x,cx,cy,sc,rot,op){x.save();x.translate(cx,cy);x.rotate(rot);x
  x.strokeStyle='#1e5a2d';x.lineWidth=2.4;x.beginPath();for(let y=70;y<=378;y+=22){const w=34+Math.min(8,(y-70)/30);x.moveTo(60,y);x.lineTo(60-w,y-14);x.moveTo(60,y);x.lineTo(60+w,y-14)}x.stroke();x.restore()}
 function rr(x,X,Y,W,H,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+H,r);x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath()}
 function wrap(x,t,maxW){const w=String(t).split(/\s+/);const lines=[];let cur='';for(const s of w){const n=cur?cur+' '+s:s;if(x.measureText(n).width>maxW&&cur){lines.push(cur);cur=s}else cur=n}if(cur)lines.push(cur);return lines}
+/* LHB-67: la imagen se pinta con los tokens de la app, leídos al pintarla */
+const tk=n=>{let v='';try{v=getComputedStyle(document.documentElement).getPropertyValue('--'+n).trim()}catch(e){}return v||'#263723'};
 async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
  try{await Promise.all(['64px Shrikhand','600 36px Figtree','700 30px Figtree'].map(f=>document.fonts.load(f)))}catch(e){}
- const g=x.createLinearGradient(0,0,W*.4,H);g.addColorStop(0,'#1f5a36');g.addColorStop(.55,'#123a24');g.addColorStop(1,'#0b1d12');x.fillStyle=g;x.fillRect(0,0,W,H);
+ const g=x.createLinearGradient(0,0,W*.4,H);g.addColorStop(0,tk('surface-2'));g.addColorStop(.55,tk('surface'));g.addColorStop(1,tk('card-2'));x.fillStyle=g;x.fillRect(0,0,W,H);
  drawLeaf(x,70,250,1.25,.5,.4);drawLeaf(x,1010,1120,1.35,-2.6,.33);
- const fb=[['#0050f0',.18],['#ed0000',.27],['#f8f8f4',.1],['#ed0000',.27],['#f8f8f4',.04],['#ed0000',.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});
- x.textBaseline='alphabetic';x.font='64px Shrikhand';x.fillStyle='#f8f8f4';const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,120);x.fillStyle='#8fd162';x.fillText('Boricua',sx+w1,120);
- x.font='600 24px Figtree';x.fillStyle='#8fb8ff';x.textAlign='center';x.fillText(tt('h.hechoEnPuertoRico'),W/2,162);x.textAlign='left';
+ const fb=[[tk('flag-blue'),.18],[tk('flag-red'),.27],[tk('flag-white'),.1],[tk('flag-red'),.27],[tk('flag-white'),.04],[tk('flag-red'),.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});
+ x.textBaseline='alphabetic';x.font='64px Shrikhand';x.fillStyle=tk('on-surface');const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,120);x.fillStyle=tk('accent-ink');x.fillText('Boricua',sx+w1,120);
+ x.font='600 24px Figtree';x.fillStyle=tk('info-ink');x.textAlign='center';x.fillText(tt('h.hechoEnPuertoRico'),W/2,162);x.textAlign='left';
  const foto=(!c.yours&&window.LHB_FOTOS)?window.LHB_FOTOS[c.id]:null;let fimg=null;
  if(foto){fimg=new Image();fimg.src=foto.img;await new Promise(r=>{fimg.onload=r;fimg.onerror=()=>{fimg=null;r()}})}
  const img=new Image();if(!fimg){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(A.cigarSVG(c));await new Promise(r=>{img.onload=r;img.onerror=r})}
- x.save();x.translate(W/2,520);x.rotate(-.025);x.shadowColor='rgba(0,0,0,.45)';x.shadowBlur=30;x.shadowOffsetY=12;x.fillStyle='#fbfbf8';x.fillRect(-410,-300,820,640);x.shadowColor='transparent';
- if(fimg){x.fillStyle='#ffffff';x.fillRect(-380,-270,760,570);try{x.drawImage(fimg,-380,-205,760,380)}catch(e){}x.fillStyle='#5b5b5b';x.font='600 20px Figtree';x.textAlign='center';x.fillText(foto.credito+(foto.match==='linea'?tt('h.fotoDeLaLinea'):''),0,282);x.textAlign='left'}
- else{try{x.drawImage(img,-380,-270,760,570)}catch(e){x.fillStyle='#7fb0ff';x.fillRect(-380,-270,760,570)}}x.restore();
- x.fillStyle='#f8f8f4';x.font='68px Shrikhand';x.textAlign='center';let y=960;const nl=wrap(x,c.nombre,W-140).slice(0,2);if(nl.length>1){x.font='56px Shrikhand';y=930}nl.forEach((l,i)=>x.fillText(l,W/2,y+i*68));y+= (nl.length-1)*68;
- x.font='600 34px Figtree';x.fillStyle='#dde3dc';x.fillText([A.artisanName(c),c.pueblo].filter(Boolean).join(' · '),W/2,y+56);x.textAlign='left';
+ x.save();x.translate(W/2,520);x.rotate(-.025);x.shadowColor=tk('shadow-strong');x.shadowBlur=30;x.shadowOffsetY=12;x.fillStyle=tk('photo');x.fillRect(-410,-300,820,640);x.shadowColor='transparent';
+ if(fimg){x.fillStyle=tk('photo');x.fillRect(-380,-270,760,570);try{x.drawImage(fimg,-380,-205,760,380)}catch(e){}x.fillStyle=tk('muted');x.font='600 20px Figtree';x.textAlign='center';x.fillText(foto.credito+(foto.match==='linea'?tt('h.fotoDeLaLinea'):''),0,282);x.textAlign='left'}
+ else{try{x.drawImage(img,-380,-270,760,570)}catch(e){x.fillStyle=tk('card-2');x.fillRect(-380,-270,760,570)}}x.restore();
+ x.fillStyle=tk('on-surface');x.font='68px Shrikhand';x.textAlign='center';let y=960;const nl=wrap(x,c.nombre,W-140).slice(0,2);if(nl.length>1){x.font='56px Shrikhand';y=930}nl.forEach((l,i)=>x.fillText(l,W/2,y+i*68));y+= (nl.length-1)*68;
+ x.font='600 34px Figtree';x.fillStyle=tk('on-surface-2');x.fillText([A.artisanName(c),c.pueblo].filter(Boolean).join(' · '),W/2,y+56);x.textAlign='left';
  const vs=c.vitolas||[];const specs=[[tt('h.cardCapa'),(A.fx(c,'capa')||tt('notPub')).replace(/\s*\(.*?\)/g,'')],[tt('h.cardFortaleza'),c.fortaleza?A.fortLabel(c.fortaleza):tt('notPub')],[tt('h.cardVitola'),vs.length?vs[0]+(vs.length>1?' +'+(vs.length-1):''):tt('h.enVerificacion')]];
- const bw=300,gap=24,bx=(W-bw*3-gap*2)/2,by=y+96;specs.forEach(([k,v],i)=>{const X=bx+i*(bw+gap);x.fillStyle='rgba(23,58,38,.92)';rr(x,X,by,bw,110,18);x.fill();x.strokeStyle='#2c5a3d';x.lineWidth=2;x.stroke();
-  x.fillStyle='#8fb8ff';x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle='#f8f8f4';x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
- x.textAlign='center';x.fillStyle='#8fd162';x.font='700 30px Figtree';x.fillText('lahojaboricua.com',W/2,H-62);x.fillStyle='#b3c0b5';x.font='600 20px Figtree';x.fillText(tt('h.prototipoInformacionPublicaSujeta'),W/2,H-28);
+ const bw=300,gap=24,bx=(W-bw*3-gap*2)/2,by=y+96;specs.forEach(([k,v],i)=>{const X=bx+i*(bw+gap);x.fillStyle=tk('card');rr(x,X,by,bw,110,18);x.fill();x.strokeStyle=tk('line');x.lineWidth=2;x.stroke();
+  x.fillStyle=tk('info-ink');x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle=tk('on-surface');x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
+ x.textAlign='center';x.fillStyle=tk('accent-ink');x.font='700 30px Figtree';x.fillText('lahojaboricua.com',W/2,H-62);x.fillStyle=tk('muted');x.font='600 20px Figtree';x.fillText(tt('h.prototipoInformacionPublicaSujeta'),W/2,H-28);
  return new Promise(r=>cv.toBlob(b=>r(b),'image/png'))}
 async function shareCard(id){const c=A.cigarById(id);if(!c)return;
  const el=sheet(`<h2 class="sheet-h">${tt('h.compartirFicha')}</h2><div class="share-prev" id="shPrev"><p class="hint">${tt('h.preparandoLaImagen')}</p></div><div class="links" id="shBtns" hidden><button class="btn" type="button" id="shGo">${tt('h.compartir')}</button><button class="btn secondary" type="button" id="shDl">${tt('h.descargarPng')}</button></div>`,tt('h.compartirFicha'));
- const blob=await cardBlob(c);if(!blob){$('#shPrev',el).innerHTML='<p class="hint">'+tt('h.noPudeCrearLa')+'</p>';return}
+ const blob=await cardBlob(c).catch(()=>null);if(!blob){$('#shPrev',el).innerHTML='<p class="hint">'+tt('h.noPudeCrearLa')+'</p>';return}
  const name=`la-hoja-boricua-${c.id}.png`;const file=new File([blob],name,{type:'image/png'});const u=URL.createObjectURL(blob);
  $('#shPrev',el).innerHTML=`<img src="${u}" alt="${tt('h.fichaDeConEl',{a:esc(c.nombre)})}">`;$('#shBtns',el).hidden=false;
  const canFile=!!(navigator.canShare&&navigator.canShare({files:[file]}));if(!canFile)$('#shGo',el).textContent=navigator.share?tt('h.compartirEnlace'):tt('h.copiarEnlace');

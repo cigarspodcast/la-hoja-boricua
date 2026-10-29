@@ -1,0 +1,11 @@
+✖ LHB-68: l.css y u.css usan los tokens de la app con los mismos valores, sin un color suelto fuera de :root, y Fraunces con Figtree (4.4964ms)
+✖ LHB-68: los pares de texto y fondo de l.css y u.css pasan el contraste (los declarados y los que se pintan) (2.1104ms)
+ℹ lugares/l.css: 0 pares declarados y 0 pintados, 0 no pasan
+✔ LHB-68: cada página estática enlaza l.css (y ninguna trae otro estilo ni colores en línea) (20.2116ms)
+ℹ tests 3
+ℹ pass 1
+ℹ fail 2
+✖ failing tests:
+✖ LHB-68: l.css y u.css usan los tokens de la app con los mismos valores, sin un color suelto fuera de :root, y Fraunces con Figtree (4.4964ms)
+✖ LHB-68: los pares de texto y fondo de l.css y u.css pasan el contraste (los declarados y los que se pintan) (2.1104ms)
+rc 1

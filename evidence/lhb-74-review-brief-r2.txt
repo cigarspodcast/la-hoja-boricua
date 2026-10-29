@@ -1,0 +1,19 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 2 of a TIER 2 review of LHB-74 (M7-F5: passport color and the stamp celebration). The round 1 brief and your review are evidence/lhb-74-review-brief-r1.txt and evidence/lhb-74-review-r1.txt. The diff below is the whole ticket (base 2ff4293); the round 1 fix is commit c73d68a.
+
+Round 1 verdict: BLOCK, one P2 finding. celebrated() scheduled a cleanup that queried every .is-new on the page, so stamp A's timer removed stamp B's class about 100 ms into B's animation.
+
+What changed:
+- celebrated() only takes CELEB. A new settle(cel) runs at the end of vPasaporte, after view.innerHTML is set. It captures [...view.querySelectorAll('.is-new')] from that paint and removes the class from those elements only, after 900 ms. A later paint makes new elements, and its own settle handles them. The button path (another page) was already per element.
+- Test: in the PASS74 harness, the fake view now hands out one element object per is-new in each paint, and each paint makes new elements.
+  1. Stamp c1 and paint.
+  2. 800 ms later, stamp c2 and paint.
+  3. Fire the first timer: c2 is still celebrating.
+  4. Fire c2's own timer: c2's class is cleared.
+- Mutation L15 restores the page-wide cleanup and turns red: 15 of 15 red with a clean baseline (evidence/lhb-74-mutations.out).
+- site/sw.js goes from lhb-v101 to lhb-v102, because the preview at 45c7e49 served v101 with the round 0 hoja.js; 21 test pins move.
+- The real-browser capture was rerun at 390 px: 8 of 8 (evidence/m7-f5/shoot74.out).
+- The suite is 331 pass, 0 fail, 1 skipped (evidence/lhb-74-tests.txt).
+
+Check that the finding is closed, including a third stamp, a stamp put while a sync repaint (onApplied) or the 350 ms repaint is pending, and a repaint from any other cause while a celebration runs. Also check the cache bump and anything else in the full ticket diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

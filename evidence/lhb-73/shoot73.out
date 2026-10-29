@@ -1,0 +1,29 @@
+chrome pid 28612 for 390 by 844
+About: Ver intro offered, no intro on a deep link          PASS {"intro": false, "href": "/?intro=1#/acerca", "text": "Ver intro", "cred": true}
+   acerca-390x844.png
+menu from About marks About                                PASS ["#/acerca"]
+   menu-acerca-390x844.png
+credits: two entries with their links                      PASS {"items": ["Motor de la guagua Volkswagen Type 2_revving up2.wav de nhaudio Licencia: CC BY 4.0 Cambios: un fragmento recortado y filtrado, con un leve cambio de tono, el volumen que sube y baja, el paso de derecha a izquierda y la mezcla con el fondo.", "Fondo de naturaleza Jungle, Tropical birds and insects de myrinvp Licencia: CC0 1.0 Cambios: un fragmento recortado, filtrado y mezclado bajito. Se grabó en los Países Bajos: no es una grabación de Puerto Rico."], "links": ["https://callepomarrosas.com/", "https://freesound.org/people/nhaudio/sounds/332695/", "https://creativecommons.org/licenses/by/4.0/", "https://freesound.org/people/myrinvp/sounds/423711/", "https://creativecommons.org/publicdomain/zero/1.0/"], "endorse": true}
+   creditos-390x844.png
+credits: Volver goes to About                              PASS #/acerca
+Ver intro: the intro opens and the address is back on About PASS {"intro": true, "url": "/#/acerca"}
+   ver-intro-390x844.png
+reduced motion: no Ver intro, a note instead               PASS {"btn": false, "note": "Tu equipo pide menos movimiento o ahorrar datos, así que la intro no se muestra."}
+   acerca-menos-movimiento-390x844.png
+no script errors                                           PASS 
+chrome pid 28612 exited 0
+chrome pid 42828 for 768 by 1024
+About: Ver intro offered, no intro on a deep link          PASS {"intro": false, "href": "/?intro=1#/acerca", "text": "Ver intro", "cred": true}
+   acerca-768x1024.png
+menu from About marks About                                PASS ["#/acerca"]
+   menu-acerca-768x1024.png
+credits: two entries with their links                      PASS {"items": ["Motor de la guagua Volkswagen Type 2_revving up2.wav de nhaudio Licencia: CC BY 4.0 Cambios: un fragmento recortado y filtrado, con un leve cambio de tono, el volumen que sube y baja, el paso de derecha a izquierda y la mezcla con el fondo.", "Fondo de naturaleza Jungle, Tropical birds and insects de myrinvp Licencia: CC0 1.0 Cambios: un fragmento recortado, filtrado y mezclado bajito. Se grabó en los Países Bajos: no es una grabación de Puerto Rico."], "links": ["https://callepomarrosas.com/", "https://freesound.org/people/nhaudio/sounds/332695/", "https://creativecommons.org/licenses/by/4.0/", "https://freesound.org/people/myrinvp/sounds/423711/", "https://creativecommons.org/publicdomain/zero/1.0/"], "endorse": true}
+   creditos-768x1024.png
+credits: Volver goes to About                              PASS #/acerca
+Ver intro: the intro opens and the address is back on About PASS {"intro": true, "url": "/#/acerca"}
+   ver-intro-768x1024.png
+reduced motion: no Ver intro, a note instead               PASS {"btn": false, "note": "Tu equipo pide menos movimiento o ahorrar datos, así que la intro no se muestra."}
+   acerca-menos-movimiento-768x1024.png
+no script errors                                           PASS 
+chrome pid 42828 exited 0
+RESULT 14 of 14 checks pass

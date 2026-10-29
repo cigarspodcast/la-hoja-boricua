@@ -1,0 +1,19 @@
+You are reviewing one merge in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is the merge commit 6fe2e03 against its facelift parent 57ac0c1, limited to site/ and test/: it brings main's LHB-100 and LHB-101 (merged to main in PR #39 after a TIER 2 review that passed in round 3, evidence/lhb-100-review-r3.txt) onto facelift. TIER 1: one round.
+
+What LHB-100 and LHB-101 are on main: an inline guard in index.html shows a reload notice when the app fails to paint a view after its scripts load (or at 12 s); app.js says hello first and route() reports ok() after every view it paints; route() decodes the hash inside a try; hoja.js S() returns the empty state when a storage read throws. Read evidence/lhb-100-review-brief-r1.txt to r3 for the pinned decisions.
+
+How the merge differs from main, and why:
+- Facelift's router is the ROUTES table (LHB-71). Its route() now decodes inside a try and calls LHB_BOOT.ok() after (ROUTE_OF[r]||ROUTE_OF.catalogo).go(id).
+- LHB-72 removed the splash on facelift (markup, styles and code; a test says index.html never names one). So the guard keeps the notice and drops its splash handling: no out(), no splash removal on failure, no 10 s splash backstop. The LHB-100 test drops its splash checks and checks that the guard names no splash.
+- .boot-fail CSS is added beside facelift's styles; the intro dialog (z-index 120) sits above the notice (101).
+- The LHB-27 census reads the guard's keys; ROUTE101 slices app.js from const ROUTES=[ so the real route() runs with the real table, with stub views.
+- Cache lhb-v104 (and main's lhb-v105) to lhb-v106, 21 test pins.
+- Full suite on the merge: 334 pass, 0 fail, 1 skipped.
+
+Check in particular:
+- Is the conflict resolution correct: nothing of facelift lost, nothing of LHB-100/101 lost or misapplied on facelift's router?
+- Does removing the splash handling leave any failure path on facelift without the notice, or show the notice on a healthy facelift load (the intro, the menu sheet, the ROUTES aliases)?
+- Can the intro dialog hide the notice in a way that strands a visitor?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before it is staged).

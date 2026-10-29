@@ -1,0 +1,44 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is only this ticket (base 3c6a15f, the facelift commit before it). This is round 1 of a TIER 2 review.
+
+Ticket LHB-71 (M7-F3): a routes-driven menu with grouped destinations, icons, and the compact home. Pinned decisions:
+- Group the menu as Descubre, Tu experiencia, En comunidad, La app; a destination-specific icon each; a current-page marker. Keep the five tabs and the plus button.
+- The menu is GENERATED from the route table, so a new destination cannot be left out (the source design had a second hard-coded list; do not copy it). It includes Personas search and profile editing.
+- The Cigarros card scrolls to a heading and does NOT move focus into the search box (that raises the phone keyboard).
+- The home shows its introduction and three cards compactly for returning visitors; the first result is reachable without scrolling past them at 320 by 568.
+- Every new string is an i18n key with Spanish and English values; no Spanish literal inside a script.
+
+What changed:
+- site/app.js:
+  - BRAND_ICONS and brandIcon(n,cls): inline SVG icons per destination (stroke currentColor).
+  - homePaths(): three path cards (Cigarros, Artesanos, Lugares). The Cigarros card carries data-catalog-start; a document click handler, catalogStart(e), scrolls #catalogStart (an h2 above the search box) into view with preventDefault and no focus change.
+  - vCatalogo(): the hero gets class compact for a returning visitor, decided ONCE per page load (let homeCompact=null; the first render reads localStorage vb_homeSeen and sets it), so a re-render from a keystroke or filter tap never changes the layout mid-visit. The four old tiles show only on the full home (they are in the menu).
+  - MENU_GROUPS, ROUTES (15 routes, each with go(id) and either menu entries [group, icon, title key, subtitle key, optional subroute] or of:'parent route'), ROUTE_OF, and menuHTML(hash): grouped sections, aria-current="page" and a visible Aqui badge on the current destination (a detail route marks its parent; #/mihoja/personas and #/mihoja/editar mark themselves), plus an Instalar button in La app.
+  - route() dispatches through (ROUTE_OF[r]||ROUTE_OF.catalogo).go(id); the old object-literal router list is gone. EXT gains menuHTML.
+- site/hoja.js: the hard-coded MENU const is removed; the menu sheet paints A.menuHTML().
+- site/i18n.js: new es and en keys (home.paths, menu.welcome, menu.title, menu.aqui, menu.g.*, menu.<destination> and menu.<destination>Sub); nine keys only the old menu used are removed (h.escuchaEnCigarsPodcast is kept, still used).
+- site/styles.css: an LHB-71 block (.brand-icon, .menu-*, .home-paths, .cat-h, .hero.compact rules), tokens only. The compact home hides the hero photo, paragraph and eyebrow, and the install button (Instalar is in the menu), so at 320 by 568 the first cigar card shows above the tab bar.
+- site/sw.js: VERSION lhb-v93 to lhb-v94 (app.js, hoja.js, i18n.js and styles.css are cached app-shell files); the 21 test pins move with it.
+
+Tests (test/site.test.js):
+- ROUTES71 runs the real route-table code from app.js in a vm; MISSING71 lists every route that is neither in the menu nor a detail of a route that is. "LHB-71: el menu sale de la tabla de rutas" asserts that list is empty, that 15 routes exist, that an injected route without a menu entry (and one whose parent is not in the menu) is reported, that route() and hoja.js use the table, the group order, an icon per destination, and es and en values for every menu key.
+- "LHB-71: el menu marca la pagina en la que estas": the current marker from the catalog, the bare hash, a cigar, an artisan, Personas, Editar, the passport, perfil, u/<handle>, actividades; exactly one Aqui.
+- "LHB-71: la tarjeta Cigarros baja...": the real vCatalogo in a mini DOM (CAT64): three cards; the click scrolls the heading with behavior auto under reduced motion, prevents the hash change, and leaves document.activeElement unchanged; a same-load re-render stays full; a new load (homeCompact reset) is compact, without tiles; the compact CSS rules are pinned.
+- Old pins updated: v18 lugares, LHB-48 subir, LHB-58 u route; LHB-27 counts 'menu.*' strings in app.js as used keys.
+
+Evidence:
+- evidence/lhb-71-tests.txt: full suite, 321 pass, 0 fail, 1 skipped.
+- evidence/lhb-71-mutations.out: 13 of 13 red (route without menu entry, parent not in menu, old router list, second hard-coded menu in hoja.js, Personas dropped, no marker, no parent lookup, focus into search, no scroll, never compact, decided per render, install button kept on compact, a missing English value).
+- evidence/m7-f3/shoot71.out and PNGs: headless Chrome at 320x568, 390x844 and 768x1024 against a local mock; the first result is at least 48 px above the tab bar top on the returning home at all three sizes (435 vs 507, 442 vs 783, 387 vs 963).
+- evidence/m7-f1b/mock/server.py: the mock's listen backlog raised to 128 because the default 5 refused connections under the service worker's precache (stall-check-before.txt, stall-check-after.txt). This is a test tool, not app code.
+
+Check:
+- that every route the app had before this ticket still dispatches to the same view with the same id handling (compare the removed router list with ROUTES), including the default for an unknown route and any route-specific guard (requireAccount);
+- that the menu is truly generated from the table (could a destination still be missed, could a route render twice or in the wrong group);
+- the current marker for every route, including subroutes of mihoja and the bare hash;
+- catalogStart: does it ever move focus, break a normal link click, or swallow a click it should not;
+- the compact home: is the per-load decision right, can it trap a first-time visitor in compact or a returning one in full, does hiding the install button lose a path (is Instalar reachable another way);
+- accessibility of the menu (headings, aria-current, the Aqui text, icon SVGs hidden from assistive tech, tap targets) and of the path cards;
+- i18n: any Spanish literal left in a script, a key missing in one language, a removed key still used;
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

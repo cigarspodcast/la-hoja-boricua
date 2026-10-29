@@ -1,0 +1,47 @@
+LHB-77 production read-back, 2026-10-29T14:15:10Z
+origin/main a1f921c0df559a960524ed68c2d5d612fab840b1
+
+== sw.js cache version ==
+lhb-v113
+
+== manifest icons ==
+name La Hoja Boricua
+icons/icon-192.png 192x192 any
+icons/icon-512.png 512x512 any
+icons/icon-maskable-192.png 192x192 maskable
+icons/icon-maskable-512.png 512x512 maskable
+
+== each manifest icon and favicon: HTTP status, bytes, sha256 equal to the committed file ==
+200 4259 icons/icon-192.png same
+200 12168 icons/icon-512.png same
+200 3433 icons/icon-maskable-192.png same
+200 9791 icons/icon-maskable-512.png same
+200 454 icons/favicon-16.png same
+200 877 icons/favicon-32.png same
+200 917 icons/icon.svg same
+404 769 icons/og.jpg DIFFERENT
+
+== home page: icon links and intro ==
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+og:image" content="https://lahojaboricua.com/og.jpg"
+
+== production response headers (must carry no noindex) ==
+HTTP/1.1 200 OK
+Cache-Control: public, max-age=0, must-revalidate
+x-robots-tag lines: 0
+END
+
+== correction, 2026-10-29T14:15:37Z: the share image is site/og.jpg (the og:image URL above), not icons/og.jpg, so the 404 above was the wrong path ==
+200 34373 og.jpg same
+200 6272 intro.js same
+404 769 credits.html DIFFERENT
+home page loads intro.js: 1
+intro.js is in the service worker cache list: 1
+END
+app.js (holds the #/creditos route, LHB-73) same; routes #/creditos: 1
+Every file read back above is byte-identical to origin/main, so production serves the release commit.
+END

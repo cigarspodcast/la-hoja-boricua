@@ -1,0 +1,9 @@
+I1 a listed icon deleted (icon-maskable-512.png)                         rc 1 fail 2 -> RED
+I2 an icon at the wrong size (icon-192.png at 180)                       rc 1 fail 2 -> RED
+I3 the cache lists an icon that is not there                             rc 1 fail 1 -> RED
+I4 an icon present but not cached (favicon-16.png deleted from the list) rc 1 fail 1 -> RED
+I5 the old leaf-and-flag icon.svg                                        rc 1 fail 1 -> RED
+I6 the share image at 1200 by 600                                        rc 1 fail 1 -> RED
+I7 index.html without the 16 px favicon                                  rc 1 fail 1 -> RED
+baseline after restore: rc 0 fail 0
+RESULT 7 of 7 mutations red

@@ -1,0 +1,23 @@
+L1 the celebration ignores reduced motion                      rc 1 fail 1 -> RED
+L2 a repaint restarts the animation (no clock carried over)    rc 1 fail 1 -> RED
+L3 the animation loops                                         rc 1 fail 1 -> RED
+L4 no reduced-motion rule in the CSS                           rc 1 fail 1 -> RED
+L5 a celebration that never started never expires              rc 1 fail 1 -> RED
+L6 removing a stamp is celebrated                              rc 1 fail 1 -> RED
+L7 the stamp handler does not call it                          rc 1 fail 1 -> RED
+L8 the class is never removed                                  rc 1 fail 1 -> RED
+L9 the earned badge is not celebrated                          rc 1 fail 1 -> RED
+L10 one cycle color has the wrong surface                      rc 1 fail 1 -> RED
+L11 the celebration is stored                                  rc 1 fail 1 -> RED
+L12 the public profile gains a field                           rc 1 fail 1 -> RED
+L13 the hero text on celeste loses its color                   rc 1 fail 1 -> RED
+L14 a badge ink too light for its text                         rc 1 fail 1 -> RED
+L15 (Codex r1) one cleanup clears every celebration on the page rc 1 fail 1 -> RED
+L16 (Codex r2) a repaint is not marked again                   rc 1 fail 1 -> RED
+L17 (Codex r2) a new stamp drops the one still celebrating     rc 1 fail 1 -> RED
+L18 (Codex r2) the badge starts before it shows earned         rc 1 fail 1 -> RED
+L19 (Codex r2) a stale cleanup cuts a stamp put again          rc 1 fail 1 -> RED
+L20 (Codex r3) two records own one badge                       rc 1 fail 1 -> RED
+L21 (Codex r3) a badge that was lost is still marked           rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 27 fail 0
+RESULT 21 of 21 mutations red
