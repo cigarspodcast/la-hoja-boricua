@@ -1,0 +1,7 @@
+2026-10-29T14:48:37Z
+2a818f5
+leak check read 248002 characters: every file version the commits since f1ea0d0 wrote, 2 changed, untracked or log files
+leak check TYPESAFE_API_KEY     first or last four characters in what the branch adds: not found
+leak check OPENCODE_GO_API_KEY  first or last four characters in what the branch adds: not found
+leak check TOGETHER_API_KEY     first or last four characters in what the branch adds: not found
+exit 0
