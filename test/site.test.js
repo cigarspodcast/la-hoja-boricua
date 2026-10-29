@@ -5739,3 +5739,31 @@ test('LHB-74: el pasaporte a color: cuatro colores de la paleta en ciclo, cada t
  assert.ok(sb.includes('<span>'+ES['h.selladoEl'].replace('{d}','2026-10-29')+'</span>'),'sellado: aria-pressed y su texto, Sellado el...');
  const bd=(h.match(/<div class="badge on" data-badge="primer"[^]*?<\/span><\/div>/)||[''])[0];assert.ok(bd.includes('<span>'+ES['h.lograda']+'</span>'),'la insignia ganada dice Lograda');
 });
+/* LHB-75: _headers como lo lee Pages (developers.cloudflare.com/pages/configuration/headers): una regla es una URL o un camino, con
+   sus encabezados sangrados debajo; :nombre casa con todo menos el delimitador (en el host, el punto o la barra; en el camino, la barra),
+   * casa con todo, y una regla que empieza con / vale para todo host. Una petición recibe los encabezados de todas las reglas que casan. */
+function HEADERS75(text){const rules=[];let cur=null;
+ for(const raw of text.split(/\r?\n/)){if(!raw.trim()||/^\s*#/.test(raw))continue;
+  if(/^\s/.test(raw)){assert.ok(cur,'un encabezado sin regla: '+raw);const i=raw.indexOf(':');cur.h.push([raw.slice(0,i).trim().toLowerCase(),raw.slice(i+1).trim()])}
+  else{cur={url:raw.trim(),h:[]};rules.push(cur)}}
+ const rx=(s,delim)=>s.split(/(:[A-Za-z]\w*|\*)/).map(p=>p==='*'?'.*':/^:[A-Za-z]\w*$/.test(p)?'[^'+delim+']+':p.replace(/[.+?^${}()|[\]\\]/g,'\\$&')).join('');
+ const match=(rule,url)=>{const u=new URL(url);const m=rule.url.match(/^https:\/\/([^/]+)(\/.*)$/);
+  if(m)return new RegExp('^'+rx(m[1],'./')+'$').test(u.hostname)&&new RegExp('^'+rx(m[2],'/')+'$').test(u.pathname);
+  return new RegExp('^'+rx(rule.url,'/')+'$').test(u.pathname)};
+ const get=(url,name)=>{const v=rules.filter(r=>match(r,url)).flatMap(r=>r.h.filter(h=>h[0]===name).map(h=>h[1]));return v.length?v.join(', '):null};
+ return {rules,get}}
+test('LHB-75: las vistas previas de ramas no van a los buscadores; lahojaboricua.com y su dirección de pages.dev no cambian',()=>{
+ const H=HEADERS75(read('_headers'));
+ for(const u of ['https://facelift.la-hoja-boricua.pages.dev/','https://facelift.la-hoja-boricua.pages.dev/cigarros/cohoba-robusto-maduro','https://8f3a2b1c.la-hoja-boricua.pages.dev/index.html'])
+  assert.equal(H.get(u,'x-robots-tag'),'noindex, nofollow','vista previa: '+u);
+ for(const u of ['https://lahojaboricua.com/','https://lahojaboricua.com/cigarros/cohoba-robusto-maduro','https://www.lahojaboricua.com/','https://la-hoja-boricua.pages.dev/'])
+  assert.equal(H.get(u,'x-robots-tag'),null,'producción sin cambio: '+u);
+ /* nada más: una sola regla, solo para vistas previas, con un solo encabezado (lo demás de producción queda como está) */
+ assert.deepEqual(H.rules.map(r=>[r.url,r.h.map(h=>h[0])]),[['https://:version.:project.pages.dev/*',['x-robots-tag']]]);
+ /* el matcher distingue: una regla para todo, o para el nombre de pages.dev del proyecto, sí casaría con producción */
+ assert.equal(HEADERS75('/*\n  X-Robots-Tag: noindex').get('https://lahojaboricua.com/','x-robots-tag'),'noindex');
+ assert.equal(HEADERS75('https://:project.pages.dev/*\n  X-Robots-Tag: noindex').get('https://la-hoja-boricua.pages.dev/','x-robots-tag'),'noindex');
+ assert.equal(HEADERS75('https://:project.pages.dev/*\n  X-Robots-Tag: noindex').get('https://facelift.la-hoja-boricua.pages.dev/','x-robots-tag'),null,'un marcador no cruza el punto');
+ /* las páginas que sirven Functions (/u/*) no reciben _headers: ya dicen noindex por su cuenta */
+ assert.ok(read('../functions/u/[handle].js').includes("const ROBOTS = 'noindex, follow';"));
+});

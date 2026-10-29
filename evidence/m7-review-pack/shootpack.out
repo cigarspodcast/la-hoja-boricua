@@ -1,0 +1,47 @@
+chrome pid 9020 for 320 by 568
+  intro-320x568.png                  OK  the intro overlay is open and its video has played past 1.5 s
+  inicio-320x568.png                 OK  home shows the catalog with cigar cards
+  menu-320x568.png                   OK  the menu sheet is open with its destinations
+  cigarro-320x568.png                OK  a cigar page (#/c/turro-angel-david)
+  lugares-320x568.png                OK  the lounges list in the app
+  lugar-320x568.png                  OK  a lounge page (/lugares/casa-de-montecristo-vsj)
+  artesano-320x568.png               OK  a maker page (#/a/jfc-hoja-boricua)
+  pasaporte-320x568.png              OK  the passport with its stamps
+  perfil-320x568.png                 OK  the signed-in profile
+  persona-320x568.png                OK  another person's profile (carlos_humo)
+  personas-320x568.png               OK  People search
+  acerca-320x568.png                 OK  About
+  creditos-320x568.png               OK  the intro credits
+chrome pid 9020 exited 0
+chrome pid 25500 for 390 by 844
+  intro-390x844.png                  OK  the intro overlay is open and its video has played past 1.5 s
+  inicio-390x844.png                 OK  home shows the catalog with cigar cards
+  menu-390x844.png                   OK  the menu sheet is open with its destinations
+  cigarro-390x844.png                OK  a cigar page (#/c/turro-angel-david)
+  lugares-390x844.png                OK  the lounges list in the app
+  lugar-390x844.png                  OK  a lounge page (/lugares/casa-de-montecristo-vsj)
+  artesano-390x844.png               OK  a maker page (#/a/jfc-hoja-boricua)
+  pasaporte-390x844.png              OK  the passport with its stamps
+  perfil-390x844.png                 OK  the signed-in profile
+  persona-390x844.png                OK  another person's profile (carlos_humo)
+  personas-390x844.png               OK  People search
+  acerca-390x844.png                 OK  About
+  creditos-390x844.png               OK  the intro credits
+chrome pid 25500 exited 0
+chrome pid 9840 for 768 by 1024
+  intro-768x1024.png                 OK  the intro overlay is open and its video has played past 1.5 s
+  inicio-768x1024.png                OK  home shows the catalog with cigar cards
+  menu-768x1024.png                  OK  the menu sheet is open with its destinations
+  cigarro-768x1024.png               OK  a cigar page (#/c/turro-angel-david)
+  lugares-768x1024.png               OK  the lounges list in the app
+  lugar-768x1024.png                 OK  a lounge page (/lugares/casa-de-montecristo-vsj)
+  artesano-768x1024.png              OK  a maker page (#/a/jfc-hoja-boricua)
+  pasaporte-768x1024.png             OK  the passport with its stamps
+  perfil-768x1024.png                OK  the signed-in profile
+  persona-768x1024.png               OK  another person's profile (carlos_humo)
+  personas-768x1024.png              OK  People search
+  acerca-768x1024.png                OK  About
+  creditos-768x1024.png              OK  the intro credits
+chrome pid 9840 exited 0
+script errors: 0
+RESULT 39 of 39 shots OK, 39 files in the manifest
