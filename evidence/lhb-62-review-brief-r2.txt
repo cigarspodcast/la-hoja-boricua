@@ -1,0 +1,22 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Functions in functions/ and D1 behind them). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block). TIER 2, round 2.
+
+Ticket LHB-62 (M6-S8): block and report. Pinned: a blocks table (blocker_id, blocked_id, created_at; unique pair). A block removes follows in both directions and hides each profile from the other everywhere (profile page, search, feed, lists). Account deletion removes both sides of block rows. "Reportar" opens a pre-filled email to the project contact with the reported @handle; nothing is ever sent. Unblock is available from a "Bloqueados" list on the edit-profile screen and does not restore follows. A blocked person is not told. The feature stays dark until the migration is applied; the code ships first.
+
+Round 1 (evidence/lhb-62-review-r1.txt) returned BLOCK. The diff below is the fix commit against the round 1 commit. What changed, finding by finding:
+0. (seen mid-round) functions/api/follow.js: POST and its race recheck answer 404 not-found for a blocked pair (was 403 blocked); DELETE answers 404 for a blocked pair before reading follows (was 200 with the count).
+1. functions/api/block.js: POST inserts only if the other person has not blocked me (NOT EXISTS in the INSERT) and I am under BLOCK_MAX (COUNT in the same INSERT); the follows DELETE in the same batch runs only if my row exists; then it reads my row: present 200, otherwise 404 if the pair is blocked (an inbound block), otherwise 429 block-cap. DELETE: with no row of mine removed, a hidden profile or an inbound block answers 404. GET: hidden profiles, and people who also blocked me, show only their @ (display_name and avatar_key null).
+2. site/hoja.js vPersona and vFwList: subNow() is the saved account's sub at request time; an answer that arrives after the account changed is not painted and the page asks again; pfRedo registers an acctW watcher that repaints the open page when the account changes and removes itself when the page is gone.
+3. site/hoja.js blkMount: the sheet is closed only if its own #blkGo is still the one in the page; the toast and the redirect happen only for the account that blocked (fwSame), the redirect only from that profile page (live). blkErr maps block-cap and not-found.
+4. Pagination was replaced by a cap: BLOCK_MAX = 500 blocks per account (a placeholder like FOLLOW_MAX), the same number the GET returns, so every existing block is in the list. Existing rows above the cap cannot exist: the table ships empty with this ticket.
+5. functions/_lib/follow.js countsOf(db, userId, viewer): with a viewer, the counts leave out people with a blocked pair with the viewer, like listOf; /api/u and /api/follow (GET, and the counts in the POST and DELETE answers) pass the viewer.
+Tests: 5 new (3 server, 2 app), each seen failing on the round 1 code; the LHB-60 watcher counts now include the page watcher; the LHB-56 source check reads the 404. Evidence: evidence/lhb-62-mutations.out (39 mutations), evidence/lhb-62-tests.txt the full suite.
+
+Check that each finding is fully fixed, and in particular:
+- block.js POST: is the INSERT ... SELECT ... WHERE ... ON CONFLICT DO NOTHING valid SQLite, are the parameter numbers right, and can any outcome (inbound block, cap, repeat, a race with the other person blocking) leak that the other person blocked me or leave follows removed without a block?
+- The cap instead of pagination: is it a sound answer to the round 1 finding?
+- The repaint on account change: loops, double requests, focus loss, interaction with fwMount's watcher cleanup, a stale page that keeps a watcher.
+- Anything still showing a blocked pair to each other, or a count that differs from the list.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-timeout=60000 --test-name-pattern=LHB-62 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.

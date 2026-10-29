@@ -1,0 +1,16 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Functions in functions/ and D1 behind them). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block). TIER 2, round 3.
+
+Ticket LHB-62 (M6-S8): block and report. A block hides each profile from the other everywhere; a blocked person is not told; the feature stays dark until the migration is applied.
+
+Round 2 (evidence/lhb-62-review-r2.txt) concurred with round 1 findings 0, 1, 3, 4 and 5, and maintained finding 2: the profile and list repaint compared only the saved account's sub (acct.get().sub), which can stay null across real Clerk account changes (A to B to C), so a profile seen as B stayed on screen after switching to C. It also raised a nonblocking P3: page watchers accumulate when no follow button mounts.
+
+The diff below is the fix commit against the round 2 prompt commit:
+- site/cuenta.js: the Clerk listener (hook, C.addListener) calls D.onAccount(id) on every identity change, after D.store.clear(), even when the saved account was already null.
+- site/hoja.js: let acctGen=0; the CUENTA wiring passes onAccount:()=>{acctGen++;acctTell()}; subNow() is now acctGen+'|'+(saved sub or ''), so vPersona and vFwList (which compare a token taken at request time, and repaint through pfRedo watchers) see every Clerk change. pfRedo first runs every watcher in acctW (as fwMount already did), so watchers of pages that are gone remove themselves before a new one is added.
+Tests: 2 new (cuenta.js tells of A to B to C and of sign-out once; the app refetches on each change with the saved account null, a late answer after a Clerk change is not painted, lists repaint, ten anonymous visits leave one watcher), both seen failing on the round 2 code. Evidence: evidence/lhb-62-mutations.out 43 of 43 red (4 new); evidence/lhb-62-tests.txt full suite 355 tests, 354 pass, 0 fail, 1 skipped.
+
+Check that finding 2 is fully fixed (any other path where the session changes without cuenta.js's listener firing, for example a page where hook() never ran, and whether that matters), that the sweep in pfRedo cannot cause a repaint loop or a repaint of the wrong page, and anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

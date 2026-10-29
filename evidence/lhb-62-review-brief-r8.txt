@@ -1,0 +1,13 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-62-wt (branch lhb-62-block). TIER 2, round 8.
+
+Ticket LHB-62: block and report. A block hides each profile from the other everywhere; a blocked person is not told. Round 7 (evidence/lhb-62-review-r7.txt) concurred that the three round 6 findings are closed, and blocked on one new P2: signing out while pfWho's Bearer re-ask was in flight made it read C.user.id after Clerk had cleared it, a TypeError that left the profile at "Cargando" with no watcher (and threw in both lists).
+
+The diff below (one commit, 175b85f, against the round 7 prompt commit) changes site/hoja.js pfWho: the Clerk user id is kept before the waits (uid), a re-ask that throws returns null, and the answer is compared with uid. The caller then runs its existing checks: page still live, subNow unchanged (a sign-out increments acctGen and clears the cookie, so it is a change: the view asks again from the start with the current session). Test: Codex's round 7 reproduction for the profile, followers and following (stale cookie, anonymous answer, Clerk gives u_yo and a key, the Bearer answer is held, sign-out, the answer arrives with X-Lhb-Viewer u_yo): no throw, a third request without the key, painted for the anonymous session, a watcher left. Seen failing on the round 7 code with TypeError: Cannot read properties of null (reading 'id'). Mutant added: the Clerk user read after the wait. Evidence: evidence/lhb-62-mutations.out 59 of 59 red; evidence/lhb-62-tests.txt full suite 371 tests, 370 pass, 0 fail, 1 skipped.
+
+Not changed, from round 7's qualification: after a later list page fails, More stays available for an explicit retry by the person (no automatic request).
+
+Check that the round 7 finding is closed for every await in pfWho and its callers (Clerk load, getToken, the re-ask), including a sign-in or an account switch at those points, and anything else in the redesign that can throw or paint for a session other than the current one.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

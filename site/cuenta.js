@@ -30,6 +30,8 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
  C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;sip++;gen++;D.ui.closeAll();
   /* LHB-51: lo guardado es de la cuenta anterior: al salir o al cambiar de cuenta se borra, para que el encabezado nunca muestre a una persona con la sesión de otra */
   D.store.clear();if(!id)D.intent.clear();
+  /* LHB-62 (Codex r2): avisa del cambio de cuenta de Clerk aunque lo guardado ya estuviera vacío: las páginas públicas que dependen de la sesión se pintan otra vez */
+  if(typeof D.onAccount==='function')D.onAccount(id);
   const p=pending;pending=null;const fl=failure;failure=null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}

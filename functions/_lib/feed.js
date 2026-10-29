@@ -96,7 +96,7 @@ export async function feedOf(db, me, cursor) {
       else ({ page, next } = await groupPage(db, me, rows[0].day, rows[0].handle, 0, '', 0));
     }
   }
-  // LHB-62 (bloquear) completa isBlocked; una persona bloqueada se salta aquí, y el cursor sigue siendo el de la última cata leída
+  // LHB-62: bloquear quita los seguir, y además una persona con el par bloqueado se salta aquí; el cursor sigue siendo el de la última cata leída
   const blocked = new Map();
   const items = [];
   for (const r of page) {

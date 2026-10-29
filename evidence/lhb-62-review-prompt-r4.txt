@@ -1,0 +1,108 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block). TIER 2, round 4.
+
+Ticket LHB-62: block and report. A block hides each profile from the other everywhere; a blocked person is not told.
+
+Round 3 (evidence/lhb-62-review-r3.txt) concurred with the watcher cleanup and maintained finding 2: a public profile or list page opened with no saved account never installs cuenta.js's Clerk listener (hook), so a session change (for example in another tab) neither advances acctGen nor repaints, and a late answer from the old session can be painted.
+
+The diff below is the fix commit against the round 3 prompt commit:
+- site/hoja.js cookieSub(): reads Clerk's __session cookie (the same-site cookie the server's tokenOf reads) and returns the sub of its payload, decoded without verification, or '' if absent or unreadable. subNow() is now acctGen + saved sub + cookieSub(), so the token vPersona and vFwList take at request time, and compare when the answer arrives and in their pfRedo watchers, changes when the session changes, with or without Clerk loaded in this page.
+- Returning to the tab (document visibilitychange to visible, and window focus) calls acctTell(), so the open page's watcher compares the token and repaints if the session changed elsewhere. fwMount's watchers are unaffected unless the saved account changed.
+Also a note on what such a page can show: content fetched with a session the viewer no longer has is never more than the other session's view. Under the old signed-in session B (no block with the profile), it is what B could see; a signed-out viewer sees the anonymous public view (the /u page is public by design). This round closes the stale view anyway.
+Tests: 1 new test (a public page with no saved account: the cookie changes from B to C and returning to the tab refetches and shows the 404; a late answer after a cookie change is not painted; lists; signing out; an unreadable cookie; the visibility and focus wiring), seen failing on the round 3 code. Evidence: evidence/lhb-62-mutations.out 46 of 46 red (3 new); evidence/lhb-62-tests.txt full suite 356 tests, 355 pass, 0 fail, 1 skipped.
+
+Check that finding 2 is now closed: any session change that the token still misses (for example Clerk's cookie name in production, a session refreshed with the same sub, an HttpOnly cookie), whether reading the cookie this way is safe (it is never trusted for anything but noticing a change), and repaint costs or loops from focus events.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff a2f7e81 7daab049f7788eefc4a2c5f348272b1e3d339309 -- site test evidence/lhb-62-mutations.py =====
+diff --git a/evidence/lhb-62-mutations.py b/evidence/lhb-62-mutations.py
+index f5f12a4..bcc9a43 100644
+--- a/evidence/lhb-62-mutations.py
++++ b/evidence/lhb-62-mutations.py
+@@ -56,6 +56,10 @@ MUTS = [
+     (HJ, 'r2: the Clerk change count is not part of the session token', "return acctGen+'|'+(a&&", "return '|'+(a&&"),
+     (HJ, 'r2: hoja.js does not count a Clerk change', 'onAccount:()=>{acctGen++;acctTell()}', 'onAccount:()=>{acctTell()}'),
+     (HJ, 'r2: stale page watchers stay', '{for(const f of [...acctW])f();const w=()=>', '{const w=()=>'),
++    # Codex round 3
++    (HJ, 'r3: the session cookie is not part of the token', "+'|'+cookieSub()};", '};'),
++    (HJ, 'r3: the cookie read is the wrong one', '__session=([^;]+)', '__sesion=([^;]+)'),
++    (HJ, 'r3: returning to the tab does not tell the watchers', "window.addEventListener('focus',()=>acctTell())", "window.addEventListener('focus',()=>{})"),
+     (HJ, 'r1: a late block tells another account', '   if(!ok())return;\n   if(r.status===200&&r.body&&r.body.blocked===true)', '   if(r.status===200&&r.body&&r.body.blocked===true)'),
+ ]
+ 
+diff --git a/site/hoja.js b/site/hoja.js
+index 4a6094d..56b1f8f 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -190,6 +190,9 @@ const acctW=new Set(),acctTell=()=>{for(const f of [...acctW])f()};
+ const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar();acctTell()}};
+ /* LHB-62 (Codex r2): cuántas veces cambió la cuenta de Clerk en esta página (cuenta.js onAccount), aunque la cuenta guardada siga vacía */
+ let acctGen=0;
++/* LHB-62 (Codex r3): una página pública sin Clerk cargado no oye a Clerk; la sesión puede cambiar en otra pestaña. Al volver a esta (se ve otra vez o recibe el foco)
++   se avisa a los que miran, y cada uno compara su sesión (subNow, con la cookie) */
++try{document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')acctTell()});window.addEventListener('focus',()=>acctTell())}catch(e){}
+ /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
+ const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
+ let clerkP=null;
+@@ -512,8 +515,12 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
+ async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
+ /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
+ /* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado).
+-   Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen) */
+-const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')};
++   Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen).
++   Codex r3: y de quién es la cookie de sesión de Clerk (__session, la de este sitio que el servidor lee): solo el sub de su contenido, sin verificar nada, para notar
++   que la sesión cambió en otra pestaña aunque aquí no haya Clerk; '' si no hay o no se puede leer */
++const cookieSub=()=>{try{const m=/(?:^|;\s*)__session=([^;]+)/.exec(String(document.cookie||''));const p=m&&m[1].split('.')[1];if(!p)return '';
++ const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));return j&&typeof j.sub==='string'?j.sub:''}catch(e){return ''}};
++const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')+'|'+cookieSub()};
+ /* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva. Codex r2: al poner uno se quitan los de páginas que ya no están */
+ const pfRedo=(live,sub0,redo)=>{for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
+ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow();
+diff --git a/test/site.test.js b/test/site.test.js
+index bd16d66..55c1734 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -4583,7 +4583,7 @@ function HOJA58(opts){opts=opts||{};
+   A:{cigarById:id=>({c1:{id:'c1',nombre:'Yambú Toro'},c2:{id:'c2',nombre:'Don Collins'}})[id]||null,cigarCard:c=>'<a class="card" data-c="'+c.id+'">'+c.nombre+'</a>',hydrate:()=>log.push('hydrate'),route:()=>log.push('route')},
+   /* LHB-97, en facelift: como sheet() de facelift (LHB-64): anota lastFocus si el foco no está ya en la hoja, pone sheet-on y siempre lleva el foco a la hoja
+      (su primer control o Cerrar), con la app detrás inerte; por eso aquí el foco nunca queda en el botón de una reseña con la hoja abierta */
+-  acct:{get:()=>acctBox.v},sheet:(h,l)=>{if(foco.el.id!=='sheetPanel')ctx.lastFocus=foco.el;sheetOn.v=true;foco.el={id:'sheetPanel'};sheets.push([h,l])},lastFocus:null,document:{get activeElement(){return foco.el},body:{classList:{contains:k=>k==='sheet-on'&&sheetOn.v}}},dKeepFocus:()=>log.push('dKeepFocus'),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,
++  acct:{get:()=>acctBox.v},sheet:(h,l)=>{if(foco.el.id!=='sheetPanel')ctx.lastFocus=foco.el;sheetOn.v=true;foco.el={id:'sheetPanel'};sheets.push([h,l])},lastFocus:null,document:{get activeElement(){return foco.el},body:{classList:{contains:k=>k==='sheet-on'&&sheetOn.v}}},dKeepFocus:()=>log.push('dKeepFocus'),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,atob,
+   localStorage,navigator:{},location:loc,setTimeout:()=>0,JSON,Date,subnav:k=>'<nav data-sub="'+k+'"></nav>'};
+  vm.createContext(ctx);
+  vm.runInContext(code+';this.X={vSiguiendo,vPersona,profileOwn,pfOwnSync:typeof pfOwnSync=="function"?pfOwnSync:undefined,pfPanel,pfHead,myResenas,pfEntry,isPublica,S}',ctx);
+@@ -6311,6 +6311,31 @@ test('LHB-62 (Codex r2): en la app, el perfil y las listas se pintan otra vez en
+  for(let i=0;i<10;i++){await H.X.vPersona('bea');await tick()}
+  assert.equal(H.ctx.acctW.size,1,'los de páginas que se fueron no se quedan');
+ });
++test('LHB-62 (Codex r3): una página pública sin Clerk cargado (sin cuenta guardada) nota por la cookie __session que la sesión cambió en otra pestaña: al volver se pinta otra vez, y una respuesta de la sesión de antes no se pinta',async()=>{
++ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
++ const jwt=sub=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,exp:1})).toString('base64url')+'.firma';
++ const back=H=>{for(const f of [...H.ctx.acctW])f()};
++ /* el perfil puesto con la sesión de B; en otra pestaña entra C, a quien bea bloqueó; se vuelve a esta */
++ let n=0;let H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
++ H.ctx.document.cookie='otra=1; __session='+jwt('u_b');await H.X.vPersona('bea');assert.ok(H.all().includes('id="pfMore"'));
++ back(H);await tick();assert.equal(n,1,'volver sin que cambie la sesión no pide nada');
++ H.ctx.document.cookie='__session='+jwt('u_c')+'; otra=1';back(H);await tick();
++ assert.equal(n,2,'otra sesión: se pide otra vez');assert.ok(H.all().includes('Este perfil no está disponible.')&&!H.all().includes('id="pfMore"'),'y C ya no lo ve');
++ /* la sesión cambia mientras llega la respuesta: no se pinta, se pregunta otra vez */
++ let rel=null;n=0;H=HOJA58({acct:null,reply:u=>{if(!u.startsWith('/api/u/'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
++ H.ctx.document.cookie='__session='+jwt('u_b');const p=H.X.vPersona('bea');await tick();H.ctx.document.cookie='__session='+jwt('u_c');rel({status:200,body:API58JSON()});await p;await tick();
++ assert.equal(n,2);assert.ok(!H.all().includes('id="pfMore"'));
++ /* las listas también; salir (sin cookie) cuenta como otra sesión */
++ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'dani',display_name:'Dani R.',avatar_key:null}],next:null}}:{status:404,body:{}}):{status:404,body:{}}});
++ H.ctx.document.cookie='__session='+jwt('u_b');H.loc.hash='#/u/bea/seguidores';await H.X.vPersona('bea');await tick();assert.ok(H.all().includes('dani'));
++ H.ctx.document.cookie='';back(H);await tick();assert.equal(n,2);assert.ok(!H.all().includes('dani'));
++ /* una cookie que no se puede leer no rompe nada */
++ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON()}):{status:404,body:{}}});H.ctx.document.cookie='__session=basura';
++ await H.X.vPersona('bea');assert.ok(H.all().includes('id="pfMore"'));back(H);await tick();assert.equal(n,1);
++ /* volver a la pestaña (se ve otra vez o recibe el foco) avisa a los que miran */
++ const src=read('hoja.js');
++ assert.ok(src.includes("document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')acctTell()});window.addEventListener('focus',()=>acctTell())"),'al volver a la pestaña se avisa');
++});
+ test('LHB-62: Bloqueados en Editar perfil: la lista de a quién bloqueaste, cada fila con Desbloquear; quitar una pasa el foco a la siguiente; sin la tabla la sección no sale',async()=>{
+  const sent=[];
+  const H=HOJA58({api:(method,path,body)=>{sent.push([method,path,body]);

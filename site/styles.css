@@ -600,6 +600,9 @@ body.sheet-on{overflow:hidden}
 .pf-counts li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
 .pf-counts b{display:block;font-family:var(--serif);font-size:22px;color:var(--accent-ink)}.pf-counts span{font-size:12px;color:var(--muted)}
 .pf-act{margin:0 0 14px}.pf-act .btn{display:inline-block;text-decoration:none}.pf-follow:empty{display:none}
+/* LHB-62: Reportar y Bloquear, debajo del botón de seguir; Desbloquear en cada fila de Bloqueados */
+.pf-more{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.pf-more:empty{display:none}.pf-more .lbtn{text-decoration:none}
+.blk{margin:22px 0 0}.blk .person .lbtn{flex:none}
 /* LHB-60: los conteos llevan a las listas; Siguiendo es el botón ya tocado (sin relleno); cada fila de la lista con su botón */
 .pf-counts a{display:block;color:inherit;text-decoration:none}
 .fw-b{min-width:112px}.fw-b.on{background:transparent;color:var(--accent-ink);border:1px solid var(--accent-ink)}

@@ -5,6 +5,8 @@
 
 // tabla -> columnas que nombran a la persona. Primero las que apuntan a profiles, al final profiles.
 export const USER_TABLES = [
+  // LHB-62 (migrations/0007_blocks.sql): los dos lados de cada bloqueo
+  ['blocks', ['blocker_id', 'blocked_id']],
   ['follow_events', ['follower_id']],
   ['follows', ['follower_id', 'followee_id']],
   ['handle_checks', ['user_id']],

@@ -1,0 +1,244 @@
+2026-10-29T15:51:49.072630Z ERROR codex_skills_extension::host_service: failed to install system skills: io error while remove existing system skills dir: Access is denied. (os error 5)
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-62-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a1885c-2394-7a61-ae6d-179784ecaad1
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Functions in functions/ and D1 behind them). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block). TIER 2, round 3.
+
+Ticket LHB-62 (M6-S8): block and report. A block hides each profile from the other everywhere; a blocked person is not told; the feature stays dark until the migration is applied.
+
+Round 2 (evidence/lhb-62-review-r2.txt) concurred with round 1 findings 0, 1, 3, 4 and 5, and maintained finding 2: the profile and list repaint compared only the saved account's sub (acct.get().sub), which can stay null across real Clerk account changes (A to B to C), so a profile seen as B stayed on screen after switching to C. It also raised a nonblocking P3: page watchers accumulate when no follow button mounts.
+
+The diff below is the fix commit against the round 2 prompt commit:
+- site/cuenta.js: the Clerk listener (hook, C.addListener) calls D.onAccount(id) on every identity change, after D.store.clear(), even when the saved account was already null.
+- site/hoja.js: let acctGen=0; the CUENTA wiring passes onAccount:()=>{acctGen++;acctTell()}; subNow() is now acctGen+'|'+(saved sub or ''), so vPersona and vFwList (which compare a token taken at request time, and repaint through pfRedo watchers) see every Clerk change. pfRedo first runs every watcher in acctW (as fwMount already did), so watchers of pages that are gone remove themselves before a new one is added.
+Tests: 2 new (cuenta.js tells of A to B to C and of sign-out once; the app refetches on each change with the saved account null, a late answer after a Clerk change is not painted, lists repaint, ten anonymous visits leave one watcher), both seen failing on the round 2 code. Evidence: evidence/lhb-62-mutations.out 43 of 43 red (4 new); evidence/lhb-62-tests.txt full suite 355 tests, 354 pass, 0 fail, 1 skipped.
+
+Check that finding 2 is fully fixed (any other path where the session changes without cuenta.js's listener firing, for example a page where hook() never ran, and whether that matters), that the sweep in pfRedo cannot cause a repaint loop or a repaint of the wrong page, and anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff b2f186f 30f677692e6b0234a637a9a5b8db835fbc5c7337 -- site test evidence/lhb-62-mutations.py =====
+diff --git a/evidence/lhb-62-mutations.py b/evidence/lhb-62-mutations.py
+index b49489b..f5f12a4 100644
+--- a/evidence/lhb-62-mutations.py
++++ b/evidence/lhb-62-mutations.py
+@@ -51,6 +51,11 @@ MUTS = [
+     (HJ, 'r1: list from the old session is painted', 'if(subNow()!==sub0)return vFwList(h,dir);', ''),
+     (HJ, 'r1: list not repainted on an account change', 'pfRedo(live,sub0,()=>vFwList(h,dir));', ''),
+     (HJ, 'r1: a late block closes another sheet', "if($('#blkGo')===go)closeSheet();", 'closeSheet();'),
++    # Codex round 2
++    ('site/cuenta.js', 'r2: cuenta.js does not tell of a Clerk change', "  if(typeof D.onAccount==='function')D.onAccount(id);\n", ''),
++    (HJ, 'r2: the Clerk change count is not part of the session token', "return acctGen+'|'+(a&&", "return '|'+(a&&"),
++    (HJ, 'r2: hoja.js does not count a Clerk change', 'onAccount:()=>{acctGen++;acctTell()}', 'onAccount:()=>{acctTell()}'),
++    (HJ, 'r2: stale page watchers stay', '{for(const f of [...acctW])f();const w=()=>', '{const w=()=>'),
+     (HJ, 'r1: a late block tells another account', '   if(!ok())return;\n   if(r.status===200&&r.body&&r.body.blocked===true)', '   if(r.status===200&&r.body&&r.body.blocked===true)'),
+ ]
+ 
+diff --git a/site/cuenta.js b/site/cuenta.js
+index 4e5d640..d280288 100644
+--- a/site/cuenta.js
++++ b/site/cuenta.js
+@@ -30,6 +30,8 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
+  C.addListener(({user})=>{const id=user?user.id:null;if(id===lastId)return;lastId=id;seq++;sip++;gen++;D.ui.closeAll();
+   /* LHB-51: lo guardado es de la cuenta anterior: al salir o al cambiar de cuenta se borra, para que el encabezado nunca muestre a una persona con la sesión de otra */
+   D.store.clear();if(!id)D.intent.clear();
++  /* LHB-62 (Codex r2): avisa del cambio de cuenta de Clerk aunque lo guardado ya estuviera vacío: las páginas públicas que dependen de la sesión se pintan otra vez */
++  if(typeof D.onAccount==='function')D.onAccount(id);
+   const p=pending;pending=null;const fl=failure;failure=null;
+   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
+   if(onMiHoja()||ob){ob=false;D.reroute()}
+diff --git a/site/hoja.js b/site/hoja.js
+index b5ec5e3..4a6094d 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -188,6 +188,8 @@ const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
+ /* LHB-60 (Codex r1): acctW son los que miran la cuenta guardada (los botones de seguir); se les avisa al guardarla o borrarla */
+ const acctW=new Set(),acctTell=()=>{for(const f of [...acctW])f()};
+ const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar();acctTell()}};
++/* LHB-62 (Codex r2): cuántas veces cambió la cuenta de Clerk en esta página (cuenta.js onAccount), aunque la cuenta guardada siga vacía */
++let acctGen=0;
+ /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
+ const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
+ let clerkP=null;
+@@ -371,7 +373,7 @@ function onboardingForm(submit,picture,mode,init,check){const marcas=[...new Set
+    mientras está abierto se nombra con su propio título (aria-labelledby), sin tocar su estilo. Clerk cambia el título al cambiar de paso: se vuelve a apuntar. */
+ function nameClerkDialog(doc){let n=0;for(const d of doc.querySelectorAll('.cl-modalContent[role="dialog"]')){if(d.getAttribute('aria-label'))continue;const h=d.querySelector('.cl-headerTitle');if(!h||!String(h.textContent||'').trim())continue;if(!h.id)h.id='lhb-clerk-title-'+(nameClerkDialog.k=(nameClerkDialog.k||0)+1);if(d.getAttribute('aria-labelledby')!==h.id)d.setAttribute('aria-labelledby',h.id);n++}return n}
+ function watchClerkDialog(){if(typeof MutationObserver!=='function')return;let seen=false;const tick=()=>{nameClerkDialog(document);if(document.querySelector('.cl-modalContent'))seen=true;else if(seen)mo.disconnect()};const mo=new MutationObserver(tick);mo.observe(document.body,{childList:true,subtree:true});tick();setTimeout(()=>mo.disconnect(),600000)}
+-const CUENTA=window.LHB_CUENTA({clerk,api,hasLocal:()=>LHB_MERGE.hasData(S()),here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>{C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href});watchClerkDialog()},ui:{card:accountCard,notice:accountNotice,onboarding:(submit,picture,check)=>onboardingForm(submit,picture,undefined,undefined,check),identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,'edit',prof,check),toast,closeAll:closeSheetNow}});
++const CUENTA=window.LHB_CUENTA({clerk,api,onAccount:()=>{acctGen++;acctTell()},hasLocal:()=>LHB_MERGE.hasData(S()),here:()=>location.hash,onNav:f=>window.addEventListener('hashchange',f),reroute:()=>A.route(),store:acct,intent,openSignIn:C=>{C.openSignIn({forceRedirectUrl:location.href,signUpForceRedirectUrl:location.href});watchClerkDialog()},ui:{card:accountCard,notice:accountNotice,onboarding:(submit,picture,check)=>onboardingForm(submit,picture,undefined,undefined,check),identity:submit=>onboardingForm(submit,null,'identity'),edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,'edit',prof,check),toast,closeAll:closeSheetNow}});
+ /* abre Mi Hoja solo con sesión y perfil; otras páginas usan requireAccount(go,{inPlace:true,act:'nombre'}) y registerAction('nombre',go) */
+ const requireAccount=(go,o)=>CUENTA.require(go,o);
+ /* LHB-51: con una cuenta guardada, un poco después de abrir la app se confirma con Clerk que sigue siendo esa cuenta (si no, el encabezado vuelve a la estrella) */
+@@ -509,10 +511,11 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
+    y con ella el servidor esconde a quien tiene el par bloqueado contigo */
+ async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
+ /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
+-/* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado) */
+-const subNow=()=>{const a=acct.get();return a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:null};
+-/* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva; el que mira se quita solo cuando su página ya no está */
+-const pfRedo=(live,sub0,redo)=>{const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
++/* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado).
++   Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen) */
++const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')};
++/* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva. Codex r2: al poner uno se quitan los de páginas que ya no están */
++const pfRedo=(live,sub0,redo)=>{for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
+ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow();
+  /* LHB-60: #/u/<handle>/seguidores y #/u/<handle>/siguiendo (el enrutador de app.js pasa solo el @; lo que sigue se lee del hash), también las tuyas */
+  const seg=String(location.hash||'').replace(/^#\/?/,'').split('/')[2]||'';
+diff --git a/test/site.test.js b/test/site.test.js
+index 46865a3..bd16d66 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -4579,7 +4579,7 @@ function HOJA58(opts){opts=opts||{};
+  const toasts=[],calls=[],sheetOn={v:false};
+  const ctx={...TT(),window:{addEventListener(){}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
+   /* opts.token: la llave de la sesión tarda; go es el de api() en hoja.js: con la llave ya puesta, si dice que no el pedido no sale */
+-  clerk:async()=>({user:{id:'u_a'}}),acctW:new Set(),api:async(C,method,path,body,uid,extra,go)=>{if(opts.token)await opts.token(method);if(go&&!go())throw new Error('gone');calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
++  clerk:async()=>({user:{id:'u_a'}}),acctW:new Set(),acctGen:0,api:async(C,method,path,body,uid,extra,go)=>{if(opts.token)await opts.token(method);if(go&&!go())throw new Error('gone');calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
+   A:{cigarById:id=>({c1:{id:'c1',nombre:'Yambú Toro'},c2:{id:'c2',nombre:'Don Collins'}})[id]||null,cigarCard:c=>'<a class="card" data-c="'+c.id+'">'+c.nombre+'</a>',hydrate:()=>log.push('hydrate'),route:()=>log.push('route')},
+   /* LHB-97, en facelift: como sheet() de facelift (LHB-64): anota lastFocus si el foco no está ya en la hoja, pone sheet-on y siempre lleva el foco a la hoja
+      (su primer control o Cerrar), con la app detrás inerte; por eso aquí el foco nunca queda en el botón de una reseña con la hoja abierta */
+@@ -6281,6 +6281,36 @@ test('LHB-62 (Codex r1): en la app, la respuesta tardía de Bloquear no cierra o
+  T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();T.H.els.blkGo.onclick();await tick();T.rel({status:429,body:{error:'block-cap'}});await tick();
+  assert.deepEqual(T.H.toasts,['Llegaste al máximo de personas que puedes bloquear.']);
+ });
++test('LHB-62 (Codex r2): cuenta.js avisa de cada cambio de cuenta de Clerk aunque lo guardado ya esté vacío, y hoja.js lo cuenta',async()=>{
++ const seen=[];const h=CUENTA_HARNESS({onAccount:id=>seen.push(id)});
++ h.cache({sub:'u_a',handle:'ana'});h.C.user={id:'u_a'};await h.A.reconcile();assert.deepEqual(seen,[],'abrir con la misma cuenta no avisa');
++ h.C.signIn('u_b');assert.deepEqual(seen,['u_b']);
++ h.C.signIn('u_c');assert.deepEqual(seen,['u_b','u_c'],'de B a C, con lo guardado ya vacío, también');
++ h.C.signIn(null);h.C.signIn(null);assert.deepEqual(seen,['u_b','u_c',null],'salir avisa una vez');
++ assert.match(read('hoja.js'),/window\.LHB_CUENTA\(\{clerk,api,onAccount:\(\)=>\{acctGen\+\+;acctTell\(\)\},/,'hoja.js cuenta el cambio y avisa a los que miran');
++});
++test('LHB-62 (Codex r2): en la app, el perfil y las listas se pintan otra vez en cada cambio de Clerk (de A a B y de B a C con la cuenta guardada vacía); los que miran páginas que ya no están se van',async()=>{
++ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
++ const clerkChange=H=>{H.acctBox.v=null;H.ctx.acctGen++;for(const f of [...H.ctx.acctW])f()};
++ /* el perfil: A puede verlo, B también, C no (404) */
++ let n=0;let H=HOJA58({reply:u=>u.startsWith('/api/u/')?(++n<=2?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
++ await H.X.vPersona('bea');assert.equal(n,1);
++ clerkChange(H);await tick();assert.equal(n,2,'de A a B se pide otra vez');assert.ok(H.all().includes('id="pfMore"'),'B lo ve');
++ clerkChange(H);await tick();assert.equal(n,3,'de B a C, con la cuenta guardada vacía, también');
++ assert.ok(H.all().includes('Este perfil no está disponible.')&&!H.all().includes('id="pfMore"'),'C ya no lo ve');
++ /* una respuesta que llega después de un cambio de Clerk con la cuenta guardada vacía no se pinta */
++ let rel=null;n=0;H=HOJA58({acct:null,reply:u=>{if(!u.startsWith('/api/u/'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
++ const p=H.X.vPersona('bea');await tick();H.ctx.acctGen++;rel({status:200,body:API58JSON()});await p;await tick();
++ assert.equal(n,2,'se preguntó otra vez');assert.ok(!H.all().includes('id="pfMore"'));
++ /* las listas */
++ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'dani',display_name:'Dani R.',avatar_key:null}],next:null}}:{status:404,body:{}}):{status:404,body:{}}});
++ H.loc.hash='#/u/bea/seguidores';await H.X.vPersona('bea');await tick();assert.ok(H.all().includes('dani'));
++ clerkChange(H);await tick();assert.equal(n,2);assert.ok(!H.all().includes('dani'),'la lista se pinta otra vez sin esa fila');
++ /* sin cuenta (sin botón de seguir), diez perfiles seguidos dejan uno solo mirando, el de la página que está */
++ H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?{status:200,body:API58JSON()}:{status:404,body:{}}});
++ for(let i=0;i<10;i++){await H.X.vPersona('bea');await tick()}
++ assert.equal(H.ctx.acctW.size,1,'los de páginas que se fueron no se quedan');
++});
+ test('LHB-62: Bloqueados en Editar perfil: la lista de a quién bloqueaste, cada fila con Desbloquear; quitar una pasa el foco a la siguiente; sin la tabla la sección no sale',async()=>{
+  const sent=[];
+  const H=HOJA58({api:(method,path,body)=>{sent.push([method,path,body]);
+
+2026-10-29T15:51:49.491720Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T15:51:51.876635Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Likely] The remaining risk is whether public pages observe Clerk changes before `hook()` runs. I’ll trace that path and the watcher sweep, then check what the read-only environment can execute.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\Users\Owner\lhb-62-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T15:51:57.184636Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The new counter covers A → B → C once the account listener is installed. Public pages can still open with an empty saved account and skip listener registration. I’m checking whether that path can retain content across a session change, and testing the sweep separately.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The unhooked path retains stale content: the repository harness made no callback or refetch after a session change, leaving a profile and list visible; a fresh request returned 404. The sweep showed no loop or wrong-page repaint.
+
+[Certain] All 31 targeted tests passed. The full suite had 349 passes, five failures and one skip; the five failures involve Python execution denied by the sandbox or temporary-directory creation denied by the sandbox.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] **Finding 2 remains blocking.** The counter fixes observed Clerk changes, but public pages can still have no account listener.
+
+1. **P1, blocking: an unhooked public page retains content after the session changes.**
+
+   [site/hoja.js:380](C:/Users/Owner/lhb-62-wt/site/hoja.js:380), `CUENTA` startup, `subNow`, `vPersona`, `vFwList`; [site/cuenta.js:24](C:/Users/Owner/lhb-62-wt/site/cuenta.js:24), `reconcile`, `hook`.
+
+   | Claim | Artifact |
+   |---|---|
+   | Empty-cache public visits never install the listener. | Startup calls reconciliation only under `if(acct.get())`; `reconcile()` itself starts with `if(!c0)return`. Public profile/list rendering never calls `hook()`. |
+   | Without that listener, session changes cannot advance the new counter. | `onAccount:()=>{acctGen++;acctTell()}` runs only through the listener installed by `hook()`. |
+
+   [Certain] **Reproduction:** open Bea’s public profile or followers list with no saved account or pending intent. Change the session to an account Bea blocked while keeping that page open. In the repository harness, the real `cuenta.js` produced **zero account callbacks**, the page made **one request**, and the old profile/list remained visible. A fresh profile request returned 404. Releasing an old pending response after the change also painted it.
+
+   [Likely] A browser route to this condition is changing the same-origin session in another tab. There is no account-storage or visibility handler that repaints these public views. Deployed Clerk behavior is **NOT VERIFIED** here.
+
+   [Certain] **MAINTAIN finding 2.** Ensure session observation covers public views even when the saved account is empty. The added tests either install the listener using a cached account or manually increment `acctGen`, so they miss this path.
+
+[Certain] **CONCUR with the P3 cleanup fix.** The `pfRedo` sweep removes obsolete watchers. Watchers delete themselves before calling `redo()`, and replacement roots invalidate old page predicates. I found no repaint loop or wrong-page repaint. With the real listener installed, A → B → C reached the expected unavailable page; subsequent changes after navigation neither repainted nor fetched.
+
+[Certain] All **31 targeted tests passed**. The full suite produced **349 pass, 5 fail, 1 skipped**: four failures involve denied Python execution, and one involves denied temporary-directory creation. Full-suite PASS and the supplied mutation results were **not independently verified**. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK
+tokens used
+82,790
+[Certain] **Finding 2 remains blocking.** The counter fixes observed Clerk changes, but public pages can still have no account listener.
+
+1. **P1, blocking: an unhooked public page retains content after the session changes.**
+
+   [site/hoja.js:380](C:/Users/Owner/lhb-62-wt/site/hoja.js:380), `CUENTA` startup, `subNow`, `vPersona`, `vFwList`; [site/cuenta.js:24](C:/Users/Owner/lhb-62-wt/site/cuenta.js:24), `reconcile`, `hook`.
+
+   | Claim | Artifact |
+   |---|---|
+   | Empty-cache public visits never install the listener. | Startup calls reconciliation only under `if(acct.get())`; `reconcile()` itself starts with `if(!c0)return`. Public profile/list rendering never calls `hook()`. |
+   | Without that listener, session changes cannot advance the new counter. | `onAccount:()=>{acctGen++;acctTell()}` runs only through the listener installed by `hook()`. |
+
+   [Certain] **Reproduction:** open Bea’s public profile or followers list with no saved account or pending intent. Change the session to an account Bea blocked while keeping that page open. In the repository harness, the real `cuenta.js` produced **zero account callbacks**, the page made **one request**, and the old profile/list remained visible. A fresh profile request returned 404. Releasing an old pending response after the change also painted it.
+
+   [Likely] A browser route to this condition is changing the same-origin session in another tab. There is no account-storage or visibility handler that repaints these public views. Deployed Clerk behavior is **NOT VERIFIED** here.
+
+   [Certain] **MAINTAIN finding 2.** Ensure session observation covers public views even when the saved account is empty. The added tests either install the listener using a cached account or manually increment `acctGen`, so they miss this path.
+
+[Certain] **CONCUR with the P3 cleanup fix.** The `pfRedo` sweep removes obsolete watchers. Watchers delete themselves before calling `redo()`, and replacement roots invalidate old page predicates. I found no repaint loop or wrong-page repaint. With the real listener installed, A → B → C reached the expected unavailable page; subsequent changes after navigation neither repainted nor fetched.
+
+[Certain] All **31 targeted tests passed**. The full suite produced **349 pass, 5 fail, 1 skipped**: four failures involve denied Python execution, and one involves denied temporary-directory creation. Full-suite PASS and the supplied mutation results were **not independently verified**. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK

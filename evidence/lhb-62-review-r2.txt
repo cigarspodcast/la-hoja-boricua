@@ -1,0 +1,683 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-62-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18851-4977-7cc1-9299-635488df925c
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Functions in functions/ and D1 behind them). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block). TIER 2, round 2.
+
+Ticket LHB-62 (M6-S8): block and report. Pinned: a blocks table (blocker_id, blocked_id, created_at; unique pair). A block removes follows in both directions and hides each profile from the other everywhere (profile page, search, feed, lists). Account deletion removes both sides of block rows. "Reportar" opens a pre-filled email to the project contact with the reported @handle; nothing is ever sent. Unblock is available from a "Bloqueados" list on the edit-profile screen and does not restore follows. A blocked person is not told. The feature stays dark until the migration is applied; the code ships first.
+
+Round 1 (evidence/lhb-62-review-r1.txt) returned BLOCK. The diff below is the fix commit against the round 1 commit. What changed, finding by finding:
+0. (seen mid-round) functions/api/follow.js: POST and its race recheck answer 404 not-found for a blocked pair (was 403 blocked); DELETE answers 404 for a blocked pair before reading follows (was 200 with the count).
+1. functions/api/block.js: POST inserts only if the other person has not blocked me (NOT EXISTS in the INSERT) and I am under BLOCK_MAX (COUNT in the same INSERT); the follows DELETE in the same batch runs only if my row exists; then it reads my row: present 200, otherwise 404 if the pair is blocked (an inbound block), otherwise 429 block-cap. DELETE: with no row of mine removed, a hidden profile or an inbound block answers 404. GET: hidden profiles, and people who also blocked me, show only their @ (display_name and avatar_key null).
+2. site/hoja.js vPersona and vFwList: subNow() is the saved account's sub at request time; an answer that arrives after the account changed is not painted and the page asks again; pfRedo registers an acctW watcher that repaints the open page when the account changes and removes itself when the page is gone.
+3. site/hoja.js blkMount: the sheet is closed only if its own #blkGo is still the one in the page; the toast and the redirect happen only for the account that blocked (fwSame), the redirect only from that profile page (live). blkErr maps block-cap and not-found.
+4. Pagination was replaced by a cap: BLOCK_MAX = 500 blocks per account (a placeholder like FOLLOW_MAX), the same number the GET returns, so every existing block is in the list. Existing rows above the cap cannot exist: the table ships empty with this ticket.
+5. functions/_lib/follow.js countsOf(db, userId, viewer): with a viewer, the counts leave out people with a blocked pair with the viewer, like listOf; /api/u and /api/follow (GET, and the counts in the POST and DELETE answers) pass the viewer.
+Tests: 5 new (3 server, 2 app), each seen failing on the round 1 code; the LHB-60 watcher counts now include the page watcher; the LHB-56 source check reads the 404. Evidence: evidence/lhb-62-mutations.out (39 mutations), evidence/lhb-62-tests.txt the full suite.
+
+Check that each finding is fully fixed, and in particular:
+- block.js POST: is the INSERT ... SELECT ... WHERE ... ON CONFLICT DO NOTHING valid SQLite, are the parameter numbers right, and can any outcome (inbound block, cap, repeat, a race with the other person blocking) leak that the other person blocked me or leave follows removed without a block?
+- The cap instead of pagination: is it a sound answer to the round 1 finding?
+- The repaint on account change: loops, double requests, focus loss, interaction with fwMount's watcher cleanup, a stale page that keeps a watcher.
+- Anything still showing a blocked pair to each other, or a count that differs from the list.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-timeout=60000 --test-name-pattern=LHB-62 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 4ea2c9a a8881cf -- functions site test evidence/lhb-62-mutations.py =====
+diff --git a/evidence/lhb-62-mutations.py b/evidence/lhb-62-mutations.py
+index ee0ad7f..b49489b 100644
+--- a/evidence/lhb-62-mutations.py
++++ b/evidence/lhb-62-mutations.py
+@@ -16,17 +16,17 @@ MUTS = [
+     (FL, 'isBlocked one direction only', "'SELECT 1 AS n FROM blocks WHERE (blocker_id = ?1 AND blocked_id = ?2) OR (blocker_id = ?2 AND blocked_id = ?1)'", "'SELECT 1 AS n FROM blocks WHERE (blocker_id = ?1 AND blocked_id = ?2)'"),
+     (FL, 'a missing table hides every error', 'if (!noBlocks(e)) throw e; return q(false);', 'return q(false);'),
+     (FL, 'a missing table is not tolerated', 'if (!noBlocks(e)) throw e; return q(false);', 'throw e;'),
+-    (FL, 'lists not filtered for the viewer', 'const filter = on && viewer;', 'const filter = false;'),
++    (FL, 'lists not filtered for the viewer', 'const filter = on && viewer;\n    const sql', 'const filter = false;\n    const sql'),
+     (FL, 'a blocked list owner still answers', NF, ''),
+-    (AF, 'follow counts of a blocked pair still answer', NF, ''),
++    (AF, 'follow counts of a blocked pair still answer', NF + '\n  const out', '\n  const out'),
+     (AF, 'the race: follow insert ignores blocks', "(on ? 'AND NOT EXISTS (SELECT 1 FROM blocks WHERE (blocker_id = ?1 AND blocked_id = ?2) OR (blocker_id = ?2 AND blocked_id = ?1)) ' : '')", "''"),
+-    (BL, 'block keeps the follows', "env.DB.prepare('DELETE FROM follows WHERE (follower_id = ?1 AND followee_id = ?2) OR (follower_id = ?2 AND followee_id = ?1)').bind(me, who.user_id)", "env.DB.prepare('SELECT 1').bind()"),
+-    (BL, 'block removes one direction only', "'DELETE FROM follows WHERE (follower_id = ?1 AND followee_id = ?2) OR (follower_id = ?2 AND followee_id = ?1)'", "'DELETE FROM follows WHERE (follower_id = ?1 AND followee_id = ?2)'"),
++    (BL, 'block keeps the follows', "'DELETE FROM follows WHERE ((follower_id", "'DELETE FROM follows WHERE 0 AND ((follower_id"),
++    (BL, 'block removes one direction only', "((follower_id = ?1 AND followee_id = ?2) OR (follower_id = ?2 AND followee_id = ?1)) ' +", "((follower_id = ?1 AND followee_id = ?2)) ' +"),
+     (BL, 'self-block not refused', "if (who.user_id === me) return json({ error: 'self-block' }, 400);", ''),
+-    (BL, 'unblock reveals a hidden profile', 'if (who.hidden && !r.meta.changes) return json({ error: \'not-found\' }, 404);', ''),
++    (BL, 'unblock reveals a hidden profile', '(who.hidden || await', '(false || await'),
+     (PE, 'search not filtered', "(on ? notBlocked(1, 'profiles.user_id') + ' ' : '')", "''"),
+     (FE, 'feed does not skip a blocked author', 'if (blocked.get(r.uid)) continue;', ''),
+-    (AU, 'app profile of a blocked pair answers', 'if (!r || await isBlocked(env.DB, await viewerOf(request, env), r.uid))', 'if (!r)'),
++    (AU, 'app profile of a blocked pair answers', 'if (!r || await isBlocked(env.DB, viewer, r.uid))', 'if (!r)'),
+     (SSR, '/u page of a blocked pair answers', 'if (r) blocked = await isBlocked(env.DB, await viewerOf(request, env), r.uid);', 'if (r) blocked = false;'),
+     (AC, 'account deletion forgets blocks', "  ['blocks', ['blocker_id', 'blocked_id']],\n", ''),
+     (HJ, 'report subject without the handle', "encodeURIComponent('Reportar @'+h)", "encodeURIComponent('Reportar')"),
+@@ -34,6 +34,24 @@ MUTS = [
+     (HJ, 'blocking stays on the hidden profile', "if(live())location.hash='#/mihoja/perfil'", ''),
+     (HJ, 'Bloqueados section never shown', 'sec.hidden=false;say();', 'say();'),
+     (HJ, 'unblock focus not moved to the next row', "const f=nx&&nx.isConnected?nx:$('#blkT');", "const f=$('#blkT');"),
++    # Codex round 1
++    (AF, 'r1: follow to a blocked pair says blocked (the race recheck)', "      if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'not-found' }, 404);\n", ''),
++    (AF, 'r1: unfollow of a blocked pair answers with counts', "  // LHB-62: para un par bloqueado no existe, ni su conteo (el bloqueo ya borro los seguir de los dos lados)\n  " + NF + "\n", ''),
++    (BL, 'r1: blocking back someone who blocked you goes through', "'NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = ?2 AND blocked_id = ?1) AND (SELECT", "'(SELECT"),
++    (BL, 'r1: block refused by an inbound block says something else', 'if (await isBlocked(env.DB, me, who.user_id)) return notFound();', ''),
++    (BL, 'r1: unblock of someone who blocked you answers 200', '(who.hidden || await isBlocked(env.DB, me, who.user_id))', 'who.hidden'),
++    (BL, 'r1: block list shows name and photo of a mutual or hidden', 'THEN 1 ELSE 0 END AS shown', 'THEN 1 ELSE 1 END AS shown'),
++    (BL, 'r1: the block cap lets one more through', 'AND (SELECT COUNT(*) FROM blocks WHERE blocker_id = ?1) < ?4 ', 'AND (SELECT COUNT(*) FROM blocks WHERE blocker_id = ?1) < ?4 + 1 '),
++    (BL, 'r1: a refused block still removes follows', "'AND EXISTS (SELECT 1 FROM blocks WHERE blocker_id = ?1 AND blocked_id = ?2)'", "''"),
++    (FL, 'r1: counts not filtered for the viewer', 'const filter = on && viewer;\n    const one', 'const filter = false;\n    const one'),
++    (AU, 'r1: app profile counts without the viewer', 'countsOf(env.DB, r.uid, viewer)', 'countsOf(env.DB, r.uid)'),
++    (AF, 'r1: follow counts without the viewer', '...(await countsOf(env.DB, who.user_id, me)),', '...(await countsOf(env.DB, who.user_id)),'),
++    (HJ, 'r1: profile from the old session is painted', 'if(subNow()!==sub0)return vPersona(raw);', ''),
++    (HJ, 'r1: profile not repainted on an account change', "pfRedo(()=>$('#pfX')===el,sub0,()=>vPersona(raw));", ''),
++    (HJ, 'r1: list from the old session is painted', 'if(subNow()!==sub0)return vFwList(h,dir);', ''),
++    (HJ, 'r1: list not repainted on an account change', 'pfRedo(live,sub0,()=>vFwList(h,dir));', ''),
++    (HJ, 'r1: a late block closes another sheet', "if($('#blkGo')===go)closeSheet();", 'closeSheet();'),
++    (HJ, 'r1: a late block tells another account', '   if(!ok())return;\n   if(r.status===200&&r.body&&r.body.blocked===true)', '   if(r.status===200&&r.body&&r.body.blocked===true)'),
+ ]
+ 
+ 
+diff --git a/functions/_lib/follow.js b/functions/_lib/follow.js
+index 11a845c..ac9c609 100644
+--- a/functions/_lib/follow.js
++++ b/functions/_lib/follow.js
+@@ -58,15 +58,17 @@ export async function targetOf(db, rawHandle, { hidden = false } = {}) {
+   ).bind(h.handle).first();
+ }
+ 
+-// los conteos salen de la tabla, y solo cuentan perfiles visibles: el número cuadra con la lista
+-export async function countsOf(db, userId) {
+-  const f = await db.prepare(
+-    'SELECT COUNT(*) AS n FROM follows f JOIN profiles p ON p.user_id = f.follower_id WHERE f.followee_id = ?1 AND p.hidden = 0'
+-  ).bind(userId).first();
+-  const g = await db.prepare(
+-    'SELECT COUNT(*) AS n FROM follows f JOIN profiles p ON p.user_id = f.followee_id WHERE f.follower_id = ?1 AND p.hidden = 0'
+-  ).bind(userId).first();
+-  return { followers: f.n, following: g.n };
++// los conteos salen de la tabla, y solo cuentan perfiles visibles: el número cuadra con la lista.
++// LHB-62 (Codex ronda 1): con viewer, tampoco cuentan quienes tienen el par bloqueado con quien mira, como en listOf
++export async function countsOf(db, userId, viewer = null) {
++  return blockAware(async on => {
++    const filter = on && viewer;
++    const one = async (mine, other) => (await db.prepare(
++      'SELECT COUNT(*) AS n FROM follows f JOIN profiles p ON p.user_id = f.' + other + ' WHERE f.' + mine + ' = ?1 AND p.hidden = 0' +
++      (filter ? notBlocked(2, 'p.user_id') : '')
++    ).bind(userId, ...(filter ? [viewer] : [])).first()).n;
++    return { followers: await one('followee_id', 'follower_id'), following: await one('follower_id', 'followee_id') };
++  });
+ }
+ 
+ // el cursor es "fecha~@" de la última persona de la página: sin nada privado, y con la fecha y el @ el orden es estable
+diff --git a/functions/api/block.js b/functions/api/block.js
+index fe1cf0e..cd2168e 100644
+--- a/functions/api/block.js
++++ b/functions/api/block.js
+@@ -3,31 +3,48 @@
+    DELETE /api/block {handle} → {blocked: false}   no devuelve los seguir; de un perfil oculto también, si de verdad estaba bloqueado
+    GET /api/block             → {people: [{handle, display_name, avatar_key}]}   a quienes bloqueé yo, los más nuevos primero (la lista "Bloqueados" de Editar perfil)
+    Reglas: no se bloquea uno mismo (400 self-block), ni a un perfil oculto o que no existe (404 not-found); sin la tabla todavía (0007 sin aplicar), 503 blocks-off.
+-   Lo que sale de cada persona es solo lo público, como en las listas de seguidores. */
++   Codex ronda 1: quien te bloqueó tampoco existe aquí: bloquearlo o desbloquearlo (sin haberlo bloqueado tú) da el mismo 404 que un perfil que no existe.
++   Una cuenta bloquea a lo sumo BLOCK_MAX personas (429 block-cap), así la lista Bloqueados las trae todas y cada una se puede desbloquear.
++   Lo que sale de cada persona es solo lo público, como en las listas de seguidores; de quien también te bloqueó o se ocultó, solo el @ (para poder desbloquearlo). */
+ import { json } from '../_lib/auth.js';
+ import { requireProfile } from '../_lib/profile.js';
+-import { intake, noBlocks } from '../_lib/follow.js';
++import { intake, noBlocks, isBlocked } from '../_lib/follow.js';
+ 
+-export const BLOCK_LIST_MAX = 500;
++// TOPE DE PRUEBA (placeholder, como los de seguir): el número definitivo es del dueño. La lista Bloqueados trae hasta este mismo número, así nunca se queda nadie fuera
++export const BLOCK_MAX = 500;
+ const off = () => json({ error: 'blocks-off' }, 503);
++const notFound = () => json({ error: 'not-found' }, 404);
+ 
+ export async function onRequestPost({ request, env }) {
+   const it = await intake(request, env);
+   if (it.res) return it.res;
+   const { me, who } = it;
+   if (who.user_id === me) return json({ error: 'self-block' }, 400);
++  let mine;
+   try {
+-    // una tanda es una transacción: el bloqueo y el quitar los seguir pasan juntos o no pasan
++    // una tanda es una transacción: el bloqueo y el quitar los seguir pasan juntos o no pasan.
++    // La fila entra solo si la otra persona no me bloqueó antes y no llegué al tope, revisado en la misma sentencia (dos pedidos a la vez no pasan el tope);
++    // los seguir se quitan solo si la fila quedó
+     await env.DB.batch([
+-      env.DB.prepare('INSERT INTO blocks (blocker_id, blocked_id, created_at) VALUES (?1, ?2, ?3) ON CONFLICT(blocker_id, blocked_id) DO NOTHING')
+-        .bind(me, who.user_id, new Date().toISOString()),
+-      env.DB.prepare('DELETE FROM follows WHERE (follower_id = ?1 AND followee_id = ?2) OR (follower_id = ?2 AND followee_id = ?1)').bind(me, who.user_id)
++      env.DB.prepare(
++        'INSERT INTO blocks (blocker_id, blocked_id, created_at) SELECT ?1, ?2, ?3 WHERE ' +
++        'NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id = ?2 AND blocked_id = ?1) AND (SELECT COUNT(*) FROM blocks WHERE blocker_id = ?1) < ?4 ' +
++        'ON CONFLICT(blocker_id, blocked_id) DO NOTHING'
++      ).bind(me, who.user_id, new Date().toISOString(), BLOCK_MAX),
++      env.DB.prepare(
++        'DELETE FROM follows WHERE ((follower_id = ?1 AND followee_id = ?2) OR (follower_id = ?2 AND followee_id = ?1)) ' +
++        'AND EXISTS (SELECT 1 FROM blocks WHERE blocker_id = ?1 AND blocked_id = ?2)'
++      ).bind(me, who.user_id)
+     ]);
++    mine = !!(await env.DB.prepare('SELECT 1 AS n FROM blocks WHERE blocker_id = ?1 AND blocked_id = ?2').bind(me, who.user_id).first());
+   } catch (e) {
+     if (noBlocks(e)) return off();
+     throw e;
+   }
+-  return json({ blocked: true });
++  if (mine) return json({ blocked: true });
++  // sin la fila: o la otra persona me bloqueó (para mí no existe), o llegué al tope
++  if (await isBlocked(env.DB, me, who.user_id)) return notFound();
++  return json({ error: 'block-cap' }, 429);
+ }
+ 
+ export async function onRequestDelete({ request, env }) {
+@@ -42,7 +59,8 @@ export async function onRequestDelete({ request, env }) {
+     if (noBlocks(e)) return off();
+     throw e;
+   }
+-  if (who.hidden && !r.meta.changes) return json({ error: 'not-found' }, 404);
++  // sin una fila mía que quitar: un perfil oculto, o alguien que me bloqueó, no existe para mí
++  if (!r.meta.changes && (who.hidden || await isBlocked(env.DB, me, who.user_id))) return notFound();
+   return json({ blocked: false });
+ }
+ 
+@@ -51,14 +69,16 @@ export async function onRequestGet({ request, env }) {
+   if (g instanceof Response) return g;
+   let rows;
+   try {
+-    // los ocultos también salen: quien bloqueó tiene que poder desbloquearlos
++    // los ocultos también salen: quien bloqueó tiene que poder desbloquearlos. De un oculto, o de quien también me bloqueó, solo el @:
++    // ni su nombre ni su foto de ahora. Trae hasta BLOCK_MAX, el tope de bloqueos, así salen todos
+     rows = (await env.DB.prepare(
+-      'SELECT p.handle, p.display_name, p.avatar_key FROM blocks b JOIN profiles p ON p.user_id = b.blocked_id WHERE b.blocker_id = ?1 ' +
+-      'ORDER BY b.created_at DESC, p.handle ASC LIMIT ' + BLOCK_LIST_MAX
++      'SELECT p.handle, CASE WHEN p.hidden = 0 AND NOT EXISTS (SELECT 1 FROM blocks r WHERE r.blocker_id = b.blocked_id AND r.blocked_id = b.blocker_id) THEN 1 ELSE 0 END AS shown, ' +
++      'p.display_name, p.avatar_key FROM blocks b JOIN profiles p ON p.user_id = b.blocked_id WHERE b.blocker_id = ?1 ' +
++      'ORDER BY b.created_at DESC, p.handle ASC LIMIT ' + BLOCK_MAX
+     ).bind(g.user.sub).all()).results || [];
+   } catch (e) {
+     if (noBlocks(e)) return off();
+     throw e;
+   }
+-  return json({ people: rows.map(r => ({ handle: r.handle, display_name: r.display_name, avatar_key: r.avatar_key })) });
++  return json({ people: rows.map(r => ({ handle: r.handle, display_name: r.shown ? r.display_name : null, avatar_key: r.shown ? r.avatar_key : null })) });
+ }
+diff --git a/functions/api/follow.js b/functions/api/follow.js
+index 2ccf128..1bf0498 100644
+--- a/functions/api/follow.js
++++ b/functions/api/follow.js
+@@ -2,7 +2,7 @@
+    POST /api/follow {handle}   → {following: true, followers}   (repetirlo no cambia nada)
+    DELETE /api/follow {handle} → {following: false, followers}  (repetirlo tampoco; de un perfil oculto solo si se le seguia, y sin conteo)
+    GET /api/follow?handle=x    → los conteos públicos de esa persona y, con sesión, si yo la sigo
+-   Reglas: no se sigue a uno mismo (400 self-follow), ni a un perfil oculto o que no existe (404 not-found), ni a quien tiene el par bloqueado (403 blocked, LHB-62);
++   Reglas: no se sigue a uno mismo (400 self-follow), ni a un perfil oculto o que no existe (404 not-found), ni a quien tiene el par bloqueado (LHB-62: el mismo 404, quien queda bloqueado no se entera);
+    topes de prueba por hora y en total (429 follow-rate, follow-cap), documentados en _lib/follow.js.
+    LHB-62: con sesión, GET de alguien que tiene el par bloqueado con quien pregunta da 404, como si no existiera. */
+ import { json } from '../_lib/auth.js';
+@@ -13,7 +13,7 @@ export async function onRequestPost({ request, env }) {
+   if (it.res) return it.res;
+   const { me, who } = it;
+   if (who.user_id === me) return json({ error: 'self-follow' }, 400);
+-  if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'blocked' }, 403);
++  if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'not-found' }, 404);
+   const has = () => env.DB.prepare('SELECT 1 AS n FROM follows WHERE follower_id = ?1 AND followee_id = ?2').bind(me, who.user_id).first();
+   if (!(await has())) {
+     const now = new Date();
+@@ -31,12 +31,12 @@ export async function onRequestPost({ request, env }) {
+     ).bind(me, who.user_id, now.toISOString(), since, FOLLOW_PER_HOUR, FOLLOW_MAX).run());
+     // sin fila nueva: o ya existia (otro pedido igual llego antes), o el par se bloqueo mientras tanto, o se llego a un tope
+     if (!ins.meta.changes && !(await has())) {
+-      if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'blocked' }, 403);
++      if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'not-found' }, 404);
+       const h = await env.DB.prepare('SELECT COUNT(*) AS n FROM follow_events WHERE follower_id = ?1 AND created_at > ?2').bind(me, since).first();
+       return json({ error: h.n >= FOLLOW_PER_HOUR ? 'follow-rate' : 'follow-cap' }, 429);
+     }
+   }
+-  return json({ following: true, followers: (await countsOf(env.DB, who.user_id)).followers });
++  return json({ following: true, followers: (await countsOf(env.DB, who.user_id, me)).followers });
+ }
+ 
+ export async function onRequestDelete({ request, env }) {
+@@ -44,12 +44,14 @@ export async function onRequestDelete({ request, env }) {
+   const it = await intake(request, env, { hidden: true });
+   if (it.res) return it.res;
+   const { me, who } = it;
++  // LHB-62: para un par bloqueado no existe, ni su conteo (el bloqueo ya borro los seguir de los dos lados)
++  if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'not-found' }, 404);
+   const had = await env.DB.prepare('SELECT 1 AS n FROM follows WHERE follower_id = ?1 AND followee_id = ?2').bind(me, who.user_id).first();
+   // un perfil oculto solo se deja de seguir si de verdad se seguia: para los demas no existe, ni su conteo
+   if (who.hidden && !had) return json({ error: 'not-found' }, 404);
+   await env.DB.prepare('DELETE FROM follows WHERE follower_id = ?1 AND followee_id = ?2').bind(me, who.user_id).run();
+   if (who.hidden) return json({ following: false });
+-  return json({ following: false, followers: (await countsOf(env.DB, who.user_id)).followers });
++  return json({ following: false, followers: (await countsOf(env.DB, who.user_id, me)).followers });
+ }
+ 
+ export async function onRequestGet({ request, env }) {
+@@ -59,7 +61,7 @@ export async function onRequestGet({ request, env }) {
+   // la sesión es opcional aquí: sin ella (o con una vencida) se contesta igual, sin el campo viewerFollows
+   const me = await viewerOf(request, env);
+   if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'not-found' }, 404);
+-  const out = { handle: who.handle, display_name: who.display_name, avatar_key: who.avatar_key, ...(await countsOf(env.DB, who.user_id)), self: me === who.user_id, viewerFollows: null };
++  const out = { handle: who.handle, display_name: who.display_name, avatar_key: who.avatar_key, ...(await countsOf(env.DB, who.user_id, me)), self: me === who.user_id, viewerFollows: null };
+   if (me && me !== who.user_id) out.viewerFollows = !!(await env.DB.prepare('SELECT 1 AS n FROM follows WHERE follower_id = ?1 AND followee_id = ?2').bind(me, who.user_id).first());
+   return json(out);
+ }
+diff --git a/functions/api/u/[handle].js b/functions/api/u/[handle].js
+index ebe425f..ebe35c3 100644
+--- a/functions/api/u/[handle].js
++++ b/functions/api/u/[handle].js
+@@ -11,8 +11,10 @@ export async function onRequestGet({ request, env, params }) {
+   if (!env.DB) return json({ error: 'no-db' }, 503);
+   try {
+     const r = await publicPassport(env.DB, params && params.handle);
+-    if (!r || await isBlocked(env.DB, await viewerOf(request, env), r.uid)) return json({ error: 'not-found' }, 404);
+-    const f = await countsOf(env.DB, r.uid);
++    const viewer = r ? await viewerOf(request, env) : null;
++    if (!r || await isBlocked(env.DB, viewer, r.uid)) return json({ error: 'not-found' }, 404);
++    // Codex ronda 1: los conteos cuadran con las listas que ve quien mira
++    const f = await countsOf(env.DB, r.uid, viewer);
+     const { profile, counts, catas } = r.view;
+     return json({ profile, counts: { resenas: counts.catas, followers: f.followers, following: f.following, sellos: counts.sellos }, resenas: catas });
+   } catch (e) {
+diff --git a/site/hoja.js b/site/hoja.js
+index feb1d69..b5ec5e3 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -509,7 +509,11 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
+    y con ella el servidor esconde a quien tiene el par bloqueado contigo */
+ async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
+ /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
+-async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();
++/* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado) */
++const subNow=()=>{const a=acct.get();return a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:null};
++/* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva; el que mira se quita solo cuando su página ya no está */
++const pfRedo=(live,sub0,redo)=>{const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
++async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow();
+  /* LHB-60: #/u/<handle>/seguidores y #/u/<handle>/siguiendo (el enrutador de app.js pasa solo el @; lo que sigue se lee del hash), también las tuyas */
+  const seg=String(location.hash||'').replace(/^#\/?/,'').split('/')[2]||'';
+  if((seg==='seguidores'||seg==='siguiendo')&&PF_HANDLE.test(h))return vFwList(h,seg==='seguidores'?'followers':'following');
+@@ -517,8 +521,10 @@ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct
+  view.innerHTML=`<div class="pf" id="pfX"><p class="hint">${tt('h.pfCargando')}</p></div>`;const el=$('#pfX');
+  if(!PF_HANDLE.test(h)){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
+  const r=await pfFetch(h);
+- /* una respuesta que llega cuando ya se fue de la página no pinta nada */
++ /* una respuesta que llega cuando ya se fue de la página no pinta nada; si otra cuenta entró mientras tanto, era de la sesión de antes: se pregunta otra vez */
+  if($('#pfX')!==el)return;
++ if(subNow()!==sub0)return vPersona(raw);
++ pfRedo(()=>$('#pfX')===el,sub0,()=>vPersona(raw));
+  if(r.status===404){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
+  const b=r.body;if(r.status!==200||!b.profile||typeof b.profile!=='object'||!b.counts||typeof b.counts!=='object'){el.innerHTML=`<div class="empty">${tt('h.pfError')}</div>`;return}
+  const d={own:false,resenas:(Array.isArray(b.resenas)?b.resenas:[]).filter(e=>e&&typeof e==='object').map(pfEntry),sellos:b.counts.sellos,favorite_brand:b.profile.favorite_brand};
+@@ -577,14 +583,15 @@ async function fwMount(id,h,live,onCount){const box=$('#'+id),a=meAcct();if(!box
+  const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};for(const f of [...acctW])f();acctW.add(w);
+  followBtn($('#fwB-'+h),h,{on:r.body.viewerFollows,n:onCount&&Number.isInteger(r.body.followers)?r.body.followers:null},live,onCount,a.sub)}
+ /* las listas: foto, nombre público (nombre e inicial) y @ de cada persona, cada fila con su botón; 20 por página con el cursor del servidor. Son públicas: se piden sin sesión */
+-async function vFwList(h,dir){
++async function vFwList(h,dir){const sub0=subNow();
+  view.innerHTML=`<div class="pf" id="fwX"><p><a class="lbtn" href="#/u/${encodeURIComponent(h)}">@${esc(h)}</a></p><h1 class="pf-n">${tt(dir==='followers'?'h.pfSeguidores':'h.pfSiguiendo')}</h1><ul class="people" id="fwL"></ul><p class="hint" id="fwH" aria-live="polite">${tt('h.pfCargando')}</p><button class="lbtn" type="button" id="fwMore" hidden>${tt('ev.more')}</button></div>`;
+  const root=$('#fwX'),live=()=>$('#fwX')===root,seen=new Set();let next=null,seq=0;
+  const say=m=>{const el=$('#fwH');if(el){el.textContent=m;el.hidden=!m}};
+  const page=async()=>{const mine=++seq;$('#fwMore').hidden=true;let r;
+   try{const x=await fetch('/api/'+dir+'?handle='+encodeURIComponent(h)+(next?'&cursor='+encodeURIComponent(next):''),{headers:{Accept:'application/json'}});let j={};try{j=await x.json()}catch(e){}r={status:x.status,body:j&&typeof j==='object'?j:{}}}catch(e){r={status:0,body:{}}}
+-  /* se fue de la página, o es la respuesta de un pedido viejo: no pinta nada */
++  /* se fue de la página, o es la respuesta de un pedido viejo: no pinta nada. Codex r1: si otra cuenta entró mientras tanto, la lista empieza otra vez con la sesión nueva */
+   if(!live()||mine!==seq)return;
++  if(subNow()!==sub0)return vFwList(h,dir);
+   if(r.status===404){say(tt('h.pfNoDisponible'));return}
+   if(r.status!==200||!Array.isArray(r.body.people)){say(tt('h.fwError'));$('#fwMore').hidden=!next;return}
+   const me=meAcct(),ppl=r.body.people.filter(p=>p&&typeof p.handle==='string'&&PF_HANDLE.test(p.handle)&&!seen.has(p.handle));ppl.forEach(p=>seen.add(p.handle));
+@@ -593,12 +600,13 @@ async function vFwList(h,dir){
+   say(seen.size?'':tt('h.fwNadie'));$('#fwMore').hidden=!next;
+   await Promise.all(ppl.map(p=>fwMount('fwR-'+p.handle,p.handle,live)))};
+  $('#fwMore').onclick=()=>page();
++ pfRedo(live,sub0,()=>vFwList(h,dir));
+  await page()}
+ /* ---------- bloquear y reportar (LHB-62): en el perfil de otra persona, y la lista Bloqueados en Editar perfil (functions/api/block.js) ---------- */
+ const CONTACTO='sergio@cigarspodcast.com';/* el contacto de privacidad.html y de la página /u/<handle> */
+ /* Reportar abre un correo ya escrito con el @ y el enlace del perfil, como la página /u/<handle>; no manda nada por sí solo: lo manda la persona desde su correo */
+ const reportHref=h=>'mailto:'+CONTACTO+'?subject='+encodeURIComponent('Reportar @'+h)+'&body='+encodeURIComponent(location.origin+'/u/'+h);
+-const blkErr=e=>e==='blocks-off'?tt('h.blkOff'):tt('h.blkFail');
++const blkErr=e=>e==='blocks-off'?tt('h.blkOff'):e==='block-cap'?tt('h.blkCap'):e==='not-found'?tt('h.pfNoDisponible'):tt('h.blkFail');
+ /* Reportar para todos; Bloquear para una cuenta con perfil y otra persona, con una hoja que pregunta antes. Al bloquear, el perfil ya no se ve: se vuelve a tu Perfil */
+ function blkMount(id,h,live){const box=$('#'+id);if(!box)return;const a=meAcct();
+  box.innerHTML=`<a class="lbtn" id="pfReport" href="${esc(reportHref(h))}">${tt('h.blkReportar')}</a>${a&&a.handle!==h?`<button class="lbtn" type="button" id="pfBlock">${tt('h.blkBloquear')}</button>`:''}`;
+@@ -606,7 +614,9 @@ function blkMount(id,h,live){const box=$('#'+id);if(!box)return;const a=meAcct()
+  b.onclick=()=>{sheet(`<h2 class="sheet-h">${tt('h.blkPregunta',{a:'@'+esc(h)})}</h2><p>${tt('h.blkExplica')}</p><p><button class="btn" type="button" id="blkGo">${tt('h.blkBloquear')}</button> <button class="lbtn" type="button" data-close>${tt('h.cancelar')}</button></p>`,tt('h.blkPregunta',{a:'@'+h}));
+   const go=$('#blkGo');go.onclick=async()=>{go.disabled=true;const ok=()=>fwSame(a.sub);let r;
+    try{const C=await clerk();r=await api(C,'POST','/api/block',{handle:h},a.sub,undefined,ok)}catch(e){r={status:0,body:{}}}
+-   closeSheet();
++   /* Codex r1: la hoja se cierra solo si sigue siendo esta (no otra que se abrió después); el aviso es para la cuenta que bloqueó, y volver a tu Perfil, solo desde esta página */
++   if($('#blkGo')===go)closeSheet();
++   if(!ok())return;
+    if(r.status===200&&r.body&&r.body.blocked===true){toast(tt('h.blkHecho',{a:'@'+h}));if(live())location.hash='#/mihoja/perfil'}
+    else toast(blkErr(r.body&&r.body.error))}}}
+ /* Bloqueados, debajo del formulario de Editar perfil: cada fila con Desbloquear (no devuelve los seguir). Sin la tabla todavía (blocks-off) o sin red, la sección no sale.
+diff --git a/site/i18n.js b/site/i18n.js
+index 31a0272..ae9310c 100644
+--- a/site/i18n.js
++++ b/site/i18n.js
+@@ -428,6 +428,7 @@ const T={es:{
+  "h.blkHecho": "Bloqueaste a {a}.",
+  "h.blkOff": "Bloquear todavía no está disponible.",
+  "h.blkFail": "No pudimos bloquear. Revisa tu conexión e intenta otra vez.",
++ "h.blkCap": "Llegaste al máximo de personas que puedes bloquear.",
+  "h.blkBloqueados": "Bloqueados",
+  "h.blkNadie": "No has bloqueado a nadie.",
+  "h.blkDesbloquear": "Desbloquear",
+@@ -1262,6 +1263,7 @@ en:{
+  "h.blkHecho": "You blocked {a}.",
+  "h.blkOff": "Blocking is not available yet.",
+  "h.blkFail": "We could not block. Check your connection and try again.",
++ "h.blkCap": "You reached the most people you can block.",
+  "h.blkBloqueados": "Blocked",
+  "h.blkNadie": "You have not blocked anyone.",
+  "h.blkDesbloquear": "Unblock",
+diff --git a/test/site.test.js b/test/site.test.js
+index 18e6963..46865a3 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -2112,7 +2112,8 @@ test('LHB-56: la regla de bloqueo ya está en su sitio (no hace nada hasta LHB-6
+  try{
+   assert.equal(await a.FL.isBlocked(a.DB,'u_a','u_b'),false,'hasta que lleguen los bloqueos ningún par está bloqueado');
+   const src=fs.readFileSync(path.join(__dirname,'..','functions','api','follow.js'),'utf8');
+-  assert.ok(src.includes("if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'blocked' }, 403);"),'seguir pregunta por el bloqueo y contesta 403 blocked');
++  /* LHB-62: el bloqueo contesta el mismo 404 que un perfil que no existe, quien queda bloqueado no se entera */
++  assert.ok(src.includes("if (await isBlocked(env.DB, me, who.user_id)) return json({ error: 'not-found' }, 404);"),'seguir pregunta por el bloqueo y contesta 404 not-found');
+   assert.ok(src.indexOf('isBlocked(env.DB')<src.indexOf('INSERT INTO follows'),'el bloqueo se pregunta antes de escribir');
+   /* ningún archivo de seguir selecciona la fecha de nacimiento, el género ni el apellido */
+   for(const f of ['_lib/follow.js','api/follow.js','api/followers.js','api/following.js'])assert.ok(!/birth_date|gender|last_name|first_name/.test(fs.readFileSync(path.join(__dirname,'..','functions',...f.split('/')),'utf8').replace(/\/\*[\s\S]*?\*\//g,'').replace(/^\s*\/\/.*$/gm,'')),f+' no toca datos privados');
+@@ -4656,9 +4657,10 @@ test('LHB-60 (Codex r1): un pedido no sale si la página se fue mientras llegaba
+   F.H.acctBox.v=later;for(const f of [...F.H.ctx.acctW])f();assert.ok(!F.H.all().includes('fwB-bea'),'se quita para '+JSON.stringify(later));assert.equal(F.H.ctx.acctW.size,0);
+   b.onclick();await F.tick();assert.equal(F.q.length,0,'no manda nada');}
+  /* el que mira la cuenta se va solo cuando la página ya no está */
+- F=FW60();await F.H.X.vPersona('bea');assert.equal(F.H.ctx.acctW.size,1);F.H.ctx.view.innerHTML='<div id="otra"></div>';for(const f of [...F.H.ctx.acctW])f();assert.equal(F.H.ctx.acctW.size,0);
++ /* LHB-62 (Codex r1): miran dos, el botón y la página (que se pinta otra vez con otra cuenta) */
++ F=FW60();await F.H.X.vPersona('bea');assert.equal(F.H.ctx.acctW.size,2);F.H.ctx.view.innerHTML='<div id="otra"></div>';for(const f of [...F.H.ctx.acctW])f();assert.equal(F.H.ctx.acctW.size,0);
+  /* Codex r2: abrir tres perfiles sin que cambie la cuenta deja uno solo mirando, el de la página que está */
+- F=FW60();for(const h of ['bea','bea','bea']){await F.H.X.vPersona(h);await F.tick()}assert.equal(F.H.ctx.acctW.size,1,'los de páginas que se fueron no se quedan');
++ F=FW60();for(const h of ['bea','bea','bea']){await F.H.X.vPersona(h);await F.tick()}assert.equal(F.H.ctx.acctW.size,2,'los de páginas que se fueron no se quedan: solo el botón y la página que está');
+  /* 3 seguidores: Seguir y Dejar de seguir; el servidor confirma el primero con 10: se ve 9 mientras va el segundo */
+  F=FW60();await F.H.X.vPersona('bea');b=F.btn('bea');b.onclick();b.onclick();await F.tick();F.q.shift().answer({status:200,body:{following:true,followers:10}});await F.tick();
+  assert.equal(F.q.length,1,'va el DELETE');assert.equal(F.count(),'9');assert.equal(b.textContent,'Seguir');
+@@ -6015,7 +6017,7 @@ async function API62(opts){opts=opts||{};
+  const call=async(fn,u,body,o)=>{o=o||{};const r=await fn({request:rq(u?await a.tk(u):null,body,o),env:o.env||env,params:o.params});const t=await r.text();let j;try{j=JSON.parse(t)}catch(e){j=t}return [r.status,j]};
+  return {...a,B,PE,AU,env,DB,setPrepare:f=>{onPrepare=f},
+   block:(u,h,o)=>call(B.onRequestPost,u,{handle:h},o),unblock:(u,h,o)=>call(B.onRequestDelete,u,{handle:h},o),blocked:(u,o)=>call(B.onRequestGet,u,undefined,o),
+-  follow2:(u,h,o)=>call(a.F.onRequestPost,u,{handle:h},o),
++  follow2:(u,h,o)=>call(a.F.onRequestPost,u,{handle:h},o),unfollow2:(u,h,o)=>call(a.F.onRequestDelete,u,{handle:h},o),
+   state2:(h,u,o)=>call(a.F.onRequestGet,u,undefined,{...(o||{}),url:'https://x.test/api/follow?handle='+h}),
+   list2:(dir,h,u,o)=>call((dir==='followers'?a.FS:a.FG).onRequestGet,u,undefined,{...(o||{}),url:'https://x.test/api/'+dir+'?handle='+h}),
+   people:(u,q,o)=>call(PE.onRequestGet,u,undefined,{...(o||{}),url:'https://x.test/api/people?q='+encodeURIComponent(q)}),
+@@ -6067,7 +6069,8 @@ test('LHB-62: bloquear quita los seguir en las dos direcciones y esconde a cada
+    assert.deepEqual(await a.state2(h,v),[404,{error:'not-found'}],v+' no ve los conteos de '+h);
+    for(const d of ['followers','following'])assert.deepEqual(await a.list2(d,h,v),[404,{error:'not-found'}],v+' no ve las listas de '+h);
+    assert.deepEqual(hs62(await a.people(v,h)),[],v+' no encuentra a '+h);
+-   assert.deepEqual(await a.follow2(v,h),[403,{error:'blocked'}],v+' no puede seguir a '+h)}
++   assert.deepEqual(await a.follow2(v,h),nada,v+' no puede seguir a '+h+', y le contesta lo mismo que a un perfil que no existe');
++   assert.deepEqual(await a.unfollow2(v,h),nada,v+' tampoco ve el conteo de '+h+' al dejar de seguir')}
+   assert.deepEqual(hs62(await a.list2('followers','cris','u_yo')),['yolo'],'en la lista de otra persona, yo no veo a bea');
+   assert.deepEqual(hs62(await a.list2('followers','cris','u_bea')),['bea'],'ni bea me ve a mí');
+   assert.deepEqual(await a.feed2('u_yo'),['cris'],'el feed ya no trae a bea');
+@@ -6114,7 +6117,7 @@ test('LHB-62: un bloqueo que llega entre la revisión y la escritura de un segui
+   SEED62(a);a.db.prepare("DELETE FROM follows WHERE follower_id='u_cris'").run();
+   /* justo antes de que seguir escriba su fila, bea bloquea a cris */
+   a.setPrepare(sql=>{if(/^INSERT INTO follows/.test(sql)){a.setPrepare(null);a.db.prepare("INSERT INTO blocks (blocker_id,blocked_id,created_at) VALUES ('u_bea','u_cris','x')").run()}});
+-  assert.deepEqual(await a.follow2('u_cris','bea'),[403,{error:'blocked'}]);
++  assert.deepEqual(await a.follow2('u_cris','bea'),[404,{error:'not-found'}]);
+   assert.equal(a.rows().filter(r=>r.follower_id==='u_cris').length,0,'no quedó la fila');
+  }finally{a.done()}
+ });
+@@ -6169,9 +6172,115 @@ test('LHB-62: en la app, Reportar abre un correo ya escrito con el @ y el enlace
+ });
+ test('LHB-62: el bloqueo es real en cada lugar que lo pregunta, y el código de bloquear no lee ni escribe nada privado',async()=>{
+  const src=f=>fs.readFileSync(path.join(__dirname,'..','functions',...f.split('/')),'utf8');
+- for(const [f,s] of [['api/u/[handle].js','isBlocked(env.DB, await viewerOf(request, env), r.uid)'],['u/[handle].js','isBlocked(env.DB, await viewerOf(request, env), r.uid)'],['_lib/follow.js','if (await isBlocked(env.DB, me, who.user_id)) return json({ error: \'not-found\' }, 404);'],['api/follow.js','if (await isBlocked(env.DB, me, who.user_id)) return json({ error: \'not-found\' }, 404);'],['_lib/people.js',"notBlocked(1, 'profiles.user_id')"],['_lib/feed.js','isBlocked(db, me, r.uid)']])assert.ok(src(f).includes(s),f+' pregunta por el bloqueo');
++ for(const [f,s] of [['api/u/[handle].js','isBlocked(env.DB, viewer, r.uid)'],['u/[handle].js','isBlocked(env.DB, await viewerOf(request, env), r.uid)'],['_lib/follow.js','if (await isBlocked(env.DB, me, who.user_id)) return json({ error: \'not-found\' }, 404);'],['api/follow.js','if (await isBlocked(env.DB, me, who.user_id)) return json({ error: \'not-found\' }, 404);'],['_lib/people.js',"notBlocked(1, 'profiles.user_id')"],['_lib/feed.js','isBlocked(db, me, r.uid)']])assert.ok(src(f).includes(s),f+' pregunta por el bloqueo');
+  for(const f of ['api/block.js'])assert.ok(!/birth_date|gender|last_name|first_name/.test(src(f).replace(/\/\*[\s\S]*?\*\//g,'').replace(/^\s*\/\/.*$/gm,'')),f+' no toca datos privados');
+ });
++test('LHB-62 (Codex r1): quien te bloqueó tampoco existe en bloquear ni desbloquear, y en tu lista Bloqueados de quien también te bloqueó o se ocultó sale solo el @',async()=>{
++ const a=await API62();
++ try{
++  SEED62(a);
++  assert.deepEqual(await a.block('u_yo','bea'),[200,{blocked:true}]);
++  const nada=await a.unblock('u_bea','nadie_asi');assert.deepEqual(nada,[404,{error:'not-found'}]);
++  assert.deepEqual(await a.unblock('u_bea','yolo'),nada,'bea no puede desbloquear a quien la bloqueó: lo mismo que un perfil que no existe');
++  assert.deepEqual(await a.block('u_bea','yolo'),nada,'ni bloquearlo de vuelta');
++  assert.deepEqual(a.bl(),[['u_yo','u_bea']],'no se escribió nada');
++  assert.deepEqual(await a.blocked('u_bea'),[200,{people:[]}],'y en su lista no sale yolo');
++  const pb=a.db.prepare("SELECT display_name,avatar_key FROM profiles WHERE user_id='u_bea'").get();assert.ok(pb.display_name&&pb.avatar_key,'la semilla tiene nombre y foto');
++  assert.deepEqual(await a.blocked('u_yo'),[200,{people:[{handle:'bea',display_name:pb.display_name,avatar_key:pb.avatar_key}]}],'yo sí veo a quien bloqueé, con su nombre y su foto');
++  /* bea me había bloqueado antes de que yo la bloqueara (los dos a la vez): yo la sigo pudiendo desbloquear, pero sin su nombre ni su foto de ahora */
++  a.db.prepare("INSERT INTO blocks (blocker_id,blocked_id,created_at) VALUES ('u_bea','u_yo','x')").run();
++  assert.deepEqual(await a.blocked('u_yo'),[200,{people:[{handle:'bea',display_name:null,avatar_key:null}]}]);
++  assert.deepEqual(await a.unblock('u_yo','bea'),[200,{blocked:false}],'mi fila sí se quita');
++  assert.deepEqual(a.bl(),[['u_bea','u_yo']],'y queda la de ella');
++  assert.deepEqual(await a.unblock('u_yo','bea'),nada,'ahora bea me bloqueó y yo no: para mí no existe');
++  /* alguien que bloqueé y después se ocultó: solo el @ */
++  assert.deepEqual(await a.block('u_yo','cris'),[200,{blocked:true}]);a.db.prepare("UPDATE profiles SET hidden=1 WHERE user_id='u_cris'").run();
++  assert.deepEqual(await a.blocked('u_yo'),[200,{people:[{handle:'cris',display_name:null,avatar_key:null}]}]);
++  assert.deepEqual(await a.unblock('u_yo','cris'),[200,{blocked:false}],'y se puede desbloquear');
++ }finally{a.done()}
++});
++test('LHB-62 (Codex r1): una cuenta bloquea a lo sumo BLOCK_MAX personas, así la lista Bloqueados las trae todas; al tope no se toca nada',async()=>{
++ const a=await API62();
++ try{
++  SEED62(a);
++  assert.equal(a.B.BLOCK_MAX,500);
++  const ins=a.db.prepare("INSERT INTO blocks (blocker_id,blocked_id,created_at) VALUES ('u_yo',?,?)");
++  for(let i=0;i<a.B.BLOCK_MAX-1;i++){a.mk('u_t'+i,'t'+String(i).padStart(3,'0'));ins.run('u_t'+i,'2026-10-01T00:00:00.'+String(i%1000).padStart(3,'0')+'Z')}
++  assert.deepEqual(await a.block('u_yo','cris'),[200,{blocked:true}],'el último que cabe entra');
++  const before=a.rows().length;
++  assert.deepEqual(await a.block('u_yo','bea'),[429,{error:'block-cap'}],'al tope, 429 block-cap');
++  assert.equal(a.rows().length,before,'y los seguir con bea siguen ahí');
++  assert.ok(a.rows().some(r=>r.follower_id==='u_yo'&&r.followee_id==='u_bea'));
++  const [st,b]=await a.blocked('u_yo');assert.equal(st,200);assert.equal(b.people.length,a.B.BLOCK_MAX,'la lista trae a todos los bloqueados');
++  assert.deepEqual(await a.block('u_yo','cris'),[200,{blocked:true}],'repetir uno que ya está no choca con el tope');
++ }finally{a.done()}
++});
++test('LHB-62 (Codex r1): los conteos de un perfil no cuentan a quien tiene el par bloqueado con quien mira, y cuadran con las listas',async()=>{
++ const a=await API62();
++ try{
++  SEED62(a);
++  assert.equal((await a.profile('cris',null))[1].counts.followers,2,'sin sesión, los dos seguidores de cris');
++  assert.deepEqual(await a.block('u_yo','bea'),[200,{blocked:true}]);
++  const [st,b]=await a.profile('cris','u_yo');assert.equal(st,200);
++  assert.deepEqual(hs62(await a.list2('followers','cris','u_yo')),['yolo']);
++  assert.equal(b.counts.followers,1,'yo no cuento a bea entre los seguidores de cris');
++  assert.equal((await a.state2('cris','u_yo'))[1].followers,1,'tampoco en los conteos de seguir');
++  assert.equal((await a.profile('cris','u_bea'))[1].counts.followers,1,'ni bea me cuenta a mí');
++  assert.equal((await a.profile('cris',null))[1].counts.followers,2,'sin sesión no cambia');
++  assert.equal((await a.unfollow2('u_yo','cris'))[1].followers,0,'al dejar de seguir, el conteo es el que yo veo');
++  assert.equal((await a.follow2('u_yo','cris'))[1].followers,1,'y al seguir');
++  /* sin la tabla todavía, los conteos son los de siempre */
++  const z=await API62({sin0007:true});try{SEED62(z);assert.equal((await z.profile('cris','u_yo'))[1].counts.followers,2)}finally{z.done()}
++ }finally{a.done()}
++});
++test('LHB-62 (Codex r1): en la app, el perfil y las listas que llegan de la sesión de otra cuenta no se pintan: se pregunta otra vez; y si la cuenta cambia con la página puesta, se pinta otra vez',async()=>{
++ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
++ const C={sub:'u_c',handle:'cris',name:'Cris P.',avatar:''};
++ /* el perfil: la cuenta cambia mientras llega la respuesta de la sesión de antes; con la de ahora, 404 */
++ let rel=null,n=0;
++ let H=HOJA58({reply:u=>{if(!u.startsWith('/api/u/'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
++ let p=H.X.vPersona('bea');await tick();assert.ok(rel,'preguntó');
++ H.acctBox.v=C;rel({status:200,body:API58JSON()});await p;await tick();
++ assert.equal(n,2,'se preguntó otra vez con la sesión nueva');
++ assert.ok(!H.all().includes('pf-n')&&!H.all().includes('Bea'),'no se pinta el perfil de la respuesta vieja');assert.ok(H.all().includes('Este perfil no está disponible.'));
++ /* el perfil ya puesto: otra cuenta entra y para ella no existe */
++ n=0;H=HOJA58({reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
++ await H.X.vPersona('bea');assert.ok(H.all().includes('id="pfMore"'),'se pintó');
++ H.acctBox.v=C;for(const f of [...H.ctx.acctW])f();await tick();
++ assert.equal(n,2,'se pidió otra vez');assert.ok(H.all().includes('Este perfil no está disponible.')&&!H.all().includes('id="pfMore"'),'y ya no se ve');
++ /* la misma cuenta guardada otra vez no pide nada */
++ n=0;H=HOJA58({reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON()}):{status:404,body:{}}});await H.X.vPersona('bea');
++ H.acctBox.v={...H.acctBox.v};for(const f of [...H.ctx.acctW])f();await tick();assert.equal(n,1,'sin cambio de cuenta no se pide otra vez');
++ /* las listas: lo mismo */
++ rel=null;n=0;
++ H=HOJA58({reply:u=>{if(!u.startsWith('/api/followers'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
++ H.loc.hash='#/u/bea/seguidores';p=H.X.vPersona('bea');await tick();assert.ok(rel,'preguntó la lista');
++ H.acctBox.v=C;rel({status:200,body:{people:[{handle:'dani',display_name:'Dani R.',avatar_key:null}],next:null}});await p;await tick();
++ assert.equal(n,2,'la lista se pidió otra vez');assert.ok(!H.all().includes('dani'),'sin la fila de la respuesta vieja');assert.equal(H.els.fwH.textContent,'Este perfil no está disponible.');
++ n=0;H=HOJA58({reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'dani',display_name:'Dani R.',avatar_key:null}],next:null}}:{status:404,body:{}}):{status:404,body:{}}});
++ H.loc.hash='#/u/bea/seguidores';await H.X.vPersona('bea');await tick();assert.ok(H.all().includes('dani'));
++ H.acctBox.v=null;for(const f of [...H.ctx.acctW])f();await tick();assert.equal(n,2,'salir pinta la lista otra vez');assert.ok(!H.all().includes('dani'));
++});
++test('LHB-62 (Codex r1): en la app, la respuesta tardía de Bloquear no cierra otra hoja, y con otra cuenta no avisa ni cambia de página',async()=>{
++ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
++ const mk=()=>{let rel=null;const H=HOJA58({reply:u=>u.startsWith('/api/u/')?{status:200,body:API58JSON()}:{status:404,body:{}},api:(method,path)=>path==='/api/block'?new Promise(r=>{rel=r}):{status:200,body:{viewerFollows:false,followers:3}}});
++  H.ctx.sheet=(x,l)=>{H.sheets.push([x,l]);H.ctx.$('#pfMore').innerHTML+=x};let closed=0;H.ctx.closeSheet=()=>{closed++};
++  return {H,rel:x=>rel(x),pending:()=>!!rel,closed:()=>closed}};
++ /* la hoja se cerró y se abrió otra antes de la respuesta: esa otra no se cierra; el aviso y la vuelta sí, es la misma cuenta y la misma página */
++ let T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();const go=T.H.els.blkGo;go.onclick();await tick();assert.ok(T.pending());
++ T.H.ctx.$('#pfMore').innerHTML='<div id="otraHoja"></div>';
++ T.rel({status:200,body:{blocked:true}});await tick();
++ assert.equal(T.closed(),0,'no cierra la hoja que no es suya');assert.ok(T.H.toasts.includes('Bloqueaste a @bea.'));assert.equal(T.H.loc.hash,'#/mihoja/perfil');
++ /* con la hoja todavía abierta, se cierra */
++ T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();T.H.els.blkGo.onclick();await tick();T.rel({status:200,body:{blocked:true}});await tick();assert.equal(T.closed(),1);
++ /* otra cuenta entró mientras tanto: ni aviso ni cambio de página */
++ T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();T.H.els.blkGo.onclick();await tick();
++ T.H.acctBox.v={sub:'u_c',handle:'cris',name:'Cris P.',avatar:''};T.rel({status:200,body:{blocked:true}});await tick();
++ assert.deepEqual(T.H.toasts,[],'no avisa a la otra cuenta');assert.equal(T.H.loc.hash,'','ni la lleva a su Perfil');
++ /* los rechazos nuevos tienen su aviso */
++ T=mk();await T.H.X.vPersona('bea');await tick();T.H.els.pfBlock.onclick();T.H.els.blkGo.onclick();await tick();T.rel({status:429,body:{error:'block-cap'}});await tick();
++ assert.deepEqual(T.H.toasts,['Llegaste al máximo de personas que puedes bloquear.']);
++});
+ test('LHB-62: Bloqueados en Editar perfil: la lista de a quién bloqueaste, cada fila con Desbloquear; quitar una pasa el foco a la siguiente; sin la tabla la sección no sale',async()=>{
+  const sent=[];
+  const H=HOJA58({api:(method,path,body)=>{sent.push([method,path,body]);
+
+2026-10-29T15:39:56.251822Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T15:39:57.678451Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Likely] The remaining risk is in the race handling and watcher lifecycle. I’ll check the round 1 findings against the current code and run the relevant tests without editing files or loading skills.
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\Users\Owner\lhb-62-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T15:40:02.851239Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The Node fallback works. HEAD contains the submitted fix commit plus a prompt-only commit. The 500-block cap and guarded follow deletion are present; I’m checking runtime behavior and whether page watchers clean up without a successful follow-button mount.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All 29 LHB-56/60/62 tests pass, including the five new regression tests. The cap also holds in SQLite. I found a possible watcher-retention issue on anonymous and error pages, where cleanup depends on a later account notification or successful follow-button mount; I’m reproducing it to assess its impact.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The repaint fix misses consecutive Clerk account changes while the saved profile remains `null`. Using the real account listener and page code, B’s permitted profile stayed visible after switching to C, even though a fresh C request returned 404. The cache comparison saw `null === null`, so it made no new request. This leaves round 1 finding 2 open.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The same account-cache gap reproduces in follower lists. The injected inbound-block race returned 404 and left no outgoing block or follow changes from the refused request. The full suite finished with 347 passing, 5 failing, and 1 skipped; the failures involve denied Python execution and temporary-directory creation, so full-suite PASS is NOT VERIFIED here.
+codex
+[Certain] **Round 1 finding 2 remains blocking:** the repaint guards track the saved profile, which can remain `null` across actual Clerk account changes.
+
+1. **P1, blocking: profiles and lists can survive a switch into a blocked account.**  
+   [site/hoja.js](/C:/Users/Owner/lhb-62-wt/site/hoja.js:513), `subNow`, `pfRedo`, `vPersona`, `vFwList`.
+
+   **Claim:** a real account change can bypass repainting. **Artifact:** `subNow()!==sub0` compares only `acct.get().sub`; meanwhile, `hook` in [site/cuenta.js](/C:/Users/Owner/lhb-62-wt/site/cuenta.js:30) handles account changes with `D.store.clear()`, without caching the replacement account on a public page.
+
+   **Reproduction:** open Bea’s profile as saved account A. Switch to B, which may view Bea: the cache becomes null and the page refetches. Without visiting a gated account page, switch to C, which Bea blocked. Clearing the already-null cache leaves `subNow()` unchanged, so B’s profile remains visible.
+
+   [Certain] Using the repository page harness and real account listener, I observed **two requests across A → B → C**, stale profile content after switching to C, and **404 from a fresh C request**. The same reproduction retained follower-list rows.
+
+   [Certain] **MAINTAIN round 1 finding 2.** Invalidate rendered content and pending responses using actual session identity or account generation, including null-to-null cache transitions.
+
+2. **P3, nonblocking: page watchers accumulate when follow-button mounting cannot perform cleanup.**  
+   [site/hoja.js](/C:/Users/Owner/lhb-62-wt/site/hoja.js:515), `pfRedo`; `fwMount`.
+
+   **Claim:** navigation alone does not remove stale page watchers. **Artifact:** `pfRedo` only calls `acctW.add(w)`; cleanup runs when a watcher is subsequently invoked. The opportunistic sweep in `fwMount` occurs only after its successful response checks.
+
+   [Certain] Ten anonymous profile visits left **10 watchers**; navigating away retained all ten. Repeated 404 pages behaved identically. An account notification removed them. This retains obsolete closures and page nodes, but I found no resulting disclosure or repaint loop. Add cleanup independent of successful follow-button mounting.
+
+[Certain] Disposition of every prior finding:
+
+| Finding | Round 2 result |
+|---|---|
+| 0. Follow-response disclosure | **CONCUR:** blocked-pair POST, race rejection, and DELETE return 404. |
+| 1. Block-endpoint disclosure | **CONCUR:** inbound-only targets are concealed; reciprocal insertion is refused; existing outgoing blocks remain removable. |
+| 2. Account-switch rendering | **MAINTAIN:** null-to-null saved-account transitions remain uncovered. |
+| 3. Late block response | **CONCUR:** sheet identity, account guard, and profile lifetime protect the reported effects. |
+| 4. Truncated unblock list | **CONCUR:** the atomic 500-row cap is a sound replacement for pagination under the empty-table launch condition. |
+| 5. Counts versus lists | **CONCUR:** both apply the same viewer-specific block predicate. |
+
+[Certain] SQLite accepted the `INSERT … SELECT … WHERE … ON CONFLICT` statement. Bindings correctly map `?1` to blocker, `?2` to target, `?3` to timestamp, and `?4` to cap. The injected inbound-block race returned 404, inserted no outgoing block, and caused no follow deletion from the refused request. Cap refusal and repeat-at-cap tests passed.
+
+[Certain] All **29 LHB-56/60/62 tests passed**. The full suite finished with **347 passing, 5 failing, 1 skipped**; Python execution and temporary-directory creation were denied, so full-suite PASS is **NOT VERIFIED** here. Reproductions used local repository harnesses, not deployed Clerk/Cloudflare runtime. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK
+tokens used
+127,047
+[Certain] **Round 1 finding 2 remains blocking:** the repaint guards track the saved profile, which can remain `null` across actual Clerk account changes.
+
+1. **P1, blocking: profiles and lists can survive a switch into a blocked account.**  
+   [site/hoja.js](/C:/Users/Owner/lhb-62-wt/site/hoja.js:513), `subNow`, `pfRedo`, `vPersona`, `vFwList`.
+
+   **Claim:** a real account change can bypass repainting. **Artifact:** `subNow()!==sub0` compares only `acct.get().sub`; meanwhile, `hook` in [site/cuenta.js](/C:/Users/Owner/lhb-62-wt/site/cuenta.js:30) handles account changes with `D.store.clear()`, without caching the replacement account on a public page.
+
+   **Reproduction:** open Bea’s profile as saved account A. Switch to B, which may view Bea: the cache becomes null and the page refetches. Without visiting a gated account page, switch to C, which Bea blocked. Clearing the already-null cache leaves `subNow()` unchanged, so B’s profile remains visible.
+
+   [Certain] Using the repository page harness and real account listener, I observed **two requests across A → B → C**, stale profile content after switching to C, and **404 from a fresh C request**. The same reproduction retained follower-list rows.
+
+   [Certain] **MAINTAIN round 1 finding 2.** Invalidate rendered content and pending responses using actual session identity or account generation, including null-to-null cache transitions.
+
+2. **P3, nonblocking: page watchers accumulate when follow-button mounting cannot perform cleanup.**  
+   [site/hoja.js](/C:/Users/Owner/lhb-62-wt/site/hoja.js:515), `pfRedo`; `fwMount`.
+
+   **Claim:** navigation alone does not remove stale page watchers. **Artifact:** `pfRedo` only calls `acctW.add(w)`; cleanup runs when a watcher is subsequently invoked. The opportunistic sweep in `fwMount` occurs only after its successful response checks.
+
+   [Certain] Ten anonymous profile visits left **10 watchers**; navigating away retained all ten. Repeated 404 pages behaved identically. An account notification removed them. This retains obsolete closures and page nodes, but I found no resulting disclosure or repaint loop. Add cleanup independent of successful follow-button mounting.
+
+[Certain] Disposition of every prior finding:
+
+| Finding | Round 2 result |
+|---|---|
+| 0. Follow-response disclosure | **CONCUR:** blocked-pair POST, race rejection, and DELETE return 404. |
+| 1. Block-endpoint disclosure | **CONCUR:** inbound-only targets are concealed; reciprocal insertion is refused; existing outgoing blocks remain removable. |
+| 2. Account-switch rendering | **MAINTAIN:** null-to-null saved-account transitions remain uncovered. |
+| 3. Late block response | **CONCUR:** sheet identity, account guard, and profile lifetime protect the reported effects. |
+| 4. Truncated unblock list | **CONCUR:** the atomic 500-row cap is a sound replacement for pagination under the empty-table launch condition. |
+| 5. Counts versus lists | **CONCUR:** both apply the same viewer-specific block predicate. |
+
+[Certain] SQLite accepted the `INSERT … SELECT … WHERE … ON CONFLICT` statement. Bindings correctly map `?1` to blocker, `?2` to target, `?3` to timestamp, and `?4` to cap. The injected inbound-block race returned 404, inserted no outgoing block, and caused no follow deletion from the refused request. Cap refusal and repeat-at-cap tests passed.
+
+[Certain] All **29 LHB-56/60/62 tests passed**. The full suite finished with **347 passing, 5 failing, 1 skipped**; Python execution and temporary-directory creation were denied, so full-suite PASS is **NOT VERIFIED** here. Reproductions used local repository harnesses, not deployed Clerk/Cloudflare runtime. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK
