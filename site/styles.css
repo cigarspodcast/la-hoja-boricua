@@ -135,6 +135,8 @@ h2{font-size:20px}
 .photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .photo-btns label{display:flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;padding:12px;background:var(--card2);border:1px solid var(--line);font-weight:600;font-size:14px}
 .photo-btns input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+/* LHB-64: el campo de cámara o galería es invisible; cuando el teclado llega a él, el anillo de foco se ve en su botón */
+.photo-btns label:has(input:focus-visible){outline:2px solid var(--gold);outline-offset:2px}
 .btn{border:0;border-radius:14px;padding:14px 16px;font-weight:700;font-size:16px;background:var(--flam);color:#fff;width:100%}
 .btn.secondary{background:var(--card2);color:var(--cream);border:1px solid var(--line)}
 .btn:disabled{opacity:.5}

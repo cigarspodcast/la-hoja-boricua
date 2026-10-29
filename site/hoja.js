@@ -94,16 +94,27 @@ function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{cons
 const tagChips=ts=>ts.length?`<div class="tagchips">${ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'#dde3dc'}">${esc(WN(t))}</span>`).join('')}</div>`:'';
 /* ---------- hoja de acciones (sheet) ---------- */
 let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
+let owed=false; /* LHB-64: se abrió una hoja y el foco todavía no ha vuelto */
 function sheet(html,label){clearTimeout(closeT);let el=$('#sheet');if(!el){el=document.createElement('div');el.id='sheet';el.className='sheet';document.body.appendChild(el)}
- lastFocus=document.activeElement;
+ /* LHB-64: una hoja abierta desde otra (el + que abre el humidor) no cambia a dónde vuelve el foco al cerrar */
+ if(!el.contains(document.activeElement))lastFocus=document.activeElement;owed=true;
  el.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet-panel" role="dialog" aria-modal="true" aria-label="${esc(label)}"><div class="sheet-grip" aria-hidden="true"></div><button class="sheet-x" type="button" data-close aria-label="${tt('h.cerrar')}">×</button>${html}</div>`;
- el.hidden=false;document.body.classList.add('sheet-on');requestAnimationFrame(()=>el.classList.add('open'));$$('[data-close]',el).forEach(b=>b.onclick=closeSheet);
+ el.hidden=false;appInert(true);document.body.classList.add('sheet-on');requestAnimationFrame(()=>el.classList.add('open'));$$('[data-close]',el).forEach(b=>b.onclick=closeSheet);
  el.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>closeSheet()));
- const f=el.querySelector('.sheet-panel select,.sheet-panel input,.sheet-panel a,.sheet-panel button:not([data-close])');setTimeout(()=>f&&f.focus({preventScroll:true}),80);return el}
+ /* sin otro control, el foco entra por el botón de cerrar; y no se mueve si la hoja ya se cerró o cambió */
+ const f=el.querySelector('.sheet-panel select,.sheet-panel input,.sheet-panel a,.sheet-panel button:not([data-close])')||el.querySelector('.sheet-x');setTimeout(()=>{if(!el.hidden&&f&&f.isConnected)f.focus({preventScroll:true})},80);return el}
+/* LHB-64: con una hoja abierta, lo de atrás (la app) no se alcanza con el teclado ni con el lector de pantalla; al cerrar, el foco vuelve a quien la abrió, o al contenido */
+function appInert(on){const a=$('#app');if(a)a.inert=on}
+function focusBack(){if(!owed)return;owed=false;if(lastFocus&&lastFocus.isConnected&&lastFocus.focus){lastFocus.focus({preventScroll:true});return}const v=$('#view');if(v&&v.focus)v.focus({preventScroll:true})}
 /* cierra la hoja sin esperar: la usan los cambios de cuenta, para que ningún editor de Mi Hoja quede abierto ni se pise un aviso nuevo */
-function closeSheetNow(){clearTimeout(closeT);const el=$('#sheet');if(!el)return;el.classList.remove('open');el.hidden=true;el.innerHTML='';document.body.classList.remove('sheet-on')}
-function closeSheet(){const el=$('#sheet');if(!el||el.hidden)return;el.classList.remove('open');document.body.classList.remove('sheet-on');clearTimeout(closeT);closeT=setTimeout(()=>{el.hidden=true;el.innerHTML='';lastFocus&&lastFocus.focus&&lastFocus.focus({preventScroll:true})},200)}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+function closeSheetNow(){clearTimeout(closeT);const el=$('#sheet');if(!el)return;el.classList.remove('open');el.hidden=true;el.innerHTML='';document.body.classList.remove('sheet-on');appInert(false);focusBack()}
+function closeSheet(){const el=$('#sheet');if(!el||el.hidden)return;el.classList.remove('open');document.body.classList.remove('sheet-on');appInert(false);clearTimeout(closeT);closeT=setTimeout(()=>{el.hidden=true;el.innerHTML='';focusBack()},200)}
+/* LHB-64: Escape cierra; Tab y Mayús+Tab dan la vuelta dentro de la hoja */
+const FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]):not([tabindex="-1"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();return}if(e.key!=='Tab')return;const el=$('#sheet');if(!el||el.hidden||!document.body.classList.contains('sheet-on'))return;
+ const pn=el.querySelector('.sheet-panel'),fs=pn?[...pn.querySelectorAll(FOCUSABLE)].filter(n=>!n.closest('[hidden]')&&n.getClientRects().length):[];if(!fs.length){e.preventDefault();return}
+ const first=fs[0],last=fs[fs.length-1],at=document.activeElement;
+ if(!el.contains(at)){e.preventDefault();(e.shiftKey?last:first).focus()}else if(e.shiftKey&&at===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&at===last){e.preventDefault();first.focus()}});
 window.addEventListener('hashchange',closeSheet);
 const MENU=[['#/catalogo',tt('cat.eyebrow'),tt('h.lasVitolasHechasEn')],['#/artesanos',tt('arts.eyebrow'),tt('h.manosBoricuas')],['#/lugares',tt('lug.eyebrow'),tt('h.loungesYPuntosDe')],['#/eventos',tt('tile.ev'),tt('h.calendarioRsvpYHumo')],['#/mihoja',tt('h.miHoja'),tt('h.humidorDiarioPasaporteY')],['#/cata',tt('tile.cata'),tt('h.pasoAPasoCon')],['#/maridajes',tt('tile.mar'),tt('h.ronYCafeDe')],['#/podcast',tt('h.escuchaEnCigarsPodcast'),tt('h.lanzamientosResenasYCultura')],['#/buscar',tt('cat.search'),tt('h.enTodaLaApp')]];
 function openSheet(kind,arg){
@@ -154,9 +165,10 @@ function backupDue(){const s=S();const n=s.diario.length+s.humidor.length+Object
  if(s.recordarDespues&&new Date(s.recordarDespues)>new Date())return false;if(!s.respaldo)return s.cambios>=3;return (Date.now()-new Date(s.respaldo))/864e5>=14}
 const backupBanner=()=>backupDue()?`<div class="remind" role="note"><p><b>${tt('h.unRespaldo')}</b> ${tt('h.tusCatasYTu')}</p><div class="remind-b"><button class="lbtn" data-exp type="button">${tt('h.exportarAhora')}</button><button class="lbtn ghost" data-snooze type="button">${tt('h.luego')}</button></div></div>`:'';
 const backupPanel=()=>{const s=S();return `<section class="backup"><div class="section-title"><h2>${tt('h.respaldo')}</h2></div><p class="lead" style="margin-top:-4px">${tt('h.exportaUnArchivoCon',{a:s.respaldo?` ${tt('h.ultimoRespaldo',{a:fmtF(s.respaldo)})}`:tt('h.todaviaNoHasHecho')})}</p>
- <div class="links"><button class="lbtn" data-exp type="button">${tt('h.exportarRespaldo')}</button><label class="lbtn" tabindex="0">${tt('h.importarRespaldo')}<input type="file" accept="application/json,.json" id="impF" class="sr"></label></div><p class="note" style="margin-top:6px">${tt('h.lasFotosDeTus')}</p>${syncLine()}</section>`};
+ <div class="links"><button class="lbtn" data-exp type="button">${tt('h.exportarRespaldo')}</button><button class="lbtn" type="button" id="impB">${tt('h.importarRespaldo')}</button><input type="file" accept="application/json,.json" id="impF" class="sr" tabindex="-1" aria-hidden="true"></div><p class="note" style="margin-top:6px">${tt('h.lasFotosDeTus')}</p>${syncLine()}</section>`};
 const syncLine=()=>{const t=SYNC?SYNC.status():{state:'idle'};const m={ok:t.at?`${tt('h.tuMiHojaEsta',{a:fmtF(t.at)})}`:tt('h.tuMiHojaEsta2'),syncing:tt('h.sincronizandoConTuCuenta'),offline:tt('h.sinConexionTusCambios'),error:tt('h.noPudimosSincronizarCon')}[t.state]||tt('h.miHojaSeSincroniza');return `<p class="note" id="syncSt" aria-live="polite" style="margin-top:6px">${m}</p>`};
-function bindBackup(){$$('[data-exp]').forEach(b=>b.onclick=exportar);$$('[data-snooze]').forEach(b=>b.onclick=()=>{const s=S();s.recordarDespues=new Date(Date.now()+7*864e5).toISOString();write(s);b.closest('.remind').remove()});const f=$('#impF');if(f)f.onchange=e=>{const x=e.target.files&&e.target.files[0];if(x)importar(x);e.target.value=''}}
+function bindBackup(){$$('[data-exp]').forEach(b=>b.onclick=exportar);$$('[data-snooze]').forEach(b=>b.onclick=()=>{const s=S();s.recordarDespues=new Date(Date.now()+7*864e5).toISOString();write(s);b.closest('.remind').remove()});/* LHB-64: Importar respaldo es un botón de verdad (como la foto del perfil); el campo de archivo escondido no es una parada del teclado */
+ const ib=$('#impB');if(ib)ib.onclick=()=>{const x=$('#impF');if(x)x.click()};const f=$('#impF');if(f)f.onchange=e=>{const x=e.target.files&&e.target.files[0];if(x)importar(x);e.target.value=''}}
 /* ---------- cuenta (LHB-25): la lógica vive en cuenta.js; aquí Clerk, las pantallas y el perfil ---------- */
 const CLERK=location.hostname==='lahojaboricua.com'?{pk:'pk_live_Y2xlcmsubGFob2phYm9yaWN1YS5jb20k',fapi:'clerk.lahojaboricua.com'}:{pk:'pk_test_ZGFyaW5nLWVhZ2xlLTgzOTQuY2xlcmsuYWNjb3VudHMuZGV2JA',fapi:'daring-eagle-8394.clerk.accounts.dev'};
 const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
