@@ -1,0 +1,40 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 1 of a TIER 2 review of LHB-75 (M7-F6: staging preview, noindex guard and the review pack). The diff below is this ticket's code: site/_headers and the LHB-75 test (base cedd37f, the LHB-74 commit before it). The evidence files are listed below; read them in the worktree.
+
+Ticket scope:
+- the Cloudflare Pages preview for the facelift branch;
+- a noindex guard, on preview hosts only;
+- test/site.test.js;
+- evidence/m7-review-pack/ (screenshots and a checklist).
+There must be no change to the production project, its domain, its D1 databases or its environment variables. The preview address is given to the reviewer (Sergio) only by the owner, and the repository is public, so the pack must not contain it.
+
+What changed:
+- site/_headers has one rule: https://:version.:project.pages.dev/* with X-Robots-Tag: noindex, nofollow.
+  - Pages placeholders match anything except the delimiter, which in the host is a dot or a slash. So the rule matches <branch>.la-hoja-boricua.pages.dev and <hash>.la-hoja-boricua.pages.dev.
+  - It does not match lahojaboricua.com or the production alias la-hoja-boricua.pages.dev.
+  - Pages already sends X-Robots-Tag: noindex on preview URLs by default; nofollow tells our rule apart.
+- The LHB-75 test (HEADERS75) parses _headers the way the Pages documentation describes and checks:
+  - that the guard is present on preview URLs and absent on production hosts;
+  - that there is exactly one rule, with exactly one header;
+  - that the matcher can tell the difference (a /* rule or a :project.pages.dev rule would match production);
+  - that the /u/ Function keeps its own 'noindex, follow' (Functions do not get _headers).
+- Live record, evidence/lhb-75-preview-curl.txt, made by evidence/lhb-75-curl.sh:
+  - deployed preview assets answer 200 with x-robots-tag: noindex, nofollow;
+  - production assets answer no x-robots-tag;
+  - the /u/ Function (GET; HEAD falls to the static 404) answers noindex, follow on both hosts.
+- Mutations: evidence/lhb-75-mutations.out, 6 of 6 red.
+- Review pack, evidence/m7-review-pack/:
+  - README.md and README.docx: Sergio's checklist (English text, logo, colors, intro), owner preconditions, and the owner's device matrix as numbered steps;
+  - en-strings.md, from en-strings.js, comparing the en table of site/i18n.js with origin/main;
+  - shootpack.py, shootpack.out and manifest.json: 39 screenshots, 13 screens at 320, 390 and 768, taken from the branch build on a local stand-in for Clerk and the API;
+  - md2docx.py renders the docx.
+  - The app has no page of its own per lounge, so the pack shows the lounges list plus a lounge's static page.
+- Suite: evidence/lhb-75-tests.txt, 332 pass, 0 fail, 1 skipped.
+
+Check:
+- Can the rule ever match a production host, or miss a preview host (a hash preview, a branch name containing a dash or a dot)?
+- Is the test's matcher faithful to the documented Pages matching, and would it catch a wrong rule?
+- Does the pack leak the preview address or anything private?
+- Are the checklist's claims true to the code: labels, behaviors, what the device steps say to expect?
+- Is anything in the ticket's Done-when unmet or unprovable as delivered?
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

@@ -1,0 +1,35 @@
+LHB-75 curl record, taken 2026-10-29T07:53:35Z from this machine. Preview: branch facelift, sw lhb-v103.
+Before the guard (07:26Z) the same preview answered x-robots-tag: noindex, the Pages default for preview URLs.
+
+== HEAD https://facelift.la-hoja-boricua.pages.dev/
+HTTP/1.1 200 OK
+x-robots-tag: noindex, nofollow
+
+== HEAD https://facelift.la-hoja-boricua.pages.dev/cigarros/cohoba-robusto-maduro
+HTTP/1.1 200 OK
+x-robots-tag: noindex, nofollow
+
+== HEAD https://facelift.la-hoja-boricua.pages.dev/lugares/casa-de-montecristo-vsj
+HTTP/1.1 200 OK
+x-robots-tag: noindex, nofollow
+
+== HEAD https://lahojaboricua.com/
+HTTP/1.1 200 OK
+
+== HEAD https://lahojaboricua.com/cigarros/cohoba-robusto-maduro
+HTTP/1.1 200 OK
+
+== HEAD https://la-hoja-boricua.pages.dev/
+HTTP/1.1 200 OK
+
+== GET https://facelift.la-hoja-boricua.pages.dev/u/ana (Pages Function)
+HTTP/1.1 404 Not Found
+x-robots-tag: noindex, follow
+
+== GET https://lahojaboricua.com/u/ana (Pages Function)
+HTTP/1.1 404 Not Found
+x-robots-tag: noindex, follow
+
+Reading: preview assets answer noindex, nofollow (the _headers rule; nofollow is what the Pages default lacks). Production
+(lahojaboricua.com and la-hoja-boricua.pages.dev) answers no x-robots-tag on assets, as before. The /u/ Function answers its own
+noindex, follow on both hosts: _headers does not apply to Function responses.
