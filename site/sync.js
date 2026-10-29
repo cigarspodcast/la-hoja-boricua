@@ -142,12 +142,15 @@ window.LHB_SYNC=function(D){
    if(!ok)return back();
    return setOwner(acc.sub)}finally{inIso=false}}
  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
- /* Codex r11: si algo del almacenamiento falla a mitad de la pasada (una lectura que lanza), la pasada no sigue. Si ya mandó una subida, pudo llegar y
-    ya no queda anotada: ninguna base de antes vale (se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada) */
- let putSent=false,poisonNow=null;
- async function once(){putSent=false;poisonNow=null;
-  try{return await once0()}
-  catch(e){if(putSent){mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}return {fail:'storage'}}}
+ /* Codex r11 y r12: una subida que llegó (200) deja de estar anotada en pend; hasta que la base nueva queda en memoria, unrecorded lo dice. Si la pasada termina
+    en ese tramo por cualquier camino (una lectura que lanza, la cuenta o la época que cambian, una lectura de la época que falla), ninguna base de antes vale:
+    se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada. Una subida que el servidor rechazó (409) no cuenta.
+    Cualquier otra excepción del almacenamiento a mitad de la pasada la para sin más (se reintenta) */
+ let unrecorded=false,poisonNow=null;
+ async function once(){unrecorded=false;poisonNow=null;let r;
+  try{r=await once0()}catch(e){r={fail:'storage'}}
+  if(unrecorded){unrecorded=false;mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}
+  return r}
  async function once0(){
   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};
   let C;try{C=await D.clerk()}catch(e){return {skip:'offline'}}
@@ -219,14 +222,14 @@ window.LHB_SYNC=function(D){
     /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
     const op=newOp();pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
     if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
-    putSent=true;let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
+    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
     if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
     if(!alive())return {skip:'other-account'};
     if(p.status===409)continue;
     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
-    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true}
+    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true;unrecorded=true}
    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
    let now0,Ln,quiet,final,wrote=true;
    for(let k=0;k<4;k++){
@@ -242,7 +245,7 @@ window.LHB_SYNC=function(D){
    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
    /* ...y lo que cambió en la copia mientras tanto (aunque el contador compartido no se haya podido escribir) */
    const edited=edits!==e0||readSeq()!==s0||!quiet;
-   mem={sub:uid,base:merged,rev:newRev,ep:ep0};
+   mem={sub:uid,base:merged,rev:newRev,ep:ep0};unrecorded=false;
    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0})){staleBase=true;poison();return {fail:'storage'}}
    /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */
    staleBase=false;voided=false;if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);if(!edited)dirty=false;

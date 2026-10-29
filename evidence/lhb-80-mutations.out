@@ -1,4 +1,4 @@
-baseline (no mutation): pass 52 fail 0
+baseline (no mutation): pass 54 fail 0
 the client never asks about a lost upload (before LHB-80)    RED (caught) (fail 6)
 GET never says whether an upload landed (before LHB-80)      RED (caught) (fail 6)
 PUT does not record its id                                   RED (caught) (fail 4)
@@ -30,7 +30,7 @@ r2: a 200 at the evicted If-Match keeps it                   RED (caught) (fail 
 r2: settled ignores uploads that can still land              GREEN (equivalent: settled() needs an ok pass, and an ok pass ends with nothing unresolved (the fence)) (fail 0)
 r3: the OPS_ASK limit counts every account                   RED (caught) (fail 1)
 r3: one eviction record for every account                    GREEN (equivalent: since round 5 every base (stored meta, mem, landed uploads) is bound to the epoch of its copy, and the account keeps its other uploads at the same If-Match) (fail 0)
-r4: a pass survives an account round trip                    RED (caught) (fail 1)
+r4: a pass survives an account round trip                    RED (caught) (fail 2)
 r4: the cached base is not bound to its copy                 RED (caught) (fail 1)
 r4: an upload sent from another copy is a base               RED (caught) (fail 1)
 r5: isolate empties the copy before the epoch changes (the epoch moves after the clear) RED (caught) (fail 2)
@@ -43,6 +43,8 @@ r9: a failed epoch read counts as another tab                RED (caught) (fail 
 r10: a failed read of the earlier epoch counts as none       RED (caught) (fail 1)
 r10: a pass that cannot read the epoch still syncs           RED (caught) (fail 1)
 r11: a meta that cannot be read counts as none               RED (caught) (fail 1)
-r11: a storage error after an upload keeps the old base      RED (caught) (fail 1)
+r11: a storage error or early return after a landed upload keeps the old base RED (caught) (fail 2)
+r12: an upload rejected with 409 still drops the base        RED (caught) (fail 4)
+r12: the new in-memory base does not end the hazard          RED (caught) (fail 30)
 r5: the stored meta is not bound to its copy (the pass)      RED (caught) (fail 2)
-RESULT 43 of 46 red; 3 named equivalent; 0 unexpected survivors
+RESULT 45 of 48 red; 3 named equivalent; 0 unexpected survivors

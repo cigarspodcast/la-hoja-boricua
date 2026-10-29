@@ -6520,6 +6520,36 @@ test('LHB-80 (Codex r11): la subida llega y luego una lectura de la copia lanza:
   A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);
   assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
  }finally{a.done()}});
+test('LHB-80 (Codex r12): la subida llega y luego la época no se puede leer al escribir la copia: la base de antes ya no vale, y lo que se vuelve a poner se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.ls.set(E,'abcdefghij00000000z');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  const api=A.D.api,get=A.D.ls.get;let arm=false,n=0;
+  A.D.api=async(C,m,...r)=>{const x=await api(C,m,...r);if(m==='PUT')arm=true;return x};
+  A.D.ls.get=k=>{if(arm&&k===E&&++n===2)throw new Error('SecurityError');return get(k)};
+  const r=await A.eng.run('guardado');assert.ok(r.fail||r.skip,'la pasada no terminó');A.D.api=api;A.D.ls.get=get;
+  assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-80 (Codex r12): la subida da 409 y luego una lectura de la copia lanza: la base sigue valiendo y el borrado se sube',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const P=DEV28(a,'user_a');await P.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  const api=A.D.api,gd=A.D.getDoc;let once=true,arm=false;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;P.edit(d=>{d.ratings.c2=3});await P.sync();const x=await api(C,m,...r);arm=x.status===409;return x}return api(C,m,...r)};
+  A.D.getDoc=()=>{if(arm){arm=false;throw new Error('SecurityError')}return gd()};
+  const r=await A.eng.run('guardado');assert.ok(r.fail,'la pasada no terminó');A.D.api=api;A.D.getDoc=gd;
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'la quita no llegó (409)');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+  assert.equal(srv28(a,'user_a').doc.ratings.c2,3,'lo del otro teléfono se queda');
+ }finally{a.done()}});
 test('LHB-80 (Codex r8): todas las épocas tienen el mismo largo',async()=>{
  const a=await ENG28();const R=Math.random;
  try{

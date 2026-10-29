@@ -1,0 +1,266 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\lhb-80-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18948-1351-79a0-a18b-a7d7920e1ef7
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-80-wt (branch lhb-80-sync-op). TIER 2, round 12.
+
+Ticket LHB-80: an idempotency token (X-Op) on PUT /api/mihoja so a pass can learn whether an upload whose answer was lost landed, and never applies a stale base. Round 11 (evidence/lhb-80-review-r11.txt) concurred that round 10 is closed. It blocked on two single-tab P2s, both from storage reads that throw:
+1. readMeta() turned a throwing META read into "no meta", so the pass dropped a valid base and pulled back a removal.
+2. A storage read that threw after a PUT landed (getDoc in the write-back) escaped once(). The landed upload was already cleared from pend, so the old stored base stayed usable and the retry erased a new addition.
+
+The diff below (one commit against the round 11 prompt commit) closes the class in once() rather than at one call site:
+- once() reads META directly (D.ls.get in its own try). A read that throws returns {fail:'storage'} before anything merges or writes. The value read is parsed in place, so it is not read twice.
+- once() now wraps the pass (once0) in one try/catch. putSent is set immediately before the PUT is sent. Any exception inside the pass returns {fail:'storage'}; run() schedules its usual retry. If putSent is true, the upload may have landed and is no longer recorded, so every earlier base is dropped first: mem=null, voided=true (the next pass merges without deletions until a pass completes), and the stored meta is poisoned (try/catch around poison).
+Tests (two added): your two reproductions. (1) The META read throws once: that pass refuses with fail 'storage' and uploads nothing, and the next one uploads the removal. (2) The removal PUT lands at rev 2, then the next getDoc throws; the person re-adds a1, and a1 stays on the phone and the account. Both fail on 5f35eab and pass here. Mutants: two added (a throwing META read counts as none; the catch keeps the old base after an upload). Evidence: evidence/lhb-80-mutations.out, 43 of 46 red, 3 named equivalent, 0 unexpected survivors; evidence/lhb-80-tests.txt, full suite 384 tests, 383 pass, 0 fail, 1 skipped (your sandbox's LHB-44, LHB-45 and LHB-73 failures are Python and temporary-directory denials; they pass on this host).
+
+Check that both findings are closed. Then check whether any storage exception anywhere in once() can still lose an untouched copy's base or leave a stale one usable. Cover the reads before the PUT (readSeq, getDoc, the epoch, the owner), the PUT's own handling, and the write-back and final meta. Also check isolate() and tryUndo(). Cross-tab interleavings stay non-blocking under LHB-104 and LHB-105. Block only on a defect this branch introduces, or on one within LHB-80's scope (lost-answer uploads and stale bases within one tab) that should be fixed before release.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 44a42af 4084bb61c327fca6c71554edea9b4822431b6338 -- site/sync.js test/site.test.js evidence/lhb-80-mutations.py =====
+diff --git a/evidence/lhb-80-mutations.py b/evidence/lhb-80-mutations.py
+index 549e524..617109c 100644
+--- a/evidence/lhb-80-mutations.py
++++ b/evidence/lhb-80-mutations.py
+@@ -54,6 +54,8 @@ MUTS = [
+     (SY, 'r9: a failed epoch read counts as another tab', 'try{if(D.ls.get(EPOCH)===undo.from){', 'try{if(epochOf()===undo.from){'),
+     (SY, 'r10: a failed read of the earlier epoch counts as none', 'let e1;try{e1=D.ls.get(EPOCH)}catch(e){return false}', 'let e1=epochOf();'),
+     (SY, 'r10: a pass that cannot read the epoch still syncs', "let ep0;try{ep0=D.ls.get(EPOCH)}catch(e){return {fail:'storage'}}", 'let ep0=epochOf();'),
++    (SY, 'r11: a meta that cannot be read counts as none', "let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){return {fail:'storage'}}", 'let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){metaRaw=null}'),
++    (SY, 'r11: a storage error after an upload keeps the old base', 'if(putSent){mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}', ''),
+     (SY, 'r5: the stored meta is not bound to its copy (the pass)', 'meta0.sub===uid&&epOf(meta0)===ep0?meta0', 'meta0.sub===uid?meta0'),
+ ]
+ 
+diff --git a/site/sync.js b/site/sync.js
+index da1c438..4f7ef82 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -142,7 +142,13 @@ window.LHB_SYNC=function(D){
+    if(!ok)return back();
+    return setOwner(acc.sub)}finally{inIso=false}}
+  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
+- async function once(){
++ /* Codex r11: si algo del almacenamiento falla a mitad de la pasada (una lectura que lanza), la pasada no sigue. Si ya mandó una subida, pudo llegar y
++    ya no queda anotada: ninguna base de antes vale (se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada) */
++ let putSent=false,poisonNow=null;
++ async function once(){putSent=false;poisonNow=null;
++  try{return await once0()}
++  catch(e){if(putSent){mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}return {fail:'storage'}}}
++ async function once0(){
+   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};
+   let C;try{C=await D.clerk()}catch(e){return {skip:'offline'}}
+   if(!C||!C.user||C.user.id!==acc.sub)return {skip:'other-account'};
+@@ -155,12 +161,14 @@ window.LHB_SYNC=function(D){
+   let ep0;try{ep0=D.ls.get(EPOCH)}catch(e){return {fail:'storage'}}
+   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid&&epochOf()===ep0};
+   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
+-  const meta0=readMeta();let meta=meta0&&meta0.sub===uid&&epOf(meta0)===ep0?meta0:null;
++  /* Codex r11: una meta que no se puede leer no es una meta que no hay: no se sincroniza (se reintenta) */
++  let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){return {fail:'storage'}}
++  const meta0=(()=>{if(metaRaw==null)return null;try{const m=JSON.parse(metaRaw);return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}})();let meta=meta0&&meta0.sub===uid&&epOf(meta0)===ep0?meta0:null;
+   /* LHB-80 (Codex r1): el servidor contestó por las subidas que se le preguntaron (tiene la columna ops) */
+   let opsSeen=false;
+   const first=!meta||!meta.at;
+   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
+-  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});
++  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});poisonNow=poison;
+   for(let i=0;i<TRIES;i++){
+    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
+    /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
+@@ -211,7 +219,7 @@ window.LHB_SYNC=function(D){
+     /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
+     const op=newOp();pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
+     if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
+-    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
++    putSent=true;let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
+     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
+     if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
+     if(!alive())return {skip:'other-account'};
+diff --git a/test/site.test.js b/test/site.test.js
+index 2416ab9..a4e842e 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -6495,6 +6495,31 @@ test('LHB-80 (Codex r10): la pasada no puede leer la época: no sincroniza, y la
+   assert.equal((await A.sync()).ok,true);
+   assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+  }finally{a.done()}});
++test('LHB-80 (Codex r11): la meta no se puede leer en la pasada: no sincroniza, y la siguiente sube el borrado',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a'),M='lhb_mihoja_v1_sync';A.seed(DOC28);await A.sync();
++  A.edit(d=>{d.favs.artesanos=[]});
++  const get=A.D.ls.get;let n=0;A.D.ls.get=k=>{if(k===M&&n++===0)throw new Error('SecurityError');return get(k)};
++  assert.equal((await A.eng.run('guardado')).fail,'storage');assert.equal(srv28(a,'user_a').rev,1,'no subió ni trajo nada');
++  assert.equal((await A.sync()).ok,true);
++  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
++ }finally{a.done()}});
++test('LHB-80 (Codex r11): la subida llega y luego una lectura de la copia lanza: la base de antes ya no vale, y lo que se vuelve a poner se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  A.edit(d=>{d.favs.artesanos=[]});
++  const api=A.D.api,gd=A.D.getDoc;let arm=false;
++  A.D.api=async(C,m,...r)=>{const x=await api(C,m,...r);if(m==='PUT')arm=true;return x};
++  A.D.getDoc=()=>{if(arm){arm=false;throw new Error('SecurityError')}return gd()};
++  const r=await A.eng.run('guardado');assert.ok(r.fail,'la pasada no terminó');A.D.api=api;A.D.getDoc=gd;
++  assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
+ test('LHB-80 (Codex r8): todas las épocas tienen el mismo largo',async()=>{
+  const a=await ENG28();const R=Math.random;
+  try{
+
+2026-10-29T20:09:27.342243Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T20:09:29.528677Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The two added tests cover the reported failures, but do not establish that every storage exception preserves a safe base. I’ll trace `once()`, `isolate()`, and `tryUndo()`, then run the relevant checks without editing files or loading skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Content site/sync.js; Get-Content package.json; Get-Content evidence/lhb-80-review-r11.txt' in C:\LHB\lhb-80-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T20:09:34.063036Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All 37 LHB-80 tests pass, including both round 11 regressions. One remaining path needs verification: `alive()` swallows an epoch-read exception and returns early, so the new catch never runs. I’m checking whether that can leave a stale base usable after the upload is cleared.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] I reproduced two remaining single-tab failures. An epoch read that throws in `alive()` after a confirmed PUT leaves the old base usable and erases a re-added favorite on retry. Separately, the new catch discards a valid base after a PUT rejected with 409, causing retry to undo a pending removal. I’m checking the prior commit to confirm which behavior this round introduces.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] **P2, BLOCKS: a swallowed epoch-read exception leaves a stale base usable after a confirmed upload.** File: [site/sync.js:236](C:/LHB/lhb-80-wt/site/sync.js:236). Symbols: `once0()`, `alive()`, `epochOf()`.
+
+| Claim | Artifact |
+|---|---|
+| An epoch-read exception becomes a failed identity check rather than reaching the new catch. | `epochOf()` uses `catch(e){return undefined}`; write-back uses `if(!alive())return {skip:'other-account'}`. |
+| The confirmed operation has already been forgotten. | Line 229: `pend=pend.filter(x=>x.sub!==uid)` |
+
+[Certain] Reproduced with the actual engine and SQLite harness, one tab, no reload:
+
+1. Sync favorite `a1`, then remove it locally.
+2. Let the removal PUT land at revision 2.
+3. Make the second EPOCH read after that PUT throw, during write-back’s `alive()` check.
+4. Restore reads, re-add `a1`, and retry.
+
+```text
+first: skip "other-account"; phone []; server []; stored base ["a1"]
+retry: ok, pushed:false, pulled:true; phone []; server []
+```
+
+[Certain] The new addition is erased. Storage-read failure must remain distinguishable from an account/epoch change, and post-upload early returns must preserve recovery evidence or invalidate the stale base.
+
+[Certain] **P2, BLOCKS, introduced this round: the catch discards a valid base after a definitively rejected PUT.** File: [site/sync.js:150](C:/LHB/lhb-80-wt/site/sync.js:150). Symbols: `once()`, `once0()`, `putSent`.
+
+| Claim | Artifact |
+|---|---|
+| `putSent` remains true after a definitive rejection. | `putSent=true` before PUT; `if(p.status===409)continue` without resetting it. |
+| A later read exception destroys the valid base despite no upload landing. | `if(putSent){mem=null;voided=true;...poisonNow()}` |
+
+[Certain] Reproduced:
+
+1. Sync `a1`, then remove it locally.
+2. Advance the server revision with an unrelated rating change between GET and PUT, producing a genuine 409.
+3. Make `getDoc()` throw at the next loop iteration.
+4. Restore reads and retry.
+
+```text
+first: fail "storage"; phone []; server ["a1"]; stored base null
+retry: ok, pushed:false, pulled:true; phone ["a1"]; server ["a1"]
+```
+
+[Certain] The pending removal is undone. The same reproduction against `44a42af` preserves the base and uploads the removal successfully. Track whether an upload remains potentially landed, rather than whether any PUT was attempted during the pass.
+
+[Certain] **Round 11 dispositions: CONCUR on both exact corrections.** The direct META-read failure now stops before merging, and the reported post-PUT throwing `getDoc()` path invalidates earlier bases. Both regression tests pass.
+
+[Certain] Remaining-path review covered `readSeq`, pre-PUT `getDoc`, epoch/owner checks, PUT response handling, write-back, final metadata, `isolate()` and `tryUndo()`. No additional in-scope blocker was established. Single-tab edits remain tracked independently of `readSeq`; rejected isolation writes retain epoch rollback, and failed undo operations remain pending. Cross-tab interleavings were excluded as requested.
+
+[Certain] Validation: **37/37 LHB-80 tests passed**. Full suite: **378 passed, 5 failed, 1 skipped**. Python execution was denied with `EPERM`, affecting LHB-44/LHB-45; LHB-73 temporary-directory creation was also denied. The supplied host-green result is **NOT VERIFIED** here. Mutation evidence was inspected, not rerun. No files were edited or skills loaded.
+
+VERDICT: BLOCK
+tokens used
+97,197
+[Certain] **P2, BLOCKS: a swallowed epoch-read exception leaves a stale base usable after a confirmed upload.** File: [site/sync.js:236](C:/LHB/lhb-80-wt/site/sync.js:236). Symbols: `once0()`, `alive()`, `epochOf()`.
+
+| Claim | Artifact |
+|---|---|
+| An epoch-read exception becomes a failed identity check rather than reaching the new catch. | `epochOf()` uses `catch(e){return undefined}`; write-back uses `if(!alive())return {skip:'other-account'}`. |
+| The confirmed operation has already been forgotten. | Line 229: `pend=pend.filter(x=>x.sub!==uid)` |
+
+[Certain] Reproduced with the actual engine and SQLite harness, one tab, no reload:
+
+1. Sync favorite `a1`, then remove it locally.
+2. Let the removal PUT land at revision 2.
+3. Make the second EPOCH read after that PUT throw, during write-back’s `alive()` check.
+4. Restore reads, re-add `a1`, and retry.
+
+```text
+first: skip "other-account"; phone []; server []; stored base ["a1"]
+retry: ok, pushed:false, pulled:true; phone []; server []
+```
+
+[Certain] The new addition is erased. Storage-read failure must remain distinguishable from an account/epoch change, and post-upload early returns must preserve recovery evidence or invalidate the stale base.
+
+[Certain] **P2, BLOCKS, introduced this round: the catch discards a valid base after a definitively rejected PUT.** File: [site/sync.js:150](C:/LHB/lhb-80-wt/site/sync.js:150). Symbols: `once()`, `once0()`, `putSent`.
+
+| Claim | Artifact |
+|---|---|
+| `putSent` remains true after a definitive rejection. | `putSent=true` before PUT; `if(p.status===409)continue` without resetting it. |
+| A later read exception destroys the valid base despite no upload landing. | `if(putSent){mem=null;voided=true;...poisonNow()}` |
+
+[Certain] Reproduced:
+
+1. Sync `a1`, then remove it locally.
+2. Advance the server revision with an unrelated rating change between GET and PUT, producing a genuine 409.
+3. Make `getDoc()` throw at the next loop iteration.
+4. Restore reads and retry.
+
+```text
+first: fail "storage"; phone []; server ["a1"]; stored base null
+retry: ok, pushed:false, pulled:true; phone ["a1"]; server ["a1"]
+```
+
+[Certain] The pending removal is undone. The same reproduction against `44a42af` preserves the base and uploads the removal successfully. Track whether an upload remains potentially landed, rather than whether any PUT was attempted during the pass.
+
+[Certain] **Round 11 dispositions: CONCUR on both exact corrections.** The direct META-read failure now stops before merging, and the reported post-PUT throwing `getDoc()` path invalidates earlier bases. Both regression tests pass.
+
+[Certain] Remaining-path review covered `readSeq`, pre-PUT `getDoc`, epoch/owner checks, PUT response handling, write-back, final metadata, `isolate()` and `tryUndo()`. No additional in-scope blocker was established. Single-tab edits remain tracked independently of `readSeq`; rejected isolation writes retain epoch rollback, and failed undo operations remain pending. Cross-tab interleavings were excluded as requested.
+
+[Certain] Validation: **37/37 LHB-80 tests passed**. Full suite: **378 passed, 5 failed, 1 skipped**. Python execution was denied with `EPERM`, affecting LHB-44/LHB-45; LHB-73 temporary-directory creation was also denied. The supplied host-green result is **NOT VERIFIED** here. Mutation evidence was inspected, not rerun. No files were edited or skills loaded.
+
+VERDICT: BLOCK
