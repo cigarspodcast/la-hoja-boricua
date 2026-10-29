@@ -1,0 +1,21 @@
+feed.js from HEAD 6936 bytes; migrations present: True
+✔ LHB-61: Siguiendo trae solo las catas públicas de quienes sigues, con lo público del autor; una privada, una de alguien que no sigues o de un perfil oculto nunca sale (185.6059ms)
+✖ LHB-61: Siguiendo pide sesión con perfil; un documento roto de una persona no rompe a las demás; sin nadie a quien seguir, vacía (108.0946ms)
+✔ LHB-61: Siguiendo pagina de 20 en 20 con el cursor, la más reciente primero (día, @, orden del diario), sin repetir ni saltar; una cata nueva entre páginas no mueve a las demás (99.0601ms)
+✖ LHB-61 (Codex ronda 1): una página termina con un grupo entero (las catas de una persona en un día): una vieja que se vuelve pública no hace saltar otra; un día con un nulo no es día y no rompe el cursor; un grupo de más de 20 sale entero (75.371ms)
+✔ LHB-61 (Codex ronda 2): una llave con un carácter nulo ("publica\u0000x", "diario\u0000x", "consumido\u0000x") no se confunde con la de verdad: nada privado sale, ni cuenta para la página o el cursor (39.1888ms)
+✖ LHB-61 (Codex ronda 3): dentro de un grupo de más de 20, la página siguiente sigue después de la última cata vista (por su huella): borrar, volver privada o volver pública otra cata del grupo no hace saltar ni repetir (92.5439ms)
+✔ LHB-61: Siguiendo en Mi Hoja: cada cata con su autor (que lleva a su perfil); tocarla abre la misma hoja de reseña del perfil; solo lo público, todo escapado (28.7262ms)
+✔ LHB-61: Siguiendo pagina con el cursor (Ver más); vacía invita a buscar personas; un error deja reintentar la misma página; una respuesta vieja no pinta (57.0775ms)
+✔ LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, los estilos y el caché nuevo (9.5962ms)
+ℹ tests 9
+ℹ pass 6
+ℹ fail 3
+✖ failing tests:
+✖ LHB-61: Siguiendo pide sesión con perfil; un documento roto de una persona no rompe a las demás; sin nadie a quien seguir, vacía (108.0946ms)
+  AssertionError [ERR_ASSERTION]: cursor malo: 2026-01-01~bea~1
+✖ LHB-61 (Codex ronda 1): una página termina con un grupo entero (las catas de una persona en un día): una vieja que se vuelve pública no hace saltar otra; un día con un nulo no es día y no rompe el cursor; un grupo de más de 20 sale entero (75.371ms)
+  AssertionError [ERR_ASSERTION]: el lugar de g19 entre las 25, desde la más vieja, y su huella
+✖ LHB-61 (Codex ronda 3): dentro de un grupo de más de 20, la página siguiente sigue después de la última cata vista (por su huella): borrar, volver privada o volver pública otra cata del grupo no hace saltar ni repetir (92.5439ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /^2026-10-28~ana~6~[0-9a-z]{1,7}$/. Input:
+rc 1

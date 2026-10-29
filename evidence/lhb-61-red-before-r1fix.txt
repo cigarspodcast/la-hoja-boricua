@@ -1,0 +1,93 @@
+✖ LHB-61: Siguiendo trae solo las catas públicas de quienes sigues, con lo público del autor; una privada, una de alguien que no sigues o de un perfil oculto nunca sale (19.3746ms)
+✖ LHB-61: Siguiendo pide sesión con perfil; un documento roto de una persona no rompe a las demás; sin nadie a quien seguir, vacía (1.5485ms)
+✖ LHB-61: Siguiendo pagina de 20 en 20 con el cursor, la más reciente primero (día, @, orden del diario), sin repetir ni saltar; una cata nueva entre páginas no mueve a las demás (1.4957ms)
+✖ LHB-61 (Codex ronda 1): una página termina con un grupo entero (las catas de una persona en un día): una vieja que se vuelve pública no hace saltar otra; un día con un nulo no es día y no rompe el cursor; un grupo de más de 20 sale entero (2.9017ms)
+✔ LHB-61: Siguiendo en Mi Hoja: cada cata con su autor (que lleva a su perfil); tocarla abre la misma hoja de reseña del perfil; solo lo público, todo escapado (68.4847ms)
+✔ LHB-61: Siguiendo pagina con el cursor (Ver más); vacía invita a buscar personas; un error deja reintentar la misma página; una respuesta vieja no pinta (98.3528ms)
+✔ LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, los estilos y el caché nuevo (24.9361ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 3
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 553.6689
+
+✖ failing tests:
+
+test at test\site.test.js:4418:1
+✖ LHB-61: Siguiendo trae solo las catas públicas de quienes sigues, con lo público del autor; una privada, una de alguien que no sigues o de un perfil oculto nunca sale (19.3746ms)
+  Error: ENOENT: no such file or directory, open 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\migrations\0001_init.sql'
+      at Object.readFileSync (node:fs:483:20)
+      at mig (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1229:18)
+      at API52 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1229:88)
+      at API56 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1907:16)
+      at API40 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4013:16)
+      at API61 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4409:16)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4419:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\Users\\Owner\\AppData\\Local\\Temp\\claude\\C--Users-Owner-la-hoja-boricua\\ddfa8e87-aefe-452e-8857-30bbd7a1c261\\scratchpad\\m61red2\\migrations\\0001_init.sql'
+  }
+
+test at test\site.test.js:4438:1
+✖ LHB-61: Siguiendo pide sesión con perfil; un documento roto de una persona no rompe a las demás; sin nadie a quien seguir, vacía (1.5485ms)
+  Error: ENOENT: no such file or directory, open 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\migrations\0001_init.sql'
+      at Object.readFileSync (node:fs:483:20)
+      at mig (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1229:18)
+      at API52 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1229:88)
+      at API56 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1907:16)
+      at API40 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4013:16)
+      at API61 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4409:16)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4439:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\Users\\Owner\\AppData\\Local\\Temp\\claude\\C--Users-Owner-la-hoja-boricua\\ddfa8e87-aefe-452e-8857-30bbd7a1c261\\scratchpad\\m61red2\\migrations\\0001_init.sql'
+  }
+
+test at test\site.test.js:4450:1
+✖ LHB-61: Siguiendo pagina de 20 en 20 con el cursor, la más reciente primero (día, @, orden del diario), sin repetir ni saltar; una cata nueva entre páginas no mueve a las demás (1.4957ms)
+  Error: ENOENT: no such file or directory, open 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\migrations\0001_init.sql'
+      at Object.readFileSync (node:fs:483:20)
+      at mig (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1229:18)
+      at API52 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1229:88)
+      at API56 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1907:16)
+      at API40 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4013:16)
+      at API61 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4409:16)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4451:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\Users\\Owner\\AppData\\Local\\Temp\\claude\\C--Users-Owner-la-hoja-boricua\\ddfa8e87-aefe-452e-8857-30bbd7a1c261\\scratchpad\\m61red2\\migrations\\0001_init.sql'
+  }
+
+test at test\site.test.js:4467:1
+✖ LHB-61 (Codex ronda 1): una página termina con un grupo entero (las catas de una persona en un día): una vieja que se vuelve pública no hace saltar otra; un día con un nulo no es día y no rompe el cursor; un grupo de más de 20 sale entero (2.9017ms)
+  Error: ENOENT: no such file or directory, open 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\migrations\0001_init.sql'
+      at Object.readFileSync (node:fs:483:20)
+      at mig (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1229:18)
+      at API52 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1229:88)
+      at API56 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:1907:16)
+      at API40 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4013:16)
+      at API61 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4409:16)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\m61red2\test\site.test.js:4468:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\Users\\Owner\\AppData\\Local\\Temp\\claude\\C--Users-Owner-la-hoja-boricua\\ddfa8e87-aefe-452e-8857-30bbd7a1c261\\scratchpad\\m61red2\\migrations\\0001_init.sql'
+  }

@@ -91,7 +91,8 @@ function wheel(sel,key){const N=WHEEL.length,R=150,r0=48,cx=160,cy=160;const pt=
   return `<g class="wseg${on?' on':''}" role="button" tabindex="0" aria-pressed="${on}" aria-label="${w.n}" data-w="${w.id}" data-wk="${key}" style="--wc:${w.c}"><path d="M${x0.toFixed(1)} ${y0.toFixed(1)}A${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}A${r0} ${r0} 0 0 0 ${x3.toFixed(1)} ${y3.toFixed(1)}Z"/>${ls.map((t,j)=>`<text x="${tx.toFixed(1)}" y="${(ty+(j-(ls.length-1)/2)*15+5).toFixed(1)}" text-anchor="middle">${t}</text>`).join('')}</g>`}).join('');
  return `<div class="wheel-wrap"><svg class="wheel" viewBox="0 0 320 320" role="group" aria-label="${tt('h.ruedaDeSaboresToca')}">${segs}<circle cx="160" cy="160" r="42" class="whub"/><text x="160" y="157" text-anchor="middle" class="whub-n">${sel.length}</text><text x="160" y="176" text-anchor="middle" class="whub-t">${sel.length===1?tt('h.sabor'):tt('h.sabores')}</text></svg></div>`}
 function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{const k=g.dataset.wk,id=g.dataset.w;const cur=get(k);set(k,cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);rerender(k,id)};g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})})}
-const tagChips=ts=>ts.length?`<div class="tagchips">${ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'#dde3dc'}">${esc(WN(t))}</span>`).join('')}</div>`:'';
+/* inl: dentro de un botón (LHB-61) va en span, que un botón no puede llevar un div */
+const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'#dde3dc'}">${esc(WN(t))}</span>`).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
 /* ---------- hoja de acciones (sheet) ---------- */
 let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
 let owed=false; /* LHB-64: se abrió una hoja y el foco todavía no ha vuelto */
@@ -393,12 +394,12 @@ Object.keys(ACTIONS).forEach(k=>CUENTA.register(k,arg=>ACTIONS[k](arg)));
 const gate=(act,arg,el)=>CUENTA.quick(()=>ACTIONS[act](arg,el),{inPlace:true,act,arg});
 setTimeout(()=>CUENTA.resume(),0);
 /* ---------- Mi Hoja ---------- */
-const SUBS=[['humidor',tt('h.humidor')],['diario',tt('h.diario')],['pasaporte',tt('h.pasaporte')],['favoritos',tt('pf.favs')],['personas',tt('h.personas')],['perfil',tt('h.perfil')]];
+const SUBS=[['humidor',tt('h.humidor')],['diario',tt('h.diario')],['pasaporte',tt('h.pasaporte')],['favoritos',tt('pf.favs')],['personas',tt('h.personas')],['siguiendo',tt('h.pfSiguiendo')],['perfil',tt('h.perfil')]];
 const subnav=cur=>`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1><p><a class="lbtn" href="#/mihoja/editar" id="mhEdit">${tt('h.editarPerfil2')}</a></p></header><nav class="subnav" aria-label="${tt('h.miHoja')}">${SUBS.map(([k,n])=>`<a href="#/mihoja/${k}" ${k===cur?'aria-current="page"':''}>${n}</a>`).join('')}</nav>${backupBanner()}`;
 /* LHB-55: #/mihoja/editar abre el formulario de editar perfil por la misma puerta; al guardar (done) vuelve a Perfil */
 function vMiHoja(sub){requireAccount(()=>vMiHojaIn(sub),sub==='editar'?{edit:true}:undefined)}
 function vMiHojaIn(sub){sub=sub||'humidor';SYNC.isolate();SYNC.run('mi-hoja',{minAge:20e3});if(sub==='editar'){location.hash='#/mihoja/perfil';return}if(sub==='perfil'){A.vPerfil();bindBackup();return}
- ({humidor:vHumidor,diario:vDiario,pasaporte:vPasaporte,favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)();bindBackup()}
+ ({humidor:vHumidor,diario:vDiario,pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)();bindBackup()}
 /* ---------- Personas (LHB-57): buscar a otras personas por @ o por nombre ---------- */
 const PQ_MIN=2;
 /* la misma regla que el servidor (functions/_lib/people.js): 2 caracteres o más, sin contar el @ de entrada */
@@ -426,6 +427,29 @@ function vPersonas(){
  /* al teclear, lo que estaba en camino ya no vale: ni su respuesta ni su "Ver más" */
  $('#psQ').oninput=()=>{clearTimeout(timer);seq++;next=null;$('#psMore').hidden=true;timer=setTimeout(()=>run(false),350)};
  $('#psMore').onclick=()=>run(true)}
+/* ---------- Siguiendo (LHB-61): las catas públicas de las personas que sigues (GET /api/feed), la más reciente primero, 20 por página ---------- */
+/* una tarjeta: el autor (foto, nombre público y @, como en Personas) lleva a su perfil; la cata abre la misma hoja de reseña que el perfil (pfResSheet).
+   De la cata solo se enseña la lista cerrada de pfEntry, todo escapado */
+const feedCard=(x,i)=>{const e=x.e;return `<li class="feed-c">${personRow(x.p).replace(/^<li[^>]*>|<\/li>$/g,'')}<button type="button" class="pf-res feed-b" data-feed="${i}"><b>${esc(e.nombre||tt('h.pfCigarro'))}</b>${e.rating?stars(e.rating):''}${tagChips(e.tags,true)}${e.notas?`<span class="feed-n">${esc(e.notas)}</span>`:''}${e.consumido?`<small>${esc(fmtF(e.consumido))}</small>`:''}</button></li>`};
+function vSiguiendo(){
+ view.innerHTML=`${subnav('siguiendo')}<p class="hint">${tt('h.fdHint')}</p><ul class="feed" id="fdL"></ul><p class="hint" id="fdH" aria-live="polite">${tt('h.pfCargando')}</p><button class="lbtn" type="button" id="fdMore" hidden>${tt('ev.more')}</button>`;
+ const list=$('#fdL'),live=()=>$('#fdL')===list,items=[];let next=null,seq=0;
+ const say=h=>{const el=$('#fdH');if(el){el.innerHTML=h;el.hidden=!h}};
+ /* tocar una cata abre su hoja; el autor es un enlace normal */
+ list.onclick=ev=>{const b=ev&&ev.target&&ev.target.closest?ev.target.closest('[data-feed]'):null;const x=b&&items[+b.dataset.feed];if(x)sheet(pfResSheet(x.e),x.e.nombre||tt('h.pfCigarro'))};
+ const page=async()=>{const mine=++seq;$('#fdMore').hidden=true;const a=acct.get();let r;
+  try{const C=await clerk();r=await api(C,'GET','/api/feed'+(next?'?cursor='+encodeURIComponent(next):''),null,a&&a.sub,undefined,()=>live()&&mine===seq)}catch(e){r={status:0,body:{}}}
+  /* se fue de la pantalla, o es la respuesta de un pedido viejo: no pinta nada */
+  if(!live()||mine!==seq)return;
+  /* un error deja reintentar la misma página (el cursor no cambió) */
+  if(r.status!==200||!r.body||!Array.isArray(r.body.items)){say(esc(tt('h.fdError')));$('#fdMore').textContent=tt('cu.retry');$('#fdMore').hidden=false;return}
+  $('#fdMore').textContent=tt('ev.more');
+  const add=r.body.items.filter(x=>x&&x.author&&typeof x.author.handle==='string'&&PF_HANDLE.test(x.author.handle)&&x.entry&&typeof x.entry==='object').map(x=>({p:x.author,e:pfEntry(x.entry)}));
+  const from=items.length;items.push(...add);next=typeof r.body.next==='string'&&r.body.next?r.body.next:null;
+  list.insertAdjacentHTML('beforeend',add.map((x,k)=>feedCard(x,from+k)).join(''));
+  say(items.length?'':`${esc(tt('h.fdNadie'))} <a href="#/mihoja/personas">${esc(tt('h.fdBusca'))}</a>`);$('#fdMore').hidden=!next};
+ $('#fdMore').onclick=()=>page();
+ return page()}
 /* ---------- perfil, pasaporte primero (LHB-58) ---------- */
 /* el perfil de otra persona (#/u/<handle>) y el tuyo (Perfil): foto, nombre público, @, bio, marca favorita y conteos (reseñas, seguidores, siguiendo); luego las pestañas Reseñas, Pasaporte, Favoritos y Humidor (el Humidor solo lo ve su dueño).
    Lo de otra persona sale solo de GET /api/u/<handle> (lo público, la misma lectura que la página /u/<handle>); nunca la foto local del teléfono ni nada privado. La fecha de nacimiento y el género no están aquí. */
