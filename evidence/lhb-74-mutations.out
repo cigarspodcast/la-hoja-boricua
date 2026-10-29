@@ -17,5 +17,7 @@ L16 (Codex r2) a repaint is not marked again                   rc 1 fail 1 -> RE
 L17 (Codex r2) a new stamp drops the one still celebrating     rc 1 fail 1 -> RED
 L18 (Codex r2) the badge starts before it shows earned         rc 1 fail 1 -> RED
 L19 (Codex r2) a stale cleanup cuts a stamp put again          rc 1 fail 1 -> RED
+L20 (Codex r3) two records own one badge                       rc 1 fail 1 -> RED
+L21 (Codex r3) a badge that was lost is still marked           rc 1 fail 1 -> RED
 baseline after restore: rc 0 pass 27 fail 0
-RESULT 19 of 19 mutations red
+RESULT 21 of 21 mutations red

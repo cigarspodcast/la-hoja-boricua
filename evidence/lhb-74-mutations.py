@@ -1,7 +1,7 @@
 """LHB-74 proof: each mutation breaks one rule of the passport colors, the stamp celebration or the public profile on a scratch copy of
 the worktree, runs the LHB-74 tests plus the tests they touch, and must turn them red; the copy is restored after each.
 Round 2 (Codex r2): the celebration code was rewritten so it survives repaints; the mutations follow the new code (L2, L5, L6, L8, L9,
-L11 and L15 now target it, L16 to L19 are new).
+L11 and L15 now target it, L16 to L19 are new). Round 3 (Codex r3): L20 and L21, one owner per element and only ready elements marked.
 usage: python evidence/lhb-74-mutations.py WORKTREE SCRATCH"""
 import os, re, shutil, subprocess, sys
 
@@ -50,6 +50,8 @@ M = [
     ('L17 (Codex r2) a new stamp drops the one still celebrating', lambda: edit(HJ, '[...LIVE].filter(c=>c.arg===arg).forEach(celDrop);', '[...LIVE].forEach(celDrop);')),
     ('L18 (Codex r2) the badge starts before it shows earned', lambda: edit(HJ, "e=>e.classList.contains('on'));", '()=>true);')),
     ('L19 (Codex r2) a stale cleanup cuts a stamp put again', lambda: edit(HJ, 'setTimeout(()=>{if(LIVE.has(c))celDrop(c)},CEL_OFF)', 'setTimeout(()=>celDrop(c),CEL_OFF)')),
+    ('L20 (Codex r3) two records own one badge', lambda: edit(HJ, '[...LIVE].filter(c=>c.sel===sel).forEach(celDrop);', '')),
+    ('L21 (Codex r3) a badge that was lost is still marked', lambda: edit(HJ, 'document.querySelectorAll(c.sel)){if(!c.ready(e))continue;\n  if(c.start==null){c.start=now;', 'document.querySelectorAll(c.sel)){\n  if(c.start==null){if(!c.ready(e))continue;c.start=now;')),
 ]
 red = 0
 for name, mut in M:

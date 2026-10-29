@@ -1,10 +1,10 @@
-chrome pid 50832
+chrome pid 46464
 the passport opens signed in                                   PASS #/mihoja/pasaporte
    pasaporte-portada-390x844.png
   cigar stamps already put: 7
 four cigar stamps before the fifth                             PASS 
-the 350 ms repaint does not restart the stamp (runs from the tap) PASS {"now": 479, "an": [{"el": "catador", "ran": 100}, {"el": "cigarros:turro-mamposteao", "ran": 458}]}
-Catador starts when the repaint shows it earned                PASS {"catador": 100, "cigarros:turro-mamposteao": 458}
+the 350 ms repaint does not restart the stamp (runs from the tap) PASS {"now": 473, "an": [{"el": "catador", "ran": 83}, {"el": "cigarros:turro-mamposteao", "ran": 453}]}
+Catador starts when the repaint shows it earned                PASS {"catador": 83, "cigarros:turro-mamposteao": 453}
 the fifth stamp and Catador celebrate                          PASS ["catador", "cigarros:turro-mamposteao"]
 a tap on the celebrating stamp reaches it                      PASS {"ok": true, "hit": "B.", "y": 347, "still": true}
 it runs lhb-stamp once                                         PASS lhb-stamp 1
@@ -15,5 +15,5 @@ after one run the class is gone                                PASS 0
 reduced motion: the stamp is put, nothing celebrates           PASS {"news": 0, "pressed": "true"}
    menos-movimiento-390x844.png
 no script errors                                               PASS 
-chrome pid 50832 exited 0
+chrome pid 46464 exited 0
 RESULT 10 of 10 checks pass

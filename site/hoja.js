@@ -703,16 +703,18 @@ function zonaSheet(k){const l=ruta().z[k];sheet(`<div class="zcel">${zSello(k,1,
    No se guarda nada: sale del sello que se acaba de poner. La animación no tapa nada ni quita el toque.
    La vista se vuelve a pintar mientras se anima (el pasaporte a los 350 ms, la sincronización, el idioma, otro sello): cada elemento nuevo se
    marca otra vez con el reloj corrido (--cel-at negativo), así la animación sigue donde iba y ni empieza de nuevo ni se corta (Codex ronda 2).
-   El sello empieza al tocarlo (ya sale puesto); la insignia, en la primera pintura que la muestra ganada; lo que no empieza en 2 s, caduca */
+   El sello empieza al tocarlo (ya sale puesto); la insignia, en la primera pintura que la muestra ganada; lo que no empieza en 2 s, caduca.
+   Cada elemento tiene un solo dueño: un registro nuevo para el mismo elemento (la misma insignia ganada otra vez con otro sello) deja
+   el viejo, con su reloj y su limpieza; y solo se marca lo que está listo (sello puesto, insignia ganada), nunca lo que se perdió (Codex ronda 3) */
 const CEL_OFF=900,CEL_WAIT=2000,LIVE=new Set();let celObs=null;
 const lessMotion=()=>!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 function celDrop(c){LIVE.delete(c);document.querySelectorAll(c.sel).forEach(e=>e.classList.remove('is-new'));if(!LIVE.size&&celObs){celObs.disconnect();celObs=null}}
 function celMark(){if(lessMotion()){[...LIVE].forEach(celDrop);return}const now=Date.now();
- for(const c of [...LIVE])for(const e of document.querySelectorAll(c.sel)){
-  if(c.start==null){if(!c.ready(e))continue;c.start=now;setTimeout(()=>{if(LIVE.has(c))celDrop(c)},CEL_OFF)}
+ for(const c of [...LIVE])for(const e of document.querySelectorAll(c.sel)){if(!c.ready(e))continue;
+  if(c.start==null){c.start=now;setTimeout(()=>{if(LIVE.has(c))celDrop(c)},CEL_OFF)}
   if(!e.classList.contains('is-new')){e.style.setProperty('--cel-at',(c.start-now)+'ms');e.classList.add('is-new')}}}
 function celebrate(arg,on,badge){[...LIVE].filter(c=>c.arg===arg).forEach(celDrop);if(!on||lessMotion())return;
- const add=(sel,ready)=>{const c={arg,sel,ready,start:null};LIVE.add(c);setTimeout(()=>{if(LIVE.has(c)&&c.start==null)celDrop(c)},CEL_WAIT)};
+ const add=(sel,ready)=>{[...LIVE].filter(c=>c.sel===sel).forEach(celDrop);const c={arg,sel,ready,start:null};LIVE.add(c);setTimeout(()=>{if(LIVE.has(c)&&c.start==null)celDrop(c)},CEL_WAIT)};
  add(`[data-stamp="${CSS.escape(arg)}"]`,e=>e.getAttribute('aria-pressed')==='true');
  if(badge)add(`[data-badge="${CSS.escape(badge)}"]`,e=>e.classList.contains('on'));
  if(!celObs&&typeof MutationObserver==='function'){celObs=new MutationObserver(celMark);celObs.observe(document.body,{childList:true,subtree:true})}
