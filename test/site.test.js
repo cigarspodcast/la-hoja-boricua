@@ -5253,3 +5253,31 @@ test('LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de toke
  const f=s=>ps.find(p=>p.sel===s);for(const s of ['.seg button[aria-pressed="true"]','.foto-th span','.pill.f-suave','.pill.f-fuerte'])assert.ok(f(s),'se mide '+s);
  assert.equal(f('.pill.f-suave').bg,'var(--card-2)');assert.equal(f('.seg button[aria-pressed="true"]').color,'var(--on-inverse)');assert.ok(ps.length>=50,'al menos 50 pares pintados: '+ps.length);
 });
+/* LHB-68: las páginas estáticas (l.css: lugares, artesanos, cigarros, guías, privacidad, 404) y el pasaporte público (u.css) con la marca de la app */
+const STATIC68=['lugares/l.css','u.css'];
+test('LHB-68: l.css y u.css usan los tokens de la app con los mismos valores, sin un color suelto fuera de :root, y Fraunces con Figtree',()=>{
+ const app=TOKENS65(read('styles.css'));
+ for(const f of STATIC68){const css=read(f),{t,val}=TOKENS65(css);
+  const names=Object.keys(t).filter(n=>app.t[n]!=null);assert.ok(names.length>=10,f+': al menos 10 tokens de la app: '+names.length);
+  for(const n of names)assert.equal(val(n),app.val(n),f+' --'+n+' tiene el mismo valor que en styles.css');
+  for(const n of Object.keys(t).filter(n=>app.t[n]==null))assert.ok(['scrim'].includes(n),f+': token que la app no tiene: --'+n);
+  const rules=css.replace(/\/\*[\s\S]*?\*\//g,'').replace(/:root\{[^}]*\}/,'').replace(/@font-face\{[^}]*\}/g,'');
+  assert.deepEqual(rules.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(/g)||[],[],f+': ningún color suelto fuera de :root');
+  assert.match(css,/:root\{[^}]*color-scheme:light/,f+': tema claro');
+  for(const m of css.matchAll(/url\(\/fonts\/([a-z0-9-]+\.woff2)\)/g))assert.ok(fs.existsSync(path.join(S,'fonts',m[1])),f+': '+m[1]);
+  assert.ok(css.includes("font-family:'Figtree'")&&css.includes("font-family:'Fraunces'"),f+': Figtree y Fraunces');for(const m of css.matchAll(/font(-family)?:[^;}]*/g))if(m[0].includes('Georgia'))assert.ok(m[0].includes("'Fraunces',Georgia"),f+': Georgia solo de respaldo de Fraunces: '+m[0]);
+ }
+});
+test('LHB-68: los pares de texto y fondo de l.css y u.css pasan el contraste (los declarados y los que se pintan)',t=>{
+ for(const f of STATIC68){const css=read(f),ps=pairs65(css),eps=effPairs65(css);
+  const bad=[...ps.filter(p=>!p.fv||!p.bv||p.r<p.min).map(p=>p.f+' sobre '+p.b),...eps.filter(p=>p.r<4.5).map(p=>p.sel+' '+p.r.toFixed(2))];
+  t.diagnostic(f+': '+ps.length+' pares declarados y '+eps.length+' pintados, '+bad.length+' no pasan');
+  assert.deepEqual(bad,[],f);assert.ok(ps.length>=4&&eps.length>=2,f+': se mide algo');}
+});
+test('LHB-68: cada página estática enlaza l.css (y ninguna trae otro estilo ni colores en línea)',()=>{
+ const pages=[];for(const d of ['lugares','artesanos','cigarros','guias','en/lugares','en/artesanos','en/cigarros'])if(fs.existsSync(path.join(S,d)))for(const f of fs.readdirSync(path.join(S,d)).filter(f=>f.endsWith('.html')))pages.push(d+'/'+f);
+ pages.push('privacidad.html','404.html');
+ for(const p of pages){const h=read(p);assert.ok(/<link rel="stylesheet" href="(\.\.\/lugares\/l\.css|\/lugares\/l\.css|l\.css|\.\.\/\.\.\/lugares\/l\.css)">/.test(h),p+' enlaza l.css');
+  assert.ok(!/<style[\s>]/.test(h),p+' sin <style>');assert.ok(!/style="[^"]*(#[0-9a-fA-F]{3,8}|rgba?\()/.test(h),p+' sin colores en línea')}
+ assert.ok(pages.length>=130,'páginas: '+pages.length);
+});
