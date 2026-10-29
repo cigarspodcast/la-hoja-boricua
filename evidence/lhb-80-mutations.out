@@ -1,4 +1,4 @@
-baseline (no mutation): pass 30 fail 0
+baseline (no mutation): pass 34 fail 0
 the client never asks about a lost upload (before LHB-80)    RED (caught) (fail 6)
 GET never says whether an upload landed (before LHB-80)      RED (caught) (fail 6)
 PUT does not record its id                                   RED (caught) (fail 4)
@@ -13,7 +13,7 @@ r1: GET never says from which rev the list can tell          RED (caught) (fail 
 r1: the floor is the newest record, not the oldest           RED (caught) (fail 2)
 GET without the column fails                                 RED (caught) (fail 2)
 PUT without the column fails                                 RED (caught) (fail 7)
-any recorded id answers                                      RED (caught) (fail 7)
+any recorded id answers                                      RED (caught) (fail 9)
 the PUT does not send its id                                 RED (caught) (fail 3)
 a landed upload is not the base                              RED (caught) (fail 3)
 an upload that cannot land any more is asked about forever   RED (caught) (fail 2)
@@ -22,12 +22,16 @@ an answer about another id is believed                       RED (caught) (fail 
 r1: a 409 forgets every unresolved upload                    RED (caught) (fail 1)
 r1: a pass without a PUT forgets an upload that can still land GREEN (equivalent: the fence leaves nothing unresolved at the current rev when a pass completes) (fail 0)
 r1: a new upload replaces the unresolved one                 RED (caught) (fail 3)
-r2: no fence while an upload can still land                  RED (caught) (fail 3)
+r2: no fence while an upload can still land                  RED (caught) (fail 4)
 r2: an evicted upload leaves no trace                        RED (caught) (fail 1)
 r2: an evicted upload never voids the base                   RED (caught) (fail 1)
 r2: an evicted upload always voids the base                  RED (caught) (fail 1)
 r2: a 200 at the evicted If-Match keeps it                   RED (caught) (fail 1)
 r2: settled ignores uploads that can still land              GREEN (equivalent: settled() needs an ok pass, and an ok pass ends with nothing unresolved (the fence)) (fail 0)
 r3: the OPS_ASK limit counts every account                   RED (caught) (fail 1)
-r3: one eviction record for every account                    GREEN (equivalent: the account keeps its other uploads at the same If-Match, and returning after another account starts with no base) (fail 0)
-RESULT 28 of 31 red; 3 named equivalent; 0 unexpected survivors
+r3: one eviction record for every account                    GREEN (equivalent: since the epoch fix no base outlives an account switch, and the account keeps its other uploads at the same If-Match) (fail 0)
+r4: a pass survives an account round trip                    RED (caught) (fail 1)
+r4: a change of owner keeps the epoch                        RED (caught) (fail 3)
+r4: the cached base is not bound to its copy                 RED (caught) (fail 1)
+r4: an upload sent from another copy is a base               RED (caught) (fail 1)
+RESULT 32 of 35 red; 3 named equivalent; 0 unexpected survivors
