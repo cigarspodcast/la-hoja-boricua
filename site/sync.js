@@ -80,10 +80,10 @@ const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_s
    forget la pone, espera FENCE_MS (lo que tarda en verse en las otras pestañas), revisa otra vez y borra. Caduca sola si la pestaña que sale se cierra a medias */
 const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
-/* LHB-80: cuántas subidas recuerda la cuenta (OPS_KEEP en functions/_lib/mihoja.js): más allá, que no esté no dice que no llegó */
-const OPS_KEEP=20;
+/* LHB-80 (Codex r1): cuántas subidas sin respuesta se recuerdan y se preguntan en un GET (OPS_ASK en functions/_lib/mihoja.js) */
+const OPS_ASK=8;
 window.LHB_SYNC=function(D){
- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unkVoid=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
+ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,pend=[],mem=null,held=false,state={state:'idle',err:null};
  /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
  const newOp=()=>{if(D.opId)return D.opId();try{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
@@ -129,28 +129,33 @@ window.LHB_SYNC=function(D){
   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid};
   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
   const meta0=readMeta();let meta=meta0&&meta0.sub===uid?meta0:null;
+  /* LHB-80 (Codex r1): el servidor contestó por las subidas que se le preguntaron (tiene la columna ops) */
+  let opsSeen=false;
   const first=!meta||!meta.at;
   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
   const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true});
   for(let i=0;i<TRIES;i++){
    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
-   /* LHB-80: con una subida sin respuesta, se pregunta por ella */
-   const ask=unk&&unk.sub===uid&&unk.op?unk:null;
-   let g;try{g=await D.api(C,'GET','/api/mihoja'+(ask?'?op='+encodeURIComponent(ask.op):''),null,uid)}catch(e){return {skip:'offline'}}
+   /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
+   const ask=pend.filter(x=>x.sub===uid);
+   let g;try{g=await D.api(C,'GET','/api/mihoja'+(ask.length?'?'+ask.map(x=>'op='+encodeURIComponent(x.op)).join('&'):''),null,uid)}catch(e){return {skip:'offline'}}
    if(!alive())return {skip:'other-account'};
    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
    if(g.body.rev>0&&(!isObj(g.body.doc)||!(g.body.schema<=1)))return {fail:'schema'};
    const rev=g.body.rev,remote=rev>0?g.body.doc:null;
-   /* LHB-80: el servidor dice si esa subida llegó. Llegó en el rev n: lo que se mandó es lo que la cuenta tenía en n, y esa es la base (se anota ya, así vale también
-      si esta pasada repite tras un 409). No llegó y la cuenta ya pasó del rev que pedía (If-Match): ya no puede llegar */
-   const oc=ask&&ask===unk&&isObj(g.body.op)&&g.body.op.id===ask.op?g.body.op:null;
-   if(oc){
-    if(Number.isInteger(oc.rev)&&oc.rev>0){unk=null;if(unkVoid){voided=false;unkVoid=false}
-     meta={sub:uid,rev:oc.rev,base:ask.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:ask.sent,rev:oc.rev};staleBase=!writeMeta(meta)}
-    else if(oc.rev===null&&rev>ask.rev&&rev<=ask.rev+OPS_KEEP)unk=null}
+   /* LHB-80: el servidor dice de cada una si llegó. Llegó en el rev n: lo que se mandó es lo que la cuenta tenía en n, y esa es la base (se anota ya, así vale también
+      si esta pasada repite tras un 409). No está y la cuenta ya pasó del rev que pedía (If-Match): ya no puede llegar. Que no llegó se sabe solo si la lista cubre ese rev
+      (opsFrom; Codex r1: lo que llegó antes de 0008, o ya olvidado, no está); si no, no se sabe y se junta sin dar nada por borrado.
+      Si la cuenta sigue en el rev que pedía, todavía puede llegar (Codex r1: una escritura que el servidor no terminó): se sigue preguntando */
+   const oks=ask.length&&Array.isArray(g.body.ops)?g.body.ops:null;
+   if(oks){opsSeen=true;let best=null;
+    for(const x of ask){const o=oks.find(y=>isObj(y)&&y.id===x.op);if(!o)continue;
+     if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
+     else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true}}
+    if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:best.sent,rev:best.rev};staleBase=!writeMeta(meta)}}
    /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
       LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
-   if(unk&&unk.sub===uid&&rev>=unk.rev+2){voided=true;unkVoid=true}
+   if(!oks&&ask.some(x=>rev>=x.rev+2))voided=true;
    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
    const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
@@ -166,13 +171,16 @@ window.LHB_SYNC=function(D){
    if(!remote||canon(merged)!==canon(remote)){
     /* se anota antes de mandar: si la respuesta no llega, no se puede leer, o la cuenta cambia mientras tanto, el PUT pudo haber llegado. Solo una respuesta clara (409, otro error 4xx o un 200 con revisión) lo borra */
     /* LHB-80: con su id y lo que se manda, para saber después si llegó */
-    const op=newOp();unk={sub:uid,rev,op,sent:merged};
+    /* Codex r1: se suma a las que siguen sin saberse (no las reemplaza); si son demasiadas, la más vieja se olvida y no se da nada por borrado */
+    const op=newOp();pend.push({sub:uid,rev,op,sent:merged});if(pend.length>OPS_ASK){pend.shift();voided=true}
     let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
-    if(p.status===409||(p.status<500&&p.status!==200))unk=null;
+    /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
+    if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
     if(!alive())return {skip:'other-account'};
     if(p.status===409)continue;
     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
-    unk=null;newRev=p.body.rev;pushed=true}
+    /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
+    pend=pend.filter(x=>x.sub!==uid);newRev=p.body.rev;pushed=true}
    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
    let now0,Ln,quiet,final,wrote=true;
    for(let k=0;k<4;k++){
@@ -190,7 +198,8 @@ window.LHB_SYNC=function(D){
    const edited=edits!==e0||readSeq()!==s0||!quiet;
    mem={sub:uid,base:merged,rev:newRev};
    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}
-   staleBase=false;voided=false;unkVoid=false;if(unk&&unk.sub===uid)unk=null;if(!edited)dirty=false;
+   /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */
+   staleBase=false;voided=false;if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);if(!edited)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
    const pulled=!!remote&&canon(merged)!==canon(L);
    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');
@@ -258,7 +267,7 @@ window.LHB_SYNC=function(D){
    await D.wait(FENCE_MS);
    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
    if(!same(mark))return back()}
-  hold(true);mem=null;unk=null;dirty=false;let ok=true;
+  hold(true);mem=null;pend=[];dirty=false;let ok=true;
   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
   set('off');return ok}
  function start(){

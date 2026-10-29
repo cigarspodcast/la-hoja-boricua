@@ -38,6 +38,8 @@ export function checkBody(b) {
 // LHB-80: el id de una subida (cabecera X-Op, ?op= en GET): lo inventa el cliente, uno por PUT. OPS_KEEP: cuántas se recuerdan por cuenta (migrations/0008_mihoja_ops.sql)
 export const OP = /^[A-Za-z0-9_-]{8,64}$/;
 export const OPS_KEEP = 20;
+// Codex ronda 1: cuántas subidas se pueden preguntar en un GET (?op=a&op=b...)
+export const OPS_ASK = 8;
 // sin la columna todavía (0008 sin aplicar) se contesta como antes
 export const noOps = e => /no such column: ops|has no column named ops/i.test(String(e && e.message));
 // en qué rev llegó la subida id según la columna ops de la fila, o null si no está (ni una lista que no se puede leer cuenta)
@@ -47,6 +49,16 @@ export function opRev(raw, id) {
   if (!Array.isArray(a)) return null;
   for (const x of a) if (Array.isArray(x) && x[0] === id && Number.isInteger(x[1])) return x[1];
   return null;
+}
+// Codex ronda 1: el rev más viejo anotado, o null sin lista. Desde ahí, toda subida con X-Op que llegó está en la lista; antes no se sabe
+// (llegó sin la columna, 0008 sin aplicar, o la lista ya la olvidó, OPS_KEEP, o se empezó de nuevo porque estaba dañada)
+export function opsFloor(raw) {
+  let a;
+  try { a = JSON.parse(raw); } catch (e) { return null; }
+  if (!Array.isArray(a)) return null;
+  let m = null;
+  for (const x of a) if (Array.isArray(x) && Number.isInteger(x[1]) && (m === null || x[1] < m)) m = x[1];
+  return m;
 }
 
 // la fila de la cuenta como la ve el cliente; sin fila: rev 0 y doc null

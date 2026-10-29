@@ -11,22 +11,29 @@ PAT = 'LHB-80|LHB-28'
 LB, AP, SY = 'functions/_lib/mihoja.js', 'functions/api/mihoja.js', 'site/sync.js'
 
 MUTS = [
-    (SY, 'the client never asks about a lost upload (before LHB-80)', "'/api/mihoja'+(ask?'?op='+encodeURIComponent(ask.op):'')", "'/api/mihoja'"),
+    (SY, 'the client never asks about a lost upload (before LHB-80)', "'/api/mihoja'+(ask.length?'?'+ask.map(x=>'op='+encodeURIComponent(x.op)).join('&'):'')", "'/api/mihoja'"),
     (AP, 'GET never says whether an upload landed (before LHB-80)', '      if (cols) {\n', '      if (false) {\n'),
     (AP, 'PUT does not record its id', '    if (opH !== null) {\n      try {', '    if (false) {\n      try {'),
     (AP, 'PUT records the old rev', "OPS_NEXT('?6', 'rev + 1', OPS_KEEP)", "OPS_NEXT('?6', 'rev', OPS_KEEP)"),
     (AP, 'the first PUT records rev 0', 'json_array(json_array(?6, 1))', 'json_array(json_array(?6, 0))'),
     (AP, 'every id is kept', "json_array_length(ops) >= ${keep} ", "json_array_length(ops) >= ${keep + 1000} "),
     (AP, 'a bad id is accepted on PUT', "if (opH !== null && !OP.test(opH)) return json({ error: 'bad-op' }, 400);", ''),
-    (AP, 'a bad id is accepted on GET', "if (id !== null && !OP.test(id)) return json({ error: 'bad-op' }, 400);", ''),
+    (AP, 'a bad id is accepted on GET', 'ids.some(x => !OP.test(x))', 'false'),
+    (AP, 'r1: any number of ids is asked', 'ids.length > OPS_ASK || ', ''),
+    (AP, 'r1: GET answers only the first id', 'const ops = ids.map(', 'const ops = ids.slice(0, 1).map('),
+    (AP, 'r1: GET never says from which rev the list can tell', 'opsFrom: row ? opsFloor(row.ops) : null', 'opsFrom: null'),
+    (LB, 'r1: the floor is the newest record, not the oldest', '(m === null || x[1] < m)', '(m === null || x[1] > m)'),
     (AP, 'GET without the column fails', 'catch (e) { if (!noOps(e)) throw e; cols = false; }', 'catch (e) { throw e; }'),
     (AP, 'PUT without the column fails', 'catch (e) { if (!noOps(e)) throw e; r = await plain(); }', 'catch (e) { throw e; }'),
     (LB, 'any recorded id answers', 'x[0] === id && ', ''),
     (SY, 'the PUT does not send its id', ",'X-Op':op})", "})"),
-    (SY, 'a landed upload is not the base', 'meta={sub:uid,rev:oc.rev,base:ask.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:ask.sent,rev:oc.rev};staleBase=!writeMeta(meta)', ''),
-    (SY, 'an upload that cannot land any more is asked about forever', 'else if(oc.rev===null&&rev>ask.rev&&rev<=ask.rev+OPS_KEEP)unk=null', 'else if(0)unk=null'),
-    (SY, 'a missing id is trusted past OPS_KEEP', 'rev>ask.rev&&rev<=ask.rev+OPS_KEEP)unk=null', 'rev>ask.rev)unk=null'),
-    (SY, 'an answer about another id is believed', '&&g.body.op.id===ask.op?', '?'),
+    (SY, 'a landed upload is not the base', 'if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:best.sent,rev:best.rev};staleBase=!writeMeta(meta)}', ''),
+    (SY, 'an upload that cannot land any more is asked about forever', 'else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);', 'else if(0){'),
+    (SY, 'r1: a missing id is trusted outside the recorded range', 'if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true', ''),
+    (SY, 'an answer about another id is believed', 'const o=oks.find(y=>isObj(y)&&y.id===x.op);', 'const o=oks[0];'),
+    (SY, 'r1: a 409 forgets every unresolved upload', 'pend=pend.filter(x=>x.op!==op);', 'pend=pend.filter(x=>x.sub!==uid);'),
+    (SY, 'r1: a pass without a PUT forgets an upload that can still land', 'if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);', 'pend=pend.filter(x=>x.sub!==uid);'),
+    (SY, 'r1: a new upload replaces the unresolved one', 'pend.push({sub:uid,rev,op,sent:merged});', 'pend=[{sub:uid,rev,op,sent:merged}];'),
 ]
 
 

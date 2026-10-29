@@ -7,7 +7,7 @@
    Solo para quien tiene cuenta y perfil (401 sin sesión, 403 sin perfil). Privado de su dueño. */
 import { json } from '../_lib/auth.js';
 import { requireProfile } from '../_lib/profile.js';
-import { BODY_MAX, checkBody, revOf, shape, OP, OPS_KEEP, noOps, opRev } from '../_lib/mihoja.js';
+import { BODY_MAX, checkBody, revOf, shape, OP, OPS_KEEP, OPS_ASK, noOps, opRev, opsFloor } from '../_lib/mihoja.js';
 
 const current = db => db.prepare('SELECT doc, schema, rev, updated_at FROM mihoja WHERE user_id = ?1');
 // LHB-80: la misma fila con sus subidas anotadas; una sola lectura, así el rev y lo anotado son del mismo momento
@@ -25,15 +25,17 @@ const gate = async (request, env) => { try { return await requireProfile(request
 export async function onRequestGet({ request, env }) {
   const g = await gate(request, env);
   if (g instanceof Response) return g;
-  const id = new URL(request.url).searchParams.get('op');
-  if (id !== null && !OP.test(id)) return json({ error: 'bad-op' }, 400);
+  // Codex ronda 1: hasta OPS_ASK ids (?op=a&op=b); ops dice de cada uno en qué rev llegó (o null) y opsFrom desde qué rev la lista lo puede decir
+  const ids = new URL(request.url).searchParams.getAll('op');
+  if (ids.length > OPS_ASK || ids.some(x => !OP.test(x))) return json({ error: 'bad-op' }, 400);
   try {
-    if (id !== null) {
+    if (ids.length) {
       let row = null, cols = true;
       try { row = await currentOps(env.DB).bind(g.user.sub).first(); } catch (e) { if (!noOps(e)) throw e; cols = false; }
       if (cols) {
         const s = shape(row);
-        return s ? json({ ...s, op: { id, rev: row ? opRev(row.ops, id) : null } }) : json({ error: 'corrupt' }, 500);
+        const ops = ids.map(x => ({ id: x, rev: row ? opRev(row.ops, x) : null }));
+        return s ? json({ ...s, op: ops[0], ops, opsFrom: row ? opsFloor(row.ops) : null }) : json({ error: 'corrupt' }, 500);
       }
     }
     const s = shape(await current(env.DB).bind(g.user.sub).first());
