@@ -4583,7 +4583,7 @@ function HOJA58(opts){opts=opts||{};
   A:{cigarById:id=>({c1:{id:'c1',nombre:'Yambú Toro'},c2:{id:'c2',nombre:'Don Collins'}})[id]||null,cigarCard:c=>'<a class="card" data-c="'+c.id+'">'+c.nombre+'</a>',hydrate:()=>log.push('hydrate'),route:()=>log.push('route')},
   /* LHB-97, en facelift: como sheet() de facelift (LHB-64): anota lastFocus si el foco no está ya en la hoja, pone sheet-on y siempre lleva el foco a la hoja
      (su primer control o Cerrar), con la app detrás inerte; por eso aquí el foco nunca queda en el botón de una reseña con la hoja abierta */
-  acct:{get:()=>acctBox.v},sheet:(h,l)=>{if(foco.el.id!=='sheetPanel')ctx.lastFocus=foco.el;sheetOn.v=true;foco.el={id:'sheetPanel'};sheets.push([h,l])},lastFocus:null,document:{get activeElement(){return foco.el},body:{classList:{contains:k=>k==='sheet-on'&&sheetOn.v}}},dKeepFocus:()=>log.push('dKeepFocus'),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,
+  acct:{get:()=>acctBox.v},sheet:(h,l)=>{if(foco.el.id!=='sheetPanel')ctx.lastFocus=foco.el;sheetOn.v=true;foco.el={id:'sheetPanel'};sheets.push([h,l])},lastFocus:null,document:{get activeElement(){return foco.el},body:{classList:{contains:k=>k==='sheet-on'&&sheetOn.v}}},dKeepFocus:()=>log.push('dKeepFocus'),passCounts:()=>({c:{artesanos:1,cigarros:2,lugares:0}}),fetch,atob,
   localStorage,navigator:{},location:loc,setTimeout:()=>0,JSON,Date,subnav:k=>'<nav data-sub="'+k+'"></nav>'};
  vm.createContext(ctx);
  vm.runInContext(code+';this.X={vSiguiendo,vPersona,profileOwn,pfOwnSync:typeof pfOwnSync=="function"?pfOwnSync:undefined,pfPanel,pfHead,myResenas,pfEntry,isPublica,S}',ctx);
@@ -6310,6 +6310,31 @@ test('LHB-62 (Codex r2): en la app, el perfil y las listas se pintan otra vez en
  H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?{status:200,body:API58JSON()}:{status:404,body:{}}});
  for(let i=0;i<10;i++){await H.X.vPersona('bea');await tick()}
  assert.equal(H.ctx.acctW.size,1,'los de páginas que se fueron no se quedan');
+});
+test('LHB-62 (Codex r3): una página pública sin Clerk cargado (sin cuenta guardada) nota por la cookie __session que la sesión cambió en otra pestaña: al volver se pinta otra vez, y una respuesta de la sesión de antes no se pinta',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const jwt=sub=>'eyJhbGciOiJSUzI1NiJ9.'+Buffer.from(JSON.stringify({sub,exp:1})).toString('base64url')+'.firma';
+ const back=H=>{for(const f of [...H.ctx.acctW])f()};
+ /* el perfil puesto con la sesión de B; en otra pestaña entra C, a quien bea bloqueó; se vuelve a esta */
+ let n=0;let H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n===1?{status:200,body:API58JSON()}:{status:404,body:{}}):{status:404,body:{}}});
+ H.ctx.document.cookie='otra=1; __session='+jwt('u_b');await H.X.vPersona('bea');assert.ok(H.all().includes('id="pfMore"'));
+ back(H);await tick();assert.equal(n,1,'volver sin que cambie la sesión no pide nada');
+ H.ctx.document.cookie='__session='+jwt('u_c')+'; otra=1';back(H);await tick();
+ assert.equal(n,2,'otra sesión: se pide otra vez');assert.ok(H.all().includes('Este perfil no está disponible.')&&!H.all().includes('id="pfMore"'),'y C ya no lo ve');
+ /* la sesión cambia mientras llega la respuesta: no se pinta, se pregunta otra vez */
+ let rel=null;n=0;H=HOJA58({acct:null,reply:u=>{if(!u.startsWith('/api/u/'))return {status:404,body:{}};n++;return n===1?new Promise(r=>{rel=r}):{status:404,body:{}}}});
+ H.ctx.document.cookie='__session='+jwt('u_b');const p=H.X.vPersona('bea');await tick();H.ctx.document.cookie='__session='+jwt('u_c');rel({status:200,body:API58JSON()});await p;await tick();
+ assert.equal(n,2);assert.ok(!H.all().includes('id="pfMore"'));
+ /* las listas también; salir (sin cookie) cuenta como otra sesión */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/followers')?(++n===1?{status:200,body:{people:[{handle:'dani',display_name:'Dani R.',avatar_key:null}],next:null}}:{status:404,body:{}}):{status:404,body:{}}});
+ H.ctx.document.cookie='__session='+jwt('u_b');H.loc.hash='#/u/bea/seguidores';await H.X.vPersona('bea');await tick();assert.ok(H.all().includes('dani'));
+ H.ctx.document.cookie='';back(H);await tick();assert.equal(n,2);assert.ok(!H.all().includes('dani'));
+ /* una cookie que no se puede leer no rompe nada */
+ n=0;H=HOJA58({acct:null,reply:u=>u.startsWith('/api/u/')?(++n,{status:200,body:API58JSON()}):{status:404,body:{}}});H.ctx.document.cookie='__session=basura';
+ await H.X.vPersona('bea');assert.ok(H.all().includes('id="pfMore"'));back(H);await tick();assert.equal(n,1);
+ /* volver a la pestaña (se ve otra vez o recibe el foco) avisa a los que miran */
+ const src=read('hoja.js');
+ assert.ok(src.includes("document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')acctTell()});window.addEventListener('focus',()=>acctTell())"),'al volver a la pestaña se avisa');
 });
 test('LHB-62: Bloqueados en Editar perfil: la lista de a quién bloqueaste, cada fila con Desbloquear; quitar una pasa el foco a la siguiente; sin la tabla la sección no sale',async()=>{
  const sent=[];

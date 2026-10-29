@@ -190,6 +190,9 @@ const acctW=new Set(),acctTell=()=>{for(const f of [...acctW])f()};
 const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar();acctTell()}};
 /* LHB-62 (Codex r2): cuántas veces cambió la cuenta de Clerk en esta página (cuenta.js onAccount), aunque la cuenta guardada siga vacía */
 let acctGen=0;
+/* LHB-62 (Codex r3): una página pública sin Clerk cargado no oye a Clerk; la sesión puede cambiar en otra pestaña. Al volver a esta (se ve otra vez o recibe el foco)
+   se avisa a los que miran, y cada uno compara su sesión (subNow, con la cookie) */
+try{document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')acctTell()});window.addEventListener('focus',()=>acctTell())}catch(e){}
 /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
 const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
 let clerkP=null;
@@ -512,8 +515,12 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
 async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
 /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
 /* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado).
-   Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen) */
-const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')};
+   Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen).
+   Codex r3: y de quién es la cookie de sesión de Clerk (__session, la de este sitio que el servidor lee): solo el sub de su contenido, sin verificar nada, para notar
+   que la sesión cambió en otra pestaña aunque aquí no haya Clerk; '' si no hay o no se puede leer */
+const cookieSub=()=>{try{const m=/(?:^|;\s*)__session=([^;]+)/.exec(String(document.cookie||''));const p=m&&m[1].split('.')[1];if(!p)return '';
+ const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));return j&&typeof j.sub==='string'?j.sub:''}catch(e){return ''}};
+const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')+'|'+cookieSub()};
 /* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva. Codex r2: al poner uno se quitan los de páginas que ya no están */
 const pfRedo=(live,sub0,redo)=>{for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
 async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow();

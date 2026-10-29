@@ -1,4 +1,4 @@
-baseline (no mutation): pass 17 fail 0
+baseline (no mutation): pass 18 fail 0
 isBlocked always false (before LHB-62)           RED (caught) (fail 3)
 isBlocked one direction only                     RED (caught) (fail 3)
 a missing table hides every error                RED (caught) (fail 1)
@@ -32,14 +32,17 @@ r1: a refused block still removes follows        RED (caught) (fail 1)
 r1: counts not filtered for the viewer           RED (caught) (fail 1)
 r1: app profile counts without the viewer        RED (caught) (fail 1)
 r1: follow counts without the viewer             RED (caught) (fail 1)
-r1: profile from the old session is painted      RED (caught) (fail 2)
-r1: profile not repainted on an account change   RED (caught) (fail 2)
+r1: profile from the old session is painted      RED (caught) (fail 3)
+r1: profile not repainted on an account change   RED (caught) (fail 3)
 r1: list from the old session is painted         RED (caught) (fail 1)
-r1: list not repainted on an account change      RED (caught) (fail 2)
+r1: list not repainted on an account change      RED (caught) (fail 3)
 r1: a late block closes another sheet            RED (caught) (fail 1)
 r2: cuenta.js does not tell of a Clerk change    RED (caught) (fail 1)
 r2: the Clerk change count is not part of the session token RED (caught) (fail 1)
 r2: hoja.js does not count a Clerk change        RED (caught) (fail 1)
 r2: stale page watchers stay                     RED (caught) (fail 1)
+r3: the session cookie is not part of the token  RED (caught) (fail 1)
+r3: the cookie read is the wrong one             RED (caught) (fail 1)
+r3: returning to the tab does not tell the watchers RED (caught) (fail 1)
 r1: a late block tells another account           RED (caught) (fail 1)
-RESULT 43 of 43 red
+RESULT 46 of 46 red

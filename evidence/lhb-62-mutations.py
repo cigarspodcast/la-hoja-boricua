@@ -56,6 +56,10 @@ MUTS = [
     (HJ, 'r2: the Clerk change count is not part of the session token', "return acctGen+'|'+(a&&", "return '|'+(a&&"),
     (HJ, 'r2: hoja.js does not count a Clerk change', 'onAccount:()=>{acctGen++;acctTell()}', 'onAccount:()=>{acctTell()}'),
     (HJ, 'r2: stale page watchers stay', '{for(const f of [...acctW])f();const w=()=>', '{const w=()=>'),
+    # Codex round 3
+    (HJ, 'r3: the session cookie is not part of the token', "+'|'+cookieSub()};", '};'),
+    (HJ, 'r3: the cookie read is the wrong one', '__session=([^;]+)', '__sesion=([^;]+)'),
+    (HJ, 'r3: returning to the tab does not tell the watchers', "window.addEventListener('focus',()=>acctTell())", "window.addEventListener('focus',()=>{})"),
     (HJ, 'r1: a late block tells another account', '   if(!ok())return;\n   if(r.status===200&&r.body&&r.body.blocked===true)', '   if(r.status===200&&r.body&&r.body.blocked===true)'),
 ]
 
