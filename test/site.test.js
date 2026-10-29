@@ -5281,3 +5281,12 @@ test('LHB-68: cada página estática enlaza l.css (y ninguna trae otro estilo ni
   assert.ok(!/<style[\s>]/.test(h),p+' sin <style>');assert.ok(!/style="[^"]*(#[0-9a-fA-F]{3,8}|rgba?\()/.test(h),p+' sin colores en línea')}
  assert.ok(pages.length>=130,'páginas: '+pages.length);
 });
+test('LHB-68 (Codex ronda 1): la política del pasaporte /u/ deja cargar lo que u.css pide (sus fuentes de /fonts/)',()=>{
+ const src=fs.readFileSync(path.join(__dirname,'..','functions','u','[handle].js'),'utf8'),m=src.match(/'content-security-policy':\s*"([^"]+)"/);assert.ok(m,'el pasaporte manda su CSP');
+ const dir={};for(const d of m[1].split(';').map(x=>x.trim()).filter(Boolean)){const [k,...v]=d.split(/\s+/);dir[k]=v}
+ const allow=k=>dir[k]||dir['default-src']||[];const css=read('u.css');
+ assert.ok(allow('style-src').includes("'self'"),'style-src deja cargar u.css');
+ const fonts=[...css.matchAll(/@font-face\{[^}]*url\((\/[^)]+)\)/g)].map(x=>x[1]);assert.ok(fonts.length>=2,'u.css trae sus fuentes: '+fonts.length);
+ assert.ok(allow('font-src').includes("'self'"),'font-src deja cargar '+fonts.join(', ')+' (sin ella manda default-src: '+allow('font-src').join(' ')+')');
+ for(const u of [...css.replace(/@font-face\{[^}]*\}/g,'').matchAll(/url\(([^)]+)\)/g)].map(x=>x[1]))assert.ok(allow('img-src').includes("'self'")&&u.startsWith('/'),'img-src deja cargar '+u);
+});
