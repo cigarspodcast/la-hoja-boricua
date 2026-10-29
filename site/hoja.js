@@ -163,7 +163,9 @@ const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 /* el perfil visto la última vez, para abrir Mi Hoja sin conexión; se borra al salir */
 /* LHB-52: la llave nueva (cuenta2) deja sin valor lo guardado antes de pedir la identidad: un perfil guardado de antes ({sub,handle}) no abre Mi Hoja sin conexión ni por el camino rápido; clear() borra las dos */
 /* LHB-51: al guardar o borrar la cuenta guardada se repinta la foto del encabezado */
-const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar()}};
+/* LHB-60 (Codex r1): acctW son los que miran la cuenta guardada (los botones de seguir); se les avisa al guardarla o borrarla */
+const acctW=new Set(),acctTell=()=>{for(const f of [...acctW])f()};
+const acct={get:()=>A.LS.get('cuenta2',null),set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()},clear:()=>{try{localStorage.removeItem('vb_cuenta2');localStorage.removeItem('vb_cuenta')}catch(e){}if(A.topAvatar)A.topAvatar();acctTell()}};
 /* la acción que el usuario empezó, para retomarla si Google lo manda a otra página y vuelve */
 const intent={get:()=>{try{return JSON.parse(sessionStorage.getItem('lhb_intent'))}catch(e){return null}},set:v=>{try{sessionStorage.setItem('lhb_intent',JSON.stringify(v))}catch(e){}},clear:()=>{try{sessionStorage.removeItem('lhb_intent')}catch(e){}}};
 let clerkP=null;
@@ -173,8 +175,8 @@ function clerk(){if(clerkP)return clerkP;
  clerkP=Promise.all([script(`https://${CLERK.fapi}/npm/@clerk/clerk-js@6/dist/clerk.browser.js`,CLERK.pk),script(`https://${CLERK.fapi}/npm/@clerk/ui@1/dist/ui.browser.js`)])
   .then(()=>window.Clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor}})).then(()=>window.Clerk).catch(e=>{clerkP=null;throw e});
  return clerkP}
-/* extra: cabeceras de más (If-Match en la sincronización) */
-async function api(C,method,path,body,uid,extra){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
+/* extra: cabeceras de más (If-Match en la sincronización). go: si dice que no cuando ya está la llave, el pedido no sale (LHB-60: la página se fue mientras tanto) */
+async function api(C,method,path,body,uid,extra,go){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');if(go&&!go())throw new Error('gone');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
 /* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
 SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),
@@ -424,9 +426,10 @@ const pfEntry=e=>({nombre:pfTxt(e.nombre,80),marca:pfTxt(e.marca,60),artesano:pf
 const myResenas=s=>(s.diario||[]).filter(isPublica).map(pfEntry).map((e,i)=>[e,i]).sort((a,b)=>(b[0].consumido||'').localeCompare(a[0].consumido||'')||a[1]-b[1]).map(x=>x[0]);
 const pfNum=v=>Number.isInteger(v)&&v>=0?v:0;
 const pfIni=p=>{const w=String(p.display_name||'').split(/\s+/).filter(Boolean);const f=s=>[...s][0]||'';return (w.length?f(w[0])+(w.length>1?f(w[w.length-1]):''):f(p.handle||'')).toUpperCase()};
-/* conteos y botón: c null mientras llegan; tu vista lleva Editar perfil (LHB-55), la de otra persona deja el lugar del botón de seguir (LHB-60) */
-const pfCounts=(c,own,h)=>{const n=k=>c&&c[k]!=null?pfNum(c[k]):'·';
- return `<ul class="pf-counts" id="pfCounts"><li><b>${n('resenas')}</b><span>${tt('h.pfResenas')}</span></li><li><b>${n('followers')}</b><span>${tt('h.pfSeguidores')}</span></li><li><b>${n('following')}</b><span>${tt('h.pfSiguiendo')}</span></li></ul>
+/* conteos y botón: c null mientras llegan; tu vista lleva Editar perfil (LHB-55), la de otra persona deja el lugar del botón de seguir (LHB-60).
+   LHB-60: seguidores y siguiendo llevan a sus listas */
+const pfCounts=(c,own,h)=>{const n=k=>c&&c[k]!=null?pfNum(c[k]):'·';const to=s=>'#/u/'+encodeURIComponent(h)+'/'+s;
+ return `<ul class="pf-counts" id="pfCounts"><li><b>${n('resenas')}</b><span>${tt('h.pfResenas')}</span></li><li><a href="${to('seguidores')}"><b id="pfNFollowers">${n('followers')}</b><span>${tt('h.pfSeguidores')}</span></a></li><li><a href="${to('siguiendo')}"><b>${n('following')}</b><span>${tt('h.pfSiguiendo')}</span></a></li></ul>
  <div class="pf-act">${own?`<a class="btn" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div>`}</div>`};
 const pfAbout=p=>`${p.bio?`<p class="pf-bio">${esc(p.bio)}</p>`:''}${p.favorite_brand?`<p class="pf-fav">${tt('h.pfMarcaFav')}: <b>${esc(p.favorite_brand)}</b></p>`:''}`;
 /* el encabezado de otra persona: su foto de Clerk o sus iniciales */
@@ -455,6 +458,9 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
 async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{}}}catch(e){return {status:0,body:{}}}}
 /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
 async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();
+ /* LHB-60: #/u/<handle>/seguidores y #/u/<handle>/siguiendo (el enrutador de app.js pasa solo el @; lo que sigue se lee del hash), también las tuyas */
+ const seg=String(location.hash||'').replace(/^#\/?/,'').split('/')[2]||'';
+ if((seg==='seguidores'||seg==='siguiendo')&&PF_HANDLE.test(h))return vFwList(h,seg==='seguidores'?'followers':'following');
  if(h&&me&&typeof me==='object'&&me.handle===h){location.hash='#/mihoja/perfil';return}
  view.innerHTML=`<div class="pf" id="pfX"><p class="hint">${tt('h.pfCargando')}</p></div>`;const el=$('#pfX');
  if(!PF_HANDLE.test(h)){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
@@ -464,7 +470,8 @@ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct
  if(r.status===404){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
  const b=r.body;if(r.status!==200||!b.profile||typeof b.profile!=='object'||!b.counts||typeof b.counts!=='object'){el.innerHTML=`<div class="empty">${tt('h.pfError')}</div>`;return}
  const d={own:false,resenas:(Array.isArray(b.resenas)?b.resenas:[]).filter(e=>e&&typeof e==='object').map(pfEntry),sellos:b.counts.sellos,favorite_brand:b.profile.favorite_brand};
- el.innerHTML=pfHead(b.profile,b.counts)+pfTabsHTML(false,'resenas');pfBind(d,'resenas')}
+ el.innerHTML=pfHead(b.profile,b.counts)+pfTabsHTML(false,'resenas');pfBind(d,'resenas');
+ await fwMount('pfFollow',h,()=>$('#pfX')===el,n=>{const c=$('#pfNFollowers');if(c)c.textContent=String(n)})}
 /* tu Perfil (app.js vPerfil pone la foto, el nombre y el @ de la cuenta guardada, LHB-51): aquí van la bio, la marca y los conteos de /api/u/<tu @>, Editar perfil y las pestañas, que leen tu Mi Hoja.
    PFO es tu Perfil abierto: su lugar (#pfOwn), la cuenta, lo que llegó del servidor y la pestaña abierta. Codex ronda 1: cuando llega una sincronización se pinta otra vez con tu Mi Hoja nueva (pfOwnSync), en la misma pestaña */
 let PFO=null;
@@ -488,6 +495,52 @@ async function profileOwn(a){const root=$('#pfOwn');PFO=null;if(!root||!a||typeo
  o.cur=pfCur();o.profile=r.body.profile;o.counts=r.body.counts;pfOwnPaint(o)}
 /* la sincronización lo llama en cualquier página: solo pinta si tu Perfil está puesto (#/perfil o #/mihoja/perfil) */
 function pfOwnSync(){const o=PFO;if(!o||$('#pfOwn')!==o.root)return;const now=acct.get();if(!now||now.sub!==o.a.sub)return;o.cur=pfCur();pfOwnPaint(o)}
+/* ---------- seguir (LHB-60): el botón Seguir / Siguiendo y las listas de seguidores y siguiendo (functions/api/follow.js, followers.js, following.js) ---------- */
+/* la cuenta guardada: cuenta2 se guarda solo cuando el perfil está completo (LHB-52) */
+const meAcct=()=>{const a=acct.get();return a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub&&typeof a.handle==='string'&&PF_HANDLE.test(a.handle)?a:null};
+const fwErr=e=>e==='follow-rate'?tt('h.fwRate'):e==='follow-cap'?tt('h.fwCap'):e==='blocked'||e==='not-found'||e==='self-follow'?tt('h.fwNo'):e==='no-profile'?tt('h.primeroCreaTuPerfil'):tt('h.fwFail');
+/* el botón. st es lo que el servidor confirmó ({on, n}: si la sigues y sus seguidores), want lo último que tocó la persona; se ve want, y el conteo es el confirmado más lo que falta confirmar.
+   Los pedidos salen de uno en uno, así llegan en orden y gana el último toque: una respuesta solo cambia lo confirmado, nunca lo que se ve si hubo otro toque después.
+   Si el servidor dice que no (o no contesta) a lo último que se tocó, se vuelve a lo confirmado y se avisa.
+   Codex r1: ok() es la página y la cuenta que puso el botón; un pedido no sale si ya no están, ni cuando la llave llega tarde (api go), y cada confirmación repinta el conteo */
+const fwSame=sub=>{const m=meAcct();return !!m&&m.sub===sub};
+function followBtn(btn,h,st,live,onCount,sub){let want=st.on,busy=false;const ok=()=>live()&&fwSame(sub);
+ const paint=()=>{if(!ok())return;btn.textContent=want?tt('h.fwSiguiendo'):tt('h.fwSeguir');btn.setAttribute('aria-pressed',String(want));btn.classList.toggle('on',want);
+  if(onCount&&st.n!=null)onCount(Math.max(0,st.n+(want===st.on?0:want?1:-1)))};
+ const pump=async()=>{busy=true;try{while(want!==st.on&&ok()){const target=want;let r;
+   try{const C=await clerk();if(!ok())return;r=await api(C,target?'POST':'DELETE','/api/follow',{handle:h},sub,undefined,ok)}catch(e){r={status:0,body:{}}}
+   if(!ok())return;
+   if(r.status===200&&r.body&&r.body.following===target){st.on=target;if(Number.isInteger(r.body.followers))st.n=r.body.followers;paint()}
+   else if(want===target){want=st.on;toast(fwErr(r.body&&r.body.error))}}}
+  finally{busy=false;paint()}};
+ btn.onclick=()=>{want=!want;paint();if(!busy)pump()};paint()}
+/* pone el botón en la caja id, para una cuenta con perfil y otra persona: si ya la sigues lo dice GET /api/follow con la sesión; sin saberlo (sin sesión, sin red) no hay botón.
+   Codex r1: si la cuenta guardada cambió mientras se preguntaba, no se pone; y si cambia o se va después (salir, otra cuenta), el botón se quita */
+async function fwMount(id,h,live,onCount){const box=$('#'+id),a=meAcct();if(!box||!a||a.handle===h)return;
+ let r;try{const C=await clerk();r=await api(C,'GET','/api/follow?handle='+encodeURIComponent(h),null,a.sub)}catch(e){r={status:0,body:{}}}
+ if(!live()||$('#'+id)!==box||!fwSame(a.sub)||r.status!==200||!r.body||typeof r.body.viewerFollows!=='boolean')return;
+ box.innerHTML=`<button class="btn fw-b" type="button" id="fwB-${h}"></button>`;
+ /* Codex r2: antes de mirar, los de páginas que ya no están se van (cada uno se quita solo si su página se fue) */
+ const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};for(const f of [...acctW])f();acctW.add(w);
+ followBtn($('#fwB-'+h),h,{on:r.body.viewerFollows,n:onCount&&Number.isInteger(r.body.followers)?r.body.followers:null},live,onCount,a.sub)}
+/* las listas: foto, nombre público (nombre e inicial) y @ de cada persona, cada fila con su botón; 20 por página con el cursor del servidor. Son públicas: se piden sin sesión */
+async function vFwList(h,dir){
+ view.innerHTML=`<div class="pf" id="fwX"><p><a class="lbtn" href="#/u/${encodeURIComponent(h)}">@${esc(h)}</a></p><h1 class="pf-n">${tt(dir==='followers'?'h.pfSeguidores':'h.pfSiguiendo')}</h1><ul class="people" id="fwL"></ul><p class="hint" id="fwH" aria-live="polite">${tt('h.pfCargando')}</p><button class="lbtn" type="button" id="fwMore" hidden>${tt('ev.more')}</button></div>`;
+ const root=$('#fwX'),live=()=>$('#fwX')===root,seen=new Set();let next=null,seq=0;
+ const say=m=>{const el=$('#fwH');if(el){el.textContent=m;el.hidden=!m}};
+ const page=async()=>{const mine=++seq;$('#fwMore').hidden=true;let r;
+  try{const x=await fetch('/api/'+dir+'?handle='+encodeURIComponent(h)+(next?'&cursor='+encodeURIComponent(next):''),{headers:{Accept:'application/json'}});let j={};try{j=await x.json()}catch(e){}r={status:x.status,body:j&&typeof j==='object'?j:{}}}catch(e){r={status:0,body:{}}}
+  /* se fue de la página, o es la respuesta de un pedido viejo: no pinta nada */
+  if(!live()||mine!==seq)return;
+  if(r.status===404){say(tt('h.pfNoDisponible'));return}
+  if(r.status!==200||!Array.isArray(r.body.people)){say(tt('h.fwError'));$('#fwMore').hidden=!next;return}
+  const me=meAcct(),ppl=r.body.people.filter(p=>p&&typeof p.handle==='string'&&PF_HANDLE.test(p.handle)&&!seen.has(p.handle));ppl.forEach(p=>seen.add(p.handle));
+  next=typeof r.body.next==='string'&&r.body.next?r.body.next:null;
+  $('#fwL').insertAdjacentHTML('beforeend',ppl.map(p=>personRow(p).replace(/<\/li>$/,me&&p.handle!==me.handle?`<span class="fw-row" id="fwR-${p.handle}"></span></li>`:'</li>')).join(''));
+  say(seen.size?'':tt('h.fwNadie'));$('#fwMore').hidden=!next;
+  await Promise.all(ppl.map(p=>fwMount('fwR-'+p.handle,p.handle,live)))};
+ $('#fwMore').onclick=()=>page();
+ await page()}
 /* ---------- fin del perfil (LHB-58) ---------- */
 function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad||0),0);
  view.innerHTML=`${subnav('humidor')}

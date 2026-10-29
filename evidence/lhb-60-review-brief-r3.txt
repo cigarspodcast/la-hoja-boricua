@@ -1,0 +1,11 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-60-wt (branch lhb-60-follow). The diff below is origin/main..HEAD. This is round 3, a confirm round. Round 2 (evidence/lhb-60-review-r2.txt) was PASS with one nonblocking P3, fixed here. The ticket and design are in evidence/lhb-60-review-brief-r1.txt and -r2.txt.
+
+The round 2 P3: watchers of pages already left stayed in acctW until the next account notification. FIXED.
+- site/hoja.js fwMount: before adding its own watcher, it runs every watcher in acctW once. Each watcher removes itself if its page or box is gone. One whose account is no longer the stored one also empties its box, which is the same rule as on a notification. So at most the live pages' watchers remain.
+- Test, in "LHB-60 (Codex r1)": three profiles opened one after another with the same account leave one watcher. Mutation N23 (no pruning) is red.
+
+Evidence:
+- evidence/lhb-60-tests.txt: 266 pass and 1 skipped (the LHB-95 browser test).
+- evidence/lhb-60-mutations-r2fix.out: RESULT 23 of 23 mutations red.
+
+Check that the P3 is fixed, that the change has no side effect on a live button (a watcher run while its account is unchanged must do nothing), and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
