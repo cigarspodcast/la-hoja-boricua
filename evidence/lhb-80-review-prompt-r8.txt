@@ -1,0 +1,134 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-80-wt (branch lhb-80-sync-op). TIER 2, round 8.
+
+Ticket LHB-80: an idempotency token (X-Op) on PUT /api/mihoja so a pass can learn whether an upload whose answer was lost landed, and never applies a stale base. Round 7 (evidence/lhb-80-review-r7.txt) concurred with the dispositions of LHB-104 and LHB-105 (cross-tab classes that predate this branch, non-blocking). It blocked on the round 6 restamp (kept()):
+1. (P1) The restamp revived the stored meta while the newer in-memory base (mem, old epoch) was rejected, so a stale stored base deleted a remote re-add.
+2. (P2) An ignored failure of the restamp's meta write left the changed epoch, so the untouched copy lost its pending deletion.
+3. (non-blocking, LHB-105) The restamp could bless a meta after another tab changed the copy.
+
+The diff below (one commit against the round 7 prompt commit) replaces the restamp:
+- newEpoch() returns the value it wrote (or null). isolate() keeps e1 (the epoch before) and e2 (the one it wrote).
+- If isolate() fails BEFORE the copy changes (no free parking key, the parking write rejected, setDoc({}) returned false), back() puts the previous epoch back: it writes e1, or removes the key when there was none. It does this only while the stored epoch is still e2. With e1 back, the stored meta, mem and the landed uploads in pend are exactly as valid as they were before the attempt, and no meta is written. Writing a value of the same length or removing a key needs no more space than the epoch write that just succeeded. If another tab wrote its own epoch in the meantime, back() leaves that one.
+- A failure after the clear (setOwner) keeps e2, as before.
+- The test harness's storage (DEV28) gains remove(), as the real adapter in hoja.js has.
+Tests (three added):
+- Round 7 finding 1's sequence: A's upload lands but its meta cannot be saved; another device re-adds a1 at rev 3; a switch fails at the parking write; back on A, a1 stays on the account and the phone.
+- Round 7 finding 2's second sequence: all parking keys taken and META rejected; the unuploaded removal still counts.
+- Round 7 finding 3's interleaving in one process: inside this engine's setDoc({}), a second engine on the same storage writes its epoch, clears the copy and fails its owner write, then this engine's clear fails. The epoch is not put back, and the empty copy is not uploaded as deletions.
+All three fail on e04b1c0 and pass here. Mutants: the restamp mutant replaced by two (back() never runs; back() ignores another tab's epoch), and the ordering mutant regenerated for the new block. Evidence: evidence/lhb-80-mutations.out, 35 of 38 red, 3 named equivalent, 0 unexpected survivors; evidence/lhb-80-tests.txt, full suite 375 tests, 374 pass, 0 fail, 1 skipped.
+
+Check that round 6 finding 3 and round 7 findings 1 and 2 are closed for every failure point inside isolate(), including the cases where back() itself cannot write. Check whether putting e1 back can ever make a base valid for a copy that DID change, in this tab or with another tab between the epoch write and back(). Check whether a pass that captured e2 during the attempt can do harm after e1 returns. The cross-tab classes stay non-blocking under LHB-104 and LHB-105; give any correction to those tickets. Block only on a defect this branch introduces, or on one within LHB-80's scope (lost-answer uploads and stale bases within one tab) that should be fixed before release.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 495286a f37485587421c047a5904287333598ae55632fa0 -- site/sync.js test/site.test.js evidence/lhb-80-mutations.py =====
+diff --git a/evidence/lhb-80-mutations.py b/evidence/lhb-80-mutations.py
+index 2e474f3..c96f70b 100644
+--- a/evidence/lhb-80-mutations.py
++++ b/evidence/lhb-80-mutations.py
+@@ -45,8 +45,9 @@ MUTS = [
+     (SY, 'r4: a pass survives an account round trip', 'ownerOf()===uid&&epochOf()===ep0};', 'ownerOf()===uid};'),
+     (SY, 'r4: the cached base is not bound to its copy', 'mem.sub===uid&&mem.ep===ep0&&', 'mem.sub===uid&&'),
+     (SY, 'r4: an upload sent from another copy is a base', 'if(x.ep!==ep0)voided=true;else if(', 'if('),
+-    (SY, 'r5: isolate empties the copy before the epoch changes (the epoch moves after the clear)', 'const e1=epochOf();if(!newEpoch())return false;\n   /* Codex r6: si falla antes de vaciar la copia, la copia sigue siendo la de antes y su meta también: se le pone la época nueva, para que lo que la persona\n      quitó y no se ha subido siga contando como borrado (solo si la meta es la de la copia de antes, de la época que había) */\n   const kept=()=>{const m=readMeta();if(m&&m.sub===old&&epOf(m)===e1){m.ep=epochOf();writeMeta(m)}return false};\n   let raw=null;try{raw=D.ls.get(KEY)}catch(e){}\n   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return kept();try{D.ls.set(k,raw)}catch(e){return kept()}}\n   applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}\n   if(!ok)return kept();\n   return setOwner(acc.sub)', 'const e1=epochOf();\n   /* Codex r6: si falla antes de vaciar la copia, la copia sigue siendo la de antes y su meta también: se le pone la época nueva, para que lo que la persona\n      quitó y no se ha subido siga contando como borrado (solo si la meta es la de la copia de antes, de la época que había) */\n   const kept=()=>{const m=readMeta();if(m&&m.sub===old&&epOf(m)===e1){m.ep=epochOf();writeMeta(m)}return false};\n   let raw=null;try{raw=D.ls.get(KEY)}catch(e){}\n   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return kept();try{D.ls.set(k,raw)}catch(e){return kept()}}\n   applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}\n   if(!ok)return kept();\n   if(!newEpoch())return false;return setOwner(acc.sub)'),
+-    (SY, 'r6: a failed switch that left the copy keeps its old epoch on the meta', 'if(m&&m.sub===old&&epOf(m)===e1){m.ep=epochOf();writeMeta(m)}', ''),
++    (SY, 'r5: isolate empties the copy before the epoch changes (the epoch moves after the clear)', "const e1=epochOf(),e2=newEpoch();if(!e2)return false;\n   /* Codex r6 y r7: si falla antes de vaciar la copia, la copia no cambió: vuelve la época de antes, y con ella valen otra vez la meta, la base en memoria y lo que\n      mandaron sus subidas (lo que la persona quitó y no se ha subido sigue contando como borrado). Solo si la época sigue siendo la que se escribió aquí: si otra\n      pestaña ya puso otra, se queda la suya. Poner un valor del mismo largo o quitar la llave no pide más espacio */\n   const back=()=>{try{if(epochOf()===e2){if(typeof e1==='string')D.ls.set(EPOCH,e1);else D.ls.remove(EPOCH)}}catch(e){}return false};\n   let raw=null;try{raw=D.ls.get(KEY)}catch(e){}\n   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return back();try{D.ls.set(k,raw)}catch(e){return back()}}\n   applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}\n   if(!ok)return back();\n   return setOwner(acc.sub)", "const e1=epochOf();let e2=null;\n   /* Codex r6 y r7: si falla antes de vaciar la copia, la copia no cambió: vuelve la época de antes, y con ella valen otra vez la meta, la base en memoria y lo que\n      mandaron sus subidas (lo que la persona quitó y no se ha subido sigue contando como borrado). Solo si la época sigue siendo la que se escribió aquí: si otra\n      pestaña ya puso otra, se queda la suya. Poner un valor del mismo largo o quitar la llave no pide más espacio */\n   const back=()=>{try{if(epochOf()===e2){if(typeof e1==='string')D.ls.set(EPOCH,e1);else D.ls.remove(EPOCH)}}catch(e){}return false};\n   let raw=null;try{raw=D.ls.get(KEY)}catch(e){}\n   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return back();try{D.ls.set(k,raw)}catch(e){return back()}}\n   applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}\n   if(!ok)return back();\n   e2=newEpoch();if(!e2)return false;return setOwner(acc.sub)"),
++    (SY, 'r7: a failed switch that left the copy keeps the new epoch', 'if(epochOf()===e2){if(typeof e1===', 'if(false){if(typeof e1==='),
++    (SY, 'r7: a failed switch puts back the old epoch over another tab', 'if(epochOf()===e2){if(typeof e1===', 'if(true){if(typeof e1==='),
+     (SY, 'r5: the stored meta is not bound to its copy (the pass)', 'meta0.sub===uid&&epOf(meta0)===ep0?meta0', 'meta0.sub===uid?meta0'),
+ ]
+ 
+diff --git a/site/sync.js b/site/sync.js
+index b7dd74f..02d7970 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -106,7 +106,7 @@ window.LHB_SYNC=function(D){
+     a la misma cuenta, que deja la copia vacía): una pasada que empezó en otra época ya no vale, y una base en memoria o lo que mandó una subida solo es base de la copia de su época */
+  const EPOCH=KEY+'_epoca';
+  const epochOf=()=>{try{return D.ls.get(EPOCH)}catch(e){return undefined}};
+- const newEpoch=()=>{try{D.ls.set(EPOCH,Math.random().toString(36).slice(2,12)+Date.now().toString(36));return true}catch(e){return false}};
++ const newEpoch=()=>{const v=Math.random().toString(36).slice(2,12)+Date.now().toString(36);try{D.ls.set(EPOCH,v);return v}catch(e){return null}};
+  /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
+     que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
+  const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
+@@ -122,14 +122,15 @@ window.LHB_SYNC=function(D){
+   const old=ownerOf();if(old===null||old===acc.sub)return true;
+   inIso=true;try{
+    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
+-   const e1=epochOf();if(!newEpoch())return false;
+-   /* Codex r6: si falla antes de vaciar la copia, la copia sigue siendo la de antes y su meta también: se le pone la época nueva, para que lo que la persona
+-      quitó y no se ha subido siga contando como borrado (solo si la meta es la de la copia de antes, de la época que había) */
+-   const kept=()=>{const m=readMeta();if(m&&m.sub===old&&epOf(m)===e1){m.ep=epochOf();writeMeta(m)}return false};
++   const e1=epochOf(),e2=newEpoch();if(!e2)return false;
++   /* Codex r6 y r7: si falla antes de vaciar la copia, la copia no cambió: vuelve la época de antes, y con ella valen otra vez la meta, la base en memoria y lo que
++      mandaron sus subidas (lo que la persona quitó y no se ha subido sigue contando como borrado). Solo si la época sigue siendo la que se escribió aquí: si otra
++      pestaña ya puso otra, se queda la suya. Poner un valor del mismo largo o quitar la llave no pide más espacio */
++   const back=()=>{try{if(epochOf()===e2){if(typeof e1==='string')D.ls.set(EPOCH,e1);else D.ls.remove(EPOCH)}}catch(e){}return false};
+    let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
+-   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return kept();try{D.ls.set(k,raw)}catch(e){return kept()}}
++   if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return back();try{D.ls.set(k,raw)}catch(e){return back()}}
+    applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
+-   if(!ok)return kept();
++   if(!ok)return back();
+    return setOwner(acc.sub)}finally{inIso=false}}
+  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
+  async function once(){
+diff --git a/test/site.test.js b/test/site.test.js
+index ce9d922..12c3901 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -2816,7 +2816,7 @@ test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa,
+ /* un teléfono de mentira para probar el motor contra el servidor de verdad (SQLite): su almacenamiento, su reloj, sus temporizadores y su red */
+ function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,failBigKey:null,failBig:0,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
+  const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
+- const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)}},
++ const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)},remove:k=>{ls.delete(k)}},
+   getDoc:()=>rawDoc(),setDoc:(d,exp)=>{st.setDocs++;if(st.beforeApply){const f=st.beforeApply;st.beforeApply=null;f()}if(exp!==undefined&&win.LHB_MERGE.stable(rawDoc())!==exp)return 'stale';if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
+   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
+   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
+@@ -6391,6 +6391,44 @@ test('LHB-80 (Codex r6): el cambio de cuenta falla antes de tocar la copia ('+co
+   assert.equal((await A.sync()).ok,true);
+   assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+  }finally{a.done()}});
++test('LHB-80 (Codex r7): una subida de A llegó pero su meta no se pudo guardar; otro teléfono vuelve a poner a1; un cambio de cuenta falla antes de tocar la copia: la base nueva (en memoria) sigue valiendo y a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  A.edit(d=>{d.favs.artesanos=[]});A.st.failKey='lhb_mihoja_v1_sync';await A.sync();A.st.failKey=null;
++  assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.artesanos=['a1']});await P.sync();
++  assert.equal(srv28(a,'user_a').rev,3,'el otro teléfono la volvió a poner');
++  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_de_user_a';assert.equal(A.eng.isolate(),false);A.st.failKey=null;
++  A.st.acct=A.st.user='user_a';assert.equal((await A.sync()).ok,true);
++  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y llegó al teléfono');
++ }finally{a.done()}});
++test('LHB-80 (Codex r7): sin lugar para apartar la copia y sin poder escribir la meta, el cambio de cuenta falla: lo que A quitó sin subir sigue siendo un borrado',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  A.edit(d=>{d.favs.artesanos=[]});
++  /* las diez llaves para apartar copias de A ya están ocupadas */
++  for(let i=0;i<11;i++)A.ls.set('lhb_mihoja_v1_de_user_a'+(i?'_'+i:''),'{"favs":{"artesanos":["x"]}}');
++  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_sync';assert.equal(A.eng.isolate(),false,'no hay llave libre');A.st.failKey=null;
++  A.st.acct=A.st.user='user_a';assert.equal((await A.sync()).ok,true);
++  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
++ }finally{a.done()}});
++test('LHB-80 (Codex r7): otra pestaña cambió la época mientras este cambio de cuenta fallaba: no se vuelve a la época de antes y la copia vacía no se sube como borrado',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  A.edit(d=>{d.ratings.c1=5});
++  const Y=SYNC28().LHB_SYNC(A.D);const sd=A.D.setDoc;let n=0;
++  /* esta pestaña va a vaciar la copia; antes, la otra hace su propio cambio de cuenta: escribe su época, vacía la copia y no puede anotar la dueña. Luego el vaciado de esta falla */
++  A.D.setDoc=(d,...r)=>{if(n++===0&&d&&!Object.keys(d).length){A.st.failKey='lhb_mihoja_v1_owner';assert.equal(Y.isolate(),false);A.st.failKey=null;return false}return sd(d,...r)};
++  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);A.D.setDoc=sd;
++  A.st.acct=A.st.user='user_a';await A.eng.settled({});
++  const s=srv28(a,'user_a').doc;assert.equal(s.humidor.length,1);assert.equal(s.diario.length,1);assert.ok(s.favs.artesanos.includes('a1'),'la cuenta sigue entera');
++ }finally{a.done()}});
+ test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
+  for(const lose of [false,true]){const a=await ENG28();
+   try{
