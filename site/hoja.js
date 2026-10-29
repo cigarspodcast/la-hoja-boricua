@@ -546,40 +546,44 @@ function pfBind(d,cur){const paint=t=>{if(!pfTabsFor(d.own).includes(t))t='resen
   const t=order[(j+order.length)%order.length];paint(t);const el=$('#pfT-'+t);if(el&&el.focus)el.focus()}});paint(cur)}
 /* GET /api/u/<handle>: pública, sin pedir la llave. LHB-62: la cookie de sesión de Clerk (__session, de este mismo sitio) va sola con el pedido,
    y con ella el servidor esconde a quien tiene el par bloqueado contigo */
-async function pfFetch(h){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json'}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{},viewer:vwOf(r)}}catch(e){return {status:0,body:{}}}}
+async function pfFetch(h,t){try{const r=await fetch('/api/u/'+encodeURIComponent(h),{headers:{Accept:'application/json',...(t?{Authorization:'Bearer '+t}:{})}});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j&&typeof j==='object'?j:{},viewer:vwOf(r)}}catch(e){return {status:0,body:{}}}}
 /* el perfil de otra persona; si es el tuyo, vas a tu Perfil (con Humidor y Editar perfil) */
 /* LHB-62 (Codex r1): de quién es la sesión que pregunta: la respuesta de /api/u y de las listas depende de ella (el servidor esconde a quien tiene el par bloqueado).
    Codex r2: la cuenta guardada puede seguir vacía mientras Clerk pasa de una cuenta a otra, así que también cuenta cada cambio de Clerk (acctGen).
-   Codex r3: y de quién es la cookie de sesión de Clerk (__session, la de este sitio que el servidor lee): solo el sub de su contenido, sin verificar nada, para notar
-   que la sesión cambió en otra pestaña aunque aquí no haya Clerk; '' si no hay o no se puede leer.
-   Codex r4: el sub solo cuenta si el servidor la daría por buena ahora (exp y nbf, con los LEEWAY 5 s de functions/_lib/auth.js); vencida es la vista sin sesión,
-   así que cambiarla por una nueva del mismo sub también es otra sesión */
-const cookieSub=()=>{try{const m=/(?:^|;\s*)__session=([^;]+)/.exec(String(document.cookie||''));const p=m&&m[1].split('.')[1];if(!p)return '';
- const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));if(!j||typeof j.sub!=='string')return '';/* Codex r5: el segundo entero, como auth.js */const t=Math.floor(Date.now()/1000);
- return Number.isFinite(j.exp)&&t<=j.exp+5&&(j.nbf===undefined||(Number.isFinite(j.nbf)&&t+5>=j.nbf))?j.sub:''}catch(e){return ''}};
-const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')+'|'+cookieSub()};
+   Codex r3: y la cookie de sesión de Clerk (__session, la de este sitio que el servidor lee), para notar que la sesión cambió en otra pestaña aunque aquí no haya Clerk.
+   Codex r6: la cookie entera, sin juzgar si vale: con el reloj de este teléfono no se sabe qué dirá el servidor, y cualquier cookie nueva es otra pregunta */
+const cookieTok=()=>{try{const m=/(?:^|;\s*)__session=([^;]+)/.exec(String(document.cookie||''));return m?m[1]:''}catch(e){return ''}};
+/* el sub de una cookie, sin verificar nada: solo para compararlo con la sesión con que dice el servidor que contestó; '' si no hay o no se puede leer */
+const tokSub=t=>{try{const p=t&&t.split('.')[1];if(!p)return '';const j=JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));return j&&typeof j.sub==='string'?j.sub:''}catch(e){return ''}};
+const subNow=()=>{const a=acct.get();return acctGen+'|'+(a&&typeof a==='object'&&typeof a.sub==='string'&&a.sub?a.sub:'')+'|'+cookieTok()};
 /* si otra cuenta entra (o sale) con la página puesta, se pinta otra vez con la sesión nueva. Codex r2: al poner uno se quitan los de páginas que ya no están */
-/* Codex r5: sub0 puede ser una función (la lista, que va cambiando con cada página) */
-const pfRedo=(live,sub0,redo)=>{const want=typeof sub0==='function'?sub0:()=>sub0;for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==want()){acctW.delete(w);redo()}};acctW.add(w)};
-/* Codex r5: con qué sesión contestó de verdad el servidor (la cabecera X-Lhb-Viewer: el user_id de quien mira, o - sin sesión). Lo pintado queda con esa y no
-   con la que se creyó al pedir, así una cookie que vence en camino y se renueva con el mismo sub ya no pasa por igual. Sin la cabecera (un 404, un servidor
-   de antes), la del pedido */
+const pfRedo=(live,sub0,redo)=>{for(const f of [...acctW])f();const w=()=>{if(!live()){acctW.delete(w);return}if(subNow()!==sub0){acctW.delete(w);redo()}};acctW.add(w)};
+/* Codex r5: con qué sesión contestó de verdad el servidor: la cabecera X-Lhb-Viewer (el user_id de quien mira, o - sin sesión: ''); sin la cabecera (un 404, un servidor de antes), null */
 const vwOf=x=>{try{const v=x&&x.headers&&typeof x.headers.get==='function'?x.headers.get('X-Lhb-Viewer'):null;return typeof v==='string'&&v?(v==='-'?'':v):null}catch(e){return null}};
-const pfSeen=(sub0,r)=>r&&typeof r.viewer==='string'?sub0.replace(/[^|]*$/,r.viewer):sub0;
-async function vPersona(raw,again){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow();
+/* Codex r6: la respuesta vale si el servidor contestó como quien dice la cookie que llevaba el pedido (o no lo dice). Si no (la cookie venció en camino, o el reloj de aquí
+   no cuadra con el del servidor), se le pregunta a Clerk quién entró: nadie, y la respuesta sin sesión vale; alguien, y se pide otra vez con su llave (get(t)), que vale si
+   el servidor contesta como esa persona. Si no se puede saber (Clerk no carga, no hay llave, contesta otra cosa), null: la página dice que no pudo cargar, y el próximo
+   cambio de sesión pregunta otra vez */
+const pfMatch=(tok,r)=>r.viewer==null||r.viewer===tokSub(tok);
+async function pfWho(r,get){let C;try{C=await clerk()}catch(e){return null}
+ if(!C||!C.user||!C.session)return r.viewer===''?r:null;
+ let t;try{t=await C.session.getToken()}catch(e){return null}if(!t)return null;
+ const x=await get(t);return x.viewer==null||x.viewer===C.user.id?x:null}
+async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct.get();const sub0=subNow(),tok0=cookieTok();
  /* LHB-60: #/u/<handle>/seguidores y #/u/<handle>/siguiendo (el enrutador de app.js pasa solo el @; lo que sigue se lee del hash), también las tuyas */
  const seg=String(location.hash||'').replace(/^#\/?/,'').split('/')[2]||'';
  if((seg==='seguidores'||seg==='siguiendo')&&PF_HANDLE.test(h))return vFwList(h,seg==='seguidores'?'followers':'following');
  if(h&&me&&typeof me==='object'&&me.handle===h){location.hash='#/mihoja/perfil';return}
  view.innerHTML=`<div class="pf" id="pfX"><p class="hint">${tt('h.pfCargando')}</p></div>`;const el=$('#pfX');
  if(!PF_HANDLE.test(h)){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
- const r=await pfFetch(h);
+ let r=await pfFetch(h);
  /* una respuesta que llega cuando ya se fue de la página no pinta nada; si otra cuenta entró mientras tanto, era de la sesión de antes: se pregunta otra vez */
  if($('#pfX')!==el)return;
  if(subNow()!==sub0)return vPersona(raw);
- /* Codex r5: si el servidor contestó con otra sesión que la de ahora, se pregunta otra vez; una sola vez (con relojes que no cuadran se pinta, y volver a la pestaña pregunta) */
- const fp=pfSeen(sub0,r);if(fp!==subNow()&&!again)return vPersona(raw,1);
- pfRedo(()=>$('#pfX')===el,fp,()=>vPersona(raw));
+ /* Codex r6: si el servidor contestó con otra sesión que la cookie del pedido, se le pregunta a Clerk (pfWho) */
+ if(!pfMatch(tok0,r)){r=await pfWho(r,t=>pfFetch(h,t));if($('#pfX')!==el)return;if(subNow()!==sub0)return vPersona(raw)}
+ pfRedo(()=>$('#pfX')===el,sub0,()=>vPersona(raw));
+ if(!r){el.innerHTML=`<div class="empty">${tt('h.pfError')}</div>`;return}
  if(r.status===404){el.innerHTML=`<div class="empty">${tt('h.pfNoDisponible')}</div>`;return}
  const b=r.body;if(r.status!==200||!b.profile||typeof b.profile!=='object'||!b.counts||typeof b.counts!=='object'){el.innerHTML=`<div class="empty">${tt('h.pfError')}</div>`;return}
  const d={own:false,resenas:(Array.isArray(b.resenas)?b.resenas:[]).filter(e=>e&&typeof e==='object').map(pfEntry),sellos:b.counts.sellos,favorite_brand:b.profile.favorite_brand};
@@ -635,20 +639,24 @@ async function fwMount(id,h,live,onCount){const box=$('#'+id),a=meAcct();if(!box
  if(!live()||$('#'+id)!==box||!fwSame(a.sub)||r.status!==200||!r.body||typeof r.body.viewerFollows!=='boolean')return;
  box.innerHTML=`<button class="btn fw-b" type="button" id="fwB-${h}"></button>`;
  /* Codex r2: antes de mirar, los de páginas que ya no están se van (cada uno se quita solo si su página se fue) */
- const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};for(const f of [...acctW])f();acctW.add(w);
+ const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};for(const f of [...acctW])f();
+ /* Codex r6: la barrida puede pintar la página otra vez (una sesión nueva): entonces esta caja ya no está y no se pone nada */
+ if(!live()||$('#'+id)!==box)return;acctW.add(w);
  followBtn($('#fwB-'+h),h,{on:r.body.viewerFollows,n:onCount&&Number.isInteger(r.body.followers)?r.body.followers:null},live,onCount,a.sub)}
 /* las listas: foto, nombre público (nombre e inicial) y @ de cada persona, cada fila con su botón; 20 por página con el cursor del servidor. Son públicas: se piden sin sesión */
-async function vFwList(h,dir,again){const sub0=subNow();let fp=sub0;
+async function vFwList(h,dir){const sub0=subNow(),tok0=cookieTok();
  view.innerHTML=`<div class="pf" id="fwX"><p><a class="lbtn" href="#/u/${encodeURIComponent(h)}">@${esc(h)}</a></p><h1 class="pf-n">${tt(dir==='followers'?'h.pfSeguidores':'h.pfSiguiendo')}</h1><ul class="people" id="fwL"></ul><p class="hint" id="fwH" aria-live="polite">${tt('h.pfCargando')}</p><button class="lbtn" type="button" id="fwMore" hidden>${tt('ev.more')}</button></div>`;
  const root=$('#fwX'),live=()=>$('#fwX')===root,seen=new Set();let next=null,seq=0;
  const say=m=>{const el=$('#fwH');if(el){el.textContent=m;el.hidden=!m}};
- const page=async()=>{const mine=++seq;$('#fwMore').hidden=true;let r;
-  try{const x=await fetch('/api/'+dir+'?handle='+encodeURIComponent(h)+(next?'&cursor='+encodeURIComponent(next):''),{headers:{Accept:'application/json'}});let j={};try{j=await x.json()}catch(e){}r={status:x.status,body:j&&typeof j==='object'?j:{},viewer:vwOf(x)}}catch(e){r={status:0,body:{}}}
+ const page=async()=>{const mine=++seq;$('#fwMore').hidden=true;const url='/api/'+dir+'?handle='+encodeURIComponent(h)+(next?'&cursor='+encodeURIComponent(next):'');
+  const ask=async t=>{try{const x=await fetch(url,{headers:{Accept:'application/json',...(t?{Authorization:'Bearer '+t}:{})}});let j={};try{j=await x.json()}catch(e){}return {status:x.status,body:j&&typeof j==='object'?j:{},viewer:vwOf(x)}}catch(e){return {status:0,body:{}}}};
+  let r=await ask();
   /* se fue de la página, o es la respuesta de un pedido viejo: no pinta nada. Codex r1: si otra cuenta entró mientras tanto, la lista empieza otra vez con la sesión nueva */
   if(!live()||mine!==seq)return;
   if(subNow()!==sub0)return vFwList(h,dir);
-  /* Codex r5: como vPersona, con la sesión con que contestó el servidor */
-  fp=pfSeen(sub0,r);if(fp!==subNow()&&!again)return vFwList(h,dir,1);
+  /* Codex r6: como vPersona */
+  if(!pfMatch(tok0,r)){r=await pfWho(r,ask);if(!live()||mine!==seq)return;if(subNow()!==sub0)return vFwList(h,dir)}
+  if(!r){say(tt('h.fwError'));$('#fwMore').hidden=!next;return}
   if(r.status===404){say(tt('h.pfNoDisponible'));return}
   if(r.status!==200||!Array.isArray(r.body.people)){say(tt('h.fwError'));$('#fwMore').hidden=!next;return}
   const me=meAcct(),ppl=r.body.people.filter(p=>p&&typeof p.handle==='string'&&PF_HANDLE.test(p.handle)&&!seen.has(p.handle));ppl.forEach(p=>seen.add(p.handle));
@@ -657,7 +665,7 @@ async function vFwList(h,dir,again){const sub0=subNow();let fp=sub0;
   say(seen.size?'':tt('h.fwNadie'));$('#fwMore').hidden=!next;
   await Promise.all(ppl.map(p=>fwMount('fwR-'+p.handle,p.handle,live)))};
  $('#fwMore').onclick=()=>page();
- pfRedo(live,()=>fp,()=>vFwList(h,dir));
+ pfRedo(live,sub0,()=>vFwList(h,dir));
  await page()}
 /* ---------- bloquear y reportar (LHB-62): en el perfil de otra persona, y la lista Bloqueados en Editar perfil (functions/api/block.js) ---------- */
 const CONTACTO='sergio@cigarspodcast.com';/* el contacto de privacidad.html y de la página /u/<handle> */
