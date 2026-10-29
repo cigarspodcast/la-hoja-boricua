@@ -1,0 +1,26 @@
+✔ LHB-58 (Codex ronda 2): pintar otra vez tu Perfil (la respuesta del servidor o una sincronización) deja el foco en la misma pestaña; la tarjeta abierta vuelve a la misma reseña aunque cambie de lugar, y si ya no está, a la pestaña (37.668ms)
+✖ LHB-97: dos reseñas iguales: tras una sincronización el foco y la tarjeta abierta vuelven a la segunda; con la tarjeta de una reseña abierta el foco no se cae a BODY; sin id, cada gemela por su orden (11.2948ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 273.0499
+
+✖ failing tests:
+
+test at test\site.test.js:4831:1
+✖ LHB-97: dos reseñas iguales: tras una sincronización el foco y la tarjeta abierta vuelven a la segunda; con la tarjeta de una reseña abierta el foco no se cae a BODY; sin id, cada gemela por su orden (11.2948ms)
+  AssertionError [ERR_ASSERTION]: con id: la tarjeta vuelve a la segunda, no a la primera
+      at TestContext.<anonymous> (C:\Users\Owner\lhb-97-wt\test\site.test.js:4843:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [Object],
+    expected: [Object],
+    operator: '==',
+    diff: 'simple'
+  }

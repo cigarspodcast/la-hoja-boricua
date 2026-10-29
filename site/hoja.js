@@ -34,6 +34,8 @@ function normalize(o){const d=DEF();o=o&&typeof o==='object'?o:{};
  if(!Array.isArray(o.humidor))o.humidor=[];if(!Array.isArray(o.diario))o.diario=[];if(!o.ratings||typeof o.ratings!=='object')o.ratings={};o.diario.forEach(entryDefaults);return o}
 function upgrade(o){o=o||{};if(!o.schema)o.schema=1;while(o.schema<SCHEMA&&MIG[o.schema])o=MIG[o.schema](o);return normalize(o)}
 const legacy=k=>{try{const v=localStorage.getItem('vb_'+k);return v==null?null:JSON.parse(v)}catch(e){return null}};
+/* LHB-102: una lista guardada que no es lista de objetos se lee vacía (el respaldo y su importación no se rompen por ella) */
+const legacyList=k=>{const v=legacy(k);return Array.isArray(v)?v.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)):[]};
 let ST=null,STRAW=null;
 function load(){const raw=localStorage.getItem(KEY);
  if(raw){try{return upgrade(JSON.parse(raw))}catch(e){try{localStorage.setItem(KEY+'_danado_'+Date.now(),raw)}catch(_){}}}
@@ -155,7 +157,7 @@ function humidorForm(cid,editId){const it=editId?S().humidor.find(x=>x.id===edit
 /* ---------- respaldo ---------- */
 function download(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},4000)}
 function exportar(){const s=S();const data={app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:SCHEMA,exportado:new Date().toISOString(),url:APP_URL,
- mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacy('uploads')||[]}};
+ mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacyList('uploads')}};
  download(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}),`la-hoja-boricua-respaldo-${hoy()}.json`);
  s.respaldo=new Date().toISOString();s.cambios=0;s.recordarDespues=null;write(s);lastBackup=LHB_MERGE.canon(s);toast(tt('h.respaldoDescargado'));if(location.hash.startsWith('#/mihoja'))setTimeout(()=>A.route(),300)}
 const byId=(a,b,key='id')=>{const m=new Map(a.map(x=>[x[key],x]));for(const x of b){if(!x||!x[key])continue;const o=m.get(x[key]);if(!o||(x.actualizado||x.fecha||'')>(o.actualizado||o.fecha||''))m.set(x[key],x)}return [...m.values()]};
@@ -167,7 +169,7 @@ function importar(file){const fr=new FileReader();fr.onload=()=>{let j;try{j=JSO
  save(s=>{const m=LHB_MERGE.merge(null,s,inc,{prefer:'local'});s.humidor=m.humidor;s.diario=m.diario;s.pasaporte=m.pasaporte;s.favs=m.favs;s.ratings=m.ratings});
  const x=j.extra||{};try{if(x.perfil&&!legacy('perfil'))localStorage.setItem('vb_perfil',JSON.stringify(x.perfil));
   if(Array.isArray(x.sugeridas)&&x.sugeridas.length)localStorage.setItem('vb_sugeridas',JSON.stringify(byId(legacy('sugeridas')||[],x.sugeridas)));
-  if(Array.isArray(x.subidas)&&x.subidas.length)localStorage.setItem('vb_uploads',JSON.stringify(byId(legacy('uploads')||[],x.subidas)))}catch(e){}
+  if(Array.isArray(x.subidas)&&x.subidas.length)localStorage.setItem('vb_uploads',JSON.stringify(byId(legacyList('uploads'),x.subidas)))}catch(e){}
  const s=S();toast(`${tt('h.importadoCatasEnHumidor',{a:s.diario.length-n0.d,b:s.humidor.length-n0.h})}`);A.route()};fr.readAsText(file)}
 function backupDue(){const s=S();const n=s.diario.length+s.humidor.length+Object.values(s.pasaporte).reduce((t,o)=>t+Object.keys(o).length,0);if(!n||!s.cambios)return false;
  if(s.recordarDespues&&new Date(s.recordarDespues)>new Date())return false;if(!s.respaldo)return s.cambios>=3;return (Date.now()-new Date(s.respaldo))/864e5>=14}
@@ -467,7 +469,11 @@ const pfTxt=(v,n)=>typeof v==='string'?[...v.trim()].slice(0,n).join(''):'';
 const pfEntry=e=>({nombre:pfTxt(e.nombre,80),marca:pfTxt(e.marca,60),artesano:pfTxt(e.artesano,80),rating:Number.isInteger(e.rating)&&e.rating>=1&&e.rating<=5?e.rating:0,
  tags:(Array.isArray(e.tags)?e.tags:[]).map(t=>pfTxt(t,40)).filter(Boolean).slice(0,30),notas:pfTxt(e.notas,1000),consumido:okDay(e.consumido)?e.consumido:null});
 /* tus reseñas, de tu Mi Hoja en este teléfono: las públicas, la más reciente primero (por el día en que se fumó; a igual día, el orden del diario) */
-const myResenas=s=>(s.diario||[]).filter(isPublica).map(pfEntry).map((e,i)=>[e,i]).sort((a,b)=>(b[0].consumido||'').localeCompare(a[0].consumido||'')||a[1]-b[1]).map(x=>x[0]);
+/* LHB-97: con la clave de cada una (el id de su cata junto con lo que se enseña), para que el foco vuelva a la misma aunque otra se vea igual; solo dos iguales en las dos cosas se cuentan en orden.
+   Codex ronda 1: el orden no hace de id cuando dos catas tienen el mismo id, porque cada una lleva también lo suyo */
+const myResenasK=s=>{const n=new Map();return (s.diario||[]).filter(isPublica).map((x,i)=>{const e=pfEntry(x);return [e,i,JSON.stringify([typeof x.id==='string'&&x.id?x.id:null,e])]})
+ .sort((a,b)=>(b[0].consumido||'').localeCompare(a[0].consumido||'')||a[1]-b[1]).map(([e,,k])=>{const c=(n.get(k)||0)+1;n.set(k,c);return {e,k:k+'#'+c}})};
+const myResenas=s=>myResenasK(s).map(x=>x.e);
 const pfNum=v=>Number.isInteger(v)&&v>=0?v:0;
 const pfIni=p=>{const w=String(p.display_name||'').split(/\s+/).filter(Boolean);const f=s=>[...s][0]||'';return (w.length?f(w[0])+(w.length>1?f(w[w.length-1]):''):f(p.handle||'')).toUpperCase()};
 /* conteos y botón: c null mientras llegan; tu vista lleva Editar perfil (LHB-55), la de otra persona deja el lugar del botón de seguir (LHB-60).
@@ -519,12 +525,12 @@ async function vPersona(raw){const h=String(raw||'').toLowerCase();const me=acct
 /* tu Perfil (app.js vPerfil pone la foto, el nombre y el @ de la cuenta guardada, LHB-51): aquí van la bio, la marca y los conteos de /api/u/<tu @>, Editar perfil y las pestañas, que leen tu Mi Hoja.
    PFO es tu Perfil abierto: su lugar (#pfOwn), la cuenta, lo que llegó del servidor y la pestaña abierta. Codex ronda 1: cuando llega una sincronización se pinta otra vez con tu Mi Hoja nueva (pfOwnSync), en la misma pestaña */
 let PFO=null;
-const pfOwnData=()=>{const s=S();return {own:true,resenas:myResenas(s),sellos:passCounts().c,favorite_brand:null,favs:s.favs.cigarros.map(A.cigarById).filter(Boolean),humidor:s.humidor}};
+const pfOwnData=()=>{const s=S();const r=myResenasK(s);return {own:true,resenas:r.map(x=>x.e),keys:r.map(x=>x.k),sellos:passCounts().c,favorite_brand:null,favs:s.favs.cigarros.map(A.cigarById).filter(Boolean),humidor:s.humidor}};
 const pfCur=()=>{const sel=$$('[data-pftab]').find(b=>b.getAttribute('aria-selected')==='true');return sel?sel.dataset.pftab:'resenas'};
 /* Codex ronda 2: pintar otra vez reemplaza los botones; el foco y el botón al que vuelve una tarjeta abierta (lastFocus) pasan al botón nuevo
-   de la misma pestaña o de la misma reseña (aunque haya cambiado de lugar); si esa reseña ya no está, a la pestaña abierta */
-const pfKey=(o,n)=>{if(!n)return null;const m=/^pfT-([a-z]+)$/.exec(n.id||'');if(m)return {tab:m[1]};const b=$$('[data-pfres]').find(x=>x===n);const e=b&&o.d&&o.d.resenas[+b.dataset.pfres];return e?{res:JSON.stringify(e)}:null};
-const pfFind=(o,d,k)=>{const i=k.res?d.resenas.findIndex(e=>JSON.stringify(e)===k.res):-1;return (i>=0&&$$('[data-pfres]').find(b=>b.dataset.pfres===String(i)))||$('#pfT-'+(k.tab||o.cur))};
+   de la misma pestaña o de la misma reseña (aunque haya cambiado de lugar; LHB-97: por su clave, d.keys); si esa reseña ya no está, a la pestaña abierta */
+const pfKey=(o,n)=>{if(!n)return null;const m=/^pfT-([a-z]+)$/.exec(n.id||'');if(m)return {tab:m[1]};const b=$$('[data-pfres]').find(x=>x===n);const k=b&&o.d&&o.d.keys&&o.d.keys[+b.dataset.pfres];return k?{res:k}:null};
+const pfFind=(o,d,k)=>{const i=k.res?d.keys.indexOf(k.res):-1;return (i>=0&&$$('[data-pfres]').find(b=>b.dataset.pfres===String(i)))||$('#pfT-'+(k.tab||o.cur))};
 /* tu número de reseñas sale enseguida de tu Mi Hoja; seguidores y siguiendo esperan al servidor */
 function pfOwnPaint(o){const d=pfOwnData();const kf=pfKey(o,document.activeElement),kl=pfKey(o,lastFocus);
  o.root.innerHTML=`<div id="pfAbout">${pfAbout(o.profile)}</div>`+pfCounts({...(o.counts||{}),resenas:d.resenas.length},true,o.a.handle)+pfTabsHTML(true,o.cur);pfBind(d,o.cur);o.d=d;

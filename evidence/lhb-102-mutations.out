@@ -1,0 +1,8 @@
+U0 the original main code (uploads() trusts what is stored)    rc 1 fail 1 -> RED
+U1 uploads() does not check for a list                         rc 1 fail 1 -> RED
+U2 uploads() keeps the junk inside a list                      rc 1 fail 1 -> RED
+U3 reading rewrites what is stored                             rc 1 fail 1 -> RED
+U4 the backup exports the broken value                         rc 1 fail 1 -> RED
+U5 the import merge reads the broken value                     rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 1 fail 0
+RESULT 6 of 6 mutations red
