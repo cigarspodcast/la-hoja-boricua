@@ -32,7 +32,7 @@ const HEADERS = {
   'x-robots-tag': ROBOTS,
   'x-content-type-options': 'nosniff',
   // la página no corre JavaScript; solo su hoja de estilo y las fotos de Clerk
-  'content-security-policy': "default-src 'none'; style-src 'self'; img-src 'self' https://img.clerk.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  'content-security-policy': "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' https://img.clerk.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 };
 const html = (body, status) => new Response(body, { status, headers: HEADERS });
 

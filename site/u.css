@@ -1,27 +1,32 @@
-/* LHB-40: el pasaporte público /u/<handle>. Mismos colores que las páginas de lugares (l.css); la tarjeta de una cata se abre con :target, sin JavaScript. */
-:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0e2417;color:#f8f8f4;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header,main,footer{max-width:720px;margin:0 auto;padding:0 18px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:14px;padding-bottom:14px;border-bottom:1px solid #2c5a3d}
-.brand{font:700 20px Georgia,serif;color:#f8f8f4;text-decoration:none}.brand em{color:#8fd162}a{color:#8fd162}
-a.app{background:#8fd162;color:#0e2417;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:999px;font-size:15px;white-space:nowrap}
-h1{font:700 28px/1.2 Georgia,serif;margin:0 0 2px;overflow-wrap:anywhere}h2{font:700 21px Georgia,serif;margin:26px 0 10px}h3{font:700 20px/1.25 Georgia,serif;margin:0 32px 4px 0;overflow-wrap:anywhere}
-.tag,.pp-h,.pp-sub,.pp-empty,footer{color:#b3c0b5}
+/* LHB-40: el pasaporte público /u/<handle>. Mismos colores que las páginas de lugares (l.css); la tarjeta de una cata se abre con :target, sin JavaScript.
+   LHB-68: con la marca de la app, los mismos tokens que styles.css (M7-F1a, con los mismos valores) y Fraunces con Figtree */
+@font-face{font-family:'Figtree';font-style:normal;font-weight:400 700;font-display:swap;src:url(/fonts/figtree.woff2) format('woff2')}
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/fraunces-normal-600.woff2) format('woff2')}
+:root{--surface:#F4F1EA;--surface-2:#FFFDFA;--card:#FFFDFA;--card-2:#ECEEE4;--line:#D7D8CC;--on-surface:#263723;--on-surface-2:#43513D;--muted:#59614F;--accent:#344C31;--on-accent:#F4F1EA;--accent-ink:#344C31;--warn-ink:#7A5C00;--focus:#146780;--scrim:rgba(38,55,35,.55);color-scheme:light}
+*{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--on-surface);font:16px/1.55 'Figtree',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header,main,footer{max-width:720px;margin:0 auto;padding:0 18px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.brand{font:600 20px 'Fraunces',Georgia,serif;color:var(--on-surface);text-decoration:none}.brand em{color:var(--accent-ink)}a{color:var(--accent-ink)}
+a.app{background:var(--accent);color:var(--on-accent);font-weight:700;text-decoration:none;padding:8px 14px;border-radius:999px;font-size:15px;white-space:nowrap}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+h1{font:600 28px/1.2 'Fraunces',Georgia,serif;margin:0 0 2px;overflow-wrap:anywhere}h2{font:600 21px 'Fraunces',Georgia,serif;margin:26px 0 10px}h3{font:600 20px/1.25 'Fraunces',Georgia,serif;margin:0 32px 4px 0;overflow-wrap:anywhere}
+.tag,.pp-h,.pp-sub,.pp-empty,footer{color:var(--muted)}
 .pp-head{display:flex;gap:16px;align-items:flex-start;margin-top:22px}
-.pp-av{flex:none;width:96px;height:96px;border-radius:50%;object-fit:cover;background:#173a26;border:2px solid #2c5a3d}
-.pp-ini{display:flex;align-items:center;justify-content:center;font:700 34px Georgia,serif;color:#8fd162}
-.pp-h{margin:0}.pp-bio{margin:8px 0 0;white-space:pre-line;overflow-wrap:anywhere}.pp-fav{margin:6px 0 0;color:#dde3dc}
+.pp-av{flex:none;width:96px;height:96px;border-radius:50%;object-fit:cover;background:var(--card-2);border:2px solid var(--line)}
+.pp-ini{display:flex;align-items:center;justify-content:center;font:600 34px 'Fraunces',Georgia,serif;color:var(--accent-ink)}
+.pp-h{margin:0}.pp-bio{margin:8px 0 0;white-space:pre-line;overflow-wrap:anywhere}.pp-fav{margin:6px 0 0;color:var(--on-surface-2)}
 .pp-counts{list-style:none;padding:0;margin:20px 0 0;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.pp-counts li{background:#173a26;border:1px solid #2c5a3d;border-radius:14px;padding:10px 8px;text-align:center}
-.pp-counts b{display:block;font:700 22px Georgia,serif}.pp-counts span{display:block;font-size:13px;line-height:1.3;color:#b3c0b5}
+.pp-counts li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 8px;text-align:center}
+.pp-counts b{display:block;font:600 22px 'Fraunces',Georgia,serif}.pp-counts span{display:block;font-size:13px;line-height:1.3;color:var(--muted)}
 .pp-grid{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.pp-cata{display:flex;flex-direction:column;gap:4px;min-height:110px;height:100%;background:#173a26;border:1px solid #2c5a3d;border-radius:14px;padding:12px;color:#f8f8f4;text-decoration:none}
-.pp-cata b{overflow-wrap:anywhere}.pp-cata small{color:#b3c0b5;margin-top:auto}.pp-cata:hover,.pp-cata:focus-visible{border-color:#8fd162}
-.pp-stars{color:#ffd27a;letter-spacing:2px}.pp-sin{color:#b3c0b5;letter-spacing:0;font-size:14px}
+.pp-cata{display:flex;flex-direction:column;gap:4px;min-height:110px;height:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;color:var(--on-surface);text-decoration:none}
+.pp-cata b{overflow-wrap:anywhere}.pp-cata small{color:var(--muted);margin-top:auto}.pp-cata:hover,.pp-cata:focus-visible{border-color:var(--accent-ink)}
+.pp-stars{color:var(--warn-ink);letter-spacing:2px}.pp-sin{color:var(--muted);letter-spacing:0;font-size:14px}
 .pp-card{display:none}
-.pp-card:target{display:flex;position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:16px}
-.pp-card-in{position:relative;width:100%;max-width:520px;max-height:100%;overflow:auto;background:#0e2417;border:1px solid #2c5a3d;border-radius:18px;padding:18px}
-.pp-x{position:absolute;top:8px;right:12px;font-size:28px;line-height:1;text-decoration:none;color:#f8f8f4;padding:4px 8px}
+.pp-card:target{display:flex;position:fixed;inset:0;z-index:10;background:var(--scrim);align-items:center;justify-content:center;padding:16px}
+.pp-card-in{position:relative;width:100%;max-width:520px;max-height:100%;overflow:auto;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;padding:18px}
+.pp-x{position:absolute;top:8px;right:12px;font-size:28px;line-height:1;text-decoration:none;color:var(--on-surface);padding:4px 8px}
 .pp-sub{margin:0 0 6px;font-size:14px}
-.pp-tags{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-wrap:wrap;gap:6px}.pp-tags li{background:#173a26;border:1px solid #2c5a3d;border-radius:999px;padding:3px 10px;font-size:14px}
+.pp-tags{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-wrap:wrap;gap:6px}.pp-tags li{background:var(--card-2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:14px}
 .pp-notas{margin:12px 0 0;white-space:pre-line;overflow-wrap:anywhere}
-footer{border-top:1px solid #2c5a3d;margin-top:30px;padding-top:14px;padding-bottom:30px;font-size:14px}
+footer{border-top:1px solid var(--line);margin-top:30px;padding-top:14px;padding-bottom:30px;font-size:14px}
 @media (max-width:480px){.pp-counts{grid-template-columns:repeat(2,1fr)}.pp-head{gap:12px}.pp-av{width:72px;height:72px}.pp-ini{font-size:26px}h1{font-size:24px}}
