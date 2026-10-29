@@ -276,7 +276,7 @@ window.LHB_SYNC=function(D){
     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
     pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true;unrecorded=true;
     /* LHB-104: tampoco las de otras pestañas con ese If-Match o uno más viejo */
-    for(const e of shRead())if(e.s===uid&&e.r<=rev)shDel(e);for(const [k,e] of seen)if(e.r<=rev)seen.delete(k)}
+    for(const e of shRead())if(e.s===uid&&e.r<=rev)shDel(e)}
    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
    let now0,Ln,quiet,final,wrote=true;
    for(let k=0;k<4;k++){

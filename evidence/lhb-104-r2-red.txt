@@ -1,0 +1,85 @@
+✖ LHB-104 (Codex r2): la pestaña 2 leyó su base y espera la cuenta; la 1 sabe que su quita llegó, quita la anotación y repone a1: la 2 no usa su base vieja y a1 se queda (204.999ms)
+✖ LHB-104 (Codex r2): otra pestaña quita la anotación justo después de que esta leyó su base: esta igual no se fía de esa base y a1 se queda (92.2708ms)
+✖ LHB-104 (Codex r2): la pestaña sabe que su quita llegó pero no puede anotar la base nueva: no quita la anotación, y al recargar a1 se queda (97.3155ms)
+✖ LHB-104 (Codex r2): la valla se pone mientras esta pestaña anota su subida y no se puede leer al mirarla otra vez: no se manda (108.0198ms)
+✖ LHB-104 (Codex r2): treinta recargas, cada una con una subida sin respuesta en el mismo If-Match, no llenan el almacenamiento: cuando vuelve la red, sube (143.8081ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 802.169
+
+✖ failing tests:
+
+test at test\site.test.js:6748:1
+✖ LHB-104 (Codex r2): la pestaña 2 leyó su base y espera la cuenta; la 1 sabe que su quita llegó, quita la anotación y repone a1: la 2 no usa su base vieja y a1 se queda (204.999ms)
+  AssertionError [ERR_ASSERTION]: a1 en la cuenta
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r2\test\site.test.js:6763:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6766:1
+✖ LHB-104 (Codex r2): otra pestaña quita la anotación justo después de que esta leyó su base: esta igual no se fía de esa base y a1 se queda (92.2708ms)
+  AssertionError [ERR_ASSERTION]: en el teléfono
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r2\test\site.test.js:6777:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6779:1
+✖ LHB-104 (Codex r2): la pestaña sabe que su quita llegó pero no puede anotar la base nueva: no quita la anotación, y al recargar a1 se queda (97.3155ms)
+  AssertionError [ERR_ASSERTION]: en el teléfono
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r2\test\site.test.js:6790:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6792:1
+✖ LHB-104 (Codex r2): la valla se pone mientras esta pestaña anota su subida y no se puede leer al mirarla otra vez: no se manda (108.0198ms)
+  AssertionError [ERR_ASSERTION]: no se mandó
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r2\test\site.test.js:6801:51)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6804:1
+✖ LHB-104 (Codex r2): treinta recargas, cada una con una subida sin respuesta en el mismo If-Match, no llenan el almacenamiento: cuando vuelve la red, sube (143.8081ms)
+  AssertionError [ERR_ASSERTION]: pocas llaves
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r2\test\site.test.js:6813:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

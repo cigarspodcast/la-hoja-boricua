@@ -20,13 +20,18 @@ MUTS = [
     (SY, 'this tab counts its own dropped uploads as another tab', 'if(!(e.o&&mineOps.has(e.o))&&!own){', 'if(!(e.o&&mineOps.has(e.o))){'),
     (SY, 'a 200 leaves the older uploads of the other tabs listed', '    for(const e of shRead())if(e.s===uid&&e.r<=rev)shDel(e)}', '    }'),
     (SY, 'a clear rejection leaves the upload listed', '{pend=pend.filter(x=>x.op!==op);if(sk===PEND+op)shDel({k:sk})}', '{pend=pend.filter(x=>x.op!==op)}'),
-    (SY, 'an upload past the account rev stays listed', 'if(e.r>=rev){if(e.r===rev)shLive=true;continue}', 'if(true){if(e.r===rev)shLive=true;continue}'),
+    (SY, 'an upload past the account rev stays listed', 'if(e.r>=rev){if(e.r===rev&&live.has(e.k))shLive=true;continue}', 'if(true){if(e.r===rev&&live.has(e.k))shLive=true;continue}'),
     (SY, 'r1: sign-out does not look at the uploads again behind its fence', 'if(sh.some(e=>subs.includes(e.s)))return back()', ''),
-    (SY, 'r1: the evidence is removed before the base is struck', 'if(gone.length){if(voided&&!poison())return {fail:\'storage\'};', 'if(gone.length){'),
-    (SY, 'r1: no bound on the uploads listed for one If-Match', 'const full=shRead().filter(e=>e.s===uid&&e.r===rev).length>=OPS_ASK;', 'const full=false;'),
+    (SY, 'r1: the evidence is removed before the base is struck', 'if(gone.length){if((voided||staleBase)&&!poison())return {fail:\'storage\'};', 'if(gone.length){'),
+    (SY, 'r1: no bound on the uploads listed for one If-Match', 'const k=here.length<OPS_ASK?PEND+op:', 'const k=true?PEND+op:'),
     (SY, 'r1: the overflow key of this tab counts as another tab', 'const own=e.o?myOps.delete(e.o):myX.delete(e.k);', 'const own=e.o?myOps.delete(e.o):false;'),
-    (SY, 'r1: no second look at the fence after the upload is listed', "  if(fenced()){if(!had){try{D.ls.remove(k)}catch(e){}}throw new Error('fenced')}", ''),
+    (SY, 'r1: no second look at the fence after the upload is listed', "  if(fenceOn()){if(!had){try{D.ls.remove(k)}catch(e){}}throw new Error('fenced')}", ''),
     ('site/hoja.js', 'r1: the page gives the engine no list of keys', 'keys:()=>{const o=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k!=null)o.push(k)}return o}', 'keys:()=>[]'),
+    (SY, 'r2: the entries seen before the GET are not judged after it', 'for(const e of [...seen.values()]){', 'for(const e of now.filter(x=>x.s===uid)){'),
+    (SY, 'r2: the base is read before any entry is seen', 'const seen=new Map(),see=l=>{for(const e of l)if(e.s===uid)seen.set(e.k,e)};see(shRead());', 'const seen=new Map(),see=l=>{for(const e of l)if(e.s===uid)seen.set(e.k,e)};'),
+    (SY, 'r2: entries are removed while the new base is not recorded', 'if((voided||staleBase)&&!poison())', 'if(voided&&!poison())'),
+    (SY, 'r2: an unreadable fence counts as down', 'const fenceOn=()=>{try{return fencedHard()}catch(e){return true}};', 'const fenceOn=()=>fenced();'),
+    (SY, 'r2: one overflow key per page load', "here.some(e=>e.k===mine)||here.length<OPS_ASK+XTABS?mine:PEND+'y.'+rev+'.'+uid", 'mine'),
 ]
 
 EQUIV = {}

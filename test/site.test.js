@@ -6740,6 +6740,76 @@ test('LHB-104 (Codex r1): hoja.js le da al motor la lista de llaves del almacena
  const ls=vm.runInNewContext('('+src.slice(i+'SYNC=window.LHB_SYNC({ls:'.length,j)+')',{localStorage});
  assert.equal(typeof ls.keys,'function','hay keys');assert.deepEqual([...ls.keys()].sort(),[...m.keys()].sort());
 });
+/* LHB-104 (Codex r2): la quita de la pestaña 1 llegó sin respuesta (rev 2) y la persona volvió a poner a1 */
+test('LHB-104 (Codex r2): la pestaña 2 leyó su base y espera la cuenta; la 1 sabe que su quita llegó, quita la anotación y repone a1: la 2 no usa su base vieja y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0,late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  let open=null,paused=false;
+  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)},wait:async()=>{}};
+  const T2=SYNC28().LHB_SYNC(D2);const pB=T2.settled({});
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la pestaña 2 espera la cuenta');
+  await A.sync();assert.ok(late,'la subida que repone a1 quedó sin respuesta');
+  open();await pB;
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y en el teléfono');
+  assert.equal((await late()).status,409,'la de la pestaña 1 ya no llega');
+ }finally{a.done()}});
+test('LHB-104 (Codex r2): otra pestaña quita la anotación justo después de que esta leyó su base: esta igual no se fía de esa base y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  let gets=0;const D2=mk104(A,{get:k=>{if(k==='lhb_mihoja_v1_sync'&&++gets===1)for(const x of [...A.ls.keys()])if(isP104(x))A.ls.delete(x)}});
+  const T2=SYNC28().LHB_SYNC(D2);assert.equal((await T2.run('x')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r2): la pestaña sabe que su quita llegó pero no puede anotar la base nueva: no quita la anotación, y al recargar a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,...r);throw new TypeError('sin respuesta')}throw new TypeError('sin red')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  A.st.failKey='lhb_mihoja_v1_sync';const r=await A.sync();A.st.failKey=null;assert.ok(!r.ok,'la pasada no terminó');
+  A.D.api=api;const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r2): la valla se pone mientras esta pestaña anota su subida y no se puede leer al mirarla otra vez: no se manda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  let armed=false,done=false,puts=0;
+  const D2=mk104(A,{set:k=>{if(isP104(k)&&!done){done=armed=true;A.ls.set('lhb_mihoja_v1_saliendo',String(A.st.clock))}},get:k=>{if(armed&&k==='lhb_mihoja_v1_saliendo'){armed=false;throw new Error('SecurityError')}}});
+  const api=A.D.api;D2.api=async(C,m,...r)=>{if(m==='PUT')puts++;return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});const T2=SYNC28().LHB_SYNC(D2);const r=await T2.run('x');
+  assert.ok(r.fail,'la pasada no terminó');assert.equal(puts,0,'no se mandó');assert.equal([...A.ls.keys()].filter(isP104).length,0,'no quedó anotada');
+  assert.equal(srv28(a,'user_a').rev,1);
+ }finally{a.done()}});
+test('LHB-104 (Codex r2): treinta recargas, cada una con una subida sin respuesta en el mismo If-Match, no llenan el almacenamiento: cuando vuelve la red, sube',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const D2=mk104(A,{set:(k,v)=>{if(!isP104(k))return;let n=String(v).length;for(const [x,w] of A.ls)if(isP104(x)&&x!==k)n+=String(w).length;if(n>900)throw new Error('QuotaExceededError')}});
+  const api=A.D.api;let off=true;D2.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<30;i++)await SYNC28().LHB_SYNC(D2).run('recarga');
+  assert.ok([...A.ls.keys()].filter(isP104).length<=8+4+1,'pocas llaves');
+  off=false;assert.equal((await SYNC28().LHB_SYNC(D2).run('red')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+  assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{
