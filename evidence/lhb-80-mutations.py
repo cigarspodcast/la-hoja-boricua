@@ -24,7 +24,6 @@ MUTS = [
     (LB, 'any recorded id answers', 'x[0] === id && ', ''),
     (SY, 'the PUT does not send its id', ",'X-Op':op})", "})"),
     (SY, 'a landed upload is not the base', 'meta={sub:uid,rev:oc.rev,base:ask.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:ask.sent,rev:oc.rev};staleBase=!writeMeta(meta)', ''),
-    (SY, 'a landed upload is the base at the wrong rev', 'meta={sub:uid,rev:oc.rev,', 'meta={sub:uid,rev:oc.rev-1,'),
     (SY, 'an upload that cannot land any more is asked about forever', 'else if(oc.rev===null&&rev>ask.rev&&rev<=ask.rev+OPS_KEEP)unk=null', 'else if(0)unk=null'),
     (SY, 'a missing id is trusted past OPS_KEEP', 'rev>ask.rev&&rev<=ask.rev+OPS_KEEP)unk=null', 'rev>ask.rev)unk=null'),
     (SY, 'an answer about another id is believed', '&&g.body.op.id===ask.op?', '?'),

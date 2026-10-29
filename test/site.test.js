@@ -6133,3 +6133,31 @@ test('LHB-80: la subida sin respuesta llegó, pero después la cuenta subió má
    assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': la vuelta de a1 se queda en el teléfono');
    assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');assert.equal(srv28(a,'user_a').doc.ratings.c20,4);
   }finally{a.done()}}});
+test('LHB-80: una quita cuyo PUT no llegó, y la cuenta subió dos veces mientras tanto: el servidor dice que no llegó, así que se olvida y la quita se aplica en el reintento',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
+  /* A quita a1; su PUT nunca llega (la red se cae antes) */
+  let drop=true;const api=A.D.api;A.D.api=async(C,m,...r)=>{if(m==='PUT'&&drop)throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,1,'no llegó');drop=false;
+  /* B sube dos veces otra cosa (rev 3) */
+  for(const c of ['c1','c2']){B.edit(d=>{d.ratings[c]=3});assert.equal((await B.sync()).ok,true)}
+  assert.equal(srv28(a,'user_a').rev,3);
+  const r=await A.sync();assert.equal(r.ok,true);
+  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita de A llegó a la cuenta');assert.deepEqual(A.doc().favs.artesanos,[]);
+  assert.equal(srv28(a,'user_a').doc.ratings.c2,3,'y lo de B se queda');
+ }finally{a.done()}});
+test('LHB-80: una respuesta de GET ?op= sobre otro id no se cree: la quita que no llegó se aplica',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  let drop=true;const api=A.D.api;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'&&drop)throw new TypeError('sin red');const x=await api(C,m,path,...r);
+   /* un servidor que contesta por otra subida, como si hubiera llegado */
+   if(m==='GET'&&/\?op=/.test(path)&&x&&x.body&&x.body.op)x.body={...x.body,op:{id:'otra_subida_99',rev:1}};return x};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();drop=false;assert.equal(srv28(a,'user_a').rev,1);
+  const r=await A.sync();assert.equal(r.ok,true);
+  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita llegó');assert.deepEqual(A.doc().favs.artesanos,[]);
+ }finally{a.done()}});
