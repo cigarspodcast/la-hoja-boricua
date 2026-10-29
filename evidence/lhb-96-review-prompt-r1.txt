@@ -1,0 +1,90 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-96-wt (branch lhb-96-tags). The diff below is origin/main..HEAD. This is a TIER 1 review: one round.
+
+Ticket LHB-96 (bug): the public passport page /u/<handle> (functions/u/[handle].js, LHB-40) printed diary tags as their stored flavor-wheel ids (madera, cacao), while the app shows the wheel names through WN() and tagChips() (site/hoja.js WHEEL; the names come from site/i18n.js, Spanish). Scope: functions/u/[handle].js, test/site.test.js, evidence/. No site file changes, so no cache bump.
+
+What was built:
+- WHEEL_NAME in functions/u/[handle].js: the same nine ids as site/hoja.js WHEEL, each with its Spanish name from site/i18n.js (cacao is "Cacao / café", the n of that WHEEL entry).
+- tagName(t): the name for a wheel id, through an own-property check (so constructor and __proto__ typed by hand stay as typed). Anything else is shown as typed, matched case-sensitively, like WN() in the app. The output is escaped as before.
+
+Tests:
+- New "LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre...":
+  - wheel ids, free text with HTML, constructor, __proto__, and a hand-typed "Madera";
+  - a parity check that WHEEL_NAME equals site/hoja.js WHEEL ids mapped to their site/i18n.js Spanish strings.
+- Two LHB-40 assertions that pinned the raw ids ('madera', '<li>madera</li><li>cacao</li>') now expect the names. That is the behavior this ticket changes.
+
+Evidence:
+- evidence/lhb-96-tests.txt: the full suite, 267 pass and 1 skipped (the LHB-95 browser test).
+- evidence/lhb-96-red-before.txt: the new test against main's functions/u/[handle].js, red.
+- evidence/lhb-96-mutations.out: RESULT 6 of 6 mutations red.
+
+Check the fix, the escaping, that the parity check would catch a drift between the app's names and the page's, and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main HEAD -- functions test =====
+diff --git a/functions/u/[handle].js b/functions/u/[handle].js
+index 81be8d8..ed949e6 100644
+--- a/functions/u/[handle].js
++++ b/functions/u/[handle].js
+@@ -8,6 +8,10 @@ export const CONTACT = 'sergio@cigarspodcast.com'; // el contacto de privacidad.
+ const ROBOTS = 'noindex, follow';
+ const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+ const KIND_LABEL = { artesanos: 'artesanos', cigarros: 'cigarros', lugares: 'lugares' };
++// LHB-96: los sabores de la rueda se guardan por su id (site/hoja.js WHEEL) y aquí salen con su nombre, como en la app (los mismos textos en español de site/i18n.js).
++// Lo que no es de la rueda sale como se escribió
++export const WHEEL_NAME = { madera: 'Madera', tierra: 'Tierra', especias: 'Especias', dulce: 'Dulce', cacao: 'Cacao / café', frutos: 'Frutos', floral: 'Floral', cuero: 'Cuero', nuez: 'Nuez' };
++const tagName = t => Object.prototype.hasOwnProperty.call(WHEEL_NAME, t) ? WHEEL_NAME[t] : t;
+ 
+ // todo texto que entra al HTML, en el cuerpo o en un atributo, pasa por aquí
+ export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+@@ -74,7 +78,7 @@ export function renderPassport(v, origin) {
+     main += v.catas.map((e, i) => '<article class="pp-card" id="cata-' + (i + 1) + '" aria-labelledby="cata-' + (i + 1) + '-t"><div class="pp-card-in">' +
+       '<a class="pp-x" href="#catas" aria-label="Cerrar">×</a><h3 id="cata-' + (i + 1) + '-t">' + esc(e.nombre || 'Cigarro') + '</h3>' +
+       (sub(e) ? '<p class="pp-sub">' + sub(e) + '</p>' : '') + stars(e.rating) +
+-      (e.tags.length ? '<ul class="pp-tags">' + e.tags.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' : '') +
++      (e.tags.length ? '<ul class="pp-tags">' + e.tags.map(t => '<li>' + esc(tagName(t)) + '</li>').join('') + '</ul>' : '') +
+       (e.notas ? '<p class="pp-notas">' + esc(e.notas) + '</p>' : '') + '</div></article>\n').join('');
+   }
+   const report = 'mailto:' + CONTACT + '?subject=' + encodeURIComponent('Reportar ' + at) + '&body=' + encodeURIComponent(url);
+diff --git a/test/site.test.js b/test/site.test.js
+index 6742a8d..05494dc 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -4028,14 +4028,14 @@ test('LHB-40: el pasaporte público solo trae las catas marcadas públicas (publ
+    catas:[{nombre:'Churchill Nuevo',marca:'Marca Otra',artesano:'',rating:0,tags:[],notas:'',consumido:'2026-04-01'},
+     {nombre:'Toro Publico',marca:'',artesano:'Don Ramón',rating:4,tags:['madera','cacao'],notas:'nota publica\nsegunda linea',consumido:'2026-03-03'}]},'solo las dos públicas, la más reciente primero, con la lista cerrada de campos');
+   const p=await a.page('ana');assert.equal(p.status,200);
+-  for(const s of ['Toro Publico','Churchill Nuevo','nota publica\nsegunda linea','Don Ramón','madera','cacao','Marca Otra','Ana S.','@ana','3 mar 2026','1 abr 2026'])assert.ok(p.body.includes(s),'la página trae '+s);
++  for(const s of ['Toro Publico','Churchill Nuevo','nota publica\nsegunda linea','Don Ramón','<li>Madera</li>','<li>Cacao / café</li>','Marca Otra','Ana S.','@ana','3 mar 2026','1 abr 2026'])assert.ok(p.body.includes(s),'la página trae '+s);
+   for(const s of [...PRIVADO40,...SECRETOS56])assert.ok(!p.body.includes(s),'la página nunca trae '+s);
+   for(const [n,l] of [[2,'catas públicas'],[2,'sellos de artesanos'],[1,'sello de cigarros'],[0,'sellos de lugares']])assert.ok(p.body.includes('<li><b>'+n+'</b><span>'+l+'</span></li>'),'conteo '+l);
+   /* la cuadrícula: tocar una cata abre su tarjeta (estrellas, sabores, notas) */
+   assert.ok(p.body.includes('<a class="pp-cata" href="#cata-1"><b>Churchill Nuevo</b>')&&p.body.includes('<a class="pp-cata" href="#cata-2"><b>Toro Publico</b>'));
+   const card=p.body.slice(p.body.indexOf('<article class="pp-card" id="cata-2"'));assert.ok(card.startsWith('<article'),'la tarjeta de la cata 2 existe');
+   const c2=card.slice(0,card.indexOf('</article>'));
+-  assert.ok(c2.includes('aria-label="4 de 5 estrellas">★★★★☆</span>')&&c2.includes('<li>madera</li><li>cacao</li>')&&c2.includes('<p class="pp-notas">nota publica\nsegunda linea</p>')&&c2.includes('Don Ramón · 3 mar 2026'),'estrellas, sabores, notas');
++  assert.ok(c2.includes('aria-label="4 de 5 estrellas">★★★★☆</span>')&&c2.includes('<li>Madera</li><li>Cacao / café</li>')&&c2.includes('<p class="pp-notas">nota publica\nsegunda linea</p>')&&c2.includes('Don Ramón · 3 mar 2026'),'estrellas, sabores, notas');
+   /* sin copia en el servidor, o con una copia dañada: el perfil sale con cero catas */
+   a.mk('u_bea','bea');a.mk('u_cami','cami');a.doc('u_cami','{no es json');
+   for(const h of ['bea','cami']){const q=await a.page(h);assert.equal(q.status,200,h);assert.ok(q.body.includes('Todavía no hay catas públicas.')&&q.body.includes('<li><b>0</b><span>catas públicas</span></li>'),h);assert.deepEqual((await a.PP.publicPassport(a.DB,h)).view.counts,{catas:0,sellos:{artesanos:0,cigarros:0,lugares:0}},h)}
+@@ -4397,3 +4397,20 @@ test('LHB-58 (Codex ronda 2): pintar otra vez tu Perfil (la respuesta del servid
+  /* la reseña de la tarjeta ya no está: vuelve a la pestaña abierta */
+  H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario:[]}));H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas']);
+ });
++/* LHB-96: la página pública /u/<handle> muestra los sabores de la rueda por su nombre, como la app; lo escrito a mano sale tal cual */
++test('LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre (Madera, Cacao / café), lo escrito a mano como se escribió, todo escapado; los nombres son los de la app',async()=>{
++ const a=await API40();
++ try{
++  a.mk('u_ana','ana');
++  a.doc('u_ana',{schema:1,diario:[{id:'d1',nombre:'Toro',rating:4,tags:['madera','cacao','nuez','Mi sabor <b>libre</b>','constructor','__proto__','Madera'],notas:'n',publica:true,consumido:'2026-03-03'}]});
++  const p=await a.page('ana');assert.equal(p.status,200);
++  const ul=(p.body.match(/<ul class="pp-tags">([\s\S]*?)<\/ul>/)||[])[1]||'';
++  assert.deepEqual([...ul.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m=>m[1]),['Madera','Cacao / café','Nuez','Mi sabor &lt;b&gt;libre&lt;/b&gt;','constructor','__proto__','Madera'],'los de la rueda por su nombre; lo demás como se escribió (y escapado)');
++  assert.ok(!/<li>(madera|cacao|nuez)<\/li>/.test(p.body),'ningún id de la rueda a la vista');
++  /* los mismos nueve de la app, con el texto en español de i18n.js */
++  const {WHEEL_NAME}=await a.imp('u/[handle].js');
++  const h=read('hoja.js'),i18=read('i18n.js');const wl=h.match(/const WHEEL=\[(.*)\];/)[1];
++  const ids=[...wl.matchAll(/\{id:'([a-z]+)',n:tt\('([^']+)'\)/g)].map(m=>[m[1],m[2]]);assert.equal(ids.length,9,'la rueda tiene nueve');
++  const es=k=>{const m=i18.match(new RegExp('"'+k.replace(/\./g,'\\.')+'": "([^"]*)"'));return m&&m[1]};
++  assert.deepEqual(WHEEL_NAME,Object.fromEntries(ids.map(([id,k])=>[id,es(k)])),'los mismos ids y los mismos nombres que la app');
++ }finally{a.done&&a.done()}});

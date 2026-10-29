@@ -4452,14 +4452,14 @@ test('LHB-40: el pasaporte público solo trae las catas marcadas públicas (publ
    catas:[{nombre:'Churchill Nuevo',marca:'Marca Otra',artesano:'',rating:0,tags:[],notas:'',consumido:'2026-04-01'},
     {nombre:'Toro Publico',marca:'',artesano:'Don Ramón',rating:4,tags:['madera','cacao'],notas:'nota publica\nsegunda linea',consumido:'2026-03-03'}]},'solo las dos públicas, la más reciente primero, con la lista cerrada de campos');
   const p=await a.page('ana');assert.equal(p.status,200);
-  for(const s of ['Toro Publico','Churchill Nuevo','nota publica\nsegunda linea','Don Ramón','madera','cacao','Marca Otra','Ana S.','@ana','3 mar 2026','1 abr 2026'])assert.ok(p.body.includes(s),'la página trae '+s);
+  for(const s of ['Toro Publico','Churchill Nuevo','nota publica\nsegunda linea','Don Ramón','<li>Madera</li>','<li>Cacao / café</li>','Marca Otra','Ana S.','@ana','3 mar 2026','1 abr 2026'])assert.ok(p.body.includes(s),'la página trae '+s);
   for(const s of [...PRIVADO40,...SECRETOS56])assert.ok(!p.body.includes(s),'la página nunca trae '+s);
   for(const [n,l] of [[2,'catas públicas'],[2,'sellos de artesanos'],[1,'sello de cigarros'],[0,'sellos de lugares']])assert.ok(p.body.includes('<li><b>'+n+'</b><span>'+l+'</span></li>'),'conteo '+l);
   /* la cuadrícula: tocar una cata abre su tarjeta (estrellas, sabores, notas) */
   assert.ok(p.body.includes('<a class="pp-cata" href="#cata-1"><b>Churchill Nuevo</b>')&&p.body.includes('<a class="pp-cata" href="#cata-2"><b>Toro Publico</b>'));
   const card=p.body.slice(p.body.indexOf('<article class="pp-card" id="cata-2"'));assert.ok(card.startsWith('<article'),'la tarjeta de la cata 2 existe');
   const c2=card.slice(0,card.indexOf('</article>'));
-  assert.ok(c2.includes('aria-label="4 de 5 estrellas">★★★★☆</span>')&&c2.includes('<li>madera</li><li>cacao</li>')&&c2.includes('<p class="pp-notas">nota publica\nsegunda linea</p>')&&c2.includes('Don Ramón · 3 mar 2026'),'estrellas, sabores, notas');
+  assert.ok(c2.includes('aria-label="4 de 5 estrellas">★★★★☆</span>')&&c2.includes('<li>Madera</li><li>Cacao / café</li>')&&c2.includes('<p class="pp-notas">nota publica\nsegunda linea</p>')&&c2.includes('Don Ramón · 3 mar 2026'),'estrellas, sabores, notas');
   /* sin copia en el servidor, o con una copia dañada: el perfil sale con cero catas */
   a.mk('u_bea','bea');a.mk('u_cami','cami');a.doc('u_cami','{no es json');
   for(const h of ['bea','cami']){const q=await a.page(h);assert.equal(q.status,200,h);assert.ok(q.body.includes('Todavía no hay catas públicas.')&&q.body.includes('<li><b>0</b><span>catas públicas</span></li>'),h);assert.deepEqual((await a.PP.publicPassport(a.DB,h)).view.counts,{catas:0,sellos:{artesanos:0,cigarros:0,lugares:0}},h)}
@@ -4821,6 +4821,23 @@ test('LHB-58 (Codex ronda 2): pintar otra vez tu Perfil (la respuesta del servid
  /* la reseña de la tarjeta ya no está: vuelve a la pestaña abierta */
  H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario:[]}));H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas']);
 });
+/* LHB-96: la página pública /u/<handle> muestra los sabores de la rueda por su nombre, como la app; lo escrito a mano sale tal cual */
+test('LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre (Madera, Cacao / café), lo escrito a mano como se escribió, todo escapado; los nombres son los de la app',async()=>{
+ const a=await API40();
+ try{
+  a.mk('u_ana','ana');
+  a.doc('u_ana',{schema:1,diario:[{id:'d1',nombre:'Toro',rating:4,tags:['madera','cacao','nuez','Mi sabor <b>libre</b>','constructor','__proto__','Madera','Cacao'],notas:'n',publica:true,consumido:'2026-03-03'}]});
+  const p=await a.page('ana');assert.equal(p.status,200);
+  const ul=(p.body.match(/<ul class="pp-tags">([\s\S]*?)<\/ul>/)||[])[1]||'';
+  assert.deepEqual([...ul.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(m=>m[1]),['Madera','Cacao / café','Nuez','Mi sabor &lt;b&gt;libre&lt;/b&gt;','constructor','__proto__','Madera','Cacao'],'los de la rueda por su nombre; lo demás como se escribió (y escapado)');
+  assert.ok(!/<li>(madera|cacao|nuez)<\/li>/.test(p.body),'ningún id de la rueda a la vista');
+  /* los mismos nueve de la app, con el texto en español de i18n.js */
+  const {WHEEL_NAME}=await a.imp('u/[handle].js');
+  const h=read('hoja.js'),i18=read('i18n.js');const wl=h.match(/const WHEEL=\[(.*)\];/)[1];
+  const ids=[...wl.matchAll(/\{id:'([a-z]+)',n:tt\('([^']+)'\)/g)].map(m=>[m[1],m[2]]);assert.equal(ids.length,9,'la rueda tiene nueve');
+  const es=k=>{const m=i18.match(new RegExp('"'+k.replace(/\./g,'\\.')+'": "([^"]*)"'));return m&&m[1]};
+  assert.deepEqual(WHEEL_NAME,Object.fromEntries(ids.map(([id,k])=>[id,es(k)])),'los mismos ids y los mismos nombres que la app');
+ }finally{a.done&&a.done()}});
 /* LHB-61: Siguiendo (functions/api/feed.js, _lib/feed.js) en SQLite real: las catas públicas de las personas que sigues */
 async function API61(){
  const a=await API40();const FD=await a.imp('api/feed.js'),FL61=await a.imp('_lib/feed.js');

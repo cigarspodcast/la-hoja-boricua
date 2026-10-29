@@ -1,0 +1,8 @@
+T1 the raw id is shown                           rc 1 fail 2 -> RED
+T2 a plain lookup (constructor, __proto__)       rc 1 fail 1 -> RED
+T3 the name is not escaped                       rc 1 fail 2 -> RED
+T4 a name differs from the app                   rc 1 fail 2 -> RED
+T5 an id missing from the map                    rc 1 fail 1 -> RED
+T6 case-blind matching (Madera typed by hand)    rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 7
+RESULT 6 of 6 mutations red
