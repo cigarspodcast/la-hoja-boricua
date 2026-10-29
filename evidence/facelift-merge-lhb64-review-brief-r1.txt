@@ -1,0 +1,10 @@
+You are reviewing one merge in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). The diff below is the merge commit 30d9c86 against its facelift parent 2be90d0, limited to site/ and test/. TIER 1: one round.
+
+What it is: main merged PR #36 (LHB-64, accessibility fixes; reviewed TIER 2 and its later merges of main reviewed, evidence/a11y-merge-lhb97-review-r1.txt) and is now at f1ea0d0, cache lhb-v111. LHB-64, LHB-102 and LHB-97 were already on facelift, so against facelift's previous head the merge should change only the cache version: sw.js and the 21 test pins go from lhb-v110 to lhb-v112. In the conflicting test hunks facelift kept its own side (its splash-free tests, its LHB-97 mock comments that say "en facelift", its LHB-65 to LHB-75 block). Full suite 337 pass, 0 fail, 1 skipped (evidence/facelift-merge-lhb64-tests.txt).
+
+Check in particular:
+- Is the diff really version-only, with nothing of facelift lost and nothing of main's LHB-64 code missing from facelift (compare site/hoja.js, site/app.js, site/cuenta.js, site/styles.css, site/manifest.webmanifest and site/i18n.js between facelift HEAD and origin/main for the LHB-64 parts)?
+- Is any pin left at another version, or any test that reads the version left inconsistent?
+- Anything else.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before it is staged).
