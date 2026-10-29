@@ -769,6 +769,9 @@ def main():
 
     def handler(*args, **kw):
         return Handler(*args, directory=root, **kw)
+    # LHB-71: the default listen backlog of 5 overflows on Windows when the page and the service worker's precache fetch together;
+    # Chrome then gets ERR_CONNECTION_REFUSED for one script and the page stays blank (measured 2 stalls in 10 runs at 320 by 568)
+    ThreadingHTTPServer.request_queue_size = 128
     srv = ThreadingHTTPServer((a.host, a.port), handler)
     pid = os.getpid()
     if a.pidfile:
