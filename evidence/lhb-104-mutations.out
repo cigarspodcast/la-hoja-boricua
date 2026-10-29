@@ -1,12 +1,18 @@
-baseline (no mutation): pass 62 fail 0
+baseline (no mutation): pass 68 fail 0
 settled ignores the other tabs (before LHB-104)              RED (caught) (fail 1)
-the upload is not recorded for the other tabs                RED (caught) (fail 4)
-no fence for an upload of another tab                        RED (caught) (fail 1)
-an upload of another tab that may have landed keeps the base RED (caught) (fail 1)
+the upload is not recorded for the other tabs                RED (caught) (fail 8)
+no fence for an upload of another tab                        RED (caught) (fail 2)
+an upload of another tab that may have landed keeps the base RED (caught) (fail 2)
 the uploads of other tabs are never asked about              RED (caught) (fail 1)
 more ids are asked than the server takes                     RED (caught) (fail 1)
 this tab counts its own dropped uploads as another tab       RED (caught) (fail 1)
-a 200 leaves the older uploads of the other tabs listed      RED (caught) (fail 4)
+a 200 leaves the older uploads of the other tabs listed      RED (caught) (fail 6)
 a clear rejection leaves the upload listed                   RED (caught) (fail 1)
-an upload past the account rev stays listed                  RED (caught) (fail 1)
-RESULT 10 of 10 red; 0 named equivalent; 0 unexpected survivors
+an upload past the account rev stays listed                  RED (caught) (fail 2)
+r1: sign-out does not look at the uploads again behind its fence RED (caught) (fail 1)
+r1: the evidence is removed before the base is struck        RED (caught) (fail 1)
+r1: no bound on the uploads listed for one If-Match          RED (caught) (fail 1)
+r1: the overflow key of this tab counts as another tab       RED (caught) (fail 1)
+r1: no second look at the fence after the upload is listed   RED (caught) (fail 1)
+r1: the page gives the engine no list of keys                RED (caught) (fail 1)
+RESULT 16 of 16 red; 0 named equivalent; 0 unexpected survivors
