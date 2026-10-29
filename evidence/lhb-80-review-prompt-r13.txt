@@ -1,0 +1,126 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-80-wt (branch lhb-80-sync-op). TIER 2, round 13.
+
+Ticket LHB-80: an idempotency token (X-Op) on PUT /api/mihoja so a pass can learn whether an upload whose answer was lost landed, and never applies a stale base. Round 12 (evidence/lhb-80-review-r12.txt) concurred on round 11's two corrections, and found no other in-scope blocker on the remaining paths it covered. It blocked on two P2s around the round 11 flag:
+1. After a landed PUT, a swallowed epoch-read exception made alive() return false, and the early return skip 'other-account' bypassed the catch. The landed upload was already cleared from pend, so the stale stored base stayed usable.
+2. (introduced in round 11) putSent was set before the PUT and never cleared on a definitive 409, so a later storage exception dropped a valid base.
+
+The diff below (one commit against the round 12 prompt commit) tracks the actual hazard, as you suggested:
+- unrecorded is set in the 200 branch, at the point pend is cleared for the account. It is cleared right after the new in-memory base (mem) is set, from which point mem, and then the final meta, are the record. A 409 or other definitive rejection never sets it.
+- once() runs once0(). If the pass ends by any path while unrecorded is set (an exception, an alive() early return because the account or epoch changed or an epoch read failed, a write-back failure), every earlier base is dropped: mem=null, voided=true, and the stored meta is poisoned. Any other exception returns fail 'storage', as in round 11.
+Tests (two added): your two reproductions. (1) The PUT lands, then the second epoch read after it throws, during the write-back alive(); the person re-adds a1, and it stays on the phone and the account. (2) A genuine 409 (another device writes between GET and PUT), then getDoc throws on the next iteration; the next pass uploads the removal, and the other device's rating stays. Both fail on 4084bb6 and pass here. Mutants: the round 11 catch mutant retargeted to the unrecorded drop; two added (unrecorded set before the PUT, so a 409 drops the base; unrecorded not cleared when mem is set). Evidence: evidence/lhb-80-mutations.out and evidence/lhb-80-tests.txt (tallies in the commit message; your sandbox's LHB-44, LHB-45 and LHB-73 failures are Python and temporary-directory denials).
+
+Check that both findings are closed. Check whether any path between the 200 and the point mem is set can still leave a stale base usable, and whether unrecorded can drop a base that is still valid, including the existing case where the final meta write fails and mem carries the base (staleBase). Cross-tab interleavings stay non-blocking under LHB-104 and LHB-105. Block only on a defect this branch introduces, or on one within LHB-80's scope (lost-answer uploads and stale bases within one tab) that should be fixed before release.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff eba3c8b 9ed9f0f939cbda58809640e0fdbdd8f6a3df956f -- site/sync.js test/site.test.js evidence/lhb-80-mutations.py =====
+diff --git a/evidence/lhb-80-mutations.py b/evidence/lhb-80-mutations.py
+index 617109c..1618493 100644
+--- a/evidence/lhb-80-mutations.py
++++ b/evidence/lhb-80-mutations.py
+@@ -55,7 +55,9 @@ MUTS = [
+     (SY, 'r10: a failed read of the earlier epoch counts as none', 'let e1;try{e1=D.ls.get(EPOCH)}catch(e){return false}', 'let e1=epochOf();'),
+     (SY, 'r10: a pass that cannot read the epoch still syncs', "let ep0;try{ep0=D.ls.get(EPOCH)}catch(e){return {fail:'storage'}}", 'let ep0=epochOf();'),
+     (SY, 'r11: a meta that cannot be read counts as none', "let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){return {fail:'storage'}}", 'let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){metaRaw=null}'),
+-    (SY, 'r11: a storage error after an upload keeps the old base', 'if(putSent){mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}', ''),
++    (SY, 'r11: a storage error or early return after a landed upload keeps the old base', 'if(unrecorded){unrecorded=false;mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}', ''),
++    (SY, 'r12: an upload rejected with 409 still drops the base', "    let p;try{p=await D.api(C,'PUT',", "    unrecorded=true;let p;try{p=await D.api(C,'PUT',"),
++    (SY, 'r12: the new in-memory base does not end the hazard', 'mem={sub:uid,base:merged,rev:newRev,ep:ep0};unrecorded=false;', 'mem={sub:uid,base:merged,rev:newRev,ep:ep0};'),
+     (SY, 'r5: the stored meta is not bound to its copy (the pass)', 'meta0.sub===uid&&epOf(meta0)===ep0?meta0', 'meta0.sub===uid?meta0'),
+ ]
+ 
+diff --git a/site/sync.js b/site/sync.js
+index 4f7ef82..d3b8018 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -142,12 +142,15 @@ window.LHB_SYNC=function(D){
+    if(!ok)return back();
+    return setOwner(acc.sub)}finally{inIso=false}}
+  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
+- /* Codex r11: si algo del almacenamiento falla a mitad de la pasada (una lectura que lanza), la pasada no sigue. Si ya mandó una subida, pudo llegar y
+-    ya no queda anotada: ninguna base de antes vale (se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada) */
+- let putSent=false,poisonNow=null;
+- async function once(){putSent=false;poisonNow=null;
+-  try{return await once0()}
+-  catch(e){if(putSent){mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}return {fail:'storage'}}}
++ /* Codex r11 y r12: una subida que llegó (200) deja de estar anotada en pend; hasta que la base nueva queda en memoria, unrecorded lo dice. Si la pasada termina
++    en ese tramo por cualquier camino (una lectura que lanza, la cuenta o la época que cambian, una lectura de la época que falla), ninguna base de antes vale:
++    se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada. Una subida que el servidor rechazó (409) no cuenta.
++    Cualquier otra excepción del almacenamiento a mitad de la pasada la para sin más (se reintenta) */
++ let unrecorded=false,poisonNow=null;
++ async function once(){unrecorded=false;poisonNow=null;let r;
++  try{r=await once0()}catch(e){r={fail:'storage'}}
++  if(unrecorded){unrecorded=false;mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}
++  return r}
+  async function once0(){
+   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};
+   let C;try{C=await D.clerk()}catch(e){return {skip:'offline'}}
+@@ -219,14 +222,14 @@ window.LHB_SYNC=function(D){
+     /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
+     const op=newOp();pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
+     if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
+-    putSent=true;let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
++    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
+     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
+     if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
+     if(!alive())return {skip:'other-account'};
+     if(p.status===409)continue;
+     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
+     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
+-    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true}
++    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true;unrecorded=true}
+    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
+    let now0,Ln,quiet,final,wrote=true;
+    for(let k=0;k<4;k++){
+@@ -242,7 +245,7 @@ window.LHB_SYNC=function(D){
+    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
+    /* ...y lo que cambió en la copia mientras tanto (aunque el contador compartido no se haya podido escribir) */
+    const edited=edits!==e0||readSeq()!==s0||!quiet;
+-   mem={sub:uid,base:merged,rev:newRev,ep:ep0};
++   mem={sub:uid,base:merged,rev:newRev,ep:ep0};unrecorded=false;
+    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0})){staleBase=true;poison();return {fail:'storage'}}
+    /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */
+    staleBase=false;voided=false;if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);if(!edited)dirty=false;
+diff --git a/test/site.test.js b/test/site.test.js
+index a4e842e..7cdc9ce 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -6520,6 +6520,36 @@ test('LHB-80 (Codex r11): la subida llega y luego una lectura de la copia lanza:
+   A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);
+   assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+  }finally{a.done()}});
++test('LHB-80 (Codex r12): la subida llega y luego la época no se puede leer al escribir la copia: la base de antes ya no vale, y lo que se vuelve a poner se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.ls.set(E,'abcdefghij00000000z');A.seed(DOC28);await A.sync();
++  A.edit(d=>{d.favs.artesanos=[]});
++  const api=A.D.api,get=A.D.ls.get;let arm=false,n=0;
++  A.D.api=async(C,m,...r)=>{const x=await api(C,m,...r);if(m==='PUT')arm=true;return x};
++  A.D.ls.get=k=>{if(arm&&k===E&&++n===2)throw new Error('SecurityError');return get(k)};
++  const r=await A.eng.run('guardado');assert.ok(r.fail||r.skip,'la pasada no terminó');A.D.api=api;A.D.ls.get=get;
++  assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-80 (Codex r12): la subida da 409 y luego una lectura de la copia lanza: la base sigue valiendo y el borrado se sube',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const P=DEV28(a,'user_a');await P.sync();
++  A.edit(d=>{d.favs.artesanos=[]});
++  const api=A.D.api,gd=A.D.getDoc;let once=true,arm=false;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;P.edit(d=>{d.ratings.c2=3});await P.sync();const x=await api(C,m,...r);arm=x.status===409;return x}return api(C,m,...r)};
++  A.D.getDoc=()=>{if(arm){arm=false;throw new Error('SecurityError')}return gd()};
++  const r=await A.eng.run('guardado');assert.ok(r.fail,'la pasada no terminó');A.D.api=api;A.D.getDoc=gd;
++  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'la quita no llegó (409)');
++  assert.equal((await A.sync()).ok,true);
++  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
++  assert.equal(srv28(a,'user_a').doc.ratings.c2,3,'lo del otro teléfono se queda');
++ }finally{a.done()}});
+ test('LHB-80 (Codex r8): todas las épocas tienen el mismo largo',async()=>{
+  const a=await ENG28();const R=Math.random;
+  try{
