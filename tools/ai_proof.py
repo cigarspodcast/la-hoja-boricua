@@ -36,9 +36,11 @@ run('jev', 'tobacco', lambda: A.jev_choice(
     'Which crop is this sentence about?',
     {'tobacco': 'Tobacco, the leaf that is cured', 'coffee': 'Coffee, the bean that is roasted', 'sugarcane': 'Sugarcane, the stalk that is pressed'},
     T, R)['choice'])
-run('opencode-go', 'hoja', lambda: norm(A.opencode_chat('glm-5.3-flash', [{'role': 'user', 'content': 'Reply with exactly one word, in lowercase, with no punctuation: hoja'}], T, R)))
-# Together: Llama 3.3 70B is not on the OpenCode Go plan (opencode.ai/docs/go, read 2026-10-29), so the not-on-go case applies
-run('together', 'tabaco', lambda: norm(A.together_chat('meta-llama/Llama-3.3-70B-Instruct-Turbo', [{'role': 'user', 'content': 'Reply with exactly one word, in lowercase, with no punctuation: tabaco'}], T, R, case='not-on-go')))
+# max_tokens leaves room for models that spend tokens reasoning before the one-word answer
+run('opencode-go', 'hoja', lambda: norm(A.opencode_chat('glm-5.3-flash', [{'role': 'user', 'content': 'Reply with exactly one word, in lowercase, with no punctuation: hoja'}], T, R, max_tokens=512)))
+# Together: gpt-oss-120b is on Together's serverless list and absent from the Go plan's /models list (both read
+# 2026-10-29), so the not-on-go case applies
+run('together', 'tabaco', lambda: norm(A.together_chat('openai/gpt-oss-120b', [{'role': 'user', 'content': 'Reply with exactly one word, in lowercase, with no punctuation: tabaco'}], T, R, case='not-on-go', max_tokens=512)))
 
 added = subprocess.run(['git', 'diff', BASE, '--', '.'], capture_output=True, text=True, encoding='utf-8', errors='replace').stdout
 added += '\n'.join(open(p, encoding='utf-8', errors='replace').read() for p in subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], capture_output=True, text=True).stdout.split() if os.path.isfile(p))

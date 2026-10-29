@@ -9,7 +9,7 @@ the estate gateway. The rules travel with the code (CLAUDE.md, "AI routes"):
 - Every call appends one line to evidence/ai-calls.log: UTC time with Z, route, model, ticket, reason, HTTP status. No key,
   no request or response text.
 usage (library): from ai_routes import jev_choice, opencode_chat, together_chat"""
-import datetime, json, os, urllib.error, urllib.request
+import datetime, json, os, re, urllib.error, urllib.request, uuid
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 LOG = os.path.join(ROOT, 'evidence', 'ai-calls.log')
@@ -18,6 +18,9 @@ GO_BASE = 'https://opencode.ai/zen/go/v1'
 TOGETHER_URL = 'https://api.together.ai/v1/chat/completions'
 KEYS = {'jev': 'TYPESAFE_API_KEY', 'opencode-go': 'OPENCODE_GO_API_KEY', 'together': 'TOGETHER_API_KEY'}
 TOGETHER_CASES = ('not-on-go', 'go-exhausted')
+# OpenCode Go refuses a request without x-opencode-session (400 MissingSessionID); its docs ask for a stable id per
+# conversation, so one process is one conversation unless the caller passes its own
+GO_SESSION = 'lhb-' + uuid.uuid4().hex
 
 
 class RouteError(Exception):
@@ -69,7 +72,13 @@ def _post(route, url, body, headers, model, ticket, reason, opener=urllib.reques
             data = json.loads(r.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
         status = e.code
-        detail = 'HTTP %d' % e.code
+        try:
+            msg = e.read().decode('utf-8', 'replace')[:300]
+        except Exception:
+            msg = ''
+        # the provider's own message, with the key cut out wherever it appears (a provider may echo part of a bad key)
+        msg = re.sub(r'[A-Za-z0-9_\-]{24,}', '[redacted]', msg.replace(key, '[key]') if key else msg)
+        detail = 'HTTP %d %s' % (e.code, msg)
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
         detail = type(e).__name__
     else:
@@ -87,9 +96,10 @@ def jev_choice(state, instructions, criteria, ticket, reason, model='jev-latest'
     return _post('jev', JEV_URL, body, {}, model, ticket, reason, opener)['answers']['q']
 
 
-def opencode_chat(model, messages, ticket, reason, max_tokens=64, opener=urllib.request.urlopen):
+def opencode_chat(model, messages, ticket, reason, max_tokens=64, session=None, opener=urllib.request.urlopen):
     """one chat completion on the OpenCode Go plan (OpenAI shape). Returns the reply text."""
-    data = _post('opencode-go', GO_BASE + '/chat/completions', {'model': model, 'messages': messages, 'max_tokens': max_tokens}, {}, model, ticket, reason, opener)
+    data = _post('opencode-go', GO_BASE + '/chat/completions', {'model': model, 'messages': messages, 'max_tokens': max_tokens},
+                 {'x-opencode-session': session or GO_SESSION}, model, ticket, reason, opener)
     return data['choices'][0]['message']['content']
 
 

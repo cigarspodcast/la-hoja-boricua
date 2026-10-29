@@ -15,6 +15,8 @@ Rules that travel with the access:
 - **Keys.** A key is read from the environment at the moment of the call. It is never printed, logged, written to a file, committed, quoted in a comment, or stored in any tool's credential store, opencode's own login included. Verify a key by presence and by use only.
 - **Jev data class.** Jev takes data class none only: synthetic text or public site content. Ticket text, code, review notes, database contents, Clerk data and anyone's personal data never go to Jev.
 - **OpenCode Go endpoint.** OpenCode Go is called under `https://opencode.ai/zen/go/v1` only, never anything under `https://opencode.ai/inference`, which is metered.
+- **OpenCode Go session header.** Every Go call carries `x-opencode-session` (the client sends one id per process, or the caller's `session=`); without it Go answers 400 MissingSessionID. Go is meant for coding-agent traffic and is monitored for abuse, so keep calls few and purposeful.
+- **Together serverless models only.** Together answers 400 for a model that needs a dedicated endpoint (for example `meta-llama/Llama-3.3-70B-Instruct-Turbo`); pick from its serverless list.
 - **Together is a fallback only.** Call it when the model is not on the Go plan (`case='not-on-go'`) or when an OpenCode call is refused because the subscription is used up (`case='go-exhausted'`). The client refuses any other case.
 - **Spend.** Jev and Together are paid. Before the first Jev call on a ticket, post a reason comment on that ticket. At most 10 Jev calls per ticket go without the owner's yes.
 - **Call log.** Every call appends one line to `evidence/ai-calls.log`, tab-separated: UTC time with Z, route, model, ticket, reason, HTTP status. It holds no key and no request or response text.

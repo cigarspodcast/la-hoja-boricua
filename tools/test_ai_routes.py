@@ -69,6 +69,9 @@ class T(unittest.TestCase):
         self.assertEqual(A.opencode_chat('glm-5.3-flash', [{'role': 'user', 'content': 'x'}], 'LHB-79', 'proof', opener=o), 'hoja')
         self.assertTrue(o.req.full_url.startswith('https://opencode.ai/zen/go/v1/'))
         self.assertNotIn('/inference', o.req.full_url)
+        self.assertEqual(o.req.get_header('X-opencode-session'), A.GO_SESSION, 'Go refuses a call without a session id')
+        A.opencode_chat('glm-5.3-flash', [{'role': 'user', 'content': 'x'}], 'LHB-79', 'proof', session='conv-2', opener=o)
+        self.assertEqual(o.req.get_header('X-opencode-session'), 'conv-2')
 
     def test_together_needs_a_case(self):
         o = Opener({'choices': [{'message': {'content': 'tabaco'}}]})

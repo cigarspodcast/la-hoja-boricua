@@ -1,0 +1,6 @@
+no session header                        RED (caught)
+caller session ignored                   RED (caught)
+key not cut from the provider message    RED (caught)
+Go under /inference                      RED (caught)
+Together without a case check            RED (caught)
+RESULT 5 of 5 red

@@ -1,0 +1,23 @@
+test_jev_body_headers_and_log (tools.test_ai_routes.T.test_jev_body_headers_and_log) ... C:\Users\Owner\lhb-79-wt\tools\test_ai_routes.py:51: ResourceWarning: unclosed file <_io.TextIOWrapper name='C:\\Users\\Owner\\AppData\\Local\\Temp\\tmpj3nze18t\\ai-calls.log' mode='r' encoding='utf-8'>
+  return open(A.LOG, encoding='utf-8').read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_no_key_no_call (tools.test_ai_routes.T.test_no_key_no_call) ... C:\Users\Owner\lhb-79-wt\tools\test_ai_routes.py:51: ResourceWarning: unclosed file <_io.TextIOWrapper name='C:\\Users\\Owner\\AppData\\Local\\Temp\\tmpoeyo5i2n\\ai-calls.log' mode='r' encoding='utf-8'>
+  return open(A.LOG, encoding='utf-8').read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_opencode_never_inference (tools.test_ai_routes.T.test_opencode_never_inference) ... ok
+test_refusal_is_recorded_not_retried_and_hides_the_key (tools.test_ai_routes.T.test_refusal_is_recorded_not_retried_and_hides_the_key) ... C:\Users\Owner\lhb-79-wt\tools\test_ai_routes.py:51: ResourceWarning: unclosed file <_io.TextIOWrapper name='C:\\Users\\Owner\\AppData\\Local\\Temp\\tmpp4cyns6_\\ai-calls.log' mode='r' encoding='utf-8'>
+  return open(A.LOG, encoding='utf-8').read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_ticket_and_reason_required (tools.test_ai_routes.T.test_ticket_and_reason_required) ... ok
+test_together_needs_a_case (tools.test_ai_routes.T.test_together_needs_a_case) ... C:\Users\Owner\lhb-79-wt\tools\test_ai_routes.py:51: ResourceWarning: unclosed file <_io.TextIOWrapper name='C:\\Users\\Owner\\AppData\\Local\\Temp\\tmp1pb2sluh\\ai-calls.log' mode='r' encoding='utf-8'>
+  return open(A.LOG, encoding='utf-8').read()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.028s
+
+OK

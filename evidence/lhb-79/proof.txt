@@ -1,0 +1,11 @@
+2026-10-29T14:05:49Z
+key TYPESAFE_API_KEY     present
+key OPENCODE_GO_API_KEY  present
+key TOGETHER_API_KEY     present
+jev          answered; expected 'tobacco', got 'tobacco' -> PASS
+opencode-go  answered; expected 'hoja', got 'hoja' -> PASS
+together     answered; expected 'tabaco', got 'tabaco' -> PASS
+leak check TYPESAFE_API_KEY     first or last four characters in the added lines: not found
+leak check OPENCODE_GO_API_KEY  first or last four characters in the added lines: not found
+leak check TOGETHER_API_KEY     first or last four characters in the added lines: not found
+RESULT jev pass, opencode-go pass, together pass
