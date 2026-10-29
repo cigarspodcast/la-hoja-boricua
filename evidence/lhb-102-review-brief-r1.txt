@@ -1,0 +1,24 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-102-wt (branch lhb-102-uploads, PR to main). The diff below is base f487421 (origin/main) to HEAD. TIER 1: one round.
+
+Ticket LHB-102: a stored vb_uploads that is not an array (for example {} from corrupted or hand-edited site data) made app.js allCigars throw (uploads().map), so every view that lists cigars broke; your round 2 review of LHB-100 used it as a reproduction (#/buscar with vb_uploads={}).
+Scope: site/app.js (uploads reader), site/hoja.js only if it reads the same key unguarded, site/sw.js (cache), test/site.test.js, evidence/.
+Pinned decisions:
+- A stored value that is not an array of objects reads as an empty list; nothing throws into a render.
+- The stored value is not rewritten or deleted by a read.
+Not mine: the boot guard (LHB-100).
+
+What changed:
+- app.js: uploads() returns the stored list's objects (not null, not arrays, typeof object) when the stored value is an array, else [].
+- hoja.js: legacyList(k) applies the same rule over legacy(k); used for subidas in exportar() and for the existing list in importar()'s byId merge.
+- sw.js: lhb-v105 to lhb-v108 (lhb-v106 and lhb-v107 are taken by the facelift branch and PR #36), 21 test pins.
+- Test LHB-102: runs app.js's real LS, D/setData and uploads/allCigars source in a vm with a fake localStorage for {}, "x", null, 7, true, an object with numeric keys, a list with junk, nothing, and a good list; checks the stored value is unchanged after the read; and runs hoja.js's real exportar/importar through HOJA38 with a broken stored value and with a good one.
+
+Evidence: evidence/lhb-102-mutations.out 6 of 6 red (the original main code, no list check, junk kept, a read that rewrites, export and import reverted); evidence/lhb-102-tests.txt 304 pass, 0 fail, 1 skipped; evidence/lhb-102/browser.out headless Chrome before (main throws and leaves the catalog blank for {}, "x", null; a junk list adds 3 junk cards) and after (all PASS: 48 cards, 49 with one real upload, no errors, stored value unchanged).
+
+Check in particular:
+- Is every reader of vb_uploads now safe (search the code, including views that read uploads() and write it back on delete or save)?
+- Does a write after a read (saving or deleting an upload) lose anything a person had, with a junk list stored?
+- Does filtering change anything for a good stored list (order, fields, yours flag)?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
