@@ -9,7 +9,8 @@ if os.path.exists(D):
 shutil.copytree(WT, D, ignore=shutil.ignore_patterns('.git', 'node_modules'))
 PAT = 'LHB-68'
 LC, UC, PV, PG, UH = 'site/lugares/l.css', 'site/u.css', 'site/privacidad.html', 'site/lugares/612-c-lounge-arecibo.html', 'functions/u/[handle].js'
-FILES = (LC, UC, PV, PG, UH)
+SW = 'site/sw.js'
+FILES = (LC, UC, PV, PG, UH, SW)
 
 
 def runp():
@@ -47,6 +48,8 @@ M = [
     ('G10 a lounge page without l.css', lambda: edit(PG, '<link rel="stylesheet" href="l.css">', '')),
     ('G11 white text on the scrim card (u.css .pp-x)', lambda: edit(UC, '.pp-x{position:absolute;top:8px;right:12px;font-size:28px;line-height:1;text-decoration:none;color:var(--on-surface);', '.pp-x{position:absolute;top:8px;right:12px;font-size:28px;line-height:1;text-decoration:none;color:#FFFFFF;')),
     ('G12 the passport CSP without font-src (Codex round 1)', lambda: edit(UH, "font-src 'self'; ", '')),
+    ('G13 the service worker cache not bumped (Codex round 2)', lambda: edit(SW, "const VERSION='lhb-v92';", "const VERSION='lhb-v91';")),
+    ('G14 activate keeps the old caches (Codex round 2)', lambda: edit(SW, "ks.filter(k=>k!==VERSION&&k!=='vb-tiles')", "ks.filter(k=>false)")),
 ]
 red = 0
 for name, mut in M:
