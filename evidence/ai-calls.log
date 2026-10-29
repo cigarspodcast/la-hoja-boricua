@@ -1,0 +1,11 @@
+2026-10-29T14:00:25Z	jev	jev-latest	LHB-79	proof call, known answer	200
+2026-10-29T14:00:25Z	opencode-go	glm-5.3-flash	LHB-79	proof call, known answer	400
+2026-10-29T14:00:27Z	together	meta-llama/Llama-3.3-70B-Instruct-Turbo	LHB-79	proof call, known answer [not-on-go]	400
+2026-10-29T14:03:59Z	opencode-go	glm-5.3-flash	LHB-79	diagnose the 400 from the proof run	400
+2026-10-29T14:04:00Z	together	meta-llama/Llama-3.3-70B-Instruct-Turbo	LHB-79	diagnose the 400 from the proof run [not-on-go]	400
+2026-10-29T14:05:50Z	jev	jev-latest	LHB-79	proof call, known answer	200
+2026-10-29T14:05:51Z	opencode-go	glm-5.3-flash	LHB-79	proof call, known answer	200
+2026-10-29T14:05:53Z	together	openai/gpt-oss-120b	LHB-79	proof call, known answer [not-on-go]	200
+2026-10-29T14:19:57Z	jev	jev-latest	LHB-79	proof call, known answer	200
+2026-10-29T14:19:58Z	opencode-go	glm-5.3-flash	LHB-79	proof call, known answer	200
+2026-10-29T14:20:01Z	together	openai/gpt-oss-120b	LHB-79	proof call, known answer [not-on-go]	200

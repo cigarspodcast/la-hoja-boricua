@@ -1,6 +1,16 @@
 no session header                        RED (caught)
 caller session ignored                   RED (caught)
-key not cut from the provider message    RED (caught)
 Go under /inference                      RED (caught)
 Together without a case check            RED (caught)
-RESULT 5 of 5 red
+1 redirects followed                     RED (caught)
+2 provider text kept, key cut            RED (caught)
+3 only some transport errors caught      RED (caught)
+4 echo checked in raw text only          RED (caught)
+5a log file not scanned                  RED (caught)
+5b net diff instead of every commit      RED (caught)
+5c file names split on spaces            RED (caught)
+5d git failure ignored                   RED (caught)
+6a missing ticket not logged             RED (caught)
+6b bad case not logged                   RED (caught)
+7 carriage return kept                   RED (caught)
+RESULT 15 of 15 red

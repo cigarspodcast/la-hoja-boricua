@@ -1,6 +1,6 @@
 """LHB-79: tests for tools/ai_routes.py with a fake opener; no network, and a fake key set only in this process.
 usage: python -m unittest tools/test_ai_routes.py   (from the repo root)"""
-import io, json, os, sys, tempfile, unittest, urllib.error
+import io, json, os, subprocess, sys, tempfile, unittest, urllib.error
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ai_routes as A
@@ -48,7 +48,8 @@ class T(unittest.TestCase):
             os.environ.pop(n, None)
 
     def log(self):
-        return open(A.LOG, encoding='utf-8').read()
+        with open(A.LOG, encoding='utf-8') as f:
+            return f.read()
 
     def test_jev_body_headers_and_log(self):
         o = Opener({'answers': {'q': {'type': 'choice', 'choice': 'b', 'confidence': .9, 'probabilities': {'a': .1, 'b': .9}}}})
@@ -106,10 +107,177 @@ class T(unittest.TestCase):
         self.assertIn('no-key', self.log())
 
     def test_ticket_and_reason_required(self):
+        o = Opener({})
+        for t, r in (('', 'proof'), ('LHB-79', ''), ('LHB-79', '   '), (None, 'proof')):
+            with self.assertRaises(A.RouteError):
+                A.opencode_chat('m', [], t, r, opener=o)
+        # Together tags the case onto the reason; an empty reason is still refused, not passed as " [not-on-go]"
+        with self.assertRaises(A.RouteError):
+            A.together_chat('m', [], 'LHB-79', '', case='not-on-go', opener=o)
+        self.assertIsNone(o.req, 'nothing is sent')
+
+    # ---- Codex ronda 1 ----
+    def lines(self):
+        return self.log().splitlines()
+
+    def test_refusals_before_sending_are_logged_once(self):
+        o = Opener({})
+        with self.assertRaises(A.RouteError):
+            A.opencode_chat('m', [], '', 'proof', opener=o)
+        self.assertEqual(len(self.lines()), 1)
         with self.assertRaises(ValueError):
-            A.opencode_chat('m', [], '', 'proof', opener=Opener({}))
-        with self.assertRaises(ValueError):
-            A.opencode_chat('m', [], 'LHB-79', '', opener=Opener({}))
+            A.together_chat('m', [], 'LHB-79', 'proof', case='default', opener=o)
+        self.assertEqual(len(self.lines()), 2)
+        circular = []
+        circular.append(circular)
+        with self.assertRaises(A.RouteError):
+            A._post('jev', A.JEV_URL, {'x': circular}, {}, 'jev-latest', 'LHB-79', 'proof', o)
+        self.assertEqual(len(self.lines()), 3)
+        self.assertIsNone(o.req)
+        self.assertTrue(all(l.split('\t')[5].startswith('refused') for l in self.lines()))
+
+    def test_line_breaks_never_split_a_log_line(self):
+        o = Opener({'choices': [{'message': {'content': 'x'}}]})
+        A.opencode_chat('m\u2028x', [{'role': 'user', 'content': 'x'}], 'LHB-79', 'reason\rsecond\x85third\u2029fourth\tfifth', opener=o)
+        self.assertEqual(len(self.lines()), 1)
+        self.assertEqual(len(self.lines()[0].split('\t')), 6)
+
+    def test_provider_error_text_is_never_kept(self):
+        esc = ''.join('\\u%04x' % ord(c) for c in FAKE)
+        bodies = [
+            b'{"error":{"type":"MissingSessionID","message":"bad key ' + FAKE.encode() + b'"}}',
+            b'{"error":{"message":"' + b'x' * 292 + FAKE.encode() + b'"}}',
+            b'{"error":{"message":"' + esc.encode() + b'"}}',
+            b'{"error":{"type":"' + FAKE[2:20].encode() + b'","message":"m"}}',
+            b'not json ' + FAKE[-8:].encode(),
+        ]
+        for i, b in enumerate(bodies):
+            err = urllib.error.HTTPError('https://opencode.ai', 400, 'Bad', {}, io.BytesIO(b))
+            with self.assertRaises(A.RouteError) as c:
+                A.opencode_chat('m', [], 'LHB-79', 'proof', opener=Opener(error=err))
+            text = str(c.exception) + c.exception.detail
+            for j in range(len(FAKE) - 5):
+                self.assertNotIn(FAKE[j:j + 6], text, 'body %d leaks part of the key' % i)
+        # the error kind alone is kept, so a refusal still says why
+        err = urllib.error.HTTPError('https://opencode.ai', 400, 'Bad', {}, io.BytesIO(bodies[0]))
+        with self.assertRaises(A.RouteError) as c:
+            A.opencode_chat('m', [], 'LHB-79', 'proof', opener=Opener(error=err))
+        self.assertEqual(c.exception.detail, 'HTTP 400 MissingSessionID')
+        self.assertNotIn(FAKE[:6], self.log())
+
+    def test_transport_exceptions_are_named_not_quoted_and_logged(self):
+        import http.client
+        for exc in (http.client.BadStatusLine(FAKE), http.client.IncompleteRead(FAKE.encode()), RuntimeError(FAKE)):
+            with self.assertRaises(A.RouteError) as c:
+                A.jev_choice('x', 'y', {'a': 'a'}, 'LHB-79', 'proof', opener=Opener(error=exc))
+            self.assertNotIn(FAKE, str(c.exception) + c.exception.detail)
+            self.assertNotIn(FAKE[:6], str(c.exception))
+        self.assertEqual(len(self.lines()), 3, 'one line per call')
+
+    def test_an_answer_that_echoes_the_key_is_dropped(self):
+        esc = ''.join('\\u%04x' % ord(c) for c in FAKE)
+        for body in ({'choices': [{'message': {'content': FAKE}}]}, None):
+            if body is None:
+                class R(Resp):
+                    def __init__(self):
+                        self.status, self._b = 200, ('{"choices":[{"message":{"content":"' + esc + '"}}]}').encode()
+                o = lambda req, timeout=None: R()
+            else:
+                o = Opener(body)
+            with self.assertRaises(A.RouteError) as c:
+                A.opencode_chat('m', [], 'LHB-79', 'proof', opener=o)
+            self.assertEqual(c.exception.status, 'key-echo')
+            self.assertNotIn(FAKE, str(c.exception))
+        self.assertIn('\tkey-echo', self.log())
+
+    def test_redirects_are_not_followed(self):
+        import http.server, threading
+        hits = []
+
+        class B(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                hits.append(self.headers.get('Authorization'))
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'{}')
+            do_GET = do_POST
+
+            def log_message(self, *a):
+                pass
+        sb = http.server.HTTPServer(('127.0.0.1', 0), B)
+
+        class R(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.send_response(302)
+                self.send_header('Location', 'http://127.0.0.1:%d/inference/go/v1/chat/completions' % sb.server_port)
+                self.end_headers()
+
+            def log_message(self, *a):
+                pass
+        # 302: urllib follows it for a POST (as a GET, still carrying Authorization); 307 it would refuse by itself
+        sr = http.server.HTTPServer(('127.0.0.1', 0), R)
+        for s in (sb, sr):
+            threading.Thread(target=s.handle_request, daemon=True).start()
+        try:
+            with self.assertRaises(A.RouteError) as c:
+                A._post('opencode-go', 'http://127.0.0.1:%d/zen/go/v1/chat/completions' % sr.server_port, {}, {}, 'm', 'LHB-79', 'proof')
+            self.assertEqual(c.exception.status, 302)
+            self.assertEqual(hits, [], 'the key never reaches the redirect target')
+        finally:
+            sb.server_close()
+            sr.server_close()
+
+
+class LeakScan(unittest.TestCase):
+    """Codex ronda 1: the proof's leak check reads everything the branch adds, and fails instead of looking clean"""
+    def setUp(self):
+        import ai_proof
+        self.P = ai_proof
+        self.cwd = os.getcwd()
+        self.d = tempfile.mkdtemp()
+        os.chdir(self.d)
+        g = lambda *a: subprocess.run(['git'] + list(a), check=True, capture_output=True)
+        self.g = g
+        g('init', '-q')
+        g('config', 'user.email', 't@example.invalid')
+        g('config', 'user.name', 't')
+        with open('.gitignore', 'w') as f:
+            f.write('*.log\n')
+        g('add', '.gitignore')
+        g('commit', '-q', '-m', 'base')
+        self.base = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
+        self.log0 = A.LOG
+
+    def tearDown(self):
+        os.chdir(self.cwd)
+        A.LOG = self.log0
+
+    def test_it_finds_a_key_wherever_the_branch_put_it(self):
+        k1, k2, k3, k4 = 'KONE' + 'x' * 20, 'KTWO' + 'y' * 20, 'KTHR' + 'z' * 20, 'KFOU' + 'w' * 20
+        with open('cfg.txt', 'w') as f:
+            f.write(k1 + '\n')
+        self.g('add', 'cfg.txt')
+        self.g('commit', '-q', '-m', 'add')
+        os.remove('cfg.txt')
+        self.g('commit', '-q', '-am', 'remove')
+        with open('a b.txt', 'w') as f:
+            f.write('- ' + k2 + '\n')
+        A.LOG = os.path.join(self.d, 'evidence', 'ai-calls.log')
+        os.makedirs(os.path.dirname(A.LOG))
+        with open(A.LOG, 'w') as f:
+            f.write('@' + k3 + '\n')
+        with open('.gitignore', 'a') as f:
+            f.write(k4 + '\n')
+        text, n = self.P.added_text(self.base)
+        self.assertIn(k1, text, 'committed and then removed')
+        self.assertIn(k2, text, 'untracked file with a space in its name, line starting with -')
+        self.assertIn(k3, text, 'the call log, ignored by *.log')
+        self.assertIn(k4, text, 'an uncommitted change to a tracked file')
+
+    def test_git_failure_is_not_clean(self):
+        with self.assertRaises(SystemExit) as c:
+            self.P.added_text('no-such-commit')
+        self.assertEqual(c.exception.code, 3)
 
 
 if __name__ == '__main__':
