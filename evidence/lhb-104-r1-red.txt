@@ -1,0 +1,70 @@
+✖ LHB-104 (Codex r1): una pestaña quita su subida rechazada mientras otra anota la suya: la de la otra sigue anotada, salir pone la valla y la otra ya no llega (237.7652ms)
+✖ LHB-104 (Codex r1): otra pestaña anota y manda su subida después de que esta revisó la cuenta: salir no borra (431.0843ms)
+✖ LHB-104 (Codex r1): otra pestaña sabe que la quita llegó, la persona volvió a poner a1 y el almacenamiento falla antes de subir: al recargar, a1 sigue (134.201ms)
+✖ LHB-104 (Codex r1): treinta subidas sin respuesta con el mismo If-Match no llenan el almacenamiento: cuando vuelve la red, sube (224.3833ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1214.8779
+
+✖ failing tests:
+
+test at test\site.test.js:6660:1
+✖ LHB-104 (Codex r1): una pestaña quita su subida rechazada mientras otra anota la suya: la de la otra sigue anotada, salir pone la valla y la otra ya no llega (237.7652ms)
+  AssertionError [ERR_ASSERTION]: la subida de la otra pestaña ya no puede llegar
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r1\test\site.test.js:6676:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 409,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6679:1
+✖ LHB-104 (Codex r1): otra pestaña anota y manda su subida después de que esta revisó la cuenta: salir no borra (431.0843ms)
+  AssertionError [ERR_ASSERTION]: una subida de otra pestaña todavía puede llegar: no se borra nada
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r1\test\site.test.js:6696:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6699:1
+✖ LHB-104 (Codex r1): otra pestaña sabe que la quita llegó, la persona volvió a poner a1 y el almacenamiento falla antes de subir: al recargar, a1 sigue (134.201ms)
+  AssertionError [ERR_ASSERTION]: en el teléfono
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r1\test\site.test.js:6713:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6715:1
+✖ LHB-104 (Codex r1): treinta subidas sin respuesta con el mismo If-Match no llenan el almacenamiento: cuando vuelve la red, sube (224.3833ms)
+  AssertionError [ERR_ASSERTION]: sube
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r1\test\site.test.js:6725:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

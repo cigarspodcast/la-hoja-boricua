@@ -12,15 +12,21 @@ SY = 'site/sync.js'
 
 MUTS = [
     (SY, 'settled ignores the other tabs (before LHB-104)', "  try{if(shRead().some(e=>e.s===acc.sub))return {ok:false,why:'pending'}}catch(e){return {ok:false,why:'pending'}}", ''),
-    (SY, 'the upload is not recorded for the other tabs', 'shWrite(shRead().concat([{s:uid,r:rev,o:op}]));', ''),
+    (SY, 'the upload is not recorded for the other tabs', 'const op=newOp(),sk=shAdd(uid,rev,op);', 'const op=newOp(),sk=null;'),
     (SY, 'no fence for an upload of another tab', '||evict.get(uid)===rev||shLive;', '||evict.get(uid)===rev;'),
     (SY, 'an upload of another tab that may have landed keeps the base', 'e.r+1>=g.body.opsFrom))voided=true}}', 'e.r+1>=g.body.opsFrom)){}}}'),
     (SY, 'the uploads of other tabs are never asked about', 'other=room?oth.slice(-room).map(e=>e.o):[]', 'other=[]'),
     (SY, 'more ids are asked than the server takes', 'other=room?oth.slice(-room).map(e=>e.o):[]', 'other=oth.slice(-OPS_ASK).map(e=>e.o)'),
-    (SY, 'this tab counts its own dropped uploads as another tab', 'const own=myOps.delete(e.o);if(!mineOps.has(e.o)&&!own){', 'myOps.delete(e.o);if(!mineOps.has(e.o)){'),
-    (SY, 'a 200 leaves the older uploads of the other tabs listed', '    shWrite(shRead().filter(e=>!(e.s===uid&&e.r<=rev)))}', '    }'),
-    (SY, 'a clear rejection leaves the upload listed', 'pend=pend.filter(x=>x.op!==op);shWrite(shRead().filter(e=>e.o!==op))}', 'pend=pend.filter(x=>x.op!==op)}'),
-    (SY, 'an upload past the account rev stays listed', 'for(const e of sh){if(e.s!==uid||e.r>=rev){keep.push(e);', 'for(const e of sh){if(true){keep.push(e);'),
+    (SY, 'this tab counts its own dropped uploads as another tab', 'if(!(e.o&&mineOps.has(e.o))&&!own){', 'if(!(e.o&&mineOps.has(e.o))){'),
+    (SY, 'a 200 leaves the older uploads of the other tabs listed', '    for(const e of shRead())if(e.s===uid&&e.r<=rev)shDel(e)}', '    }'),
+    (SY, 'a clear rejection leaves the upload listed', '{pend=pend.filter(x=>x.op!==op);if(sk===PEND+op)shDel({k:sk})}', '{pend=pend.filter(x=>x.op!==op)}'),
+    (SY, 'an upload past the account rev stays listed', 'if(e.r>=rev){if(e.r===rev)shLive=true;continue}', 'if(true){if(e.r===rev)shLive=true;continue}'),
+    (SY, 'r1: sign-out does not look at the uploads again behind its fence', 'if(sh.some(e=>subs.includes(e.s)))return back()', ''),
+    (SY, 'r1: the evidence is removed before the base is struck', 'if(gone.length){if(voided&&!poison())return {fail:\'storage\'};', 'if(gone.length){'),
+    (SY, 'r1: no bound on the uploads listed for one If-Match', 'const full=shRead().filter(e=>e.s===uid&&e.r===rev).length>=OPS_ASK;', 'const full=false;'),
+    (SY, 'r1: the overflow key of this tab counts as another tab', 'const own=e.o?myOps.delete(e.o):myX.delete(e.k);', 'const own=e.o?myOps.delete(e.o):false;'),
+    (SY, 'r1: no second look at the fence after the upload is listed', "  if(fenced()){if(!had){try{D.ls.remove(k)}catch(e){}}throw new Error('fenced')}", ''),
+    ('site/hoja.js', 'r1: the page gives the engine no list of keys', 'keys:()=>{const o=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k!=null)o.push(k)}return o}', 'keys:()=>[]'),
 ]
 
 EQUIV = {}

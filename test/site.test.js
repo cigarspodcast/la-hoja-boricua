@@ -6650,6 +6650,96 @@ test('LHB-104: esta pestaña tiene una subida sin respuesta y otra pestaña nuev
   const T2=SYNC28().LHB_SYNC(A.D);await T2.run('x');
   off=false;const r=await T2.run('y');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
  }finally{a.done()}});
+/* LHB-104 (Codex r1): una pestaña con ganchos en su almacenamiento (h.get/h.keys después de leer; h.set/h.remove antes de escribir) sobre el mismo de A */
+const isP104=k=>typeof k==='string'&&k.startsWith('lhb_mihoja_v1_pend');
+const mk104=(A,h)=>({...A.D,ls:{get:k=>{const v=A.D.ls.get(k);if(h.get)h.get(k);return v},set:(k,v)=>{if(h.set)h.set(k,v);A.D.ls.set(k,v)},remove:k=>{if(h.remove)h.remove(k);A.D.ls.remove(k)},keys:()=>{const v=A.D.ls.keys();if(h.keys)h.keys();return v}}});
+test('LHB-104 (Codex r1): una pestaña quita su subida rechazada mientras otra anota la suya: la de la otra sigue anotada, salir pone la valla y la otra ya no llega',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  let armed=false,C0=null;const OP='otra_pestana_op';
+  /* la otra pestaña anota su subida justo entre la lectura y la escritura de esta */
+  const otra=k=>{if(k==='lhb_mihoja_v1_pend'){const v=JSON.parse(A.ls.get(k)||'{"v":1,"l":[]}');v.l.push({s:'user_a',r:1,o:OP});A.ls.set(k,JSON.stringify(v))}else A.ls.set('lhb_mihoja_v1_pend.'+OP,JSON.stringify({v:1,s:'user_a',r:1,o:OP}))};
+  const fire=k=>{if(armed&&isP104(k)){armed=false;otra(k)}};
+  const D2=mk104(A,{get:fire,remove:fire}),api=A.D.api;
+  D2.api=async(C,m,...r)=>{C0=C;if(m==='PUT'){armed=true;return {status:400,body:{error:'bad'}}}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});const T2=SYNC28().LHB_SYNC(D2);assert.equal((await T2.run('x')).fail,'put-400');
+  A.edit(d=>{d.ratings.c2=undefined;delete d.ratings.c2});
+  const T3=SYNC28().LHB_SYNC(A.D);A.D.wait=async()=>{};
+  const st=await T3.settled({});assert.equal(st.ok,true);assert.equal(await T3.forget(st.mark),true);
+  const sin={...DOC28,favs:{...DOC28.favs,artesanos:[]}};
+  assert.equal((await api(C0,'PUT','/api/mihoja',{schema:1,doc:sin},'user_a',{'If-Match':'1','X-Op':OP})).status,409,'la subida de la otra pestaña ya no puede llegar');
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): otra pestaña anota y manda su subida después de que esta revisó la cuenta: salir no borra',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let open=null,paused=false,late=null;
+  A.D.api=async(C,m,path,...r)=>{
+   if(m==='GET'&&!paused){paused=true;const g=await api(C,m,path,...r);await new Promise(res=>{open=res});return g}
+   if(m==='PUT'&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}
+   return api(C,m,path,...r)};
+  /* la pasada de la pestaña 1 ya leyó la copia sin a1 y espera la cuenta; la persona vuelve a poner a1 */
+  A.edit(d=>{d.favs.artesanos=[]});const p1=A.eng.run('guardado');
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la pasada espera');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  const T2=SYNC28().LHB_SYNC(A.D);A.D.wait=async()=>{};
+  const st=await T2.settled({});assert.equal(st.ok,true,'todavía no hay nada anotado');
+  open();await p1;assert.ok(late,'la quita salió y su respuesta no llegó');
+  assert.equal(await T2.forget(st.mark),false,'una subida de otra pestaña todavía puede llegar: no se borra nada');
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'la copia sigue');
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): otra pestaña sabe que la quita llegó, la persona volvió a poner a1 y el almacenamiento falla antes de subir: al recargar, a1 sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  /* en cuanto la pestaña 2 quita la anotación, el almacenamiento deja de leerse */
+  let armed=false;const boom=()=>{if(armed)throw new Error('SecurityError')};const mut=k=>{if(isP104(k)){boom();armed=true}};
+  const D2=mk104(A,{get:k=>{if(isP104(k))boom()},keys:boom,set:mut,remove:mut});
+  const T2=SYNC28().LHB_SYNC(D2);assert.equal((await T2.run('x')).fail,'storage');
+  const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): treinta subidas sin respuesta con el mismo If-Match no llenan el almacenamiento: cuando vuelve la red, sube',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* lo anotado de las subidas cabe en 900 caracteres, entre todas sus llaves */
+  const D2=mk104(A,{set:(k,v)=>{if(!isP104(k))return;let n=String(v).length;for(const [x,w] of A.ls)if(isP104(x)&&x!==k)n+=String(w).length;if(n>900)throw new Error('QuotaExceededError')}});
+  const api=A.D.api;let off=true;D2.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
+  const T=SYNC28().LHB_SYNC(D2);A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<30;i++)await T.run('x');
+  off=false;assert.equal((await T.run('x')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+  assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): la valla de salir se pone justo mientras esta pestaña anota su subida: no se manda y no queda anotada',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  let once=true,puts=0;const D2=mk104(A,{set:k=>{if(once&&isP104(k)){once=false;A.ls.set('lhb_mihoja_v1_saliendo',String(A.st.clock))}}});
+  const api=A.D.api;D2.api=async(C,m,...r)=>{if(m==='PUT')puts++;return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});const T2=SYNC28().LHB_SYNC(D2);const r=await T2.run('x');
+  assert.ok(r.fail,'la pasada no terminó');assert.equal(puts,0,'no se mandó');assert.equal([...A.ls.keys()].filter(isP104).length,0,'no quedó anotada');
+  assert.equal(srv28(a,'user_a').rev,1);
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): hoja.js le da al motor la lista de llaves del almacenamiento (ahí están las subidas de las otras pestañas)',()=>{
+ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
+ const i=src.indexOf('SYNC=window.LHB_SYNC({ls:'),j=src.indexOf(',getDoc:',i);assert.ok(i>=0&&j>i);
+ const m=new Map([['lhb_mihoja_v1','{}'],['lhb_mihoja_v1_pend.abcdefgh','{"v":1}'],['vb_cuenta2','{}']]);
+ const localStorage={getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>{m.set(k,String(v))},removeItem:k=>{m.delete(k)},key:n=>[...m.keys()][n]??null,get length(){return m.size}};
+ const ls=vm.runInNewContext('('+src.slice(i+'SYNC=window.LHB_SYNC({ls:'.length,j)+')',{localStorage});
+ assert.equal(typeof ls.keys,'function','hay keys');assert.deepEqual([...ls.keys()].sort(),[...m.keys()].sort());
+});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{
