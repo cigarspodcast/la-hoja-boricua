@@ -705,7 +705,9 @@ function zonaSheet(k){const l=ruta().z[k];sheet(`<div class="zcel">${zSello(k,1,
 let CELEB=null;const lessMotion=()=>!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 function celebrate(arg,on,badge,st,repaint){CELEB=null;if(!on||lessMotion())return;if(repaint){CELEB={arg,badge:badge||null,at:Date.now()};return}
  if(st&&st.classList){st.classList.add('is-new');setTimeout(()=>st.classList.remove('is-new'),900)}}
-function celebrated(){const c=CELEB;CELEB=null;if(!c||Date.now()-c.at>2000||lessMotion())return null;setTimeout(()=>$$('.is-new').forEach(e=>e.classList.remove('is-new')),900);return c}
+function celebrated(){const c=CELEB;CELEB=null;if(!c||Date.now()-c.at>2000||lessMotion())return null;return c}
+/* cada pintura le quita la clase solo a lo suyo: la limpieza de un sello anterior no corta la de uno nuevo (Codex ronda 1) */
+function settle(c){if(!c)return;const els=[...view.querySelectorAll('.is-new')];setTimeout(()=>els.forEach(e=>e.classList.remove('is-new')),900)}
 function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got=badgeIds();const pct=all.total?Math.round(c.total*100/all.total):0;const cel=celebrated();
  const sec=(k,title,items,name,sub)=>`<div class="section-title"><h2>${title}</h2><span class="count">${tt('h.de2',{a:c[k],b:all[k]})}</span></div><div class="pbar" role="progressbar" aria-label="${tt('h.de3',{a:title,b:c[k],c:all[k]})}" aria-valuemin="0" aria-valuemax="${all[k]}" aria-valuenow="${c[k]}"><i style="width:${all[k]?c[k]*100/all[k]:0}%"></i></div>
   <div class="stamps">${items.map(x=>{const on=isStamp(k,x.id);return `<button type="button" class="stamp${cel&&cel.arg===k+':'+x.id?' is-new':''}" data-stamp="${k}:${esc(x.id)}" aria-pressed="${on}">${A.mono(name(x),44)}<b>${esc(name(x))}</b><small>${esc(sub(x)||'')}</small><span>${on?tt('h.selladoEl',{d:fmtF(S().pasaporte[k][x.id])}):tt('h.sinSello')}</span></button>`}).join('')}</div>`;
@@ -717,7 +719,7 @@ function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got
  ${sec('artesanos',tt('arts.eyebrow'),d.artesanos,x=>x.nombre,x=>x.pueblo)}
  ${sec('cigarros',tt('h.cigarros2'),d.cigarros,x=>x.nombre,x=>A.artisanName(x))}
  ${sec('lugares',tt('lug.eyebrow'),d.places,x=>x.nombre,x=>x.pueblo)}
- ${backupPanel()}`}
+ ${backupPanel()}`;settle(cel)}
 function vFavoritos(){const s=S(),d=D();const cs=s.favs.cigarros.map(A.cigarById).filter(Boolean),as=s.favs.artesanos.map(A.artisanById).filter(Boolean),ps=s.favs.lugares.map(id=>d.places.find(p=>p.id===id)).filter(Boolean);
  view.innerHTML=`${subnav('favoritos')}
  <div class="section-title"><h2>${tt('h.cigarros2')}</h2><span class="count">${cs.length}</span></div>${cs.length?`<div class="grid">${cs.map(A.cigarCard).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnUnCigarro')+'</div>'}

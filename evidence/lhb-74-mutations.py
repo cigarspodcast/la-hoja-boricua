@@ -41,6 +41,7 @@ M = [
     ('L10 one cycle color has the wrong surface', lambda: edit(CSS, '.stamps .stamp:nth-child(4n)[aria-pressed="true"]{border-color:var(--warn-ink);background:var(--warn-soft)}', '.stamps .stamp:nth-child(4n)[aria-pressed="true"]{border-color:var(--warn-ink);background:var(--info-soft)}')),
     ('L11 the celebration is stored', lambda: edit(HJ, "if(repaint){CELEB={arg,badge:badge||null,at:Date.now()};return}", "if(repaint){CELEB={arg,badge:badge||null,at:Date.now()};try{localStorage.setItem('vb_celeb',arg)}catch(e){}return}")),
     ('L12 the public profile gains a field', lambda: edit(PP, 'avatar_key: av.error ? null : av.avatar_key', 'avatar_key: av.error ? null : av.avatar_key, insignias: 0')),
+    ('L15 (Codex r1) one cleanup clears every celebration on the page', lambda: edit(HJ, "function settle(c){if(!c)return;const els=[...view.querySelectorAll('.is-new')];setTimeout(()=>els.forEach(e=>e.classList.remove('is-new')),900)}", "function settle(c){if(!c)return;setTimeout(()=>view.querySelectorAll('.is-new').forEach(e=>e.classList.remove('is-new')),900)}")),
     ('L13 the hero text on celeste loses its color', lambda: edit(CSS, '.pass-hero h2,.pass-hero p{color:var(--on-info)}', '.pass-hero h2,.pass-hero p{color:var(--muted)}')),
     ('L14 a badge ink too light for its text', lambda: edit(CSS, '.badges .badge.on:nth-child(4n) span{color:var(--warn-ink)}', '.badges .badge.on:nth-child(4n) span{color:var(--warn)}')),
 ]

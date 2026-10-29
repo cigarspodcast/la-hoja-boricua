@@ -10,7 +10,8 @@ L9 the earned badge is not celebrated                        rc 1 fail 1 -> RED
 L10 one cycle color has the wrong surface                    rc 1 fail 1 -> RED
 L11 the celebration is stored                                rc 1 fail 1 -> RED
 L12 the public profile gains a field                         rc 1 fail 1 -> RED
+L15 (Codex r1) one cleanup clears every celebration on the page rc 1 fail 1 -> RED
 L13 the hero text on celeste loses its color                 rc 1 fail 1 -> RED
 L14 a badge ink too light for its text                       rc 1 fail 1 -> RED
 baseline after restore: rc 0 pass 27 fail 0
-RESULT 14 of 14 mutations red
+RESULT 15 of 15 mutations red
