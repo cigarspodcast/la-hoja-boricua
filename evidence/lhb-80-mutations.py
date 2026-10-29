@@ -35,11 +35,13 @@ MUTS = [
     (SY, 'r1: a pass without a PUT forgets an upload that can still land', 'if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);', 'pend=pend.filter(x=>x.sub!==uid);'),
     (SY, 'r1: a new upload replaces the unresolved one', 'pend.push({sub:uid,rev,op,sent:merged});', 'pend=[{sub:uid,rev,op,sent:merged}];'),
     (SY, 'r2: no fence while an upload can still land', 'canon(merged)!==canon(remote)||fence){', 'canon(merged)!==canon(remote)){'),
-    (SY, 'r2: an evicted upload leaves no trace', '{const x=pend.shift();if(!evict||evict.sub!==x.sub||x.rev>evict.rev)evict={sub:x.sub,rev:x.rev}}', 'pend.shift()'),
-    (SY, 'r2: an evicted upload never voids the base', 'if(!(oks&&won===evict.rev+1))voided=true;', ''),
-    (SY, 'r2: an evicted upload always voids the base', 'if(!(oks&&won===evict.rev+1))voided=true;', 'voided=true;'),
-    (SY, 'r2: a 200 at the evicted If-Match keeps it', 'if(evict&&evict.sub===uid&&evict.rev<=rev)evict=null;', ''),
-    (SY, 'r2: settled ignores uploads that can still land', "  if(pend.some(x=>x.sub===acc.sub)||(evict&&evict.sub===acc.sub))return {ok:false,why:'pending'};", ''),
+    (SY, 'r2: an evicted upload leaves no trace', '{const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}', '{const x=mine[0];pend=pend.filter(y=>y!==x)}'),
+    (SY, 'r2: an evicted upload never voids the base', 'if(!(oks&&won===evict.get(uid)+1))voided=true;', ''),
+    (SY, 'r2: an evicted upload always voids the base', 'if(!(oks&&won===evict.get(uid)+1))voided=true;', 'voided=true;'),
+    (SY, 'r2: a 200 at the evicted If-Match keeps it', 'if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);', ''),
+    (SY, 'r2: settled ignores uploads that can still land', "  if(pend.some(x=>x.sub===acc.sub)||evict.has(acc.sub))return {ok:false,why:'pending'};", ''),
+    (SY, 'r3: the OPS_ASK limit counts every account', 'const mine=pend.filter(x=>x.sub===uid);', 'const mine=pend;'),
+    (SY, 'r3: one eviction record for every account', 'evict.set(uid,x.rev)', 'evict.clear(),evict.set(uid,x.rev)'),
 ]
 
 

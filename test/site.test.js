@@ -6241,6 +6241,23 @@ test('LHB-80 (Codex r2): tras nueve subidas sin respuesta, cuando se sabe que la
    assert.equal((await A.sync()).ok,true,how);
    assert.deepEqual(A.doc().favs.artesanos,[],how+': a2 no vuelve aquí');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],how+': ni en la cuenta');
   }finally{a.done()}}});
+test('LHB-80 (Codex r3): otra cuenta en el mismo teléfono hace nueve subidas sin respuesta: no borra la subida de la primera que todavía puede llegar; al volver, la valla y salir siguen esperándola',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(C.user.id==='user_a'&&!late)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  /* entra user_b en este mismo teléfono y sube nueve veces sin respuesta */
+  A.st.acct=A.st.user='user_b';for(let i=0;i<9;i++)await A.sync();
+  A.st.acct=A.st.user='user_a';A.D.api=api;
+  const st=await A.eng.settled({});assert.equal(st.ok,true,'la pasada de salir puso la valla y llegó');assert.equal(srv28(a,'user_a').rev,2);
+  assert.equal((await late()).status,409,'la quita de antes ya no puede llegar');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,['a1'],'en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y en la cuenta');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{

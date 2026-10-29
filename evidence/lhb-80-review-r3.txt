@@ -1,0 +1,382 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\lhb-80-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a188aa-c1b2-7540-9320-08a11a39ffff
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-80-wt (branch lhb-80-sync-op; the repository moved from C:/Users/Owner to C:/LHB today, paths in earlier rounds are the old ones). TIER 2, round 3.
+
+Ticket LHB-80: an idempotency token (X-Op) on PUT /api/mihoja so a pass can learn whether an upload whose answer was lost landed. Round 2 (evidence/lhb-80-review-r2.txt) blocked on two P1 findings:
+1. More than OPS_ASK uploads without an answer: the oldest was dropped from pend, and one completed pass cleared the void, so when the dropped upload landed late the stale base deleted a re-add.
+2. settled() did not look at pend, so sign-out could delete the local copy while an upload could still land.
+
+The diff below (one commit, 29b478b, against the round 2 prompt commit) changes site/sync.js once() and settled():
+- The fence: when any unresolved upload of this account (pend) or the evicted one (evict) still has the account's current rev as its If-Match, the pass uploads the merged document again with that same If-Match, even when it equals the server's. If it lands (200), no upload with that If-Match can land after it, and pend is cleared for the account. If an older one lands first, the fence gets 409 and the next GET resolves the older one by its id. If the fence's answer is lost too, it joins pend and the pass ends offline.
+- evict: dropping the oldest of pend past OPS_ASK records {sub, rev: its If-Match} (the highest if several). On a GET where the account is past evict.rev: the pass merges with no base unless one of the asked uploads landed exactly at evict.rev + 1 with If-Match evict.rev (won), since only one upload per If-Match can land; evict is then cleared. A 200 at an If-Match >= evict.rev clears it; forget clears it.
+- settled() answers {ok:false, why:'pending'} while pend has an upload of this account or evict is set for it. The sign-out pass runs the fence first; if the fence's answer is lost, the pass ends offline and the existing backup exit is the way out.
+Tests (test/site.test.js, LHB-80 block): the round 1 "pass with nothing to upload" test now expects the fence (a second PUT with If-Match 1, and the late removal answering 409); the round 2 overflow reproduction (nine lost uploads, the oldest delayed, a re-add, the late landing: the re-add stays here and on the server); sign-out with the fence answered (settled ok, the late removal gets 409, the account keeps a1) and unanswered (settled not ok, why offline); the base still trusted after an overflow when the ninth upload landed without an answer, or when the fence landed (another device's removal of a2 does not come back). Each was seen failing on the round 2 code. Evidence: evidence/lhb-80-mutations.out (29 mutants; two are named equivalent in the script, with the reason: with the fence a completed pass never ends with an unresolved upload at the current rev, so "clear pend at the end of a pass" and "settled ignores pend" change no outcome through the public API; both lines are kept as a second guard); evidence/lhb-80-tests.txt full suite 361 tests, 360 pass, 0 fail, 1 skipped.
+
+Known limits, stated: a fence costs one extra rev when nothing changed. pend and evict live in memory: a reload with an upload still unresolved falls back to the stored base (stated since round 1).
+
+Check that both findings are closed in every order of lost answers, late server writes, 409s, other devices and the 0008 boundary; whether the fence can overwrite another device's newer write (it carries If-Match) or loop (a fence whose answer is lost, again and again); whether evict can be cleared while the evicted upload can still land; and whether the two named equivalent mutants are really unobservable.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 1f8ebc5 29b478be9f3caef54099a4b7188d6af251688aba -- site test functions =====
+diff --git a/site/sync.js b/site/sync.js
+index 1a468eb..cc73c8a 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -83,7 +83,7 @@ const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
+ /* LHB-80 (Codex r1): cuántas subidas sin respuesta se recuerdan y se preguntan en un GET (OPS_ASK en functions/_lib/mihoja.js) */
+ const OPS_ASK=8;
+ window.LHB_SYNC=function(D){
+- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,pend=[],mem=null,held=false,state={state:'idle',err:null};
++ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,pend=[],evict=null,mem=null,held=false,state={state:'idle',err:null};
+  /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
+  const newOp=()=>{if(D.opId)return D.opId();try{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)};
+  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
+@@ -148,14 +148,18 @@ window.LHB_SYNC=function(D){
+       (opsFrom; Codex r1: lo que llegó antes de 0008, o ya olvidado, no está); si no, no se sabe y se junta sin dar nada por borrado.
+       Si la cuenta sigue en el rev que pedía, todavía puede llegar (Codex r1: una escritura que el servidor no terminó): se sigue preguntando */
+    const oks=ask.length&&Array.isArray(g.body.ops)?g.body.ops:null;
++   let won=0;
+    if(oks){opsSeen=true;let best=null;
+     for(const x of ask){const o=oks.find(y=>isObj(y)&&y.id===x.op);if(!o)continue;
+-     if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
++     if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(o.rev===x.rev+1)won=Math.max(won,o.rev);if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
+      else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true}}
+     if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:best.sent,rev:best.rev};staleBase=!writeMeta(meta)}}
+    /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
+       LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
+    if(!oks&&ask.some(x=>rev>=x.rev+2))voided=true;
++   /* Codex r2: una subida olvidada por exceso (más de OPS_ASK sin respuesta) puede llegar mientras la cuenta siga en su If-Match. Cuando la cuenta pasa de ese rev:
++      si una de las preguntadas llegó justo ahí, la olvidada perdió (con un mismo If-Match llega una sola); si no, no se sabe si fue ella y se junta sin dar nada por borrado */
++   if(evict&&evict.sub===uid&&rev>evict.rev){if(!(oks&&won===evict.rev+1))voided=true;evict=null}
+    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
+       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
+    const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
+@@ -168,11 +172,15 @@ window.LHB_SYNC=function(D){
+    const base=voided?null:base0||(remote&&meta&&isObj(meta.seed)&&!wipe?meet(meta.seed,remote):null);
+    const merged=remote?merge(base,L,remote):L;
+    let newRev=rev,pushed=false;
+-   if(!remote||canon(merged)!==canon(remote)){
++   /* Codex r2: si alguna subida sin respuesta (o la olvidada) todavía puede llegar porque la cuenta sigue en su If-Match, esta pasada sube aunque no haya nada nuevo:
++      con el mismo If-Match, si esta llega ninguna de aquellas puede llegar despues (la valla); si una de aquellas llega antes, esta da 409 y se pregunta otra vez */
++   const fence=pend.some(x=>x.sub===uid&&x.rev===rev)||(!!evict&&evict.sub===uid&&evict.rev===rev);
++   if(!remote||canon(merged)!==canon(remote)||fence){
+     /* se anota antes de mandar: si la respuesta no llega, no se puede leer, o la cuenta cambia mientras tanto, el PUT pudo haber llegado. Solo una respuesta clara (409, otro error 4xx o un 200 con revisión) lo borra */
+     /* LHB-80: con su id y lo que se manda, para saber después si llegó */
+-    /* Codex r1: se suma a las que siguen sin saberse (no las reemplaza); si son demasiadas, la más vieja se olvida y no se da nada por borrado */
+-    const op=newOp();pend.push({sub:uid,rev,op,sent:merged});if(pend.length>OPS_ASK){pend.shift();voided=true}
++    /* Codex r1: se suma a las que siguen sin saberse (no las reemplaza); si son demasiadas, la más vieja deja de preguntarse.
++       Codex r2: pero queda anotado su If-Match (evict) hasta que la cuenta pase de él, y mientras tanto cada pasada pone la valla */
++    const op=newOp();pend.push({sub:uid,rev,op,sent:merged});if(pend.length>OPS_ASK){const x=pend.shift();if(!evict||evict.sub!==x.sub||x.rev>evict.rev)evict={sub:x.sub,rev:x.rev}}
+     let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
+     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
+     if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
+@@ -180,7 +188,7 @@ window.LHB_SYNC=function(D){
+     if(p.status===409)continue;
+     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
+     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
+-    pend=pend.filter(x=>x.sub!==uid);newRev=p.body.rev;pushed=true}
++    pend=pend.filter(x=>x.sub!==uid);if(evict&&evict.sub===uid&&evict.rev<=rev)evict=null;newRev=p.body.rev;pushed=true}
+    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
+    let now0,Ln,quiet,final,wrote=true;
+    for(let k=0;k<4;k++){
+@@ -248,6 +256,8 @@ window.LHB_SYNC=function(D){
+   if(!r||!r.ok)return {ok:false,why:(r&&(r.fail||r.skip))||'fail'};
+   const m=readMeta(),acc=D.acct();
+   if(dirty||!m||!acc||m.sub!==acc.sub||m.dirty||!m.base||canon(d)!==canon(m.base))return {ok:false,why:'pending'};
++  /* Codex r2: una subida sin respuesta que todavía puede llegar cambiaría la cuenta despues de salir, con la copia de aqui ya borrada: no está a salvo (la pasada de salir pone la valla; si su respuesta tampoco llega, queda el respaldo) */
++  if(pend.some(x=>x.sub===acc.sub)||(evict&&evict.sub===acc.sub))return {ok:false,why:'pending'};
+   return {ok:true,via:'sync',mark}}
+  const markNow=()=>{let raw=null;try{raw=D.ls.get(KEY)}catch(e){raw={}}return {raw,seq:readSeq()}};
+  /* LHB-34: mientras se sale o se borra la cuenta no corre ninguna pasada (una a destiempo volvería a llevar Mi Hoja a la cuenta). hold(true) espera la que esté corriendo */
+@@ -267,7 +277,7 @@ window.LHB_SYNC=function(D){
+    await D.wait(FENCE_MS);
+    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
+    if(!same(mark))return back()}
+-  hold(true);mem=null;pend=[];dirty=false;let ok=true;
++  hold(true);mem=null;pend=[];evict=null;dirty=false;let ok=true;
+   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
+   set('off');return ok}
+  function start(){
+diff --git a/test/site.test.js b/test/site.test.js
+index b675810..3d6ebc3 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -6186,7 +6186,7 @@ test('LHB-80 (Codex r1): la quita queda a medio escribir en el servidor; la pers
+   assert.deepEqual(s.doc.favs.artesanos,['a1'],'la vuelta de a1 se queda en la cuenta');assert.equal(s.doc.ratings.c1,5);
+   assert.deepEqual(A.doc().favs.artesanos,['a1'],'y en el teléfono');
+  }finally{a.done()}});
+-test('LHB-80 (Codex r1): una pasada sin nada que subir no olvida la subida que todavía puede llegar: cuando llega, la vuelta de la persona se queda',async()=>{
++test('LHB-80 (Codex r1, r2): con una subida que todavía puede llegar, la pasada sin nada nuevo sube igual con el mismo If-Match (la valla): la quita que llega tarde da 409 y la vuelta de la persona se queda',async()=>{
+  const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+@@ -6195,9 +6195,9 @@ test('LHB-80 (Codex r1): una pasada sin nada que subir no olvida la subida que t
+   A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+   A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+   /* la persona lo vuelve a poner: la copia es otra vez la de la cuenta y la pasada no sube nada */
+-  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);assert.equal(n,1,'no subió nada');assert.equal(srv28(a,'user_a').rev,1);
+-  /* la quita termina ahora */
+-  await late();assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
++  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);assert.equal(n,2,'subió otra vez con If-Match 1, aunque no hubiera nada nuevo');assert.equal(srv28(a,'user_a').rev,2);
++  /* la quita termina ahora: ya no puede llegar */
++  assert.equal((await late()).status,409);assert.equal(srv28(a,'user_a').rev,2);
+   assert.equal((await A.sync()).ok,true);
+   assert.deepEqual(A.doc().favs.artesanos,['a1'],'la vuelta se queda en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y en la cuenta');
+  }finally{a.done()}});
+@@ -6211,6 +6211,52 @@ test('LHB-80 (Codex r1): una quita que llegó antes de 0008 (sin anotar) y se ap
+    const r=await A.sync();assert.equal(r.ok,true,lost);
+    assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');
+   }finally{a.done()}}});
++test('LHB-80 (Codex r2): nueve subidas sin respuesta (la más vieja deja de preguntarse) y la persona lo vuelve a poner; la más vieja llega tarde: la vuelta se queda, aquí y en la cuenta',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  /* el primer PUT queda en camino (llega cuando la prueba dice); los demás no llegan nunca */
++  const api=A.D.api;let late=null,n=0;
++  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(++n===1)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});for(let i=0;i<9;i++)await A.sync();assert.equal(n,9);assert.equal(srv28(a,'user_a').rev,1);
++  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();
++  await late();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó tarde');
++  A.D.api=api;assert.equal((await A.sync()).ok,true);
++  assert.deepEqual(A.doc().favs.artesanos,['a1'],'en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-80 (Codex r2): tras nueve subidas sin respuesta, cuando se sabe que la olvidada ya no puede llegar (llegó una de las preguntadas, o la valla) la base vale: lo que el otro teléfono quitó no vuelve',async()=>{
++ for(const how of ['la novena llegó sin respuesta','la valla llegó']){const a=await ENG28();
++  try{
++   a.db.exec(a.mig('0008_mihoja_ops.sql'));
++   const A=DEV28(a,'user_a');A.seed({...DOC28,favs:{...DOC28.favs,artesanos:['a1','a2']}});await A.sync();
++   const api=A.D.api;let n=0;
++   A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===9&&how==='la novena llegó sin respuesta'){await api(C,m,path,...r);throw new TypeError('sin red')}throw new TypeError('sin red')}return api(C,m,path,...r)};
++   A.edit(d=>{d.favs.artesanos=['a2']});for(let i=0;i<9;i++)await A.sync();
++   A.D.api=api;
++   if(how==='la valla llegó'){assert.equal(srv28(a,'user_a').rev,1);assert.equal((await A.sync()).ok,true);}
++   assert.equal(srv28(a,'user_a').rev,2,how);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a2'],how);
++   /* el otro teléfono trae eso y quita a2 */
++   const B=DEV28(a,'user_a');await B.sync();B.edit(d=>{d.favs.artesanos=[]});await B.sync();assert.equal(srv28(a,'user_a').rev,3,how);
++   assert.equal((await A.sync()).ok,true,how);
++   assert.deepEqual(A.doc().favs.artesanos,[],how+': a2 no vuelve aquí');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],how+': ni en la cuenta');
++  }finally{a.done()}}});
++test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
++ for(const lose of [false,true]){const a=await ENG28();
++  try{
++   a.db.exec(a.mig('0008_mihoja_ops.sql'));
++   const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++   const api=A.D.api;let late=null,n=0;
++   A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}if(lose)throw new TypeError('sin red')}return api(C,m,path,...r)};
++   A.edit(d=>{d.favs.artesanos=[]});await A.sync();
++   A.edit(d=>{d.favs.artesanos=['a1']});
++   const st=await A.eng.settled({});
++   if(lose){assert.equal(st.ok,false,'la valla tampoco tuvo respuesta: no se sale por la sincronización');assert.equal(st.why,'offline')}
++   else{assert.equal(st.ok,true);assert.equal(st.via,'sync');assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1']);
++    A.D.wait=async()=>{};A.D.ls.remove=k=>A.ls.delete(k);assert.equal(await A.eng.forget(st.mark),true);
++    /* la quita termina durante la salida: ya no puede llegar, y la cuenta tiene a1 */
++    assert.equal((await late()).status,409);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'])}
++  }finally{a.done()}}});
+ /* ===================== LHB-98: Mi Hoja se escribe con el candado de Web Locks en la mano; salir lo tiene exclusivo ===================== */
+ /* Web Locks de mentira: por nombre, compartido con compartido, exclusivo solo; la fila es en orden (un compartido detrás de un exclusivo espera).
+    held y queue son los de 'lhb_mihoja'; onBlocked: alguien quedó esperando en esa fila detrás de lo que está en la mano */
+
+2026-10-29T17:17:40.485711Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T17:17:42.789706Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The key gap to test is whether a completed pass can still leave an upload able to land. I’ll inspect the diff, server revision checks, and test harness, then run the relevant checks if the tools permit. I won’t edit files or load skills.
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Location; git status --short; git log -3 --oneline; Get-ChildItem -Name' in C:\LHB\lhb-80-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T17:17:48.563068Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The server checks If-Match and records X-Op in one SQL statement, so a fence cannot overwrite a revision it has not read. I’m checking whether the client always retains unresolved uncertainty until that fence succeeds, including across 409 retries and migration-boundary reads.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] I reproduced another overflow loss: `evict` holds only one account, so lost uploads from a second account can replace the first account’s eviction record. After switching back, a pass succeeds without a fence; the first account’s delayed removal then lands and deletes the re-add on the next sync. I’m checking the remaining single-account orderings and the two mutation-equivalence claims.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All 29 focused tests passed, plus 36 additional single-account cases covering late writes, lost fence answers, 409s, another device’s write, and migration timing. The cross-account reproduction still fails: a delayed PUT gets 200 after a successful pass, then `a1` disappears locally and remotely.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Both named mutants passed all 29 focused tests when applied in memory. Their equivalence holds for the app’s serialized sync path: a successful pass resolves or fences current-account uploads. The full suite finished with 355 passes, five failures in LHB-44/45/73, and one skip; Python launch and temporary-directory checks failed in this sandbox.
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. **[Certain] P1, blocks: another account’s overflow erases an eviction that can still land.** File: [site/sync.js:183](C:/LHB/lhb-80-wt/site/sync.js:183), symbol: `once()`.
+
+   | Claim | Artifact |
+   |---|---|
+   | Evicting a different account replaces the previous account’s unresolved eviction. | `if(!evict||evict.sub!==x.sub||x.rev>evict.rev)evict={sub:x.sub,rev:x.rev}` |
+
+   Reproduced against the real route on SQLite, with 0008 applied and no reload:
+
+   - Account A has `a1` at rev 1. Delay one removal PUT with If-Match 1 and lose its answer. Re-add `a1` locally.
+   - Switch the same engine to B and make nine uploads without answers. B’s eighth attempt evicts A’s pending operation; its ninth replaces `evict={sub:A,rev:1}` with B’s eviction.
+   - Switch back to A. There is no pending ID or eviction left for A, so its pass completes without fencing.
+   - `settled({})` returns `{ok:true,via:'sync'}`.
+   - Release A’s delayed removal. It returns **200**, and the next sync removes `a1` locally and remotely.
+
+   **Round 2 dispositions: #1 MAINTAIN; #2 MAINTAIN, through this shared defect.** The supplied single-account reproductions are fixed, but account switching recreates both unsafe completion and unsafe settlement. Keep eviction uncertainty separately for each account until that account’s revision or fence resolves it.
+
+   This reproduction runs from the worktree without editing files:
+
+   ```powershell
+   @'
+   const fs=require('fs'),path=require('path'),Module=require('module');
+   const f=path.resolve('test/site.test.js'),m=new Module(f);
+   m.filename=f;m.paths=Module._nodeModulePaths(path.dirname(f));
+   m._compile(fs.readFileSync(f,'utf8').replace(
+     "const test=require('node:test');","const test=()=>{};"
+   )+"\nmodule.exports={ENG28,DEV28,DOC28,srv28};",f);
+   const {ENG28,DEV28,DOC28,srv28}=m.exports;
+   (async()=>{
+     const a=await ENG28();
+     try {
+       a.db.exec(a.mig('0008_mihoja_ops.sql'));
+       const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+       const api=A.D.api;let late;
+       A.D.api=async(C,method,p,...args)=>{
+         if(method==='PUT'){
+           if(C.user.id==='user_a'&&!late)
+             late=()=>api(C,method,p,...args);
+           throw new TypeError('lost');
+         }
+         return api(C,method,p,...args);
+       };
+       A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+       A.edit(d=>{d.favs.artesanos=['a1']});
+       A.st.acct=A.st.user='user_b';
+       for(let i=0;i<9;i++)await A.sync();
+       A.st.acct=A.st.user='user_a';A.D.api=api;
+       const settled=await A.eng.settled({});
+       console.log('settled:',settled.ok,settled.via);
+       console.log('late status:',(await late()).status);
+       await A.sync();
+       console.log('expected [a1], actual:',
+         A.doc().favs.artesanos,srv28(a,'user_a').doc.favs.artesanos);
+     } finally {a.done()}
+   })().catch(e=>{console.error(e);process.exitCode=1});
+   '@ | node
+   ```
+
+[Certain] The fence’s atomic If-Match check prevents overwriting an unseen newer revision. Repeated lost answers remain bounded: an unlanded fence ends offline; a landed fence is resolved by the next GET. All 36 additional single-account ordering cases passed, including conflicts, other-device writes and migration timing.
+
+[Likely] Both named mutants are observationally equivalent for the app’s serialized sync calls with valid server responses. Each also passed all 29 focused tests when mutated in memory. Their survival does not establish preservation of evicted account records.
+
+[Certain] Verification: 29 focused tests passed. Full suite: **355 passed, 5 failed, 1 skipped**. The sandbox rejected Python launches for LHB-44/45 and temporary-directory creation for LHB-73. Live D1 execution is **NOT VERIFIED**. No files were edited.
+
+VERDICT: BLOCK
+tokens used
+100,593
+1. **[Certain] P1, blocks: another account’s overflow erases an eviction that can still land.** File: [site/sync.js:183](C:/LHB/lhb-80-wt/site/sync.js:183), symbol: `once()`.
+
+   | Claim | Artifact |
+   |---|---|
+   | Evicting a different account replaces the previous account’s unresolved eviction. | `if(!evict||evict.sub!==x.sub||x.rev>evict.rev)evict={sub:x.sub,rev:x.rev}` |
+
+   Reproduced against the real route on SQLite, with 0008 applied and no reload:
+
+   - Account A has `a1` at rev 1. Delay one removal PUT with If-Match 1 and lose its answer. Re-add `a1` locally.
+   - Switch the same engine to B and make nine uploads without answers. B’s eighth attempt evicts A’s pending operation; its ninth replaces `evict={sub:A,rev:1}` with B’s eviction.
+   - Switch back to A. There is no pending ID or eviction left for A, so its pass completes without fencing.
+   - `settled({})` returns `{ok:true,via:'sync'}`.
+   - Release A’s delayed removal. It returns **200**, and the next sync removes `a1` locally and remotely.
+
+   **Round 2 dispositions: #1 MAINTAIN; #2 MAINTAIN, through this shared defect.** The supplied single-account reproductions are fixed, but account switching recreates both unsafe completion and unsafe settlement. Keep eviction uncertainty separately for each account until that account’s revision or fence resolves it.
+
+   This reproduction runs from the worktree without editing files:
+
+   ```powershell
+   @'
+   const fs=require('fs'),path=require('path'),Module=require('module');
+   const f=path.resolve('test/site.test.js'),m=new Module(f);
+   m.filename=f;m.paths=Module._nodeModulePaths(path.dirname(f));
+   m._compile(fs.readFileSync(f,'utf8').replace(
+     "const test=require('node:test');","const test=()=>{};"
+   )+"\nmodule.exports={ENG28,DEV28,DOC28,srv28};",f);
+   const {ENG28,DEV28,DOC28,srv28}=m.exports;
+   (async()=>{
+     const a=await ENG28();
+     try {
+       a.db.exec(a.mig('0008_mihoja_ops.sql'));
+       const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+       const api=A.D.api;let late;
+       A.D.api=async(C,method,p,...args)=>{
+         if(method==='PUT'){
+           if(C.user.id==='user_a'&&!late)
+             late=()=>api(C,method,p,...args);
+           throw new TypeError('lost');
+         }
+         return api(C,method,p,...args);
+       };
+       A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+       A.edit(d=>{d.favs.artesanos=['a1']});
+       A.st.acct=A.st.user='user_b';
+       for(let i=0;i<9;i++)await A.sync();
+       A.st.acct=A.st.user='user_a';A.D.api=api;
+       const settled=await A.eng.settled({});
+       console.log('settled:',settled.ok,settled.via);
+       console.log('late status:',(await late()).status);
+       await A.sync();
+       console.log('expected [a1], actual:',
+         A.doc().favs.artesanos,srv28(a,'user_a').doc.favs.artesanos);
+     } finally {a.done()}
+   })().catch(e=>{console.error(e);process.exitCode=1});
+   '@ | node
+   ```
+
+[Certain] The fence’s atomic If-Match check prevents overwriting an unseen newer revision. Repeated lost answers remain bounded: an unlanded fence ends offline; a landed fence is resolved by the next GET. All 36 additional single-account ordering cases passed, including conflicts, other-device writes and migration timing.
+
+[Likely] Both named mutants are observationally equivalent for the app’s serialized sync calls with valid server responses. Each also passed all 29 focused tests when mutated in memory. Their survival does not establish preservation of evicted account records.
+
+[Certain] Verification: 29 focused tests passed. Full suite: **355 passed, 5 failed, 1 skipped**. The sandbox rejected Python launches for LHB-44/45 and temporary-directory creation for LHB-73. Live D1 execution is **NOT VERIFIED**. No files were edited.
+
+VERDICT: BLOCK
