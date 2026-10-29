@@ -1,0 +1,575 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\Users\Owner\lhb-80-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a1887e-7ad6-7240-80b9-dd8137f83729
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-80-wt (branch lhb-80-sync-op, from main 27835c0). TIER 2, round 1.
+
+Ticket LHB-80: an idempotency token on PUT /api/mihoja to settle uncertain uploads. Before this, after a PUT whose answer was lost or unreadable, site/sync.js once() guessed with an in-memory marker (unk), and two sequences lost a deliberate re-add:
+1. A and B sync favorite a1 at rev 1. A removes a1; the PUT commits at rev 2 but the answer is lost. A re-adds a1 before the retry. The retry read rev 2 with the old base and took the re-add as unchanged: a1 vanished locally and on the server.
+2. The same lost removal; B pulls it and re-adds; A changes a rating and retries; after A reads rev 2, B uploads its re-add (rev 3); A's 409 cleared the marker and the next iteration deleted B's re-add.
+
+The change (diff below, against main):
+- migrations/0008_mihoja_ops.sql: ALTER TABLE mihoja ADD COLUMN ops TEXT (a JSON array of [id, rev], oldest first, at most OPS_KEEP = 20). Existing rows keep NULL. Order: the code ships first; without the column, PUT and GET answer as before (the missing-column error is caught by noOps and the old statement runs). Account deletion already deletes the whole mihoja row, so no USER_TABLES change.
+- functions/api/mihoja.js PUT: an optional X-Op header (OP: 8 to 64 of A-Z a-z 0-9 _ -, else 400 bad-op). With it, the same INSERT or UPDATE that writes the document appends [id, new rev] to ops (OPS_NEXT: a CASE over json_valid/json_type/json_array_length, dropping the oldest past OPS_KEEP; an unreadable list starts over). A 409 writes nothing and records nothing.
+- GET ?op=<id> (same OP rule): adds op: {id, rev} with rev null when that id is not recorded. Without ?op the answer is unchanged.
+- site/sync.js: every PUT carries a fresh id (crypto.randomUUID, D.opId in tests); unk now keeps {sub, rev, op, sent}. The next pass with unk pending sends ?op=. If the server says it landed at rev n: what was sent is the base at n (meta and mem written at once, so it also holds if the pass repeats after a 409), unk is cleared. If it says null and the account has moved past the rev the PUT asked for (If-Match), the PUT can never land: unk is cleared, but only while rev <= ask.rev + OPS_KEEP, since past that a missing id proves nothing. The old voiding rule (rev >= unk.rev + 2) now runs only when the server cannot say (no column, or past OPS_KEEP); unkVoid lets a later landed answer undo a void it caused. An answer about another id is ignored.
+
+Known limit, stated: unk lives in memory; a page reload with an upload still uncertain falls back to the behaviour before this ticket (the stored base). meta.rev of a landed base is read only by another tab's memOk tiebreak when that tab failed to write its meta; no test covers that path.
+Tests (test/site.test.js, LHB-80 block, over the real route on node:sqlite): server (records, rev, OPS_KEEP, 409, other account, damaged list, bad ids, no column, other DB errors still 503); both reproductions, each with an unreadable body and with the network failing after the write, seen failing on main; not landed; past OPS_KEEP; not landed past two revs; an answer about another id. Evidence: evidence/lhb-80-mutations.out 16 of 16 red; evidence/lhb-80-tests.txt full suite 347 tests, 346 pass, 0 fail, 1 skipped.
+
+Check: both sequences are fixed; no lost or unreadable answer can still apply a stale base; the SQL is correct on D1 (SQLite JSON1, bound parameter numbering including the INSERT that binds ?5 without using it); the migration order is safe with the running code; what an old client or an old server sees; and anything the client trusts from the GET that it should not.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 27835c0 c46591806a24764277033c5da831414fb518adec -- migrations functions site test evidence/lhb-80-mutations.py =====
+diff --git a/evidence/lhb-80-mutations.py b/evidence/lhb-80-mutations.py
+new file mode 100644
+index 0000000..0802da1
+--- /dev/null
++++ b/evidence/lhb-80-mutations.py
+@@ -0,0 +1,70 @@
++"""LHB-80 proof, on a scratch copy of the worktree: each part of the upload id (X-Op, GET ?op=) broken one at a time, each expected to
++turn the LHB-80 (or LHB-28) tests red. The first two are the state before this ticket on each side. The copy is restored after each.
++usage: python evidence/lhb-80-mutations.py WORKTREE SCRATCH"""
++import os, shutil, subprocess, sys
++
++WT, D = sys.argv[1], sys.argv[2]
++if os.path.exists(D):
++    shutil.rmtree(D)
++shutil.copytree(WT, D, ignore=shutil.ignore_patterns('.git', 'node_modules', 'evidence'))
++PAT = 'LHB-80|LHB-28'
++LB, AP, SY = 'functions/_lib/mihoja.js', 'functions/api/mihoja.js', 'site/sync.js'
++
++MUTS = [
++    (SY, 'the client never asks about a lost upload (before LHB-80)', "'/api/mihoja'+(ask?'?op='+encodeURIComponent(ask.op):'')", "'/api/mihoja'"),
++    (AP, 'GET never says whether an upload landed (before LHB-80)', '      if (cols) {\n', '      if (false) {\n'),
++    (AP, 'PUT does not record its id', '    if (opH !== null) {\n      try {', '    if (false) {\n      try {'),
++    (AP, 'PUT records the old rev', "OPS_NEXT('?6', 'rev + 1', OPS_KEEP)", "OPS_NEXT('?6', 'rev', OPS_KEEP)"),
++    (AP, 'the first PUT records rev 0', 'json_array(json_array(?6, 1))', 'json_array(json_array(?6, 0))'),
++    (AP, 'every id is kept', "json_array_length(ops) >= ${keep} ", "json_array_length(ops) >= ${keep + 1000} "),
++    (AP, 'a bad id is accepted on PUT', "if (opH !== null && !OP.test(opH)) return json({ error: 'bad-op' }, 400);", ''),
++    (AP, 'a bad id is accepted on GET', "if (id !== null && !OP.test(id)) return json({ error: 'bad-op' }, 400);", ''),
++    (AP, 'GET without the column fails', 'catch (e) { if (!noOps(e)) throw e; cols = false; }', 'catch (e) { throw e; }'),
++    (AP, 'PUT without the column fails', 'catch (e) { if (!noOps(e)) throw e; r = await plain(); }', 'catch (e) { throw e; }'),
++    (LB, 'any recorded id answers', 'x[0] === id && ', ''),
++    (SY, 'the PUT does not send its id', ",'X-Op':op})", "})"),
++    (SY, 'a landed upload is not the base', 'meta={sub:uid,rev:oc.rev,base:ask.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:ask.sent,rev:oc.rev};staleBase=!writeMeta(meta)', ''),
++    (SY, 'an upload that cannot land any more is asked about forever', 'else if(oc.rev===null&&rev>ask.rev&&rev<=ask.rev+OPS_KEEP)unk=null', 'else if(0)unk=null'),
++    (SY, 'a missing id is trusted past OPS_KEEP', 'rev>ask.rev&&rev<=ask.rev+OPS_KEEP)unk=null', 'rev>ask.rev)unk=null'),
++    (SY, 'an answer about another id is believed', '&&g.body.op.id===ask.op?', '?'),
++]
++
++
++def runp():
++    return subprocess.run(['node', '--test', '--test-timeout=20000', '--test-name-pattern=' + PAT, 'test/site.test.js'], cwd=D, capture_output=True, text=True, encoding='utf-8', errors='replace')
++
++
++def tally(r):
++    t = {k: 0 for k in ('pass', 'fail')}
++    for l in r.stdout.splitlines():
++        for k in t:
++            if l.startswith('ℹ ' + k + ' '):
++                t[k] = int(l.split()[-1])
++    return t
++
++
++def edit(rel, old, new):
++    p = os.path.join(D, rel)
++    s = open(p, 'rb').read().decode('utf-8')
++    if '\r\n' in s:
++        old, new = old.replace('\n', '\r\n'), new.replace('\n', '\r\n')
++    assert s.count(old) == 1, (rel, old[:80], s.count(old))
++    open(p, 'wb').write(s.replace(old, new).encode('utf-8'))
++
++
++def restore(rel):
++    shutil.copy(os.path.join(WT, rel), os.path.join(D, rel))
++
++
++t = tally(runp())
++print('baseline (no mutation): pass %d fail %d' % (t['pass'], t['fail']))
++assert t['fail'] == 0 and t['pass'] > 0
++red = 0
++for rel, name, a, b in MUTS:
++    edit(rel, a, b)
++    t = tally(runp())
++    ok = t['fail'] > 0
++    red += ok
++    print('%-60s %s (fail %d)' % (name, 'RED (caught)' if ok else 'GREEN (survived)', t['fail']))
++    restore(rel)
++print('RESULT %d of %d red' % (red, len(MUTS)))
+diff --git a/functions/_lib/mihoja.js b/functions/_lib/mihoja.js
+index 1c25f53..146d1bc 100644
+--- a/functions/_lib/mihoja.js
++++ b/functions/_lib/mihoja.js
+@@ -35,6 +35,20 @@ export function checkBody(b) {
+   return { text, schema: b.schema };
+ }
+ 
++// LHB-80: el id de una subida (cabecera X-Op, ?op= en GET): lo inventa el cliente, uno por PUT. OPS_KEEP: cuántas se recuerdan por cuenta (migrations/0008_mihoja_ops.sql)
++export const OP = /^[A-Za-z0-9_-]{8,64}$/;
++export const OPS_KEEP = 20;
++// sin la columna todavía (0008 sin aplicar) se contesta como antes
++export const noOps = e => /no such column: ops|has no column named ops/i.test(String(e && e.message));
++// en qué rev llegó la subida id según la columna ops de la fila, o null si no está (ni una lista que no se puede leer cuenta)
++export function opRev(raw, id) {
++  let a;
++  try { a = JSON.parse(raw); } catch (e) { return null; }
++  if (!Array.isArray(a)) return null;
++  for (const x of a) if (Array.isArray(x) && x[0] === id && Number.isInteger(x[1])) return x[1];
++  return null;
++}
++
+ // la fila de la cuenta como la ve el cliente; sin fila: rev 0 y doc null
+ export function shape(row) {
+   if (!row) return { rev: 0, schema: null, doc: null, updated_at: null };
+diff --git a/functions/api/mihoja.js b/functions/api/mihoja.js
+index 5de16ca..9a6dde7 100644
+--- a/functions/api/mihoja.js
++++ b/functions/api/mihoja.js
+@@ -2,12 +2,22 @@
+    GET → { rev, schema, doc, updated_at }; sin copia todavía: { rev: 0, schema: null, doc: null }.
+    PUT { schema, doc } con If-Match: <rev que el cliente vio> → { rev, updated_at } con el rev nuevo. If-Match: 0 crea la copia.
+    Si el rev ya no es ese (otro teléfono guardó antes), 409 { error: 'conflict', rev, schema, doc } con la copia de ahora: el cliente junta las dos y reintenta. Nunca se pisa una copia que el cliente no vio.
++   LHB-80: el PUT puede traer X-Op: <id> (lo inventa el cliente); si escribe, el id queda anotado con su rev en la misma sentencia. GET ?op=<id> añade
++   op: { id, rev } (rev null si esa subida no llegó): así una subida cuya respuesta se perdió se sabe si llegó. Sin la columna (0008 sin aplicar), como antes.
+    Solo para quien tiene cuenta y perfil (401 sin sesión, 403 sin perfil). Privado de su dueño. */
+ import { json } from '../_lib/auth.js';
+ import { requireProfile } from '../_lib/profile.js';
+-import { BODY_MAX, checkBody, revOf, shape } from '../_lib/mihoja.js';
++import { BODY_MAX, checkBody, revOf, shape, OP, OPS_KEEP, noOps, opRev } from '../_lib/mihoja.js';
+ 
+ const current = db => db.prepare('SELECT doc, schema, rev, updated_at FROM mihoja WHERE user_id = ?1');
++// LHB-80: la misma fila con sus subidas anotadas; una sola lectura, así el rev y lo anotado son del mismo momento
++const currentOps = db => db.prepare('SELECT doc, schema, rev, updated_at, ops FROM mihoja WHERE user_id = ?1');
++// la lista nueva: la que había (o vacía, si no se puede leer) con [id, rev nuevo] al final, sin pasar de OPS_KEEP
++const OPS_NEXT = (id, rev, keep) =>
++  `CASE WHEN json_valid(ops) AND json_type(ops) = 'array' AND json_array_length(ops) >= ${keep} ` +
++  `THEN json_remove(json_insert(ops, '$[#]', json_array(${id}, ${rev})), '$[0]') ` +
++  `WHEN json_valid(ops) AND json_type(ops) = 'array' THEN json_insert(ops, '$[#]', json_array(${id}, ${rev})) ` +
++  `ELSE json_array(json_array(${id}, ${rev})) END`;
+ 
+ // la revisión de sesión y perfil también toca D1: si falla, es un 503 y no una excepción
+ const gate = async (request, env) => { try { return await requireProfile(request, env); } catch (e) { return json({ error: 'unavailable' }, 503); } };
+@@ -15,7 +25,17 @@ const gate = async (request, env) => { try { return await requireProfile(request
+ export async function onRequestGet({ request, env }) {
+   const g = await gate(request, env);
+   if (g instanceof Response) return g;
++  const id = new URL(request.url).searchParams.get('op');
++  if (id !== null && !OP.test(id)) return json({ error: 'bad-op' }, 400);
+   try {
++    if (id !== null) {
++      let row = null, cols = true;
++      try { row = await currentOps(env.DB).bind(g.user.sub).first(); } catch (e) { if (!noOps(e)) throw e; cols = false; }
++      if (cols) {
++        const s = shape(row);
++        return s ? json({ ...s, op: { id, rev: row ? opRev(row.ops, id) : null } }) : json({ error: 'corrupt' }, 500);
++      }
++    }
+     const s = shape(await current(env.DB).bind(g.user.sub).first());
+     return s ? json(s) : json({ error: 'corrupt' }, 500);
+   } catch (e) {
+@@ -41,13 +61,24 @@ export async function onRequestPut({ request, env }) {
+   } catch (e) { return json({ error: 'bad-body' }, 400); }
+   const c = checkBody(body);
+   if (c.error) return json({ error: c.error }, c.status);
++  const opH = request.headers.get('X-Op');
++  if (opH !== null && !OP.test(opH)) return json({ error: 'bad-op' }, 400);
+   const me = g.user.sub, at = new Date().toISOString();
+   try {
+     // una sola sentencia revisa el rev y escribe: dos teléfonos a la vez no pasan los dos.
+     // LHB-34: crear la copia también pide el perfil en la misma sentencia: un PUT que pasó la puerta antes de que se borrara la cuenta no la vuelve a crear
+-    const r = rev === 0
+-      ? await env.DB.prepare('INSERT INTO mihoja (user_id, doc, schema, rev, updated_at) SELECT ?1, ?2, ?3, 1, ?4 WHERE EXISTS (SELECT 1 FROM profiles WHERE user_id = ?1) ON CONFLICT(user_id) DO NOTHING').bind(me, c.text, c.schema, at).run()
+-      : await env.DB.prepare('UPDATE mihoja SET doc = ?2, schema = ?3, rev = rev + 1, updated_at = ?4 WHERE user_id = ?1 AND rev = ?5').bind(me, c.text, c.schema, at, rev).run();
++    const plain = () => rev === 0
++      ? env.DB.prepare('INSERT INTO mihoja (user_id, doc, schema, rev, updated_at) SELECT ?1, ?2, ?3, 1, ?4 WHERE EXISTS (SELECT 1 FROM profiles WHERE user_id = ?1) ON CONFLICT(user_id) DO NOTHING').bind(me, c.text, c.schema, at).run()
++      : env.DB.prepare('UPDATE mihoja SET doc = ?2, schema = ?3, rev = rev + 1, updated_at = ?4 WHERE user_id = ?1 AND rev = ?5').bind(me, c.text, c.schema, at, rev).run();
++    // LHB-80: con X-Op, la misma sentencia anota el id con el rev nuevo; sin la columna todavía, la de siempre
++    let r;
++    if (opH !== null) {
++      try {
++        r = rev === 0
++          ? await env.DB.prepare('INSERT INTO mihoja (user_id, doc, schema, rev, updated_at, ops) SELECT ?1, ?2, ?3, 1, ?4, json_array(json_array(?6, 1)) WHERE EXISTS (SELECT 1 FROM profiles WHERE user_id = ?1) ON CONFLICT(user_id) DO NOTHING').bind(me, c.text, c.schema, at, rev, opH).run()
++          : await env.DB.prepare('UPDATE mihoja SET doc = ?2, schema = ?3, rev = rev + 1, updated_at = ?4, ops = ' + OPS_NEXT('?6', 'rev + 1', OPS_KEEP) + ' WHERE user_id = ?1 AND rev = ?5').bind(me, c.text, c.schema, at, rev, opH).run();
++      } catch (e) { if (!noOps(e)) throw e; r = await plain(); }
++    } else r = await plain();
+     if (r.meta.changes) return json({ rev: rev + 1, updated_at: at });
+     if (!(await env.DB.prepare('SELECT 1 AS n FROM profiles WHERE user_id = ?1').bind(me).first())) return json({ error: 'no-profile' }, 403);
+     // el rev ya no era ese: se devuelve la copia de ahora para que el cliente la junte con la suya
+diff --git a/migrations/0008_mihoja_ops.sql b/migrations/0008_mihoja_ops.sql
+new file mode 100644
+index 0000000..84632f5
+--- /dev/null
++++ b/migrations/0008_mihoja_ops.sql
+@@ -0,0 +1,6 @@
++-- LHB-80: las últimas subidas de Mi Hoja que llegaron, en la misma fila: ops es un arreglo JSON de [id, rev], de la más vieja a la más nueva,
++-- con a lo sumo OPS_KEEP (functions/_lib/mihoja.js). El id lo inventa el cliente en cada PUT (cabecera X-Op): con él, la pasada siguiente sabe
++-- si una subida sin respuesta llegó, y en qué rev (GET /api/mihoja?op=<id>), sin adivinar.
++-- Las filas que ya había quedan con ops NULL. Orden: el código sale antes que esta migración (sin la columna, PUT y GET contestan como antes).
++-- (0007 es blocks, de LHB-62.)
++ALTER TABLE mihoja ADD COLUMN ops TEXT;
+diff --git a/site/sync.js b/site/sync.js
+index 1983d89..32e8c29 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -80,8 +80,12 @@ const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_s
+    forget la pone, espera FENCE_MS (lo que tarda en verse en las otras pestañas), revisa otra vez y borra. Caduca sola si la pestaña que sale se cierra a medias */
+ const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
+ const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
++/* LHB-80: cuántas subidas recuerda la cuenta (OPS_KEEP en functions/_lib/mihoja.js): más allá, que no esté no dice que no llegó */
++const OPS_KEEP=20;
+ window.LHB_SYNC=function(D){
+- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
++ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unkVoid=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
++ /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
++ const newOp=()=>{if(D.opId)return D.opId();try{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)};
+  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
+  /* Codex r4: un reloj que se atrasa no hace eterna la valla; uno que se adelanta en medio de la espera lo cubre forget, que la vuelve a poner antes de revisar */
+  const fenced=()=>{let t=0;try{t=parseInt(D.ls.get(FENCE),10)}catch(e){}const d=D.nowMs()-t;return t>0&&d<FENCE_TTL&&d>-FENCE_TTL};
+@@ -122,19 +126,29 @@ window.LHB_SYNC=function(D){
+   if(ownerOf()===null&&!setOwner(uid))return {fail:'storage'};
+   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid};
+   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
+-  const meta0=readMeta(),meta=meta0&&meta0.sub===uid?meta0:null;
++  const meta0=readMeta();let meta=meta0&&meta0.sub===uid?meta0:null;
+   const first=!meta||!meta.at;
+   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
+   const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true});
+   for(let i=0;i<TRIES;i++){
+    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
+-   let g;try{g=await D.api(C,'GET','/api/mihoja',null,uid)}catch(e){return {skip:'offline'}}
++   /* LHB-80: con una subida sin respuesta, se pregunta por ella */
++   const ask=unk&&unk.sub===uid&&unk.op?unk:null;
++   let g;try{g=await D.api(C,'GET','/api/mihoja'+(ask?'?op='+encodeURIComponent(ask.op):''),null,uid)}catch(e){return {skip:'offline'}}
+    if(!alive())return {skip:'other-account'};
+    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
+    if(g.body.rev>0&&(!isObj(g.body.doc)||!(g.body.schema<=1)))return {fail:'schema'};
+    const rev=g.body.rev,remote=rev>0?g.body.doc:null;
+-   /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa) */
+-   if(unk&&unk.sub===uid&&rev>=unk.rev+2)voided=true;
++   /* LHB-80: el servidor dice si esa subida llegó. Llegó en el rev n: lo que se mandó es lo que la cuenta tenía en n, y esa es la base (se anota ya, así vale también
++      si esta pasada repite tras un 409). No llegó y la cuenta ya pasó del rev que pedía (If-Match): ya no puede llegar */
++   const oc=ask&&ask===unk&&isObj(g.body.op)&&g.body.op.id===ask.op?g.body.op:null;
++   if(oc){
++    if(Number.isInteger(oc.rev)&&oc.rev>0){unk=null;if(unkVoid){voided=false;unkVoid=false}
++     meta={sub:uid,rev:oc.rev,base:ask.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:ask.sent,rev:oc.rev};staleBase=!writeMeta(meta)}
++    else if(oc.rev===null&&rev>ask.rev&&rev<=ask.rev+OPS_KEEP)unk=null}
++   /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
++      LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
++   if(unk&&unk.sub===uid&&rev>=unk.rev+2){voided=true;unkVoid=true}
+    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
+       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
+    const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
+@@ -149,8 +163,9 @@ window.LHB_SYNC=function(D){
+    let newRev=rev,pushed=false;
+    if(!remote||canon(merged)!==canon(remote)){
+     /* se anota antes de mandar: si la respuesta no llega, no se puede leer, o la cuenta cambia mientras tanto, el PUT pudo haber llegado. Solo una respuesta clara (409, otro error 4xx o un 200 con revisión) lo borra */
+-    unk={sub:uid,rev};
+-    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev)})}catch(e){return {skip:'offline'}}
++    /* LHB-80: con su id y lo que se manda, para saber después si llegó */
++    const op=newOp();unk={sub:uid,rev,op,sent:merged};
++    let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
+     if(p.status===409||(p.status<500&&p.status!==200))unk=null;
+     if(!alive())return {skip:'other-account'};
+     if(p.status===409)continue;
+@@ -173,7 +188,7 @@ window.LHB_SYNC=function(D){
+    const edited=edits!==e0||readSeq()!==s0||!quiet;
+    mem={sub:uid,base:merged,rev:newRev};
+    if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}
+-   staleBase=false;voided=false;if(unk&&unk.sub===uid)unk=null;if(!edited)dirty=false;
++   staleBase=false;voided=false;unkVoid=false;if(unk&&unk.sub===uid)unk=null;if(!edited)dirty=false;
+    if(!quiet&&canon(final)!==canon(merged))again=true;
+    const pulled=!!remote&&canon(merged)!==canon(L);
+    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');
+diff --git a/test/site.test.js b/test/site.test.js
+index 839f3ea..ae2931f 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -2653,8 +2653,9 @@ test('LHB-63: la cuenta le da al formulario la pregunta del @ (registro y Editar
+ async function API28(){
+  const a=await API52();const M=await a.imp('api/mihoja.js'),ML=await a.imp('_lib/mihoja.js');
+  const mk=(u,handle)=>a.db.prepare("INSERT INTO profiles (user_id,handle,display_name,avatar_key,first_name,last_name,gender,birth_date,hidden,age_ok_at,created_at,updated_at) VALUES (?1,?2,'Ana M.',NULL,'Ana','Mora','F','1990-05-17',0,'2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z','2026-10-26T00:00:00.000Z')").run(u,handle);
+- const rq=(token,body,o)=>{o=o||{};return {headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':o.type!==undefined?o.type:'application/json','If-Match':o.match!==undefined?o.match:null,'Content-Length':o.len!==undefined?o.len:null})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body,text:async()=>typeof body==='string'?body:JSON.stringify(body)}};
+- const get=async(u,e=a.env)=>{const r=await M.onRequestGet({request:rq(u?await a.tok(u):null),env:e});return [r.status,await r.json()]};
++ /* LHB-80: o.path (la ruta con ?op=) y o.op (la cabecera X-Op) */
++ const rq=(token,body,o)=>{o=o||{};return {url:'https://x.test'+(o.path||'/api/mihoja'),headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':o.type!==undefined?o.type:'application/json','If-Match':o.match!==undefined?o.match:null,'Content-Length':o.len!==undefined?o.len:null,'X-Op':o.op!==undefined?o.op:null})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body,text:async()=>typeof body==='string'?body:JSON.stringify(body)}};
++ const get=async(u,e=a.env,o)=>{const r=await M.onRequestGet({request:rq(u?await a.tok(u):null,undefined,o),env:e});return [r.status,await r.json()]};
+  const put=async(u,body,match,o,e=a.env)=>{const r=await M.onRequestPut({request:rq(u?await a.tok(u):null,body,{match,...(o||{})}),env:e});return [r.status,await r.json()]};
+  const rows=()=>a.db.prepare('SELECT COUNT(*) n FROM mihoja').get().n;
+  return {...a,M,ML,mk,get,put,rows,rq}}
+@@ -2821,7 +2822,7 @@ function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();con
+   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
+    net.log.push(method);if(net.status&&net.status[method])return {status:net.status[method],body:{}};if(method==='GET'&&net.beforeGet){const f=net.beforeGet;net.beforeGet=null;await f()}
+    if(method==='PUT'&&net.beforePut){const f=net.beforePut;net.beforePut=null;await f()}
+-   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match']}),env:a.env});if(method==='PUT'&&net.dropAfterPut){net.dropAfterPut=false;throw new TypeError('sin red')}if(method==='PUT'&&net.afterPut){const f=net.afterPut;net.afterPut=null;await f()}if(method==='PUT'&&net.badBody){net.badBody=false;return {status:r.status,body:{}}}return {status:r.status,body:await r.json()}},
++   const r=await (method==='GET'?a.M.onRequestGet:a.M.onRequestPut)({request:a.rq(await a.tok(st.user),body,{match:headers&&headers['If-Match'],op:headers&&headers['X-Op'],path}),env:a.env});if(method==='PUT'&&net.dropAfterPut){net.dropAfterPut=false;throw new TypeError('sin red')}if(method==='PUT'&&net.afterPut){const f=net.afterPut;net.afterPut=null;await f()}if(method==='PUT'&&net.badBody){net.badBody=false;return {status:r.status,body:{}}}return {status:r.status,body:await r.json()}},
+   acct:()=>st.acct?{sub:st.acct}:null,now:()=>new Date(st.clock).toISOString(),nowMs:()=>st.clock,
+   setTimer:(fn,ms)=>{const t={fn,ms,live:true};timers.push(t);return t},clearTimer:t=>{if(t)t.live=false},
+   toast:m=>toasts.push(m),listen:(ev,fn)=>{handlers[ev]=fn},onState:s=>{st.states.push(s.state)},onApplied:()=>{st.applied++}};
+@@ -6001,3 +6002,162 @@ test('LHB-102: unas subidas guardadas rotas ({} , un texto, null, una lista con
+  const c=HOJA38({ls:{vb_uploads:JSON.stringify([{id:'u1',nombre:'Mía'}])}});c.API.importar({__text:JSON.stringify({...file,extra:{subidas:[{id:'u9',nombre:'Del respaldo'}]}})});
+  assert.deepEqual(JSON.parse(c.ls.get('vb_uploads')).map(x=>x.id).sort(),['u1','u9'],'con una lista buena, junta las dos como antes');
+ });
++
++/* ===================== LHB-80: el id de cada subida de Mi Hoja (X-Op), y GET ?op= para saber si una subida sin respuesta llegó ===================== */
++test('LHB-80: con 0008, un PUT con X-Op anota su id con el rev nuevo en la misma sentencia; GET ?op= dice en qué rev llegó, o null; se recuerdan las últimas OPS_KEEP',async()=>{
++ const a=await API28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));a.mk('user_a','ana_a');a.mk('user_b','beto_b');
++  const cols=a.db.prepare('PRAGMA table_info(mihoja)').all().map(c=>c.name);assert.ok(cols.includes('ops'),'la columna ops');
++  const q=id=>({path:'/api/mihoja?op='+id});
++  assert.deepEqual((await a.get('user_a',a.env,q('op_crear_01')))[1].op,{id:'op_crear_01',rev:null},'sin copia, no llegó');
++  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'0',{op:'op_crear_01'}))[0],200);
++  assert.deepEqual((await a.get('user_a',a.env,q('op_crear_01')))[1].op,{id:'op_crear_01',rev:1},'crear la copia la anota en el rev 1');
++  assert.equal((await a.put('user_a',{schema:1,doc:{...DOC28,ratings:{c1:5}}},'1',{op:'op_segunda_2'}))[0],200);
++  const [st,b]=await a.get('user_a',a.env,q('op_segunda_2'));assert.equal(st,200);assert.equal(b.rev,2);assert.deepEqual(b.op,{id:'op_segunda_2',rev:2});assert.deepEqual(b.doc.ratings,{c1:5},'el resto de la respuesta es el de siempre');
++  assert.deepEqual((await a.get('user_a',a.env,q('op_crear_01')))[1].op,{id:'op_crear_01',rev:1},'la de antes sigue');
++  assert.deepEqual((await a.get('user_a',a.env,q('op_que_no_es')))[1].op,{id:'op_que_no_es',rev:null});
++  /* un PUT que no escribe (409) no anota su id */
++  const [c409]=await a.put('user_a',{schema:1,doc:DOC28},'1',{op:'op_choca_409'});assert.equal(c409,409);
++  assert.deepEqual((await a.get('user_a',a.env,q('op_choca_409')))[1].op,{id:'op_choca_409',rev:null},'un 409 no llegó');
++  /* sin X-Op se escribe como siempre y no se anota nada */
++  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'2'))[0],200);
++  assert.equal(JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops).length,2);
++  /* sin ?op, GET contesta como siempre */
++  assert.ok(!('op' in (await a.get('user_a'))[1]));
++  /* la copia de otra cuenta no dice nada de las subidas de esta */
++  assert.equal((await a.put('user_b',{schema:1,doc:DOC28},'0',{op:'op_de_beto1'}))[0],200);
++  assert.deepEqual((await a.get('user_b',a.env,q('op_segunda_2')))[1].op,{id:'op_segunda_2',rev:null});
++  /* solo las últimas OPS_KEEP */
++  const K=a.ML.OPS_KEEP;assert.equal(K,20);assert.match(read('sync.js'),/\r?\nconst OPS_KEEP=20;\r?\n/,'el teléfono sabe cuántas se recuerdan');
++  let rev=3;for(let i=0;i<K+2;i++){assert.equal((await a.put('user_a',{schema:1,doc:DOC28},String(rev),{op:'op_tanda_'+String(i).padStart(2,'0')}))[0],200);rev++}
++  const ops=JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops);assert.equal(ops.length,K);
++  assert.deepEqual(ops[K-1],['op_tanda_'+String(K+1).padStart(2,'0'),rev],'la más nueva al final, con su rev');
++  assert.deepEqual((await a.get('user_a',a.env,q('op_tanda_01')))[1].op,{id:'op_tanda_01',rev:null},'las más viejas se olvidan');
++  assert.deepEqual((await a.get('user_a',a.env,q('op_tanda_02')))[1].op,{id:'op_tanda_02',rev:6});
++  /* una lista dañada no rompe nada: se empieza de nuevo */
++  a.db.prepare("UPDATE mihoja SET ops='no es json' WHERE user_id='user_a'").run();
++  assert.deepEqual((await a.get('user_a',a.env,q('op_tanda_02')))[1].op,{id:'op_tanda_02',rev:null});
++  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},String(rev),{op:'op_tras_dano'}))[0],200);
++  assert.deepEqual(JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops),[['op_tras_dano',rev+1]]);
++  /* un id que no vale */
++  for(const bad of ['corto','con espacio x','x'.repeat(65),'acento_ñandú'])assert.deepEqual(await a.put('user_a',{schema:1,doc:DOC28},String(rev+1),{op:bad}),[400,{error:'bad-op'}],bad);
++  assert.deepEqual(await a.get('user_a',a.env,{path:'/api/mihoja?op=corto'}),[400,{error:'bad-op'}]);
++  assert.equal(a.db.prepare("SELECT rev FROM mihoja WHERE user_id='user_a'").get().rev,rev+1,'un rechazo no cambia nada');
++ }finally{a.done()}
++});
++test('LHB-80: sin 0008 todavía, un PUT con X-Op escribe como siempre y GET ?op= contesta como siempre (sin op)',async()=>{
++ const a=await API28();
++ try{
++  a.mk('user_a','ana_a');
++  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'0',{op:'op_crear_01'}))[0],200);
++  assert.equal((await a.put('user_a',{schema:1,doc:DOC28},'1',{op:'op_segunda_2'}))[0],200);
++  const [st,b]=await a.get('user_a',a.env,{path:'/api/mihoja?op=op_segunda_2'});assert.equal(st,200);assert.equal(b.rev,2);assert.ok(!('op' in b),'sin la columna no dice nada');
++  /* otro error de la base no se esconde */
++  const env={...a.env,DB:{prepare:()=>({bind:()=>({first:async()=>{throw new Error('D1_ERROR: algo más')},run:async()=>{throw new Error('D1_ERROR: algo más')}})})}};
++  assert.deepEqual(await a.get('user_a',env,{path:'/api/mihoja?op=op_segunda_2'}),[503,{error:'unavailable'}]);
++ }finally{a.done()}
++});
++/* las dos maneras en que una subida llega sin que el teléfono lo sepa: la respuesta no se puede leer, o la red se cae después de escribir */
++const LOST80=['badBody','dropAfterPut'];
++test('LHB-80 (reproducción 1): la quita de un favorito llega sin respuesta y la persona lo vuelve a poner antes del reintento: el favorito se queda, aquí y en la cuenta',async()=>{
++ for(const lost of LOST80){const a=await ENG28();
++  try{
++   a.db.exec(a.mig('0008_mihoja_ops.sql'));
++   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');
++   A.seed(DOC28);assert.equal((await A.sync()).ok,true);assert.equal((await B.sync()).ok,true);
++   assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'a1 en el rev 1');
++   /* A quita a1; su PUT escribe el rev 2 pero la respuesta se pierde */
++   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;const r1=await A.sync();assert.notEqual(r1.ok,true,lost+': la pasada no sabe si llegó');
++   assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita llegó');
++   /* antes del reintento, la persona lo vuelve a poner en este mismo teléfono */
++   A.edit(d=>{d.favs.artesanos=['a1']});
++   const r2=await A.sync();assert.equal(r2.ok,true,lost);
++   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': a1 se queda en el teléfono');
++   assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');assert.equal(srv28(a,'user_a').rev,3);
++  }finally{a.done()}}});
++test('LHB-80 (reproducción 2): la quita llega sin respuesta, el otro teléfono la trae y lo vuelve a poner justo antes del reintento: el favorito y la estrella nueva se quedan',async()=>{
++ for(const lost of LOST80){const a=await ENG28();
++  try{
++   a.db.exec(a.mig('0008_mihoja_ops.sql'));
++   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');
++   A.seed(DOC28);await A.sync();await B.sync();
++   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;await A.sync();assert.equal(srv28(a,'user_a').rev,2);
++   /* B trae la quita y prepara volver a ponerlo */
++   assert.equal((await B.sync()).ok,true);assert.deepEqual(B.doc().favs.artesanos,[]);B.edit(d=>{d.favs.artesanos=['a1']});
++   /* A cambia una estrella y reintenta; después de que A lee el rev 2, B sube su vuelta (rev 3) */
++   A.edit(d=>{d.ratings.c1=5});A.net.beforePut=async()=>{assert.equal((await B.sync()).ok,true);assert.equal(srv28(a,'user_a').rev,3)};
++   const r=await A.sync();assert.equal(r.ok,true,lost);
++   const s=srv28(a,'user_a');
++   assert.deepEqual(s.doc.favs.artesanos,['a1'],lost+': la vuelta de B se queda en la cuenta');assert.equal(s.doc.ratings.c1,5,lost+': y la estrella de A');
++   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': A también lo tiene');
++   assert.equal((await B.sync()).ok,true);assert.deepEqual(B.doc().favs.artesanos,['a1']);assert.equal(B.doc().ratings.c1,5);
++  }finally{a.done()}}});
++test('LHB-80: una subida sin respuesta que no llegó, y la cuenta ya pasó de su rev: se olvida y se junta con la base de antes; sin 0008, como antes (sin dar nada por borrado)',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
++  /* el PUT de A nunca llega (la red se cae antes) */
++  const asks=[];const api=A.D.api;A.D.api=async(C,m,path,...r)=>{asks.push(m+' '+path);if(m==='PUT'&&!asks.some(x=>x==='skip'))throw new TypeError('sin red');return api(C,m,path,...r)};
++  A.edit(d=>{d.humidor.push({id:'h2',marca:'De A',actualizado:'2026-10-29'})});await A.sync();assert.equal(srv28(a,'user_a').rev,1,'no llegó');
++  asks.push('skip');
++  /* B sube otra cosa (rev 2) */
++  B.edit(d=>{d.humidor.push({id:'h3',marca:'De B',actualizado:'2026-10-29'})});await B.sync();
++  const r=await A.sync();assert.equal(r.ok,true);
++  assert.ok(asks.some(x=>/^GET \/api\/mihoja\?op=[A-Za-z0-9_-]{8,64}$/.test(x)),'se preguntó por la subida sin respuesta');
++  assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1','h2','h3']);
++  /* después ya no se pregunta */
++  asks.length=0;asks.push('skip');await A.sync();assert.ok(!asks.some(x=>/\?op=/.test(x)),'ya no se pregunta');
++ }finally{a.done()}
++ /* sin la columna (0008 sin aplicar) el GET no dice nada y se sigue como antes */
++ const b=await ENG28();
++ try{
++  const A=DEV28(b,'user_a');A.seed(DOC28);await A.sync();A.edit(d=>{d.favs.artesanos=[]});A.net.badBody=true;await A.sync();
++  A.edit(d=>{d.favs.artesanos=['a1']});const r=await A.sync();assert.equal(r.ok,true,'sin 0008 la pasada termina');
++ }finally{b.done()}});
++test('LHB-80: la subida sin respuesta llegó, pero después la cuenta subió más de OPS_KEEP veces y su id ya no está: no se da por no llegada (no se borra la vuelta de la persona)',async()=>{
++ for(const lost of LOST80){const a=await ENG28();
++  try{
++   a.db.exec(a.mig('0008_mihoja_ops.sql'));
++   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');
++   A.seed(DOC28);await A.sync();await B.sync();
++   /* A quita a1; llega en el rev 2 sin respuesta; A lo vuelve a poner */
++   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;await A.sync();assert.equal(srv28(a,'user_a').rev,2);
++   A.edit(d=>{d.favs.artesanos=['a1']});
++   /* B sube 21 veces (estrellas): el id de A sale de la lista */
++   for(let i=0;i<21;i++){B.edit(d=>{d.ratings['c'+i]=4});assert.equal((await B.sync()).ok,true)}
++   assert.ok(srv28(a,'user_a').rev>1+20,'más de OPS_KEEP revs después del que pidió A');
++   assert.ok(!JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops).some(x=>x[1]===2),'el id de A (rev 2) ya no está');
++   const r=await A.sync();assert.equal(r.ok,true,lost);
++   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': la vuelta de a1 se queda en el teléfono');
++   assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');assert.equal(srv28(a,'user_a').doc.ratings.c20,4);
++  }finally{a.done()}}});
++test('LHB-80: una quita cuyo PUT no llegó, y la cuenta subió dos veces mientras tanto: el servidor dice que no llegó, así que se olvida y la quita se aplica en el reintento',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');A.seed(DOC28);await A.sync();await B.sync();
++  /* A quita a1; su PUT nunca llega (la red se cae antes) */
++  let drop=true;const api=A.D.api;A.D.api=async(C,m,...r)=>{if(m==='PUT'&&drop)throw new TypeError('sin red');return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,1,'no llegó');drop=false;
++  /* B sube dos veces otra cosa (rev 3) */
++  for(const c of ['c1','c2']){B.edit(d=>{d.ratings[c]=3});assert.equal((await B.sync()).ok,true)}
++  assert.equal(srv28(a,'user_a').rev,3);
++  const r=await A.sync();assert.equal(r.ok,true);
++  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita de A llegó a la cuenta');assert.deepEqual(A.doc().favs.artesanos,[]);
++  assert.equal(srv28(a,'user_a').doc.ratings.c2,3,'y lo de B se queda');
++ }finally{a.done()}});
++test('LHB-80: una respuesta de GET ?op= sobre otro id no se cree: la quita que no llegó se aplica',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  let drop=true;const api=A.D.api;
++  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'&&drop)throw new TypeError('sin red');const x=await api(C,m,path,...r);
++   /* un servidor que contesta por otra subida, como si hubiera llegado */
++   if(m==='GET'&&/\?op=/.test(path)&&x&&x.body&&x.body.op)x.body={...x.body,op:{id:'otra_subida_99',rev:1}};return x};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();drop=false;assert.equal(srv28(a,'user_a').rev,1);
++  const r=await A.sync();assert.equal(r.ok,true);
++  assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita llegó');assert.deepEqual(A.doc().favs.artesanos,[]);
++ }finally{a.done()}});
+
+2026-10-29T16:29:24.235230Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-29T16:29:25.398376Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The supplied tests do not establish safety across every uncertain-upload sequence. I’ll review the actual diff and surrounding sync logic, then run focused checks if the available tools permit it.
+
+2026-10-29T16:29:32.412565Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("MCP HTTP headers helper timed out after 10 seconds")))
+2026-10-29T16:29:32.678963Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("MCP HTTP headers helper timed out after 10 seconds")))
+2026-10-29T16:29:33.682021Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("MCP HTTP headers helper timed out after 10 seconds")))
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\Users\Owner\lhb-80-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-29T16:29:36.149763Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+codex
+[Likely] Two gaps need direct checks: an uncertain PUT that commits after the retry GET, and a PUT written without `ops` just before migration 0008. Both could leave the client using its old base.
+
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+codex
+[Certain] Both added checks reproduced data loss using the existing test helpers and real route on SQLite. The 23 focused tests still pass. I also found that `sw.js` is unchanged and serves `sync.js` from cache first, so existing PWA installations appear unable to receive the fix through a normal reload.
+
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. **[Certain] P1, blocks: an unresolved PUT can still cause stale-base deletion.**  
+   File: [site/sync.js:167](C:/Users/Owner/lhb-80-wt/site/sync.js:167), symbol: `once()`. Artifact: `unk={sub:uid,rev,op,sent:merged}` replaces the pending operation; a subsequent 409 executes `unk=null`.
+
+   Reproduced: A’s removal PUT loses its connection while its server write remains pending. A re-adds `a1` and changes a rating. The retry GET returns rev 1 with `op.rev=null`. The original removal then commits at rev 2, making the new PUT return 409. The next iteration uses the old base and uploads rev 3 **without `a1`**. The rating survives; the deliberate re-add disappears locally and remotely.
+
+   A retry requiring no PUT also clears the unresolved operation at line 191, allowing the same loss after a late commit. Preserve the original operation until its outcome is established or it is conclusively fenced.
+
+2. **[Certain] P1, blocks: the specified migration order creates false “not landed” answers.**  
+   Files/symbols: [functions/api/mihoja.js:80](C:/Users/Owner/lhb-80-wt/functions/api/mihoja.js:80), `onRequestPut()` fallback; [site/sync.js:148](C:/Users/Owner/lhb-80-wt/site/sync.js:148), `once()`. Artifacts: `r = await plain()` writes without recording the ID, while a later `oc.rev===null` clears uncertainty.
+
+   Reproduced: deploy code without 0008; A’s removal commits at rev 2 but its response is unreadable; A re-adds `a1`; apply 0008; retry. GET now returns `op.rev=null` because the successful upload was never recorded. A treats it as uncommitted, uses the old base, and deletes the re-add locally.
+
+   Preserve the pinned code-first order, but distinguish incomplete operation-history coverage from confirmed absence. A newly available column cannot establish whether an earlier upload landed.
+
+3. **[Certain] P1, blocks: existing PWA installations continue running the unfixed client.**  
+   File: [site/sw.js:2](C:/Users/Owner/lhb-80-wt/site/sw.js:2), symbols: `VERSION`, `SHELL`, fetch handler. Artifacts: unchanged `VERSION='lhb-v113'`, precached `'sync.js'`, and `caches.match(...).then(hit=>hit||fetch(...))`.
+
+   `sw.js` is byte-for-byte unchanged from main. An existing installation therefore retains its cached pre-ticket `sync.js` through normal reloads. A handler-level reproduction served main’s client with **zero network fetches**, so neither original sequence receives the fix. Update the worker/cache revision with this client change.
+
+[Certain] The 23 focused tests passed, including both supplied reproductions and the SQLite JSON1/parameter-binding paths. The additional reproductions above used existing helpers without editing files. Full-suite verification was unsuccessful here, with temporary-directory `EPERM` and generator subprocess failures observed. Live D1 execution remains **NOT VERIFIED**.
+
+VERDICT: BLOCK
+tokens used
+81,800
+1. **[Certain] P1, blocks: an unresolved PUT can still cause stale-base deletion.**  
+   File: [site/sync.js:167](C:/Users/Owner/lhb-80-wt/site/sync.js:167), symbol: `once()`. Artifact: `unk={sub:uid,rev,op,sent:merged}` replaces the pending operation; a subsequent 409 executes `unk=null`.
+
+   Reproduced: A’s removal PUT loses its connection while its server write remains pending. A re-adds `a1` and changes a rating. The retry GET returns rev 1 with `op.rev=null`. The original removal then commits at rev 2, making the new PUT return 409. The next iteration uses the old base and uploads rev 3 **without `a1`**. The rating survives; the deliberate re-add disappears locally and remotely.
+
+   A retry requiring no PUT also clears the unresolved operation at line 191, allowing the same loss after a late commit. Preserve the original operation until its outcome is established or it is conclusively fenced.
+
+2. **[Certain] P1, blocks: the specified migration order creates false “not landed” answers.**  
+   Files/symbols: [functions/api/mihoja.js:80](C:/Users/Owner/lhb-80-wt/functions/api/mihoja.js:80), `onRequestPut()` fallback; [site/sync.js:148](C:/Users/Owner/lhb-80-wt/site/sync.js:148), `once()`. Artifacts: `r = await plain()` writes without recording the ID, while a later `oc.rev===null` clears uncertainty.
+
+   Reproduced: deploy code without 0008; A’s removal commits at rev 2 but its response is unreadable; A re-adds `a1`; apply 0008; retry. GET now returns `op.rev=null` because the successful upload was never recorded. A treats it as uncommitted, uses the old base, and deletes the re-add locally.
+
+   Preserve the pinned code-first order, but distinguish incomplete operation-history coverage from confirmed absence. A newly available column cannot establish whether an earlier upload landed.
+
+3. **[Certain] P1, blocks: existing PWA installations continue running the unfixed client.**  
+   File: [site/sw.js:2](C:/Users/Owner/lhb-80-wt/site/sw.js:2), symbols: `VERSION`, `SHELL`, fetch handler. Artifacts: unchanged `VERSION='lhb-v113'`, precached `'sync.js'`, and `caches.match(...).then(hit=>hit||fetch(...))`.
+
+   `sw.js` is byte-for-byte unchanged from main. An existing installation therefore retains its cached pre-ticket `sync.js` through normal reloads. A handler-level reproduction served main’s client with **zero network fetches**, so neither original sequence receives the fix. Update the worker/cache revision with this client change.
+
+[Certain] The 23 focused tests passed, including both supplied reproductions and the SQLite JSON1/parameter-binding paths. The additional reproductions above used existing helpers without editing files. Full-suite verification was unsuccessful here, with temporary-directory `EPERM` and generator subprocess failures observed. Live D1 execution remains **NOT VERIFIED**.
+
+VERDICT: BLOCK
