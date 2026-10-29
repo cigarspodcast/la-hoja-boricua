@@ -5507,30 +5507,38 @@ function ABOUT73(o={}){const vm=require('vm');const D=DOM64();const src=read('ap
  const ctx={document:D.doc,view,$:D.$,esc:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'),tt:k=>'['+k+']',head:(e,t,l)=>`<header><h1>${t}</h1><p>${l}</p></header>`,VBArt:{leaf:()=>''},
   brandIcon:n=>`<svg data-i="${n}"></svg>`,matchMedia:q=>({matches:!!o.reduced&&q==='(prefers-reduced-motion: reduce)'}),navigator:{connection:o.saveData?{saveData:true}:undefined},location:loc};
  vm.createContext(ctx);vm.runInContext(code+';this.CREDITS=CREDITS;this.vAcerca=vAcerca;this.vCreditos=vCreditos',ctx);return {...D,ctx,loc,html:()=>last}}
-/* ¿tiene sonido un archivo MP4/MOV/3GP? Recorre las cajas de verdad (tamaño de 32 o de 64 bits, o hasta el final) por moov, trak y mdia
-   y lee el tipo del hdlr. Devuelve true, false, o null si el archivo no se deja leer (Codex ronda 1: la expresión regular no veía un hdlr de 64 bits) */
-function SOUND73(b){let bad=false;
- const walk=(s,e,inMdia)=>{let any=false;for(let o=s;o<e;){if(e-o<8){bad=true;return any}let n=b.readUInt32BE(o),h=8;const ty=b.toString('latin1',o+4,o+8);
-  if(n===1){if(e-o<16){bad=true;return any}n=Number(b.readBigUInt64BE(o+8));h=16}else if(n===0)n=e-o;
-  if(n<h||o+n>e){bad=true;return any}
-  if(ty==='hdlr'&&inMdia){if(n-h<12){bad=true;return any}if(b.toString('latin1',o+h+8,o+h+12)==='soun')any=true}
-  else if(['moov','trak','mdia'].includes(ty)&&walk(o+h,o+n,ty==='mdia'))any=true;
-  o+=n}return any};
- const r=walk(0,b.length,false);return r?true:bad?null:false}
-/* los archivos de site/assets que llevan sonido. Por el contenido, no por el nombre: un archivo de audio (WAV, MP3, Ogg, FLAC, AIFF, Matroska/WebM)
-   cuenta siempre; un MP4/MOV/3GP cuenta si una pista es de sonido o si no se deja leer. Un archivo de medios que no se sabe leer cuenta (mejor de más que de menos) */
-const MEDIA73=['.mp3','.wav','.ogg','.oga','.ogv','.opus','.m4a','.m4b','.aac','.flac','.weba','.webm','.mkv','.mka','.aif','.aiff','.caf','.amr','.wma','.wmv','.avi','.flv','.mpg','.mpeg','.ts','.mp4','.m4v','.mov','.3gp','.3g2'];
+/* ¿tiene sonido un archivo MP4/MOV/3GP? Lee las cajas de verdad, en cualquier orden (tamaño de 32 o de 64 bits, o hasta el final).
+   'sound': una pista es de sonido; 'silent': se leyó todo y cada pista es de imagen (vide, pict, auxv); 'unknown': cualquier otra cosa
+   (una caja que no cuadra, cmov comprimido, una pista de otro tipo, sin ftyp). Codex rondas 1 y 2: el silencio se demuestra, no se supone. */
+function SOUND73(b){
+ const box=(o,e)=>{if(e-o<8)return null;let n=b.readUInt32BE(o),h=8;const ty=b.toString('latin1',o+4,o+8);if(!/^[\x20-\x7e]{4}$/.test(ty))return null;
+  if(n===1){if(e-o<16)return null;const big=b.readBigUInt64BE(o+8);if(big>BigInt(e-o))return null;n=Number(big);h=16}else if(n===0)n=e-o;
+  if(n<h||o+n>e)return null;return {ty,s:o+h,e:o+n}};
+ const kids=(s,e)=>{const out=[];for(let o=s;o<e;){const x=box(o,e);if(!x)return null;out.push(x);o=x.e}return out};
+ const top=kids(0,b.length);if(!top||!top.some(x=>x.ty==='ftyp'))return 'unknown';
+ const moov=top.filter(x=>x.ty==='moov');
+ if(!moov.length){const ft=top.find(x=>x.ty==='ftyp');return ft.e-ft.s>=4&&['avif','heic','heix','mif1'].includes(b.toString('latin1',ft.s,ft.s+4))?'silent':'unknown'}
+ if(moov.length!==1)return 'unknown';
+ const mk=kids(moov[0].s,moov[0].e);if(!mk||mk.some(x=>x.ty==='cmov'))return 'unknown';
+ const traks=mk.filter(x=>x.ty==='trak');if(!traks.length)return 'unknown';
+ let snd=false;
+ for(const t of traks){const tk=kids(t.s,t.e),md=tk&&tk.find(x=>x.ty==='mdia');if(!md)return 'unknown';const mc=kids(md.s,md.e),hd=mc&&mc.find(x=>x.ty==='hdlr');
+  if(!hd||hd.e-hd.s<12)return 'unknown';const ht=b.toString('latin1',hd.s+8,hd.s+12);if(ht==='soun')snd=true;else if(!['vide','pict','auxv'].includes(ht))return 'unknown'}
+ return snd?'sound':'silent'}
+/* un archivo es mudo solo si se demuestra: una imagen o una fuente por su firma, texto (UTF-8 sin bytes nulos: SVG, JSON, CSS), o un MP4 cuyas pistas son todas de imagen */
+function KIND73(b){const h=b.toString('latin1',0,12),u=b.length>=4?b.readUInt32BE(0):-1;
+ if(h.startsWith('\x89PNG')||(b[0]===0xFF&&b[1]===0xD8&&b[2]===0xFF)||h.startsWith('GIF8')||/^RIFF....WEBP/s.test(h)||/^(wOFF|wOF2|OTTO)/.test(h)||u===0x00010000||u===0x00000100)return 'silent';
+ if(!b.subarray(0,4096).includes(0)){try{new TextDecoder('utf-8',{fatal:true}).decode(b.subarray(0,4096),{stream:true});return 'silent'}catch(e){}}
+ return SOUND73(b)}
+/* los archivos de site/assets que pueden llevar sonido: todos menos los que se demuestran mudos; el nombre no cuenta */
 function AUDIO73(root=path.join(S,'assets'),base=S){const out=[];
- const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory()){walk(p);continue}
-  const b=fs.readFileSync(p),x=path.extname(e.name).toLowerCase(),h=b.toString('latin1',0,12);
-  const iso=h.slice(4,8)==='ftyp',audio=/^(RIFF....WAVE|ID3|OggS|fLaC|FORM....AIF)/s.test(h)||(b.length>1&&b[0]===0xFF&&(b[1]&0xE0)===0xE0&&!['.png','.jpg','.jpeg','.webp','.gif','.svg','.ico','.woff','.woff2'].includes(x))||(b.length>3&&b.readUInt32BE(0)===0x1A45DFA3);
-  if(iso){if(SOUND73(b)!==false)out.push(p)}else if(audio||MEDIA73.includes(x))out.push(p)}};
+ const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory()){walk(p);continue}if(KIND73(fs.readFileSync(p))!=='silent')out.push(p)}};
  walk(root);return out.map(p=>path.relative(base,p).split(path.sep).join('/')).sort()}
-/* un MP4 de prueba: ftyp y un moov con una pista por cada tipo de hdlr; ext: cajas con tamaño de 64 bits */
-function MP473(handlers,ext){const box=(ty,body)=>{if(ext){const h=Buffer.alloc(16);h.writeUInt32BE(1,0);h.write(ty,4,'latin1');h.writeBigUInt64BE(BigInt(16+body.length),8);return Buffer.concat([h,body])}
-  const h=Buffer.alloc(8);h.writeUInt32BE(8+body.length,0);h.write(ty,4,'latin1');return Buffer.concat([h,body])};
- const hdlr=t=>{const x=Buffer.alloc(25);x.write(t,8,'latin1');return box('hdlr',x)};
- return Buffer.concat([box('ftyp',Buffer.from('isom\0\0\0\0isom','latin1')),box('moov',Buffer.concat(handlers.map(t=>box('trak',box('mdia',hdlr(t))))))])}
+/* cajas de prueba: BOX73 arma una (ext: tamaño de 64 bits); MP473 da ftyp y un moov con una pista por cada tipo de hdlr */
+function BOX73(ty,body,ext){if(ext){const h=Buffer.alloc(16);h.writeUInt32BE(1,0);h.write(ty,4,'latin1');h.writeBigUInt64BE(BigInt(16+body.length),8);return Buffer.concat([h,body])}
+ const h=Buffer.alloc(8);h.writeUInt32BE(8+body.length,0);h.write(ty,4,'latin1');return Buffer.concat([h,body])}
+function MP473(handlers,ext,brand='isom'){const hdlr=t=>{const x=Buffer.alloc(25);x.write(t,8,'latin1');return BOX73('hdlr',x,ext)};
+ return Buffer.concat([BOX73('ftyp',Buffer.from(brand+'\0\0\0\0isom','latin1'),ext),BOX73('moov',Buffer.concat(handlers.map(t=>BOX73('trak',BOX73('mdia',hdlr(t),ext),ext))),ext)])}
 /* lo que falta para que cada archivo con sonido tenga sus créditos completos */
 function GAPS73(C,files){const out=[];
  for(const f of files){const ids=C.files[f];if(!ids||!ids.length){out.push(f+': sin créditos');continue}
@@ -5544,16 +5552,23 @@ test('LHB-73: cada archivo con sonido de site/assets tiene sus créditos (títul
  const a=ABOUT73(),C=a.ctx.CREDITS,files=AUDIO73();
  t.diagnostic('archivos con sonido en site/assets: '+files.length+' ('+files.join(', ')+'); entradas de créditos: '+C.audio.length);
  assert.deepEqual(files,['assets/intro/intro-landscape.mp4','assets/intro/intro-portrait.mp4'],'los dos videos de la intro llevan sonido');
- /* Codex ronda 1: el censo lee las cajas del MP4 y mira el contenido, no solo el nombre */
- for(const f of files)assert.equal(SOUND73(fs.readFileSync(path.join(S,f))),true,f+': la pista de sonido se encuentra por sus cajas');
- assert.equal(SOUND73(MP473(['vide','soun'])),true);assert.equal(SOUND73(MP473(['vide','soun'],true)),true,'cajas de 64 bits');assert.equal(SOUND73(MP473(['vide'])),false,'solo video');
- assert.equal(SOUND73(MP473(['vide'],true)),false);assert.equal(SOUND73(MP473(['soun']).subarray(0,40)),null,'cortado: no se deja leer');
+ /* Codex rondas 1 y 2: el censo lee las cajas del MP4 y mira el contenido; un archivo cuenta salvo que se demuestre mudo */
+ for(const f of files)assert.equal(SOUND73(fs.readFileSync(path.join(S,f))),'sound',f+': la pista de sonido se encuentra por sus cajas');
+ const cut=MP473(['soun']).subarray(0,40),cmov=Buffer.concat([BOX73('ftyp',Buffer.from('qt  \0\0\0\0qt  ','latin1')),BOX73('moov',Buffer.concat([BOX73('cmov',Buffer.alloc(30,7)),MP473(['vide']).subarray(28)]))]);
+ const freeFirst=Buffer.concat([BOX73('free',Buffer.alloc(0)),MP473(['vide','soun'])]),avif=BOX73('ftyp',Buffer.from('avif\0\0\0\0mif1','latin1'));
+ const SND=[[MP473(['vide','soun']),'sound'],[MP473(['vide','soun'],true),'sound'],[freeFirst,'sound'],[MP473(['vide']),'silent'],[MP473(['vide'],true),'silent'],
+  [cut,'unknown'],[cmov,'unknown'],[MP473(['vide','tmcd']),'unknown'],[MP473([]),'unknown'],[avif,'silent'],[Buffer.concat([Buffer.from('OggS','latin1'),Buffer.alloc(40)]),'unknown']];
+ SND.forEach(([b,want],i)=>assert.equal(SOUND73(b),want,'caso '+i));
  const tmp=fs.mkdtempSync(path.join(require('os').tmpdir(),'lhb73-'));
  try{const put=(n,b)=>{fs.mkdirSync(path.dirname(path.join(tmp,n)),{recursive:true});fs.writeFileSync(path.join(tmp,n),b)};
-  put('a/ext64.mp4',MP473(['vide','soun'],true));put('a/clip.3gp',MP473(['soun']));put('a/mudo.mp4',MP473(['vide']));put('a/MAYUS.MP4',MP473(['soun']));put('a/roto.mov',MP473(['soun']).subarray(0,40));
+  put('a/ext64.mp4',MP473(['vide','soun'],true));put('a/clip.3gp',MP473(['soun']));put('a/MAYUS.MP4',MP473(['soun']));put('a/roto.mov',cut);put('a/cmov.mov',cmov);
+  put('a/libre-primero.dat',freeFirst);put('a/con-tiempo.mp4',MP473(['vide','tmcd']));put('a/mudo.mp4',MP473(['vide']));put('a/imagen.avif',avif);
   put('b/sin-nombre.bin',Buffer.concat([Buffer.from('OggS','latin1'),Buffer.alloc(40)]));put('b/onda.dat',Buffer.concat([Buffer.from('RIFF\0\0\0\0WAVE','latin1'),Buffer.alloc(40)]));
-  put('b/pista.mka',Buffer.alloc(40));put('b/foto.png',Buffer.from([0x89,0x50,0x4e,0x47,0,0,0,0]));put('b/logo.svg',Buffer.from('<svg/>'));
-  assert.deepEqual(AUDIO73(tmp,tmp),['a/MAYUS.MP4','a/clip.3gp','a/ext64.mp4','a/roto.mov','b/onda.dat','b/pista.mka','b/sin-nombre.bin'],'un MP4 de 64 bits, un 3GP, un archivo de audio con otro nombre y uno roto cuentan; el video mudo y las imágenes no')}
+  put('b/pista.mka',Buffer.alloc(40));put('b/foto.png',Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0,0,0,0]));put('b/logo.svg',Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'));
+  put('b/poster.webp',Buffer.concat([Buffer.from('RIFF\0\0\0\0WEBPVP8 ','latin1'),Buffer.alloc(20)]));put('b/fuente.woff2',Buffer.concat([Buffer.from('wOF2','latin1'),Buffer.alloc(20)]));
+  put('b/datos.json',Buffer.from('{"a":"ñ"}'));put('b/vacio.txt',Buffer.alloc(0));
+  assert.deepEqual(AUDIO73(tmp,tmp),['a/MAYUS.MP4','a/clip.3gp','a/cmov.mov','a/con-tiempo.mp4','a/ext64.mp4','a/libre-primero.dat','a/roto.mov','b/onda.dat','b/pista.mka','b/sin-nombre.bin'],
+   'cuenta todo lo que no se demuestra mudo; el video sin sonido, AVIF, PNG, WebP, WOFF2, SVG, JSON y un archivo vacío no')}
  finally{fs.rmSync(tmp,{recursive:true,force:true})}
  assert.deepEqual(GAPS73(C,files),[]);
  /* la prueba sí falla: sin una entrada, o con un archivo nuevo sin créditos */

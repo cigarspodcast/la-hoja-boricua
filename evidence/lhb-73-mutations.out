@@ -12,8 +12,12 @@ K11 the credit claims the plate                              rc 1 fail 1 -> RED
 K12 Ver intro has no English value                           rc 1 fail 2 -> RED
 K14 (Codex r1) the census goes back to the byte regex        rc 1 fail 1 -> RED
 K15 (Codex r1) the box walker ignores 64-bit sizes           rc 1 fail 1 -> RED
-K16 (Codex r1) a file the walker cannot read counts as silent rc 1 fail 1 -> RED
+K16 (Codex r2) an unknown file counts as silent              rc 1 fail 1 -> RED
+K18 (Codex r2) compressed cmov is read as silent             rc 1 fail 1 -> RED
+K19 (Codex r2) ftyp must be the first box                    rc 1 fail 1 -> RED
+K20 (Codex r2) a track of another kind counts as silent      rc 1 fail 1 -> RED
+K21 (Codex r2) any binary file counts as silent              rc 1 fail 1 -> RED
 K17 (Codex r1) the credits view drops the focus              rc 1 fail 1 -> RED
 K13 the back button goes elsewhere                           rc 1 fail 1 -> RED
 baseline after restore: rc 0 pass 6 fail 0
-RESULT 17 of 17 mutations red
+RESULT 21 of 21 mutations red

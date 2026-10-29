@@ -1,0 +1,14 @@
+== against the round 1 census (c85336e)
+top-level boxes: ftyp:32 moov:5818 free:8 mdat:610339
+free before ftyp, renamed .dat: true
+moov compressed in cmov: false
+census: assets/intro/intro-landscape.mp4, assets/intro/intro-portrait.mp4
+RESULT FAIL
+rc 1
+== against the current census
+top-level boxes: ftyp:32 moov:5818 free:8 mdat:610339
+free before ftyp, renamed .dat: sound
+moov compressed in cmov: unknown
+census: assets/intro/intro-landscape.mp4, assets/intro/intro-portrait.mp4, assets/intro/packed.mov, assets/intro/uncredited.dat
+RESULT PASS: both rebuilt files are counted and would need credits
+rc 0

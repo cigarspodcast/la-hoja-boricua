@@ -1,0 +1,29 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged, never merged to main). This is round 2 of a TIER 2 review of LHB-73 (M7-F4b: About screen, intro credits page, Ver intro link). The round 1 brief and your review are in evidence/lhb-73-review-brief-r1.txt and evidence/lhb-73-review-r1.txt in the worktree. The diff below is the whole ticket (base 73ddbbe), so it includes round 0 and the round 1 fixes (commit c85336e).
+
+Round 1 verdict: BLOCK. What changed:
+1. P2 (blocking): the census missed an MP4 whose hdlr box uses a 64-bit size, and ignored .3gp. In test/site.test.js:
+   - SOUND73(buffer) walks the ISO BMFF boxes (32-bit size, size 1 with a 64-bit size, size 0 to the end) through moov, trak and mdia, and reads the hdlr handler type. It returns true, false, or null when the file cannot be read (a box that runs past its parent, a truncated header).
+   - AUDIO73(root, base) decides by content, not by name:
+     - a file starting with ftyp counts when SOUND73 is not false (so an unreadable one counts);
+     - a file with audio magic bytes counts under any name: RIFF WAVE, ID3, OggS, fLaC, FORM AIFF, an MPEG frame sync except on image or font extensions, and the EBML header of Matroska and WebM;
+     - every file with one of 30 media extensions counts.
+   - Fixtures written to a temporary folder:
+     - counted: a 64-bit-box MP4, a 3GP, an uppercase .MP4, a cut MOV, a WAV named .dat, an Ogg named .bin, an empty .mka;
+     - not counted: a video-only MP4, a PNG and an SVG.
+   - SOUND73 is also checked on the two real intro videos, and on fixtures with normal and 64-bit boxes, video only, and cut.
+2. P3 (non-blocking, fixed): after vAcerca or vCreditos paints, if the focused element is gone (the body, or not connected), the focus moves to #view, the main element with tabindex -1. This uses keepFocus with preventScroll. The test focuses the credits link, paints the credits page, and checks the active element is the view; it does the same for the back button and About.
+3. Mutations K14 to K17 cover these changes:
+   - K14: the census goes back to the byte regex;
+   - K15: the walker ignores 64-bit sizes;
+   - K16: an unreadable file counts as silent;
+   - K17: the credits view drops the focus.
+   The result is 17 of 17 red, with a clean baseline of 6 pass and 0 fail (evidence/lhb-73-mutations.out).
+4. site/sw.js goes from lhb-v99 to lhb-v100, because the preview at 4f545c3 served v99 with the round 0 app.js; 21 test pins move. The suite has 328 pass, 0 fail and 1 skipped (evidence/lhb-73-tests.txt).
+
+Check:
+- that each finding is closed: can a file with sound still pass the census without credits (another ISO brand, a box layout the walker misreads, a sound track inside a container other than mdia, a nested or fragmented MP4 with moof, a file the walker reads as silent by mistake);
+- that the census does not count a silent file in a way that would make the gate meaningless (images, fonts, SVGs under site/assets);
+- that keepFocus cannot steal focus in a normal visit (a hash change from the menu sheet, the language switch re-rendering, the first load);
+- anything else in the full ticket diff you did not cover.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
