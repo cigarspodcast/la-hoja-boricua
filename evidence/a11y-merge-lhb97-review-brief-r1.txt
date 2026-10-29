@@ -1,0 +1,18 @@
+You are reviewing one merge in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-64-wt (branch a11y-fixes, PR #36 to main, which the owner merges). The diff below is a11y-fixes HEAD 87ca9ef (a merge of main) against its parent 538a096, limited to site/ and test/: it brings main's LHB-102 (PR #40, TIER 1 PASS, evidence/lhb-102-review-r1.txt) and LHB-97 (PR #41, TIER 1 PASS in round 2, evidence/lhb-97-review-r2.txt) onto this branch. TIER 1: one round.
+
+What they are on main:
+- LHB-102: app.js uploads() keeps only the objects of a stored vb_uploads list and reads anything else as an empty list; hoja.js legacyList applies the same rule in the backup export and the import merge. A read never rewrites the stored value.
+- LHB-97: hoja.js myResenasK keys each own public review by JSON of [diary id or null, the shown entry], counted only for exact twins; pfKey/pfFind restore focus and lastFocus by that key after a repaint. On main, the HOJA58 test mock sheet() leaves focus on a review's opener, because main's sheet() does.
+
+How the merge was resolved:
+- site/app.js and site/hoja.js merged without conflict.
+- Conflicts only in site/sw.js and test/site.test.js. Every cache pin goes to lhb-v111 (this branch had lhb-v107, main lhb-v109; 21 test pins plus sw.js). One test hunk differed beyond the version: this branch keeps its LHB-64 block, whose last test is closed by the shared line after the hunk.
+- This branch's sheet() (LHB-64) always takes focus into the sheet (its first control, else Cerrar) with the app inert. So the HOJA58 mock always moves focus into the sheet (keeping lastFocus when focus is already there), and the LHB-97 assertions after a sheet opens expect focus in the sheet, with lastFocus carrying the review. The ticket's focus mutation is unreachable here and survives as expected; the key mutations are 6 of 6 red (evidence/a11y-lhb97-mutations.out).
+- Full suite: 313 pass, 0 fail, 1 skipped (evidence/a11y-merge-lhb97-tests.txt).
+
+Check in particular:
+- Is the conflict resolution correct: nothing of LHB-64 lost, nothing of LHB-102 or LHB-97 lost or misapplied?
+- Does the HOJA58 mock now match this branch's sheet() (read it in site/hoja.js), and do the LHB-97 tests still prove the key fix here? Is there any path on this branch where focus can sit on a review button while a sheet is open?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
