@@ -6324,6 +6324,60 @@ test('LHB-80 (Codex r4): una subida de A llegó sin respuesta; B entra y A vuelv
   const d=srv28(a,'user_a').doc;assert.ok(d.humidor.length===1&&d.diario.length===1&&d.favs.artesanos.includes('a1')&&d.ratings.c1===5,'la cuenta sigue entera');
   assert.equal(A.doc().ratings.c1,5,'y el teléfono la trajo');
  }finally{a.done()}});
+test('LHB-80 (Codex r5): si la época nueva no se puede escribir, isolate no toca la copia; la pasada que esperaba su GET sigue y la cuenta queda entera',async()=>{
+ const tick=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let hold=null,rel=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='GET'&&hold){const h=hold;hold=null;await h}return api(C,m,path,...r)};
+  hold=new Promise(r=>{rel=r});const p=A.eng.settled({});await tick();
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_epoca';
+  assert.equal(A.eng.isolate(),false,'sin época nueva no se cambia de cuenta');
+  assert.ok(FULL80(A.doc()),'la copia sigue como estaba');
+  A.st.failKey=null;A.st.acct=A.st.user='user_a';A.eng.isolate();
+  rel();await p;
+  assert.ok(FULL80(srv28(a,'user_a').doc),'la cuenta sigue entera');assert.ok(FULL80(A.doc()),'y el teléfono también');
+ }finally{a.done()}});
+test('LHB-80 (Codex r5): cuando isolate vacía la copia, la época ya cambió (otra pestaña que espera ya no vale mientras el cambio está a medias)',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const E='lhb_mihoja_v1_epoca',e0=A.ls.get(E);let seen;const sd=A.D.setDoc;
+  A.D.setDoc=(d,...r)=>{if(seen===undefined&&d&&!Object.keys(d).length)seen=A.ls.get(E);return sd(d,...r)};
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),true);
+  assert.notEqual(seen,undefined,'isolate vació la copia');assert.notEqual(seen,e0,'la época cambió antes de vaciarla');
+ }finally{a.done()}});
+test('LHB-80 (Codex r5): la meta de A que no se pudo reponer al pasar a B no es base de la copia nueva de A al volver: nada se sube como borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.ratings.c1=5});
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_sync';A.eng.isolate();A.st.failKey=null;
+  A.st.acct=A.st.user='user_a';A.eng.isolate();
+  await A.eng.settled({});
+  assert.ok(FULL80(srv28(a,'user_a').doc),'la cuenta sigue entera');assert.equal(srv28(a,'user_a').rev,1,'no subió nada');
+ }finally{a.done()}});
+test('LHB-80 (Codex r5): nueve quitas de A sin respuesta, la vuelta de a1, B sin poder reponer la meta y nueve subidas sin respuesta; de vuelta en A, la más vieja llega tarde: a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(C.user.id==='user_a'&&!late)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});for(let i=0;i<9;i++)await A.sync();
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  A.st.acct=A.st.user='user_b';A.st.failKey='lhb_mihoja_v1_sync';A.eng.isolate();A.st.failKey=null;
+  for(let i=0;i<9;i++)await A.sync();
+  A.st.acct=A.st.user='user_a';A.eng.isolate();
+  A.edit(d=>{Object.assign(d,JSON.parse(JSON.stringify(DOC28)))});
+  await late();assert.equal(srv28(a,'user_a').rev,2,'la quita más vieja llegó tarde');
+  A.D.api=api;assert.equal((await A.sync()).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{

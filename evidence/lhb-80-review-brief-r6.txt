@@ -1,0 +1,25 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-80-wt (branch lhb-80-sync-op). TIER 2, round 6.
+
+Ticket LHB-80: an idempotency token (X-Op) on PUT /api/mihoja so a pass can learn whether an upload whose answer was lost landed, and never applies a stale base. Round 5 (evidence/lhb-80-review-r5.txt) blocked on two P1 findings in site/sync.js:
+1. isolate() cleared the copy (setDoc({})) before setOwner() changed the epoch. A failed epoch write, or another tab paused between the clear and setOwner, left a waiting pass valid on the emptied copy, and it uploaded empty collections.
+2. setOwner()'s meta reset could fail while the owner and epoch were written. Back on A, A's stored meta from the earlier copy matched by sub alone and its base read the new empty copy as deletions.
+3. (evidence) The single-record mutant was not equivalent through finding 2's path.
+
+The diff below (one commit against the round 5 prompt commit) changes site/sync.js:
+- newEpoch() writes a fresh random epoch and reports whether it could. isolate() calls it FIRST, before it parks or clears anything, and returns false without touching the copy if it fails. This is now the only place the epoch changes. setOwner() no longer changes it: setOwner() is reached without isolate() only for a copy with no owner (a new device, or after forget), and forget() removes the meta and clears mem, pend and evict.
+- Every meta the code writes carries ep: setOwner's reset, the fresh meta in changed(), poison(), the landed-upload base, and the final meta of a pass. once(), the only reader that takes a base from the stored meta, uses it only when m.sub === uid AND its ep equals ep0. A meta without ep, written before LHB-80, counts as epoch null, and it matches only while no epoch is stored. Main has no epoch, so an upgraded device keeps its base until its first account change. A failed epoch read returns undefined, which matches no stored meta.
+- The other readers (settled, run's minAge, the debounce check, setOwner's reset condition, changed()'s fresh meta) compare sub only, as before. A first version also bound them to the epoch; the mutation proof showed each of those checks was masked by the pass's own check, so they were removed rather than claimed. The stored meta of another copy can then only delay or skip a pass, never give a base. settled() needs an ok pass, and an ok pass writes a meta of its own epoch.
+Tests (LHB-80 block, four added):
+- isolate with the epoch write rejected leaves the copy untouched, and the pass that waited for its GET finishes with the account whole.
+- When isolate clears the copy, the stored epoch has already changed (checked inside setDoc). This is the in-tab stand-in for the two-thread interleaving.
+- Round 5 finding 2's reproduction: A's meta reset is rejected while switching to B, then back on A settled() uploads nothing and the account stays whole.
+- Round 5 finding 3's sequence as a regression test.
+Tests 1 to 3 fail on 9fec0ea; test 4 passes there (it is the mutant's counter-example). Mutants: the round 4 mutant on setOwner's epoch change is removed with that code; two added for round 5 (isolate empties the copy before the epoch changes; the stored meta is not bound to its copy in the pass). The single-record mutant stays named equivalent with a corrected reason (EQUIV in evidence/lhb-80-mutations.py). Evidence: evidence/lhb-80-mutations.out, 33 of 36 red, 3 named equivalent, 0 unexpected survivors; evidence/lhb-80-tests.txt, full suite 370 tests, 369 pass, 0 fail, 1 skipped.
+
+Known limits, stated: pend, evict and mem live in memory. A reload with an upload unresolved falls back to the stored base, as stated since round 1.
+
+Check that findings 1 and 2 are closed in every interleaving of account switches (in this tab and in another tab), lost answers, late writes and storage failures, including a failure at each single write inside isolate() and setOwner(). Check whether a legacy meta without ep can be trusted for the wrong copy. Check whether the epoch can change under a pass that should continue in a way that never recovers. Check whether the equivalence claimed for the single-record mutant (see EQUIV in evidence/lhb-80-mutations.py) now holds. Report anything else that still applies a stale base or lets sign-out discard an upload that can still land.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

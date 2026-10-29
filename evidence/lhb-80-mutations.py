@@ -27,7 +27,7 @@ MUTS = [
     (AP, 'PUT without the column fails', 'catch (e) { if (!noOps(e)) throw e; r = await plain(); }', 'catch (e) { throw e; }'),
     (LB, 'any recorded id answers', 'x[0] === id && ', ''),
     (SY, 'the PUT does not send its id', ",'X-Op':op})", "})"),
-    (SY, 'a landed upload is not the base', 'if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}', ''),
+    (SY, 'a landed upload is not the base', 'if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}', ''),
     (SY, 'an upload that cannot land any more is asked about forever', 'else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);', 'else if(0){'),
     (SY, 'r1: a missing id is trusted outside the recorded range', 'if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true', ''),
     (SY, 'an answer about another id is believed', 'const o=oks.find(y=>isObj(y)&&y.id===x.op);', 'const o=oks[0];'),
@@ -43,9 +43,10 @@ MUTS = [
     (SY, 'r3: the OPS_ASK limit counts every account', 'const mine=pend.filter(x=>x.sub===uid);', 'const mine=pend;'),
     (SY, 'r3: one eviction record for every account', 'evict.set(uid,x.rev)', 'evict.clear(),evict.set(uid,x.rev)'),
     (SY, 'r4: a pass survives an account round trip', 'ownerOf()===uid&&epochOf()===ep0};', 'ownerOf()===uid};'),
-    (SY, 'r4: a change of owner keeps the epoch', 'if(ownerOf()!==uid)D.ls.set(EPOCH,', 'if(false)D.ls.set(EPOCH,'),
     (SY, 'r4: the cached base is not bound to its copy', 'mem.sub===uid&&mem.ep===ep0&&', 'mem.sub===uid&&'),
     (SY, 'r4: an upload sent from another copy is a base', 'if(x.ep!==ep0)voided=true;else if(', 'if('),
+    (SY, 'r5: isolate empties the copy before the epoch changes', '   if(!newEpoch())return false;\n   let raw=null;', '   let raw=null;'),
+    (SY, 'r5: the stored meta is not bound to its copy (the pass)', 'meta0.sub===uid&&epOf(meta0)===ep0?meta0', 'meta0.sub===uid?meta0'),
 ]
 
 
@@ -59,7 +60,10 @@ EQUIV = {
     # (its fence and settled() do not need the record). Codex r4 refuted the rest of the round 3 argument: the in-memory base (memOk) survived a switch, and
     # its counter-example (the 'A sin meta guardada' test) fails this mutant on the round 3 and 4 code. Since the epoch fix, no base survives a switch (setOwner
     # resets the stored one, mem and landed uploads are bound to their epoch), so the record of an account after another one used the device decides nothing.
-    'r3: one eviction record for every account': 'since the epoch fix no base outlives an account switch, and the account keeps its other uploads at the same If-Match',
+    # Codex r5 refuted the round 4 reason: a failed meta reset kept A's stored base across a switch, and its sequence (now the 'nueve quitas de A ... a1 se queda'
+    # test) fails this mutant on 9fec0ea. Since round 5 the stored meta carries its epoch and the pass rejects it from another copy, so after a switch every base
+    # A can use (stored meta, mem, a landed upload, the seed of the emptied copy) belongs to A's new copy; whether A's record voids it changes no merge.
+    'r3: one eviction record for every account': 'since round 5 every base (stored meta, mem, landed uploads) is bound to the epoch of its copy, and the account keeps its other uploads at the same If-Match',
 }
 
 

@@ -105,8 +105,12 @@ window.LHB_SYNC=function(D){
  /* LHB-80 (Codex r4): la época de la copia. Cambia cada vez que la copia de este teléfono pasa a otra dueña (isolate, en esta pestaña o en otra; también ida y vuelta
     a la misma cuenta, que deja la copia vacía): una pasada que empezó en otra época ya no vale, y una base en memoria o lo que mandó una subida solo es base de la copia de su época */
  const EPOCH=KEY+'_epoca';
- const epochOf=()=>{try{return D.ls.get(EPOCH)}catch(e){return null}};
- const setOwner=uid=>{if(fenced())return false;try{if(ownerOf()!==uid)D.ls.set(EPOCH,Math.random().toString(36).slice(2,12)+Date.now().toString(36));D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false}));return true}catch(e){return false}};
+ const epochOf=()=>{try{return D.ls.get(EPOCH)}catch(e){return undefined}};
+ const newEpoch=()=>{try{D.ls.set(EPOCH,Math.random().toString(36).slice(2,12)+Date.now().toString(36));return true}catch(e){return false}};
+ /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
+    que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
+ const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
+ const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false,ep:epochOf()}));return true}catch(e){return false}};
  /* antes de guardar lo que escribe la persona hay que poder anotar de quién es; si no se puede, no se guarda */
  const ensureOwner=()=>{const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;if(ownerOf()!==null)return true;return setOwner(acc.sub)};
  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
@@ -117,6 +121,8 @@ window.LHB_SYNC=function(D){
  function isolate(){if(inIso)return true;const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
   const old=ownerOf();if(old===null||old===acc.sub)return true;
   inIso=true;try{
+   /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
+   if(!newEpoch())return false;
    let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
    if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return false;try{D.ls.set(k,raw)}catch(e){return false}}
    applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
@@ -133,12 +139,12 @@ window.LHB_SYNC=function(D){
   const ep0=epochOf();
   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid&&epochOf()===ep0};
   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
-  const meta0=readMeta();let meta=meta0&&meta0.sub===uid?meta0:null;
+  const meta0=readMeta();let meta=meta0&&meta0.sub===uid&&epOf(meta0)===ep0?meta0:null;
   /* LHB-80 (Codex r1): el servidor contestó por las subidas que se le preguntaron (tiene la columna ops) */
   let opsSeen=false;
   const first=!meta||!meta.at;
   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
-  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true});
+  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});
   for(let i=0;i<TRIES;i++){
    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
    /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
@@ -158,7 +164,7 @@ window.LHB_SYNC=function(D){
     for(const x of ask){const o=oks.find(y=>isObj(y)&&y.id===x.op);if(!o)continue;
      if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(o.rev===x.rev+1)won=Math.max(won,o.rev);if(x.ep!==ep0)voided=true;else if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
      else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true}}
-    if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}}
+    if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}}
    /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
       LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
    if(!oks&&ask.some(x=>rev>=x.rev+2))voided=true;
@@ -213,7 +219,7 @@ window.LHB_SYNC=function(D){
    /* ...y lo que cambió en la copia mientras tanto (aunque el contador compartido no se haya podido escribir) */
    const edited=edits!==e0||readSeq()!==s0||!quiet;
    mem={sub:uid,base:merged,rev:newRev,ep:ep0};
-   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited})){staleBase=true;poison();return {fail:'storage'}}
+   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0})){staleBase=true;poison();return {fail:'storage'}}
    /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */
    staleBase=false;voided=false;if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);if(!edited)dirty=false;
    if(!quiet&&canon(final)!==canon(merged))again=true;
@@ -245,7 +251,7 @@ window.LHB_SYNC=function(D){
   ensureOwner();
   /* sin base guardada, lo que había en este teléfono antes de esta primera edición queda como semilla (meta.seed) para la primera pasada */
   {const acc=D.acct(),sub=acc&&typeof acc.sub==='string'?acc.sub:'';let m=readMeta(),ch=false;
-   if(sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false};ch=true}
+   if(sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false,ep:epochOf()};ch=true}
    if(m){if(!m.dirty){m.dirty=true;ch=true}
     if(sub&&m.sub===sub&&!m.base&&!m.seed&&prev!=null){try{const p=JSON.parse(prev);if(isObj(p)){m.seed=std(p);ch=true}}catch(e){}}
     if(ch)writeMeta(m)}}
