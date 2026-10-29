@@ -41,6 +41,7 @@ M = [
     ('N20 r1: the account store does not tell the buttons', lambda: edit(HO, "if(A.topAvatar)A.topAvatar();acctTell()},clear:", "if(A.topAvatar)A.topAvatar()},clear:")),
     ('N21 r1: a confirmation does not repaint the count', lambda: edit(HO, "st.n=r.body.followers;paint()}", "st.n=r.body.followers}")),
     ('N22 r1: the watcher never leaves a gone page', lambda: edit(HO, "if(!live()||$('#'+id)!==box){acctW.delete(w);return}", "if(!live()||$('#'+id)!==box)return;")),
+    ('N23 r2: watchers of gone pages pile up until an account change', lambda: edit(HO, "for(const f of [...acctW])f();acctW.add(w);", "acctW.add(w);")),
     ('N15 an empty list says nothing', lambda: edit(HO, "say(seen.size?'':tt('h.fwNadie'))", "say('')")),
 ]
 red = 0

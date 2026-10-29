@@ -4232,6 +4232,8 @@ test('LHB-60 (Codex r1): un pedido no sale si la página se fue mientras llegaba
   b.onclick();await F.tick();assert.equal(F.q.length,0,'no manda nada');}
  /* el que mira la cuenta se va solo cuando la página ya no está */
  F=FW60();await F.H.X.vPersona('bea');assert.equal(F.H.ctx.acctW.size,1);F.H.ctx.view.innerHTML='<div id="otra"></div>';for(const f of [...F.H.ctx.acctW])f();assert.equal(F.H.ctx.acctW.size,0);
+ /* Codex r2: abrir tres perfiles sin que cambie la cuenta deja uno solo mirando, el de la página que está */
+ F=FW60();for(const h of ['bea','bea','bea']){await F.H.X.vPersona(h);await F.tick()}assert.equal(F.H.ctx.acctW.size,1,'los de páginas que se fueron no se quedan');
  /* 3 seguidores: Seguir y Dejar de seguir; el servidor confirma el primero con 10: se ve 9 mientras va el segundo */
  F=FW60();await F.H.X.vPersona('bea');b=F.btn('bea');b.onclick();b.onclick();await F.tick();F.q.shift().answer({status:200,body:{following:true,followers:10}});await F.tick();
  assert.equal(F.q.length,1,'va el DELETE');assert.equal(F.count(),'9');assert.equal(b.textContent,'Seguir');

@@ -441,7 +441,8 @@ async function fwMount(id,h,live,onCount){const box=$('#'+id),a=meAcct();if(!box
  let r;try{const C=await clerk();r=await api(C,'GET','/api/follow?handle='+encodeURIComponent(h),null,a.sub)}catch(e){r={status:0,body:{}}}
  if(!live()||$('#'+id)!==box||!fwSame(a.sub)||r.status!==200||!r.body||typeof r.body.viewerFollows!=='boolean')return;
  box.innerHTML=`<button class="btn fw-b" type="button" id="fwB-${h}"></button>`;
- const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};acctW.add(w);
+ /* Codex r2: antes de mirar, los de páginas que ya no están se van (cada uno se quita solo si su página se fue) */
+ const w=()=>{if(!live()||$('#'+id)!==box){acctW.delete(w);return}if(!fwSame(a.sub)){acctW.delete(w);box.innerHTML=''}};for(const f of [...acctW])f();acctW.add(w);
  followBtn($('#fwB-'+h),h,{on:r.body.viewerFollows,n:onCount&&Number.isInteger(r.body.followers)?r.body.followers:null},live,onCount,a.sub)}
 /* las listas: foto, nombre público (nombre e inicial) y @ de cada persona, cada fila con su botón; 20 por página con el cursor del servidor. Son públicas: se piden sin sesión */
 async function vFwList(h,dir){
