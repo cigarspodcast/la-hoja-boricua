@@ -383,7 +383,7 @@ index 4382203,0ea567b..d39633b
   });
   test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
    const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
-@@@ -1888,7 -1888,7 +1888,7 @@@ test('LHB-57: por dónde se llega y qu�
+@@@ -1888,7 -1888,7 +1888,7 @@@ test('LHB-57: por dónde se llega y qu�
    assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
    assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
    assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
