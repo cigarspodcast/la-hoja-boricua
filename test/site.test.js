@@ -5253,7 +5253,18 @@ test('LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de toke
 /* LHB-67: ningún color suelto en las pantallas de la app (styles.css fuera de :root, app.js, hoja.js, cuenta.js). Lo que queda está en ALLOW67:
    [archivo, el tramo que lo contiene, cuántas veces aparece ese tramo, la razón, y si es espejo de un token, los tokens que puede valer].
    Un color escrito %23 (dentro de un SVG en data URI) cuenta igual que uno escrito # (Codex ronda 1). */
-const LIT67=/(?:#|%23)[0-9a-fA-F]{3,8}\b|rgba?\(/g;
+const LIT67=/(?:#|%23)[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\(/gi;
+/* LHB-99: también hsl() y RGB() en mayúsculas; un color con nombre (red, white...) solo donde pinta: tras una propiedad de color
+   (color, background, fill, stroke, border, sombras, fillStyle del lienzo) en el CSS, un atributo style o un atributo SVG; dentro de un ${}
+   el código no cuenta, solo un nombre entre comillas. Y el texto se lee con el %xx ya decodificado (un # escrito %23%31... cuenta igual). */
+const NAMES99=new Set('aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen'.split(' '));
+const PROP99=/(?<=^|[;{\s"'`.(,])(?:(?:[a-z]+-)*color|background|fill|stroke|border(?:-[a-z]+)*|box-shadow|text-shadow|outline|fillStyle|strokeStyle|shadowColor)\s*[:=]\s*["'`]?([^;}"'`<>\n]*)/gi;
+function dec99(s){let d='';const map=[];for(let i=0;i<s.length;){if(s[i]==='%'&&/^[0-9a-fA-F]{2}$/.test(s.slice(i+1,i+3))){d+=String.fromCharCode(parseInt(s.slice(i+1,i+3),16));map.push(i);i+=3}else{d+=s[i];map.push(i);i++}}return {d,map}}
+function named99(d){const at=[];for(const m of d.matchAll(PROP99)){const v=m[1],o=m.index+m[0].length-v.length,code=[];
+  for(let k=v.indexOf('${');k>=0;k=v.indexOf('${',k+2)){let j=o+k+2,dep=1;while(j<d.length&&dep){if(d[j]==='{')dep++;else if(d[j]==='}')dep--;j++}code.push([o+k,j]);
+   for(const q of d.slice(o+k,j).matchAll(/(['"`])\s*([a-zA-Z]+)\s*\1/g))if(NAMES99.has(q[2].toLowerCase()))at.push(o+k+q.index+q[0].indexOf(q[2]))}
+  for(const w of v.matchAll(/(?<![\w$-])[a-zA-Z]+(?![\w-])/g)){const i=o+w.index;if(NAMES99.has(w[0].toLowerCase())&&!code.some(([a,b])=>i>=a&&i<b))at.push(i)}}
+ return at}
 const ALLOW67=[
  ['styles.css',/\.lbtn\.ig\{[^}]*\}/,1,'marca de Instagram: su degradado (el texto blanco pasa 4.5 en cada parada, abajo)'],
  ['styles.css',/\.lbtn\.wa\{[^}]*\}/,1,'marca de WhatsApp: su verde (el texto blanco pasa 4.5, abajo)'],
@@ -5280,7 +5291,7 @@ const ALLOW67=[
 function scan67(over={}){const app=TOKENS65(read('styles.css')),bad=[],stale=[],mirror=[];
  for(const f of ['styles.css','app.js','hoja.js','cuenta.js','intro.js']){let s=over[f]!=null?over[f]:read(f);const blank=m=>' '.repeat(m.length);
   if(f==='styles.css')s=s.replace(/:root\{[^}]*\}/,blank);s=s.replace(/\/\*[\s\S]*?\*\//g,blank);
-  const at=[...s.matchAll(LIT67)].map(m=>m.index),cov=new Set();
+  const {d,map}=dec99(s),at=[...new Set([...[...d.matchAll(LIT67)].map(m=>m.index),...named99(d)].map(i=>map[i]))].sort((a,b)=>a-b),cov=new Set();
   for(const [,re,n,why,mir] of ALLOW67.filter(a=>a[0]===f)){assert.ok(why&&why.length>10,f+': cada color que queda lleva su razón');
    const ms=[...s.matchAll(new RegExp(re.source,'g'))];if(ms.length!==n)stale.push(f+' '+re.source+': '+ms.length+' veces, la lista dice '+n);
    for(const m of ms)for(const i of at)if(i>=m.index&&i<m.index+m[0].length){cov.add(i);
@@ -5291,6 +5302,14 @@ test('LHB-67: ningún color suelto en las pantallas de la app; lo que queda est�
  const {bad,stale,mirror}=scan67();t.diagnostic('colores fuera de la lista: '+bad.length+'; tramos de la lista: '+ALLOW67.length);
  assert.deepEqual(bad,[],'un color suelto nuevo: cámbielo por un token o póngalo en ALLOW67 con su razón');assert.deepEqual(stale,[],'la lista sigue al código');assert.deepEqual(mirror,[],'cada espejo vale su token');
  const inj=scan67({'styles.css':read('styles.css')+'\n.x{color:#fff}'});assert.equal(inj.bad.length,1,'la prueba ve un #fff inyectado');
+ /* LHB-99: la prueba ve cada forma nueva, una vez; y no ve un color en una palabra que no pinta */
+ const probe=(f,x)=>scan67({[f]:read(f)+x}).bad.length;
+ for(const [f,x] of [['styles.css','\n.x{color:hsl(0 100% 50%)}'],['styles.css','\n.x{color:HSLA(0,0%,0%,.5)}'],['styles.css','\n.x{background:RGB(1,2,3)}'],
+  ['styles.css','\n.x{border:1px solid Red}'],['styles.css','\n.x{background:url("data:image/svg+xml,%3Csvg%3E%3Crect fill=%22%23%31EA8D7%22/%3E%3C/svg%3E")}'],
+  ['app.js','\nconst x99=`<b style="color:white">`;'],['app.js',"\nconst x99='<path fill=\"navy\"/>';"],['app.js',"\nel.style.background='gold';"],
+  ['app.js',"\nconst x99=`<i style=\"color:${on?'red':'var(--info)'}\">`;"]])assert.equal(probe(f,x),1,'la prueba ve '+x.trim());
+ for(const [f,x] of [['app.js',"\nconst x99='red de tiendas, white label';"],['styles.css','\n.x{color:var(--flag-red)}'],
+  ['app.js',"\nconst x99=`<i style=\"color:${red?'var(--a)':'var(--b)'}\">`;"],['styles.css','\n.x{transition:color .2s,background .2s}']])assert.equal(probe(f,x),0,'no es un color suelto: '+x.trim());
 });
 test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera',()=>{
  const app=TOKENS65(read('styles.css')),css=read('styles.css'),a=read('app.js'),h=read('hoja.js'),ink=app.val('on-surface');
