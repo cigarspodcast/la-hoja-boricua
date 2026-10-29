@@ -6186,7 +6186,7 @@ test('LHB-80 (Codex r1): la quita queda a medio escribir en el servidor; la pers
   assert.deepEqual(s.doc.favs.artesanos,['a1'],'la vuelta de a1 se queda en la cuenta');assert.equal(s.doc.ratings.c1,5);
   assert.deepEqual(A.doc().favs.artesanos,['a1'],'y en el teléfono');
  }finally{a.done()}});
-test('LHB-80 (Codex r1): una pasada sin nada que subir no olvida la subida que todavía puede llegar: cuando llega, la vuelta de la persona se queda',async()=>{
+test('LHB-80 (Codex r1, r2): con una subida que todavía puede llegar, la pasada sin nada nuevo sube igual con el mismo If-Match (la valla): la quita que llega tarde da 409 y la vuelta de la persona se queda',async()=>{
  const a=await ENG28();
  try{
   a.db.exec(a.mig('0008_mihoja_ops.sql'));
@@ -6195,9 +6195,9 @@ test('LHB-80 (Codex r1): una pasada sin nada que subir no olvida la subida que t
   A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
   A.edit(d=>{d.favs.artesanos=[]});await A.sync();
   /* la persona lo vuelve a poner: la copia es otra vez la de la cuenta y la pasada no sube nada */
-  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);assert.equal(n,1,'no subió nada');assert.equal(srv28(a,'user_a').rev,1);
-  /* la quita termina ahora */
-  await late();assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+  A.edit(d=>{d.favs.artesanos=['a1']});assert.equal((await A.sync()).ok,true);assert.equal(n,2,'subió otra vez con If-Match 1, aunque no hubiera nada nuevo');assert.equal(srv28(a,'user_a').rev,2);
+  /* la quita termina ahora: ya no puede llegar */
+  assert.equal((await late()).status,409);assert.equal(srv28(a,'user_a').rev,2);
   assert.equal((await A.sync()).ok,true);
   assert.deepEqual(A.doc().favs.artesanos,['a1'],'la vuelta se queda en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y en la cuenta');
  }finally{a.done()}});
@@ -6210,6 +6210,52 @@ test('LHB-80 (Codex r1): una quita que llegó antes de 0008 (sin anotar) y se ap
    a.db.exec(a.mig('0008_mihoja_ops.sql'));
    const r=await A.sync();assert.equal(r.ok,true,lost);
    assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');
+  }finally{a.done()}}});
+test('LHB-80 (Codex r2): nueve subidas sin respuesta (la más vieja deja de preguntarse) y la persona lo vuelve a poner; la más vieja llega tarde: la vuelta se queda, aquí y en la cuenta',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* el primer PUT queda en camino (llega cuando la prueba dice); los demás no llegan nunca */
+  const api=A.D.api;let late=null,n=0;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){if(++n===1)late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});for(let i=0;i<9;i++)await A.sync();assert.equal(n,9);assert.equal(srv28(a,'user_a').rev,1);
+  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();
+  await late();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó tarde');
+  A.D.api=api;assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,['a1'],'en el teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-80 (Codex r2): tras nueve subidas sin respuesta, cuando se sabe que la olvidada ya no puede llegar (llegó una de las preguntadas, o la valla) la base vale: lo que el otro teléfono quitó no vuelve',async()=>{
+ for(const how of ['la novena llegó sin respuesta','la valla llegó']){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a');A.seed({...DOC28,favs:{...DOC28.favs,artesanos:['a1','a2']}});await A.sync();
+   const api=A.D.api;let n=0;
+   A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===9&&how==='la novena llegó sin respuesta'){await api(C,m,path,...r);throw new TypeError('sin red')}throw new TypeError('sin red')}return api(C,m,path,...r)};
+   A.edit(d=>{d.favs.artesanos=['a2']});for(let i=0;i<9;i++)await A.sync();
+   A.D.api=api;
+   if(how==='la valla llegó'){assert.equal(srv28(a,'user_a').rev,1);assert.equal((await A.sync()).ok,true);}
+   assert.equal(srv28(a,'user_a').rev,2,how);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a2'],how);
+   /* el otro teléfono trae eso y quita a2 */
+   const B=DEV28(a,'user_a');await B.sync();B.edit(d=>{d.favs.artesanos=[]});await B.sync();assert.equal(srv28(a,'user_a').rev,3,how);
+   assert.equal((await A.sync()).ok,true,how);
+   assert.deepEqual(A.doc().favs.artesanos,[],how+': a2 no vuelve aquí');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],how+': ni en la cuenta');
+  }finally{a.done()}}});
+test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
+ for(const lose of [false,true]){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+   const api=A.D.api;let late=null,n=0;
+   A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}if(lose)throw new TypeError('sin red')}return api(C,m,path,...r)};
+   A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+   A.edit(d=>{d.favs.artesanos=['a1']});
+   const st=await A.eng.settled({});
+   if(lose){assert.equal(st.ok,false,'la valla tampoco tuvo respuesta: no se sale por la sincronización');assert.equal(st.why,'offline')}
+   else{assert.equal(st.ok,true);assert.equal(st.via,'sync');assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1']);
+    A.D.wait=async()=>{};A.D.ls.remove=k=>A.ls.delete(k);assert.equal(await A.eng.forget(st.mark),true);
+    /* la quita termina durante la salida: ya no puede llegar, y la cuenta tiene a1 */
+    assert.equal((await late()).status,409);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'])}
   }finally{a.done()}}});
 /* ===================== LHB-98: Mi Hoja se escribe con el candado de Web Locks en la mano; salir lo tiene exclusivo ===================== */
 /* Web Locks de mentira: por nombre, compartido con compartido, exclusivo solo; la fila es en orden (un compartido detrás de un exclusivo espera).

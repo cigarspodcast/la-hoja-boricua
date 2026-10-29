@@ -34,7 +34,22 @@ MUTS = [
     (SY, 'r1: a 409 forgets every unresolved upload', 'pend=pend.filter(x=>x.op!==op);', 'pend=pend.filter(x=>x.sub!==uid);'),
     (SY, 'r1: a pass without a PUT forgets an upload that can still land', 'if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);', 'pend=pend.filter(x=>x.sub!==uid);'),
     (SY, 'r1: a new upload replaces the unresolved one', 'pend.push({sub:uid,rev,op,sent:merged});', 'pend=[{sub:uid,rev,op,sent:merged}];'),
+    (SY, 'r2: no fence while an upload can still land', 'canon(merged)!==canon(remote)||fence){', 'canon(merged)!==canon(remote)){'),
+    (SY, 'r2: an evicted upload leaves no trace', '{const x=pend.shift();if(!evict||evict.sub!==x.sub||x.rev>evict.rev)evict={sub:x.sub,rev:x.rev}}', 'pend.shift()'),
+    (SY, 'r2: an evicted upload never voids the base', 'if(!(oks&&won===evict.rev+1))voided=true;', ''),
+    (SY, 'r2: an evicted upload always voids the base', 'if(!(oks&&won===evict.rev+1))voided=true;', 'voided=true;'),
+    (SY, 'r2: a 200 at the evicted If-Match keeps it', 'if(evict&&evict.sub===uid&&evict.rev<=rev)evict=null;', ''),
+    (SY, 'r2: settled ignores uploads that can still land', "  if(pend.some(x=>x.sub===acc.sub)||(evict&&evict.sub===acc.sub))return {ok:false,why:'pending'};", ''),
 ]
+
+
+# Codex r2: with the fence, a completed pass never ends with an unresolved upload at the account's current rev (it uploads with that If-Match; a lost answer ends
+# the pass offline), and every upload below that rev is resolved by the pass's GET. These two lines can then change no outcome through the public API: they are kept
+# as a second guard and expected to survive. Named here so a survivor is never read as caught, and any OTHER survivor fails the proof.
+EQUIV = {
+    'r1: a pass without a PUT forgets an upload that can still land': 'the fence leaves nothing unresolved at the current rev when a pass completes',
+    'r2: settled ignores uploads that can still land': 'settled() needs an ok pass, and an ok pass ends with nothing unresolved (the fence)',
+}
 
 
 def runp():
@@ -67,11 +82,14 @@ t = tally(runp())
 print('baseline (no mutation): pass %d fail %d' % (t['pass'], t['fail']))
 assert t['fail'] == 0 and t['pass'] > 0
 red = 0
+surv = 0
 for rel, name, a, b in MUTS:
     edit(rel, a, b)
     t = tally(runp())
     ok = t['fail'] > 0
     red += ok
-    print('%-60s %s (fail %d)' % (name, 'RED (caught)' if ok else 'GREEN (survived)', t['fail']))
+    print('%-60s %s (fail %d)' % (name, 'RED (caught)' if ok else ('GREEN (equivalent: ' + EQUIV[name] + ')' if name in EQUIV else 'GREEN (survived)'), t['fail']))
+    surv += (not ok) and name not in EQUIV
     restore(rel)
-print('RESULT %d of %d red' % (red, len(MUTS)))
+print('RESULT %d of %d red; %d named equivalent; %d unexpected survivors' % (red, len(MUTS), len([m for m in MUTS if m[1] in EQUIV]), surv))
+sys.exit(1 if surv else 0)
