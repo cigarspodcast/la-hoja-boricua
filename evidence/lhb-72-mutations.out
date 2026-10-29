@@ -1,6 +1,6 @@
 J1 every 13 days (day 13 plays)                              rc 1 fail 1 -> RED
 J2 strictly more than 14 days (day 14 does not play)         rc 1 fail 1 -> RED
-J3 no same-session rule                                      rc 1 fail 1 -> RED
+J3 no same-session rule                                      rc 1 fail 2 -> RED
 J4 reduced motion ignored                                    rc 1 fail 1 -> RED
 J5 data saver ignored                                        rc 1 fail 1 -> RED
 J6 every link counts as the home (deep links play)           rc 1 fail 1 -> RED
@@ -20,6 +20,8 @@ J20 (Codex r1) a date in the future counts as none           rc 1 fail 1 -> RED
 J21 (Codex r1) ?intro=1 stays in the address                 rc 1 fail 1 -> RED
 J22 (Codex r1) an old cached shell still opens it            rc 1 fail 1 -> RED
 J23 (Codex r1) styles.css loses its marker                   rc 1 fail 1 -> RED
+J24 (Codex r2) replay honored when the address cannot be cleaned rc 1 fail 1 -> RED
+J25 (Codex r2) one day of tolerance in place of fourteen     rc 1 fail 1 -> RED
 J17 an intro key without its English value                   rc 1 fail 2 -> RED
 baseline after restore: rc 0 pass 11
-RESULT 23 of 23 mutations red
+RESULT 25 of 25 mutations red

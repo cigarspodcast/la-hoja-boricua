@@ -58,9 +58,10 @@ function play(now){
  try{const p=v.play();if(p&&p.catch)p.catch(finish)}catch(e){finish()}
  api.finish=finish;
 }
-function boot(now){const i=inputs(now),why=decide(i);
- if(i.replay)try{const w=window,u=new URL(w.location.href);u.searchParams.delete('intro');w.history.replaceState(w.history.state,'',u.pathname+u.search+u.hash)}catch(e){}
- if(why==='play')api.play(now);return why}
+/* ?intro=1 vale una vez: sale de la dirección antes de decidir; si no se puede quitar, no cuenta (Codex ronda 2), para que recargar no la repita */
+function boot(now){const i=inputs(now);
+ if(i.replay){let gone=false;try{const w=window,u=new URL(w.location.href);u.searchParams.delete('intro');w.history.replaceState(w.history.state,'',u.pathname+u.search+u.hash);gone=true}catch(e){}if(!gone)i.replay=false}
+ const why=decide(i);if(why==='play')api.play(now);return why}
 const api={decide,inputs,play,boot,KEY,SKEY,EVERY,finish:()=>{}};
 window.LHB_INTRO=api;
 api.last=boot(Date.now());

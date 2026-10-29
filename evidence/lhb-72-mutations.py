@@ -48,9 +48,11 @@ M = [
     ('J18 no stall limit after it starts', lambda: edit(IJ, "v.addEventListener('waiting',()=>{if(started){clearTimeout(tStall);tStall=setTimeout(finish,700)}});", '')),
     ('J19 no 9 s ceiling', lambda: edit(IJ, 'tMax=setTimeout(finish,9000);', '')),
     ('J20 (Codex r1) a date in the future counts as none', lambda: edit(IJ, 'n<=now+EVERY*DAY)last=Math.min(n,now);', 'n<=now)last=n;')),
-    ('J21 (Codex r1) ?intro=1 stays in the address', lambda: edit(IJ, "\n if(i.replay)try{const w=window,u=new URL(w.location.href);u.searchParams.delete('intro');w.history.replaceState(w.history.state,'',u.pathname+u.search+u.hash)}catch(e){}", '')),
+    ('J21 (Codex r1) ?intro=1 stays in the address', lambda: edit(IJ, "w.history.replaceState(w.history.state,'',u.pathname+u.search+u.hash);gone=true", 'gone=true')),
     ('J22 (Codex r1) an old cached shell still opens it', lambda: edit(IJ, " if(o.assets===false)return 'assets';\n", '')),
     ('J23 (Codex r1) styles.css loses its marker', lambda: edit(CSS, ':root{--intro-ready:1}', '')),
+    ('J24 (Codex r2) replay honored when the address cannot be cleaned', lambda: edit(IJ, 'if(!gone)i.replay=false', '')),
+    ('J25 (Codex r2) one day of tolerance in place of fourteen', lambda: edit(IJ, 'n<=now+EVERY*DAY)', 'n<=now+DAY)')),
     ('J17 an intro key without its English value', lambda: edit(I18, ' "intro.skip": "Skip intro",', '')),
 ]
 red = 0

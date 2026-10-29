@@ -1,0 +1,18 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-65-wt (branch facelift, staged for the owner's review, never merged to main). This is round 2 of a TIER 2 review of LHB-72 (M7-F4a: the intro player and the removal of the legacy splash). The full brief and your round 1 review are in evidence/lhb-72-review-brief-r1.txt and evidence/lhb-72-review-r1.txt in the worktree.
+
+Round 1 verdict: BLOCK, three P2 findings. What changed for each (commit 4db2c01):
+1. Replay URL replayed on every reload. boot() now removes intro from the query with history.replaceState(history.state,'',pathname+remaining search+hash) whenever the replay flag was read, so a reload follows the same-session rule. Other query parameters and the hash stay.
+2. An old cached shell (v95 worker, old styles.css and i18n.js) could open an unstyled, untranslated overlay over an inert app. styles.css now declares :root{--intro-ready:1} in the LHB-72 block; inputs() reads it with getComputedStyle and checks that LHB_I18N.t('intro.skip') is not the bare key; decide() returns 'assets' (no overlay, nothing stored, the app untouched) when either is missing, so the visitor sees the intro once the new shell arrives.
+3. Clock rollback: a stored date up to 14 days in the future now counts as now (so 'recent', or 'standalone' in the installed app); a date more than 14 days ahead is treated as broken and counts as none.
+
+Also: site/sw.js VERSION lhb-v96 to lhb-v97, because the preview at 2e70e08 served lhb-v96 with the round 1 files; 21 test pins move.
+
+Tests: the policy test adds the rollback cases (one hour back in the browser and in the installed app, 14 days ahead minus one hour, more than 14 days ahead plays); the skip test adds the consumed replay (the replaced address is '/?lang=en#/c/turro', and the reload returns 'deep'), no address change without the flag, and both old-shell cases (old CSS, old keys) returning 'assets' with nothing stored and the app not inert. They fail on the round 1 files. Mutations J20 to J23 revert each fix; 23 of 23 red (evidence/lhb-72-mutations.out). Suite 326 pass, 0 fail, 1 skipped. The real-browser capture was rerun: 8 of 8 (evidence/m7-f4a/shoot72.out), so real Chrome reads the marker.
+
+Check:
+- that each fix closes its finding (can the replay still repeat, for example when replaceState throws or the flag is written differently such as intro=1 twice; can an old shell still reach play() by any path; is the rollback rule sound, including a corrupt far-future value and the installed app);
+- that the assets gate cannot block a healthy current shell (a stylesheet that has not applied yet when the deferred script runs, a language switch, the English dictionary);
+- the cache bump;
+- anything else in the diff, and anything in the round 1 diff you did not cover.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
