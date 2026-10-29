@@ -4965,3 +4965,15 @@ test('LHB-64: los controles que esconden un campo de archivo y lo que queda con 
  assert.ok(read('styles.css').includes('.photo-btns label:has(input:focus-visible){outline:2px solid var(--gold);outline-offset:2px}'),'el anillo de foco se ve en el botón de cámara o galería');
  const m=JSON.parse(read('manifest.webmanifest'));assert.ok(!('orientation' in m),'sin traba de orientación');assert.equal(m.display,'standalone');
 });
+test('LHB-64 (Codex ronda 2): el aviso (toast) queda fuera de la app inerte, encima de la hoja; hidden esconde aunque la clase le dé display',()=>{
+ /* el aviso es lo único que dice por qué un formulario en una hoja no se guardó: no puede quedar dentro de #app, que la hoja vuelve inerte */
+ const ix=read('index.html'),at=ix.indexOf('<div class="app" id="app">');assert.ok(at>0);
+ let d=0,end=-1;for(const m of ix.slice(at).matchAll(/<(\/?)div\b[^>]*>/g)){d+=m[1]?-1:1;if(!d){end=at+m.index;break}}
+ assert.ok(end>at,'#app cierra');const app=ix.slice(at,end);
+ assert.ok(!app.includes('id="toast"'),'el aviso no está dentro de #app');assert.ok(/<div class="toast" id="toast" role="status" aria-live="polite"><\/div>/.test(ix.slice(end)),'está después, con su región de estado');
+ const css=read('styles.css');assert.ok(/(^|\n)\[hidden\]\{display:none!important\}/.test(css),'hidden siempre esconde');
+ const z=+css.match(/\.toast\{[^}]*z-index:(\d+)/)[1],zs=+css.match(/\.sheet\{[^}]*z-index:(\d+)/)[1];assert.ok(z>zs,'el aviso se ve encima de la hoja: '+z+' > '+zs);
+ /* lo que hidden esconde y su clase le daba display: los botones de Compartir y los Ver más */
+ const hj=read('hoja.js');for(const id of ['shBtns','psMore','fwMore'])assert.ok(new RegExp('class="(links|lbtn)" (type="button" )?id="'+id+'" hidden').test(hj),id);
+ assert.ok(/\.links\{display:grid/.test(css)&&/\.lbtn\{display:flex/.test(css),'las clases que antes le ganaban a hidden');
+});

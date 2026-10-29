@@ -1,6 +1,6 @@
 """LHB-64 proof: each mutation breaks one accessibility fix (site/hoja.js sheet, backup; site/app.js catalog; site/styles.css; the manifest) on a scratch
 copy of the worktree, runs the LHB-64 tests, and must turn them red; the copy is restored after each. With --main, it instead puts back main's
-versions of the five site files and runs the same tests once (the red-before run).
+versions of the six site files and runs the same tests once (the red-before run).
 usage: python evidence/lhb-64-mutations.py WORKTREE SCRATCH [--main REV]"""
 import os, re, shutil, subprocess, sys
 
@@ -9,8 +9,8 @@ if os.path.exists(D):
     shutil.rmtree(D)
 shutil.copytree(WT, D, ignore=shutil.ignore_patterns('.git', 'node_modules'))
 PAT = 'LHB-64'
-HO, AP, CS, MF, I18 = 'site/hoja.js', 'site/app.js', 'site/styles.css', 'site/manifest.webmanifest', 'site/i18n.js'
-FILES = (HO, AP, CS, MF, I18)
+HO, AP, CS, MF, I18, IX = 'site/hoja.js', 'site/app.js', 'site/styles.css', 'site/manifest.webmanifest', 'site/i18n.js', 'site/index.html'
+FILES = (HO, AP, CS, MF, I18, IX)
 
 
 def runp():
@@ -69,6 +69,9 @@ M = [
     ('F30 a lost focus (body) is not brought back', lambda: edit(HO, "return !at||at===document.body||el.contains(at)", "return !at||el.contains(at)")),
     ('F31 the profile photo field stays in the accessibility tree', lambda: edit(HO, 'id="obPf" class="sr" tabindex="-1" aria-hidden="true">', 'id="obPf" class="sr" tabindex="-1">')),
     ('F32 the diary photo field stays in the accessibility tree', lambda: edit(HO, 'id="cFotoF" class="sr" tabindex="-1" aria-hidden="true">', 'id="cFotoF" class="sr" tabindex="-1">')),
+    ('F33 the toast back inside the inert app (Codex r2 P2)', lambda: edit(IX, '</div>\r\n<div class="toast" id="toast" role="status" aria-live="polite"></div>\r\n<noscript>', '  <div class="toast" id="toast" role="status" aria-live="polite"></div>\r\n</div>\r\n<noscript>')),
+    ('F34 a class display beats hidden again (Codex r2 P2)', lambda: edit(CS, '[hidden]{display:none!important}\r\n', '')),
+    ('F35 the toast under an open sheet', lambda: edit(CS, 'transition:.25s;z-index:95;', 'transition:.25s;z-index:60;')),
 ]
 red = 0
 for name, mut in M:
