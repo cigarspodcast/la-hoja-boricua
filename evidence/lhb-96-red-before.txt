@@ -1,0 +1,25 @@
+✖ LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre (Madera, Cacao / café), lo escrito a mano como se escribió, todo escapado; los nombres son los de la app (170.3311ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 364.6658
+
+✖ failing tests:
+
+test at test\site.test.js:4405:1
+✖ LHB-96: en /u/<handle> los sabores de la rueda salen con su nombre (Madera, Cacao / café), lo escrito a mano como se escribió, todo escapado; los nombres son los de la app (170.3311ms)
+  AssertionError [ERR_ASSERTION]: los de la rueda por su nombre; lo demás como se escribió (y escapado)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red96\test\site.test.js:4412:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'madera', 'cacao', 'nuez', 'Mi sabor &lt;b&gt;libre&lt;/b&gt;', 'constructor', '__proto__', 'Madera' ],
+    expected: [ 'Madera', 'Cacao / café', 'Nuez', 'Mi sabor &lt;b&gt;libre&lt;/b&gt;', 'constructor', '__proto__', 'Madera' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }

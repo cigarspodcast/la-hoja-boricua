@@ -8,6 +8,10 @@ export const CONTACT = 'sergio@cigarspodcast.com'; // el contacto de privacidad.
 const ROBOTS = 'noindex, follow';
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const KIND_LABEL = { artesanos: 'artesanos', cigarros: 'cigarros', lugares: 'lugares' };
+// LHB-96: los sabores de la rueda se guardan por su id (site/hoja.js WHEEL) y aquí salen con su nombre, como en la app (los mismos textos en español de site/i18n.js).
+// Lo que no es de la rueda sale como se escribió
+export const WHEEL_NAME = { madera: 'Madera', tierra: 'Tierra', especias: 'Especias', dulce: 'Dulce', cacao: 'Cacao / café', frutos: 'Frutos', floral: 'Floral', cuero: 'Cuero', nuez: 'Nuez' };
+const tagName = t => Object.prototype.hasOwnProperty.call(WHEEL_NAME, t) ? WHEEL_NAME[t] : t;
 
 // todo texto que entra al HTML, en el cuerpo o en un atributo, pasa por aquí
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -74,7 +78,7 @@ export function renderPassport(v, origin) {
     main += v.catas.map((e, i) => '<article class="pp-card" id="cata-' + (i + 1) + '" aria-labelledby="cata-' + (i + 1) + '-t"><div class="pp-card-in">' +
       '<a class="pp-x" href="#catas" aria-label="Cerrar">×</a><h3 id="cata-' + (i + 1) + '-t">' + esc(e.nombre || 'Cigarro') + '</h3>' +
       (sub(e) ? '<p class="pp-sub">' + sub(e) + '</p>' : '') + stars(e.rating) +
-      (e.tags.length ? '<ul class="pp-tags">' + e.tags.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' : '') +
+      (e.tags.length ? '<ul class="pp-tags">' + e.tags.map(t => '<li>' + esc(tagName(t)) + '</li>').join('') + '</ul>' : '') +
       (e.notas ? '<p class="pp-notas">' + esc(e.notas) + '</p>' : '') + '</div></article>\n').join('');
   }
   const report = 'mailto:' + CONTACT + '?subject=' + encodeURIComponent('Reportar ' + at) + '&body=' + encodeURIComponent(url);
