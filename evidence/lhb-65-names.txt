@@ -1,0 +1,80 @@
+files searched (site/ top level, css js html): 15
+--bg        read 0 defined 0
+--bg2       read 0 defined 0
+--card2     read 0 defined 0
+--cream     read 0 defined 0
+--cream2    read 0 defined 0
+--gold      read 0 defined 0
+--flam      read 0 defined 0
+--flam2     read 0 defined 0
+--ado       read 0 defined 0
+--ado-d     read 0 defined 0
+--rosa      read 0 defined 0
+--amarillo  read 0 defined 0
+--turq      read 0 defined 0
+--verde     read 0 defined 0
+--lila      read 0 defined 0
+--pr-red    read 0 defined 0
+--pr-blue   read 0 defined 0
+old names read or defined, total: 0
+tokens in :root:
+  --paper: #F4F1EA
+  --tobacco: #344C31
+  --amber: #C77943
+  --celeste: #1EA8D7
+  --red: #D12A1B
+  --sun: #EAB91B
+  --surface: var(--paper)
+  --surface-2: #FFFDFA
+  --card: #FFFDFA
+  --card-2: #ECEEE4
+  --line: #D7D8CC
+  --photo: #FFFDFA
+  --on-surface: #263723
+  --on-surface-2: #43513D
+  --muted: #59614F
+  --accent: var(--tobacco)
+  --on-accent: var(--paper)
+  --accent-ink: var(--tobacco)
+  --inverse: #263723
+  --on-inverse: var(--paper)
+  --danger: var(--red)
+  --on-danger: #FFFFFF
+  --danger-ink: #A52218
+  --info: var(--celeste)
+  --on-info: #263723
+  --info-ink: #146780
+  --info-strong: #146780
+  --on-info-strong: #FFFFFF
+  --warn: var(--sun)
+  --on-warn: #263723
+  --warn-ink: #7A5C00
+  --warm: var(--amber)
+  --on-warm-lg: #263723
+  --warm-ink: #8F4A1C
+  --focus: #146780
+  --flag-blue: var(--celeste)
+  --flag-red: #ED0000
+  --flag-white: #FFFFFF
+  --r: 16px
+  --tab-h: 64px
+  --sat: env(safe-area-inset-top,0px)
+  --sab: env(safe-area-inset-bottom,0px)
+  --sal: env(safe-area-inset-left,0px)
+  --sar: env(safe-area-inset-right,0px)
+  --serif: 'Fraunces',Georgia,serif
+  --display: 'Shrikhand','Fraunces',Georgia,serif
+  --sans: 'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif
+red-before with origin/a11y-fixes site files:
+✖ v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua) (4.2285ms)
+✖ LHB-65: cada par de texto y fondo que los tokens declaran pasa el contraste (4.5; 3.0 el texto grande) (2.0241ms)
+ℹ contraste: 1 pares, 1 pasan, 0 no
+✖ LHB-65: ningún token se llama por lo contrario de lo que es: los nombres viejos ya no existen ni se leen, y la paleta solo la leen los tokens (1.4068ms)
+ℹ tests 3
+ℹ pass 0
+ℹ fail 3
+✖ failing tests:
+✖ v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua) (4.2285ms)
+✖ LHB-65: cada par de texto y fondo que los tokens declaran pasa el contraste (4.5; 3.0 el texto grande) (2.0241ms)
+✖ LHB-65: ningún token se llama por lo contrario de lo que es: los nombres viejos ya no existen ni se leen, y la paleta solo la leen los tokens (1.4068ms)
+rc 1
