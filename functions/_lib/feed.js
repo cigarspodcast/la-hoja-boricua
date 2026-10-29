@@ -17,7 +17,8 @@ import { publicEntry } from './passport.js';
    vieja que se vuelve pública, una que se borra o se vuelve privada) no hace saltar ni repetir (Codex ronda 3), tampoco si otra cata es igual a
    ella en lo público, más nueva o más vieja (Codex ronda 4: escoger la más cercana a n podía escoger la gemela). Una cata nueva va al principio
    del diario, más nueva que todas, y no mueve la cuenta desde la más vieja. El límite aceptado: si cambia esa misma cata, o una más vieja que es
-   igual a ella en lo público (para quien mira, la misma cata), se sigue por n.
+   igual a ella en lo público (para quien mira, la misma cata), entra o sale de esa huella, se sigue por la j-ésima que quede con esa
+   huella, o por n si ya no hay j (Codex ronda 5: puede repetir o saltar dentro de ese límite).
    No lleva nada privado: ni el id de la entrada, ni cuántas privadas hay; la huella y j son de lo público */
 const CURSOR = /^(\d{4}-\d{2}-\d{2}|-)~([a-z0-9_]{3,20})(?:~([1-9]\d{0,6})~([0-9a-f]{20})~([1-9]\d{0,6}))?$/;
 export function parseFeedCursor(raw) {
