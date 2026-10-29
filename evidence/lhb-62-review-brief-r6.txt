@@ -1,0 +1,19 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-62-wt (branch lhb-62-block). TIER 2, round 6.
+
+Ticket LHB-62: block and report. A block hides each profile from the other everywhere; a blocked person is not told.
+
+Round 5 (evidence/lhb-62-review-r5.txt) maintained finding 2: a cookie valid when the request leaves can be expired when the server reads it (anonymous answer), then be refreshed for the same user before the answer arrives; request-time and current fingerprints match, so the anonymous view painted and stayed. It also noted (P3) that the client's expiry used fractional seconds while auth.js floors.
+
+The diff below covers two commits against the round 5 prompt commit:
+1. The round 5 fix:
+- functions/api/u/[handle].js and functions/_lib/follow.js listResponse: the response carries the header X-Lhb-Viewer: the user_id the server answered as (viewerOf), or "-" without a session. A header and not a JSON field, so the public JSON stays byte-identical (the LHB-74 contract test pins it; LHB-56 and LHB-58 key checks unchanged). The user_id is the viewer's own; responses are no-store and the service worker never caches /api/.
+- site/hoja.js: vwOf reads the header ("-" means signed out, absent means unknown); pfFetch and vFwList's page keep it as r.viewer. pfSeen(sub0,r) replaces the session part of the request-time fingerprint with what the server used. vPersona and vFwList paint under that fingerprint: if it differs from subNow() when the answer arrives they re-ask once (again flag), so clocks that disagree cannot loop; the watcher (pfRedo) is registered with the server-based fingerprint, so returning to the tab re-asks while they differ. pfRedo accepts a function, so the list's watcher follows its latest page. The earlier guard (subNow()!==sub0 re-asks without the flag) stays, so two session changes in a row are both caught.
+- cookieSub uses Math.floor(Date.now()/1000), as auth.js.
+2. A merge of origin/main (LHB-98, Web Locks around Mi Hoja writes, PR #44). Only test/site.test.js conflicted: both branches appended a block at the end; both kept. hoja.js and i18n.js merged without conflict. Cache lhb-v115 (sw.js and 21 test pins).
+Tests: the round 5 reproduction (request with a valid cookie, server answers anonymous, cookie refreshed for the same sub: re-asked, the blocked view gone; always-anonymous server: one re-ask, no loop; no header: as before; lists, including the watcher re-asking on return); two session changes in a row for the profile and the list; the server sends X-Lhb-Viewer for the profile and both lists. The round 5 tests were seen failing on the round 4 code. Evidence: evidence/lhb-62-mutations.out 56 of 56 red and evidence/lhb-62-tests.txt 360 tests, 359 pass, 0 fail, 1 skipped (before the merge); evidence/lhb-62-mutations-merged.out and evidence/lhb-62-tests-merged.txt (after the merge).
+
+Check that finding 2 is closed in every form, including an authentication transition the server-reported viewer still misses, whether the re-ask bound or the header opens anything, and whether the merge with LHB-98 broke either ticket.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
