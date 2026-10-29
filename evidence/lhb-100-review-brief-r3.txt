@@ -1,0 +1,17 @@
+You are reviewing two tickets in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-100-wt (branch lhb-100-101-robust, PR to main). The diff below is base f92ff9c (origin/main) to HEAD. This is round 3 of a TIER 2 review (LHB-100 TIER 2; LHB-101 TIER 1 rides along). Read first: evidence/lhb-100-review-brief-r1.txt (tickets and pinned decisions), evidence/lhb-100-review-r1.txt, evidence/lhb-100-review-brief-r2.txt and evidence/lhb-100-review-r2.txt.
+
+Round 2 concurred that the three round 1 findings are fixed and found one new blocking defect: a route that paints part of the view and then throws was accepted as a successful boot by the painted-view fallback (your repro: #/buscar with vb_uploads stored as {}).
+
+Fix: app.js says hello to the guard as its first statement (LHB_BOOT.hello). After hello, up() returns false, so neither DOMContentLoaded, the observer nor the 12 s check count a painted view; only route()'s ok() (after a view returned) counts and clears the notice. The painted-view fallback applies only when this app.js never started, that is an older app.js still in the service worker cache (the round 1 case), which keeps that version's behavior for that one load.
+
+Separately, the uploads crash you used (uploads() returning a non-array from corrupt storage) is a real defect outside these tickets' scope; it is filed as its own Backlog ticket and not fixed here.
+
+Tests: BOOT100 adds: hello, a half-painted view and the observer firing, then DOMContentLoaded: notice shown; still shown after the observer and at 12 s; an ok() clears it; and app.js's first statement is the hello. Mutations 16 of 16 red (two new: no hello; up() ignoring hello). Full suite 303 pass, 0 fail, 1 skipped. Browser runs: art.js failed, sync.js failed, healthy, and the mixed case all PASS (evidence/lhb-100/after.out).
+
+Check in particular:
+- Is the round 2 finding fixed by the code?
+- Can hello be called and then the app fail in a way that leaves the splash or a blank view without the notice?
+- Does anything now make a healthy load show the notice (a view that paints asynchronously after the route returns, such as Mi Hoja waiting on sync)?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).

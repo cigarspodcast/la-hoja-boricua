@@ -1,41 +1,41 @@
 case: fail art.js, expect fail
-chrome pid 35580
+chrome pid 48268
   t= 0.5s {"splash": true, "msg": "La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.Recargar", "view": 0}
   t= 1.0s {"splash": false, "msg": "La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.Recargar", "view": 0}
   shot evidence/lhb-100/after-art-6s-390x844.png
   shot evidence/lhb-100/after-art-15s-390x844.png
 events: HTTP 500 art.js; NETFAIL net::ERR_ABORTED; EXC TypeError: Cannot read properties of undefined (reading 'leaf')
 RESULT PASS (expected fail)
-chrome pid 35580 exited 0
-server pid 15536 stopped (rc 1)
+chrome pid 48268 exited 1
+server pid 50984 stopped (rc 1)
 case: fail sync.js, expect fail
-chrome pid 41956
+chrome pid 48284
   t= 0.5s {"splash": true, "msg": "La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.Recargar", "view": 0}
   t= 1.0s {"splash": false, "msg": "La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.Recargar", "view": 0}
   shot evidence/lhb-100/after-sync-6s-390x844.png
   shot evidence/lhb-100/after-sync-15s-390x844.png
 events: HTTP 500 sync.js; NETFAIL net::ERR_ABORTED; EXC TypeError: window.LHB_SYNC is not a function
 RESULT PASS (expected fail)
-chrome pid 41956 exited 0
-server pid 50416 stopped (rc 1)
+chrome pid 48284 exited 0
+server pid 51800 stopped (rc 1)
 case: fail none, expect ok
-chrome pid 52732
+chrome pid 44928
   t= 0.5s {"splash": true, "msg": null, "view": 56724}
   t= 4.5s {"splash": false, "msg": null, "view": 56724}
   shot evidence/lhb-100/after-healthy-6s-390x844.png
   shot evidence/lhb-100/after-healthy-15s-390x844.png
 events: none
 RESULT PASS (expected ok)
-chrome pid 52732 exited 0
-server pid 53132 stopped (rc 1)
+chrome pid 44928 exited 0
+server pid 52764 stopped (rc 1)
 mixed: index.html of this branch with app.js of f92ff9c (an older cached app.js)
 case: fail none, expect ok
-chrome pid 11032
+chrome pid 41992
   t= 0.5s {"splash": true, "msg": null, "view": 56724}
   t= 4.5s {"splash": false, "msg": null, "view": 56724}
   shot evidence/lhb-100/after-mixed-6s-390x844.png
   shot evidence/lhb-100/after-mixed-15s-390x844.png
 events: none
 RESULT PASS (expected ok)
-chrome pid 11032 exited 0
-server pid 43180 stopped (rc 1)
+chrome pid 41992 exited 0
+server pid 46524 stopped (rc 1)

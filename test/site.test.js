@@ -5097,6 +5097,11 @@ test('LHB-100: si el arranque falla (un script que no cargó), el splash se va y
  B=BOOT100({mo:true});assert.equal(B.win._moOn[0],B.view,'observa la vista');B.loaded();assert.ok(B.msg(),'aviso');B.view.appendChild(mk100('section'));B.win._mo();
  assert.equal(B.msg(),null,'la vista se pintó: el aviso se va');assert.equal(B.win._moOff,true,'y deja de observar');
  B=BOOT100({mo:true});B.loaded();B.win._mo();assert.ok(B.msg(),'un cambio que no pinta la vista no quita el aviso');
+ /* Codex ronda 2: la app de ahora saluda al empezar; una ruta que pinta y luego falla no cuenta como arranque, ni al terminar de cargar,
+    ni por el observador, ni a los 12 s; solo el aviso de route() lo quita */
+ B=BOOT100({mo:true});B.win.LHB_BOOT.hello();B.view.appendChild(mk100('section'));B.win._mo();B.loaded();assert.ok(B.msg(),'pintó a medias y falló: aviso');
+ B.win._mo();B.fire(12000);assert.ok(B.msg(),'y sigue');B.win.LHB_BOOT.ok();assert.equal(B.msg(),null,'una ruta que sí pinta lo quita');
+ assert.ok(read('app.js').replace(/\r\n/g,'\n').startsWith("(()=>{'use strict';\n/* LHB-100")&&read('app.js').includes('if(window.LHB_BOOT&&window.LHB_BOOT.hello)window.LHB_BOOT.hello();'),'app.js saluda antes que nada');
  /* nunca terminan de cargar (un script colgado): a los 12 s se va el splash y sale el aviso; si la app arranca después, el aviso se va */
  B=BOOT100();B.fire(12000);assert.ok(B.splash.cls.has('out')&&B.msg(),'a los 12 s, aviso');B.win.LHB_BOOT.ok();assert.equal(B.msg(),null,'arrancó tarde: el aviso se quita');
  /* un solo aviso */

@@ -1,4 +1,6 @@
 (()=>{'use strict';
+/* LHB-100: esta versión empezó; desde aquí el guardián de index.html solo cuenta el aviso de route(), no una vista a medio pintar */
+if(window.LHB_BOOT&&window.LHB_BOOT.hello)window.LHB_BOOT.hello();
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* LHB-85: the 320 x 160 twin of a 600 x 300 thumbnail (tools/build_thumbs.py) */

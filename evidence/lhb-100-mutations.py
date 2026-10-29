@@ -44,6 +44,8 @@ M = [
     ('B9 the guard cuts a healthy splash at 12 s (Codex r1)', lambda: edit(IX, 'function check(){if(ok)return;', 'function check(){if(ok){out();return}')),
     ('B10 no splash backstop after the boot', lambda: edit(IX, 'setTimeout(out,10000)', '0')),
     ('B11 a view painted later does not clear the message (Codex r1)', lambda: edit(IX, 'function(){if(!ok&&up())good()}', 'function(){}')),
+    ('B12 app.js does not say hello (Codex r2)', lambda: edit(APP, 'if(window.LHB_BOOT&&window.LHB_BOOT.hello)window.LHB_BOOT.hello();\n', '\n')),
+    ('B13 a half-painted view counts after hello (Codex r2)', lambda: edit(IX, 'function up(){if(mine)return false;', 'function up(){')),
     ('R1 route() decodes without a guard', lambda: edit(APP, "let id='';if(arg){try{id=decodeURIComponent(arg)}catch(e){id=arg}}", "const id=arg?decodeURIComponent(arg):'';")),
     ('R2 S() lets a blocked read throw', lambda: edit(HJ, 'return ST}catch(e){ST=null;return DEF()}};', 'return ST}finally{}};')),
 ]
