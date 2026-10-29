@@ -111,7 +111,8 @@ window.LHB_SYNC=function(D){
  /* Codex r8: si volver a la época de antes no se pudo escribir, queda anotado aquí y se reintenta antes de cada pasada; mientras no se pueda, no se sincroniza
     (con la época nueva la base de la copia, que no cambió, no valdría y lo que la persona quitó se perdería). Si otra pestaña ya puso otra época, se deja la suya */
  let undo=null;
- const tryUndo=()=>{if(!undo)return true;try{if(epochOf()===undo.from){if(typeof undo.to==='string')D.ls.set(EPOCH,undo.to);else D.ls.remove(EPOCH)}undo=null;return true}catch(e){return false}};
+ /* Codex r9: la época se lee aquí mismo: si la lectura falla, no se sabe si otra pestaña puso otra, y queda pendiente */
+ const tryUndo=()=>{if(!undo)return true;try{if(D.ls.get(EPOCH)===undo.from){if(typeof undo.to==='string')D.ls.set(EPOCH,undo.to);else D.ls.remove(EPOCH)}undo=null;return true}catch(e){return false}};
  /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
     que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
  const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;

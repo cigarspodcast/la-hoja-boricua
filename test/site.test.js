@@ -6457,6 +6457,20 @@ test('LHB-80 (Codex r8): mientras no se pueda volver a la época de antes, no se
   const r=await A.eng.run('guardado');assert.equal(r.fail,'storage');assert.equal(srv28(a,'user_a').rev,1,'no subió ni trajo nada');
   A.D.ls.remove=rm;assert.equal((await A.sync()).ok,true);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
  }finally{a.done()}});
+test('LHB-80 (Codex r9): volver a la época de antes quedó pendiente y la lectura de la época falla una vez: sigue pendiente y el borrado sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a'),E=A.KEY+'_epoca';A.seed(DOC28);await A.sync();
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<11;i++)A.ls.set(A.KEY+'_de_user_a'+(i?'_'+i:''),'ocupada');
+  const rm=A.D.ls.remove;A.D.ls.remove=k=>{if(k===E)throw new Error('SecurityError');return rm(k)};
+  A.st.acct=A.st.user='user_b';assert.equal(A.eng.isolate(),false);A.D.ls.remove=rm;A.st.acct=A.st.user='user_a';
+  const get=A.D.ls.get;let n=0;A.D.ls.get=k=>{if(k===E&&n++===0)throw new Error('SecurityError');return get(k)};
+  assert.equal((await A.eng.run('guardado')).fail,'storage','con la lectura fallida no se sincroniza');
+  assert.equal((await A.sync()).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'en el teléfono sigue quitado');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'y en la cuenta también');
+ }finally{a.done()}});
 test('LHB-80 (Codex r8): todas las épocas tienen el mismo largo',async()=>{
  const a=await ENG28();const R=Math.random;
  try{
