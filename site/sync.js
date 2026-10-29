@@ -242,7 +242,7 @@ window.LHB_SYNC=function(D){
    {const gone=[],live=new Set(now.map(e=>e.k)),ans=e=>e.o&&oks?oks.find(y=>isObj(y)&&y.id===e.o):null;
     for(const e of seen.values())if(e.r<rev){const o=ans(e);if(o&&o.rev===e.r+1)wonAt.add(e.r)}
     for(const e of [...seen.values()]){if(e.r>=rev){if(e.r===rev&&live.has(e.k))shLive=true;continue}seen.delete(e.k);
-     gone.push(e);if(e.o&&(myOps.delete(e.o)||mineOps.has(e.o)))continue;
+     gone.push(e);if(e.o&&(myOps.has(e.o)||mineOps.has(e.o)))continue;
      const o=ans(e);
      /* llegó la de otra pestaña: no se sabe sobre qué base */
      if(o&&Number.isInteger(o.rev)&&o.rev>0){voided=true;continue}
@@ -251,7 +251,8 @@ window.LHB_SYNC=function(D){
      if(wonAt.has(e.r))continue;
      voided=true}
     /* Codex r2: tampoco se quitan si la base buena de esta pasada no quedó anotada (staleBase): otra pestaña leería la vieja sin la anotación que la invalida */
-    if(gone.length){if((voided||staleBase)&&!poison())return {fail:'storage'};for(const e of gone)if(live.has(e.k))shDel(e)}}
+    /* si ni la meta mínima cabe, se quedan (quedarse siempre es seguro) y la pasada sigue; las suyas siguen contando como suyas */
+    if(gone.length&&(!(voided||staleBase)||poison())){for(const e of gone)if(live.has(e.k))shDel(e);for(const e of gone)if(e.o)myOps.delete(e.o)}}
    /* Codex r2: una subida olvidada por exceso (más de OPS_ASK sin respuesta) puede llegar mientras la cuenta siga en su If-Match. Cuando la cuenta pasa de ese rev:
       si una de las preguntadas llegó justo ahí, la olvidada perdió (con un mismo If-Match llega una sola); si no, no se sabe si fue ella y se junta sin dar nada por borrado */
    /* Codex r3: una por cuenta (evict es un Map de sub a If-Match): otra cuenta en este teléfono no borra la de esta */
