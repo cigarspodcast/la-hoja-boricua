@@ -1,0 +1,35 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-60-wt (branch lhb-60-follow). The diff below is origin/main..HEAD. This is a TIER 1 review: one round.
+
+Ticket LHB-60 (M6-S5), follow in the app. It consumes the endpoints built in LHB-56 (functions/api/follow.js, followers.js, following.js; functions/_lib/follow.js), which are not changed here.
+
+Pinned decisions:
+- The follow button ("Seguir" / "Siguiendo") shows on any profile except your own, and only for a signed-in account with a completed profile.
+- It updates the count at once and rolls back with a message if the server refuses; a stale response never overwrites a newer action.
+- The followers and following screens list photo, first name plus last initial and @handle, each row with its own button; paginated with the cursor from M6-S4.
+- Counts on the profile header link to the lists.
+
+What was built, all in site/hoja.js between the LHB-58 profile block markers, plus strings in site/i18n.js, three CSS rules and cache lhb-v87:
+- meAcct(): the stored account (cuenta2, which is saved only once the profile is complete, LHB-52) with a sub and a valid @.
+- followBtn(btn,h,st,live,onCount):
+  - st is what the server confirmed ({on, n}); want is the last tap. The button shows want, and the count is the confirmed count plus the unconfirmed change.
+  - pump() sends one request at a time while want differs from st.on, so requests reach the server in order and the last tap wins. A response only changes st (it never changes want).
+  - A refusal or no answer to the latest target rolls want back to st.on and shows a message (fwErr). A refusal of an older target, when the person has already tapped back, says nothing.
+  - live() stops the loop when the page is gone.
+- fwMount(id,h,live,onCount): asks GET /api/follow?handle= with the session. It mounts the button only for a stored account, another person, and a 200 with a boolean viewerFollows.
+- vPersona: mounts the button in #pfFollow. #/u/<handle>/seguidores and /siguiendo open vFwList; the router in app.js passes only the handle, so vPersona reads the third hash segment itself, which keeps app.js out of this ticket's scope. Your own lists open too.
+- vFwList(h,dir): GET /api/followers or /api/following without a session (they are public). Rows use LHB-57's personRow plus a button box for everyone but you. Ver más carries the cursor; a person repeated across pages shows once; there are empty, 404 and error states; a stale page response paints nothing.
+- pfCounts: Seguidores and Siguiendo are links to the lists; the followers number has id pfNFollowers so the button can move it.
+
+Tests (test/site.test.js, the LHB-58 fake-DOM harness HOJA58, now with clerk, api and toast injectable and personRow included):
+- success, with an immediate count and the server's count after;
+- rollback with a message, for follow-rate, follow-cap, blocked, no network, and a 200 that did not follow;
+- a stale response, two and three taps, never two requests at once, and a left page;
+- no button on your own profile, without a stored account, without an @, or without a known state;
+- the lists.
+
+Evidence:
+- evidence/lhb-60-tests.txt: 265 pass and 1 skipped (the LHB-95 browser test), after merging origin/main.
+- evidence/lhb-60-red-before.txt: the new tests run against main's hoja.js, i18n.js and styles.css. 4 of 5 fail; the one that passes asserts absence (no button), which mutations N6 and N7 cover.
+- evidence/lhb-60-mutations.out: RESULT 15 of 15 mutations red.
+
+Check the pinned decisions, the request ordering and rollback logic, escaping (the handle goes into ids and hrefs only after PF_HANDLE), that LHB-58's profile and LHB-57's Personas still behave, and anything else in the diff. Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
