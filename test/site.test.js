@@ -2729,7 +2729,7 @@ test('LHB-28: Mi Hoja del servidor solo sale por /api/mihoja y solo para su due�
  assert.deepEqual(hits.sort(),['_lib/account.js','_lib/feed.js','_lib/mihoja.js','_lib/passport.js','_lib/profile.js','api/mihoja.js'],'solo estos archivos del servidor mencionan mihoja');
  /* LHB-61: feed.js la lee en un solo lugar, la consulta de Siguiendo, unida por la persona que sigues; solo las catas con publica === true y por publicEntry (las pruebas LHB-61 lo revisan) */
  {const fd=fs2.readFileSync(path.join(root,'_lib','feed.js'),'utf8');const ls=fd.split(String.fromCharCode(10)).filter(l=>/mihoja/i.test(l)&&!/^\s*(\/\*|\/\/)/.test(l));assert.equal(ls.length,1);assert.ok(ls[0].includes('JOIN mihoja m ON m.user_id = f.followee_id'),'feed.js solo la nombra en la consulta, por quien sigues');
-  assert.ok(fd.includes("json_type(j.value, '$.publica') = 'true'")&&fd.includes('entry: publicEntry(e)'),'y solo salen las públicas, con la lista cerrada')}
+  assert.ok(fd.includes("const PUBLICA = member('j.value', 'publica', 'x.type') + \" = 'true'\";")&&fd.includes("e.publica !== true) continue;")&&fd.includes('entry: publicEntry(e)'),'y solo salen las públicas (la llave exacta, y otra vez al leerla), con la lista cerrada')}
  /* LHB-34: borrar la cuenta la nombra una vez, en la lista de tablas que se borran; nunca la lee */
  {const ac=fs2.readFileSync(path.join(root,'_lib','account.js'),'utf8');const ls=ac.split(String.fromCharCode(10)).filter(l=>/mihoja/i.test(l));assert.deepEqual(ls.map(l=>l.trim()),["['mihoja', ['user_id']],"]);assert.ok(!/SELECT[^\n]*FROM \$\{/.test(ac),'account.js no lee las tablas que borra')}
  /* LHB-40: passport.js la lee en un solo lugar, la consulta de publicPassport, y de ahí solo salen las catas públicas (las pruebas LHB-40 lo revisan) */
@@ -4879,7 +4879,7 @@ test('LHB-61: Siguiendo pide sesión con perfil; un documento roto de una person
   a.doc('u_bea',{schema:1,diario:[a.cata('b1','2026-02-02'),null,'x',[1],{...a.cata('b2','no-es-dia')},{...a.cata('b3',null)},{...a.cata('b4','2026-02-02\u0000x')},{publica:true}]});a.doc('u_rota','{no es json');a.doc('u_lista',{schema:1,diario:{'0':a.cata('l1','2026-02-03')}});
   const [st,b]=await a.feed('u_yo');assert.equal(st,200);
   assert.deepEqual(b.items.map(x=>[x.entry.nombre,x.entry.consumido]),[['N b1','2026-02-02'],['N b2',null],['N b3',null],['N b4',null],['',null]],'lo roto no rompe; sin día va al final, en el orden del diario');
-  for(const c of ['x','2026-01-01~bea~1','2026-01-01~bea~0','-~bea~1','2026-01-01~bea~','2026-01-01~~bea','2026-01-01~Bea~1','2026-1-01~bea~1','2026-01-01~bea~1~2','-~bea~01','-~Bea','2026-01-01\u0000~bea'])assert.deepEqual(await a.feed('u_yo',c),[400,{error:'bad-cursor'}],'cursor malo: '+c);
+  for(const c of ['x','2026-01-01~bea~0','2026-01-01~bea~','2026-01-01~bea~-1','2026-01-01~bea~12345678','2026-01-01~~bea','2026-01-01~Bea~1','2026-1-01~bea~1','2026-01-01~bea~1~2','-~bea~01','-~Bea','2026-01-01\u0000~bea'])assert.deepEqual(await a.feed('u_yo',c),[400,{error:'bad-cursor'}],'cursor malo: '+c);
  }finally{a.done&&a.done()}});
 test('LHB-61: Siguiendo pagina de 20 en 20 con el cursor, la más reciente primero (día, @, orden del diario), sin repetir ni saltar; una cata nueva entre páginas no mueve a las demás',async()=>{
  const a=await API61();try{
@@ -4915,12 +4915,43 @@ test('LHB-61 (Codex ronda 1): una página termina con un grupo entero (las catas
   a.doc('u_ana',{schema:1,diario:Array.from({length:20},(_,k)=>a.cata('n'+k,D+'\u0000x'))});a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01')]});
   const [,r1]=await a.feed('u_yo');assert.equal(r1.next,'2026-01-01~bea');
   const {out}=await a.all('u_yo');assert.deepEqual(ids61(out),['v1',...Array.from({length:20},(_,k)=>'n'+k)]);assert.ok(out.slice(1).every(x=>x.entry.consumido===null),'sin día');
-  /* un grupo de más de 20 (25 de ana el mismo día) sale entero en su página; lo que sigue, en la siguiente */
+  /* un grupo de más de 20 (25 de ana el mismo día) se parte de 20 en 20 con su lugar (Codex ronda 2); lo que sigue, en la página siguiente */
   a.doc('u_ana',{schema:1,diario:Array.from({length:25},(_,k)=>a.cata('g'+k,D))});a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01'),a.cata('v2','2026-01-01')]});
-  const [,g1]=await a.feed('u_yo');assert.deepEqual(ids61(g1.items),Array.from({length:25},(_,k)=>'g'+k),'las 25, en el orden del diario');assert.equal(g1.next,D+'~ana');
-  const [,g2]=await a.feed('u_yo',g1.next);assert.deepEqual(ids61(g2.items),['v1','v2']);assert.equal(g2.next,null);
-  /* sin nada después, el grupo grande es la última página */
-  a.doc('u_bea',{schema:1,diario:[]});assert.equal((await a.feed('u_yo'))[1].next,null);
+  const [,g1]=await a.feed('u_yo');assert.deepEqual(ids61(g1.items),Array.from({length:20},(_,k)=>'g'+k),'las 20 primeras, en el orden del diario');assert.equal(g1.next,D+'~ana~6','el lugar de g19 entre las 25, desde la más vieja');
+  const [,g2]=await a.feed('u_yo',g1.next);assert.deepEqual(ids61(g2.items),['g20','g21','g22','g23','g24'],'el resto del grupo');assert.equal(g2.next,D+'~ana');
+  const [,g3]=await a.feed('u_yo',g2.next);assert.deepEqual(ids61(g3.items),['v1','v2']);assert.equal(g3.next,null);
+  const {out:go}=await a.all('u_yo');assert.equal(go.length,27,'todo, sin pasar de 20 por página');
+  /* una cata nueva de ana en ese día, entre la página 1 y la 2, no hace repetir ni saltar (va al principio y no mueve los lugares) */
+  const big=Array.from({length:25},(_,k)=>a.cata('g'+k,D));a.doc('u_ana',{schema:1,diario:[a.cata('gN',D),...big]});const [,g2b]=await a.feed('u_yo',g1.next);assert.deepEqual(ids61(g2b.items),['g20','g21','g22','g23','g24']);
+  /* sin nada después, el grupo grande termina en next null */
+  a.doc('u_ana',{schema:1,diario:big});a.doc('u_bea',{schema:1,diario:[]});const [,h1]=await a.feed('u_yo');assert.equal(h1.next,D+'~ana~6');assert.equal((await a.feed('u_yo',h1.next))[1].next,null);
+  /* un lugar que ya no existe (el grupo se achicó) no rompe: sigue con lo que viene después */
+  a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01')]});const [st9,z]=await a.feed('u_yo',D+'~ana~1');assert.equal(st9,200);assert.deepEqual(ids61(z.items),[]);assert.equal(z.next,D+'~ana');
+ }finally{a.done&&a.done()}});
+test('LHB-61 (Codex ronda 2): una llave con un carácter nulo ("publica\\u0000x", "diario\\u0000x", "consumido\\u0000x") no se confunde con la de verdad: nada privado sale, ni cuenta para la página o el cursor',async()=>{
+ const a=await API61();try{
+  a.mk('u_yo','yo');a.mk('u_ana','ana');a.mk('u_bea','bea');a.fol('u_yo','u_ana','2026-10-01T00:00:00.000Z');a.fol('u_yo','u_bea','2026-10-01T00:00:01.000Z');await a.login('u_yo');
+  /* el caso de Codex: una cata privada con una llave "publica\u0000x": true antes de publica: false */
+  a.doc('u_ana',{schema:1,diario:[{...a.cata('s1','2026-03-03'),notas:'nota privada','publica\u0000x':true,publica:false}]});a.doc('u_bea',{schema:1,diario:[a.cata('v1','2026-01-01')]});
+  let [st,b]=await a.feed('u_yo');assert.equal(st,200);assert.deepEqual(ids61(b.items),['v1'],'la privada no sale');assert.ok(!JSON.stringify(b).includes('nota privada'));assert.equal(b.next,null);
+  /* 21 así, de un día más nuevo: tampoco cuentan para cortar la página ni salen en el cursor */
+  a.doc('u_ana',{schema:1,diario:Array.from({length:21},(_,k)=>({...a.cata('s'+k,'2026-03-03'),'publica\u0000x':true,publica:false}))});
+  [st,b]=await a.feed('u_yo');assert.deepEqual(ids61(b.items),['v1']);assert.equal(b.next,null,'sin cursor que diga el día de una privada');
+  /* un diario escondido detrás de "diario\u0000x" no se lee */
+  a.doc('u_ana',{schema:1,'diario\u0000x':[a.cata('h1','2026-03-03')],diario:[]});[,b]=await a.feed('u_yo');assert.deepEqual(ids61(b.items),['v1']);
+  /* "consumido\u0000x" con un día no le da día a una cata cuyo consumido no lo es: va al final y sale sin día, como en el perfil */
+  a.doc('u_ana',{schema:1,diario:[{...a.cata('c1',null),'consumido\u0000x':'2026-12-31',consumido:5},a.cata('c2','2026/12/31')]});[,b]=await a.feed('u_yo');
+  assert.deepEqual(b.items.map(x=>[x.entry.nombre,x.entry.consumido]),[['N v1','2026-01-01'],['N c1',null],['N c2',null]],'sin día, al final (y diez caracteres que no son un día tampoco lo son)');
+  /* la misma regla que el pasaporte: lo que /u/<handle> no muestra, Siguiendo tampoco */
+  a.doc('u_ana',{schema:1,diario:[{...a.cata('p1','2026-03-03'),'publica\u0000x':true,publica:false},{...a.cata('p2','2026-03-02'),publica:'true'},{...a.cata('p3','2026-03-01'),publica:1},a.cata('p4','2026-02-28')]});
+  [,b]=await a.feed('u_yo');assert.deepEqual(ids61(b.items),['p4','v1']);const pg=await a.page('ana');assert.ok(pg.body.includes('N p4')&&!/N p[123]/.test(pg.body),'el pasaporte muestra las mismas');
+  /* 21 con publica 1 o "true": la consulta misma las deja fuera (no cortan la página ni salen en un cursor) */
+  a.doc('u_ana',{schema:1,diario:Array.from({length:21},(_,k)=>({...a.cata('t'+k,'2026-03-03'),publica:k%2?1:'true'}))});[,b]=await a.feed('u_yo');assert.deepEqual(ids61(b.items),['v1']);assert.equal(b.next,null);
+  /* una llave publica repetida: como JSON.parse, gana la última (Mi Hoja guarda JSON.stringify y no las repite, pero la regla es la misma) */
+  const rep21=JSON.stringify({schema:1,diario:Array.from({length:21},(_,k)=>({...a.cata('d'+k,'2026-03-03'),publica:false}))}).split('"publica":false').join('"publica":true,"publica":false');
+  a.doc('u_ana',rep21);[,b]=await a.feed('u_yo');assert.deepEqual(ids61(b.items),['v1']);assert.equal(b.next,null);
+  const one=JSON.stringify({schema:1,diario:[{...a.cata('d0','2026-03-03'),publica:true}]}).split('"publica":true').join('"publica":false,"publica":true');
+  a.doc('u_ana',one);[,b]=await a.feed('u_yo');assert.deepEqual(ids61(b.items),['d0','v1'],'y si la última es true, sale');
  }finally{a.done&&a.done()}});
 /* LHB-61: la pantalla Siguiendo (hoja.js vSiguiendo) en el arnés de LHB-58: cada pedido queda en q hasta que la prueba lo contesta */
 function FEED61(o){o=o||{};const q=[];
