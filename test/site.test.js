@@ -6029,7 +6029,7 @@ test('LHB-80: con 0008, un PUT con X-Op anota su id con el rev nuevo en la misma
   assert.equal((await a.put('user_b',{schema:1,doc:DOC28},'0',{op:'op_de_beto1'}))[0],200);
   assert.deepEqual((await a.get('user_b',a.env,q('op_segunda_2')))[1].op,{id:'op_segunda_2',rev:null});
   /* solo las últimas OPS_KEEP */
-  const K=a.ML.OPS_KEEP;assert.equal(K,20);
+  const K=a.ML.OPS_KEEP;assert.equal(K,20);assert.match(read('sync.js'),/\r?\nconst OPS_KEEP=20;\r?\n/,'el teléfono sabe cuántas se recuerdan');
   let rev=3;for(let i=0;i<K+2;i++){assert.equal((await a.put('user_a',{schema:1,doc:DOC28},String(rev),{op:'op_tanda_'+String(i).padStart(2,'0')}))[0],200);rev++}
   const ops=JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops);assert.equal(ops.length,K);
   assert.deepEqual(ops[K-1],['op_tanda_'+String(K+1).padStart(2,'0'),rev],'la más nueva al final, con su rev');
@@ -6116,3 +6116,20 @@ test('LHB-80: una subida sin respuesta que no llegó, y la cuenta ya pasó de su
   const A=DEV28(b,'user_a');A.seed(DOC28);await A.sync();A.edit(d=>{d.favs.artesanos=[]});A.net.badBody=true;await A.sync();
   A.edit(d=>{d.favs.artesanos=['a1']});const r=await A.sync();assert.equal(r.ok,true,'sin 0008 la pasada termina');
  }finally{b.done()}});
+test('LHB-80: la subida sin respuesta llegó, pero después la cuenta subió más de OPS_KEEP veces y su id ya no está: no se da por no llegada (no se borra la vuelta de la persona)',async()=>{
+ for(const lost of LOST80){const a=await ENG28();
+  try{
+   a.db.exec(a.mig('0008_mihoja_ops.sql'));
+   const A=DEV28(a,'user_a'),B=DEV28(a,'user_a');
+   A.seed(DOC28);await A.sync();await B.sync();
+   /* A quita a1; llega en el rev 2 sin respuesta; A lo vuelve a poner */
+   A.edit(d=>{d.favs.artesanos=[]});A.net[lost]=true;await A.sync();assert.equal(srv28(a,'user_a').rev,2);
+   A.edit(d=>{d.favs.artesanos=['a1']});
+   /* B sube 21 veces (estrellas): el id de A sale de la lista */
+   for(let i=0;i<21;i++){B.edit(d=>{d.ratings['c'+i]=4});assert.equal((await B.sync()).ok,true)}
+   assert.ok(srv28(a,'user_a').rev>1+20,'más de OPS_KEEP revs después del que pidió A');
+   assert.ok(!JSON.parse(a.db.prepare("SELECT ops FROM mihoja WHERE user_id='user_a'").get().ops).some(x=>x[1]===2),'el id de A (rev 2) ya no está');
+   const r=await A.sync();assert.equal(r.ok,true,lost);
+   assert.deepEqual(A.doc().favs.artesanos,['a1'],lost+': la vuelta de a1 se queda en el teléfono');
+   assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,['a1'],lost+': y en la cuenta');assert.equal(srv28(a,'user_a').doc.ratings.c20,4);
+  }finally{a.done()}}});

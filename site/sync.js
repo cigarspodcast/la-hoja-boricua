@@ -80,6 +80,8 @@ const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_s
    forget la pone, espera FENCE_MS (lo que tarda en verse en las otras pestañas), revisa otra vez y borra. Caduca sola si la pestaña que sale se cierra a medias */
 const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
+/* LHB-80: cuántas subidas recuerda la cuenta (OPS_KEEP en functions/_lib/mihoja.js): más allá, que no esté no dice que no llegó */
+const OPS_KEEP=20;
 window.LHB_SYNC=function(D){
  let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unkVoid=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
  /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
@@ -143,7 +145,7 @@ window.LHB_SYNC=function(D){
    if(oc){
     if(Number.isInteger(oc.rev)&&oc.rev>0){unk=null;if(unkVoid){voided=false;unkVoid=false}
      meta={sub:uid,rev:oc.rev,base:ask.sent,at:(meta&&meta.at)||null,dirty:true};mem={sub:uid,base:ask.sent,rev:oc.rev};staleBase=!writeMeta(meta)}
-    else if(oc.rev===null&&rev>ask.rev)unk=null}
+    else if(oc.rev===null&&rev>ask.rev&&rev<=ask.rev+OPS_KEEP)unk=null}
    /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
       LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
    if(unk&&unk.sub===uid&&rev>=unk.rev+2){voided=true;unkVoid=true}
