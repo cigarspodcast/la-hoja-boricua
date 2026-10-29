@@ -158,7 +158,7 @@ function vSubir(){pendingPhoto=null;let fort='';
   const artSel=$('#uArt').value;const item={id,nombre:name,artesano_id:artSel&&artSel!=='__otro'?artSel:'',artesano_texto:artSel==='__otro'?$('#uArtTxt').value.trim():'',capa:$('#uCapa').value.trim(),fortaleza:fort||null,pueblo:$('#uPueblo').value.trim(),vitolas:$('#uVit').value.trim()?[$('#uVit').value.trim()]:[],notas:$('#uNotes').value.trim(),foto,creado:new Date().toISOString()};
   LS.set('uploads',[item,...uploads()]);toast(tt('up.saved'));location.hash='#/c/'+id}}
 /* ---------- lugares ---------- */
-let leafletMap=null;const LEAFC={lounge:'#D12A1B',venta:'#1EA8D7'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let leafletMap=null;const LEAFC={lounge:'var(--danger)',venta:'var(--info)'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* LHB-87: pines que se tapan se juntan en un grupo (axe target-size). Entra [{x,y,m}] en píxeles del mapa; sale [{x,y,ms}].
    Un pin solo ocupa 26 x 34 con la punta abajo; un grupo, un círculo de 36; dos cajas a menos de 2 px se juntan, hasta que ninguna toca a otra. */
 const pinBox=(x,y,n)=>n>1?[x-18,y-18,x+18,y+18]:[x-13,y-32,x+13,y+2];

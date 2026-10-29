@@ -1,0 +1,20 @@
+H1 an injected #fff in styles.css (the Proof case)             rc 1 fail 1 -> RED
+H2 a dark literal back in a rule (.remind background)          rc 1 fail 1 -> RED
+H3 the share image paints a literal again (stat box)           rc 1 fail 1 -> RED
+H4 the form error box back to its rgba (hoja.js)               rc 1 fail 2 -> RED
+H5 a literal in cuenta.js                                      rc 1 fail 1 -> RED
+H6 a mirror drifts from its token (the tk() fallback ink)      rc 1 fail 1 -> RED
+H7 the sale pin back to its old green (LEAFC)                  rc 1 fail 1 -> RED
+H8 a new leaf icon color the list does not count               rc 1 fail 1 -> RED
+H9 Instagram gradient back to its pale end (white text 2.3)    rc 1 fail 1 -> RED
+H10 dark ink on the red flag initials                          rc 1 fail 1 -> RED
+H11 the white watermark on the red initials                    rc 1 fail 2 -> RED
+H12 a dark flavor in the wheel (chip text fails)               rc 1 fail 1 -> RED
+H13 a soft tint too dark for the inks (--danger-soft)          rc 1 fail 2 -> RED
+H14 the flag facade back to the old blue                       rc 1 fail 2 -> RED
+H15 the chip fallback back to a literal                        rc 1 fail 1 -> RED
+H16 the empty-state flag back to its old blue (Codex round 1)  rc 1 fail 1 -> RED
+H17 an encoded color in a new data URI (Codex round 1)         rc 1 fail 1 -> RED
+H18 the unearned leaf back to a literal (Codex round 1)        rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 7
+RESULT 18 of 18 mutations red

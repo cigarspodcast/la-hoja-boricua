@@ -34,8 +34,8 @@ M = [
     ('H3 the share image paints a literal again (stat box)', lambda: edit(HJ, "x.fillStyle=tk('card');rr(x,X,by,bw,110,18);", "x.fillStyle='rgba(23,58,38,.92)';rr(x,X,by,bw,110,18);")),
     ('H4 the form error box back to its rgba (hoja.js)', lambda: edit(HJ, 'background:var(--danger-soft);color:var(--on-surface);', 'background:rgba(209,42,27,.1);color:var(--on-surface);')),
     ('H5 a literal in cuenta.js', lambda: append(CU, "\nconst lhb67x='#fff';\n")),
-    ('H6 a mirror drifts from its token (unearned leaf)', lambda: edit(HJ, "VBArt.leaf(on?b.c:'#D7D8CC')", "VBArt.leaf(on?b.c:'#D7D8CD')")),
-    ('H7 the sale pin back to its old green (LEAFC mirror)', lambda: edit(AP, "venta:'#1EA8D7'", "venta:'#7fae55'")),
+    ('H6 a mirror drifts from its token (the tk() fallback ink)', lambda: edit(HJ, "return v||'#263723'", "return v||'#263724'")),
+    ('H7 the sale pin back to its old green (LEAFC)', lambda: edit(AP, "venta:'var(--info)'", "venta:'#7fae55'")),
     ('H8 a new leaf icon color the list does not count', lambda: edit(AP, "VBArt.leaf('#8fd162')}<b>", "VBArt.leaf('#123456')}<b>VBArt.leaf('#8fd162')}<b>")),
     ('H9 Instagram gradient back to its pale end (white text 2.3)', lambda: edit(CS, 'linear-gradient(135deg,#6e3b8f,#b23a30)', 'linear-gradient(135deg,#6e3b8f,#c2453a 60%,#d9a75a)')),
     ('H10 dark ink on the red flag initials', lambda: edit(AP, "color:${red?'var(--on-danger)':'var(--on-surface)'}", "color:${red?'var(--on-surface)':'var(--on-surface)'}")),
@@ -44,6 +44,9 @@ M = [
     ('H13 a soft tint too dark for the inks (--danger-soft)', lambda: edit(CS, '--danger-soft:#F6DEDA;', '--danger-soft:#E8A89F;')),
     ('H14 the flag facade back to the old blue', lambda: edit(AP, "const FACADE=['#1EA8D7'", "const FACADE=['#0050f0'")),
     ('H15 the chip fallback back to a literal', lambda: edit(HJ, "||'var(--card-2)'", "||'#dde3dc'")),
+    ('H16 the empty-state flag back to its old blue (Codex round 1)', lambda: edit(CS, '%231EA8D7', '%235FB4E5')),
+    ('H17 an encoded color in a new data URI (Codex round 1)', lambda: append(CS, '\n.lhb67y{background:url("data:image/svg+xml,%3Csvg%3E%3Crect fill=%22%23fff%22/%3E%3C/svg%3E")}\n')),
+    ('H18 the unearned leaf back to a literal (Codex round 1)', lambda: edit(HJ, "VBArt.leaf(on?b.c:'var(--line)')", "VBArt.leaf(on?b.c:'#D7D8CC')")),
 ]
 red = 0
 for name, mut in M:

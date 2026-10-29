@@ -1,0 +1,9 @@
+LHB-67 color literal counts, 2026-10-29T04:26Z, base 373833a
+basis: grep -oE '#[0-9a-fA-F]{3,8}' and grep -oE 'rgba?\(' per file, every occurrence
+file             hex-before  hex-after rgba-before rgba-after
+site/styles.css         118         52         61         24
+site/app.js              65         65          1          1
+site/hoja.js             73         45          3          0
+site/cuenta.js            0          0          0          0
+styles.css after, outside :root (the token definitions): 37
+every literal left is in the test's ALLOW67 list with its reason; the test's own tally is in evidence/lhb-67-tests.txt

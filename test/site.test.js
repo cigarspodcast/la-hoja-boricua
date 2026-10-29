@@ -87,7 +87,7 @@ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fo
  const tri=svg.match(/<path d="M[^"]*Z" fill="(#5FB4E5)"/i);assert.ok(/#9a6a3c/.test(svg)&&/#5b7a3a/.test(svg),'asta de madera + grama');assert.ok(tri,'triángulo');
  const hex=tri[1].slice(1),r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
  assert.ok(b>200&&g>150&&r>60&&r<130,'triángulo celeste: '+tri[1]);assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
- const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%235FB4E5')&&em.includes('%23E92A2F'),'bandera celeste en vacíos');
+ const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%231EA8D7')&&em.includes('%23ED0000'),'bandera de los vacíos con el celeste y el rojo de la bandera (LHB-67: el celeste de la guagua)');
  assert.ok(/\.tela\{[^}]*animation:ondea/.test(css)&&/@media \(prefers-reduced-motion:reduce\)\{\*,\*::before,\*::after\{animation:none!important/.test(css));
  const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));assert.equal(Object.keys(F).length,33);
  assert.equal(F['galiz-spirit'].credito,'Foto: Entre Humos');assert.equal(F['galiz-spirit'].match,'linea');
@@ -5254,8 +5254,9 @@ test('LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de toke
  assert.equal(f('.pill.f-suave').bg,'var(--card-2)');assert.equal(f('.seg button[aria-pressed="true"]').color,'var(--on-inverse)');assert.ok(ps.length>=50,'al menos 50 pares pintados: '+ps.length);
 });
 /* LHB-67: ningún color suelto en las pantallas de la app (styles.css fuera de :root, app.js, hoja.js, cuenta.js). Lo que queda está en ALLOW67:
-   [archivo, el tramo que lo contiene, cuántas veces aparece ese tramo, la razón, y si es espejo de un token, los tokens que puede valer] */
-const LIT67=/#[0-9a-fA-F]{3,8}\b|rgba?\(/g;
+   [archivo, el tramo que lo contiene, cuántas veces aparece ese tramo, la razón, y si es espejo de un token, los tokens que puede valer].
+   Un color escrito %23 (dentro de un SVG en data URI) cuenta igual que uno escrito # (Codex ronda 1). */
+const LIT67=/(?:#|%23)[0-9a-fA-F]{3,8}\b|rgba?\(/g;
 const ALLOW67=[
  ['styles.css',/\.lbtn\.ig\{[^}]*\}/,1,'marca de Instagram: su degradado (el texto blanco pasa 4.5 en cada parada, abajo)'],
  ['styles.css',/\.lbtn\.wa\{[^}]*\}/,1,'marca de WhatsApp: su verde (el texto blanco pasa 4.5, abajo)'],
@@ -5271,7 +5272,6 @@ const ALLOW67=[
  ['app.js',/red=\/\^#ed0000\$\/i/,1,'no es un color pintado: la prueba de si el fondo de las iniciales es el rojo de la bandera'],
  ['app.js',/fill="\$\{red\?'#000':'#fff'\}"/,1,'la hoja de agua de las iniciales (oscurece el rojo para que la tinta blanca pase, abajo)'],
  ['app.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,6,'la paleta de los íconos de hoja (art.js les pone un borde oscuro: se ven en el tema claro)'],
- ['app.js',/const LEAFC=\{[^}]*\}/,1,'la hoja del pin del mapa: espejo de .pin.lounge (--danger, el rojo) y .pin.venta (--info, el celeste); un fill de SVG no lee var()',['red','celeste']],
  ['app.js',/const cols=\[color\|\|'#d9a75a'[^\]]*\]/,1,'arte: las hojas que caen al marcar un favorito'],
  ['app.js',/stroke="#2a1a12"/,1,'arte: el borde de la hoja del pin, el mismo de art.js'],
  ['app.js',/const COL=\[[^\]]*\]/,1,'arte de la intro: las hojas que levanta la guagua'],
@@ -5281,8 +5281,9 @@ const ALLOW67=[
  ['hoja.js',/VBArt\.leaf\(p\.categoria==='venta'\?'#ffd27a':'#8fd162'\)/,1,'la paleta de los íconos de hoja'],
  ['hoja.js',/VBArt\.leaf\(lit\.length\?'#8fd162'/,1,'la paleta de los íconos de hoja: la hoja ganada'],
  ['hoja.js',/const BADGES=\[[\s\S]*?\];/,1,'la paleta de las hojas de cada insignia (la hoja lleva borde oscuro; el nombre va en texto)'],
- ['hoja.js',/'#D7D8CC'/,3,'la hoja sin ganar: espejo de --line; un fill de SVG no lee var()',['line']],
- ['hoja.js',/#ED0000/,2,'la insignia de las zonas: espejo de --flag-red',['flag-red']],
+ ['hoja.js',/return v\|\|'#263723'/,1,'respaldo de tk() si un token faltara al pintar la imagen para compartir: espejo de --on-surface',['on-surface']],
+ ['styles.css',/\.splash::before,\.splash::after\{[^}]*\}/,1,'arte: las hojas de tabaco de la pantalla de entrada, un SVG en data URI que no lee las variables de la página'],
+ ['styles.css',/\.empty::before\{[^}]*\}/,1,'arte: la bandera en su asta del estado vacío, un SVG en data URI que no lee las variables de la página (su azul y su rojo se miden abajo)'],
  ['hoja.js',/<circle cx="12" cy="12" r="11" fill="#0e2417"\/>[\s\S]*?<\/svg>/,1,'marca de Spotify: su ícono, sobre el botón verde de la marca'],
  ['hoja.js',/function drawLeaf[\s\S]*?x\.restore\(\)\}/,1,'arte: la hoja de tabaco dibujada en la imagen para compartir'],
 ];
@@ -5309,6 +5310,9 @@ test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabo
   for(const b of bg)assert.ok(contrast65(fg,b)>=4.5,r.slice(0,14)+' '+fg+' sobre '+b+': '+contrast65(fg,b).toFixed(2))}
  const W=h.match(/WHEEL=\[[\s\S]*?\];/)[0].match(/c:'(#[0-9a-fA-F]{6})'/g).map(x=>x.slice(3,10));assert.ok(W.length>=9,'rueda: '+W.length);
  assert.match(css,/\.tchip\{background:var\(--wc\);color:var\(--on-surface\)/);for(const c of W)assert.ok(contrast65(ink,c)>=4.5,'sabor '+c+': '+contrast65(ink,c).toFixed(2));
+ const em=decodeURIComponent((css.match(/\.empty::before\{[^}]*\}/)||[''])[0]),flag=new Set((em.match(/#[0-9a-fA-F]{6}/g)||[]).map(x=>x.toUpperCase()));
+ for(const tkn of ['flag-blue','flag-red'])assert.ok(flag.has(app.val(tkn).toUpperCase()),'la bandera del estado vacío lleva --'+tkn+' '+app.val(tkn)+': '+[...flag].join(' '));
+ for(const old of ['#5FB4E5','#0050F0','#E92A2F'])assert.ok(!flag.has(old),'la bandera del estado vacío sin el color viejo '+old);
  const F=a.match(/const FACADE=\[([^\]]*)\]/)[1].match(/#[0-9a-fA-F]{6}/g),m=a.match(/red=\/\^#ed0000\$\/i\.test\(bg\);return `<span class="mono" style="[^"]*color:\$\{red\?'var\(--([a-z-]+)\)':'var\(--([a-z-]+)\)'\}[\s\S]*?fill="\$\{red\?'(#[0-9a-f]{3})':'(#[0-9a-f]{3})'\}" opacity="\$\{red\?'([.\d]+)':'([.\d]+)'\}"/);
  assert.ok(m,'las iniciales eligen tinta y hoja de agua según el fondo');const x3=c=>'#'+c.slice(1).split('').map(d=>d+d).join('');
  const mix=(b,o,al)=>'#'+[1,3,5].map(i=>Math.round(parseInt(b.slice(i,i+2),16)*(1-al)+parseInt(o.slice(i,i+2),16)*al).toString(16).padStart(2,'0')).join('');
