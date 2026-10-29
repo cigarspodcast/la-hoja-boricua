@@ -1199,7 +1199,7 @@ test('LHB-49: toda salida que da por buena la cuenta con perfil retira el formul
 test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la imagen en el navegador y la sube a la cuenta; el servidor guarda la URL',()=>{
  const h=readR('hoja.js'),app=read('app.js'),css=read('styles.css'),cu=read('cuenta.js'),pf=fs.readFileSync(path.join(__dirname,'..','functions','api','profile.js'),'utf8');
  assert.ok(h.includes('function onboardingForm(submit,picture,mode,init,check){'),'el formulario recibe la foto (y, desde LHB-52, el modo)');
- assert.ok(h.includes('<input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1">'),'solo imágenes');
+ assert.ok(h.includes('<input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1" aria-hidden="true">'),'solo imágenes (y fuera del teclado y del lector: lo abre su botón, LHB-64)');
  const i=h.indexOf('function onboardingForm'),form=h.slice(i,h.indexOf('\nconst CUENTA=',i));
  assert.ok(form.includes("A.resizeImage(f,512,.85)")&&form.includes("picture.upload(new File([b],'perfil.jpg',{type:'image/jpeg'}))"),'se achica antes de subir');
  const a=form.indexOf("picture.url())return err(OB_ERR['avatar-required'])");assert.ok(a>0&&a<form.indexOf('HANDLE_RE.test(h))return err('),'la foto se pide primero al enviar');
@@ -4850,7 +4850,7 @@ function DOM64(){
   get dataset(){const d={};for(const k in this.attrs)if(k.startsWith('data-'))d[k.slice(5).replace(/-([a-z])/g,(_,x)=>x.toUpperCase())]=this.attrs[k];return d}
   get classList(){const n=this,get=()=>(n.attrs.class||'').split(/\s+/).filter(Boolean),put=a=>{n.attrs.class=a.join(' ')};
    return {add:c=>{const a=get();if(!a.includes(c))a.push(c);put(a)},remove:c=>put(get().filter(x=>x!==c)),contains:c=>get().includes(c),toggle:(c,on)=>{const a=get().filter(x=>x!==c);if(on===undefined?!get().includes(c):on)a.push(c);put(a)}}}
-  setAttribute(k,v){this.attrs[k]=String(v)}getAttribute(k){return k in this.attrs?this.attrs[k]:null}removeAttribute(k){delete this.attrs[k]}
+  setAttribute(k,v){this.attrs[k]=String(v)}getAttribute(k){return k in this.attrs?this.attrs[k]:null}hasAttribute(k){return k in this.attrs}removeAttribute(k){delete this.attrs[k]}
   get textContent(){return this._t+this.kids.map(k=>k.textContent).join('')}set textContent(v){this._t=String(v);this.kids=[]}
   set innerHTML(h){for(const k of this.kids)k.parent=null;this.kids=[];this._t='';parse(String(h),this)}
   appendChild(c){if(c.parent)c.parent.kids=c.parent.kids.filter(k=>k!==c);c.parent=this;this.kids.push(c);return c}
@@ -4908,6 +4908,19 @@ test('LHB-64: el foco de una hoja: sin otro control entra por Cerrar; una hoja a
  S.run();assert.equal(S.active(),S.trig,'el foco pendiente de la hoja ya cerrada no salta a un control borrado');
  const other=S.view.appendChild(S.el('button',{type:'button'}));other.focus();S.closeSheetNow();assert.equal(S.active(),other,'sin hoja abierta, el foco se queda donde está');
 });
+test('LHB-64 (Codex ronda 1): el foco entra por el primer control que se ve (Compartir mientras carga: Cerrar); otra capa encima de la hoja (la ventana de Clerk) se queda con su Tab y su Escape',()=>{
+ let S=SHEET64();S.sheet('<h2>Compartir</h2><div class="share-prev" id="shPrev"></div><div class="share-btns" id="shBtns" hidden><button type="button" id="shGo">Compartir</button></div>','Compartir');S.run();
+ assert.equal(S.active(),S.x(),'mientras carga, los botones están escondidos: el foco va a Cerrar');
+ S=SHEET64();S.sheet('<div hidden><button type="button" id="h1">H</button></div><button type="button" id="n1" data-norect>N</button><button type="button" id="ok" data-close>Entendido</button><button type="button" id="v1">V</button>','Hoja');S.run();
+ assert.equal(S.active().id,'v1','el primero que se ve y no es de cerrar');
+ S=SHEET64();S.sheet('<button type="button" id="ok" data-close>Entendido</button>','Instalar');S.run();assert.equal(S.active(),S.x(),'solo botones de cerrar: Cerrar');
+ /* la ventana de Clerk, en body y fuera de la app, encima de la hoja abierta */
+ S=SHEET64();S.sheet(HTML64,'Acciones');S.run();const ov=S.body.appendChild(S.el('div',{role:'dialog',class:'cl-modalContent'}));const ob=ov.appendChild(S.el('button',{type:'button',id:'clerkBtn'}));ob.focus();
+ let e=S.key('Tab');assert.equal(e.prevented,false,'Tab en la ventana de Clerk es de Clerk');assert.equal(S.active(),ob);
+ e=S.key('Tab',true);assert.equal(e.prevented,false);S.key('Escape');assert.equal(S.$('#sheet').hidden,false,'Escape en Clerk no cierra la hoja de atrás');assert.ok(S.body.classList.contains('sheet-on'));
+ /* el foco perdido (en body) sí vuelve a la hoja */
+ ov.remove();S.doc.activeElement=S.body;e=S.key('Tab');assert.ok(e.prevented);assert.equal(S.active(),S.x());S.key('Escape');S.run();assert.equal(S.$('#sheet').hidden,true);
+});
 /* el catálogo de verdad (app.js, de la región de estado al final de vCatalogo) sobre ese DOM */
 function CAT64(){const vm=require('vm');const D=DOM64();const src=read('app.js').replace(/\r\n/g,'\n');
  const code=src.slice(src.indexOf('/* LHB-64: una región de estado'),src.indexOf('\nfunction vCigar('));
@@ -4943,10 +4956,11 @@ test('LHB-64: Importar respaldo es un botón de verdad que abre el campo de arch
 test('LHB-64: los controles que esconden un campo de archivo y lo que queda con tabindex 0, contados en todo site/ (la hipótesis del ticket); la cámara y la galería muestran el foco; la app ya no se traba en vertical',()=>{
  const fs=require('fs'),path=require('path');const dir=path.join(__dirname,'..','site');
  const files=fs.readdirSync(dir).filter(f=>/\.(js|html)$/.test(f));const tab0=[],fileIn=[];
- for(const f of files){const s=fs.readFileSync(path.join(dir,f),'utf8');for(const m of s.matchAll(/<[a-z]+[^<>]*tabindex="0"[^<>]*>/g))tab0.push(f+': '+m[0].slice(0,40));for(const m of s.matchAll(/<input type="file"[^<>]*>/g))fileIn.push(f+': '+m[0])}
- assert.deepEqual(tab0,['hoja.js: <g class="wseg${on?\' on\':\'\'}" role="butt'],'solo queda la rueda de sabores (un botón con su teclado)');
+ for(const f of files){const s=fs.readFileSync(path.join(dir,f),'utf8');for(const m of s.matchAll(/<[a-z]+\b[^<>]*\btabindex="([^"]*)"[^<>]*>/g))tab0.push(f+' '+(m[0].match(/\bid="([^"]+)"/)||m[0].match(/\bclass="([^"]+)"/))[1]+' '+m[1]);for(const m of s.matchAll(/<input type="file"[^<>]*>/g))fileIn.push(f+': '+m[0])}
+ /* todo tabindex dentro de una etiqueta, también los que se calculan (Codex ronda 1): la rueda (0), las pestañas del perfil (una en 0, las demás en -1), la vista y los tres campos escondidos (-1) */
+ assert.deepEqual(tab0,["hoja.js wseg${on?' on':''} 0",'hoja.js impF -1','hoja.js obPf -1','hoja.js pfT-${t} ${t===cur?0:-1}','hoja.js cFotoF -1','index.html view -1'],'nada más alcanza el teclado por tabindex');
  const ids=fileIn.map(x=>x.match(/id="([^"]+)"/)[1]).sort();assert.deepEqual(ids,['cFotoF','fCam','fGal','impF','obPf'],'los cinco campos de archivo');
- for(const id of ['cFotoF','impF','obPf']){const t=fileIn.find(x=>x.includes('id="'+id+'"'));assert.ok(t.includes('class="sr"')&&t.includes('tabindex="-1"'),id+' escondido y fuera del teclado, abierto por su botón')}
+ for(const id of ['cFotoF','impF','obPf']){const t=fileIn.find(x=>x.includes('id="'+id+'"'));assert.ok(t.includes('class="sr"')&&t.includes('tabindex="-1"')&&t.includes('aria-hidden="true"'),id+' escondido, fuera del teclado y del lector, abierto por su botón')}
  const ap=read('app.js');assert.ok(/<div class="photo-btns"><label>[^<]*<input type="file"[^>]*id="fCam"/.test(ap.replace(/\$\{tt\('up\.camera'\)\}/,'Cámara')),'la cámara es una etiqueta con su campo');
  assert.ok(read('styles.css').includes('.photo-btns label:has(input:focus-visible){outline:2px solid var(--gold);outline-offset:2px}'),'el anillo de foco se ve en el botón de cámara o galería');
  const m=JSON.parse(read('manifest.webmanifest'));assert.ok(!('orientation' in m),'sin traba de orientación');assert.equal(m.display,'standalone');

@@ -95,24 +95,30 @@ const tagChips=ts=>ts.length?`<div class="tagchips">${ts.map(t=>`<span class="tc
 /* ---------- hoja de acciones (sheet) ---------- */
 let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
 let owed=false; /* LHB-64: se abrió una hoja y el foco todavía no ha vuelto */
+/* LHB-64: los controles de una hoja que el teclado alcanza: ni deshabilitados, ni fuera del orden, ni dentro de algo escondido o sin pintar */
+const FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]):not([tabindex="-1"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const tabbable=pn=>[...pn.querySelectorAll(FOCUSABLE)].filter(n=>!n.closest('[hidden]')&&n.getClientRects().length);
 function sheet(html,label){clearTimeout(closeT);let el=$('#sheet');if(!el){el=document.createElement('div');el.id='sheet';el.className='sheet';document.body.appendChild(el)}
  /* LHB-64: una hoja abierta desde otra (el + que abre el humidor) no cambia a dónde vuelve el foco al cerrar */
  if(!el.contains(document.activeElement))lastFocus=document.activeElement;owed=true;
  el.innerHTML=`<div class="sheet-bg" data-close></div><div class="sheet-panel" role="dialog" aria-modal="true" aria-label="${esc(label)}"><div class="sheet-grip" aria-hidden="true"></div><button class="sheet-x" type="button" data-close aria-label="${tt('h.cerrar')}">×</button>${html}</div>`;
  el.hidden=false;appInert(true);document.body.classList.add('sheet-on');requestAnimationFrame(()=>el.classList.add('open'));$$('[data-close]',el).forEach(b=>b.onclick=closeSheet);
  el.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',()=>closeSheet()));
- /* sin otro control, el foco entra por el botón de cerrar; y no se mueve si la hoja ya se cerró o cambió */
- const f=el.querySelector('.sheet-panel select,.sheet-panel input,.sheet-panel a,.sheet-panel button:not([data-close])')||el.querySelector('.sheet-x');setTimeout(()=>{if(!el.hidden&&f&&f.isConnected)f.focus({preventScroll:true})},80);return el}
+ /* el foco entra por el primer control que se ve (no uno escondido mientras carga, como Compartir: Codex ronda 1), si no por Cerrar;
+    y no se mueve si la hoja ya se cerró o cambió */
+ const pn=el.querySelector('.sheet-panel');setTimeout(()=>{if(el.hidden||!pn.isConnected)return;const f=tabbable(pn).find(n=>!n.hasAttribute('data-close'))||el.querySelector('.sheet-x');if(f)f.focus({preventScroll:true})},80);return el}
 /* LHB-64: con una hoja abierta, lo de atrás (la app) no se alcanza con el teclado ni con el lector de pantalla; al cerrar, el foco vuelve a quien la abrió, o al contenido */
 function appInert(on){const a=$('#app');if(a)a.inert=on}
 function focusBack(){if(!owed)return;owed=false;if(lastFocus&&lastFocus.isConnected&&lastFocus.focus){lastFocus.focus({preventScroll:true});return}const v=$('#view');if(v&&v.focus)v.focus({preventScroll:true})}
 /* cierra la hoja sin esperar: la usan los cambios de cuenta, para que ningún editor de Mi Hoja quede abierto ni se pise un aviso nuevo */
 function closeSheetNow(){clearTimeout(closeT);const el=$('#sheet');if(!el)return;el.classList.remove('open');el.hidden=true;el.innerHTML='';document.body.classList.remove('sheet-on');appInert(false);focusBack()}
 function closeSheet(){const el=$('#sheet');if(!el||el.hidden)return;el.classList.remove('open');document.body.classList.remove('sheet-on');appInert(false);clearTimeout(closeT);closeT=setTimeout(()=>{el.hidden=true;el.innerHTML='';focusBack()},200)}
-/* LHB-64: Escape cierra; Tab y Mayús+Tab dan la vuelta dentro de la hoja */
-const FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]):not([tabindex="-1"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();return}if(e.key!=='Tab')return;const el=$('#sheet');if(!el||el.hidden||!document.body.classList.contains('sheet-on'))return;
- const pn=el.querySelector('.sheet-panel'),fs=pn?[...pn.querySelectorAll(FOCUSABLE)].filter(n=>!n.closest('[hidden]')&&n.getClientRects().length):[];if(!fs.length){e.preventDefault();return}
+/* LHB-64: Escape cierra; Tab y Mayús+Tab dan la vuelta dentro de la hoja. El foco en otra capa encima de la hoja (la ventana de Clerk para entrar,
+   abierta desde el +) es de esa capa: ni Escape ni Tab tocan la hoja (Codex ronda 1). Solo vuelve a la hoja el foco perdido (en body) o en la app inerte */
+const ours=(el,at)=>{const a=$('#app');return !at||at===document.body||el.contains(at)||!!(a&&a.contains(at))};
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'&&e.key!=='Tab')return;const el=$('#sheet');if(el&&!el.hidden&&!ours(el,document.activeElement))return;
+ if(e.key==='Escape'){closeSheet();return}if(!el||el.hidden||!document.body.classList.contains('sheet-on'))return;
+ const pn=el.querySelector('.sheet-panel'),fs=pn?tabbable(pn):[];if(!fs.length){e.preventDefault();return}
  const first=fs[0],last=fs[fs.length-1],at=document.activeElement;
  if(!el.contains(at)){e.preventDefault();(e.shiftKey?last:first).focus()}else if(e.shiftKey&&at===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&at===last){e.preventDefault();first.focus()}});
 window.addEventListener('hashchange',closeSheet);
@@ -298,7 +304,7 @@ function idProblem(f,today){
 function onboardingForm(submit,picture,mode,init,check){const marcas=[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es'));const idm=mode==='identity';const edm=mode==='edit';const pf=init||{};const today=new Date().toISOString().slice(0,10);
  view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${idm?tt('h.completaTuPerfil'):edm?tt('h.editarPerfil'):tt('h.tuPerfil')}</h1></header>
  <form class="form" id="obForm" novalidate>
- ${idm?'<p class="hint">'+tt('h.ahoraPedimosTuNombre')+'</p>':`<div class="ob-pic" role="group" aria-labelledby="obPt"><p class="ob-pic-t" id="obPt">${tt('pf.fotoAlt')}</p><div class="ob-pic-row"><span class="ob-pic-img" id="obPv"></span><button class="lbtn" type="button" id="obPb"></button></div><p class="hint" id="obPh" aria-live="polite"></p><input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1"></div>
+ ${idm?'<p class="hint">'+tt('h.ahoraPedimosTuNombre')+'</p>':`<div class="ob-pic" role="group" aria-labelledby="obPt"><p class="ob-pic-t" id="obPt">${tt('pf.fotoAlt')}</p><div class="ob-pic-row"><span class="ob-pic-img" id="obPv"></span><button class="lbtn" type="button" id="obPb"></button></div><p class="hint" id="obPh" aria-live="polite"></p><input type="file" accept="image/*" id="obPf" class="sr" tabindex="-1" aria-hidden="true"></div>
  <div class="field"><label for="obH">${tt('h.tuNombreDeUsuario')}</label><input id="obH" required minlength="3" maxlength="20" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder="${tt('h.ejTabaqueroPr')}"><p class="hint">${tt('h.de3A20')}</p><p class="hint" id="obHs" aria-live="polite"></p></div>`}
  <div class="field"><label for="obFn">${tt('pf.yourName')}</label><input id="obFn" required maxlength="50" autocomplete="given-name"></div>
  <div class="field"><label for="obLn">${tt('h.tuApellido')}</label><input id="obLn" required maxlength="50" autocomplete="family-name"></div>
@@ -739,7 +745,7 @@ function stepBody(p){const c=CD.cigarId&&A.cigarById(CD.cigarId);switch(p.id){
   <div class="field"><label for="cnFinal">${tt('h.notaFinal')}</label><textarea id="cnFinal" maxlength="600" rows="3" placeholder="${tt('h.loVolveriasAFumar')}">${esc(CD.notaFinal)}</textarea></div>
   <div class="field"><label for="cFecha">${tt('h.diaEnQueLo')}</label><input id="cFecha" type="date" min="2000-01-01" max="${hoy()}" value="${esc(okDay(CD.consumido)&&CD.consumido<=hoy()?CD.consumido:hoy())}"></div>
   ${!c?`<div class="field"><label for="cMarca">${tt('h.marcaOpcional')}</label><input id="cMarca" maxlength="60" value="${esc(CD.marca||'')}" list="cMarcaL"><datalist id="cMarcaL">${[...new Set((D().artesanos||[]).map(a=>a.nombre))].sort((a,b)=>a.localeCompare(b,'es')).map(m=>`<option value="${esc(m)}">`).join('')}</datalist></div>`:''}
-  <div class="field"><label id="cFotoT">${tt('h.tuFotoOpcional')}</label>${CD.foto?`<div class="dfoto" data-photo="${esc(CD.foto)}" role="img" aria-label="${tt('h.fotoDeLaCata')}"></div>`:''}<div class="ob-pic-row"><button class="lbtn" type="button" id="cFotoB">${CD.foto?tt('h.cambiarFoto'):tt('h.anadirFoto')}</button>${CD.foto?'<button class="lbtn ghost" type="button" id="cFotoX">'+tt('h.quitarFoto')+'</button>':''}</div><input type="file" accept="image/*" id="cFotoF" class="sr" tabindex="-1"><p class="hint" id="cFotoH" aria-live="polite"></p></div>
+  <div class="field"><label id="cFotoT">${tt('h.tuFotoOpcional')}</label>${CD.foto?`<div class="dfoto" data-photo="${esc(CD.foto)}" role="img" aria-label="${tt('h.fotoDeLaCata')}"></div>`:''}<div class="ob-pic-row"><button class="lbtn" type="button" id="cFotoB">${CD.foto?tt('h.cambiarFoto'):tt('h.anadirFoto')}</button>${CD.foto?'<button class="lbtn ghost" type="button" id="cFotoX">'+tt('h.quitarFoto')+'</button>':''}</div><input type="file" accept="image/*" id="cFotoF" class="sr" tabindex="-1" aria-hidden="true"><p class="hint" id="cFotoH" aria-live="polite"></p></div>
   <label class="check"><input type="checkbox" id="cPublica" ${CD.publica?'checked':''}> ${tt('h.hacerPublicaEstaCata')}</label><p class="hint">${tt('h.siNoLaHaces')}</p>
   ${c?`<label class="check"><input type="checkbox" id="cSellar" ${CD.sellar?'checked':''}> ${tt('h.sellarEnMiPasaporte',{a:esc(c.nombre)})}</label>`:''}`}}}
 function renderCata(){const p=PASOS[CD.paso];const n=PASOS.length-1;

@@ -46,10 +46,10 @@ M = [
     ('F7 closing leaves the app inert', lambda: edit(HO, "document.body.classList.remove('sheet-on');appInert(false);clearTimeout(closeT);", "document.body.classList.remove('sheet-on');clearTimeout(closeT);")),
     ('F8 closing at once leaves the app inert', lambda: edit(HO, "document.body.classList.remove('sheet-on');appInert(false);focusBack()}", "document.body.classList.remove('sheet-on');focusBack()}")),
     ('F9 a sheet from a sheet forgets the first trigger', lambda: edit(HO, " if(!el.contains(document.activeElement))lastFocus=document.activeElement;", " lastFocus=document.activeElement;")),
-    ('F10 no control: focus does not enter (no Cerrar fallback)', lambda: edit(HO, "||el.querySelector('.sheet-x');setTimeout(", ";setTimeout(")),
+    ('F10 no control: focus does not enter (no Cerrar fallback)', lambda: edit(HO, "||el.querySelector('.sheet-x');if(f)", ";if(f)")),
     ('F11 the trigger gone: focus is lost, not sent to the content', lambda: edit(HO, "const v=$('#view');if(v&&v.focus)v.focus({preventScroll:true})}", "}")),
     ('F12 closing at once steals focus with no sheet open', lambda: edit(HO, "function focusBack(){if(!owed)return;owed=false;", "function focusBack(){")),
-    ('F13 the delayed first focus jumps into a closed sheet', lambda: edit(HO, "if(!el.hidden&&f&&f.isConnected)f.focus(", "if(f)f.focus(")),
+    ('F13 the delayed first focus jumps into a closed sheet', lambda: edit(HO, "if(el.hidden||!pn.isConnected)return;const f=", "const f=")),
     ('F14 Escape does not close', lambda: edit(HO, "if(e.key==='Escape'){closeSheet();return}", "")),
     ('F15 import is a label with tabindex 0 again', lambda: edit(HO, "<button class=\"lbtn\" type=\"button\" id=\"impB\">${tt('h.importarRespaldo')}</button><input type=\"file\" accept=\"application/json,.json\" id=\"impF\" class=\"sr\" tabindex=\"-1\" aria-hidden=\"true\">", "<label class=\"lbtn\" tabindex=\"0\">${tt('h.importarRespaldo')}<input type=\"file\" accept=\"application/json,.json\" id=\"impF\" class=\"sr\"></label>")),
     ('F16 the import button opens nothing', lambda: edit(HO, " const ib=$('#impB');if(ib)ib.onclick=()=>{const x=$('#impF');if(x)x.click()};", " ")),
@@ -63,6 +63,12 @@ M = [
     ('F24 the English count is missing', lambda: edit(I18, ' "cat.count": "Vitolas in the catalog: {a}.",', '')),
     ('F25 no focus ring on camera and gallery', lambda: edit(CS, ".photo-btns label:has(input:focus-visible){outline:2px solid var(--gold);outline-offset:2px}", "")),
     ('F26 the portrait lock is back', lambda: edit(MF, '"display": "standalone",', '"display": "standalone",\n  "orientation": "portrait",')),
+    ('F27 the first focus can be a hidden control (Codex r1 P2)', lambda: edit(HO, "const f=tabbable(pn).find(", "const f=[...pn.querySelectorAll(FOCUSABLE)].find(")),
+    ('F28 the first focus can be a close button', lambda: edit(HO, ".find(n=>!n.hasAttribute('data-close'))", ".find(n=>true)")),
+    ('F29 another layer over the sheet loses its Tab and Escape', lambda: edit(HO, "if(el&&!el.hidden&&!ours(el,document.activeElement))return;", "")),
+    ('F30 a lost focus (body) is not brought back', lambda: edit(HO, "return !at||at===document.body||el.contains(at)", "return !at||el.contains(at)")),
+    ('F31 the profile photo field stays in the accessibility tree', lambda: edit(HO, 'id="obPf" class="sr" tabindex="-1" aria-hidden="true">', 'id="obPf" class="sr" tabindex="-1">')),
+    ('F32 the diary photo field stays in the accessibility tree', lambda: edit(HO, 'id="cFotoF" class="sr" tabindex="-1" aria-hidden="true">', 'id="cFotoF" class="sr" tabindex="-1">')),
 ]
 red = 0
 for name, mut in M:
