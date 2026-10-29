@@ -40,16 +40,43 @@ def git(*args, stdin=None):
     return r.stdout
 
 
+def fail(why):
+    print('leak check FAILED: %s; nothing is reported clean' % why)
+    sys.exit(3)
+
+
+def blobs(shas):
+    """each blob's whole content, read with git cat-file --batch. Every record is checked (Codex ronda 3): a sha git answers
+    "missing", a record of another kind or a short read fails the check instead of being searched as if it were the content"""
+    out = git('cat-file', '--batch', stdin=('\n'.join(shas) + '\n').encode())
+    texts, i = [], 0
+    for sha in shas:
+        j = out.find(b'\n', i)
+        head = out[i:j].split() if j >= 0 else []
+        if len(head) != 3 or head[0].decode('ascii', 'replace') != sha or head[1] != b'blob' or not head[2].isdigit():
+            fail('git could not read object %s (%s)' % (sha, b' '.join(head[1:]).decode('ascii', 'replace') or 'no answer'))
+        n = int(head[2])
+        body = out[j + 1:j + 1 + n]
+        if len(body) != n or out[j + 1 + n:j + 2 + n] != b'\n':
+            fail('object %s was cut short' % sha)
+        texts.append(body.decode('utf-8', 'replace'))
+        i = j + 2 + n
+    if i != len(out):
+        fail('git answered more than was asked')
+    return texts
+
+
 def added_text(base):
     """everything the branch adds, as one text: each file version written by a commit since BASE, read whole from git, and each
     file the working tree changed or added, plus the call log, read whole from disk"""
     parts = []
     # one line per file each commit wrote: ":oldmode newmode oldsha newsha status<TAB>path"; a deletion's new sha is all zeros,
-    # and a submodule (mode 160000) is a commit, not a file
-    raw = git('log', '--raw', '--no-abbrev', '--no-renames', '--format=', base + '..HEAD').decode('utf-8', 'replace')
+    # and a submodule (mode 160000) is a commit, not a file. -m lists a merge against each parent (Codex ronda 3), so a file the
+    # merge itself wrote (a resolved conflict) is read too
+    raw = git('log', '-m', '--raw', '--no-abbrev', '--no-renames', '--format=', base + '..HEAD').decode('utf-8', 'replace')
     shas = sorted({f[3] for f in (l.split('\t')[0].split() for l in raw.splitlines() if l.startswith(':')) if len(f) >= 4 and f[1] != '160000' and set(f[3]) != {'0'}})
     if shas:
-        parts.append(git('cat-file', '--batch', stdin=('\n'.join(shas) + '\n').encode()).decode('utf-8', 'replace'))
+        parts += blobs(shas)
     names = [n for n in git('diff', '--name-only', '-z', 'HEAD', '--').decode('utf-8', 'replace').split('\0') if n]
     names += [n for n in git('ls-files', '-z', '--others', '--exclude-standard').decode('utf-8', 'replace').split('\0') if n]
     names.append(os.path.relpath(A.LOG))

@@ -304,6 +304,38 @@ class LeakScan(unittest.TestCase):
         self.assertIn(k3, text, 'the call log, ignored by *.log')
         self.assertIn(k4, text, 'an uncommitted change to a tracked file')
 
+    def test_a_key_a_merge_wrote_is_found(self):
+        # Codex ronda 3: a conflict resolved in the merge commit with text neither side had, then deleted later
+        k7 = 'KSEV' + 't' * 20
+        with open('m.txt', 'w') as f:
+            f.write('base\n')
+        self.g('add', 'm.txt')
+        self.g('commit', '-q', '-m', 'm base')
+        self.g('checkout', '-q', '-b', 'side')
+        with open('m.txt', 'w') as f:
+            f.write('side\n')
+        self.g('commit', '-q', '-am', 'side')
+        self.g('checkout', '-q', '-')
+        with open('m.txt', 'w') as f:
+            f.write('main\n')
+        self.g('commit', '-q', '-am', 'main')
+        subprocess.run(['git', 'merge', '-q', 'side'], capture_output=True)
+        with open('m.txt', 'w') as f:
+            f.write(k7 + '\n')
+        self.g('commit', '-q', '-am', 'resolve')
+        os.remove('m.txt')
+        self.g('commit', '-q', '-am', 'drop')
+        text, n = self.P.added_text(self.base)
+        self.assertIn(k7, text, 'text only the merge commit wrote')
+
+    def test_a_missing_object_is_not_clean(self):
+        with self.assertRaises(SystemExit) as c:
+            self.P.blobs(['0' * 39 + '1'])
+        self.assertEqual(c.exception.code, 3)
+        # and a real blob reads back whole, binary included
+        sha = subprocess.run(['git', 'hash-object', '-w', '--stdin'], input=b'\x00bin\nKEY', capture_output=True).stdout.decode().strip()
+        self.assertEqual(self.P.blobs([sha]), ['\x00bin\nKEY'])
+
     def test_git_failure_is_not_clean(self):
         with self.assertRaises(SystemExit) as c:
             self.P.added_text('no-such-commit')

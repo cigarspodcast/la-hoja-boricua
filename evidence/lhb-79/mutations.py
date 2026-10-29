@@ -26,7 +26,10 @@ MUTS = [
     (P, 'r2-1 worktree changes not read', "names = [n for n in git('diff', '--name-only', '-z', 'HEAD', '--')", "names = [n for n in []"),
     (R, 'r2-2 rejected case copied into the log', "'refused: not a fallback case')", "'refused: case %r' % (case,))"),
     (R, 'r2-3 only TypeError and ValueError refused', "    except Exception:\n        # TypeError, ValueError, and a RecursionError", "    except (TypeError, ValueError):\n        # TypeError, ValueError, and a RecursionError"),
-    (R, '7 carriage return kept',r"_BREAKS = re.compile('[\t\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]')", r"_BREAKS = re.compile('[\t\n]')"),
+    # Codex ronda 3
+    (P, 'r3-1 merges not listed', "git('log', '-m', '--raw'", "git('log', '--raw'"),
+    (P, 'r3-2 missing object searched as content', "if len(head) != 3 or head[0].decode('ascii', 'replace') != sha or head[1] != b'blob' or not head[2].isdigit():", "if len(head) < 2:"),
+    (R, '7 carriage return kept', r"_BREAKS = re.compile('[\t\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]')", r"_BREAKS = re.compile('[\t\n]')"),
 ]
 SRC = {f: open(f, encoding='utf-8').read() for f in (R, P)}
 red = 0

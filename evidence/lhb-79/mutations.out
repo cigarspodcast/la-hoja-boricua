@@ -16,5 +16,7 @@ r2-1 history blobs not read              RED (caught)
 r2-1 worktree changes not read           RED (caught)
 r2-2 rejected case copied into the log   RED (caught)
 r2-3 only TypeError and ValueError refused RED (caught)
+r3-1 merges not listed                   RED (caught)
+r3-2 missing object searched as content  RED (caught)
 7 carriage return kept                   RED (caught)
-RESULT 19 of 19 red
+RESULT 21 of 21 red
