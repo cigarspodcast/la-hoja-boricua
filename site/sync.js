@@ -82,6 +82,9 @@ const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 /* LHB-80 (Codex r1): cuántas subidas sin respuesta se recuerdan y se preguntan en un GET (OPS_ASK en functions/_lib/mihoja.js) */
 const OPS_ASK=8;
+/* LHB-104: las subidas sin respuesta de todas las pestañas, en una llave chica que todas leen: {v:1,l:[{s:cuenta,r:If-Match,o:id}]}. La pestaña que sube la anota
+   antes de mandar; cualquier pestaña la quita cuando sabe que ya no puede llegar. Así otra pestaña pone la valla, y no sale mientras una pueda llegar */
+const PEND=KEY+'_pend';
 window.LHB_SYNC=function(D){
  let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,pend=[],evict=new Map(),mem=null,held=false,state={state:'idle',err:null};
  /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
@@ -146,6 +149,12 @@ window.LHB_SYNC=function(D){
     en ese tramo por cualquier camino (una lectura que lanza, la cuenta o la época que cambian, una lectura de la época que falla), ninguna base de antes vale:
     se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada. Una subida que el servidor rechazó (409) no cuenta.
     Cualquier otra excepción del almacenamiento a mitad de la pasada la para sin más (se reintenta) */
+ const shOk=e=>isObj(e)&&typeof e.s==='string'&&Number.isInteger(e.r)&&e.r>=0&&typeof e.o==='string';
+ /* LHB-104: lo que no se puede leer como la lista (otra versión, roto) cuenta como vacío; una lectura que lanza sube */
+ const shRead=()=>{const raw=D.ls.get(PEND);if(raw==null)return [];let v;try{v=JSON.parse(raw)}catch(e){return []}return isObj(v)&&v.v===1&&Array.isArray(v.l)?v.l.filter(shOk):[]};
+ const shWrite=l=>{if(fenced())throw new Error('fenced');D.ls.set(PEND,JSON.stringify({v:1,l}))};
+ /* las que mandó esta pestaña (aunque ya no las pregunte): de esas se encarga la memoria de esta pestaña (pend, evict); las demás de la lista son de otra */
+ const myOps=new Set();
  let unrecorded=false,poisonNow=null;
  async function once(){unrecorded=false;poisonNow=null;let r;
   try{r=await once0()}catch(e){r={fail:'storage'}}
@@ -176,7 +185,11 @@ window.LHB_SYNC=function(D){
    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
    /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
    const ask=pend.filter(x=>x.sub===uid);
-   let g;try{g=await D.api(C,'GET','/api/mihoja'+(ask.length?'?'+ask.map(x=>'op='+encodeURIComponent(x.op)).join('&'):''),null,uid)}catch(e){return {skip:'offline'}}
+   /* LHB-104: y por las que otra pestaña anotó y esta no conoce (de esta cuenta) */
+   const mineOps=new Set(ask.map(x=>x.op));
+   const room=Math.max(0,OPS_ASK-ask.length),oth=shRead().filter(e=>e.s===uid&&!mineOps.has(e.o)&&!myOps.has(e.o)),other=room?oth.slice(-room).map(e=>e.o):[];
+   const q=ask.map(x=>x.op).concat(other);
+   let g;try{g=await D.api(C,'GET','/api/mihoja'+(q.length?'?'+q.map(o=>'op='+encodeURIComponent(o)).join('&'):''),null,uid)}catch(e){return {skip:'offline'}}
    if(!alive())return {skip:'other-account'};
    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
    if(g.body.rev>0&&(!isObj(g.body.doc)||!(g.body.schema<=1)))return {fail:'schema'};
@@ -185,7 +198,7 @@ window.LHB_SYNC=function(D){
       si esta pasada repite tras un 409). No está y la cuenta ya pasó del rev que pedía (If-Match): ya no puede llegar. Que no llegó se sabe solo si la lista cubre ese rev
       (opsFrom; Codex r1: lo que llegó antes de 0008, o ya olvidado, no está); si no, no se sabe y se junta sin dar nada por borrado.
       Si la cuenta sigue en el rev que pedía, todavía puede llegar (Codex r1: una escritura que el servidor no terminó): se sigue preguntando */
-   const oks=ask.length&&Array.isArray(g.body.ops)?g.body.ops:null;
+   const oks=q.length&&Array.isArray(g.body.ops)?g.body.ops:null;
    let won=0;
    if(oks){opsSeen=true;let best=null;
     for(const x of ask){const o=oks.find(y=>isObj(y)&&y.id===x.op);if(!o)continue;
@@ -195,6 +208,13 @@ window.LHB_SYNC=function(D){
    /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
       LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
    if(!oks&&ask.some(x=>rev>=x.rev+2))voided=true;
+   /* LHB-104: la lista de todas las pestañas. Las de un rev que la cuenta ya pasó no pueden llegar y se quitan; si eran de otra pestaña y no se sabe que no llegaron,
+      pudieron llegar sobre esta misma copia (la comparten las pestañas): se junta sin dar nada por borrado. Las del rev de ahora todavía pueden llegar: valla */
+   let shLive=false;
+   {const sh=shRead(),keep=[];let ch=false;
+    for(const e of sh){if(e.s!==uid||e.r>=rev){keep.push(e);if(e.s===uid&&e.r===rev)shLive=true;continue}
+     ch=true;const own=myOps.delete(e.o);if(!mineOps.has(e.o)&&!own){const o=oks&&oks.find(y=>isObj(y)&&y.id===e.o);if(!(o&&o.rev===null&&Number.isInteger(g.body.opsFrom)&&e.r+1>=g.body.opsFrom))voided=true}}
+    if(ch)shWrite(keep)}
    /* Codex r2: una subida olvidada por exceso (más de OPS_ASK sin respuesta) puede llegar mientras la cuenta siga en su If-Match. Cuando la cuenta pasa de ese rev:
       si una de las preguntadas llegó justo ahí, la olvidada perdió (con un mismo If-Match llega una sola); si no, no se sabe si fue ella y se junta sin dar nada por borrado */
    /* Codex r3: una por cuenta (evict es un Map de sub a If-Match): otra cuenta en este teléfono no borra la de esta */
@@ -213,23 +233,25 @@ window.LHB_SYNC=function(D){
    let newRev=rev,pushed=false;
    /* Codex r2: si alguna subida sin respuesta (o la olvidada) todavía puede llegar porque la cuenta sigue en su If-Match, esta pasada sube aunque no haya nada nuevo:
       con el mismo If-Match, si esta llega ninguna de aquellas puede llegar despues (la valla); si una de aquellas llega antes, esta da 409 y se pregunta otra vez */
-   const fence=pend.some(x=>x.sub===uid&&x.rev===rev)||evict.get(uid)===rev;
+   const fence=pend.some(x=>x.sub===uid&&x.rev===rev)||evict.get(uid)===rev||shLive;
    if(!remote||canon(merged)!==canon(remote)||fence){
     /* se anota antes de mandar: si la respuesta no llega, no se puede leer, o la cuenta cambia mientras tanto, el PUT pudo haber llegado. Solo una respuesta clara (409, otro error 4xx o un 200 con revisión) lo borra */
     /* LHB-80: con su id y lo que se manda, para saber después si llegó */
     /* Codex r1: se suma a las que siguen sin saberse (no las reemplaza); si son demasiadas, la más vieja deja de preguntarse.
        Codex r2: pero queda anotado su If-Match (evict) hasta que la cuenta pase de él, y mientras tanto cada pasada pone la valla */
     /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
-    const op=newOp();pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
+    const op=newOp();shWrite(shRead().concat([{s:uid,r:rev,o:op}]));myOps.add(op);pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
     if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
     let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
-    if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
+    if(p.status===409||(p.status<500&&p.status!==200)){pend=pend.filter(x=>x.op!==op);shWrite(shRead().filter(e=>e.o!==op))}
     if(!alive())return {skip:'other-account'};
     if(p.status===409)continue;
     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
-    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true;unrecorded=true}
+    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true;unrecorded=true;
+    /* LHB-104: tampoco las de otras pestañas con ese If-Match o uno más viejo */
+    shWrite(shRead().filter(e=>!(e.s===uid&&e.r<=rev)))}
    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
    let now0,Ln,quiet,final,wrote=true;
    for(let k=0;k<4;k++){
@@ -299,6 +321,8 @@ window.LHB_SYNC=function(D){
   if(dirty||!m||!acc||m.sub!==acc.sub||m.dirty||!m.base||canon(d)!==canon(m.base))return {ok:false,why:'pending'};
   /* Codex r2: una subida sin respuesta que todavía puede llegar cambiaría la cuenta despues de salir, con la copia de aqui ya borrada: no está a salvo (la pasada de salir pone la valla; si su respuesta tampoco llega, queda el respaldo) */
   if(pend.some(x=>x.sub===acc.sub)||evict.has(acc.sub))return {ok:false,why:'pending'};
+  /* LHB-104: ni una de otra pestaña (si la lista no se puede leer, tampoco se sabe) */
+  try{if(shRead().some(e=>e.s===acc.sub))return {ok:false,why:'pending'}}catch(e){return {ok:false,why:'pending'}}
   return {ok:true,via:'sync',mark}}
  const markNow=()=>{let raw=null;try{raw=D.ls.get(KEY)}catch(e){raw={}}return {raw,seq:readSeq()}};
  /* LHB-34: mientras se sale o se borra la cuenta no corre ninguna pasada (una a destiempo volvería a llevar Mi Hoja a la cuenta). hold(true) espera la que esté corriendo */
