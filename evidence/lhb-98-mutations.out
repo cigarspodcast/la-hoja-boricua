@@ -1,0 +1,16 @@
+baseline (no mutation): pass 47 fail 0
+writes ignore the lock (the state before this ticket)    RED (caught) (fail 2)
+r1: quiet writes skip the lock                           RED (caught) (fail 3)
+a tab does not yield on the fence                        RED (caught) (fail 1)
+a tab that yielded never asks again                      RED (caught) (fail 1)
+sign-out without the exclusive                           RED (caught) (fail 4)
+account deletion without the exclusive                   RED (caught) (fail 2)
+the fence goes up before the exclusive is asked          RED (caught) (fail 1)
+r1: sign-out runs without the exclusive after WL_WAIT    RED (caught) (fail 1)
+r1: deletion gives up at WL_WAIT                         RED (caught) (fail 1)
+r1: deletion waits without a word                        RED (caught) (fail 1)
+r1: a refused sign-out says nothing                      RED (caught) (fail 1)
+the page does not take the shared lock back              RED (caught) (fail 2)
+closed without Web Locks                                 RED (caught) (fail 9)
+the page never takes the shared lock                     RED (caught) (fail 6)
+RESULT 14 of 14 red
