@@ -1,0 +1,72 @@
+M1 handle_checks skipped                             rc 1 fail 7 -> RED
+M2 mihoja skipped                                    rc 1 fail 9 -> RED
+M3 profiles skipped                                  rc 1 fail 9 -> RED
+M4 follows skipped (red without foreign keys)        rc 1 fail 1 -> RED
+M5 follow_events skipped (red without foreign keys)  rc 1 fail 1 -> RED
+M6 follows only on the follower side                 rc 1 fail 1 -> RED
+M7 the Clerk delete skipped                          rc 1 fail 5 -> RED
+M8 Clerk 404 is a failure                            rc 1 fail 1 -> RED
+M9 unknown tables ignored (fail open)                rc 1 fail 1 -> RED
+M10 d1_migrations counted as unknown                 rc 1 fail 1 -> RED
+M11 no typed confirmation                            rc 1 fail 3 -> RED
+M12 any Clerk key for any instance                   rc 1 fail 1 -> RED
+M13 Clerk deleted before the base                    rc 1 fail 3 -> RED
+M14 sign-out check removed (the Proof)               rc 1 fail 4 -> RED
+M15 settled: pending check removed                   rc 1 fail 1 -> RED
+M16 settled: draft check removed                     rc 1 fail 1 -> RED
+M17 settled: any backup counts                       rc 1 fail 1 -> RED
+M18 forget keeps the sync meta                       rc 1 fail 8 -> RED
+M19 held passes still run                            rc 1 fail 8 -> RED
+M20 a refused delete leaves sync stopped             rc 1 fail 2 -> RED
+M21 a lost response clears the delete mark           rc 1 fail 2 -> RED
+M22 delete button always enabled                     rc 1 fail 1 -> RED
+M23 no privacy link in the panel                     rc 1 fail 1 -> RED
+M24 Perfil does not bind the panel                   rc 1 fail 1 -> RED
+M25 Codex r1: Mi Hoja create without the profile in the same statement rc 1 fail 1 -> RED
+M26 Codex r1: a Mi Hoja PUT without a profile is not a 403 rc 1 fail 1 -> RED
+M27 Codex r1: no sweep after Clerk                   rc 1 fail 2 -> RED
+M28 Codex r1: old handle checks pruned per account only rc 1 fail 1 -> RED
+M29 Codex r1: forget ignores the mark                rc 1 fail 3 -> RED
+M30 Codex r1: a failed sign-out is checked again (no retry) rc 1 fail 1 -> RED
+M31 Codex r1: resume for another account             rc 1 fail 1 -> RED
+M32 Codex r1: no profile needs no text               rc 1 fail 1 -> RED
+M33 Codex r1: no Clerk identity check                rc 1 fail 1 -> RED
+M34 Codex r1: Clerk 500 read as an unknown user      rc 1 fail 1 -> RED
+M35 Codex r1: a lost delete response resumes sync    rc 1 fail 1 -> RED
+M36 Codex r1: no resume at load                      rc 1 fail 1 -> RED
+M37 Codex r1: resume sends the @ (deletes an intact account) rc 1 fail 1 -> RED
+M38 Codex r2: the mark is read after the copy        rc 1 fail 1 -> RED
+M39 Codex r2: profile create without the fence       rc 1 fail 1 -> RED
+M40 Codex r2: handle check without the fence         rc 1 fail 1 -> RED
+M41 Codex r2: no tombstone in the batch              rc 1 fail 1 -> RED
+M42 Codex r2: no not-ready check                     rc 1 fail 1 -> RED
+M43 Codex r2: a failed last sweep reported as done   rc 1 fail 1 -> RED
+M44 Codex r2: a transient error after a half delete drops the mark rc 1 fail 1 -> RED
+M45 Codex r2: other tabs keep their copy after a sign-out rc 1 fail 1 -> RED
+M46 Codex r2: the tombstone keeps the id             rc 1 fail 8 -> RED
+M47 Codex r2: the tombstone table counted as unknown rc 1 fail 10 -> RED
+M48 Codex r3: forget sets no fence                   rc 1 fail 1 -> RED
+M49 Codex r3: no second check after the wait         rc 1 fail 1 -> RED
+M50 Codex r3: no wait for the other tabs             rc 1 fail 1 -> RED
+M51 Codex r3: hoja.js writes through the fence       rc 1 fail 1 -> RED
+M52 Codex r3: the sync meta written through the fence rc 1 fail 1 -> RED
+M53 Codex r3: the shared counter bumped through the fence rc 1 fail 1 -> RED
+M54 Codex r3: the owner written through the fence    rc 1 fail 1 -> RED
+M55 Codex r3: the fence never expires                rc 1 fail 3 -> RED
+M56 Codex r3: an aborted forget leaves the fence     rc 1 fail 1 -> RED
+M57 Codex r3: an aborted forget leaves sync held     rc 1 fail 1 -> RED
+M58 Codex r3: passes run during the wait             rc 1 fail 1 -> RED
+M59 Codex r3: the fence removed right after the erase rc 1 fail 1 -> RED
+M60 Codex r3: the delete mark not read back          rc 1 fail 1 -> RED
+M61 Codex r3: delete sent without a saved mark       rc 1 fail 1 -> RED
+M62 Codex r3: a failed mark releases sync over an earlier mark rc 1 fail 1 -> RED
+M63 Codex r3: salir does not wait for forget         rc 1 fail 6 -> RED
+M64 Codex r4: the fence not stamped again after the wait rc 1 fail 1 -> RED
+M65 Codex r4: a fence from the future counts forever rc 1 fail 1 -> RED
+M66 Codex r4: no fence check right before the store  rc 1 fail 1 -> RED
+M67 Codex r4: delete and resume not serialized       rc 1 fail 1 -> RED
+M68 Codex r4: the waiting resume uses the mark it read before its turn rc 1 fail 1 -> RED
+M69 Codex r5: a sign-out retry skips the check after new writes rc 1 fail 1 -> RED
+M70 Codex r5: the retry checks again but leaves the sync held rc 1 fail 1 -> RED
+baseline after restore: rc 0 pass 23
+RESULT 70 of 70 mutations red

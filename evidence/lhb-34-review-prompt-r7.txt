@@ -1,0 +1,1206 @@
+You are reviewing one branch in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ and D1 migrations in migrations/). Review only; do not edit files. Do not load or run any skills. The worktree is C:/Users/Owner/lhb-34-wt (branch lhb-34-account). The diff below is origin/main..HEAD. This is round 7 of a TIER 2 review. Your rounds 1 to 6 are in evidence/lhb-34-review-r1.txt to -r6.txt. Round 6: BLOCK, one finding; you concurred that the round 5 finding is fixed.
+
+The ticket and its pinned decisions are in evidence/lhb-34-review-brief-r6.txt and unchanged.
+
+How the round 6 finding was taken:
+1. Edits made during a pending sign-out retry survived a successful sign-out. FIXED, on both Clerk sign-out paths.
+   - site/sync.js exports fenceUp(): it stamps the fence (the same key and clock that fenced() reads).
+   - site/hoja.js leaving(C) is now the only way either path signs out of Clerk: salir (first attempt and retry) and askDelete after a 200. It stamps the fence, renews it every 3 s (FENCE_TTL is 10 s) while signOutClerk is pending, and stops in finally. On success the page navigates. On failure the renewal stops and the fence expires on its own, and a later retry is covered by the round 5 rule.
+   - On a retry with no new copy, the fence is stamped synchronously, right after the storage check, before anything is awaited. So there is no window between the check and the fence.
+   - Test "LHB-34 (Codex r6): mientras Clerk cierra la sesión la valla se renueva...":
+     - first attempt: Clerk takes 11 s, the fence still holds, then the sign-out fails, the renewal stops and the fence expires;
+     - your schedule: a retry after expiry puts the fence back at once and holds it while Clerk takes 11 s;
+     - the delete path does the same.
+   - Mutations M71 to M75 are red: no renewal, no first stamp, renewal never stopped, fenceUp a no-op, and delete without leaving.
+   - Side effect found by the mutation run: the renewal re-stamps the fence right after forget, which masked forget's own stamps (M59 and M64 survived the first run, kept as evidence/lhb-34-mutations-r6fix-survivors.out). The r3 fence test now also calls engine settled and forget directly and checks the fence forget leaves. M59 and M64 are red again.
+- The round 4 residual (a renderer suspended inside one synchronous step during another tab's sign-out) stays escalated to the owner. Please do not re-report it.
+
+The branch now also merges origin/main: LHB-60 (follow button and lists, PR #33). The only conflicts were cache pins. LHB-60's api() gained a 7th argument (go), and acct.set and acct.clear now call acctTell(); LHB-34 code is unchanged by it. The cache is lhb-v88.
+
+Evidence:
+- evidence/lhb-34-tests.txt: the full suite after the merge, 290 pass and 1 skipped (the LHB-95 browser test).
+- evidence/lhb-34-mutations-merged60.out: RESULT 75 of 75 mutations red after the merge. Before the merge: evidence/lhb-34-mutations-r6fix.out, 75 of 75.
+
+Check:
+- that round 6 finding 1 is fixed on both paths;
+- that leaving cannot leave a renewal running, or a fence that never expires, after a failure;
+- that the new tests cannot pass on broken code;
+- that the merge with LHB-60 did not break either feature;
+- anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example the suite: node --test --test-timeout=60000 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main HEAD -- functions migrations site test =====
+diff --git a/functions/_lib/account.js b/functions/_lib/account.js
+new file mode 100644
+index 0000000..56c9b9f
+--- /dev/null
++++ b/functions/_lib/account.js
+@@ -0,0 +1,83 @@
++/* LHB-34: borrar la cuenta. Qué tablas guardan filas de una persona y en qué columnas, cómo se borran y cómo se borra su usuario en Clerk.
++   La lista es cerrada a propósito: si la base tiene una tabla que esta lista no conoce, no se borra nada (una tabla nueva tiene que decir aquí
++   dónde guarda a la persona antes de que se pueda borrar una cuenta). Una tabla de la lista que todavía no existe en la base (una migración sin
++   aplicar) no puede tener filas y se salta. */
++
++// tabla -> columnas que nombran a la persona. Primero las que apuntan a profiles, al final profiles.
++export const USER_TABLES = [
++  ['follow_events', ['follower_id']],
++  ['follows', ['follower_id', 'followee_id']],
++  ['handle_checks', ['user_id']],
++  ['mihoja', ['user_id']],
++  ['profiles', ['user_id']],
++];
++// lo de SQLite, D1 y wrangler, que no guarda datos de nadie
++export const INTERNAL = n => /^(sqlite_|_cf_)/.test(n) || n === 'd1_migrations';
++// LHB-34 (Codex r2): las cuentas borradas (migrations/0006_deleted_accounts.sql). La tabla se conoce y no se borra: guarda un hash, nunca el id
++export const TOMB = 'deleted_accounts';
++export async function idHash(sub) {
++  const b = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('lhb-deleted:' + sub)));
++  return [...b].map(x => x.toString(16).padStart(2, '0')).join('');
++}
++const noTomb = e => /no such table: deleted_accounts/i.test(String(e && e.message));
++// Una escritura con la valla de las cuentas borradas en la misma sentencia (fenced, que termina con el hash como último parámetro).
++// Sin la tabla todavía (0006 sin aplicar) va la misma escritura sin valla: así nada se rompe antes de la migración, y borrar no corre sin ella
++export async function fencedRun(db, fenced, plain, args, hash) {
++  try { return await db.prepare(fenced).bind(...args, hash).run(); }
++  catch (e) { if (!noTomb(e)) throw e; return db.prepare(plain).bind(...args).run(); }
++}
++// ¿esta cuenta se borró? false también sin la tabla
++export async function wasDeleted(db, hash) {
++  try { return !!(await db.prepare('SELECT 1 AS n FROM deleted_accounts WHERE id_hash = ?1').bind(hash).first()); }
++  catch (e) { if (noTomb(e)) return false; throw e; }
++}
++
++// { present: [tablas de la lista que existen], unknown: [tablas que la lista no conoce], tomb: ¿existe deleted_accounts? }
++export async function userTables(db) {
++  const r = await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").bind().all();
++  const names = ((r && r.results) || []).map(x => x.name).filter(n => !INTERNAL(n));
++  const known = new Map(USER_TABLES);
++  return {
++    present: USER_TABLES.filter(([t]) => names.includes(t)),
++    unknown: names.filter(n => !known.has(n) && n !== TOMB).sort(),
++    tomb: names.includes(TOMB),
++  };
++}
++
++// una sentencia por tabla, en el orden de USER_TABLES; los nombres salen de la lista, nunca del pedido
++export const deletes = (db, present, sub) => present.map(([t, cols]) =>
++  db.prepare(`DELETE FROM ${t} WHERE ${cols.map(c => c + ' = ?1').join(' OR ')}`).bind(sub));
++
++// La llave secreta de Clerk tiene que ser de la misma instancia que firmó la sesión: sk_test_ para la de desarrollo (*.clerk.accounts.dev),
++// sk_live_ para la de producción. Con la llave de la otra, Clerk diría 404 y la cuenta de verdad quedaría viva.
++export function clerkKey(env, iss) {
++  const k = String((env && env.CLERK_SECRET_KEY) || '').trim();
++  if (!k) return null;
++  let host = '';
++  try { host = new URL(iss).hostname; } catch (e) { return null; }
++  const dev = /\.clerk\.accounts\.dev$/.test(host);
++  return k.startsWith(dev ? 'sk_test_' : 'sk_live_') ? k : null;
++}
++
++// ¿esta llave conoce a este usuario? true (200), false (404: otra instancia, o ya se borró) o null (Clerk no contestó). El prefijo de la llave dice
++// desarrollo o producción, no cuál instancia: dos instancias de desarrollo tienen llaves sk_test_, y solo la buena conoce al usuario.
++export async function clerkUser(key, sub, fetchFn = fetch) {
++  let r;
++  try {
++    r = await fetchFn('https://api.clerk.com/v1/users/' + encodeURIComponent(sub), { method: 'GET', headers: { Authorization: 'Bearer ' + key } });
++  } catch (e) {
++    return null;
++  }
++  return r.status === 200 ? true : r.status === 404 ? false : null;
++}
++
++// borra el usuario en Clerk, que cierra todas sus sesiones. Un 404 es que ya no estaba (otro pedido lo borró entre la revisión y aquí).
++export async function deleteClerkUser(key, sub, fetchFn = fetch) {
++  let r;
++  try {
++    r = await fetchFn('https://api.clerk.com/v1/users/' + encodeURIComponent(sub), { method: 'DELETE', headers: { Authorization: 'Bearer ' + key } });
++  } catch (e) {
++    return false;
++  }
++  return r.status === 200 || r.status === 404;
++}
+diff --git a/functions/api/account.js b/functions/api/account.js
+new file mode 100644
+index 0000000..d9cb056
+--- /dev/null
++++ b/functions/api/account.js
+@@ -0,0 +1,56 @@
++/* LHB-34: DELETE /api/account { confirm } borra la cuenta entera de quien tiene la sesión: sus filas en todas las tablas (functions/_lib/account.js),
++   y su usuario en Clerk, que cierra sus sesiones en todos los teléfonos. Las fotos de perfil hoy las guarda Clerk y se van con el usuario; las de R2 llegan con LHB-35.
++   confirm es el @ de la persona escrito a mano. Si ya no tiene perfil (un borrado que quedó a medias: la base se borró y Clerk no, o la respuesta se perdió),
++   basta cualquier texto: ya no queda nada suyo que proteger salvo terminar lo que pidió.
++   Antes de borrar nada se revisa todo lo que puede fallar: la sesión, la base, la llave de Clerk (CLERK_SECRET_KEY), JSON, la confirmación, que la base no tenga
++   tablas que la lista no conoce y que la llave sea de la instancia de esta sesión: Clerk tiene que conocer a este usuario con esa llave (GET /v1/users/{id}).
++   Después se borra la base, de una vez (batch), luego Clerk, y la base otra vez por si algo escribió mientras tanto. Si Clerk falla, la respuesta lo dice
++   (502 clerk-failed) y otro intento termina el trabajo: borrar lo ya borrado no hace nada. Si el último barrido falla, también es 502 (cleanup-failed).
++   Codex r2: el mismo batch anota la cuenta como borrada (deleted_accounts, solo un hash del id); crear un perfil y anotar una revisión de @ miran esa
++   tabla en la misma sentencia, así que una sesión que todavía vive no vuelve a crear nada. Sin esa tabla (migración 0006 sin aplicar) no se borra nada: 503 not-ready. */
++import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
++import { userTables, deletes, clerkKey, clerkUser, deleteClerkUser, idHash } from '../_lib/account.js';
++
++export async function onRequestDelete({ request, env }, fetchFn) {
++  if (!tokenOf(request)) return json({ error: 'no-session' }, 401);
++  if (!issuersOf(env).length) return json({ error: 'no-auth-config' }, 503);
++  const user = await userOf(request, env);
++  if (!user) return json({ error: 'no-session' }, 401);
++  if (!env.DB) return json({ error: 'no-db' }, 503);
++  const key = clerkKey(env, user.iss);
++  if (!key) return json({ error: 'no-clerk-key' }, 503);
++  // solo JSON: un formulario de otro sitio no puede mandarlo sin preflight
++  if (!/^application\/json\b/i.test(request.headers.get('Content-Type') || '')) return json({ error: 'bad-type' }, 415);
++  let body;
++  try { body = await request.json(); } catch (e) { return json({ error: 'bad-body' }, 400); }
++  const typed = body && typeof body === 'object' && typeof body.confirm === 'string' ? body.confirm.trim().replace(/^@/, '').toLowerCase() : '';
++  let p, t;
++  try {
++    p = await env.DB.prepare('SELECT handle FROM profiles WHERE user_id = ?1').bind(user.sub).first();
++    t = await userTables(env.DB);
++  } catch (e) {
++    return json({ error: 'unavailable' }, 503);
++  }
++  if (!typed || (p && typed !== String(p.handle).toLowerCase())) return json({ error: 'confirm-mismatch' }, 400);
++  if (t.unknown.length) return json({ error: 'unknown-table' }, 503);
++  if (!t.tomb) return json({ error: 'not-ready' }, 503);
++  // la llave tiene que ser de la instancia que firmó esta sesión: con la de otra, Clerk no conoce al usuario.
++  // Sin perfil y sin usuario en Clerk es un borrado que ya terminó en Clerk (la respuesta se perdió): solo falta barrer la base
++  const known = await clerkUser(key, user.sub, fetchFn);
++  if (known === null) return json({ error: 'clerk-unavailable' }, 503);
++  if (!known && p) return json({ error: 'clerk-mismatch' }, 503);
++  const hash = await idHash(user.sub);
++  const sweep = () => env.DB.batch([
++    env.DB.prepare('INSERT INTO deleted_accounts (id_hash, deleted_at) VALUES (?1, ?2) ON CONFLICT(id_hash) DO NOTHING').bind(hash, new Date().toISOString()),
++    ...deletes(env.DB, t.present, user.sub),
++  ]);
++  try {
++    await sweep();
++  } catch (e) {
++    return json({ error: 'unavailable' }, 503);
++  }
++  if (known && !(await deleteClerkUser(key, user.sub, fetchFn))) return json({ error: 'clerk-failed' }, 502);
++  // lo que alguna escritura dejó mientras se borraba Clerk; si este barrido falla, el borrado no está terminado y otro intento lo termina
++  try { await sweep(); } catch (e) { return json({ error: 'cleanup-failed' }, 502); }
++  return json({ ok: true });
++}
+diff --git a/functions/api/handle.js b/functions/api/handle.js
+index 409f945..7ae5d0f 100644
+--- a/functions/api/handle.js
++++ b/functions/api/handle.js
+@@ -5,6 +5,7 @@
+    Guardar sigue siendo la autoridad: la columna handle es UNIQUE y el servidor contesta 409 handle-taken si alguien se adelanto. */
+ import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
+ import { checkHandle } from '../_lib/profile.js';
++import { fencedRun, idHash } from '../_lib/account.js';
+ 
+ export const CHECKS_PER_MINUTE = 30; // tope de prueba, a decidir por el dueño
+ 
+@@ -20,11 +21,13 @@ export async function onRequestGet({ request, env }) {
+   try {
+     const now = new Date();
+     const since = new Date(now.getTime() - 60e3).toISOString();
+-    await env.DB.prepare('DELETE FROM handle_checks WHERE user_id = ?1 AND created_at <= ?2').bind(user.sub, since).run();
++    // LHB-34: lo vencido se borra de todos, no solo de esta cuenta: así la anotación de una cuenta borrada tampoco se queda
++    await env.DB.prepare('DELETE FROM handle_checks WHERE created_at <= ?1').bind(since).run();
+     // revisar y anotar en UNA sentencia, para que pedidos a la vez no pasen el tope
+-    const t = await env.DB.prepare(
+-      'INSERT INTO handle_checks (user_id, created_at) SELECT ?1, ?2 WHERE (SELECT COUNT(*) FROM handle_checks WHERE user_id = ?1 AND created_at > ?3) < ?4'
+-    ).bind(user.sub, now.toISOString(), since, CHECKS_PER_MINUTE).run();
++    // LHB-34 (Codex r2): una cuenta borrada no anota revisiones (la valla va en la misma sentencia)
++    const ins = 'INSERT INTO handle_checks (user_id, created_at) SELECT ?1, ?2 WHERE (SELECT COUNT(*) FROM handle_checks WHERE user_id = ?1 AND created_at > ?3) < ?4';
++    const t = await fencedRun(env.DB, ins + ' AND NOT EXISTS (SELECT 1 FROM deleted_accounts WHERE id_hash = ?5)', ins,
++      [user.sub, now.toISOString(), since, CHECKS_PER_MINUTE], await idHash(user.sub));
+     if (!t.meta.changes) return json({ error: 'handle-rate' }, 429);
+     const row = await env.DB.prepare('SELECT user_id FROM profiles WHERE handle = ?1').bind(h.handle).first();
+     if (!row || row.user_id === user.sub) return json({ available: true }, 200);
+diff --git a/functions/api/mihoja.js b/functions/api/mihoja.js
+index ea24ba8..5de16ca 100644
+--- a/functions/api/mihoja.js
++++ b/functions/api/mihoja.js
+@@ -43,11 +43,13 @@ export async function onRequestPut({ request, env }) {
+   if (c.error) return json({ error: c.error }, c.status);
+   const me = g.user.sub, at = new Date().toISOString();
+   try {
+-    // una sola sentencia revisa el rev y escribe: dos teléfonos a la vez no pasan los dos
++    // una sola sentencia revisa el rev y escribe: dos teléfonos a la vez no pasan los dos.
++    // LHB-34: crear la copia también pide el perfil en la misma sentencia: un PUT que pasó la puerta antes de que se borrara la cuenta no la vuelve a crear
+     const r = rev === 0
+-      ? await env.DB.prepare('INSERT INTO mihoja (user_id, doc, schema, rev, updated_at) VALUES (?1, ?2, ?3, 1, ?4) ON CONFLICT(user_id) DO NOTHING').bind(me, c.text, c.schema, at).run()
++      ? await env.DB.prepare('INSERT INTO mihoja (user_id, doc, schema, rev, updated_at) SELECT ?1, ?2, ?3, 1, ?4 WHERE EXISTS (SELECT 1 FROM profiles WHERE user_id = ?1) ON CONFLICT(user_id) DO NOTHING').bind(me, c.text, c.schema, at).run()
+       : await env.DB.prepare('UPDATE mihoja SET doc = ?2, schema = ?3, rev = rev + 1, updated_at = ?4 WHERE user_id = ?1 AND rev = ?5').bind(me, c.text, c.schema, at, rev).run();
+     if (r.meta.changes) return json({ rev: rev + 1, updated_at: at });
++    if (!(await env.DB.prepare('SELECT 1 AS n FROM profiles WHERE user_id = ?1').bind(me).first())) return json({ error: 'no-profile' }, 403);
+     // el rev ya no era ese: se devuelve la copia de ahora para que el cliente la junte con la suya
+     const s = shape(await current(env.DB).bind(me).first());
+     return s ? json({ error: 'conflict', ...s }, 409) : json({ error: 'corrupt' }, 500);
+diff --git a/functions/api/profile.js b/functions/api/profile.js
+index 128d733..14c0b18 100644
+--- a/functions/api/profile.js
++++ b/functions/api/profile.js
+@@ -5,6 +5,7 @@
+    LHB-55: PUT con "avatar_url" en el cuerpo (el perfil entero) edita el perfil entero del dueño (403 sin perfil, 409 si el @ lo tiene otra persona); aquí un segundo POST sigue dando 409. */
+ import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
+ import { checkProfile, checkIdentity } from '../_lib/profile.js';
++import { fencedRun, idHash, wasDeleted } from '../_lib/account.js';
+ 
+ // la sesión, la base y el cuerpo JSON: { user, body } o la respuesta de rechazo
+ async function intake(request, env) {
+@@ -28,11 +29,14 @@ export async function onRequestPost({ request, env }) {
+   if (p.error) return json({ error: p.error }, 400);
+   const stamp = now.toISOString();
+   try {
+-    const r = await env.DB.prepare(
+-      'INSERT INTO profiles (user_id, handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date, age_ok_at, created_at, updated_at) ' +
+-      'VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?11) ON CONFLICT(user_id) DO NOTHING'
+-    ).bind(it.user.sub, p.handle, p.display_name, p.bio, p.favorite_brand, p.avatar_key, p.first_name, p.last_name, p.gender, p.birth_date, stamp).run();
+-    if (!r.meta.changes) return json({ error: 'profile-exists' }, 409);
++    // LHB-34 (Codex r2): una cuenta borrada no vuelve a tener perfil, aunque su sesión todavía viva (la valla va en la misma sentencia)
++    const cols = 'INSERT INTO profiles (user_id, handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date, age_ok_at, created_at, updated_at) ';
++    const hash = await idHash(it.user.sub);
++    const r = await fencedRun(env.DB,
++      cols + 'SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?11 WHERE NOT EXISTS (SELECT 1 FROM deleted_accounts WHERE id_hash = ?12) ON CONFLICT(user_id) DO NOTHING',
++      cols + 'VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?11) ON CONFLICT(user_id) DO NOTHING',
++      [it.user.sub, p.handle, p.display_name, p.bio, p.favorite_brand, p.avatar_key, p.first_name, p.last_name, p.gender, p.birth_date, stamp], hash);
++    if (!r.meta.changes) return (await wasDeleted(env.DB, hash)) ? json({ error: 'account-deleted' }, 403) : json({ error: 'profile-exists' }, 409);
+   } catch (e) {
+     if (/UNIQUE/i.test(String(e && e.message))) return json({ error: 'handle-taken' }, 409);
+     throw e;
+diff --git a/migrations/0006_deleted_accounts.sql b/migrations/0006_deleted_accounts.sql
+new file mode 100644
+index 0000000..30ddaa8
+--- /dev/null
++++ b/migrations/0006_deleted_accounts.sql
+@@ -0,0 +1,8 @@
++-- LHB-34: las cuentas borradas. Una sesion que todavia vive despues de borrar la cuenta (un token de Clerk dura 60 s y se verifica sin preguntarle a Clerk)
++-- no puede volver a crear el perfil ni anotar una revision de @: esas escrituras miran esta tabla en la misma sentencia.
++-- Se guarda el SHA-256 de 'lhb-deleted:' + el id, nunca el id: despues de borrar no queda ninguna fila con el id de la persona.
++-- Sin esta tabla, borrar una cuenta contesta 503 not-ready y no borra nada. 0001 a 0005 se quedan como se aplicaron.
++CREATE TABLE deleted_accounts (
++  id_hash TEXT PRIMARY KEY,
++  deleted_at TEXT NOT NULL
++);
+diff --git a/site/app.js b/site/app.js
+index ef1fd82..a1e93c7 100644
+--- a/site/app.js
++++ b/site/app.js
+@@ -261,8 +261,8 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
+  <button class="btn" type="submit">${tt('pf.save')}</button></form></details>
+  <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
+  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--gold);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
+- <p class="note">${tt('pf.note')}</p>`;
+- if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));
++ ${EXT.accountPanel()}<p class="note">${tt('pf.note')}</p>`;
++ if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));EXT.bindAccount();
+  /* LHB-58: el perfil pasaporte primero (bio, marca, conteos, Editar perfil y las pestañas) lo pone hoja.js en #pfOwn */
+  if(ac)EXT.profileOwn(ac);
+  $('#pForm').onsubmit=e=>{e.preventDefault();LS.set('perfil',{nombre:p.nombre,capa:$('#pC').value});toast(tt('pf.saved'));vPerfil();topAvatar()};hydratePhotos()}
+diff --git a/site/hoja.js b/site/hoja.js
+index a113c3f..2517c98 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -50,7 +50,7 @@ let SYNC=null;
+    Codex ronda 2: irse a otra página lo borra, y con otra cuenta no vale */
+ let DFOC=null;window.addEventListener('hashchange',()=>{DFOC=null});
+ /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona */
+-function write(s,quiet){if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
++function write(s,quiet){if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
+ /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
+ const S=()=>{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST};
+ window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null});
+@@ -138,7 +138,7 @@ function download(blob,name){const u=URL.createObjectURL(blob);const a=document.
+ function exportar(){const s=S();const data={app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:SCHEMA,exportado:new Date().toISOString(),url:APP_URL,
+  mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacy('uploads')||[]}};
+  download(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}),`la-hoja-boricua-respaldo-${hoy()}.json`);
+- s.respaldo=new Date().toISOString();s.cambios=0;s.recordarDespues=null;write(s);toast(tt('h.respaldoDescargado'));if(location.hash.startsWith('#/mihoja'))setTimeout(()=>A.route(),300)}
++ s.respaldo=new Date().toISOString();s.cambios=0;s.recordarDespues=null;write(s);lastBackup=LHB_MERGE.canon(s);toast(tt('h.respaldoDescargado'));if(location.hash.startsWith('#/mihoja'))setTimeout(()=>A.route(),300)}
+ const byId=(a,b,key='id')=>{const m=new Map(a.map(x=>[x[key],x]));for(const x of b){if(!x||!x[key])continue;const o=m.get(x[key]);if(!o||(x.actualizado||x.fecha||'')>(o.actualizado||o.fecha||''))m.set(x[key],x)}return [...m.values()]};
+ function importar(file){const fr=new FileReader();fr.onload=()=>{let j;try{j=JSON.parse(fr.result)}catch(e){toast(tt('h.eseArchivoNoEs'));return}
+  const m=j&&(j.mihoja||(Array.isArray(j.humidor)&&j));if(!m||(j.app&&j.app!=='La Hoja Boricua')){toast(tt('h.eseArchivoNoEs2'));return}
+@@ -178,13 +178,92 @@ function clerk(){if(clerkP)return clerkP;
+ /* extra: cabeceras de más (If-Match en la sincronización). go: si dice que no cuando ya está la llave, el pedido no sale (LHB-60: la página se fue mientras tanto) */
+ async function api(C,method,path,body,uid,extra,go){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');if(go&&!go())throw new Error('gone');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
+ /* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
+-SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
++SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),
+- now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),toast,
++ now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),wait:ms=>new Promise(r=>setTimeout(r,ms)),toast,
+  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
+  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
+  onState:()=>{const el=document.getElementById('syncSt');if(el)el.outerHTML=syncLine()},onApplied:()=>{if(/^#\/mihoja(\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else pfOwnSync()}});
+ SYNC.start();
++/* ---------- LHB-34: la cuenta en Perfil: descargar los datos (el respaldo de siempre), salir y borrar la cuenta ---------- */
++/* lastBackup: el canon del último respaldo descargado en esta página; si Mi Hoja sigue igual, salir no pierde nada aunque no haya red.
++   outDone: lo de este teléfono ya se borró y falta cerrar la sesión de Clerk; si eso falló, el botón lo vuelve a intentar sin revisar otra vez */
++let lastBackup=null,acBusy=false,outDone=false;
++const acMsg=t=>{const el=$('#acMsg');if(el){el.textContent=t;el.hidden=!t}};
++/* lo que queda de esta página después de salir o de borrar: el aviso para la página que abre después */
++const bye=k=>{try{sessionStorage.setItem('lhb_bye',k)}catch(e){}};
++try{const k=sessionStorage.getItem('lhb_bye');if(k){sessionStorage.removeItem('lhb_bye');setTimeout(()=>toast(k==='del'?tt('ac.del.done'):tt('ac.bye')),600)}}catch(e){}
++/* un borrado empezado: la marca se pone antes del pedido y se quita cuando el servidor contesta que terminó o que no borró nada (4xx, 503).
++   Si la respuesta se pierde o Clerk falla (502), la próxima vez que la app abre con esa cuenta se termina sola (resumeDelete). Ese pedido manda '#fin',
++   que nunca es un @: solo sirve si el perfil ya no está (functions/api/account.js); con el perfil entero el servidor dice que no y la marca se va sin borrar nada */
++const DELMARK='lhb_borrando';
++const delMark={get:()=>{try{const v=JSON.parse(localStorage.getItem(DELMARK));return v&&typeof v.sub==='string'?v:null}catch(e){return null}},
++ /* set dice si la marca quedó guardada (se lee de vuelta): sin ella un borrado a medias no se podría terminar, así que no se pide (Codex r3) */
++ set:sub=>{try{localStorage.setItem(DELMARK,JSON.stringify({sub}))}catch(e){return false}const v=delMark.get();return !!v&&v.sub===sub},clear:()=>{try{localStorage.removeItem(DELMARK)}catch(e){}}};
++/* se borra lo de esta cuenta en este teléfono: Mi Hoja y su sincronización (sync.js), la cuenta guardada y la acción a medias.
++   Con mark (de SYNC.settled), solo si la copia sigue como se revisó; si alguien escribió desde entonces no se toca nada */
++const dropLocal=async mark=>{if(!(await SYNC.forget(mark)))return false;acct.clear();intent.clear();ST=null;STRAW=null;return true};
++async function signOutClerk(C){await C.signOut({redirectUrl:'/'});location.assign('/')}
++/* Codex r6: mientras Clerk cierra la sesión (al salir y al borrar) la valla se renueva, así nadie escribe Mi Hoja hasta que termine; si falla, se deja de renovar y caduca sola */
++async function leaving(C){SYNC.fenceUp();const beat=setInterval(SYNC.fenceUp,3e3);try{await signOutClerk(C)}finally{clearInterval(beat)}}
++const typedOk=(a,v)=>String(v||'').trim().replace(/^@/,'').toLowerCase()===String(a.handle).toLowerCase();
++function accountPanel(){const a=acct.get();if(!a||!a.handle)return '';
++ return `<section class="acct-p" id="acctP"><div class="section-title"><h2>${tt('ac.h')}</h2></div>
++ <div class="links"><button class="lbtn" data-exp type="button">${tt('ac.download')}</button><button class="lbtn" type="button" id="acOut">${tt('ac.out')}</button></div>
++ <p class="hint" id="acMsg" role="status" aria-live="polite" hidden></p>
++ <details class="edit"><summary>${tt('ac.del.s')}</summary><p>${tt('ac.del.p')}</p>
++ <div class="field"><label for="acDelI">${tt('ac.del.l',{a:'@'+esc(a.handle)})}</label><input id="acDelI" autocapitalize="none" autocomplete="off" spellcheck="false"></div>
++ <button class="btn" type="button" id="acDel" disabled>${tt('ac.del.b')}</button></details>
++ <p class="hint">${tt('h.leeQueGuardamosY')} <a href="/privacidad">${tt('h.privacidadYCuenta')}</a>.</p></section>`}
++function bindAccount(){const a=acct.get();const out=$('#acOut'),del=$('#acDel'),inp=$('#acDelI');if(!a||!out)return;
++ out.onclick=salir;$$('#acctP [data-exp]').forEach(b=>b.onclick=exportar);
++ inp.oninput=()=>{del.disabled=!typedOk(a,inp.value)};
++ del.onclick=()=>borrar(a,inp.value)}
++/* salir: solo si la cuenta tiene lo último de este teléfono (o lo de ahora está en un respaldo recién descargado). Entonces se borra Mi Hoja de este teléfono,
++   para que un teléfono prestado no se quede con lo de nadie, y se cierra la sesión. Clerk se pide antes de revisar: entre la revisión y el borrado no hay esperas */
++async function salir(){if(acBusy)return;acBusy=true;acMsg(tt('ac.checking'));
++ try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.outFail'));return}
++  /* Codex r5: si después del borrado alguien volvió a escribir Mi Hoja (la valla ya caducó), el reintento revisa todo otra vez y las pasadas vuelven */
++  if(outDone){let back=null;try{back=localStorage.getItem(KEY)}catch(e){}if(back!==null){outDone=false;SYNC.hold(false)}}
++  if(!outDone){const r=await SYNC.settled({backup:lastBackup});
++   if(!r.ok){acMsg(r.why==='draft'?tt('ac.draft'):tt('ac.pending'));return}
++   if(!(await dropLocal(r.mark))){acMsg(tt('ac.pending'));return}
++   outDone=true;bye('out')}
++  try{await leaving(C)}catch(e){acMsg(tt('ac.outFail'))}}
++ finally{acBusy=false}}
++/* el pedido de borrar. 200: se borra lo de este teléfono y se cierra la sesión. La marca se quita si el servidor dice que no borró nada: confirm-mismatch
++   (el perfil sigue entero), o un 4xx o 503 de un primer pedido (had: ya había una marca de antes). Con una marca de antes, un error así puede ser pasajero
++   (Clerk no contestó, la sesión venció) y el borrado a medias sigue pendiente: la marca se queda (Codex r2) */
++async function askDelete(C,sub,confirm,had){let r=null;try{r=await api(C,'DELETE','/api/account',{confirm},sub)}catch(e){r=null}
++ if(r&&r.status===200){delMark.clear();await dropLocal();bye('del');try{await leaving(C)}catch(e){location.assign('/')}return r}
++ if(r&&r.body&&r.body.error==='confirm-mismatch')delMark.clear();
++ else if(!had&&r&&((r.status>=400&&r.status<500)||r.status===503))delMark.clear();
++ return r}
++/* borrar: el servidor borra la base y el usuario de Clerk (functions/api/account.js). Mientras tanto no corre ninguna pasada; si no se borró nada, vuelven.
++   Si quedó a medias (502) o no se sabe (sin respuesta), la sincronización sigue parada y otro intento, con el mismo @ escrito, lo termina */
++/* Codex r4: un borrado a la vez en todo el teléfono, esta página y las otras pestañas (Web Locks; sin ellas, en fila dentro de la página):
++   el botón y el que termina uno a medias no se cruzan, así la respuesta de uno no le quita la marca al que todavía espera la suya */
++let delQ=Promise.resolve();
++const delLock=f=>typeof navigator!=='undefined'&&navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_borrar',f):(delQ=delQ.then(f,f));
++async function borrar(a,typed){if(acBusy)return;acBusy=true;const del=$('#acDel');if(del)del.disabled=true;acMsg(tt('ac.del.wait'));
++ try{let C;try{C=await clerk()}catch(e){acMsg(tt('ac.del.fail'));return}
++  await delLock(async()=>{await SYNC.hold(true);const had=!!delMark.get();
++   if(!delMark.set(a.sub)){if(!delMark.get())SYNC.hold(false);acMsg(tt('ac.del.store'));return}
++   const r=await askDelete(C,a.sub,typed,had);
++   if(r&&r.status===200)return;
++   if(!delMark.get())SYNC.hold(false);
++   acMsg(!r?tt('ac.del.fail'):r.status===502?tt('ac.del.half'):r.body&&r.body.error==='confirm-mismatch'?tt('ac.del.bad'):r.status===503?tt('ac.del.off'):tt('ac.del.fail'))})}
++ finally{acBusy=false;const d=$('#acDel'),i=$('#acDelI');if(d&&i)d.disabled=!typedOk(a,i.value)}}
++/* al abrir la app con un borrado a medias de esta misma cuenta, se termina; con otra cuenta o sin sesión, la marca espera. La marca se lee otra vez dentro del turno: otro pudo terminarlo */
++async function resumeDelete(){if(!delMark.get())return;let C;try{C=await clerk()}catch(e){return}
++ await delLock(async()=>{const m=delMark.get();if(!m||!C||!C.user||C.user.id!==m.sub)return;
++  await SYNC.hold(true);
++  const r=await askDelete(C,m.sub,'#fin',true);
++  if(r&&r.status===200)return;
++  if(!delMark.get())SYNC.hold(false);else if(r&&r.status===502)toast(tt('ac.del.half'))})}
++if(delMark.get())setTimeout(resumeDelete,1500);
++/* otra pestaña salió de la cuenta o la borró (sync.js forget quita el dueño): esta suelta su Mi Hoja en memoria, para no volver a escribirla, y abre de nuevo */
++window.addEventListener('storage',e=>{if(e.key==='lhb_mihoja_v1_owner'&&e.oldValue&&e.newValue===null){SYNC.hold(true);ST=null;STRAW=null;location.assign('/')}});
+ function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
+ function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);
+  if(b)el.querySelector('#acctNB').onclick=()=>{closeSheetNow();b.on()}}
+@@ -888,7 +967,7 @@ function cigarExtras(c){const pr=pairing(c);const real=!c.yours;
+  ${podBlock('c',c.id)}`}
+ const placeActions=p=>`<div class="pl-act">${favBtn('lugares',p.id,'sm')}${stampBtn('lugares',p.id,'sm')}</div>`;
+ function setRating(id,n){save(s=>{if(!n||s.ratings[id]===n)delete s.ratings[id];else s.ratings[id]=n})}
+-return {profileOwn,requireAccount,gate,accountGen:CUENTA.gen,registerAction:CUENTA.register,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,
++return {profileOwn,requireAccount,gate,accountGen:CUENTA.gen,registerAction:CUENTA.register,ruta,vRuta,townSheet,rlit:()=>{const r=RLIT;RLIT=0;return r},S,isFav,toggleFav,setRating,favBtn,stampBtn,scrub,firstURL,municipio,region,openSheet,closeSheet,artisanExtras,cigarExtras,placeActions,subnav,accountPanel,bindAccount,
+  routes:{mihoja:vMiHoja,persona:vPersona,cata:cid=>requireAccount(()=>vCata(cid),{fast:true}),maridajes:vMaridajes,podcast:vPodcast,buscar:vBuscar,eventos:vEventos,actividades:vEventos},
+  _test:{HANDLE_RE,CLERK,icsFor,parseHora,pairing,pideloLink,cardBlob,badgeIds,passCounts,load,KEY}};
+ };
+diff --git a/site/i18n.js b/site/i18n.js
+index e230d8e..b312e0c 100644
+--- a/site/i18n.js
++++ b/site/i18n.js
+@@ -735,6 +735,26 @@ const T={es:{
+  "cu.welcome": "¡Bienvenido a Mi Hoja!",
+  "cu.saved": "Perfil guardado.",
+  "cu.done": "Listo, tu perfil está completo.",
++ "ac.h": "Tu cuenta",
++ "ac.download": "Descargar mis datos",
++ "ac.out": "Salir de la cuenta",
++ "ac.checking": "Revisando que tu cuenta tenga lo último de este teléfono...",
++ "ac.pending": "Sincroniza o descarga un respaldo primero",
++ "ac.draft": "Termina o descarta la cata a medias primero",
++ "ac.outFail": "No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.",
++ "ac.bye": "Saliste de tu cuenta. Tu Mi Hoja ya no está en este teléfono.",
++ "ac.del.s": "Borrar mi cuenta",
++ "ac.del.p": "Esto borra para siempre tu perfil, tu Mi Hoja guardada en la cuenta, a quién sigues y quién te sigue, y tu cuenta para entrar. Sales de la cuenta en todos tus teléfonos y Mi Hoja se borra de este. No se puede deshacer: si quieres tus datos, descárgalos antes.",
++ "ac.del.l": "Para confirmar, escribe tu {a}",
++ "ac.del.b": "Borrar mi cuenta para siempre",
++ "ac.del.wait": "Borrando tu cuenta...",
++ "ac.del.bad": "Lo que escribiste no es tu @.",
++ "ac.del.off": "Borrar la cuenta no está disponible ahora. Intenta más tarde.",
++ "ac.del.store": "No pudimos guardar en este teléfono que el borrado empezó, así que no borramos nada. Libera espacio e intenta otra vez.",
++ "ac.fenced": "Se está saliendo de la cuenta en este teléfono. Espera unos segundos e intenta otra vez.",
++ "ac.del.half": "Borramos tus datos, pero no pudimos cerrar tu cuenta para entrar. Toca el botón otra vez.",
++ "ac.del.fail": "No pudimos borrar tu cuenta. Revisa tu conexión e intenta otra vez.",
++ "ac.del.done": "Tu cuenta se borró.",
+  "ix.plus": "Nueva cata, añadir al humidor o subir cigarro"
+  },
+ en:{
+@@ -1469,6 +1489,26 @@ en:{
+  "cu.welcome": "Welcome to Mi Hoja!",
+  "cu.saved": "Profile saved.",
+  "cu.done": "Done, your profile is complete.",
++ "ac.h": "Your account",
++ "ac.download": "Download my data",
++ "ac.out": "Sign out",
++ "ac.checking": "Checking that your account has the latest from this phone...",
++ "ac.pending": "Sync or download a backup first",
++ "ac.draft": "Finish or discard the unfinished tasting first",
++ "ac.outFail": "We could not sign you out. Check your connection and try again.",
++ "ac.bye": "You signed out. Your Mi Hoja is no longer on this phone.",
++ "ac.del.s": "Delete my account",
++ "ac.del.p": "This permanently deletes your profile, the Mi Hoja saved in your account, who you follow and who follows you, and your sign-in account. You are signed out on all your phones and Mi Hoja is removed from this one. It cannot be undone: if you want your data, download it first.",
++ "ac.del.l": "To confirm, type your {a}",
++ "ac.del.b": "Delete my account forever",
++ "ac.del.wait": "Deleting your account...",
++ "ac.del.bad": "What you typed is not your @.",
++ "ac.del.off": "Deleting the account is not available right now. Try again later.",
++ "ac.del.store": "We could not save on this phone that the deletion started, so nothing was deleted. Free up some space and try again.",
++ "ac.fenced": "This phone is signing out of the account. Wait a few seconds and try again.",
++ "ac.del.half": "We deleted your data, but could not close your sign-in account. Tap the button again.",
++ "ac.del.fail": "We could not delete your account. Check your connection and try again.",
++ "ac.del.done": "Your account was deleted.",
+  "ix.plus": "New tasting, add to humidor or upload a cigar"
+  }};
+ // en* da inglés, todo lo demás español; la escogida se recuerda en localStorage (lhb_lang)
+diff --git a/site/sw.js b/site/sw.js
+index 8042ccd..b575946 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v87';
++const VERSION='lhb-v88';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+diff --git a/site/sync.js b/site/sync.js
+index 028cf5d..1983d89 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -76,20 +76,27 @@ window.LHB_MERGE={merge,strip,canon,same,stable,hasData,meet,LOCAL_ONLY};
+ 
+ /* ---------- el motor ---------- */
+ const META='lhb_mihoja_v1_sync',OWNER='lhb_mihoja_v1_owner',SEQ='lhb_mihoja_v1_seq',KEY='lhb_mihoja_v1';
++/* LHB-34 (Codex r3): la valla de salir. Mientras está puesta (y es de hace menos de FENCE_TTL), nadie escribe Mi Hoja ni su sincronización, ni esta pestaña ni otra.
++   forget la pone, espera FENCE_MS (lo que tarda en verse en las otras pestañas), revisa otra vez y borra. Caduca sola si la pestaña que sale se cierra a medias */
++const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
+ const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
+ window.LHB_SYNC=function(D){
+- let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,state={state:'idle',err:null};
++ let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,unk=null,mem=null,held=false,state={state:'idle',err:null};
+  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
+- const writeMeta=m=>{try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
++ /* Codex r4: un reloj que se atrasa no hace eterna la valla; uno que se adelanta en medio de la espera lo cubre forget, que la vuelve a poner antes de revisar */
++ const fenced=()=>{let t=0;try{t=parseInt(D.ls.get(FENCE),10)}catch(e){}const d=D.nowMs()-t;return t>0&&d<FENCE_TTL&&d>-FENCE_TTL};
++ /* Codex r6: salir la renueva mientras Clerk cierra la sesión, para que nadie escriba entre el borrado y la salida aunque Clerk tarde más que FENCE_TTL */
++ const fenceUp=()=>{try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){}};
++ const writeMeta=m=>{if(fenced())return false;try{D.ls.set(META,JSON.stringify(m));return true}catch(e){return false}};
+  /* un contador chico compartido entre pestañas: cada escritura de la persona lo sube, y una pasada sabe si alguien escribió (aquí o en otra pestaña) mientras esperaba la red */
+  const readSeq=()=>{try{const n=parseInt(D.ls.get(SEQ),10);return n>0?n:0}catch(e){return 0}};
+- const bumpSeq=()=>{try{D.ls.set(SEQ,String(readSeq()+1))}catch(e){}};
++ const bumpSeq=()=>{if(fenced())return;try{D.ls.set(SEQ,String(readSeq()+1))}catch(e){}};
+  const keep=d=>{const o={};for(const k of LOCAL_ONLY)if(d&&d[k]!==undefined)o[k]=d[k];return o};
+  const set=(s,err)=>{state={state:s,err:err||null};if(D.onState){try{D.onState(state)}catch(e){}}};
+  const parkKey=sub=>KEY+'_de_'+String(sub).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,60);
+  /* de quién es lo guardado en este teléfono: una llave aparte y chica, para saberlo sin leer la copia completa */
+  const ownerOf=()=>{let o=null;try{o=D.ls.get(OWNER)}catch(e){}if(typeof o==='string'&&o)return o;const m=readMeta();return m?m.sub:null};
+- const setOwner=uid=>{try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false}));return true}catch(e){return false}};
++ const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false}));return true}catch(e){return false}};
+  /* antes de guardar lo que escribe la persona hay que poder anotar de quién es; si no se puede, no se guarda */
+  const ensureOwner=()=>{const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;if(ownerOf()!==null)return true;return setOwner(acc.sub)};
+  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
+@@ -177,6 +184,7 @@ window.LHB_SYNC=function(D){
+  function retryLater(){if(retryT)D.clearTimer(retryT);const ms=RETRY[Math.min(fails,RETRY.length)-1]||RETRY[RETRY.length-1];retryT=D.setTimer(()=>{retryT=0;run('reintento')},ms)}
+  /* una sola pasada a la vez; lo que se pide durante una pasada se atiende al terminar */
+  function run(why,o){o=o||{};
++  if(held)return Promise.resolve({skip:'held'});
+   if(o.minAge){const m=readMeta(),a=D.acct();if(m&&a&&m.sub===a.sub&&m.at&&D.nowMs()-new Date(m.at).getTime()<o.minAge)return Promise.resolve({skip:'reciente'})}
+   if(busy){again=true;return busy}
+   busy=(async()=>{let r;try{
+@@ -202,9 +210,43 @@ window.LHB_SYNC=function(D){
+   schedule(DEBOUNCE,()=>{const acc=D.acct();if(!acc)return;const m=readMeta();
+    if(m&&m.sub===acc.sub&&m.base&&canon(D.getDoc())===canon(m.base)){dirty=false;if(m.dirty){delete m.dirty;writeMeta(m)}return}   /* volvió a ser igual: no hay nada que llevar */
+    run('guardado')})}
++ /* LHB-34: ¿la cuenta tiene lo último de este teléfono? Una pasada, y sí solo si terminó bien, no queda nada pendiente y la copia es igual a lo sincronizado.
++    o.backup: el canon de un respaldo que la persona acaba de descargar; si la copia de ahora es esa, está a salvo en el archivo aunque no haya red.
++    Una cata a medias no viaja ni va en el respaldo: con una, no. Devuelve { ok, via, mark } o { ok: false, why }.
++    mark es la copia tal como se revisó (el texto guardado y el contador compartido): forget(mark) solo borra si nadie escribió desde entonces, aquí o en otra pestaña */
++ async function settled(o){o=o||{};let r;try{r=await run('salir')}catch(e){r={fail:'boom'}}
++  /* Codex r2: la marca se lee ANTES que la copia que se revisa (el contador y el texto guardado, luego la copia): si otra pestaña escribe en medio, la marca ya no es la de ahora y forget no borra nada */
++  const seq=readSeq(),raw=markNow().raw,d=D.getDoc(),mark={raw,seq};
++  if(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length)return {ok:false,why:'draft'};
++  if(typeof o.backup==='string'&&canon(d)===o.backup)return {ok:true,via:'backup',mark};
++  if(!r||!r.ok)return {ok:false,why:(r&&(r.fail||r.skip))||'fail'};
++  const m=readMeta(),acc=D.acct();
++  if(dirty||!m||!acc||m.sub!==acc.sub||m.dirty||!m.base||canon(d)!==canon(m.base))return {ok:false,why:'pending'};
++  return {ok:true,via:'sync',mark}}
++ const markNow=()=>{let raw=null;try{raw=D.ls.get(KEY)}catch(e){raw={}}return {raw,seq:readSeq()}};
++ /* LHB-34: mientras se sale o se borra la cuenta no corre ninguna pasada (una a destiempo volvería a llevar Mi Hoja a la cuenta). hold(true) espera la que esté corriendo */
++ function hold(on){held=!!on;if(on){if(timer){D.clearTimer(timer);timer=0}if(retryT){D.clearTimer(retryT);retryT=0}}return held&&busy?busy.then(()=>{},()=>{}):Promise.resolve()}
++ /* LHB-34: se borra Mi Hoja de este teléfono y lo que se sabía de su sincronización (al salir o al borrar la cuenta). Las copias apartadas de otras cuentas se quedan.
++    Con mark (de settled), solo si la copia sigue igual que cuando se revisó; si no, no toca nada y devuelve false.
++    Codex r3: otra pestaña puede escribir entre la última revisión y el borrado, así que con mark primero se pone la valla (nadie escribe), se espera a que
++    las otras pestañas la vean y se revisa otra vez; lo que alguien alcanzó a escribir antes de verla cambia la marca y no se borra nada.
++    La valla se queda puesta hasta que caduca: una pestaña que todavía no se enteró de la salida no vuelve a escribir la copia vieja */
++ const same=mark=>{const now=markNow();return now.raw===mark.raw&&now.seq===mark.seq};
++ async function forget(mark){
++  if(mark){if(!same(mark))return false;
++   /* tampoco corre una pasada de esta pestaña mientras tanto; si no se borra, vuelve */
++   await hold(true);
++   const back=()=>{try{D.ls.remove(FENCE)}catch(e){}hold(false);return false};
++   try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
++   await D.wait(FENCE_MS);
++   try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
++   if(!same(mark))return back()}
++  hold(true);mem=null;unk=null;dirty=false;let ok=true;
++  for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
++  set('off');return ok}
+  function start(){
+   D.listen('online',()=>run('en-linea'));
+   D.listen('visible',()=>run('visible',{minAge:30e3}));
+   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
+- return {run,changed,start,isolate,ensureOwner,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
++ return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
+ })();
+diff --git a/test/site.test.js b/test/site.test.js
+index 6742a8d..5751762 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v87'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v88'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,25 +61,25 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte + campo de tabaco en el splash)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css'),js=read('app.js');
+- assert.match(sw,/const VERSION='lhb-v87'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
++ assert.match(sw,/const VERSION='lhb-v88'/);for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.existsSync(path.join(__dirname,'..','site',f)),f)}
+  assert.ok(a.includes('img/guagua/guagua_recorte.webp')&&a.includes("VEHICULO='guagua'"));assert.ok(ix.includes('campo-hojas')&&ix.includes('splashCar'));
+  assert.ok(css.includes('@keyframes rock'));assert.ok(js.includes("addEventListener('click',done)"));
+  for(const f of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);});
+ 
+ test('v9: splash por capas + garita fuera del header',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v87'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v88'/);for(const c of ['l-hills','l-field','l-mid','l-fg','l-fg2','nube','id="dust"','id="wake"'])assert.ok(ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{'])assert.ok(css.includes(c),c);
+  assert.ok(js.includes('REDUCED_ALL')&&js.includes("className='puff'")&&js.includes("className='wleaf'"));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ 
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v87'/);
++ assert.match(sw,/const VERSION='lhb-v88'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v87'/);
++ assert.match(sw,/const VERSION='lhb-v88'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(ix.includes('class="splash-bandera"')&&ix.includes('aria-label="Bandera de Puerto Rico"'));
+  const svg=ix.slice(ix.indexOf('class="splash-bandera"'),ix.indexOf('</svg>',ix.indexOf('class="splash-bandera"')));
+@@ -105,12 +105,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v87'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v88'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v87'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v88'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -118,7 +118,7 @@ test('v16: paleta B Bandera (verdes intactos)',()=>{const c=fs.readFileSync(path
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#0050f0','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#0050f0']"));
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(fs.readFileSync(path.join(S,'index.html'),'utf8').toLowerCase().includes('5fb4e5')||c.toLowerCase().includes('5fb4e5'));});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v87'/);});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v88'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -135,7 +135,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v87/);});
++ assert.match(read('sw.js'),/lhb-v88/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -148,17 +148,17 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v87'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v88'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v87'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v88'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v87'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v88'/);});
+ 
+-test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v87'/);});
++test('v28: splash con La Ruta del Tabaco, eslogan y flor',()=>{const ix=read('index.html');const m=ix.match(/<div class="splash"[\s\S]*?<div class="campo"/);assert.ok(m);const txt=m[0].replace(/<[^>]+>/g,'').replace(/\s+/g,' ');assert.ok(txt.includes('La Ruta del Tabaco en Puerto Rico'));assert.ok(txt.includes('Cigarros de Puerto Rico'));assert.ok(m[0].includes('La Ruta <em>del Tabaco</em>'));assert.ok(m[0].includes('id="splashFlor"'));assert.ok(read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v88'/);});
+ 
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+@@ -1218,7 +1218,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v87'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v88'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1465,7 +1465,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v87'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v88'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1643,7 +1643,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v87'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v88'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1890,7 +1890,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v87'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v88'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2135,7 +2135,7 @@ function PERFIL_HARNESS(opts){
+  function Image(){}
+  const ctx={$,view,Image,esc:s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),tt:k=>k,
+   LS:{get:(k,d)=>store[k]===undefined||store[k]===null?d:store[k],set:(k,v)=>{store[k]=v}},
+-  photoURL:async()=>{calls.photoURL++;return photoP},uploads:()=>[],EXT:{subnav:()=>'',S:()=>({favs:{cigarros:[]},ratings:{}}),profileOwn:a=>{calls.profileOwn=(calls.profileOwn||[]).concat([a])}},cigarById:()=>null,cigarCard:()=>'',cigarSVG:()=>'',artisanName:()=>'',emptyCoqui:()=>'',
++  photoURL:async()=>{calls.photoURL++;return photoP},uploads:()=>[],EXT:{subnav:()=>'',S:()=>({favs:{cigarros:[]},ratings:{}}),profileOwn:a=>{calls.profileOwn=(calls.profileOwn||[]).concat([a])},accountPanel:()=>'',bindAccount:()=>{}},cigarById:()=>null,cigarCard:()=>'',cigarSVG:()=>'',artisanName:()=>'',emptyCoqui:()=>'',
+   hydratePhotos:()=>{calls.hydrate++},toast:m=>calls.toast.push(m),route:()=>{calls.route++},idb:{put:async()=>{}},urlCache:{},resizeImage:async f=>f};
+  vm.createContext(ctx);vm.runInContext(code+';this.vPerfil=vPerfil;this.topAvatar=topAvatar;this.acctNow=acctNow;this.acctAvatar=acctAvatar;this.paintAvatar=paintAvatar;this.initialsOf=initialsOf',ctx);
+  return {ctx,$,store,calls,html:()=>html,setPhoto:p=>{photoP=p}}}
+@@ -2191,7 +2191,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v87'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v88'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2474,7 +2474,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v87'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v88'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -2726,7 +2726,9 @@ test('LHB-28: el rev manda: If-Match 0 crea, el rev vigente actualiza, uno viejo
+ test('LHB-28: Mi Hoja del servidor solo sale por /api/mihoja y solo para su dueña: ninguna otra ruta ni columna pública la toca (LHB-40: salvo las catas públicas, por la lectura de passport.js)',()=>{
+  const fs2=require('fs'),path2=require('path');const root=path.join(__dirname,'..','functions');const hits=[];
+  (function walk(d){for(const f of fs2.readdirSync(d,{withFileTypes:true})){const p=path2.join(d,f.name);if(f.isDirectory())walk(p);else if(/mihoja/i.test(fs2.readFileSync(p,'utf8')))hits.push(path2.relative(root,p).replace(/\\/g,'/'))}})(root);
+- assert.deepEqual(hits.sort(),['_lib/mihoja.js','_lib/passport.js','_lib/profile.js','api/mihoja.js'],'solo estos archivos del servidor mencionan mihoja');
++ assert.deepEqual(hits.sort(),['_lib/account.js','_lib/mihoja.js','_lib/passport.js','_lib/profile.js','api/mihoja.js'],'solo estos archivos del servidor mencionan mihoja');
++ /* LHB-34: borrar la cuenta la nombra una vez, en la lista de tablas que se borran; nunca la lee */
++ {const ac=fs2.readFileSync(path.join(root,'_lib','account.js'),'utf8');const ls=ac.split(String.fromCharCode(10)).filter(l=>/mihoja/i.test(l));assert.deepEqual(ls.map(l=>l.trim()),["['mihoja', ['user_id']],"]);assert.ok(!/SELECT[^\n]*FROM \$\{/.test(ac),'account.js no lee las tablas que borra')}
+  /* LHB-40: passport.js la lee en un solo lugar, la consulta de publicPassport, y de ahí solo salen las catas públicas (las pruebas LHB-40 lo revisan) */
+  {const ps=fs2.readFileSync(path.join(root,'_lib','passport.js'),'utf8').split(String.fromCharCode(10)).filter(l=>/mihoja/i.test(l));assert.equal(ps.length,1);assert.ok(ps[0].includes('LEFT JOIN mihoja m ON m.user_id = p.user_id WHERE p.handle = ?1 AND p.hidden = 0'),'passport.js solo la nombra en la consulta del perfil visible')}
+  const pf=fs2.readFileSync(path.join(root,'_lib','profile.js'),'utf8');{const ls=pf.split(String.fromCharCode(10)).filter(l=>/mihoja/i.test(l));assert.equal(ls.length,1);assert.ok(ls[0].includes("'mihoja', 'cata'"),'profile.js solo la nombra en la lista de @ reservados')}
+@@ -3009,7 +3011,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
+  const h=read('hoja.js').replace(/\r\n/g,'\n'),ix=read('index.html'),sw=read('sw.js');
+  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
+  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
+- assert.ok(/function write\(s,quiet\)\{if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
++ assert.ok(/function write\(s,quiet\)\{if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
+  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
+  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
+  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else pfOwnSync()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
+@@ -3060,7 +3062,7 @@ test('LHB-31: la línea de estado del respaldo dice si Mi Hoja está en la cuent
+ test('LHB-28: exportar e importar solo se alcanzan desde las listas de Mi Hoja, que ya pasan por la puerta; ningún otro archivo los menciona',()=>{
+  const h=read('hoja.js').replace(/\r\n/g,'\n');const cnt=(s,re)=>(s.match(re)||[]).length;
+  for(const f of ['app.js','index.html','cuenta.js'])assert.equal(cnt(read(f),/exportar|importar|impF|data-exp/g),0,f+' no menciona el respaldo');
+- assert.equal(cnt(h,/\bexportar\b/g),2,'exportar: su definición y el botón del panel');
++ assert.equal(cnt(h,/\bexportar\b/g),3,'exportar: su definición, el botón del panel y el de la cuenta en Perfil (LHB-34, que también pasa por la puerta)');
+  assert.equal(cnt(h,/\bimportar\b/g),3,'importar: su definición, un comentario y el selector del panel');
+  const chunk=n=>{const i=h.indexOf('\nfunction '+n+'(');assert.ok(i>0,n);const j=h.indexOf('\nfunction ',i+10);return h.slice(i,j>0?j:h.length)};
+  for(const v of ['vHumidor','vDiario','vPasaporte','vFavoritos'])assert.equal(cnt(chunk(v),/backupPanel\(\)/g),1,v+' trae el panel de respaldo');
+@@ -3436,7 +3438,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v87'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v88'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -3978,6 +3980,425 @@ test('LHB-94 (Codex r1): bienvenida, perfil guardado y perfil completo, en espa
+  assert.deepEqual(await run('en-US'),[T.en['cu.welcome'],T.en['cu.saved'],T.en['cu.done']],'en inglés');
+  assert.deepEqual(await run('en-US'),['Welcome to Mi Hoja!','Profile saved.','Done, your profile is complete.']);
+ });
++/* LHB-34: borrar la cuenta (functions/api/account.js) en SQLite real con todas las migraciones, y salir de la cuenta (sync.js settled, hold y forget; hoja.js salir y borrar) */
++async function API34(opts){opts=opts||{};
++ const a=await API56();if(opts.fk===false)a.db.exec('PRAGMA foreign_keys=OFF');if(!opts.sin0005)a.db.exec(a.mig('0005_handle_checks.sql'));if(!opts.sin0006)a.db.exec(a.mig('0006_deleted_accounts.sql'));
++ const AC=await a.imp('api/account.js'),AL=await a.imp('_lib/account.js'),M=await a.imp('api/mihoja.js'),H=await a.imp('api/handle.js');
++ /* D1 batch: todas o ninguna */
++ const DB={prepare:a.DB.prepare,batch:async sts=>{a.db.exec('BEGIN');try{const out=[];for(const s of sts)out.push(await s.run());a.db.exec('COMMIT');return out}catch(e){a.db.exec('ROLLBACK');throw e}}};
++ const env={...a.env,DB,CLERK_SECRET_KEY:'sk_test_abc'};
++ /* Clerk de mentira: una respuesta por método (número o 'throw'); onDelete corre mientras Clerk borra */
++ const clerkLog=[];let clerk={GET:200,DELETE:200},onDelete=null;
++ const fetchFn=async(u,init)=>{clerkLog.push([init.method,String(u),init.headers.Authorization]);if(init.method==='DELETE'&&onDelete){const f=onDelete;onDelete=null;f()}const s=clerk[init.method];if(s==='throw')throw new TypeError('sin red');return new Response('{}',{status:s})};
++ const rq=(token,body,type)=>({headers:{get:h=>({Authorization:token?'Bearer '+token:null,'Content-Type':type===undefined?'application/json':type})[h]??null},json:async()=>typeof body==='string'?JSON.parse(body):body});
++ const del=async(u,body,o)=>{o=o||{};const r=await AC.onRequestDelete({request:rq(u?await a.tk(u):null,body,o.type),env:o.env||env},fetchFn);return [r.status,await r.json()]};
++ const putRq=(token,body,match)=>({headers:{get:h=>({Authorization:'Bearer '+token,'Content-Type':'application/json','If-Match':match,'Content-Length':null})[h]??null},text:async()=>JSON.stringify(body)});
++ const put=async(u,match,e)=>{const r=await M.onRequestPut({request:putRq(await a.tk(u),{schema:1,doc:{schema:1,humidor:[{id:'h9'}]}},String(match)),env:e||env});return [r.status,await r.json()]};
++ /* tres personas con perfil, seguidores en las dos direcciones, Mi Hoja y revisiones de @ */
++ a.mk('user_a','ana_a');a.mk('user_b','beto_b');a.mk('user_c','cata_c');
++ a.fol('user_a','user_b','2026-10-28T10:00:00.000Z');a.fol('user_b','user_a','2026-10-28T10:01:00.000Z');a.fol('user_c','user_a','2026-10-28T10:02:00.000Z');a.fol('user_b','user_c','2026-10-28T10:03:00.000Z');
++ const mh=a.db.prepare("INSERT INTO mihoja (user_id,doc,schema,rev,updated_at) VALUES (?1,'{}',1,1,'2026-10-28T10:00:00.000Z')");mh.run('user_a');mh.run('user_b');
++ if(!opts.sin0005){const hc=a.db.prepare("INSERT INTO handle_checks (user_id,created_at) VALUES (?1,'2026-10-28T10:00:00.000Z')");hc.run('user_a');hc.run('user_a');hc.run('user_b')}
++ /* cada columna de cada tabla, sin usar la lista de account.js: dónde queda el id de alguien */
++ const left=u=>{const out=[];for(const {name} of a.db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all()){if(/^(sqlite_|_cf_)/.test(name)||name==='d1_migrations')continue;
++  for(const c of a.db.prepare('PRAGMA table_info('+name+')').all().map(x=>x.name)){const n=a.db.prepare('SELECT COUNT(*) n FROM '+name+' WHERE '+c+' = ?1').get(u).n;if(n)out.push(name+'.'+c+'='+n)}}return out};
++ const all=()=>{const o={};for(const {name} of a.db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all())o[name]=a.db.prepare('SELECT COUNT(*) n FROM '+name).get().n;return o};
++ return {...a,AC,AL,M,H,env,DB,del,put,left,all,clerkLog,rq,fetchFn,setClerk:s=>{clerk=typeof s==='object'?{GET:200,DELETE:200,...s}:{GET:s,DELETE:s}},onDelete:f=>{onDelete=f}}}
++const GET34=u=>['GET','https://api.clerk.com/v1/users/'+u,'Bearer sk_test_abc'],DEL34=u=>['DELETE','https://api.clerk.com/v1/users/'+u,'Bearer sk_test_abc'];
++for(const fk of [true,false])test('LHB-34: borrar la cuenta no deja una fila con su id en ninguna tabla, borra el usuario de Clerk y no toca a nadie más ('+(fk?'con':'sin')+' llaves foráneas)',async()=>{
++ const a=await API34({fk});try{
++  assert.ok(a.left('user_a').length>=6,'antes hay de todo: '+a.left('user_a'));
++  const b0=a.left('user_b');
++  assert.deepEqual(await a.del('user_a',{confirm:'@Ana_A '}),[200,{ok:true}]);
++  assert.deepEqual(a.left('user_a'),[],'ninguna fila con user_a');
++  assert.deepEqual(a.clerkLog,[GET34('user_a'),DEL34('user_a')],'Clerk conoce al usuario con esa llave y lo borra, una vez');
++  /* lo de los demás sigue, menos lo que los unía a ella */
++  assert.deepEqual(b0.sort(),['follow_events.follower_id=2','follows.followee_id=1','follows.follower_id=2','handle_checks.user_id=1','mihoja.user_id=1','profiles.user_id=1'],'beto antes');
++  assert.deepEqual(a.left('user_b').sort(),['follow_events.follower_id=2','follows.follower_id=1','handle_checks.user_id=1','mihoja.user_id=1','profiles.user_id=1'],'beto después: sin lo que lo unía a ella');
++  assert.ok(a.db.prepare('SELECT 1 FROM follows WHERE follower_id=?1 AND followee_id=?2').get('user_b','user_c'),'beto sigue a cata');
++  assert.equal(a.db.prepare('SELECT COUNT(*) n FROM profiles').get().n,2);assert.equal(a.db.prepare('SELECT COUNT(*) n FROM mihoja').get().n,1);
++  assert.ok(a.left('user_c').includes('profiles.user_id=1'),'cata sigue');
++ }finally{a.done()}});
++test('LHB-34: una tabla que la lista no conoce: no se borra nada (falla cerrado)',async()=>{
++ const a=await API34();try{
++  a.db.exec("CREATE TABLE blocks (blocker_id TEXT NOT NULL, blocked_id TEXT NOT NULL)");a.db.prepare('INSERT INTO blocks VALUES (?1,?2)').run('user_a','user_b');
++  const before=a.all();
++  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[503,{error:'unknown-table'}]);
++  assert.deepEqual(a.all(),before,'nada borrado');assert.deepEqual(a.clerkLog,[],'Clerk no se llama');
++  /* lo de SQLite, D1 y wrangler no cuenta */
++  a.db.exec('DROP TABLE blocks');a.db.exec('CREATE TABLE d1_migrations (id INTEGER PRIMARY KEY, name TEXT)');a.db.exec('CREATE TABLE _cf_KV (key TEXT PRIMARY KEY, value BLOB)');
++  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[200,{ok:true}]);assert.deepEqual(a.left('user_a'),[]);
++ }finally{a.done()}});
++test('LHB-34: una tabla de la lista sin migrar todavía (handle_checks) se salta; las demás se borran',async()=>{
++ const a=await API34({sin0005:true});try{
++  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[200,{ok:true}]);assert.deepEqual(a.left('user_a'),[]);
++ }finally{a.done()}});
++test('LHB-34: antes de borrar nada: sesión, llave, JSON, la confirmación y que Clerk conozca al usuario con esa llave (otra instancia no)',async()=>{
++ const a=await API34();try{
++  const before=a.all();
++  assert.deepEqual(await a.del(null,{confirm:'ana_a'}),[401,{error:'no-session'}]);
++  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'},{env:{...a.env,CLERK_SECRET_KEY:undefined}}),[503,{error:'no-clerk-key'}],'sin llave');
++  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'},{env:{...a.env,CLERK_SECRET_KEY:'sk_live_abc'}}),[503,{error:'no-clerk-key'}],'llave de producción con la sesión de desarrollo');
++  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'},{type:'text/plain'}),[415,{error:'bad-type'}]);
++  assert.deepEqual(await a.del('user_a','{no'),[400,{error:'bad-body'}]);
++  for(const c of [undefined,'','  ','beto_b','ana','borrar','#fin','@','ana_a_'])assert.deepEqual(await a.del('user_a',c===undefined?{}:{confirm:c}),[400,{error:'confirm-mismatch'}],'confirm '+c);
++  assert.deepEqual(await a.del('user_a',{confirm:['ana_a']}),[400,{error:'confirm-mismatch'}]);
++  assert.deepEqual(a.clerkLog,[],'sin confirmación, Clerk no se llama');
++  /* una llave sk_test_ de otra instancia de desarrollo: esa Clerk no conoce al usuario (404) */
++  a.setClerk({GET:404});assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[503,{error:'clerk-mismatch'}]);
++  a.setClerk({GET:500});assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[503,{error:'clerk-unavailable'}]);
++  a.setClerk({GET:'throw'});assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[503,{error:'clerk-unavailable'}]);
++  assert.deepEqual(a.clerkLog,[GET34('user_a'),GET34('user_a'),GET34('user_a')],'solo la pregunta, nunca el borrado');
++  assert.deepEqual(a.all(),before,'nada borrado');
++  /* la llave de producción va con la sesión de producción */
++  assert.equal(a.AL.clerkKey({CLERK_SECRET_KEY:'sk_live_x'},'https://clerk.lahojaboricua.com'),'sk_live_x');assert.equal(a.AL.clerkKey({CLERK_SECRET_KEY:'sk_test_x'},'https://clerk.lahojaboricua.com'),null);
++  assert.equal(a.AL.clerkKey({CLERK_SECRET_KEY:'sk_test_x'},'https://daring-eagle-8394.clerk.accounts.dev'),'sk_test_x');
++ }finally{a.done()}});
++test('LHB-34: un borrado a medias se termina: 502 si Clerk falla, y otro intento con el mismo @ (o sin respuesta perdida, cualquier texto) acaba',async()=>{
++ const a=await API34();try{
++  a.setClerk({DELETE:500});assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[502,{error:'clerk-failed'}]);assert.deepEqual(a.left('user_a'),[],'la base ya se borró');
++  a.setClerk({GET:'throw'});assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[503,{error:'clerk-unavailable'}]);
++  assert.deepEqual(await a.del('user_a',{confirm:''}),[400,{error:'confirm-mismatch'}],'sin perfil hace falta escribir algo');
++  a.setClerk(200);assert.deepEqual(await a.del('user_a',{confirm:'@ana_a'}),[200,{ok:true}],'el mismo @ escrito antes');
++  assert.deepEqual(a.clerkLog.map(x=>x[0]),['GET','DELETE','GET','GET','DELETE']);
++  /* Clerk lo conocía y, al borrarlo, ya no estaba (otro pedido lo borró entre la pregunta y el borrado): 404 es que terminó */
++  a.setClerk({DELETE:404});assert.deepEqual(await a.del('user_b',{confirm:'beto_b'}),[200,{ok:true}]);assert.deepEqual(a.left('user_b'),[]);assert.deepEqual(a.clerkLog.slice(-2),[GET34('user_b'),DEL34('user_b')]);a.setClerk(200);
++  /* Clerk ya lo borró pero la respuesta se perdió: sin perfil y sin usuario en Clerk, solo se barre la base */
++  a.db.prepare("INSERT INTO handle_checks (user_id,created_at) VALUES ('user_a','2026-10-28T10:00:00.000Z')").run();
++  a.setClerk({GET:404});assert.deepEqual(await a.del('user_a',{confirm:'#fin'}),[200,{ok:true}]);assert.deepEqual(a.left('user_a'),[]);assert.equal(a.clerkLog.at(-1)[0],'GET','sin DELETE');
++ }finally{a.done()}});
++test('LHB-34 (Codex r1): lo que se escribe mientras se borra no vuelve a crear filas: Mi Hoja pide el perfil en la misma sentencia; lo demás se barre después de Clerk',async()=>{
++ const a=await API34();try{
++  /* un PUT de Mi Hoja (crear, If-Match 0) que pasó la puerta, detenido justo antes de escribir; el borrado termina; el PUT sigue */
++  let go,reached;const gate=new Promise(r=>go=r),at=new Promise(r=>reached=r);
++  const paused={...a.env,DB:{batch:a.DB.batch,prepare:sql=>{const st=a.DB.prepare(sql);if(!/^INSERT INTO mihoja/.test(sql))return st;return {bind:(...x)=>{const b=st.bind(...x);return {...b,run:async()=>{reached();await gate;return b.run()}}}}}}};
++  const pending=a.put('user_c',0,paused);await at;
++  assert.deepEqual(await a.del('user_c',{confirm:'cata_c'}),[200,{ok:true}]);
++  go();assert.deepEqual(await pending,[403,{error:'no-profile'}]);assert.deepEqual(a.left('user_c'),[],'ninguna Mi Hoja nueva');
++  /* uno que actualiza (If-Match 1) después del borrado */
++  assert.deepEqual(await a.del('user_b',{confirm:'beto_b'}),[200,{ok:true}]);assert.deepEqual(await a.put('user_b',1),[403,{error:'no-profile'}]);assert.deepEqual(a.left('user_b'),[]);
++  /* con perfil, crear y actualizar siguen como antes */
++  assert.deepEqual((await a.put('user_a',1))[0],200);
++  /* lo que una sesión viva anota mientras Clerk borra (una revisión de @) se barre al final */
++  a.onDelete(()=>a.db.prepare("INSERT INTO handle_checks (user_id,created_at) VALUES ('user_a','2026-10-28T10:05:00.000Z')").run());
++  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[200,{ok:true}]);assert.deepEqual(a.left('user_a'),[]);
++  /* y una revisión de @ que llega después: lo vencido se borra de todas las cuentas */
++  a.db.prepare("INSERT INTO handle_checks (user_id,created_at) VALUES ('user_gone','2026-10-28T10:00:00.000Z')").run();
++  a.mk('user_d','dani_d');const r=await a.H.onRequestGet({request:{url:'https://x.test/api/handle?h=nuevo_x',headers:{get:k=>({Authorization:'Bearer '+'X'})[k]??null}},env:a.env});
++  const tk=await a.tk('user_d');const r2=await a.H.onRequestGet({request:{url:'https://x.test/api/handle?h=nuevo_x',headers:{get:k=>({Authorization:'Bearer '+tk})[k]??null}},env:a.env});
++  assert.equal(r.status,401);assert.equal(r2.status,200);assert.deepEqual(a.left('user_gone'),[],'la anotación vieja de otra cuenta se fue');
++ }finally{a.done()}});
++const HASH34=u=>require('crypto').createHash('sha256').update('lhb-deleted:'+u).digest('hex');
++test('LHB-34 (Codex r2): una sesión que sigue viva después del borrado no vuelve a crear nada: ni perfil, ni Mi Hoja, ni revisión de @; la cuenta borrada se guarda como un hash',async()=>{
++ const a=await API34();try{
++  const tk=await a.tk('user_a');
++  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[200,{ok:true}]);
++  assert.deepEqual(a.db.prepare('SELECT id_hash FROM deleted_accounts').all().map(r=>r.id_hash),[HASH34('user_a')],'un hash, nunca el id');assert.deepEqual(a.left('user_a'),[]);
++  /* el mismo token de antes del borrado: crear el perfil otra vez */
++  assert.deepEqual(await a.post(tk,{handle:'ana_otra',...IDN,avatar_url:AV}),[403,{error:'account-deleted'}]);assert.deepEqual(a.left('user_a'),[],'sin perfil nuevo');
++  assert.deepEqual(await a.put('user_a',0),[403,{error:'no-profile'}],'Mi Hoja');assert.deepEqual(a.left('user_a'),[]);
++  const hreq=t=>({url:'https://x.test/api/handle?h=libre_x',headers:{get:k=>({Authorization:'Bearer '+t})[k]??null}});
++  assert.equal((await a.H.onRequestGet({request:hreq(tk),env:a.env})).status,429);assert.deepEqual(a.left('user_a'),[],'sin revisión de @');
++  /* una revisión de @ detenida justo antes de anotar; el borrado termina; la revisión sigue y no anota */
++  const tb=await a.tk('user_b');let go,reached;const gate=new Promise(r=>go=r),at=new Promise(r=>reached=r);
++  const paused={...a.env,DB:{batch:a.DB.batch,prepare:sql=>{const st=a.DB.prepare(sql);if(!/^INSERT INTO handle_checks/.test(sql))return st;return {bind:(...x)=>{const b=st.bind(...x);return {...b,run:async()=>{reached();await gate;return b.run()}}}}}}};
++  const pending=a.H.onRequestGet({request:hreq(tb),env:paused});await at;
++  assert.deepEqual(await a.del('user_b',{confirm:'beto_b'}),[200,{ok:true}]);go();assert.equal((await pending).status,429);assert.deepEqual(a.left('user_b'),[]);
++  /* las demás cuentas siguen igual: crear perfil y revisar @ */
++  const td=await a.tk('user_d');assert.equal((await a.post(td,{handle:'dani_d',...IDN,avatar_url:AV}))[0],201);assert.equal((await a.H.onRequestGet({request:hreq(td),env:a.env})).status,200);
++ }finally{a.done()}});
++test('LHB-34 (Codex r2): sin la migración 0006 no se borra nada (503 not-ready) y crear perfiles y revisar @ siguen como antes',async()=>{
++ const a=await API34({sin0006:true});try{
++  const before=a.all();assert.deepEqual(await a.del('user_a',{confirm:'ana_a'}),[503,{error:'not-ready'}]);assert.deepEqual(a.all(),before);assert.deepEqual(a.clerkLog,[],'Clerk no se llama');
++  const td=await a.tk('user_d');assert.equal((await a.post(td,{handle:'dani_d',...IDN,avatar_url:AV}))[0],201);
++  assert.equal((await a.H.onRequestGet({request:{url:'https://x.test/api/handle?h=libre_x',headers:{get:k=>({Authorization:'Bearer '+td})[k]??null}},env:a.env})).status,200);
++  assert.deepEqual(await a.post(td,{handle:'dani_d',...IDN,avatar_url:AV}),[409,{error:'profile-exists'}]);
++ }finally{a.done()}});
++test('LHB-34 (Codex r2): si el último barrido falla, el borrado no está terminado (502 cleanup-failed) y otro intento lo termina',async()=>{
++ const a=await API34();try{
++  let n=0;const env={...a.env,DB:{prepare:a.DB.prepare,batch:async sts=>{if(++n===2)throw new Error('d1');return a.DB.batch(sts)}}};
++  a.onDelete(()=>a.db.prepare("INSERT INTO handle_checks (user_id,created_at) VALUES ('user_a','2026-10-28T10:05:00.000Z')").run());
++  assert.deepEqual(await a.del('user_a',{confirm:'ana_a'},{env}),[502,{error:'cleanup-failed'}]);assert.deepEqual(a.left('user_a'),['handle_checks.user_id=1']);
++  a.setClerk({GET:404});assert.deepEqual(await a.del('user_a',{confirm:'#fin'}),[200,{ok:true}]);assert.deepEqual(a.left('user_a'),[]);
++ }finally{a.done()}});
++/* hoja.js: el bloque de la cuenta (salir y borrar) sobre el motor de verdad (sync.js) y un servidor de verdad en SQLite */
++function ACCT34(dev,o){o=o||{};const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
++ const i=src.indexOf('/* ---------- LHB-34:'),j=src.indexOf('function accountCard(',i);assert.ok(i>0&&j>i,'bloque LHB-34');
++ const els={};const $=s=>{const id=s.slice(1);return els[id]||(els[id]={id,value:'',textContent:'',hidden:true,disabled:false})};
++ const log=[],toasts=[],ss=new Map();dev.D.ls.remove=k=>dev.ls.delete(k);
++ /* la espera de la valla (sync.js forget): o.duringFence corre en medio, como otra pestaña que escribe antes de verla */
++ dev.D.wait=async ms=>{log.push('espera '+ms);if(o.duringFence)await o.duringFence()};
++ /* o.signOutWait: Clerk tarda en cerrar la sesión (Codex r6); ivs: los setInterval de la página, que la prueba dispara a mano */
++ const C={user:o.clerkUser===undefined?{id:'user_a'}:o.clerkUser,signOut:async opt=>{log.push('signOut '+JSON.stringify(opt));if(o.signOutWait)await o.signOutWait();if(o.signOutFails&&o.signOutFails-->0)throw new Error('sin red')}};
++ const ivs=[];
++ const SYNC=o.afterSettled?{...dev.eng,settled:async x=>{const r=await dev.eng.settled(x);o.afterSettled();return r}}:dev.eng;
++ const ctx={...TT(),SYNC,KEY:'lhb_mihoja_v1',$,$$:()=>[],esc:s=>String(s),toast:m=>toasts.push(m),exportar:()=>log.push('exportar'),LHB_MERGE:dev.X,
++  /* o.markStore: la marca del borrado no se guarda ('throw': el almacenamiento está lleno; 'lost': no falla pero no queda) */
++  localStorage:{getItem:k=>dev.ls.has(k)?dev.ls.get(k):null,setItem:(k,v)=>{if(k==='lhb_borrando'&&o.markStore==='throw')throw new Error('QuotaExceededError');if(k==='lhb_borrando'&&o.markStore==='lost')return;dev.ls.set(k,String(v))},removeItem:k=>dev.ls.delete(k)},
++  acct:{get:()=>o.acct===undefined?{sub:'user_a',handle:'ana_a'}:o.acct,clear:()=>log.push('acct.clear')},intent:{clear:()=>log.push('intent.clear')},
++  clerk:async()=>{if(o.offlineClerk)throw new Error('sin red');return C},
++  api:async(Cx,method,path,body,uid)=>{log.push([method,path,JSON.stringify(body),uid]);log.push('pasada '+JSON.stringify(await dev.eng.run('durante')));if(o.api)return o.api(body);return {status:200,body:{ok:true}}},
++  sessionStorage:{getItem:k=>ss.has(k)?ss.get(k):null,setItem:(k,v)=>ss.set(k,String(v)),removeItem:k=>ss.delete(k)},location:{assign:u=>log.push('assign '+u)},setTimeout:()=>0,
++  setInterval:(f,ms)=>{const t={f,ms,live:true};ivs.push(t);return t},clearInterval:t=>{if(t)t.live=false},
++  window:{addEventListener:(t,f)=>listeners.push([t,f])}};const listeners=[];
++ vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW="x";'+src.slice(i,j)+';this.X={salir,borrar,resumeDelete,accountPanel,bindAccount,setBackup:v=>{lastBackup=v},st:()=>ST}',ctx);
++ return {X:ctx.X,els,log,toasts,ss,C,listeners,ivs,outs:()=>log.filter(x=>typeof x==='string'&&/^(signOut|assign|acct|intent)/.test(x))}}
++const DOC34=()=>({schema:1,creado:'2026-10-01T00:00:00.000Z',humidor:[{id:'h1',marca:'Don Rey',actualizado:'2026-10-02'}],diario:[],pasaporte:{},favs:{},ratings:{}});
++const KEYS34=['lhb_mihoja_v1','lhb_mihoja_v1_sync','lhb_mihoja_v1_owner','lhb_mihoja_v1_seq'];
++const OUT34=['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','assign /'];
++test('LHB-34: salir con cambios sin sincronizar deja la copia de este teléfono y dice "Sincroniza o descarga un respaldo primero"',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());assert.equal((await dev.sync()).ok,true);assert.deepEqual(hid28(srv28(a,'user_a').doc),['h1']);
++  const h=ACCT34(dev);
++  /* sin red, con un cambio que la cuenta no tiene */
++  dev.edit(d=>d.humidor.push({id:'h2',marca:'Tabaquero',actualizado:'2026-10-28'}));dev.net.off=true;
++  await h.X.salir();
++  assert.deepEqual(hid28(dev.doc()),['h1','h2'],'la copia sigue');for(const k of KEYS34.slice(0,2))assert.ok(dev.ls.has(k),'sigue '+k);
++  assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');assert.equal(h.els.acMsg.hidden,false);
++  assert.deepEqual(h.outs(),[],'no sale');assert.equal(h.ss.get('lhb_bye'),undefined);
++  /* con red, pero la cuenta no acepta lo de este teléfono */
++  dev.net.off=false;dev.net.status={PUT:500};await h.X.salir();
++  assert.deepEqual(hid28(dev.doc()),['h1','h2']);assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');assert.deepEqual(h.outs(),[]);
++  /* con red, y alguien escribe en cada pasada: la pasada termina, pero lo último no está en la cuenta */
++  dev.net.status=null;let n=0;const again=()=>{dev.net.beforePut=async()=>{n++;dev.edit(d=>d.humidor.push({id:'e'+n,marca:'x',actualizado:'2026-10-28'}));if(n<5)again()}};again();
++  await h.X.salir();assert.ok(n>=3,'escribió '+n);assert.ok(dev.ls.has('lhb_mihoja_v1'),'la copia sigue');assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');assert.deepEqual(h.outs(),[]);
++  /* ahora sí: la pasada lleva todo, la cuenta lo tiene, la copia de este teléfono se borra y se cierra la sesión */
++  dev.net.beforePut=null;const mine=hid28(dev.doc());
++  await h.X.salir();
++  assert.deepEqual(hid28(srv28(a,'user_a').doc),mine,'la cuenta tiene lo último');
++  for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);
++  assert.deepEqual(h.outs(),OUT34);
++  assert.equal(h.ss.get('lhb_bye'),'out');assert.equal(h.X.st(),null,'sin copia en memoria');
++  assert.deepEqual(await dev.eng.run('despues'),{skip:'held'},'ninguna pasada vuelve a llevarla');
++ }finally{a.done()}});
++test('LHB-34 (Codex r1): lo que se escribe entre la revisión y el borrado (aquí o en otra pestaña) no se borra; si cerrar la sesión falla, el botón lo reintenta',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  /* esta pestaña escribe justo después de la revisión */
++  let h=ACCT34(dev,{afterSettled:()=>dev.edit(d=>d.humidor.push({id:'tarde',marca:'x',actualizado:'2026-10-28'}))});dev.net.off=true;
++  await h.X.salir();assert.ok(hid28(dev.doc()).includes('tarde'),'lo escrito sigue');assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');assert.deepEqual(h.outs(),[]);
++  assert.notDeepEqual(await dev.eng.run('x'),{skip:'held'},'la sincronización no quedó parada');
++  /* otra pestaña escribe la copia (sin pasar por este motor) */
++  dev.net.off=false;await dev.sync();
++  h=ACCT34(dev,{afterSettled:()=>{const d=dev.doc();d.humidor.push({id:'otra',marca:'y',actualizado:'2026-10-28'});dev.ls.set(dev.KEY,JSON.stringify(d))}});
++  await h.X.salir();assert.ok(hid28(dev.doc()).includes('otra'),'lo de la otra pestaña sigue');assert.deepEqual(h.outs(),[]);
++  /* la cuenta tiene todo; cerrar la sesión falla una vez: el segundo toque solo reintenta Clerk */
++  await dev.sync();h=ACCT34(dev,{signOutFails:1});
++  await h.X.salir();for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
++  await h.X.salir();assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','signOut {"redirectUrl":"/"}','assign /']);
++ }finally{a.done()}});
++test('LHB-34 (Codex r5): cerrar la sesión falla, la valla caduca y se vuelve a escribir Mi Hoja: el reintento revisa otra vez; sin red no se sale, con red lo nuevo llega a la cuenta y luego se sale',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();const h=ACCT34(dev,{signOutFails:1});
++  await h.X.salir();for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(await dev.eng.run('x'),{skip:'held'},'sin pasadas tras el borrado');
++  /* la valla caduca, Mi Hoja abre otra vez con la cuenta guardada y se escribe algo nuevo */
++  dev.advance(11e3);dev.seed(DOC34());dev.edit(d=>d.humidor.push({id:'nuevo',marca:'z',actualizado:'2026-10-28'}));
++  dev.net.off=true;await h.X.salir();
++  assert.ok(hid28(dev.doc()).includes('nuevo'),'lo nuevo sigue en el teléfono');assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');
++  assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}'],'sin red no se vuelve a pedir la salida');
++  dev.net.off=false;await h.X.salir();
++  assert.ok(hid28(srv28(a,'user_a').doc).includes('nuevo'),'la cuenta tiene lo nuevo');for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado otra vez '+k);
++  assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','acct.clear','intent.clear','signOut {"redirectUrl":"/"}','assign /']);
++ }finally{a.done()}});
++test('LHB-34 (Codex r6): mientras Clerk cierra la sesión la valla se renueva, en el primer intento y en el reintento: nadie escribe aunque Clerk tarde; si falla, se deja de renovar y caduca',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();let d=null;
++  const h=ACCT34(dev,{signOutFails:1,signOutWait:()=>new Promise(r=>{d=r})});
++  const wait=async()=>{for(let i=0;i<200&&!d;i++)await tick()};const beat=()=>{for(const t of h.ivs.filter(x=>x.live))t.f()};
++  /* primer intento: Clerk tarda más que la valla, y luego falla */
++  let p=h.X.salir();await wait();assert.ok(d,'esperando a Clerk');for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);
++  assert.deepEqual(h.ivs.map(t=>[t.ms,t.live]),[[3e3,true]],'la valla se renueva cada 3 s');
++  dev.advance(11e3);beat();assert.equal(dev.eng.fenced(),true,'Clerk tarda 11 s: la valla sigue puesta');
++  const r=d;d=null;r();await p;assert.equal(h.els.acMsg.textContent,'No pudimos cerrar la sesión. Revisa tu conexión e intenta otra vez.');
++  assert.equal(h.ivs[0].live,false,'al fallar se deja de renovar');dev.advance(11e3);assert.equal(dev.eng.fenced(),false,'y caduca sola');
++  /* reintento sin copia nueva: la valla se pone otra vez antes de pedirle a Clerk, y se renueva hasta que termina */
++  p=h.X.salir();await wait();assert.ok(d);assert.equal(dev.eng.fenced(),true,'la valla vuelve a estar puesta');
++  dev.advance(11e3);beat();assert.equal(dev.eng.fenced(),true,'sigue puesta mientras Clerk tarda');
++  d();await p;assert.deepEqual(h.outs(),['acct.clear','intent.clear','signOut {"redirectUrl":"/"}','signOut {"redirectUrl":"/"}','assign /']);
++  assert.deepEqual(h.ivs.map(t=>t.live),[false,false],'nada se queda renovando');
++  /* al borrar la cuenta pasa lo mismo: borrado lo de este teléfono, la valla sigue mientras Clerk cierra la sesión */
++  dev.seed(DOC34());dev.eng.hold(false);await dev.sync();d=null;const g=ACCT34(dev,{signOutWait:()=>new Promise(r=>{d=r})});
++  const beat2=()=>{for(const t of g.ivs.filter(x=>x.live))t.f()};
++  p=g.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');await wait();assert.ok(d,'esperando a Clerk');for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);
++  assert.equal(dev.eng.fenced(),true);dev.advance(11e3);beat2();assert.equal(dev.eng.fenced(),true,'Clerk tarda 11 s: la valla sigue puesta');
++  d();await p;assert.ok(g.log.includes('assign /'));assert.deepEqual(g.ivs.map(t=>t.live),[false]);
++ }finally{a.done()}});
++test('LHB-34 (Codex r2): otra pestaña escribe mientras se lee la copia que se revisa: no se sale; y cuando una pestaña sale, las otras sueltan su copia',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();const h=ACCT34(dev);
++  /* sin red y con un respaldo de lo de ahora: la otra pestaña escribe justo cuando se lee la copia */
++  dev.net.off=true;h.X.setBackup(dev.X.canon(dev.doc()));
++  const g=dev.D.getDoc;let arm=true;dev.D.getDoc=()=>{const d=g();if(arm){arm=false;const o=JSON.parse(dev.ls.get(dev.KEY));o.humidor.push({id:'otra',marca:'y',actualizado:'2026-10-28'});dev.ls.set(dev.KEY,JSON.stringify(o))}return d};
++  await h.X.salir();dev.D.getDoc=g;
++  assert.ok(hid28(dev.doc()).includes('otra'),'lo de la otra pestaña sigue');assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');assert.deepEqual(h.outs(),[]);
++  /* la otra pestaña: cuando esta quita el dueño, suelta su copia en memoria, para la sincronización y abre de nuevo */
++  const st=h.listeners.filter(([t])=>t==='storage').map(([,f])=>f);assert.equal(st.length,1);
++  st[0]({key:'lhb_mihoja_v1_sync',oldValue:'x',newValue:null});st[0]({key:'lhb_mihoja_v1_owner',oldValue:null,newValue:'user_a'});assert.equal(h.X.st().x,1,'lo demás no cuenta');
++  st[0]({key:'lhb_mihoja_v1_owner',oldValue:'user_a',newValue:null});
++  assert.equal(h.X.st(),null);assert.ok(h.log.includes('assign /'));assert.deepEqual(await dev.eng.run('x'),{skip:'held'});
++ }finally{a.done()}});
++test('LHB-34 (Codex r3): otra pestaña escribe entre la última revisión y el borrado: la valla para a todos, se espera, se revisa otra vez; la valla se queda hasta que caduca',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();const F='lhb_mihoja_v1_saliendo';
++  /* la otra pestaña escribe antes de ver la valla: no se borra nada, la valla se quita y la sincronización vuelve */
++  const before=KEYS34.map(k=>dev.ls.get(k));let seen=null;let h=ACCT34(dev,{duringFence:async()=>{seen=[dev.eng.fenced(),await dev.eng.run('durante')];const d=dev.doc();d.humidor.push({id:'otra',marca:'y',actualizado:'2026-10-28'});dev.ls.set(dev.KEY,JSON.stringify(d))}});
++  await h.X.salir();
++  assert.deepEqual(seen,[true,{skip:'held'}],'mientras se espera, la valla está puesta y no corre ninguna pasada');assert.ok(h.log.includes('espera 1000'));
++  assert.ok(hid28(dev.doc()).includes('otra'),'lo de la otra pestaña sigue');assert.deepEqual(KEYS34.slice(1).map(k=>dev.ls.get(k)),before.slice(1),'la sincronización de este teléfono sigue como estaba');
++  assert.ok(!dev.ls.has(F),'la valla se quita');assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');assert.deepEqual(h.outs(),[]);
++  assert.notDeepEqual(await dev.eng.run('x'),{skip:'held'},'la sincronización no quedó parada');
++  /* sin nadie que escriba: se borra y la valla se queda; caduca a los 10 s */
++  await dev.sync();h=ACCT34(dev);await h.X.salir();
++  for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
++  assert.equal(dev.ls.get(F),String(dev.st.clock));assert.equal(dev.eng.fenced(),true);
++  dev.st.clock+=9999;assert.equal(dev.eng.fenced(),true);dev.st.clock+=2;assert.equal(dev.eng.fenced(),false,'caducó');
++  /* Codex r4: un reloj que se atrasa no la hace eterna; uno que se adelanta en medio de la espera no la deja vencida al borrar (se pone otra vez antes de revisar) */
++  dev.ls.set(F,String(dev.st.clock+5000));assert.equal(dev.eng.fenced(),true,'5 s en el futuro: todavía cuenta');dev.ls.set(F,String(dev.st.clock+10001));assert.equal(dev.eng.fenced(),false,'más de 10 s en el futuro: no cuenta');
++  const d3=DEV28(a,'user_a');d3.seed(DOC34());await d3.sync();h=ACCT34(d3,{duringFence:()=>{d3.st.clock+=20000}});await h.X.salir();
++  for(const k of KEYS34)assert.ok(!d3.ls.has(k),'borrado '+k);assert.equal(d3.ls.get(F),String(d3.st.clock),'la valla es de después de la espera');assert.equal(d3.eng.fenced(),true);
++  /* Codex r6: salir la renueva después (leaving), así que forget se revisa sola: deja la valla puesta al borrar, de después de la espera */
++  const d4=DEV28(a,'user_a');d4.seed(DOC34());await d4.sync();d4.D.ls.remove=k=>d4.ls.delete(k);d4.D.wait=async()=>{d4.st.clock+=20000};
++  const r4=await d4.eng.settled({});assert.equal(r4.ok,true);assert.equal(await d4.eng.forget(r4.mark),true);
++  for(const k of KEYS34)assert.ok(!d4.ls.has(k),'forget borró '+k);assert.equal(d4.ls.get(F),String(d4.st.clock),'forget deja la valla, de después de la espera');assert.equal(d4.eng.fenced(),true);
++ }finally{a.done()}});
++test('LHB-34 (Codex r3): con la valla puesta nadie escribe: ni hoja.js (Mi Hoja), ni el motor (la meta, el contador, la dueña); una valla vieja ya no frena',async()=>{
++ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');const line=src.match(/^function write\(s,quiet\)\{.*$/m)[0];
++ let F=true,iso=0;const ls=new Map(),toasts=[],calls=[];
++ const ctx={...TT(),SYNC:{fenced:()=>F,isolate:()=>{iso++;return true},ensureOwner:()=>true,changed:p=>calls.push(p)},localStorage:{getItem:k=>ls.has(k)?ls.get(k):null,setItem:(k,v)=>ls.set(k,String(v))},toast:m=>toasts.push(m),KEY:'lhb_mihoja_v1',PEND:[]};
++ vm.createContext(ctx);vm.runInContext('let ST={x:1},STRAW=null;'+line+';this.W=write;this.st=()=>ST',ctx);
++ assert.equal(ctx.W({humidor:[]}),false);assert.ok(!ls.has('lhb_mihoja_v1'),'no se guardó');assert.equal(ctx.st(),null);assert.deepEqual(calls,[]);assert.equal(iso,0,'con la valla ni se aparta nada');
++ assert.deepEqual(toasts,['Se está saliendo de la cuenta en este teléfono. Espera unos segundos e intenta otra vez.']);
++ F=false;assert.equal(ctx.W({humidor:[]}),true);assert.equal(ls.get('lhb_mihoja_v1'),'{"humidor":[]}');assert.equal(calls.length,1);
++ /* Codex r4: la valla se mira otra vez justo antes de guardar (después de apartar, anotar la dueña y armar el texto) */
++ let n=0;ctx.SYNC.fenced=()=>++n>1;ls.delete('lhb_mihoja_v1');toasts.length=0;
++ assert.equal(ctx.W({humidor:[1]}),false);assert.equal(n,2);assert.ok(!ls.has('lhb_mihoja_v1'));assert.equal(toasts.length,1);ctx.SYNC.fenced=()=>F;
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();const V='lhb_mihoja_v1_saliendo';
++  const before=KEYS34.map(k=>dev.ls.get(k));dev.ls.set(V,String(dev.st.clock));
++  dev.eng.changed(null);assert.deepEqual(KEYS34.map(k=>dev.ls.get(k)),before,'ni la meta ni el contador');
++  dev.ls.delete('lhb_mihoja_v1_owner');dev.ls.delete('lhb_mihoja_v1_sync');assert.equal(dev.eng.ensureOwner(),false,'la dueña no se anota');assert.ok(!dev.ls.has('lhb_mihoja_v1_owner'));
++  /* una valla de hace más de 10 s (la pestaña que salía se cerró a medias) ya no frena */
++  dev.ls.set(V,String(dev.st.clock-10001));assert.equal(dev.eng.ensureOwner(),true);assert.equal(dev.ls.get('lhb_mihoja_v1_owner'),'user_a');
++  dev.eng.changed(null);assert.notEqual(dev.ls.get('lhb_mihoja_v1_seq'),before[3],'el contador sube');
++ }finally{a.done()}});
++test('LHB-34 (Codex r4): el botón y el que termina un borrado a medias van de a uno: la respuesta de uno no le quita la marca al otro, y el que espera lee la marca otra vez',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  /* una marca de antes (el pedido nunca llegó: el perfil sigue). Se toca el botón; mientras su pedido espera, la app termina "el de antes" */
++  dev.ls.set('lhb_borrando','{"sub":"user_a"}');let deleted=false,go=null;const sent=[];
++  const api=b=>{sent.push(b.confirm);if(b.confirm==='#fin')return deleted?{status:200,body:{ok:true}}:{status:400,body:{error:'confirm-mismatch'}};
++   return new Promise(r=>{go=()=>{deleted=true;r({status:502,body:{error:'clerk-failed'}})}})};
++  const h=ACCT34(dev,{api});const pb=h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
++  for(let i=0;i<50&&!go;i++)await new Promise(r=>setImmediate(r));assert.ok(go,'el pedido del botón espera');
++  const pr=h.X.resumeDelete();for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r));
++  assert.deepEqual(sent,['ana_a'],'el que termina espera su turno');
++  go();await pb;await pr;
++  assert.deepEqual(sent,['ana_a','#fin'],'luego termina lo que el botón dejó a medias');for(const k of [...KEYS34,'lhb_borrando'])assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
++  /* el que espera lee la marca otra vez: si el botón terminó, no manda nada */
++  const dev2=DEV28(a,'user_a');dev2.seed(DOC34());await dev2.sync();dev2.ls.set('lhb_borrando','{"sub":"user_a"}');const sent2=[];let go2=null;
++  const h2=ACCT34(dev2,{api:b=>{sent2.push(b.confirm);return b.confirm==='#fin'?{status:400,body:{error:'confirm-mismatch'}}:new Promise(r=>{go2=()=>r({status:200,body:{ok:true}})})}});
++  const qb=h2.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');for(let i=0;i<50&&!go2;i++)await new Promise(r=>setImmediate(r));const qr=h2.X.resumeDelete();go2();await qb;await qr;
++  assert.deepEqual(sent2,['ana_a'],'sin marca, el que esperaba no pide nada');assert.ok(!dev2.ls.has('lhb_borrando'));
++ }finally{a.done()}});
++test('LHB-34 (Codex r3): si la marca del borrado no se puede guardar, no se pide el borrado: la cuenta sigue entera y la sincronización vuelve',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  for(const markStore of ['throw','lost']){
++   const h=ACCT34(dev,{markStore});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
++   assert.ok(!h.log.some(x=>Array.isArray(x)),'no se pidió nada ('+markStore+')');
++   assert.equal(h.els.acMsg.textContent,'No pudimos guardar en este teléfono que el borrado empezó, así que no borramos nada. Libera espacio e intenta otra vez.');
++   assert.ok(!dev.ls.has('lhb_borrando'));assert.ok(dev.ls.has('lhb_mihoja_v1'));assert.equal((await dev.eng.run('x')).ok,true,'la sincronización vuelve');
++  }
++  /* con la marca de un borrado a medias de antes, la sincronización sigue parada */
++  dev.ls.set('lhb_borrando','{"sub":"user_a"}');const h=ACCT34(dev,{markStore:'throw'});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
++  assert.ok(!h.log.some(x=>Array.isArray(x)));assert.equal(dev.ls.get('lhb_borrando'),'{"sub":"user_a"}');assert.deepEqual(await dev.eng.run('x'),{skip:'held'});
++ }finally{a.done()}});
++test('LHB-34 (Codex r2): con un borrado a medias pendiente, un error pasajero (503, 401) no quita la marca; un primer pedido rechazado sí',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  for(const [st,err] of [[503,'clerk-unavailable'],[401,'no-session'],[503,'unavailable']]){
++   dev.ls.set('lhb_borrando','{"sub":"user_a"}');
++   let h=ACCT34(dev,{api:()=>({status:st,body:{error:err}})});await h.X.resumeDelete();assert.ok(dev.ls.has('lhb_borrando'),'al abrir: '+st+' '+err);assert.deepEqual(await dev.eng.run('x'),{skip:'held'});
++   h=ACCT34(dev,{api:()=>({status:st,body:{error:err}})});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');assert.ok(dev.ls.has('lhb_borrando'),'al tocar el botón: '+st+' '+err);
++  }
++  /* sin marca de antes, el mismo 503 es un primer pedido que no borró nada */
++  dev.ls.delete('lhb_borrando');const h=ACCT34(dev,{api:()=>({status:503,body:{error:'clerk-unavailable'}})});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
++  assert.ok(!dev.ls.has('lhb_borrando'));assert.equal((await dev.eng.run('x')).ok,true);
++ }finally{a.done()}});
++test('LHB-34: salir sin red pero con un respaldo recién descargado de lo de ahora; una cata a medias no deja salir',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();const h=ACCT34(dev);
++  dev.edit(d=>d.humidor.push({id:'h2',marca:'Tabaquero',actualizado:'2026-10-28'}));dev.net.off=true;
++  h.X.setBackup(dev.X.canon(dev.doc()));
++  dev.edit(d=>d.humidor.push({id:'h3',marca:'Otro',actualizado:'2026-10-28'}));
++  await h.X.salir();assert.ok(dev.ls.has('lhb_mihoja_v1'),'el respaldo es de antes del último cambio');assert.equal(h.els.acMsg.textContent,'Sincroniza o descarga un respaldo primero');
++  h.X.setBackup(dev.X.canon(dev.doc()));
++  dev.edit(d=>{d.draft={paso:1,nombre:'a medias'}});
++  await h.X.salir();assert.ok(dev.ls.has('lhb_mihoja_v1'));assert.equal(h.els.acMsg.textContent,'Termina o descarta la cata a medias primero');
++  dev.edit(d=>{d.draft=null});
++  await h.X.salir();for(const k of KEYS34)assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
++ }finally{a.done()}});
++test('LHB-34: borrar la cuenta desde el teléfono: sin pasadas mientras tanto; lo que no borró nada devuelve la sincronización; lo de a medias se termina',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  /* el servidor dice que no: la copia sigue, la marca se va y la sincronización vuelve */
++  let h=ACCT34(dev,{api:()=>({status:400,body:{error:'confirm-mismatch'}})});
++  await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana');
++  assert.deepEqual(h.log[0],['DELETE','/api/account','{"confirm":"ana"}','user_a']);assert.equal(h.log[1],'pasada {"skip":"held"}','sin pasadas durante el borrado');
++  assert.equal(h.els.acMsg.textContent,'Lo que escribiste no es tu @.');assert.ok(dev.ls.has('lhb_mihoja_v1'));assert.ok(!dev.ls.has('lhb_borrando'),'sin marca');
++  assert.equal((await dev.eng.run('otra')).ok,true,'la sincronización vuelve');
++  h=ACCT34(dev,{api:()=>({status:503,body:{error:'no-clerk-key'}})});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
++  assert.equal(h.els.acMsg.textContent,'Borrar la cuenta no está disponible ahora. Intenta más tarde.');assert.ok(dev.ls.has('lhb_mihoja_v1'));assert.ok(!dev.ls.has('lhb_borrando'));
++  /* sin respuesta (no se sabe si llegó): la marca queda y la sincronización sigue parada */
++  h=ACCT34(dev,{api:()=>{throw new TypeError('sin red')}});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
++  assert.equal(h.els.acMsg.textContent,'No pudimos borrar tu cuenta. Revisa tu conexión e intenta otra vez.');assert.equal(dev.ls.get('lhb_borrando'),'{"sub":"user_a"}');assert.deepEqual(await dev.eng.run('x'),{skip:'held'});
++  /* la base se borró y Clerk no (502): el otro intento manda el mismo @ */
++  let st=502;const bodies=[];h=ACCT34(dev,{api:b=>{bodies.push(b);return {status:st,body:st===502?{error:'clerk-failed'}:{ok:true}}}});
++  await h.X.borrar({sub:'user_a',handle:'ana_a'},'@ana_a');assert.equal(h.els.acMsg.textContent,'Borramos tus datos, pero no pudimos cerrar tu cuenta para entrar. Toca el botón otra vez.');
++  assert.deepEqual(await dev.eng.run('x'),{skip:'held'},'sigue parada');assert.ok(dev.ls.has('lhb_borrando'));
++  st=200;await h.X.borrar({sub:'user_a',handle:'ana_a'},'@ana_a');assert.deepEqual(bodies,[{confirm:'@ana_a'},{confirm:'@ana_a'}]);
++  for(const k of [...KEYS34,'lhb_borrando'])assert.ok(!dev.ls.has(k),'borrado '+k);
++  assert.deepEqual(h.outs(),OUT34);assert.equal(h.ss.get('lhb_bye'),'del');
++ }finally{a.done()}});
++test('LHB-34 (Codex r1): de punta a punta con el servidor de verdad: borrar a medias, perder la respuesta, volver a abrir la app y que se termine solo',async()=>{
++ const a=await ENG28();const dev=DEV28(a,'user_a');try{
++  dev.seed(DOC34());await dev.sync();
++  a.db.exec(a.mig('0006_deleted_accounts.sql'));const AC=await a.imp('api/account.js');const DB={prepare:a.DB.prepare,batch:async sts=>{a.db.exec('BEGIN');try{for(const s of sts)await s.run();a.db.exec('COMMIT')}catch(e){a.db.exec('ROLLBACK');throw e}}};
++  const env={...a.env,DB,CLERK_SECRET_KEY:'sk_test_abc'};const clerk={GET:200,DELETE:500},cl=[];let lose=false;
++  const fetchFn=async(u,init)=>{cl.push(init.method);return new Response('{}',{status:clerk[init.method]})};
++  const real=async body=>{const r=await AC.onRequestDelete({request:{headers:{get:h=>({Authorization:'Bearer '+(await0),'Content-Type':'application/json'})[h]??null},json:async()=>body},env},fetchFn);if(lose)throw new TypeError('sin red');return {status:r.status,body:await r.json()}};
++  let await0=await a.tok('user_a');
++  /* Clerk falla y la respuesta se pierde */
++  lose=true;let h=ACCT34(dev,{api:real});await h.X.borrar({sub:'user_a',handle:'ana_a'},'ana_a');
++  assert.equal(a.db.prepare("SELECT COUNT(*) n FROM profiles WHERE user_id='user_a'").get().n,0,'la base se borró');assert.equal(a.db.prepare("SELECT COUNT(*) n FROM mihoja WHERE user_id='user_a'").get().n,0);
++  assert.ok(dev.ls.has('lhb_borrando'),'la marca queda');assert.ok(dev.ls.has('lhb_mihoja_v1'),'la copia del teléfono queda mientras no se sabe');
++  /* la app vuelve a abrir (otra página, la misma cuenta de Clerk): se termina sola */
++  lose=false;clerk.DELETE=200;h=ACCT34(dev,{api:real});await h.X.resumeDelete();
++  assert.deepEqual(cl,['GET','DELETE','GET','DELETE']);for(const k of [...KEYS34,'lhb_borrando'])assert.ok(!dev.ls.has(k),'borrado '+k);assert.deepEqual(h.outs(),OUT34);
++  assert.deepEqual(h.log.find(x=>Array.isArray(x)),['DELETE','/api/account','{"confirm":"#fin"}','user_a']);
++  /* una marca con el perfil entero (el pedido nunca llegó): el servidor dice que no, no se borra nada y la marca se va */
++  a.mk('user_a','ana_a');const dev2=DEV28(a,'user_a');dev2.seed(DOC34());await dev2.sync();dev2.ls.set('lhb_borrando','{"sub":"user_a"}');
++  h=ACCT34(dev2,{api:real});await h.X.resumeDelete();
++  assert.equal(a.db.prepare("SELECT COUNT(*) n FROM profiles WHERE user_id='user_a'").get().n,1,'el perfil sigue');assert.ok(!dev2.ls.has('lhb_borrando'));assert.ok(dev2.ls.has('lhb_mihoja_v1'));assert.deepEqual(h.outs(),[]);
++  assert.equal((await dev2.eng.run('x')).ok,true,'la sincronización vuelve');
++  /* una marca de otra cuenta, o sin sesión: no se hace nada */
++  dev2.ls.set('lhb_borrando','{"sub":"user_b"}');h=ACCT34(dev2,{api:real});await h.X.resumeDelete();assert.ok(dev2.ls.has('lhb_borrando'));assert.equal(h.log.length,0);
++  dev2.ls.set('lhb_borrando','{"sub":"user_a"}');h=ACCT34(dev2,{api:real,clerkUser:null});await h.X.resumeDelete();assert.ok(dev2.ls.has('lhb_borrando'));assert.equal(h.log.length,0);
++ }finally{a.done()}});
++test('LHB-34: el panel de la cuenta en Perfil: descargar (el respaldo de siempre), salir, borrar con el @ escrito y el enlace a privacidad',()=>{
++ const dev={D:{ls:{}},ls:new Map(),eng:{},X:{}};
++ const h=ACCT34(dev);const html=h.X.accountPanel();
++ assert.match(html,/<button class="lbtn" data-exp type="button">Descargar mis datos<\/button>/);assert.match(html,/id="acOut">Salir de la cuenta</);
++ assert.match(html,/<a href="\/privacidad">Privacidad y cuenta<\/a>/);assert.match(html,/Para confirmar, escribe tu @ana_a/);assert.match(html,/id="acDel" disabled>Borrar mi cuenta para siempre</);
++ h.X.bindAccount();const inp=h.els.acDelI,del=h.els.acDel;
++ for(const [v,off] of [['ana',true],['ana_a',false],['@ANA_A ',false],['ana_ab',true],['',true]]){inp.value=v;inp.oninput();assert.equal(del.disabled,off,v)}
++ assert.equal(typeof h.els.acOut.onclick,'function');
++ assert.equal(ACCT34(dev,{acct:null}).X.accountPanel(),'','sin cuenta no hay panel');
++ /* Perfil (app.js) lo pinta y lo conecta, también después de guardar la capa */
++ const vp=read('app.js').match(/async function vPerfil\(\)\{[\s\S]*?hydratePhotos\(\)\}/)[0];assert.match(vp,/\$\{EXT\.accountPanel\(\)\}/);assert.match(vp,/EXT\.bindAccount\(\);/);
++ /* descargar es el respaldo de siempre; una marca de borrado a medias se retoma al abrir */
++ assert.match(read('hoja.js'),/\$\$\('#acctP \[data-exp\]'\)\.forEach\(b=>b\.onclick=exportar\)/);assert.match(read('hoja.js'),/if\(delMark\.get\(\)\)setTimeout\(resumeDelete,1500\);/);
++});
+ /* LHB-95: los anchos dibujados se miden en Chrome sin pantalla (tools/widths.mjs). La corrida de siempre no abre un navegador: la medición va con LHB_BROWSER=1 */
+ test('LHB-95: la herramienta mide en los anchos de la evidencia de LHB-85 y LHB-93, con la regla de LHB-85 (nunca por debajo, a lo sumo 3 px por encima)',()=>{
+  const t=fs.readFileSync(path.join(__dirname,'..','tools','widths.mjs'),'utf8');

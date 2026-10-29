@@ -1,0 +1,37 @@
+M1 handle_checks skipped                             rc 1 fail 7 -> RED
+M2 mihoja skipped                                    rc 1 fail 9 -> RED
+M3 profiles skipped                                  rc 1 fail 9 -> RED
+M4 follows skipped (red without foreign keys)        rc 1 fail 1 -> RED
+M5 follow_events skipped (red without foreign keys)  rc 1 fail 1 -> RED
+M6 follows only on the follower side                 rc 1 fail 1 -> RED
+M7 the Clerk delete skipped                          rc 1 fail 5 -> RED
+M8 Clerk 404 is a failure                            rc 0 fail 0 -> SURVIVED
+M9 unknown tables ignored (fail open)                rc 1 fail 1 -> RED
+M10 d1_migrations counted as unknown                 rc 1 fail 1 -> RED
+M11 no typed confirmation                            rc 1 fail 3 -> RED
+M12 any Clerk key for any instance                   rc 1 fail 1 -> RED
+M13 Clerk deleted before the base                    rc 1 fail 3 -> RED
+M14 sign-out check removed (the Proof)               rc 1 fail 4 -> RED
+M15 settled: pending check removed                   rc 1 fail 1 -> RED
+M16 settled: draft check removed                     rc 1 fail 1 -> RED
+M17 settled: any backup counts                       rc 1 fail 1 -> RED
+M18 forget keeps the sync meta                       rc 1 fail 5 -> RED
+M19 held passes still run                            rc 1 fail 4 -> RED
+M20 a refused delete leaves sync stopped             rc 1 fail 2 -> RED
+M21 a lost response clears the delete mark           rc 1 fail 2 -> RED
+M22 delete button always enabled                     rc 1 fail 1 -> RED
+M23 no privacy link in the panel                     rc 1 fail 1 -> RED
+M24 Perfil does not bind the panel                   rc 1 fail 1 -> RED
+M25 Codex r1: Mi Hoja create without the profile in the same statement rc 1 fail 1 -> RED
+M26 Codex r1: a Mi Hoja PUT without a profile is not a 403 rc 1 fail 1 -> RED
+Traceback (most recent call last):
+  File "C:\Users\Owner\lhb-34-wt\evidence\lhb-34-mutations.py", line 82, in <module>
+    mut()
+    ~~~^^
+  File "C:\Users\Owner\lhb-34-wt\evidence\lhb-34-mutations.py", line 52, in <lambda>
+    ('M27 Codex r1: no sweep after Clerk', lambda: edit(API, "  try { await sweep(); } catch (e) {}\r\n", '')),
+                                                   ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Owner\lhb-34-wt\evidence\lhb-34-mutations.py", line 18, in edit
+    assert s.count(old) == 1, (rel, old, s.count(old))
+           ^^^^^^^^^^^^^^^^^
+AssertionError: ('functions/api/account.js', '  try { await sweep(); } catch (e) {}\r\n', 0)
