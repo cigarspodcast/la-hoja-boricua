@@ -1,0 +1,9 @@
+F0 the code of 538a096 (key by what the card shows)                        rc 1 pass 18 fail 1 -> RED
+F2 pfKey/pfFind key by what the card shows again                           rc 1 pass 18 fail 1 -> RED
+F3 no count for twins with the same key                                    rc 1 pass 18 fail 1 -> RED
+F4 the id is ignored (key by what the card shows, counted)                 rc 1 pass 18 fail 1 -> RED
+F6 Codex r1: the id alone, counted (order acts as id for a shared id)      rc 1 pass 18 fail 1 -> RED
+F5 the key leaks into the reviews shown                                    rc 1 pass 18 fail 1 -> RED
+F1 the ticket: focus skipped while a sheet is open (unreachable here)      rc 0 pass 19 fail 0 -> SURVIVED, expected: the sheet holds focus with LHB-64
+baseline after restore: rc 0 pass 19 fail 0
+RESULT 6 of 6 mutations red
