@@ -41,6 +41,7 @@ Plus three LHB-104 (Codex r3) tests, each failing on e070f81's sync.js and hoja.
 12. Tab 2 starts settled() and its GET waits before reaching the server; tab 1 removes a1 (lands, answer lost), learns it landed, records its base, removes its entry and sends a restorative upload that loses its answer: a1 stays in the account and locally, and tab 1's late PUT answers 409.
 13. A 200 arrives while the person re-adds a1, and the final meta cannot be written: the entry stays, and after a reload a1 stays.
 14. Thirty fresh engines at one If-Match under a 600-character quota: at most 9 keys; when the network returns, the pass uploads and nothing is left recorded.
+15. Without the ops column (0008 not applied), another tab's removal landed without an answer and the person re-added a1: nobody can answer for the entry, so the pass voids and a1 stays (guards the final void; seen red under that mutant).
 The LHB-80 test with nine unanswered uploads (the ninth landed) now also guards wonAt: this tab's own uploads under the shared key do not void its base when one of its asked uploads is known to have landed.
 Evidence: evidence/lhb-104-mutations.out (25 mutants, proven against the LHB-104, LHB-80, LHB-31 and LHB-28 tests), evidence/lhb-104-tests.txt (full suite).
 

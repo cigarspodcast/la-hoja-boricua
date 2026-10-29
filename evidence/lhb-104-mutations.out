@@ -1,15 +1,15 @@
-baseline (no mutation): pass 108 fail 0
+baseline (no mutation): pass 109 fail 0
 settled ignores the other tabs (before LHB-104)              RED (caught) (fail 1)
-the upload is not recorded for the other tabs                RED (caught) (fail 12)
+the upload is not recorded for the other tabs                RED (caught) (fail 13)
 no fence for an upload of another tab                        RED (caught) (fail 2)
 a landed upload of another tab keeps the base                RED (caught) (fail 5)
-an entry nobody can answer for keeps the base                GREEN (survived) (fail 0)
+an entry nobody can answer for keeps the base                RED (caught) (fail 1)
 the uploads of other tabs are never asked about              RED (caught) (fail 1)
 more ids are asked than the server takes                     RED (caught) (fail 1)
 this tab counts its own dropped uploads as another tab       RED (caught) (fail 3)
 a 200 leaves the older uploads of the other tabs listed      RED (caught) (fail 12)
 a clear rejection leaves the upload listed                   RED (caught) (fail 1)
-an upload past the account rev stays listed                  RED (caught) (fail 6)
+an upload past the account rev stays listed                  RED (caught) (fail 7)
 r1: sign-out does not look at the uploads again behind its fence RED (caught) (fail 1)
 r1: the evidence is removed before the base is struck        RED (caught) (fail 2)
 r1: no bound on the uploads listed for one If-Match          RED (caught) (fail 3)
@@ -24,4 +24,4 @@ r3: a 200 removes the entries before the base is recorded    RED (caught) (fail 
 r3: an upload known to have landed at that If-Match does not clear the others RED (caught) (fail 1)
 r3: one overflow key per upload, not shared                  RED (caught) (fail 3)
 r3: a pass whose minimal meta does not fit stops instead of keeping the entries RED (caught) (fail 1)
-RESULT 24 of 25 red; 0 named equivalent; 1 unexpected survivors
+RESULT 25 of 25 red; 0 named equivalent; 0 unexpected survivors
