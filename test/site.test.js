@@ -4294,3 +4294,61 @@ test('LHB-58 (Codex ronda 2): pintar otra vez tu Perfil (la respuesta del servid
  /* la reseña de la tarjeta ya no está: vuelve a la pestaña abierta */
  H.ctx.localStorage.setItem('lhb_mihoja_v1',JSON.stringify({...DOC58(),diario:[]}));H.X.pfOwnSync();assert.equal(H.ctx.lastFocus,H.els['pfT-resenas']);
 });
+/* LHB-61: Siguiendo (functions/api/feed.js, _lib/feed.js) en SQLite real: las catas públicas de las personas que sigues */
+async function API61(){
+ const a=await API40();const FD=await a.imp('api/feed.js'),FL61=await a.imp('_lib/feed.js');
+ const feed=async(u,cursor,e)=>{const url='https://x.test/api/feed'+(cursor!=null?'?cursor='+encodeURIComponent(cursor):'');
+  const r=await FD.onRequestGet({request:{url,headers:{get:h=>h==='Authorization'&&u?'Bearer '+(await0[u]):null}},env:e||a.env});return [r.status,await r.json()]};
+ const await0={};const login=async u=>{await0[u]=await a.tok(u)};
+ /* cata pública de prueba: id y foto privados, que nunca salen */
+ const cata=(id,day,extra)=>({id,fecha:'2026-01-01T00:00:00.000Z',nombre:'N '+id,marca:'',artesano:'Art '+id,rating:3,tags:['t'+id],notas:'nota '+id,foto:'foto_'+id,publica:true,consumido:day,...(extra||{})});
+ const all=async u=>{const out=[];let c=null,n=0;do{const [st,b]=await feed(u,c);assert.equal(st,200,JSON.stringify(b));assert.ok(b.items.length<=20,'20 por página');out.push(...b.items);c=b.next;n++}while(c&&n<50);return {out,pages:n}};
+ return {...a,FD,FL61,feed,login,cata,all}}
+const ids61=items=>items.map(x=>x.entry.nombre.replace(/^N /,''));
+test('LHB-61: Siguiendo trae solo las catas públicas de quienes sigues, con lo público del autor; una privada, una de alguien que no sigues o de un perfil oculto nunca sale',async()=>{
+ const a=await API61();try{
+  a.mk('u_yo','yo');a.mk('u_bea','bea',{name:'Bea S.'});a.mk('u_cris','cris');a.mk('u_oculta','oculta',{hidden:true});a.mk('u_otro','otro');
+  a.fol('u_yo','u_bea','2026-10-01T00:00:00.000Z');a.fol('u_yo','u_cris','2026-10-01T00:00:01.000Z');a.fol('u_yo','u_oculta','2026-10-01T00:00:02.000Z');
+  a.doc('u_bea',DOC40());a.doc('u_cris',{schema:1,diario:[a.cata('c1','2026-03-04'),{...a.cata('c2','2026-03-10'),publica:false}]});
+  a.doc('u_oculta',{schema:1,diario:[a.cata('o1','2026-05-01')]});a.doc('u_otro',{schema:1,diario:[a.cata('x1','2026-05-01')]});
+  await a.login('u_yo');const [st,b]=await a.feed('u_yo');assert.equal(st,200);
+  assert.deepEqual(b.items.map(x=>[x.author.handle,x.entry.nombre]),[['bea','Churchill Nuevo'],['cris','N c1'],['bea','Toro Publico']],'solo las públicas (publica === true) de quienes sigo, la más reciente primero');
+  assert.equal(b.next,null);
+  assert.deepEqual(b.items[0].author,{handle:'bea',display_name:'Bea S.',avatar_key:AV},'el autor: nombre público, @ y foto');
+  assert.deepEqual(b.items[2].entry,{nombre:'Toro Publico',marca:'',artesano:'Don Ramón',rating:4,tags:['madera','cacao'],notas:'nota publica\nsegunda linea',consumido:'2026-03-03'},'la misma lista cerrada que el pasaporte');
+  const txt=JSON.stringify(b);for(const s of [...SECRETOS56,'foto_secreta_1','d-pub-1','paso privado','capa privada','Corona Secreta','Robusto Texto','Lancero Uno','HumidorPrivado','N c2','N o1','N x1','u_bea','u_yo','fecha'])assert.ok(!txt.includes(s),'no sale: '+s);
+  /* dejar de seguir: sus catas desaparecen */
+  assert.equal((await a.unfollow('u_yo','bea'))[0],200);const [,b2]=await a.feed('u_yo');assert.deepEqual(b2.items.map(x=>x.author.handle),['cris']);
+  /* una cata que se vuelve privada desaparece; un perfil que se oculta también */
+  a.doc('u_cris',{schema:1,diario:[{...a.cata('c1','2026-03-04'),publica:false}]});assert.deepEqual((await a.feed('u_yo'))[1].items,[]);
+  a.doc('u_cris',{schema:1,diario:[a.cata('c1','2026-03-04')]});a.set('u_cris','hidden',1);assert.deepEqual((await a.feed('u_yo'))[1].items,[],'un perfil oculto no sale');
+ }finally{a.done&&a.done()}});
+test('LHB-61: Siguiendo pide sesión con perfil; un documento roto de una persona no rompe a las demás; sin nadie a quien seguir, vacía',async()=>{
+ const a=await API61();try{
+  a.mk('u_yo','yo');a.mk('u_bea','bea');a.mk('u_rota','rota');a.mk('u_lista','lista');
+  for(const [u,t] of [['u_bea','2026-10-01T00:00:00.000Z'],['u_rota','2026-10-01T00:00:01.000Z'],['u_lista','2026-10-01T00:00:02.000Z']])a.fol('u_yo',u,t);
+  assert.deepEqual(await a.feed(null),[401,{error:'no-session'}]);
+  await a.login('u_nadie');assert.deepEqual(await a.feed('u_nadie'),[403,{error:'no-profile'}],'sin perfil no hay Siguiendo');
+  await a.login('u_yo');assert.deepEqual(await a.feed('u_yo'),[200,{items:[],next:null}],'nadie tiene Mi Hoja todavía');
+  a.doc('u_bea',{schema:1,diario:[a.cata('b1','2026-02-02'),null,'x',[1],{...a.cata('b2','no-es-dia')},{...a.cata('b3',null)},{publica:true}]});a.doc('u_rota','{no es json');a.doc('u_lista',{schema:1,diario:{'0':a.cata('l1','2026-02-03')}});
+  const [st,b]=await a.feed('u_yo');assert.equal(st,200);
+  assert.deepEqual(b.items.map(x=>[x.entry.nombre,x.entry.consumido]),[['N b1','2026-02-02'],['N b2',null],['N b3',null],['',null]],'lo roto no rompe; sin día va al final, en el orden del diario');
+  for(const c of ['x','2026-01-01~bea','2026-01-01~bea~0','2026-01-01~Bea~1','2026-1-01~bea~1','2026-01-01~bea~1~2','-~bea~01'])assert.deepEqual(await a.feed('u_yo',c),[400,{error:'bad-cursor'}],'cursor malo: '+c);
+ }finally{a.done&&a.done()}});
+test('LHB-61: Siguiendo pagina de 20 en 20 con el cursor, la más reciente primero (día, @, orden del diario), sin repetir ni saltar; una cata nueva entre páginas no mueve a las demás',async()=>{
+ const a=await API61();try{
+  a.mk('u_yo','yo');const who=['ana','beto','cata'];who.forEach((h,i)=>{a.mk('u_'+h,h);a.fol('u_yo','u_'+h,'2026-10-0'+(i+1)+'T00:00:00.000Z')});
+  /* 3 personas x 17 catas, varias el mismo día: 51 catas, 3 páginas */
+  const docs={};for(const h of who){const d=[];for(let k=0;k<17;k++)d.push(a.cata(h+k,'2026-0'+(1+(k%3))+'-1'+(k%2)));docs[h]=d;a.doc('u_'+h,{schema:1,diario:d})}
+  /* lo esperado, calculado aparte: día (más nuevo primero), @ (al revés), y en la misma persona y día el orden del diario */
+  const exp=[];for(const h of who)docs[h].forEach((e,i)=>exp.push({h,day:e.consumido,i,id:e.id}));
+  exp.sort((x,y)=>y.day.localeCompare(x.day)||y.h.localeCompare(x.h)||x.i-y.i);
+  await a.login('u_yo');const {out,pages}=await a.all('u_yo');assert.equal(pages,3);assert.equal(out.length,51);
+  assert.deepEqual(ids61(out),exp.map(x=>x.id),'el orden completo, sin repetir ni saltar');
+  /* una cata nueva de beto llega entre la página 1 y la 2: nada se repite ni se salta de lo que ya había */
+  const [,p1]=await a.feed('u_yo');docs.beto.unshift(a.cata('nueva','2026-01-10'));a.doc('u_beto',{schema:1,diario:docs.beto});
+  const rest=[];let c=p1.next;while(c){const [,b]=await a.feed('u_yo',c);rest.push(...b.items);c=b.next}
+  const seen=[...ids61(p1.items),...ids61(rest)].filter(x=>x!=='nueva');assert.deepEqual(seen,exp.map(x=>x.id),'una cata nueva no hace repetir ni saltar');
+  /* el cursor no lleva nada privado: día, @ y el lugar entre las públicas */
+  assert.match(p1.next,/^\d{4}-\d{2}-\d{2}~[a-z0-9_]{3,20}~\d+$/);assert.ok(!/u_|nueva|ana1/.test(p1.next));
+ }finally{a.done&&a.done()}});
