@@ -148,6 +148,7 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  /* LHB-121: el aviso del navegador se guarda en index.html, antes de los scripts; app.js lo usa */
  assert.ok(ix.includes("addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__lhbBIP=e;")&&ap.includes('d.prompt()')&&ap.includes("addEventListener('appinstalled'"));
  assert.ok(!ap.includes("'beforeinstallprompt'"),'un solo lugar escucha el aviso');
+ assert.ok(ix.includes("window.__lhbBIP=e;try{localStorage.removeItem('lhb_installed')}catch(x){}document.dispatchEvent(new Event('lhb-bip'))"),'Codex r4: un aviso nuevo borra lo recordado, así rechazarlo no esconde Instalar');
  assert.ok(hj.includes("kind==='instalar'")&&hj.includes('Toca el botón Compartir')&&hj.includes('Añadir a pantalla de inicio')&&hj.includes('Instalar app'));
  assert.match(css,/\.btn-add\[hidden\]\{display:none\}/);
  const fn=INST121().installHidden;
