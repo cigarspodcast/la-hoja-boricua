@@ -4016,7 +4016,7 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   for(const m of MEDIA111(x,f))assert.ok(m.u.startsWith('${')||/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m.u),f+': una imagen que no es foto ni marca: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
   assert.ok(!/img\/guagua|\.coqui|class="(volky|flor|flamboyan|coqui)/.test(x),f);
   /* Codex r4 y r5: lo que el script nombra, sus data URI y las fuentes que pone (SCRIPT111) */
-  SCRIPT111(x,f,f==='hoja.js'?1:0)}
+  SCRIPT111(x,f,f==='hoja.js'?1:0,['app.js','hoja.js'].includes(f)?1:0)}
  for(const f of ['index.html','sw.js','styles.css'])assert.ok(!/img\/guagua|\.coqui\b|\.volky|\.flamboyan|\.garita/.test(read(f)),f);
  /* Codex r1: todo SVG escrito en los scripts es un ícono (24 x 24) o uno de los gráficos que dicen algo (no adornan): la hoja de agua de las iniciales,
     el mapa sin conexión, la rueda de sabores y el sello de zona. Uno nuevo no pasa sin ponerlo aquí */
@@ -4033,13 +4033,11 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   assert.deepEqual(MEDIA111('<input type="checkbox" ${on?\'checked\':\'\'}><img src="${esc(u)}" alt="" ${c.mini?`a`:{b:1}.b}decoding="async">','x').map(m=>m.u),['${esc(u)}'],'una expresión ${...} es una pieza de la etiqueta');
   assert.throws(()=>MEDIA111('<img src="a.webp" alt="x>','x'),/no sabe leer/);
   /* Codex r5: SCRIPT111 sobre muestras: lo de afuera falla, lo del sitio pasa */
-  for(const bad of ['<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|x:/,bad);
+  for(const bad of ['<canvas id="d"></canvas><script>document.getElementById("d").getContext("2d")</script>','<script>document.createElementNS("http://www.w3.org/2000/svg","svg")</script>','<script>new OffscreenCanvas(9,9)</script>','<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|lienzo|DOM|x:/,bad);
   SCRIPT111('{"image":"https://lahojaboricua.com/img/cigarros/a.webp","logo":"../icons/icon-512.png"};i.src=\'icons/icon.svg\'','x',0);
   for(const bad of ['<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
   assert.ok(ICON111('<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" fill="none"/><path stroke=\'currentColor\' d="M4 4"/></svg>'),'un ícono de verdad pasa (un rect con su width y height dentro está bien)');
-  /* Codex r6: ni un SVG hecho por el DOM (createElementNS), ni un lienzo que dibuje fuera de los dos que hay: achicar la foto que sube el lector (app.js) y la
-     imagen para compartir (hoja.js, que pinta la foto o la silueta) */
-  for(const f of SVGJS){const x=read(f);assert.ok(!/createElementNS\s*\(/.test(x),f+': un SVG hecho por el DOM');assert.equal([...x.matchAll(/getContext\s*\(/g)].length,['app.js','hoja.js'].includes(f)?1:0,f+': un lienzo')}
+  /* Codex r6 y r7: ni un SVG hecho por el DOM ni un lienzo de más: lo revisa SCRIPT111, en cada script y en cada página */
   for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg>/g))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
  /* Codex r1: las páginas estáticas: sus imágenes son íconos, fotos de cigarros y marcas; sus SVG, íconos */
  {const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.html')?[path.join(d,x.name)]:[]);const pages=walk(path.join(__dirname,'..','site'));assert.ok(pages.length>100,'páginas: '+pages.length);
@@ -5554,9 +5552,13 @@ const MEDIA111=(h,where)=>{const out=[];for(const s of h.matchAll(/<(img|source|
    de las miniaturas de LHB-85, perfil.jpg, el nombre con que sube la foto del propio lector, y og.jpg, la tarjeta que otros sitios muestran al compartir
    un enlace, son las excepciones con nombre); trae tantos data URI
    de imagen como se le dice (uno solo en todo el sitio: la silueta de la imagen para compartir, en hoja.js); y la fuente que pone (img.src=,
-   srcset, poster, o setAttribute) es literal de esas carpetas o ese data URI */
+   srcset, poster, o setAttribute) es literal de esas carpetas o ese data URI. Codex r7: y no dibuja por su cuenta: ningún SVG hecho por el DOM
+   (createElementNS), ningún <canvas> ni OffscreenCanvas escrito, y getContext tantas veces como se le dice (en todo el sitio, dos: achicar la foto que
+   sube el lector, en app.js, y la imagen para compartir, en hoja.js) */
 const IMGOK111=/^(https:\/\/lahojaboricua\.com\/)?(\.\.\/)*\/?(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/;
-const SCRIPT111=(x,where,du)=>{
+const SCRIPT111=(x,where,du,canvas=0)=>{
+ assert.ok(!/createElementNS\s*\(/.test(x),where+': un SVG hecho por el DOM');assert.ok(!/<canvas\b|OffscreenCanvas/i.test(x),where+': un lienzo escrito');
+ assert.equal([...x.matchAll(/getContext\b/g)].length,canvas,where+': un lienzo');
  for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*[\w./-]+\.(?:webp|png|jpe?g|gif|avif|svg|bmp|ico))(?![\w])/gi))assert.ok(IMGOK111.test(m[1])||['_thumb.webp','_thumb-s.webp','perfil.jpg','https://lahojaboricua.com/og.jpg'].includes(m[1]),where+': nombra una imagen de fuera: '+m[1]);
  assert.equal([...x.matchAll(/data:image\//gi)].length,du,where+': un data URI de imagen');
  const lit=v=>IMGOK111.test(v)||v==='data:image/svg+xml;charset=utf-8,';

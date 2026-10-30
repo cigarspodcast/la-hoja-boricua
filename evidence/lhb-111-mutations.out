@@ -31,5 +31,7 @@ Codex r5: a decorative image set with setAttribute                       RED (ca
 Codex r6: a decorative SVG inserted by a script outside the five         RED (caught) (fail 1)
 Codex r6: an SVG made through the DOM                                    RED (caught) (fail 1)
 Codex r6: a decorative canvas drawing                                    RED (caught) (fail 1)
+Codex r7: a canvas drawing in an inline script on a static page          RED (caught) (fail 1)
+Codex r7: an SVG made through the DOM in an inline script on a static page RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
-RESULT 33 of 33 red
+RESULT 35 of 35 red
