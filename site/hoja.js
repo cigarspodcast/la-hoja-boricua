@@ -210,6 +210,9 @@ async function api(C,method,path,body,uid,extra,go){const t=await C.session.getT
    corre la nueva a un índice ya leído, y esta pestaña no la ve */
 SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k),keys:()=>Object.keys(localStorage)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),closed:()=>wlClosed(),
+ /* LHB-105: el candado de esta pestaña mientras vive, y cuáles están tomados (sync.js sabe así si un cambio de cuenta a mitad es de una pestaña viva) */
+ tabLock:n=>{if(typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.request==='function')navigator.locks.request(n,()=>new Promise(()=>{})).catch(()=>{})},
+ tabsHeld:typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.query==='function'?async()=>{const q=await navigator.locks.query();return new Set((q.held||[]).map(l=>l.name))}:null,
  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),wait:ms=>new Promise(r=>setTimeout(r,ms)),toast,
  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */

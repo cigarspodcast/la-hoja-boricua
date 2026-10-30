@@ -9,11 +9,17 @@ if os.path.exists(D):
 shutil.copytree(WT, D, ignore=shutil.ignore_patterns('.git', 'node_modules', 'evidence'))
 PAT = 'LHB-105'
 MUTS = [
-    ('site/sync.js', 'a pass starts during a switch (no check at the start)', "if(switching())return {fail:'switching'};", ''),
+    ('site/sync.js', 'a pass starts during a switch (no check after the epoch read)', "  if(await switching())return {fail:'switching'};\n", ''),
     ('site/sync.js', 'the switch is not marked', "try{D.ls.set(mine,JSON.stringify({v:1,t:D.nowMs()}))}catch(e){return false}", ''),
     ('site/sync.js', 'a switch that cannot be marked goes ahead unmarked', "try{D.ls.set(mine,JSON.stringify({v:1,t:D.nowMs()}))}catch(e){return false}", "try{D.ls.set(mine,JSON.stringify({v:1,t:D.nowMs()}))}catch(e){}"),
-    ('site/sync.js', 'the mark stays after the switch ends', "  try{D.ls.remove(mine)}catch(e){}\n", ''),
+    ('site/sync.js', 'the mark stays after the switch ends', "  try{D.ls.remove(mine)}catch(e){unmark=true}\n", ''),
     ('site/sync.js', 'the mark of a tab that closed mid-switch never lapses', "SWITCH_TTL=30e3", "SWITCH_TTL=1e15"),
+    ('site/sync.js', 'Codex r1: a live tab asleep past the lapse no longer counts', "(held&&held.has(TABLOCK+m.tab))", "false"),
+    ('site/sync.js', 'Codex r1: the pass switches the copy before it checks for another tab mid-switch', "  if(await switching())return {fail:'switching',at:'start'};\n", ''),
+    ('site/sync.js', 'Codex r1: isolate starts while another tab is mid-switch', "if(ms.some(fresh))return false;", ''),
+    ('site/sync.js', 'Codex r1: a mark that could not be removed is not retried', "catch(e){unmark=true}", "catch(e){}"),
+    ('site/sync.js', 'Codex r1: a switch that wakes after another tab switched still clears the copy', "   if(!still())return false;\n   applying=true;", "   applying=true;"),
+    ('site/sync.js', 'Codex r1: the mark of a closed tab is left behind', "if(held){try{D.ls.remove(m.k)}catch(e){}}", ''),
 ]
 
 
