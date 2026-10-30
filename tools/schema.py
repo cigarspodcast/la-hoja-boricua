@@ -24,7 +24,7 @@ def alt_links(tail):
 def en_head(head):
     # la cabecera de una página en /en/<sección>/: en inglés y un nivel más abajo
     out = head.replace('<html lang="es-PR">', '<html lang="en">').replace('href="l.css"', 'href="../lugares/l.css"')
-    out = out.replace('href="../', 'href="../../').replace('>Abrir en la app<', '>Open in the app<')
+    out = out.replace('href="../', 'href="../../').replace('src="../icons/', 'src="../../icons/').replace('>Abrir en la app<', '>Open in the app<')
     assert out.count('href="../../') >= 2 and 'lang="en"' in out, 'en_head: la cabecera no tiene la forma esperada'
     return out
 

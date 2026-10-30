@@ -154,7 +154,7 @@ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, P
 
 test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
- for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v150'/);});
+ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v150'/);});
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
@@ -290,18 +290,18 @@ test('LHB-29: art.js toma sus textos de i18n.js (cargado antes): en espa\u00f1ol
 test('LHB-29: index.html trae el espa\u00f1ol y marca cada texto con data-i18n o data-i18n-attr; en ingl\u00e9s i18n.js los cambia',()=>{
  const {T}=I18N();const {scan}=require('./i18n-scan.js');const ix=read('index.html');
  const body=ix.replace(/<noscript>[\s\S]*?<\/noscript>/g,'').replace(/<script[\s\S]*?<\/script>/g,'').replace(/<style[\s\S]*?<\/style>/g,'');
- const left=scan(body).filter(x=>!/^(text|attr): (La Hoja Boricua|Cigars Podcast|@cigarspodcast|English|EN)$/.test(x));// LHB-93: el selector trae el nombre del otro idioma en ese idioma; wire() lo pone, no T
+ const left=scan(body).filter(x=>!/^(text|attr): (La Hoja Boricua|Hecho en Borinquen|Cigars Podcast|@cigarspodcast|English|EN)$/.test(x));/* LHB-108: el lema es parte de la marca y no se traduce */// LHB-93: el selector trae el nombre del otro idioma en ese idioma; wire() lo pone, no T
  const marked=new Set();for(const m of ix.matchAll(/<(\w+)[^>]*\bdata-i18n="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/g)){assert.equal(T.es[m[2]],m[3],'es '+m[2]);marked.add('text: '+m[3].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim())}
  for(const m of ix.matchAll(/<[^>]*\bdata-i18n-attr="([^"]+)"[^>]*>/g))for(const p of m[1].split(';')){const [a,k]=p.split(':');const v=m[0].match(new RegExp('\\b'+a+'="([^"]*)"'))[1];assert.equal(T.es[k],v,'es '+k);marked.add('attr: '+v)}
  for(const x of left)assert.ok(marked.has(x)||[...marked].some(mk=>mk.includes(x.slice(x.indexOf(': ')+2))),'sin marcar: '+x);
  assert.ok(marked.size>=15,'marcados: '+marked.size);
  // en ingl\u00e9s, apply() cambia el HTML y los atributos marcados
- const els=[{a:{'data-i18n':'ix.brandSub'},innerHTML:'Hecho en Borinquen'},{a:{'data-i18n-attr':'aria-label:ix.tabs','aria-label':'Secciones'}}];
+ const els=[{a:{'data-i18n':'ix.footLug'},innerHTML:'Cigar lounges en Puerto Rico'},{a:{'data-i18n-attr':'aria-label:ix.tabs','aria-label':'Secciones'}}];
  for(const e of els){e.getAttribute=n=>e.a[n];e.setAttribute=(n,v)=>{e.a[n]=v}}
  const doc={documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)};
  const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:doc};
  require('vm').runInNewContext(read('i18n.js').replace('const ENABLED=false;','const ENABLED=true;'),{window:w});
- assert.equal(els[0].innerHTML,'Made in Borinquen');assert.equal(els[1].a['aria-label'],'Sections');
+ assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');assert.equal(els[1].a['aria-label'],'Sections');
  const w2={navigator:{language:'es-PR'},localStorage:{getItem:()=>null},document:{...doc,querySelectorAll:()=>{throw new Error('en espa\u00f1ol no se toca el DOM')}}};
  require('vm').runInNewContext(read('i18n.js'),{window:w2});assert.equal(w2.LHB_I18N.lang,'es');
 });
@@ -3462,7 +3462,7 @@ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dib
 test('LHB-88: el nombre accesible del enlace de la marca es su texto visible',()=>{const ix=read('index.html');const m=ix.match(/<a class="brand"[^>]*>([\s\S]*?)<\/a>/);assert.ok(m,'enlace de la marca');
  assert.ok(!/aria-label=/.test(m[0].match(/^<a[^>]*>/)[0]),'sin aria-label distinto del texto que se ve');assert.match(m[1],/<img [^>]*alt=""/,'el logo es decorativo');
  const txt=m[1].replace(/<\/span><span/g,'</span> <span').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();assert.equal(txt,'La Hoja Boricua Hecho en Borinquen');
- for(const f of ['build_lugares.py','build_cigarros.py','build_artesanos.py']){const t=fs.readFileSync(path.join(__dirname,'..','tools',f),'utf8');assert.ok(t.includes('<a class="brand" href="../">La Hoja <em>Boricua</em></a>'),f+': la marca de las páginas fijas ya se nombra por su texto')}
+ for(const f of ['build_lugares.py','build_cigarros.py','build_artesanos.py']){const t=fs.readFileSync(path.join(__dirname,'..','tools',f),'utf8');assert.ok(t.includes('<a class="brand" href="../"><img src="../icons/icon.svg" alt="" width="30" height="30"><span class="brand-text"><span class="brand-name">La Hoja <em>Boricua</em></span><span class="brand-sub" lang="es">Hecho en Borinquen</span></span></a>'),f+': la marca de las páginas fijas (LHB-108: la firma, con el logo decorativo) se nombra por su texto')}
 });
 /* LHB-32: las páginas fijas en inglés viven en /en/<sección>/, cada una gemela de una en español */
 const EN32={dirs:['lugares','artesanos','cigarros'],sec:{lugares:'Cigar lounges in Puerto Rico',artesanos:'Cigar artisans in Puerto Rico',cigarros:'Cigars made by Puerto Rican artisans'}};
@@ -3538,7 +3538,7 @@ test('LHB-32: las páginas en inglés usan el inglés de los datos (o el españo
    cuando falta el inglés: texto visible, title, meta, alt y los textos del JSON-LD */
 const TR32=['tipo','historia','nota','donde_comprar','capa','notas','horario'];
 const ES32=/(^|[^\p{L}])(de|del|en|y|la|las|el|los|para|con|por|según|un|una|donde|dónde|cigarro|cigarros|artesano|artesanos|artesanales|lugar|lugares|tienda|tiendas|horario|dirección|fumar|guía|más|sus|abrir|ver|hecho|torcidos|confirma|antes|puedes|cómo|llegar|sitio|fuentes|fortaleza|capa|pueblo|tipo)(?=$|[^\p{L}])/iu;
-const leftover32=()=>{const keep=new Set(['La Hoja Boricua','Mi Hoja','Cigars Podcast']);const add=v=>{if(typeof v!=='string'||!v.trim())return;const s=v.trim();keep.add(s);keep.add(s.replace(/\.$/,''));const m=s.match(/^(.+?)\s*\((.+)\)$/);if(m){keep.add(m[1].trim());keep.add(m[2].trim());keep.add(m[1].trim()+', '+m[2].trim())}};
+const leftover32=()=>{const keep=new Set(['La Hoja Boricua','Hecho en Borinquen','Mi Hoja','Cigars Podcast']);/* LHB-108: el lema es parte de la marca */const add=v=>{if(typeof v!=='string'||!v.trim())return;const s=v.trim();keep.add(s);keep.add(s.replace(/\.$/,''));const m=s.match(/^(.+?)\s*\((.+)\)$/);if(m){keep.add(m[1].trim());keep.add(m[2].trim());keep.add(m[1].trim()+', '+m[2].trim())}};
  for(const f of ['places.json','artesanos.json','cigarros.json'])for(const r of JSON.parse(readD(f)))for(const [k,v] of Object.entries(r)){
   if(TR32.includes(k)){const e=r[k+'_en'];if(!(typeof e==='string'&&e.trim()))add(v);continue}
   if(k==='fortaleza')continue;/* Codex ronda 1: suave, media, fuerte se muestran como Mild, Medium, Full */
@@ -5636,7 +5636,7 @@ test('LHB-72: el splash viejo se fue; la intro carga antes que la app, sus video
  const fe=sw.slice(sw.indexOf("self.addEventListener('fetch'"));assert.ok(fe.indexOf("if(url.pathname.startsWith('/assets/intro/'))return;")>=0&&fe.indexOf("if(url.pathname.startsWith('/assets/intro/'))return;")<fe.indexOf('// static: cache first'),'la intro va a la red antes del caché');
  const dir=path.join(__dirname,'..','site','assets','intro');for(const [f,max] of [['intro-portrait.mp4',700e3],['intro-landscape.mp4',700e3],['poster-portrait.webp',60e3],['poster-landscape.webp',60e3]])assert.ok(fs.statSync(path.join(dir,f)).size<max,f);
  const {scan}=require('./i18n-scan.js');assert.deepEqual(scan(read('intro.js')),[],'sin texto escrito en intro.js');
- const {T}=I18N();const keys=[...new Set([...read('intro.js').matchAll(/\btt\('(intro\.[\w.]+)'\)/g)].map(m=>m[1]))];assert.equal(keys.length,8);for(const k of keys)assert.ok(T.es[k]&&T.en[k],'es y en: '+k);
+ const {T}=I18N();const keys=[...new Set([...read('intro.js').matchAll(/\btt\('(intro\.[\w.]+)'\)/g)].map(m=>m[1]))];assert.equal(keys.length,7,'LHB-108: el lema salió de intro.*, es brand.tagline');for(const k of keys)assert.ok(T.es[k]&&T.en[k],'es y en: '+k);
  assert.ok(/@media \(prefers-reduced-motion:reduce\)\{\.intro\{display:none\}\}/.test(css),'tampoco se ve si el sistema pide menos movimiento después de cargar');
 });
 /* LHB-73: el bloque de Acerca de y créditos de app.js, de verdad, en el DOM de prueba */
@@ -5755,7 +5755,7 @@ test('LHB-73: Acerca de sale en el menú y trae Ver intro, que repite la intro (
 });
 /* LHB-74: el perfil público no cambia: la misma respuesta, byte por byte, que antes de este ticket (2ff4293, medida el 2026-10-29),
    para una persona con sellos que ganan insignias. La app solo cambia cómo se VEN el pasaporte y las insignias; el servidor no manda nada nuevo */
-const GOLD74={api:['7c4a70704ca7b74c81925e5a8262e7503ad514ec78b30ba1b1efa71b5932d16a',572],page:['df1de1c8142c921a227253e91627bf4d89f2639626d39a2fc08d29f3b0b25a74',3137]};
+const GOLD74={api:['7c4a70704ca7b74c81925e5a8262e7503ad514ec78b30ba1b1efa71b5932d16a',572],page:['48b5b1aecd3cbd73bdc2247365cde311d82b612d7375de23b951670df44937b6',3317]};/* LHB-108: la página cambia solo en la firma del encabezado (180 bytes); la respuesta de la API no cambia */
 test('LHB-74: el perfil público (/api/u/<handle> y /u/<handle>) es idéntico byte por byte al de antes: ningún campo nuevo',async t=>{
  const a=await API58();const sha=x=>require('crypto').createHash('sha256').update(x,'utf8').digest('hex');
  try{
@@ -7272,4 +7272,18 @@ test('LHB-107: los tamaños de letra y los radios salen de los tokens (seis paso
    assert.ok(!/(^|;)\s*font:[^;]*\b[0-9.]+(px|rem|em)/.test(b),f+' '+sel+': font con tamaño suelto');
    assert.ok(!/border-radius:[^;]*[0-9.]+px/.test(b),f+' '+sel+': radio suelto');
    assert.ok(!/var\(--r\)/.test(b),f+' '+sel+': el radio viejo --r')}}
+});
+/* LHB-108: una sola firma (la hoja, La Hoja Boricua en Fraunces y Hecho en Borinquen) en la app, en cada página estática y en el pasaporte /u/ */
+const LOCK108=/<a class="brand" href="[^"]*">\s*<img src="(?:\.\.\/){0,2}\/?icons\/icon\.svg" alt="" width="\d+" height="\d+">\s*<span class="brand-text"><span class="brand-name">La Hoja <em>Boricua<\/em><\/span><span class="brand-sub" lang="es">Hecho en Borinquen<\/span><\/span>\s*<\/a>/g;
+test('LHB-108: cada página del sitio lleva la misma firma, una vez, con el lema en español',()=>{
+ const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
+ const pages=walk(S).filter(f=>f.endsWith('.html'));assert.ok(pages.length>=270,'páginas: '+pages.length);
+ for(const f of pages){const h=fs.readFileSync(f,'utf8');assert.equal((h.match(LOCK108)||[]).length,1,path.relative(S,f));
+  assert.equal((h.match(/class="brand"/g)||[]).length,1,path.relative(S,f)+': otra marca')}
+ const u=fs.readFileSync(path.join(__dirname,'..','functions','u','[handle].js'),'utf8');assert.equal((u.match(LOCK108)||[]).length,1,'el pasaporte /u/');
+});
+test('LHB-108: el lema no se traduce, y la intro usa la misma firma',()=>{
+ const T=I18N().T;for(const k of ['ix.brandSub','intro.tagline'])assert.ok(!(k in T.es)&&!(k in T.en),k);assert.equal(T.es['brand.tagline'],'Hecho en Borinquen');assert.equal(T.en['brand.tagline'],'Hecho en Borinquen');
+ assert.ok(!/Made in Borinquen|Discover the tobacco|Descubre el tabaco/.test(read('i18n.js')+read('intro.js')+read('index.html')),'otro lema');
+ assert.match(read('intro.js'),/<div class="intro-mark"><img src="icons\/icon\.svg" alt="" width="40" height="40"><b>\$\{tt\('intro\.name'\)\}<\/b><span lang="es">\$\{tt\('brand\.tagline'\)\}<\/span><\/div>/);
 });

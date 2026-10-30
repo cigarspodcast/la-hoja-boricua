@@ -1,0 +1,46 @@
+✖ LHB-108: cada página del sitio lleva la misma firma, una vez, con el lema en español (8.1701ms)
+✖ LHB-108: el lema no se traduce, y la intro usa la misma firma (3.1131ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 103.2163
+
+✖ failing tests:
+
+test at test\site.test.js:7282:1
+✖ LHB-108: cada página del sitio lleva la misma firma, una vez, con el lema en español (8.1701ms)
+  AssertionError [ERR_ASSERTION]: 404.html
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red108\test\site.test.js:7285:65)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7289:1
+✖ LHB-108: el lema no se traduce, y la intro usa la misma firma (3.1131ms)
+  AssertionError [ERR_ASSERTION]: ix.brandSub
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red108\test\site.test.js:7290:73)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
