@@ -3,6 +3,10 @@
    - the drawn width of EVERY catalog card photo (.grid .card .ph.has-foto img) at the LHB-85 viewports, and of a card in a
      .mini-row at the same viewports, against the width SIZES_GRID / SIZES_MINI (site/app.js) declare there: never below it,
      at most 3 px over;
+   - LHB-112, the computer layout: at 390, 899, 900 and 1366 px the page never scrolls sideways, the bottom tab bar is drawn below
+     900 px and hidden from 900 px, the top navigation (nav.topnav) is the reverse and draws its five destinations and its plus
+     button without clipping, the view keeps a 1200 px measure and the catalogue grid has three columns from 900 px and four
+     from 1100 px; the LHB-112 widths (899 to 1366) are added to the photo widths above;
    - the header for a Spanish and an English reader at 320, 360, 412 and 1024 px (LHB-109: the language left the header for the
      menu): div.top-actions holds exactly its three controls (search, menu, account), each drawn (displayed, visible, with a
      size); the swap the English reader gets after load moves div.top-actions and each control by under 1 px on every edge; the
@@ -21,7 +25,8 @@ import { join, resolve, extname, normalize } from 'node:path';
 
 const SITE = resolve(process.argv[2] || join(import.meta.dirname, '..', 'site'));
 const CHROME = process.env.CHROME || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const GRID_W = [320, 360, 375, 390, 412, 430, 500, 619, 620, 700, 759, 760, 1024, 1440];
+const GRID_W = [320, 360, 375, 390, 412, 430, 500, 619, 620, 700, 759, 760, 899, 900, 1024, 1099, 1100, 1199, 1200, 1366, 1440];
+const LAYOUT_W = [390, 899, 900, 1366];
 const HEADER_W = [320, 360, 412, 1024];
 const CMD_MS = 15000, WATCHDOG_MS = 90000; // one DevTools command; the whole run (the test gives the tool 120 s)
 // what a mini-row card declares (the grid card's sizes is read from each rendered image)
@@ -142,11 +147,31 @@ try {
     check(over >= 0 && over <= 3, `mini row ${w}: SIZES_MINI ${r1(m.decl)} is at or above drawn ${r1(m.drawn)} by at most 3 px (over ${r1(over)})`);
   }
   out.push('');
+  // drawn: displayed, visible, with a size; the attribute hidden alone says nothing about CSS
+  const SHOWN = `(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility==='visible'&&r.width>0&&r.height>0})`;
+  out.push('LHB-112 layout: the tab bar below 900 px, the top navigation from 900 px, the view measure and the grid columns');
+  out.push('viewport  scrollWidth  tabbar  topnav  links  view.width  columns');
+  await open(LAYOUT_W[0], 'es-PR', '#/catalogo');
+  await until(`!!document.querySelector('.grid .card')&&!!document.querySelector('nav.topnav')`, 'the catalogue and the top navigation');
+  for (const w of LAYOUT_W) {
+    await size(w);
+    const m = await js(`(()=>{const tb=document.querySelector('nav.tabbar'),tn=document.querySelector('nav.topnav'),v=document.getElementById('view'),g=document.querySelector('.grid');
+      const items=[...tn.querySelectorAll('a[data-tab],button.tab-plus')];const r=tn.getBoundingClientRect();
+      return {sw:document.documentElement.scrollWidth,tab:${SHOWN}(tb),top:${SHOWN}(tn),n:items.length,drawn:items.filter(${SHOWN}).length,
+        inside:items.every(i=>{const b=i.getBoundingClientRect();return b.left>=r.left-0.5&&b.right<=r.right+0.5}),clip:tn.scrollWidth>tn.clientWidth+0.5,
+        active:(tn.querySelector('a.active')||{}).dataset?.tab||null,vw:v.getBoundingClientRect().width,cols:getComputedStyle(g).gridTemplateColumns.split(' ').length}})()`);
+    out.push(String(w).padStart(8) + String(m.sw).padStart(13) + String(m.tab ? 'drawn' : 'hidden').padStart(8) + String(m.top ? 'drawn' : 'hidden').padStart(8) + String(m.drawn + '/' + m.n).padStart(7) + String(r1(m.vw)).padStart(12) + String(m.cols).padStart(9));
+    const wide = w >= 900;
+    check(m.sw === w, `layout ${w}: no sideways scroll (scrollWidth ${m.sw})`);
+    check(m.tab === !wide, `layout ${w}: the bottom tab bar is ${wide ? 'hidden' : 'drawn'} (${m.tab ? 'drawn' : 'hidden'})`);
+    check(m.top === wide, `layout ${w}: the top navigation is ${wide ? 'drawn' : 'hidden'} (${m.top ? 'drawn' : 'hidden'})`);
+    if (wide) check(m.n === 6 && m.drawn === 6 && m.inside && !m.clip && m.active === 'catalogo', `layout ${w}: the top navigation draws its 5 destinations and the plus, unclipped, with Cigarros current (${m.drawn}/${m.n}, active ${m.active})`);
+    if (wide) check(m.vw <= 1200 && m.cols === (w >= 1100 ? 4 : 3), `layout ${w}: the view is at most 1200 px (${r1(m.vw)}) and the grid has ${w >= 1100 ? 4 : 3} columns (${m.cols})`);
+  }
+  out.push('');
   out.push('header controls (div.top-actions: search, menu, account) and the menu language row, Spanish reader (as shipped) and English reader (swapped after load)');
   out.push('viewport  reader   controls  top-actions.left  scrollWidth');
   const got = {}, rows = {};
-  // drawn: displayed, visible, with a size; the attribute hidden alone says nothing about CSS
-  const SHOWN = `(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility==='visible'&&r.width>0&&r.height>0})`;
   for (const [lang, name, html] of [['es-PR', 'Spanish', 'es-PR'], ['en-US', 'English', 'en']]) {
     await open(HEADER_W[0], lang, '');
     await until(`(()=>{const t=document.querySelector('.top-actions');return !!t&&document.documentElement.lang===${JSON.stringify(html)}&&[...t.children].every(${SHOWN})})()`, 'the header drawn for ' + name);

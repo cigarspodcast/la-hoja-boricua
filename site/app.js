@@ -6,7 +6,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 /* LHB-85: the 320 x 160 twin of a 600 x 300 thumbnail (tools/build_thumbs.py) */
 const thumbS=t=>String(t).replace(/_thumb\.webp$/,'_thumb-s.webp');
 // ancho dibujado de la imagen de la tarjeta, medido (evidence/lhb-85-slot-widths.txt); la fila mini (Mi Hoja) es de 140 px fijos
-const SIZES_GRID='(min-width:1200px) 273px, (min-width:1100px) calc(25vw - 27px), (min-width:900px) calc(33.33vw - 29px), (min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)',SIZES_MINI='116px';
+const SIZES_GRID='(min-width:1200px) 260px, (min-width:1100px) calc(25vw - 41px), (min-width:900px) calc(33.33vw - 42px), (min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)',SIZES_MINI='116px';
 const view=$('#view');const REDUCED_ALL=matchMedia('(prefers-reduced-motion: reduce)').matches;const VBArt=window.VBArt;const tt=window.LHB_I18N.t;
 const LS={get(k,d){try{const v=localStorage.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){localStorage.setItem('vb_'+k,JSON.stringify(v))}};
 /* ---------- IndexedDB for photos ---------- */

@@ -1,0 +1,9 @@
+LHB-112 red checks. 1: the new test on origin/main (bfdfeae), with this branch's widths evidence.
+ℹ pass 0
+ℹ fail 1
+  AssertionError [ERR_ASSERTION]: la barra de arriba
+2:
+the 900 px block removed (1010 characters) from site/styles.css of the marca-112 tree; the LHB-112 test:
+ℹ pass 0
+ℹ fail 1
+  AssertionError [ERR_ASSERTION]: falta @media (min-width:900px)
