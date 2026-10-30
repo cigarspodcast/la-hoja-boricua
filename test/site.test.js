@@ -4027,7 +4027,11 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   for(const m of h.matchAll(/<[a-zA-Z][^>]*>/g))assert.ok(/^<[a-zA-Z]+(\s+[\w:-]+="[^"<&]*")*\s*\/?>$/.test(m[0]),'la silueta resuelta: una etiqueta que no es XML: '+m[0].slice(0,90));
   {const open={};for(const m of h.matchAll(/<(\/?)([a-zA-Z]+)\b[^>]*?(\/?)>/g))if(!m[3])open[m[2]]=(open[m[2]]||0)+(m[1]?-1:1);
    assert.ok(Object.values(open).every(v=>v===0),'la silueta resuelta: una etiqueta sin cerrar: '+JSON.stringify(open))}
-  assert.ok(!/&(?!(amp|lt|gt|quot|apos);)/.test(h),'la silueta resuelta: un & suelto')}
+  assert.ok(!/&(?!(amp|lt|gt|quot|apos);)/.test(h),'la silueta resuelta: un & suelto');
+  /* Codex r33: y entera por el lector estricto (un atributo repetido, una etiqueta mal anidada o dos raíces no se decodifican) */
+  assert.ok(XML111(h),'la silueta resuelta no es XML que se decodifique');
+  for(const bad of ['<svg xmlns="a" xmlns="a"></svg>','<svg><g></svg></g>','<svg></svg><svg></svg>','<svg a=\'1\'></svg>','<svg>x</svg>','<svg><path/>'])assert.ok(!XML111(bad),'XML111 deja pasar: '+bad);
+  assert.ok(XML111('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1">\n <path d="M0 0"/><g><rect x="1"/></g></svg>'),'un SVG bien formado pasa')}
  const ex=Object.keys(A).filter(k=>!LINE.includes(k)).sort();assert.deepEqual(ex,['CAJA','leaf','star'],'fuera del juego solo la caja en texto, el ícono de hoja y la estrella');
  /* las cabeceras: cada head() lleva un dibujo del juego */
  const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');
@@ -6215,6 +6219,13 @@ const SVGEL_OK111=new Set(['svg','g','path','circle','ellipse','rect','line','po
    un dibujo del juego lleva solo geometría y accesibilidad; un ícono, además, fill o stroke en none o currentColor, la forma del trazo un grosor de 1 a 3 y, si es a trazos, trazos y huecos de al menos 1 (el sello sin marcar) */
 const DRAWATTR111=new Set(['class','viewbox','xmlns','aria-hidden','aria-label','role','focusable','d','cx','cy','r','rx','ry','x','y','width','height','points','x1','y1','x2','y2']);
 const ICONATTR111=new Set([...DRAWATTR111,'fill','stroke','stroke-width','stroke-dasharray','stroke-linecap','stroke-linejoin','fill-rule','clip-rule']);
+/* LHB-111 (Codex r33): un lector de XML estricto para el SVG que se carga solo como imagen: un único elemento raíz, cada etiqueta bien anidada y cerrada,
+   cada atributo una sola vez y entre comillas dobles (sin < ni & dentro), y entre etiquetas solo espacios. Devuelve false si el navegador no lo decodificaría */
+const XML111=s=>{const st=[],re=/\s*(?:<([a-zA-Z][\w:.-]*)((?:\s+[a-zA-Z_][\w:.-]*="[^"<&]*")*)\s*(\/?)>|<\/([a-zA-Z][\w:.-]*)\s*>)/y;let i=0,roots=0;
+ while(i<s.length){if(/^\s*$/.test(s.slice(i)))break;re.lastIndex=i;const m=re.exec(s);if(!m)return false;i=re.lastIndex;
+  if(m[1]){if(!st.length&&++roots>1)return false;const ns=[...m[2].matchAll(/([a-zA-Z_][\w:.-]*)=/g)].map(x=>x[1]);if(new Set(ns).size!==ns.length)return false;if(!m[3])st.push(m[1])}
+  else if(st.pop()!==m[4])return false}
+ return roots===1&&st.length===0};
 const SVGEL111=svg=>[...svg.matchAll(/<([a-zA-Z][\w:.-]*)/g)].every(m=>SVGEL_OK111.has(m[1].toLowerCase()));
 const ICON111=svg=>{const root=(svg.match(/^<svg\b[^>]*>/i)||[''])[0],paint=['fill','stroke','stop-color','color','flood-color','lighting-color'];
  return SVGEL111(svg)&&!/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|<(image|foreignObject|style)\b/i.test(svg)
