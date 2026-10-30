@@ -1,0 +1,23 @@
+restored tree before: rc 0
+the chosen dark theme keeps the day mark         rc 1  KILLED
+a static page loses its night mark               rc 1  KILLED
+the share card keeps the small day mark          rc 1  KILLED
+the maskable icon crops the ring                 rc 1  KILLED
+the static pages keep the paper tile at night    rc 1  KILLED
+the favicons come from the full master           rc 1  KILLED
+the service worker forgets the night mark        rc 1  KILLED
+the swap rules lose !important                   rc 1  KILLED
+a static sheet loses !important on the night rule rc 1  KILLED
+another rule forces display with !important      rc 1  KILLED
+an uppercase spaced important display            rc 1  KILLED
+an all reset with !important                     rc 1  KILLED
+a bare img forces display with !important        rc 1  KILLED
+a mark carries an inline style                   rc 1  KILLED
+a rule sets the night token on the brand         rc 1  KILLED
+a rule hides the day mark through its token      rc 1  KILLED
+a page sets the night token inline               rc 1  KILLED
+an escaped important display                     rc 1  KILLED
+an escaped important all                         rc 1  KILLED
+a hidden mark shows                              rc 1  KILLED
+restored tree after: rc 0
+killed 20 of 20

@@ -1,0 +1,119 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-118-wt (branch lhb-118-medallon, staged for the owner's review, not merged). This is round 4 of a TIER 2 review of LHB-118 (the Medallon logo with its own dark mark; every mark is a pair of img, class mark-l then class mark-d, swapped by .mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}, the tokens set per theme).
+
+Round 3 (evidence/lhb-118-review-r3.txt, on e7f391f) said VERDICT: BLOCK: (P2) a rule such as .brand{--mark-dark:block} changes the token the swap reads; (P2) CSS escapes (d\69splay, !\69mportant, a\6c l) slip past the literal match; (P3) a mark with the hidden attribute stays visible because the swap rules follow [hidden] at equal specificity.
+
+The fix is the diff below (e7f391f to HEAD, site, test and the mutation runner):
+- The three sheets add .mark-l[hidden],.mark-d[hidden]{display:none!important} after the swap rules.
+- The LHB-118 test reads each sheet with comments stripped and CSS escapes decoded (unesc118, with a self-check); pins the exact list of important display or all declarations (now including the hidden rule, and requiring it after the swap); allows --mark-light and --mark-dark to be set only in :root, :root:not([data-theme="light"]) inside the dark media block, and :root[data-theme="dark"]; and forbids those token names in any .html or .js under site/ and in functions/u/[handle].js (an inline style or a script cannot set them).
+- Evidence: evidence/lhb-118/mutations-r4.txt (20 of 20 killed, green before and after, including each of your round 3 injections); evidence/lhb-118/browser-r2-injection.txt (rounds 1 and 2 injections lose; hidden now hides both marks in both themes); evidence/lhb-118/suite-5.txt (474 tests, 473 pass, 0 fail, 1 skipped).
+
+Scope note for this round: the test is a guard against plausible regressions in this repository's own three stylesheets, pages and scripts, not a CSS engine. Please separate (a) a regression a future edit to this repository could plausibly introduce that both shows or hides the marks and that the test misses, which may block, from (b) constructions that require deliberately adversarial CSS in our own files, which are nonblocking notes.
+
+Check in particular:
+- Does the fix close the three round 3 findings?
+- Any remaining plausible way for both marks to show, or neither, that the test misses.
+- Is the decoder correct for real CSS (a hex escape followed by a space or not, escapes at the end of a value, a backslash-newline)?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-name-pattern=LHB-118 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff e7f391f 3919298b2bb3b873b56f7ea5995e8727337c90ae -- site test evidence/lhb-118-mutations.py =====
+diff --git a/evidence/lhb-118-mutations.py b/evidence/lhb-118-mutations.py
+index 8ad738d..6b424ce 100644
+--- a/evidence/lhb-118-mutations.py
++++ b/evidence/lhb-118-mutations.py
+@@ -19,6 +19,13 @@ MUTANTS = [
+     ('an all reset with !important', 'site/lugares/l.css', '.brand img{border-radius:var(--r-s);', '.brand img{all:initial!important;border-radius:var(--r-s);'),
+     ('a bare img forces display with !important', 'site/styles.css', '.brand img{border-radius:var(--r-s);', 'img{display:block!important}.brand img{border-radius:var(--r-s);'),
+     ('a mark carries an inline style', 'site/lugares/index.html', '<img class="mark-d" src="../icons/icon-dark.svg" alt=""', '<img class="mark-d" src="../icons/icon-dark.svg" style="display:block" alt=""'),
++    # Codex r3: the tokens themselves, CSS escapes, and hidden
++    ('a rule sets the night token on the brand', 'site/u.css', '.brand img{border-radius:var(--r-s);', '.brand{--mark-dark:block}.brand img{border-radius:var(--r-s);'),
++    ('a rule hides the day mark through its token', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand{--mark-light:none}.brand img{border-radius:var(--r-s);'),
++    ('a page sets the night token inline', 'site/index.html', '<header class="topbar">', '<header class="topbar" style="--mark-dark:block">'),
++    ('an escaped important display', 'site/lugares/l.css', '.brand img{border-radius:var(--r-s);', '.brand img{d\\69splay:block!\\69mportant;border-radius:var(--r-s);'),
++    ('an escaped important all', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand img{a\\6c l:initial!important;border-radius:var(--r-s);'),
++    ('a hidden mark shows', 'site/styles.css', '.mark-l[hidden],.mark-d[hidden]{display:none!important}', ''),
+ ]
+ 
+ 
+diff --git a/site/lugares/l.css b/site/lugares/l.css
+index 4f5571d..3f3f042 100644
+--- a/site/lugares/l.css
++++ b/site/lugares/l.css
+@@ -4,4 +4,4 @@
+ :root{--fs-1:12px;--fs-2:14px;--fs-3:16px;--fs-4:19px;--fs-5:23px;--fs-6:28px;--r-s:8px;--r-m:14px;--r-pill:999px;--surface:#F4F1EA;--card:#FFFDFA;--line:#D7D8CC;--on-surface:#263723;--on-surface-2:#43513D;--muted:#59614F;--accent:#344C31;--on-accent:#F4F1EA;--accent-ink:#344C31;--focus:#146780;--mark-bg:transparent;--mark-light:block;--mark-dark:none;color-scheme:light}
+ /* LHB-110: de noche, si el teléfono lo pide: los mismos tokens que la app oscura */
+ @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#141A13;--card:#1D261C;--line:#3A4636;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--focus:#7CD0EC;--mark-bg:transparent;--mark-light:none;--mark-dark:block;color-scheme:dark}}
+-*{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--on-surface);font:var(--fs-3)/1.55 'Figtree',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}header,main,footer{max-width:720px;margin:0 auto;padding:0 18px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;color:var(--on-surface);text-decoration:none}.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}.brand-text{display:flex;flex-direction:column;line-height:1.05}.brand-name{font:600 var(--fs-4) 'Fraunces',Georgia,serif;letter-spacing:.2px}.brand-name em{font-style:normal;color:var(--accent-ink)}.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}a{color:var(--accent-ink)}a.app{background:var(--accent);color:var(--on-accent);font-weight:700;text-decoration:none;padding:8px 14px;border-radius:var(--r-pill);font-size:var(--fs-3);white-space:nowrap}:focus-visible{outline:3px solid var(--focus);outline-offset:3px}h1{font:600 var(--fs-6)/1.2 'Fraunces',Georgia,serif;margin:18px 0 4px}h2{font:600 var(--fs-5) 'Fraunces',Georgia,serif;margin:26px 0 8px}h3{font-size:var(--fs-3);margin:18px 0 6px;color:var(--on-surface-2)}.tag,.crumbs,.note,li span,footer{color:var(--muted)}.crumbs{font-size:var(--fs-2);margin-top:14px}.tag{margin-top:0}dl{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:12px 16px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}dt{color:var(--muted)}dd{margin:0}.links a{display:inline-block;margin:4px 12px 4px 0}ul{padding-left:20px}li{margin:6px 0}.note{font-size:var(--fs-2)}footer{border-top:1px solid var(--line);margin-top:30px;padding-top:14px;padding-bottom:30px;font-size:var(--fs-2)}.logo{float:right;border-radius:var(--r-m);margin:18px 0 8px 12px}
++*{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--on-surface);font:var(--fs-3)/1.55 'Figtree',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}header,main,footer{max-width:720px;margin:0 auto;padding:0 18px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;color:var(--on-surface);text-decoration:none}.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}.mark-l[hidden],.mark-d[hidden]{display:none!important}.brand-text{display:flex;flex-direction:column;line-height:1.05}.brand-name{font:600 var(--fs-4) 'Fraunces',Georgia,serif;letter-spacing:.2px}.brand-name em{font-style:normal;color:var(--accent-ink)}.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}a{color:var(--accent-ink)}a.app{background:var(--accent);color:var(--on-accent);font-weight:700;text-decoration:none;padding:8px 14px;border-radius:var(--r-pill);font-size:var(--fs-3);white-space:nowrap}:focus-visible{outline:3px solid var(--focus);outline-offset:3px}h1{font:600 var(--fs-6)/1.2 'Fraunces',Georgia,serif;margin:18px 0 4px}h2{font:600 var(--fs-5) 'Fraunces',Georgia,serif;margin:26px 0 8px}h3{font-size:var(--fs-3);margin:18px 0 6px;color:var(--on-surface-2)}.tag,.crumbs,.note,li span,footer{color:var(--muted)}.crumbs{font-size:var(--fs-2);margin-top:14px}.tag{margin-top:0}dl{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:12px 16px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}dt{color:var(--muted)}dd{margin:0}.links a{display:inline-block;margin:4px 12px 4px 0}ul{padding-left:20px}li{margin:6px 0}.note{font-size:var(--fs-2)}footer{border-top:1px solid var(--line);margin-top:30px;padding-top:14px;padding-bottom:30px;font-size:var(--fs-2)}.logo{float:right;border-radius:var(--r-m);margin:18px 0 8px 12px}
+diff --git a/site/styles.css b/site/styles.css
+index a9f70ba..7c224d1 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -46,7 +46,7 @@ button,input,select,textarea{font:inherit;color:inherit}
+  background:var(--bar);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+ .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+ /* LHB-118: el Medallón trae su marca de noche (icon-dark.svg), así que no hay teja: --mark-bg es transparente en los dos temas y --mark-light y --mark-dark escogen la marca */
+-.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}
++.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}.mark-l[hidden],.mark-d[hidden]{display:none!important}
+ .brand-text{display:flex;flex-direction:column;line-height:1.05}
+ .brand-name{font-family:var(--serif);font-weight:600;font-size:var(--fs-4);letter-spacing:.2px}
+ .brand-name em{font-style:italic;font-weight:500;color:var(--accent-ink)}
+diff --git a/site/u.css b/site/u.css
+index 2950513..8a20168 100644
+--- a/site/u.css
++++ b/site/u.css
+@@ -7,7 +7,7 @@
+ @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--warn-ink:#F0CC5A;--focus:#7CD0EC;--scrim:rgba(0,0,0,.6);--mark-bg:transparent;--mark-light:none;--mark-dark:block;color-scheme:dark}}
+ *{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--on-surface);font:var(--fs-3)/1.55 'Figtree',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+ header,main,footer{max-width:720px;margin:0 auto;padding:0 18px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+-.brand{display:flex;align-items:center;gap:10px;color:var(--on-surface);text-decoration:none}.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}.brand-text{display:flex;flex-direction:column;line-height:1.05}.brand-name{font:600 var(--fs-4) 'Fraunces',Georgia,serif;letter-spacing:.2px}.brand-name em{font-style:normal;color:var(--accent-ink)}.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}a{color:var(--accent-ink)}
++.brand{display:flex;align-items:center;gap:10px;color:var(--on-surface);text-decoration:none}.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}.mark-l[hidden],.mark-d[hidden]{display:none!important}.brand-text{display:flex;flex-direction:column;line-height:1.05}.brand-name{font:600 var(--fs-4) 'Fraunces',Georgia,serif;letter-spacing:.2px}.brand-name em{font-style:normal;color:var(--accent-ink)}.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}a{color:var(--accent-ink)}
+ a.app{background:var(--accent);color:var(--on-accent);font-weight:700;text-decoration:none;padding:8px 14px;border-radius:var(--r-pill);font-size:var(--fs-3);white-space:nowrap}
+ :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+ h1{font:600 var(--fs-6)/1.2 'Fraunces',Georgia,serif;margin:0 0 2px;overflow-wrap:anywhere}h2{font:600 var(--fs-5) 'Fraunces',Georgia,serif;margin:26px 0 10px}h3{font:600 var(--fs-4)/1.25 'Fraunces',Georgia,serif;margin:0 32px 4px 0;overflow-wrap:anywhere}
+diff --git a/test/site.test.js b/test/site.test.js
+index 44809c1..ac848ba 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -8987,16 +8987,28 @@ test('LHB-118: el Medallón en los íconos, la barra de día y de noche, la intr
+   assert.deepEqual([night['mark-light'],night['mark-dark'],night['mark-bg']],['none','block','transparent'],f+': de noche, la de noche y sin teja');
+   assert.ok(css.includes('.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}'),f+': las dos reglas, con !important')}
+  const m=DARK110.ATTR.exec(read('styles.css'));assert.ok(m&&m[1].includes('--mark-light:none;--mark-dark:block;'),'el tema oscuro escogido también cambia la marca');
+- /* Codex r1 y r2: que las reglas estén no basta, tienen que ganar. Leer selectores a mano dejó pasar :not(), :is(), atributos con espacio, + y
+-    all:, así que la marca no depende de la especificidad: .mark-l y .mark-d llevan !important, y ninguna regla normal les gana. Lo único que les
+-    podría ganar es otra declaración display o all con !important (en cualquier capa o @media), así que en las tres hojas, sin comentarios, esas son
+-    exactamente las de la marca y estas dos, que ya estaban: [hidden] (esconde lo escondido, también una marca) y el botón de instalar en modo app.
+-    Y ninguna marca lleva style en línea. */
+- const IMP118={'styles.css':['[hidden]{display:none!important}','.mark-l{display:var(--mark-light)!important}','.mark-d{display:var(--mark-dark)!important}','.btn-install{display:none!important}'],
+-  'lugares/l.css':['.mark-l{display:var(--mark-light)!important}','.mark-d{display:var(--mark-dark)!important}'],'u.css':['.mark-l{display:var(--mark-light)!important}','.mark-d{display:var(--mark-dark)!important}']};
+- for(const [f,want] of Object.entries(IMP118)){const css=read(f).replace(/\/\*[\s\S]*?\*\//g,''),got=[];
+-  for(const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g))for(const d of m[2].split(';'))if(/!\s*important/i.test(d)&&/^\s*(display|all)\s*:/i.test(d))got.push(m[1].trim()+'{'+d.trim()+'}');
+-  assert.deepEqual(got,want,f+': las declaraciones display o all con !important')}
++ /* Codex r1, r2 y r3: que las reglas estén no basta, tienen que ganar. Leer selectores a mano dejó pasar :not(), :is(), atributos con espacio, + y
++    all:, así que la marca no depende de la especificidad: .mark-l y .mark-d llevan !important, y ninguna regla normal les gana. Lo que todavía les
++    podría ganar, y lo que esta prueba cierra:
++    - otra declaración display o all con !important (en cualquier capa o @media): en las tres hojas, sin comentarios y con los escapes de CSS ya
++      leídos (d\69splay es display), esas son exactamente las de la marca, la de .mark-l[hidden],.mark-d[hidden] (que va después para que hidden
++      gane) y dos que ya estaban: [hidden] y el botón de instalar en modo app;
++    - cambiar los tokens que leen: --mark-light y --mark-dark solo se ponen en los tres bloques de tema (:root, el oscuro del teléfono y el
++      oscuro escogido), nunca en otra regla, ni en un style de una página, ni desde un script;
++    - un style en línea en la marca. */
++ const unesc118=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\\([0-9a-fA-F]{1,6})[ \t\n\r\f]?/g,(x,h)=>{const c=parseInt(h,16);return c>0&&c<=0x10FFFF?String.fromCodePoint(c):'�'}).replace(/\\([^\n\r\f0-9a-fA-F])/g,'$1');
++ assert.equal(unesc118('.b img{d\\69splay:block!\\69mportant}.c{a\\6c l:x}.d{\\64 isplay:y}'),'.b img{display:block!important}.c{all:x}.d{display:y}','el lector de escapes');
++ const MK='.mark-l{display:var(--mark-light)!important}',MD='.mark-d{display:var(--mark-dark)!important}',MH='.mark-l[hidden],.mark-d[hidden]{display:none!important}';
++ const IMP118={'styles.css':['[hidden]{display:none!important}',MK,MD,MH,'.btn-install{display:none!important}'],'lugares/l.css':[MK,MD,MH],'u.css':[MK,MD,MH]};
++ const THEME118=[':root',':root:not([data-theme="light"])',':root[data-theme="dark"]'];
++ for(const [f,want] of Object.entries(IMP118)){const css=unesc118(read(f)),got=[];
++  for(const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)){const sel=m[1].trim();
++   for(const d of m[2].split(';'))if(/!\s*important/i.test(d)&&/^\s*(display|all)\s*:/i.test(d))got.push(sel+'{'+d.trim().replace(/\s*!\s*important\s*$/i,'!important')+'}');
++   if(/--mark-(light|dark)\s*:/i.test(m[2]))assert.ok(THEME118.includes(sel),f+': '+sel+' cambia los tokens de la marca fuera de los bloques de tema')}
++  assert.deepEqual(got,want,f+': las declaraciones display o all con !important');
++  assert.ok(css.indexOf(MH)>css.indexOf(MD),f+': hidden gana sobre la marca')}
++ for(const f of (function w(d){return fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?w(path.join(d,e.name)):[path.join(d,e.name)])})(S).concat([path.join(__dirname,'..','functions','u','[handle].js')]).filter(f=>/\.(html|js)$/.test(f)))
++  assert.ok(!/--mark-(light|dark)/i.test(unesc118(fs.readFileSync(f,'utf8'))),path.relative(S,f)+': los tokens de la marca no se cambian desde una página o un script');
+  const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
+  let n=0;for(const f of walk(S).filter(f=>/\.(html|js)$/.test(f))){const h=fs.readFileSync(f,'utf8');
+   for(const x of h.matchAll(/<img [^>]*icons\/icon(-dark)?\.svg"[^>]*>/g)){n++;assert.ok(/^<img class="mark-[ld]" /.test(x[0])&&!/\sstyle=/i.test(x[0]),path.relative(S,f)+': '+x[0])}

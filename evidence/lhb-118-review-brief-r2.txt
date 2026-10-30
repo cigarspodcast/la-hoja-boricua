@@ -1,0 +1,19 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-118-wt (branch lhb-118-medallon, staged for the owner's review, not merged). This is round 2 of a TIER 2 review of LHB-118 (the Medallon logo with its own dark mark, swapped by the tokens --mark-light and --mark-dark through the rules .mark-l and .mark-d). Round 1 (evidence/lhb-118-review-r1.txt, on 470ee9e) said VERDICT: PASS with one nonblocking P3, quoted here:
+
+"test/site.test.js, test LHB-118. The assertion css.includes('.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}') checks rule presence, not the winning cascade. I injected .brand img{display:block} into file reads in memory: the test still passed, although that higher-specificity rule would display both marks."
+
+The fix is the diff below (470ee9e to HEAD, site, test and the mutation runner only):
+- In the LHB-118 test, every rule of styles.css, lugares/l.css and u.css (CSS comments stripped first; rules inside @media are matched too) whose selector ends at an img, carries a class, id, attribute or pseudo-class, and can reach the mark img, must not set display. reach118 judges reach: the img's own compound may carry no class (img.mark-l, our own rules, is excluded) and every part before it must be an ancestor the mark has (html, body, div, .app, #app, header, .topbar, a, .brand, .intro, .intro-mark) or an attribute or pseudo-class. A self-check pins reach118 on five selectors.
+- Why the narrowing: the base has img{max-width:100%;display:block} (specificity 0,0,1, which loses to a class) and .card .ph img{...display:block} (a catalogue photo, never an ancestor of the mark); both are correctly out of reach.
+- site/styles.css: a stale comment above .brand img (it said the mark sits on a paper tile at night) is rewritten. It is also why comments are stripped: the comment text sat in the matched selector and hid the rule.
+- evidence/lhb-118-mutations.py: two new mutants (display on .brand img in styles.css and in u.css). evidence/lhb-118/mutations-r2.txt: 10 of 10 killed, green before and after. evidence/lhb-118/suite-3.txt: 474 tests, 473 pass, 0 fail, 1 skipped.
+
+Check in particular:
+- Does the new guard close the P3 you raised? Run your own injection again (.brand img{display:block}, and others you choose: header .brand img, a.brand>img, .topbar img, .intro-mark img inside an @media, .brand img:not(.x)).
+- False negatives in reach118 or the selector-end regex (a selector with a combinator and no spaces, a :is()/:where() list, an attribute with a space in it, a !important display on a bare img, display set through the shorthand of another property). Say which you consider in scope; a real way for both marks to show that the test misses is a BLOCK, a theoretical one is not.
+- False positives a future, legitimate edit would hit.
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-name-pattern=LHB-118 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.

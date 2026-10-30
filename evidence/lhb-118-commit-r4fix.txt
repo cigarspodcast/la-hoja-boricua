@@ -1,0 +1,23 @@
+LHB-118: Codex round 4 BLOCK, every assignment of the swap tokens is pinned
+
+Codex round 4 (evidence/lhb-118-review-r4.txt, on e35769e) blocked on one
+P2: a second :root{--mark-dark:block} (or :root{--mark-light:none})
+passed, because the test checked the selector of each assignment and read
+only the first :root block. P3: the CSS escape decoder took one
+character after a hex escape, so an escape ended by CRLF decoded wrong,
+and surrogate code points were not replaced.
+
+- test/site.test.js, LHB-118: per sheet, the full ordered list of
+  assignments of --mark-light and --mark-dark (selector, token, value) is
+  pinned: day in :root, night in :root:not([data-theme="light"]) and, in
+  styles.css, :root[data-theme="dark"]. Any extra assignment, anywhere,
+  fails. The decoder normalises CRLF, CR and FF to LF first (as CSS does)
+  and maps surrogates to U+FFFD, written as the � escape.
+- evidence/lhb-118-mutations.py: three mutants (a second :root setting
+  each token, a CRLF-ended escaped important display); 23 of 23 killed,
+  green before and after (evidence/lhb-118/mutations-r5.txt).
+- evidence/lhb-118-fffd.py: the one-off script for the escape.
+- Full suite: 474 tests, 473 pass, 0 fail, 1 skipped
+  (evidence/lhb-118/suite-6.txt).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

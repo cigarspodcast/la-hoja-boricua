@@ -1,0 +1,125 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-118-wt (branch lhb-118-medallon, staged for the owner's review, not merged). This is round 3 of a TIER 2 review of LHB-118 (the Medallon logo with its own dark mark, swapped by the tokens --mark-light and --mark-dark through the rules .mark-l and .mark-d; every mark is a pair of img, class mark-l then class mark-d).
+
+Round 2 (evidence/lhb-118-review-r2.txt, on eec14e6) said VERDICT: BLOCK: the test's hand-written selector parser (reach118) missed real overrides (.brand img:not(.x), :is(.brand,.card) img, .brand img[alt="" i], .brand>img+img) and declaration forms (img{display:block!important}, .brand img{all:initial}, DISPLAY:block); and, P3, it rejected safe rules such as :where(.brand) img.
+
+The fix (diff below, eec14e6 to HEAD, site, test and the mutation runner) changes approach instead of patching the parser:
+- styles.css, lugares/l.css, u.css: .mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}. A normal declaration can no longer beat them, whatever its selector or specificity.
+- The LHB-118 test drops reach118 entirely. Per sheet, with comments stripped, it collects every declaration whose property is display or all (case-insensitive) and that is !important (any spacing, any case), and pins the exact list: the two mark rules, plus [hidden]{display:none!important} and .btn-install{display:none!important} in styles.css, which were already there. A new important display or all anywhere in the three sheets fails the test until someone pins it. A mark img may not carry an inline style attribute.
+- Evidence: evidence/lhb-118/browser-r2-injection.txt (all ten rules you and round 1 injected, as one style element in Chromium: one mark per theme); evidence/lhb-118/mutations-r3.txt (14 of 14 killed, green before and after); evidence/lhb-118/suite-4.txt (474 tests, 473 pass, 0 fail, 1 skipped).
+
+Check in particular:
+- Is there still a concrete way, with today's markup and these three sheets, for both marks to show, or neither, that the test does not catch? Consider: @layer (important declarations in a layer beat unlayered important ones), a display set in a way the collector misses (a declaration split across a comment, an escaped property name, a shorthand), the [hidden] rule interacting with a mark, a style set by JavaScript at run time, an inline style on an ancestor, print.
+- Does !important on these two rules harm anything else (the 359 px compact brand, the intro, the share card, reduced motion, the hidden attribute)?
+- Is the pinned list too strict for legitimate future edits in a way that would make the test a nuisance?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-name-pattern=LHB-118 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff eec14e6 9aaf009678959ca56c7533f1abcc1fd57b099e02 -- site test evidence/lhb-118-mutations.py =====
+diff --git a/evidence/lhb-118-mutations.py b/evidence/lhb-118-mutations.py
+index c91b54f..8ad738d 100644
+--- a/evidence/lhb-118-mutations.py
++++ b/evidence/lhb-118-mutations.py
+@@ -7,13 +7,18 @@ MUTANTS = [
+     ('a static page loses its night mark', 'site/lugares/index.html', '<img class="mark-d" src="../icons/icon-dark.svg" alt="" width="30" height="30">', ''),
+     ('the share card keeps the small day mark', 'site/hoja.js', "mk.src=tk('mark-dark')==='block'?'icons/icon-full-dark.svg':'icons/icon-full.svg'", "mk.src='icons/icon.svg'"),
+     ('the maskable icon crops the ring', 'tools/build_icons.py', "('icon-maskable-512.png', FULL, 512, .78, True)", "('icon-maskable-512.png', FULL, 512, .9, True)"),
+-    ('the intro pins display:block over the tokens', 'site/styles.css', '.intro-mark img{margin-bottom:6px;', '.intro-mark img{display:block;margin-bottom:6px;'),
+     ('the static pages keep the paper tile at night', 'site/lugares/l.css', '--mark-bg:transparent;--mark-light:none;', '--mark-bg:#EFEBE2;--mark-light:none;'),
+     ('the favicons come from the full master', 'tools/build_icons.py', "('favicon-16.png', SMALL,", "('favicon-16.png', FULL,"),
+     ('the service worker forgets the night mark', 'site/sw.js', "'icons/icon-dark.svg',", ''),
+-    # Codex r1 (P3): a higher-specificity rule on the mark img would show both marks
+-    ('a brand img rule sets display', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:block;border-radius:var(--r-s);'),
+-    ('a static sheet sets display on the mark img', 'site/u.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:inline-block;border-radius:var(--r-s);'),
++    # Codex r1 and r2: the swap must win the cascade. The swap rules carry !important, so a normal rule (r1's .brand img{display:block},
++    # r2's :not(), :is(), [alt="" i], +img, all:initial) loses and is no defect; what can still beat them is below
++    ('the swap rules lose !important', 'site/styles.css', '.mark-l{display:var(--mark-light)!important}', '.mark-l{display:var(--mark-light)}'),
++    ('a static sheet loses !important on the night rule', 'site/u.css', '.mark-d{display:var(--mark-dark)!important}', '.mark-d{display:var(--mark-dark)}'),
++    ('another rule forces display with !important', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:block!important;border-radius:var(--r-s);'),
++    ('an uppercase spaced important display', 'site/u.css', '.brand img{border-radius:var(--r-s);', '.brand img{DISPLAY:block ! IMPORTANT;border-radius:var(--r-s);'),
++    ('an all reset with !important', 'site/lugares/l.css', '.brand img{border-radius:var(--r-s);', '.brand img{all:initial!important;border-radius:var(--r-s);'),
++    ('a bare img forces display with !important', 'site/styles.css', '.brand img{border-radius:var(--r-s);', 'img{display:block!important}.brand img{border-radius:var(--r-s);'),
++    ('a mark carries an inline style', 'site/lugares/index.html', '<img class="mark-d" src="../icons/icon-dark.svg" alt=""', '<img class="mark-d" src="../icons/icon-dark.svg" style="display:block" alt=""'),
+ ]
+ 
+ 
+diff --git a/site/lugares/l.css b/site/lugares/l.css
+index d773d5f..4f5571d 100644
+--- a/site/lugares/l.css
++++ b/site/lugares/l.css
+@@ -4,4 +4,4 @@
+ :root{--fs-1:12px;--fs-2:14px;--fs-3:16px;--fs-4:19px;--fs-5:23px;--fs-6:28px;--r-s:8px;--r-m:14px;--r-pill:999px;--surface:#F4F1EA;--card:#FFFDFA;--line:#D7D8CC;--on-surface:#263723;--on-surface-2:#43513D;--muted:#59614F;--accent:#344C31;--on-accent:#F4F1EA;--accent-ink:#344C31;--focus:#146780;--mark-bg:transparent;--mark-light:block;--mark-dark:none;color-scheme:light}
+ /* LHB-110: de noche, si el teléfono lo pide: los mismos tokens que la app oscura */
+ @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#141A13;--card:#1D261C;--line:#3A4636;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--focus:#7CD0EC;--mark-bg:transparent;--mark-light:none;--mark-dark:block;color-scheme:dark}}
+-*{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--on-surface);font:var(--fs-3)/1.55 'Figtree',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}header,main,footer{max-width:720px;margin:0 auto;padding:0 18px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;color:var(--on-surface);text-decoration:none}.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}.brand-text{display:flex;flex-direction:column;line-height:1.05}.brand-name{font:600 var(--fs-4) 'Fraunces',Georgia,serif;letter-spacing:.2px}.brand-name em{font-style:normal;color:var(--accent-ink)}.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}a{color:var(--accent-ink)}a.app{background:var(--accent);color:var(--on-accent);font-weight:700;text-decoration:none;padding:8px 14px;border-radius:var(--r-pill);font-size:var(--fs-3);white-space:nowrap}:focus-visible{outline:3px solid var(--focus);outline-offset:3px}h1{font:600 var(--fs-6)/1.2 'Fraunces',Georgia,serif;margin:18px 0 4px}h2{font:600 var(--fs-5) 'Fraunces',Georgia,serif;margin:26px 0 8px}h3{font-size:var(--fs-3);margin:18px 0 6px;color:var(--on-surface-2)}.tag,.crumbs,.note,li span,footer{color:var(--muted)}.crumbs{font-size:var(--fs-2);margin-top:14px}.tag{margin-top:0}dl{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:12px 16px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}dt{color:var(--muted)}dd{margin:0}.links a{display:inline-block;margin:4px 12px 4px 0}ul{padding-left:20px}li{margin:6px 0}.note{font-size:var(--fs-2)}footer{border-top:1px solid var(--line);margin-top:30px;padding-top:14px;padding-bottom:30px;font-size:var(--fs-2)}.logo{float:right;border-radius:var(--r-m);margin:18px 0 8px 12px}
++*{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--on-surface);font:var(--fs-3)/1.55 'Figtree',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}header,main,footer{max-width:720px;margin:0 auto;padding:0 18px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;color:var(--on-surface);text-decoration:none}.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}.brand-text{display:flex;flex-direction:column;line-height:1.05}.brand-name{font:600 var(--fs-4) 'Fraunces',Georgia,serif;letter-spacing:.2px}.brand-name em{font-style:normal;color:var(--accent-ink)}.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}a{color:var(--accent-ink)}a.app{background:var(--accent);color:var(--on-accent);font-weight:700;text-decoration:none;padding:8px 14px;border-radius:var(--r-pill);font-size:var(--fs-3);white-space:nowrap}:focus-visible{outline:3px solid var(--focus);outline-offset:3px}h1{font:600 var(--fs-6)/1.2 'Fraunces',Georgia,serif;margin:18px 0 4px}h2{font:600 var(--fs-5) 'Fraunces',Georgia,serif;margin:26px 0 8px}h3{font-size:var(--fs-3);margin:18px 0 6px;color:var(--on-surface-2)}.tag,.crumbs,.note,li span,footer{color:var(--muted)}.crumbs{font-size:var(--fs-2);margin-top:14px}.tag{margin-top:0}dl{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:12px 16px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}dt{color:var(--muted)}dd{margin:0}.links a{display:inline-block;margin:4px 12px 4px 0}ul{padding-left:20px}li{margin:6px 0}.note{font-size:var(--fs-2)}footer{border-top:1px solid var(--line);margin-top:30px;padding-top:14px;padding-bottom:30px;font-size:var(--fs-2)}.logo{float:right;border-radius:var(--r-m);margin:18px 0 8px 12px}
+diff --git a/site/styles.css b/site/styles.css
+index dffdaf1..a9f70ba 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -46,7 +46,7 @@ button,input,select,textarea{font:inherit;color:inherit}
+  background:var(--bar);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+ .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+ /* LHB-118: el Medallón trae su marca de noche (icon-dark.svg), así que no hay teja: --mark-bg es transparente en los dos temas y --mark-light y --mark-dark escogen la marca */
+-.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}
++.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}
+ .brand-text{display:flex;flex-direction:column;line-height:1.05}
+ .brand-name{font-family:var(--serif);font-weight:600;font-size:var(--fs-4);letter-spacing:.2px}
+ .brand-name em{font-style:italic;font-weight:500;color:var(--accent-ink)}
+diff --git a/site/u.css b/site/u.css
+index d963c4e..2950513 100644
+--- a/site/u.css
++++ b/site/u.css
+@@ -7,7 +7,7 @@
+ @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--warn-ink:#F0CC5A;--focus:#7CD0EC;--scrim:rgba(0,0,0,.6);--mark-bg:transparent;--mark-light:none;--mark-dark:block;color-scheme:dark}}
+ *{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--on-surface);font:var(--fs-3)/1.55 'Figtree',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+ header,main,footer{max-width:720px;margin:0 auto;padding:0 18px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+-.brand{display:flex;align-items:center;gap:10px;color:var(--on-surface);text-decoration:none}.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}.brand-text{display:flex;flex-direction:column;line-height:1.05}.brand-name{font:600 var(--fs-4) 'Fraunces',Georgia,serif;letter-spacing:.2px}.brand-name em{font-style:normal;color:var(--accent-ink)}.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}a{color:var(--accent-ink)}
++.brand{display:flex;align-items:center;gap:10px;color:var(--on-surface);text-decoration:none}.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}.brand-text{display:flex;flex-direction:column;line-height:1.05}.brand-name{font:600 var(--fs-4) 'Fraunces',Georgia,serif;letter-spacing:.2px}.brand-name em{font-style:normal;color:var(--accent-ink)}.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}a{color:var(--accent-ink)}
+ a.app{background:var(--accent);color:var(--on-accent);font-weight:700;text-decoration:none;padding:8px 14px;border-radius:var(--r-pill);font-size:var(--fs-3);white-space:nowrap}
+ :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+ h1{font:600 var(--fs-6)/1.2 'Fraunces',Georgia,serif;margin:0 0 2px;overflow-wrap:anywhere}h2{font:600 var(--fs-5) 'Fraunces',Georgia,serif;margin:26px 0 10px}h3{font:600 var(--fs-4)/1.25 'Fraunces',Georgia,serif;margin:0 32px 4px 0;overflow-wrap:anywhere}
+diff --git a/test/site.test.js b/test/site.test.js
+index f0e34f1..44809c1 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -8985,25 +8985,21 @@ test('LHB-118: el Medallón en los íconos, la barra de día y de noche, la intr
+   const day=TOKENS65(css).t,night=TOKENS65(DARK110.css(css)).t;
+   assert.deepEqual([day['mark-light'],day['mark-dark'],day['mark-bg']],['block','none','transparent'],f+': de día, la marca de día');
+   assert.deepEqual([night['mark-light'],night['mark-dark'],night['mark-bg']],['none','block','transparent'],f+': de noche, la de noche y sin teja');
+-  assert.ok(css.includes('.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}'),f+': las dos reglas')}
++  assert.ok(css.includes('.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}'),f+': las dos reglas, con !important')}
+  const m=DARK110.ATTR.exec(read('styles.css'));assert.ok(m&&m[1].includes('--mark-light:none;--mark-dark:block;'),'el tema oscuro escogido también cambia la marca');
+- assert.ok(!/\.intro-mark img\{[^}]*display:/.test(read('styles.css')),'la intro no pisa el display de los tokens');
+- /* Codex r1 (P3): que las reglas estén no basta; ninguna otra regla que llegue a la img de la marca (un selector que termina en img, como .brand img,
+-    .intro-mark img, también dentro de un @media) puede poner display, porque le ganaría a .mark-l y .mark-d y se verían las dos marcas. Un img a secas
+-    (especificidad 0,0,1, como el img{display:block} de la base) pierde contra una clase y no cuenta; uno con clase, id, atributo o pseudoclase sí.
+-    Solo cuentan los selectores que pueden llegar a la marca: cada parte fuera de la img es un antepasado que la marca tiene (html, body, div.app#app,
+-    header.topbar, a.brand, div.intro, div.intro-mark) o un atributo o pseudoclase; .card .ph img, por ejemplo, no llega */
+- const ANC118=new Set(['html','body','div','.app','#app','header','.topbar','a','.brand','.intro','.intro-mark']);
+- const reach118=x=>{const parts=x.split(/\s*[\s>+~]\s*/).filter(Boolean),last=parts.pop();if(!/^img(?![\w-])/.test(last))return false;
+-  const own=(last.slice(3).match(/[.#][\w-]+/g)||[]);if(own.some(s=>s!=='.mark-l'&&s!=='.mark-d'))return false;if(own.length)return false;
+-  return parts.every(p=>(p.match(/[.#]?[\w-]+|\[[^\]]*\]|:{1,2}[\w-]+(\([^)]*\))?/g)||[]).every(s=>/^[[:]/.test(s)||ANC118.has(s)))};
+- assert.ok(reach118('.brand img')&&reach118('header.topbar a.brand img')&&reach118('.intro-mark img')&&reach118('a.brand:hover img')&&!reach118('.card .ph img')&&!reach118('.brand img.mark-l'),'el detector de selectores');
+- for(const f of ['styles.css','lugares/l.css','u.css'])for(const m of read(f).replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/([^{}]*)\{([^{}]*)\}/g)){
+-  const hits=m[1].split(',').map(x=>x.trim()).filter(x=>/(^|[\s>+~])img(?![\w-])[^\s>+~]*$/.test(x)&&/[.#[:]/.test(x)&&reach118(x));
+-  if(hits.length)assert.ok(!/(^|;)\s*display\s*:/.test(m[2]),f+': '+hits.join(',')+'{'+m[2]+'} pisa el display de la marca')}
++ /* Codex r1 y r2: que las reglas estén no basta, tienen que ganar. Leer selectores a mano dejó pasar :not(), :is(), atributos con espacio, + y
++    all:, así que la marca no depende de la especificidad: .mark-l y .mark-d llevan !important, y ninguna regla normal les gana. Lo único que les
++    podría ganar es otra declaración display o all con !important (en cualquier capa o @media), así que en las tres hojas, sin comentarios, esas son
++    exactamente las de la marca y estas dos, que ya estaban: [hidden] (esconde lo escondido, también una marca) y el botón de instalar en modo app.
++    Y ninguna marca lleva style en línea. */
++ const IMP118={'styles.css':['[hidden]{display:none!important}','.mark-l{display:var(--mark-light)!important}','.mark-d{display:var(--mark-dark)!important}','.btn-install{display:none!important}'],
++  'lugares/l.css':['.mark-l{display:var(--mark-light)!important}','.mark-d{display:var(--mark-dark)!important}'],'u.css':['.mark-l{display:var(--mark-light)!important}','.mark-d{display:var(--mark-dark)!important}']};
++ for(const [f,want] of Object.entries(IMP118)){const css=read(f).replace(/\/\*[\s\S]*?\*\//g,''),got=[];
++  for(const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g))for(const d of m[2].split(';'))if(/!\s*important/i.test(d)&&/^\s*(display|all)\s*:/i.test(d))got.push(m[1].trim()+'{'+d.trim()+'}');
++  assert.deepEqual(got,want,f+': las declaraciones display o all con !important')}
+  const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
+  let n=0;for(const f of walk(S).filter(f=>/\.(html|js)$/.test(f))){const h=fs.readFileSync(f,'utf8');
+-  for(const x of h.matchAll(/<img [^>]*icons\/icon(-dark)?\.svg"[^>]*>/g)){n++;assert.ok(/^<img class="mark-[ld]" /.test(x[0]),path.relative(S,f)+': '+x[0])}
++  for(const x of h.matchAll(/<img [^>]*icons\/icon(-dark)?\.svg"[^>]*>/g)){n++;assert.ok(/^<img class="mark-[ld]" /.test(x[0])&&!/\sstyle=/i.test(x[0]),path.relative(S,f)+': '+x[0])}
+   const l=(h.match(/class="mark-l"/g)||[]).length,d=(h.match(/class="mark-d"/g)||[]).length;assert.equal(l,d,path.relative(S,f)+': cada marca de día con su gemela de noche')}
+  assert.ok(n>=540,'marcas en las páginas: '+n);
+  const sw=read('sw.js');for(const f of ['icon.svg','icon-dark.svg','icon-full.svg','icon-full-dark.svg'])assert.ok(sw.includes("'icons/"+f+"'"),'el caché guarda '+f);

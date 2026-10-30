@@ -1,0 +1,29 @@
+LHB-118: Codex round 2 BLOCK, the mark swap wins by !important, not by selector parsing
+
+Codex round 2 (evidence/lhb-118-review-r2.txt, on eec14e6) blocked on two
+P2s: the round 1 guard parsed selectors by hand and missed real overrides
+(.brand img:not(.x), :is(.brand,.card) img, .brand img[alt="" i],
+.brand>img+img) and declaration forms (img{display:block!important},
+all:initial, DISPLAY uppercase). Its P3: the guard also rejected safe
+rules such as :where(.brand) img.
+
+- site/styles.css, lugares/l.css, u.css: .mark-l and .mark-d carry
+  !important, so no normal rule can show both marks, whatever its
+  selector. Browser check: all ten of the reviewer's injected rules lose,
+  one mark per theme (evidence/lhb-118/browser-r2-injection.txt).
+- test/site.test.js, LHB-118: the selector parser (reach118, ANC118) is
+  gone. The test pins, per sheet and with comments stripped, the exact
+  list of display or all declarations marked !important (any case or
+  spacing): the two mark rules, plus [hidden] and .btn-install, which
+  were already there. A mark img may not carry an inline style. The
+  intro-mark display assertion is dropped: it no longer guards a defect.
+- evidence/lhb-118-mutations.py: the three mutants that are no longer
+  defects are dropped and seven added (each rule losing !important,
+  an important display on .brand img or bare img, uppercase and spaced,
+  an important all, an inline style); 14 of 14 killed, green before and
+  after (evidence/lhb-118/mutations-r3.txt).
+- evidence/lhb-118-r2fix.py: the one-off edit script for this change.
+- Full suite: 474 tests, 473 pass, 0 fail, 1 skipped
+  (evidence/lhb-118/suite-4.txt).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

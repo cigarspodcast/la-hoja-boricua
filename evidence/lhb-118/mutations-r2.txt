@@ -1,0 +1,13 @@
+restored tree before: rc 0
+the chosen dark theme keeps the day mark         rc 1  KILLED
+a static page loses its night mark               rc 1  KILLED
+the share card keeps the small day mark          rc 1  KILLED
+the maskable icon crops the ring                 rc 1  KILLED
+the intro pins display:block over the tokens     rc 1  KILLED
+the static pages keep the paper tile at night    rc 1  KILLED
+the favicons come from the full master           rc 1  KILLED
+the service worker forgets the night mark        rc 1  KILLED
+a brand img rule sets display                    rc 1  KILLED
+a static sheet sets display on the mark img      rc 1  KILLED
+restored tree after: rc 0
+killed 10 of 10

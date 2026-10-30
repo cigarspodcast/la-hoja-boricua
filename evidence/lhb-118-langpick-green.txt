@@ -1,0 +1,31 @@
+✔ v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea (8.3833ms)
+✔ LHB-27 (LHB-115): español salvo que se escoja el inglés, y se recuerda (encendido en E6, LHB-36) (5.8691ms)
+✔ LHB-29 (LHB-111): los dibujos de art.js no llevan texto (las cabeceras son adorno); la silueta del cigarro lleva el nombre que le da app.js, en los dos idiomas (9.0309ms)
+✔ LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de tabaco con un solo acento; ningún arte fuera del juego, y el cigarro sin foto lleva la silueta (2193.4619ms)
+✔ LHB-118: el Medallón en los íconos, la barra de día y de noche, la intro, las páginas fijas y la imagen para compartir (70.6166ms)
+✔ LHB-115: sin escoger, español aunque el navegador esté en inglés; la cookie lhb_lang dice el idioma, y gana a localStorage; lo de localStorage pasa a la cookie (12.0124ms)
+✔ LHB-115: escoger escribe la cookie (un año, Path=/, SameSite=Lax, Secure en https) y localStorage; set recarga, y con sesión espera a que la cuenta lo guarde (22.7143ms)
+✔ LHB-115: la primera vez, sin idioma escogido, antes que nada sale Español o English (cada uno en su idioma); con uno escogido no sale (9.4232ms)
+✔ LHB-115: Español se guarda y sigue la intro; English se guarda y recarga en inglés; si no se pudo guardar, sigue en español (4.2269ms)
+✔ LHB-115 (Codex r3): el idioma escogido en el teléfono es el que vale; la cuenta guarda una copia y solo se lee cuando el teléfono no tiene ninguno (32.4309ms)
+✔ LHB-115: cambiar el idioma desde el menú con la sesión abierta lo manda a la cuenta; sin sesión no manda nada (4.3375ms)
+✔ LHB-115: el servidor guarda y devuelve el idioma de la cuenta (PUT /api/profile con solo lang, GET /api/me), y sin la columna sigue funcionando (234.4569ms)
+✔ LHB-115 (Codex r2-4, r3-4): el menú manda a la cuenta de la sesión de ahora (perfil guardado o la cookie __client_uat de Clerk); los envíos van de uno en uno y el último es el que queda (4.5927ms)
+✔ LHB-115 (Codex r2-2): dos cambios seguidos del menú recargan una sola vez, cuando contesta el último (2.7963ms)
+✔ LHB-115 (Codex r2-5): escoger Español en la pantalla también lo manda a la cuenta (con sesión, cuenta.js pone onSet) (2.0222ms)
+✔ LHB-115 (Codex r1-3): sin localStorage la cookie todavía puede recordar el idioma: la pantalla sale igual, y Español sigue sin intro (la intro no tiene dónde anotarse) (1.8693ms)
+✔ LHB-115 (Codex r1-4): al crear el perfil, y al completar la identidad, el idioma del teléfono se guarda en la cuenta (6.6115ms)
+✔ LHB-115 (Codex r1-5): la hoja de entrar espera a que se escoja el idioma; sin la pantalla abierta sale en el acto (7.3334ms)
+✔ LHB-115 (Codex r4-1): lo escogido antes de que cargara la cuenta (o con la recarga del inglés) llega a la cuenta al abrir la app con la sesión guardada (5.1747ms)
+✔ LHB-115 (Codex r4-2): con la pantalla del idioma abierta, completar la identidad o crear el perfil esperan a que se escoja (9.4973ms)
+✔ LHB-115 (Codex r5-1): con la pantalla del idioma abierta, los avisos de la cuenta (el error de una acción en sitio, y el de volver a entrar) esperan a que se escoja (7.367ms)
+✔ LHB-115 (Codex r6-1): con la pantalla del idioma abierta, la acción que se retoma al volver de entrar espera a que se escoja, y se descarta si cambió la página (4.11ms)
+✔ LHB-115: la página de privacidad dice que una cookie recuerda el idioma; el respaldo del arranque lee la cookie (0.4313ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2817.1239

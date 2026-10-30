@@ -50,7 +50,7 @@ HEAD = """<!doctype html>
 <link rel="stylesheet" href="l.css">
 {ld}</head>
 <body>
-<header><a class="brand" href="../"><img src="../icons/icon.svg" alt="" width="30" height="30"><span class="brand-text"><span class="brand-name">La Hoja <em>Boricua</em></span><span class="brand-sub" lang="es">Hecho en Borinquen</span></span></a><a class="app" href="../#/lugares">Abrir en la app</a></header>
+<header><a class="brand" href="../"><img class="mark-l" src="../icons/icon.svg" alt="" width="30" height="30"><img class="mark-d" src="../icons/icon-dark.svg" alt="" width="30" height="30"><span class="brand-text"><span class="brand-name">La Hoja <em>Boricua</em></span><span class="brand-sub" lang="es">Hecho en Borinquen</span></span></a><a class="app" href="../#/lugares">Abrir en la app</a></header>
 <main>
 """.replace('HOSTX', HOST)
 FOOT = """</main>

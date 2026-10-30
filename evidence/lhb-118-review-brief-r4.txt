@@ -1,0 +1,20 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-118-wt (branch lhb-118-medallon, staged for the owner's review, not merged). This is round 4 of a TIER 2 review of LHB-118 (the Medallon logo with its own dark mark; every mark is a pair of img, class mark-l then class mark-d, swapped by .mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}, the tokens set per theme).
+
+Round 3 (evidence/lhb-118-review-r3.txt, on e7f391f) said VERDICT: BLOCK: (P2) a rule such as .brand{--mark-dark:block} changes the token the swap reads; (P2) CSS escapes (d\69splay, !\69mportant, a\6c l) slip past the literal match; (P3) a mark with the hidden attribute stays visible because the swap rules follow [hidden] at equal specificity.
+
+The fix is the diff below (e7f391f to HEAD, site, test and the mutation runner):
+- The three sheets add .mark-l[hidden],.mark-d[hidden]{display:none!important} after the swap rules.
+- The LHB-118 test reads each sheet with comments stripped and CSS escapes decoded (unesc118, with a self-check); pins the exact list of important display or all declarations (now including the hidden rule, and requiring it after the swap); allows --mark-light and --mark-dark to be set only in :root, :root:not([data-theme="light"]) inside the dark media block, and :root[data-theme="dark"]; and forbids those token names in any .html or .js under site/ and in functions/u/[handle].js (an inline style or a script cannot set them).
+- Evidence: evidence/lhb-118/mutations-r4.txt (20 of 20 killed, green before and after, including each of your round 3 injections); evidence/lhb-118/browser-r2-injection.txt (rounds 1 and 2 injections lose; hidden now hides both marks in both themes); evidence/lhb-118/suite-5.txt (474 tests, 473 pass, 0 fail, 1 skipped).
+
+Scope note for this round: the test is a guard against plausible regressions in this repository's own three stylesheets, pages and scripts, not a CSS engine. Please separate (a) a regression a future edit to this repository could plausibly introduce that both shows or hides the marks and that the test misses, which may block, from (b) constructions that require deliberately adversarial CSS in our own files, which are nonblocking notes.
+
+Check in particular:
+- Does the fix close the three round 3 findings?
+- Any remaining plausible way for both marks to show, or neither, that the test misses.
+- Is the decoder correct for real CSS (a hex escape followed by a space or not, escapes at the end of a value, a backslash-newline)?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-name-pattern=LHB-118 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.

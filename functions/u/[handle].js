@@ -39,7 +39,7 @@ const html = (body, status) => new Response(body, { status, headers: HEADERS });
 
 const shell = (head, main) => '<!doctype html>\n<html lang="es-PR">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
   head + '<meta name="robots" content="' + ROBOTS + '">\n<link rel="stylesheet" href="/u.css">\n</head>\n<body>\n' +
-  '<header><a class="brand" href="/"><img src="/icons/icon.svg" alt="" width="30" height="30"><span class="brand-text"><span class="brand-name">La Hoja <em>Boricua</em></span><span class="brand-sub" lang="es">Hecho en Borinquen</span></span></a><a class="app" href="/">Abrir la app</a></header>\n<main>\n' + main + '</main>\n';
+  '<header><a class="brand" href="/"><img class="mark-l" src="/icons/icon.svg" alt="" width="30" height="30"><img class="mark-d" src="/icons/icon-dark.svg" alt="" width="30" height="30"><span class="brand-text"><span class="brand-name">La Hoja <em>Boricua</em></span><span class="brand-sub" lang="es">Hecho en Borinquen</span></span></a><a class="app" href="/">Abrir la app</a></header>\n<main>\n' + main + '</main>\n';
 
 function notFound() {
   return html(shell('<title>Perfil no encontrado | La Hoja Boricua</title>\n',

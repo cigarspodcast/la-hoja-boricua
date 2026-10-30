@@ -1,0 +1,24 @@
+LHB-118: Codex round 1 P3, the test now proves no rule overrides the mark swap
+
+Codex round 1 (evidence/lhb-118-review-r1.txt) said PASS with one
+nonblocking P3: the LHB-118 test checked that .mark-l and .mark-d exist,
+not that they win, so a higher-specificity rule such as
+.brand img{display:block} would show both marks and still pass.
+
+- test/site.test.js, LHB-118: every rule in styles.css, lugares/l.css and
+  u.css (comments stripped, @media bodies included) whose selector can
+  reach the mark img and carries a class, id, attribute or pseudo-class
+  must not set display. Reach is judged by the mark's real ancestors
+  (html, body, div.app#app, header.topbar, a.brand, div.intro,
+  div.intro-mark); the bare img{display:block} of the base and
+  .card .ph img are correctly out of reach. A self-check pins the
+  detector on five selectors.
+- site/styles.css: the comment over .brand img said the mark sits on a
+  paper tile at night; it now says why there is no tile.
+- evidence/lhb-118-mutations.py: two mutants for the P3 (display on
+  .brand img in styles.css and u.css); 10 of 10 killed, green before and
+  after (evidence/lhb-118/mutations-r2.txt).
+- Full suite: 474 tests, 473 pass, 0 fail, 1 skipped
+  (evidence/lhb-118/suite-3.txt).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

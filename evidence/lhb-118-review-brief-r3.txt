@@ -1,0 +1,18 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-118-wt (branch lhb-118-medallon, staged for the owner's review, not merged). This is round 3 of a TIER 2 review of LHB-118 (the Medallon logo with its own dark mark, swapped by the tokens --mark-light and --mark-dark through the rules .mark-l and .mark-d; every mark is a pair of img, class mark-l then class mark-d).
+
+Round 2 (evidence/lhb-118-review-r2.txt, on eec14e6) said VERDICT: BLOCK: the test's hand-written selector parser (reach118) missed real overrides (.brand img:not(.x), :is(.brand,.card) img, .brand img[alt="" i], .brand>img+img) and declaration forms (img{display:block!important}, .brand img{all:initial}, DISPLAY:block); and, P3, it rejected safe rules such as :where(.brand) img.
+
+The fix (diff below, eec14e6 to HEAD, site, test and the mutation runner) changes approach instead of patching the parser:
+- styles.css, lugares/l.css, u.css: .mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}. A normal declaration can no longer beat them, whatever its selector or specificity.
+- The LHB-118 test drops reach118 entirely. Per sheet, with comments stripped, it collects every declaration whose property is display or all (case-insensitive) and that is !important (any spacing, any case), and pins the exact list: the two mark rules, plus [hidden]{display:none!important} and .btn-install{display:none!important} in styles.css, which were already there. A new important display or all anywhere in the three sheets fails the test until someone pins it. A mark img may not carry an inline style attribute.
+- Evidence: evidence/lhb-118/browser-r2-injection.txt (all ten rules you and round 1 injected, as one style element in Chromium: one mark per theme); evidence/lhb-118/mutations-r3.txt (14 of 14 killed, green before and after); evidence/lhb-118/suite-4.txt (474 tests, 473 pass, 0 fail, 1 skipped).
+
+Check in particular:
+- Is there still a concrete way, with today's markup and these three sheets, for both marks to show, or neither, that the test does not catch? Consider: @layer (important declarations in a layer beat unlayered important ones), a display set in a way the collector misses (a declaration split across a comment, an escaped property name, a shorthand), the [hidden] rule interacting with a mark, a style set by JavaScript at run time, an inline style on an ancestor, print.
+- Does !important on these two rules harm anything else (the 359 px compact brand, the intro, the share card, reduced motion, the hidden attribute)?
+- Is the pinned list too strict for legitimate future edits in a way that would make the test a nuisance?
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-name-pattern=LHB-118 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.

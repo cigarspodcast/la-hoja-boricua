@@ -41,7 +41,7 @@ function play(now){
  try{w.localStorage.setItem(KEY,String(now));w.sessionStorage.setItem(SKEY,'1')}catch(e){return}
  const tt=k=>w.LHB_I18N?w.LHB_I18N.t(k):k,o=w.innerHeight>w.innerWidth?'portrait':'landscape';
  const ov=d.createElement('section');ov.className='intro';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label',tt('intro.label'));
- ov.innerHTML=`<video muted playsinline preload="auto" aria-hidden="true" poster="assets/intro/poster-${o}.webp"></video><div class="intro-mark"><img src="icons/icon.svg" alt="" width="40" height="40"><b>${tt('intro.name')}</b><span lang="es">${tt('brand.tagline')}</span></div><button type="button" class="intro-skip">${tt('intro.skip')}</button><button type="button" class="intro-sound" aria-pressed="false">${tt('intro.soundOn')}</button><p class="intro-credit">${tt('intro.credit')} <a href="https://callepomarrosas.com/" target="_blank" rel="noopener">${tt('intro.creditName')}</a></p>`;
+ ov.innerHTML=`<video muted playsinline preload="auto" aria-hidden="true" poster="assets/intro/poster-${o}.webp"></video><div class="intro-mark"><img class="mark-l" src="icons/icon.svg" alt="" width="40" height="40"><img class="mark-d" src="icons/icon-dark.svg" alt="" width="40" height="40"><b>${tt('intro.name')}</b><span lang="es">${tt('brand.tagline')}</span></div><button type="button" class="intro-skip">${tt('intro.skip')}</button><button type="button" class="intro-sound" aria-pressed="false">${tt('intro.soundOn')}</button><p class="intro-credit">${tt('intro.credit')} <a href="https://callepomarrosas.com/" target="_blank" rel="noopener">${tt('intro.creditName')}</a></p>`;
  const v=ov.querySelector('video'),skip=ov.querySelector('.intro-skip'),sound=ov.querySelector('.intro-sound'),link=ov.querySelector('a'),ring=[skip,sound,link];
  v.muted=true;v.loop=false;v.volume=.75;v.src='assets/intro/intro-'+o+'.mp4';
  const motion=w.matchMedia?w.matchMedia('(prefers-reduced-motion: reduce)'):null;
@@ -70,7 +70,7 @@ let picking=false;const after=[];
 function choose(next){
  const w=window,d=w.document,I=w.LHB_I18N,app=d.getElementById('app'),tt=k=>I.t(k);picking=true;
  const ov=d.createElement('section');ov.className='lang-pick';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','langPickH');
- ov.innerHTML=`<div class="lang-pick-in"><img src="icons/icon.svg" alt="" width="56" height="56"><h1 id="langPickH">${tt('intro.name')}</h1><p>${tt('lang.pick')}</p><div class="lang-pick-b">${NAMES.map(([l,n])=>`<button type="button" class="lbtn" lang="${l}" data-l="${l}">${n}</button>`).join('')}</div></div>`;
+ ov.innerHTML=`<div class="lang-pick-in"><img class="mark-l" src="icons/icon.svg" alt="" width="56" height="56"><img class="mark-d" src="icons/icon-dark.svg" alt="" width="56" height="56"><h1 id="langPickH">${tt('intro.name')}</h1><p>${tt('lang.pick')}</p><div class="lang-pick-b">${NAMES.map(([l,n])=>`<button type="button" class="lbtn" lang="${l}" data-l="${l}">${n}</button>`).join('')}</div></div>`;
  const btns=[...ov.querySelectorAll('.lang-pick-b button')];let done=false;
  for(const b of btns){const l=b.getAttribute('data-l');
   b.onclick=()=>{if(done)return;done=true;if(l==='en'&&I.set('en')!==false)return;if(l==='es'){I.remember('es');/* Codex r2-5: con sesión, también a la cuenta */if(typeof I.onSet==='function'){try{const p=I.onSet('es');if(p&&p.catch)p.catch(()=>{})}catch(e){}}}if(app)app.inert=false;ov.remove();picking=false;next();for(const f of after.splice(0)){try{f()}catch(e){}}}}

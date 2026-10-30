@@ -1,0 +1,16 @@
+You are reviewing one merge in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-118-wt, branch lhb-118-medallon at HEAD (e25176c). This is a TIER 1 review of the merge of main into an already reviewed ticket.
+
+Ticket LHB-118 replaces the logo with the Medallon and gives it a dark version (icon-dark.svg, icon-full-dark.svg); every mark img became a pair <img class="mark-l" src=".../icons/icon.svg"><img class="mark-d" src=".../icons/icon-dark.svg">, switched by the tokens --mark-light and --mark-dark with display:var(...)!important. Codex reviewed the ticket in four rounds on its own base (evidence/lhb-118-review-r1.txt to r4); the owner accepted it after round 4.
+
+Since then main moved: LHB-105 (cache v166, tab locks), LHB-117 (v167, removed a label), LHB-115 (v168, a first-visit language screen built in site/intro.js, with .lang-pick rules in styles.css), LHB-119 (v169, a toast in hoja.js). The branch merged main three times (commits 407edec, d6bfbd8, e25176c). What the merges did by hand:
+- Every conflict (site/sw.js and 17 hunks in test/site.test.js, each time) differed only in the cache version; main's side was taken and the version set to lhb-v170, after LHB-119's v169. sw.js keeps main's SHELL plus the three new SVGs ('icons/icon-dark.svg','icons/icon-full.svg','icons/icon-full-dark.svg').
+- LHB-115's language screen in site/intro.js had a single <img src="icons/icon.svg" alt="" width="56" height="56">. The LHB-118 test failed on it (evidence/lhb-118-langpick-red.txt); it is now the pair, and .lang-pick-in img keeps only border-radius and background:var(--mark-bg) (no display), so the pair rule decides which shows.
+- The four static page generators were rerun after each merge; every page came out byte-identical (site/llms.txt differed only in line endings and was restored).
+- Full suite after the last merge: 506 tests, 505 pass, 0 fail, 1 skipped (evidence/lhb-118-suite-merge3.txt). The LHB-27 test that is gone was removed on purpose by LHB-115 on main.
+- The branch preview at v168 was checked in a browser: in system dark icon-dark.svg shows and icon.svg is hidden; data-theme light and dark (the theme switch) flip the pair.
+
+The diff below is git diff origin/main HEAD over the hand-written paths (the generated static pages, binary icons and evidence are left out).
+
+What to look for: anything the merges broke or left inconsistent: a mark img anywhere in site/ or functions/ without its pair (including anything main added since the ticket's review), a rule that sets display on a mark img and beats the pair, the sw.js SHELL and version, the share image, the test's version pins and IMP118 lists, and whether the language screen's mark shows correctly in light, dark and with data-theme.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing sequence.
