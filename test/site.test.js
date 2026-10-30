@@ -3694,7 +3694,7 @@ test('LHB-87: el mapa pinta grupos con su número, que acercan; la lista sigue t
  assert.ok(app.includes("const mk=L.marker([p.lat,p.lng],{icon,title:p.nombre,keyboard:true});")&&!/const mk=L\.marker\([^;]*\.addTo\(map\)/.test(app),'los pines no van directo al mapa: los pone layout');
  assert.ok(app.includes("if(g.ms.length===1){pins.addLayer(g.ms[0].mk);continue}"),'un pin solo es el pin de siempre');
  assert.ok(app.includes("icon:L.divIcon({className:'pin-group',html:`<span>${n}</span>`,iconSize:[36,36],iconAnchor:[18,18]}),title:tt('map.group',{n}),keyboard:true"),'el grupo dice cuántos y se alcanza con el teclado');
- assert.ok(app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})")&&app.includes("setContent(g.ms.map(m=>placeCard(m.p)).join(''))"),'tocar el grupo acerca, o muestra la lista si ya no se separan');
+ assert.ok(app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})")&&app.includes("setContent('<div class=\"pops\">'+g.ms.map(m=>placeCard(m.p)).join('')+'</div>')"),'tocar el grupo acerca, o muestra la lista si ya no se separan');
  const {T}=I18N();assert.equal(T.es['map.group'],'{n} lugares aquí: acercar');assert.equal(T.en['map.group'],'{n} places here: zoom in');
  assert.ok(app.includes('<div class="list" style="margin-top:12px">${ps.map(p=>')&&app.includes("if(state.lugMode==='mapa')drawMap(ps)}"),'la lista y el mapa salen del mismo ps: todo lugar del mapa está en la lista');
  const css=read('styles.css');assert.ok(/\.pin-group span\{width:36px;height:36px;/.test(css),'el grupo mide 36 px (más de 24)');
@@ -3936,7 +3936,10 @@ test('LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en
   /* Codex r6: lo que se repite por tarjeta o por fila no es la llena: Cómo llegar en los eventos y en la lista de lugares, Seguir en las listas de personas.
      Cada uno va dentro de su contenedor que se repite, y la última regla de fondo de ese contexto no es el tabaco */
   const bgOf=sel=>{const r=rules.filter(x=>x.sel===sel&&/background:/.test(x.body)).pop();return r&&r.body.match(/background:([^;]+)/)[1]};
-  for(const sel of ['.ev .lbtn.go-map','.list .lbtn.go-map','.fw-row .fw-b'])assert.ok(bgOf(sel)&&bgOf(sel)!=='var(--accent)','con borde en lo que se repite: '+sel+' '+bgOf(sel));
+  /* Codex r7: la burbuja de un grupo (varios placeCard en .pops) es otro contexto que se repite; la de un solo lugar sigue con su llena */
+  assert.ok(/setContent\('<div class="pops">'\+g\.ms\.map\(m=>placeCard\(m\.p\)\)\.join\(''\)\+'<\/div>'\)/.test(ap),'la burbuja del grupo envuelve sus lugares en .pops');
+  assert.ok(!/setContent\((?!'<div class="pops">')[^)]*\.map\([^)]*placeCard/.test(ap),'ninguna burbuja junta varios placeCard sin .pops');
+  for(const sel of ['.ev .lbtn.go-map','.list .lbtn.go-map','.pops .lbtn.go-map','.fw-row .fw-b'])assert.ok(bgOf(sel)&&bgOf(sel)!=='var(--accent)','con borde en lo que se repite: '+sel+' '+bgOf(sel));
   for(const sel of ['.fw-row .fw-b'])assert.ok(rules.some(x=>x.sel===sel&&/color:var\(--accent-ink\)/.test(x.body)&&/border:1px solid var\(--accent-ink\)/.test(x.body)),sel);
   {const ev=hj.slice(hj.indexOf('function evCard('),hj.indexOf('\nfunction ',hj.indexOf('function evCard(')+10));assert.ok(ev.includes('return `<article class="ev ')&&ev.includes('<a class="lbtn go-map"'),'Cómo llegar va dentro de la tarjeta .ev');
    const vl=ap.slice(ap.indexOf('function vLugares('),ap.indexOf('\nfunction ',ap.indexOf('function vLugares(')+10));const li=vl.indexOf('<div class="list" style="margin-top:12px">');assert.ok(li>0&&vl.indexOf('<a class="lbtn go-map"',li)>li,'Cómo llegar va dentro de la lista de lugares');
