@@ -1,0 +1,11 @@
+RED   destino keeps the old prefix
+RED   redirects even with Mi Hoja data
+RED   never redirects
+RED   backup keeps the draft
+RED   backup drops the legacy favourites
+RED   legacy uploads alone do not count as data
+RED   backup in a format the new app does not import
+RED   worker stays registered
+RED   caches kept
+RED   worker waits behind the old one
+10 of 10 mutants red

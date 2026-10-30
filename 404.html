@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es-PR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>La Hoja Boricua se mudó</title>
+<style>
+:root{--bg:#f6f0e6;--fg:#2b1d12;--accent:#7a3b12;--muted:#6b5a4a}
+@media (prefers-color-scheme:dark){:root{--bg:#1c140e;--fg:#f3e9dc;--accent:#e0a36b;--muted:#bfae9b}}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:34rem;margin:0 auto;padding:48px 20px}
+h1{font-size:1.6rem;line-height:1.2;margin:0 0 12px}
+a,button{color:var(--accent)}
+.b{display:inline-block;margin:8px 8px 0 0;padding:10px 16px;border:2px solid var(--accent);border-radius:999px;background:none;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}
+.b.p{background:var(--accent);color:var(--bg)}
+.n{color:var(--muted);font-size:.9rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>La Hoja Boricua se mudó a lahojaboricua.com</h1>
+<p id="ir">Te llevamos allá ahora. Si no pasa nada, <a id="enlace" href="https://lahojaboricua.com/">sigue este enlace</a>.</p>
+<div id="datos" hidden>
+<p>Tu Mi Hoja (humidor, diario, pasaporte y favoritos) está guardada en este navegador, en la dirección vieja. Antes de irte, descarga tu respaldo. Luego, en lahojaboricua.com, abre Mi Hoja, ve a Respaldo y toca Importar: importar suma, no borra.</p>
+<p><button class="b p" id="bajar" type="button">Descargar mi respaldo</button><a class="b" id="ir2" href="https://lahojaboricua.com/">Ir a lahojaboricua.com</a></p>
+<p class="n" id="listo" hidden>Respaldo descargado. Ahora ve a lahojaboricua.com e impórtalo en Mi Hoja.</p>
+</div>
+</main>
+<script>
+/* LHB-7: la copia vieja en GitHub Pages se retira. Cada dirección vieja lleva a la misma en lahojaboricua.com.
+   Si este navegador tiene una Mi Hoja guardada aquí, no se redirige: primero se ofrece el respaldo, en el mismo formato que exportaba la app vieja (hoja.js, exportar). */
+(function(w){'use strict';
+var NUEVO='https://lahojaboricua.com',BASE='/la-hoja-boricua',KEY='lhb_mihoja_v1';
+function destino(loc){var p=String(loc.pathname||'/');if(p===BASE||p.indexOf(BASE+'/')===0)p=p.slice(BASE.length);if(p.charAt(0)!=='/')p='/'+p;return NUEVO+p+(loc.search||'')+(loc.hash||'')}
+function leer(k){try{var v=w.localStorage.getItem(k);return v==null?null:JSON.parse(v)}catch(e){return null}}
+function lleno(x){if(Array.isArray(x))return x.length>0;if(x&&typeof x==='object'){for(var k in x)if(Object.prototype.hasOwnProperty.call(x,k)&&lleno(x[k]))return true;return false}return x!=null&&x!==false&&x!==''}
+function tieneDatos(){var m=leer(KEY);if(m&&typeof m==='object'&&(lleno(m.humidor)||lleno(m.diario)||lleno(m.pasaporte)||lleno(m.favs)||lleno(m.ratings)))return true;
+ return lleno(leer('vb_favs'))||lleno(leer('vb_ratings'))||lleno(leer('vb_perfil'))||lleno(leer('vb_sugeridas'))||lleno(leer('vb_uploads'))}
+function hoy(){var d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
+function respaldo(){var m=leer(KEY);m=m&&typeof m==='object'?m:{schema:1,humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{cigarros:[],artesanos:[],lugares:[]},ratings:{}};
+ var mh={};for(var k in m)if(Object.prototype.hasOwnProperty.call(m,k))mh[k]=m[k];mh.draft=null;
+ /* sin Mi Hoja guardada: favoritos y estrellas de la versión anterior, como hacía load() en la app vieja */
+ if(!leer(KEY)){var f=leer('vb_favs'),r=leer('vb_ratings');if(Array.isArray(f))mh.favs={cigarros:f.filter(function(x){return typeof x==='string'}),artesanos:[],lugares:[]};if(r&&typeof r==='object'&&!Array.isArray(r))mh.ratings=r}
+ return {app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:1,exportado:new Date().toISOString(),url:'https://cigarspodcast.github.io/la-hoja-boricua/',
+  mihoja:mh,extra:{perfil:leer('vb_perfil'),sugeridas:leer('vb_sugeridas')||[],subidas:leer('vb_uploads')||[]}}}
+function bajar(){var d=w.document,blob=new Blob([JSON.stringify(respaldo(),null,1)],{type:'application/json'}),u=URL.createObjectURL(blob),a=d.createElement('a');
+ a.href=u;a.download='la-hoja-boricua-respaldo-'+hoy()+'.json';a.rel='noopener';d.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(u);a.remove()},4000);d.getElementById('listo').hidden=false}
+w.LHB_RETIRO={destino:destino,tieneDatos:tieneDatos,respaldo:respaldo};
+if(!w.document||!w.document.getElementById)return;
+var to=destino(w.location),d=w.document;d.getElementById('enlace').href=to;d.getElementById('ir2').href=to;
+if(tieneDatos()){d.getElementById('ir').hidden=true;d.getElementById('datos').hidden=false;d.getElementById('bajar').onclick=bajar}
+else w.location.replace(to);
+})(window);
+</script>
+</body>
+</html>
