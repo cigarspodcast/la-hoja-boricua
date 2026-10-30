@@ -1,0 +1,96 @@
+✖ LHB-105: el cambio de cuenta espera el candado: la pasada de otra pestaña termina con la copia de A, y luego el cambio la aparta y deja la de B vacía (199.7077ms)
+✖ LHB-105: una pasada que pide el candado después del cambio ya ve la copia de B: no sube nada de A a ninguna cuenta (341.7263ms)
+✖ LHB-105: dos pestañas piden el cambio a la vez: uno cambia y aparta, el otro ya encuentra la copia de B (82.6439ms)
+✔ LHB-105: dentro de una pasada, con el candado en la mano, el cambio corre en el momento (no pide el candado otra vez) (118.0225ms)
+✖ LHB-105: sin Web Locks el cambio es como antes, en el momento (66.7422ms)
+✖ LHB-105: si el cambio falla (sin espacio) no se vuelve a pintar la pantalla sola; la vez siguiente que se abre Mi Hoja se intenta otra vez (509.0047ms)
+✖ LHB-105: hoja.js le dice a sync.js si hay Web Locks, y mientras el cambio espera, escribir avisa que se está cambiando de cuenta (en los dos idiomas) (14.6465ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 1
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2464.7688
+
+✖ failing tests:
+
+test at test\site.test.js:7511:1
+✖ LHB-105: el cambio de cuenta espera el candado: la pasada de otra pestaña termina con la copia de A, y luego el cambio la aparta y deja la de B vacía (199.7077ms)
+  AssertionError [ERR_ASSERTION]: no cambia mientras una pasada tiene el candado
+      at TestContext.<anonymous> (C:\LHB\lhb-105-wt\test\site.test.js:7522:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7534:1
+✖ LHB-105: una pasada que pide el candado después del cambio ya ve la copia de B: no sube nada de A a ninguna cuenta (341.7263ms)
+  AssertionError [ERR_ASSERTION]: true == false
+      at TestContext.<anonymous> (C:\LHB\lhb-105-wt\test\site.test.js:7540:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7548:1
+✖ LHB-105: dos pestañas piden el cambio a la vez: uno cambia y aparta, el otro ya encuentra la copia de B (82.6439ms)
+  AssertionError [ERR_ASSERTION]: true == false
+      at TestContext.<anonymous> (C:\LHB\lhb-105-wt\test\site.test.js:7552:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7565:1
+✖ LHB-105: sin Web Locks el cambio es como antes, en el momento (66.7422ms)
+  TypeError: A.eng.switching is not a function
+      at TestContext.<anonymous> (C:\LHB\lhb-105-wt\test\site.test.js:7569:88)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test\site.test.js:7571:1
+✖ LHB-105: si el cambio falla (sin espacio) no se vuelve a pintar la pantalla sola; la vez siguiente que se abre Mi Hoja se intenta otra vez (509.0047ms)
+  TypeError: A.eng.switching is not a function
+      at C:\LHB\lhb-105-wt\test\site.test.js:7575:65
+      at until105 (C:\LHB\lhb-105-wt\test\site.test.js:7506:46)
+      at TestContext.<anonymous> (C:\LHB\lhb-105-wt\test\site.test.js:7575:45)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test\site.test.js:7580:1
+✖ LHB-105: hoja.js le dice a sync.js si hay Web Locks, y mientras el cambio espera, escribir avisa que se está cambiando de cuenta (en los dos idiomas) (14.6465ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(h.includes("locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function'"))
+  
+      at TestContext.<anonymous> (C:\LHB\lhb-105-wt\test\site.test.js:7582:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

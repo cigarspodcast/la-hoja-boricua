@@ -1,0 +1,13 @@
+baseline (no mutation): pass 8 fail 0
+the switch runs at once even while another tab holds the lock                              RED (caught) (fail 5)
+the switch is never asked for (isolate just says no)                                       RED (caught) (fail 4)
+the switch skips the lock                                                                  RED (caught) (fail 3)
+a pass does not mark this tab as holding the lock (its own switch would wait for itself)   RED (caught) (fail 1)
+the lock flag is never cleared                                                             RED (caught) (fail 1)
+the screen is not repainted after the switch                                               RED (caught) (fail 3)
+the screen is repainted after a failed switch                                              RED (caught) (fail 1)
+switching() always says no                                                                 RED (caught) (fail 4)
+two requests start two switches                                                            RED (caught) (fail 1)
+hoja.js does not tell sync.js about Web Locks                                              RED (caught) (fail 1)
+writing during the switch says storage is full                                             RED (caught) (fail 1)
+RESULT 11 of 11 red
