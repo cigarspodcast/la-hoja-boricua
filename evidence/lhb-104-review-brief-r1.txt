@@ -1,0 +1,36 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-104-wt (branch lhb-104-shared-pend). TIER 2, round 1.
+
+Ticket LHB-104: sign-out in one tab could not see another tab's upload with a lost answer. The upload fence and settled() read only this engine's in-memory pending records (pend, evict). Reproduction (measured 2026-10-29, identical on main before and after LHB-80):
+1. Tab 1 syncs DOC28 (rev 1), removes favorite a1, and the PUT's answer is lost while the request stays queued at If-Match 1.
+2. Tab 1 re-adds a1.
+3. Tab 2 runs settled({}): GET only, ok. Then forget(mark): true.
+4. The queued PUT lands: 200, rev 2, and a1 is gone from the account.
+Done-when: sign-out in any tab reports pending while any tab's upload can still land, and a fenced sign-out leaves the account whole in the reproduction.
+
+The diff below (against origin/main b8b2b89) changes site/sync.js. Contract impact: a new localStorage key, lhb_mihoja_v1_pend, holding {v:1,l:[{s:account,r:If-Match rev,o:upload id}]}. A record of any other version, or one that cannot be parsed, counts as empty.
+- shRead()/shWrite(). A read or write that throws propagates. Inside a pass it is caught by once()'s wrapper (LHB-80 round 11): fail 'storage', and the earlier bases are dropped if an upload had landed unrecorded. settled() treats a failed read as pending. shWrite() refuses while the sign-out fence is up.
+- Before each PUT the entry is written to the shared record, and only then to pend. If that write fails, the PUT is not sent.
+- myOps: the ids this tab sent. This tab's own dropped uploads (OPS_ASK eviction, or the pre-0008 end-of-pass drop) are handled by its memory as before, never as another tab's.
+- GET asks about this tab's pend first, then other tabs' entries for the account, up to OPS_ASK in total (the server answers 400 above that).
+- After the GET, entries of the account with r < rev cannot land and are removed. If such an entry is another tab's and the server does not say it did not land (null, covered by opsFrom), it may have landed on this same local copy (tabs share it), so the pass merges with no base (voided). An entry with r === rev can still land, so the pass fences (shLive).
+- A definitive rejection (409 or another 4xx) removes that entry. A 200 at If-Match rev removes every entry of the account with r <= rev.
+- settled() reports pending while any entry of the account remains.
+- Cache version lhb-v117 (the test asserts updated).
+Tests (LHB-104, eight):
+1. The reproduction: tab 2's sign-out fences first, the late PUT answers 409, and a1 stays.
+2. Tab 2's fence also loses its answer: not safe.
+3. Another tab records an upload after tab 2's pass read the record: settled() not ok.
+4. The shared write fails: no PUT is sent, and the next pass uploads.
+5. Tab 1's removal landed without an answer and the person re-added a1: tab 2 does not take it as a deletion.
+6. Another tab's upload did not land (the server says so) and another device removed something: the base holds and the removal applies.
+7. A clearly rejected upload is no longer listed: tab 2 signs out with no fence.
+8. This tab has one unanswered upload and another tab nine: at most OPS_ASK ids are asked and the pass completes.
+Tests 1 to 5 fail on origin/main's sync.js. Tests 6 to 8 pass there trivially, because main has no shared record; each fails under its own mutant here. Evidence: evidence/lhb-104-mutations.out, 10 of 10 red, 0 equivalent; evidence/lhb-104-tests.txt, full suite 418 tests, 417 pass, 0 fail, 1 skipped.
+
+Known limits, stated: myOps lives in memory, so after a reload this tab's own earlier entries read as another tab's (conservative: merge with no base). An entry stays listed while its PUT has no clear answer; the record grows by one entry per unanswered attempt until a pass completes.
+
+Check that the Done-when holds in every interleaving of two tabs (uploads, lost answers, late landings, sign-out, account switches), and with storage failures at each new read and write. Check whether a shared entry can make a tab apply a stale base, discard a valid one forever, or keep settled() pending forever when the network and storage are healthy. Check that the record cannot grow without bound in normal use, and that LHB-80's in-tab guarantees still hold. Cross-tab account-switch races belong to LHB-105.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

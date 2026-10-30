@@ -42,7 +42,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v163'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v164'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -62,24 +62,24 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
- assert.match(sw,/const VERSION='lhb-v163'/);
+ assert.match(sw,/const VERSION='lhb-v164'/);
  /* LHB-111: la guagua ya no es ilustración de la app: ni se precachea, ni la nombra art.js, ni queda el archivo */
  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(!a.includes(g),g);assert.ok(!fs.existsSync(path.join(__dirname,'..','site',g)),g)}
  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
 test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v163'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v164'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v163'/);
+ assert.match(sw,/const VERSION='lhb-v164'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v163'/);
+ assert.match(sw,/const VERSION='lhb-v164'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
  /* LHB-111: el estado vacío lleva la caja de cigarros de línea (abajo), ya no la bandera en su asta */
@@ -102,12 +102,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v163'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v164'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v163'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v164'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes('VBArt.aqui()')&&!js.includes('VBArt.carro'),'LHB-111: el aquí del mapa es de línea');});
 test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -115,7 +115,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
-test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v163'/)});
+test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v164'/)});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -132,7 +132,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v163/);});
+ assert.match(read('sw.js'),/lhb-v164/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -145,19 +145,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v163'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v164'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v163'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v164'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v163'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v164'/);});
 
 test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
- for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v163'/);});
+ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v164'/);});
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
@@ -1219,7 +1219,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v164'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1466,7 +1466,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v163'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v164'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1644,7 +1644,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v164'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1891,7 +1891,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
- assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v164'/,'el shell nuevo se publica con otra versión del caché');
  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
@@ -2193,7 +2193,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v164'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -2476,7 +2476,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
 });
 test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
- assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v164'/,'el shell nuevo se publica con otra versión del caché');
  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
@@ -2820,7 +2820,7 @@ test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa, 
 /* un teléfono de mentira para probar el motor contra el servidor de verdad (SQLite): su almacenamiento, su reloj, sus temporizadores y su red */
 function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,failBigKey:null,failBig:0,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
  const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
- const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)},remove:k=>{ls.delete(k)}},
+ const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(st.failPre&&k.startsWith(st.failPre))||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)},remove:k=>{ls.delete(k)},keys:()=>{if(st.failKeys)throw new Error('SecurityError');return [...ls.keys()]}},
   getDoc:()=>rawDoc(),setDoc:(d,exp)=>{st.setDocs++;if(st.beforeApply){const f=st.beforeApply;st.beforeApply=null;f()}if(exp!==undefined&&win.LHB_MERGE.stable(rawDoc())!==exp)return 'stale';if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
@@ -3445,7 +3445,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
 });
 test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v163'/);
+ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v164'/);
  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
@@ -5530,7 +5530,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
- assert.match(read('sw.js'),/const VERSION='lhb-v163'/);
+ assert.match(read('sw.js'),/const VERSION='lhb-v164'/);
 });
 /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
 function DOM64(){
@@ -7613,6 +7613,633 @@ test('LHB-80 (Codex r8): todas las épocas tienen el mismo largo',async()=>{
   for(const [i,x] of [0.5,0.744854709076402,0.1,0.999999999,1e-9].entries()){Math.random=()=>x;A.st.acct=A.st.user='user_'+(i%2?'a':'b');assert.equal(A.eng.isolate(),true);seen.add(A.ls.get(E).length)}
   assert.deepEqual([...seen],[19]);
  }finally{Math.random=R;a.done()}});
+/* LHB-104: dos pestañas (dos motores sobre el mismo almacenamiento y la misma red) */
+test('LHB-104: una pestaña sube una quita que se queda sin respuesta y la persona vuelve a poner a1; otra pestaña sale: primero pone la valla, la quita ya no llega y la cuenta queda entera',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  A.D.wait=async()=>{};const T2=SYNC28().LHB_SYNC(A.D);
+  const st=await T2.settled({});assert.equal(st.ok,true,'la otra pestaña puso la valla');assert.equal(await T2.forget(st.mark),true);
+  assert.equal((await late()).status,409,'la quita ya no puede llegar');
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue en la cuenta');
+ }finally{a.done()}});
+test('LHB-104: si la valla de la otra pestaña también se queda sin respuesta, salir no está a salvo',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;A.D.api=async(C,m,...r)=>{if(m==='PUT')throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();A.edit(d=>{d.favs.artesanos=['a1']});
+  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.settled({})).ok,false);
+ }finally{a.done()}});
+test('LHB-104: una pestaña manda una subida mientras otra sale, después de su pasada: no está a salvo',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const T2=SYNC28().LHB_SYNC(A.D);const gd=A.D.getDoc;let n=0;
+  /* la pasada de salir ya leyó la lista; cuando escribe la copia, la otra pestaña anota una subida nueva con el rev de ahora */
+  A.D.getDoc=()=>{if(++n===2)A.ls.set('lhb_mihoja_v1_pend.otra_pestana',JSON.stringify({v:1,s:'user_a',r:1,o:'otra_pestana'}));return gd()};
+  const s2=await T2.settled({});A.D.getDoc=gd;
+  assert.equal(s2.ok,false,'una subida de otra pestaña todavía puede llegar');
+ }finally{a.done()}});
+test('LHB-104: si la subida no se puede anotar para las otras pestañas, no se manda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let puts=0;A.D.api=async(C,m,...r)=>{if(m==='PUT')puts++;return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});A.st.failPre='lhb_mihoja_v1_pend.';const r=await A.eng.run('guardado');A.st.failPre=null;
+  assert.ok(r.fail,'la pasada no terminó');assert.equal(puts,0,'no se mandó');assert.equal(srv28(a,'user_a').rev,1);
+  assert.equal((await A.sync()).ok,true);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'luego sí');
+ }finally{a.done()}});
+test('LHB-104: la quita de una pestaña llegó sin que lo supiera y la persona vuelve a poner a1; la otra pestaña sincroniza: no la da por borrada, a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.run('x')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104: la subida de otra pestaña no llegó (el servidor lo dice) y otro teléfono quitó algo: la base vale y lo quitado no vuelve',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const P=DEV28(a,'user_a');await P.sync();
+  const api=A.D.api;let once=true;A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;throw new TypeError('sin red')}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();
+  P.edit(d=>{d.favs.artesanos=[]});await P.sync();
+  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.run('x')).ok,true);
+  assert.deepEqual(A.doc().favs.artesanos,[],'lo que quitó el otro teléfono no vuelve');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+ }finally{a.done()}});
+test('LHB-104: una subida que el servidor rechazó claramente deja de estar anotada: otra pestaña sale sin poner valla',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true,puts=0;A.D.api=async(C,m,...r)=>{if(m==='PUT'){if(once){once=false;return {status:400,body:{error:'bad'}}}puts++}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});const r=await A.eng.run('guardado');assert.equal(r.fail,'put-400');
+  A.edit(d=>{d.ratings.c2=undefined;delete d.ratings.c2});
+  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.settled({})).ok,true);assert.equal(puts,0,'sin valla');
+ }finally{a.done()}});
+test('LHB-104: esta pestaña tiene una subida sin respuesta y otra pestaña nueve: se pregunta a lo sumo por OPS_ASK (las de esta primero) y la pasada termina',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let off=true;A.D.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});for(let i=0;i<9;i++)await A.sync();
+  const T2=SYNC28().LHB_SYNC(A.D);await T2.run('x');
+  off=false;const r=await T2.run('y');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+ }finally{a.done()}});
+/* LHB-104 (Codex r1): una pestaña con ganchos en su almacenamiento (h.get/h.keys después de leer; h.set/h.remove antes de escribir) sobre el mismo de A */
+const isP104=k=>typeof k==='string'&&k.startsWith('lhb_mihoja_v1_pend');
+const mk104=(A,h)=>({...A.D,ls:{get:k=>{const v=A.D.ls.get(k);if(h.get)h.get(k);return v},set:(k,v)=>{if(h.set)h.set(k,v);A.D.ls.set(k,v)},remove:k=>{if(h.remove)h.remove(k);A.D.ls.remove(k)},keys:()=>{const v=A.D.ls.keys();if(h.keys)h.keys();return v}}});
+test('LHB-104 (Codex r1): una pestaña quita su subida rechazada mientras otra anota la suya: la de la otra sigue anotada, salir pone la valla y la otra ya no llega',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  let armed=false,C0=null;const OP='otra_pestana_op';
+  /* la otra pestaña anota su subida justo entre la lectura y la escritura de esta */
+  const otra=k=>{if(k==='lhb_mihoja_v1_pend'){const v=JSON.parse(A.ls.get(k)||'{"v":1,"l":[]}');v.l.push({s:'user_a',r:1,o:OP});A.ls.set(k,JSON.stringify(v))}else A.ls.set('lhb_mihoja_v1_pend.'+OP,JSON.stringify({v:1,s:'user_a',r:1,o:OP}))};
+  const fire=k=>{if(armed&&isP104(k)){armed=false;otra(k)}};
+  const D2=mk104(A,{get:fire,remove:fire}),api=A.D.api;
+  D2.api=async(C,m,...r)=>{C0=C;if(m==='PUT'){armed=true;return {status:400,body:{error:'bad'}}}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});const T2=SYNC28().LHB_SYNC(D2);assert.equal((await T2.run('x')).fail,'put-400');
+  A.edit(d=>{d.ratings.c2=undefined;delete d.ratings.c2});
+  const T3=SYNC28().LHB_SYNC(A.D);A.D.wait=async()=>{};
+  const st=await T3.settled({});assert.equal(st.ok,true);assert.equal(await T3.forget(st.mark),true);
+  const sin={...DOC28,favs:{...DOC28.favs,artesanos:[]}};
+  assert.equal((await api(C0,'PUT','/api/mihoja',{schema:1,doc:sin},'user_a',{'If-Match':'1','X-Op':OP})).status,409,'la subida de la otra pestaña ya no puede llegar');
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): otra pestaña anota y manda su subida después de que esta revisó la cuenta: salir no borra',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let open=null,paused=false,late=null;
+  A.D.api=async(C,m,path,...r)=>{
+   if(m==='GET'&&!paused){paused=true;const g=await api(C,m,path,...r);await new Promise(res=>{open=res});return g}
+   if(m==='PUT'&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}
+   return api(C,m,path,...r)};
+  /* la pasada de la pestaña 1 ya leyó la copia sin a1 y espera la cuenta; la persona vuelve a poner a1 */
+  A.edit(d=>{d.favs.artesanos=[]});const p1=A.eng.run('guardado');
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la pasada espera');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  const T2=SYNC28().LHB_SYNC(A.D);A.D.wait=async()=>{};
+  const st=await T2.settled({});assert.equal(st.ok,true,'todavía no hay nada anotado');
+  open();await p1;assert.ok(late,'la quita salió y su respuesta no llegó');
+  assert.equal(await T2.forget(st.mark),false,'una subida de otra pestaña todavía puede llegar: no se borra nada');
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'la copia sigue');
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): otra pestaña sabe que la quita llegó, la persona volvió a poner a1 y el almacenamiento falla antes de subir: al recargar, a1 sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  /* en cuanto la pestaña 2 quita la anotación, el almacenamiento deja de leerse */
+  let armed=false;const boom=()=>{if(armed)throw new Error('SecurityError')};const mut=k=>{if(isP104(k)){boom();armed=true}};
+  const D2=mk104(A,{get:k=>{if(isP104(k))boom()},keys:boom,set:mut,remove:mut});
+  const T2=SYNC28().LHB_SYNC(D2);assert.equal((await T2.run('x')).fail,'storage');
+  const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): treinta subidas sin respuesta con el mismo If-Match no llenan el almacenamiento: cuando vuelve la red, sube',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* lo anotado de las subidas cabe en 900 caracteres, entre todas sus llaves */
+  const D2=mk104(A,{set:(k,v)=>{if(!isP104(k))return;let n=String(v).length;for(const [x,w] of A.ls)if(isP104(x)&&x!==k)n+=String(w).length;if(n>900)throw new Error('QuotaExceededError')}});
+  const api=A.D.api;let off=true;D2.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
+  const T=SYNC28().LHB_SYNC(D2);A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<30;i++)await T.run('x');
+  off=false;assert.equal((await T.run('x')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+  assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): la valla de salir se pone justo mientras esta pestaña anota su subida: no se manda y no queda anotada',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  let once=true,puts=0;const D2=mk104(A,{set:k=>{if(once&&isP104(k)){once=false;A.ls.set('lhb_mihoja_v1_saliendo',String(A.st.clock))}}});
+  const api=A.D.api;D2.api=async(C,m,...r)=>{if(m==='PUT')puts++;return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});const T2=SYNC28().LHB_SYNC(D2);const r=await T2.run('x');
+  assert.ok(r.fail,'la pasada no terminó');assert.equal(puts,0,'no se mandó');assert.equal([...A.ls.keys()].filter(isP104).length,0,'no quedó anotada');
+  assert.equal(srv28(a,'user_a').rev,1);
+ }finally{a.done()}});
+test('LHB-104 (Codex r1): hoja.js le da al motor la lista de llaves del almacenamiento (ahí están las subidas de las otras pestañas)',()=>{
+ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
+ const i=src.indexOf('SYNC=window.LHB_SYNC({ls:'),j=src.indexOf(',getDoc:',i);assert.ok(i>=0&&j>i);
+ const m=new Map([['lhb_mihoja_v1','{}'],['lhb_mihoja_v1_pend.abcdefgh','{"v":1}'],['vb_cuenta2','{}']]);
+ /* Codex r10: como el localStorage del navegador, las llaves guardadas son sus propiedades (Object.keys) y los métodos no */
+ const api={getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>{m.set(k,String(v))},removeItem:k=>{m.delete(k)},key:n=>[...m.keys()][n]??null};
+ const localStorage=new Proxy(api,{ownKeys:()=>[...m.keys()],getOwnPropertyDescriptor:(t,k)=>m.has(k)?{value:m.get(k),enumerable:true,configurable:true,writable:true}:undefined,get:(t,k)=>k==='length'?m.size:(k in t?t[k]:m.get(k))});
+ const ls=vm.runInNewContext('('+src.slice(i+'SYNC=window.LHB_SYNC({ls:'.length,j)+')',{localStorage});
+ assert.equal(typeof ls.keys,'function','hay keys');assert.deepEqual([...ls.keys()].sort(),[...m.keys()].sort());
+});
+/* LHB-104 (Codex r2): la quita de la pestaña 1 llegó sin respuesta (rev 2) y la persona volvió a poner a1 */
+test('LHB-104 (Codex r2): la pestaña 2 leyó su base y espera la cuenta; la 1 sabe que su quita llegó, quita la anotación y repone a1: la 2 no usa su base vieja y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0,late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  let open=null,paused=false;
+  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)},wait:async()=>{}};
+  const T2=SYNC28().LHB_SYNC(D2);const pB=T2.settled({});
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la pestaña 2 espera la cuenta');
+  await A.sync();assert.ok(late,'la subida que repone a1 quedó sin respuesta');
+  open();await pB;
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y en el teléfono');
+  assert.equal((await late()).status,409,'la de la pestaña 1 ya no llega');
+ }finally{a.done()}});
+test('LHB-104 (Codex r2): otra pestaña quita la anotación justo después de que esta leyó su base: esta igual no se fía de esa base y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  let gets=0;const D2=mk104(A,{get:k=>{if(k==='lhb_mihoja_v1_sync'&&++gets===1)for(const x of [...A.ls.keys()])if(isP104(x))A.ls.delete(x)}});
+  const T2=SYNC28().LHB_SYNC(D2);assert.equal((await T2.run('x')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r2): la pestaña sabe que su quita llegó pero no puede anotar la base nueva: no quita la anotación, y al recargar a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,...r);throw new TypeError('sin respuesta')}throw new TypeError('sin red')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  A.st.failKey='lhb_mihoja_v1_sync';const r=await A.sync();A.st.failKey=null;assert.ok(!r.ok,'la pasada no terminó');
+  A.D.api=api;const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r2): la valla se pone mientras esta pestaña anota su subida y no se puede leer al mirarla otra vez: no se manda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  let armed=false,done=false,puts=0;
+  const D2=mk104(A,{set:k=>{if(isP104(k)&&!done){done=armed=true;A.ls.set('lhb_mihoja_v1_saliendo',String(A.st.clock))}},get:k=>{if(armed&&k==='lhb_mihoja_v1_saliendo'){armed=false;throw new Error('SecurityError')}}});
+  const api=A.D.api;D2.api=async(C,m,...r)=>{if(m==='PUT')puts++;return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});const T2=SYNC28().LHB_SYNC(D2);const r=await T2.run('x');
+  assert.ok(r.fail,'la pasada no terminó');assert.equal(puts,0,'no se mandó');assert.equal([...A.ls.keys()].filter(isP104).length,0,'no quedó anotada');
+  assert.equal(srv28(a,'user_a').rev,1);
+ }finally{a.done()}});
+test('LHB-104 (Codex r2): treinta recargas, cada una con una subida sin respuesta en el mismo If-Match, no llenan el almacenamiento: cuando vuelve la red, sube',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const D2=mk104(A,{set:(k,v)=>{if(!isP104(k))return;let n=String(v).length;for(const [x,w] of A.ls)if(isP104(x)&&x!==k)n+=String(w).length;if(n>900)throw new Error('QuotaExceededError')}});
+  const api=A.D.api;let off=true;D2.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<30;i++)await SYNC28().LHB_SYNC(D2).run('recarga');
+  assert.ok([...A.ls.keys()].filter(isP104).length<=8+4+1,'pocas llaves');
+  off=false;assert.equal((await SYNC28().LHB_SYNC(D2).run('red')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+  assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
+ }finally{a.done()}});
+test('LHB-104 (Codex r3): la pestaña 2 empieza a salir y su GET tarda; mientras, la 1 quita a1, sabe que llegó, anota su base, quita la anotación y repone a1: la 2 usa la base nueva y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0,late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  let open=null,paused=false;
+  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;await new Promise(x=>{open=x})}return api(C,m,...r)},wait:async()=>{}};
+  const T2=SYNC28().LHB_SYNC(D2);const pB=T2.settled({});
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'el GET de la pestaña 2 espera');
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.ok(late,'la subida que repone a1 quedó sin respuesta');
+  open();await pB;
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y en el teléfono');
+  assert.equal((await late()).status,409,'la de la pestaña 1 ya no llega');
+ }finally{a.done()}});
+test('LHB-104 (Codex r3): la subida llega (200) mientras la persona vuelve a poner a1 y la base nueva no se puede anotar: la anotación se queda, y al recargar a1 sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.net.afterPut=async()=>{A.edit(d=>{d.favs.artesanos=['a1']});A.st.failKey='lhb_mihoja_v1_sync'};
+  A.edit(d=>{d.favs.artesanos=[]});const r=await A.eng.run('guardado');A.st.failKey=null;
+  assert.ok(!r.ok,'la pasada no terminó');assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r3): con muchas recargas en el mismo If-Match, lo anotado no pasa de OPS_ASK ids y una llave de sobra: cabe en 600 caracteres y, cuando vuelve la red, sube',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const D2=mk104(A,{set:(k,v)=>{if(!isP104(k))return;let n=String(v).length;for(const [x,w] of A.ls)if(isP104(x)&&x!==k)n+=String(w).length;if(n>600)throw new Error('QuotaExceededError')}});
+  const api=A.D.api;let off=true;D2.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});
+  for(let i=0;i<30;i++)await SYNC28().LHB_SYNC(D2).run('recarga');
+  assert.ok([...A.ls.keys()].filter(isP104).length<=9,'pocas llaves');
+  off=false;assert.equal((await SYNC28().LHB_SYNC(D2).run('red')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+  assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
+ }finally{a.done()}});
+test('LHB-104 (Codex r3): sin la columna ops (0008 sin aplicar) nadie puede decir si la quita de otra pestaña llegó: la otra pestaña no se fía de su base y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.run('x')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r4): la respuesta del GET de la pestaña 2 (rev 1, con a1) llega tarde, después de que la 1 anotó la base del rev 2: la 2 no la usa ni la anota, y a1 se queda tras salir',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0,late=null;
+  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  let open=null,paused=false;
+  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)},wait:async()=>{}};
+  const T2=SYNC28().LHB_SYNC(D2);const pB=T2.settled({});
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la respuesta del rev 1 espera');
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.ok(late,'la subida que repone a1 quedó sin respuesta');
+  open();await pB;await T2.settled({});const st=await T2.settled({});
+  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y en el teléfono');
+  if(st.ok)assert.equal(await T2.forget(st.mark),true);
+  assert.equal((await late()).status,409,'la de la pestaña 1 ya no llega');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue');
+ }finally{a.done()}});
+test('LHB-104 (Codex r4): otra pestaña anota una base más nueva justo antes de que esta escriba la suya: esta no la pisa',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.cigarros=['k1']});await P.sync();assert.equal(srv28(a,'user_a').rev,2);
+  /* esta pestaña trae k1 (rev 2); al aplicarlo, otra pestaña ya anotó la base del rev 3 */
+  const T=SYNC28().LHB_SYNC(A.D);
+  A.st.beforeApply=()=>{const m=JSON.parse(A.ls.get('lhb_mihoja_v1_sync'));A.ls.set('lhb_mihoja_v1_sync',JSON.stringify({...m,rev:3,dirty:false}))};
+  const r=await T.run('x');assert.ok(!r.ok,'esta pasada se reintenta');
+  assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,3,'la base más nueva se queda');
+ }finally{a.done()}});
+test('LHB-104 (Codex r5): la pestaña 1 se entera tarde de que su subida llegó (rev 2), cuando la 2 ya anotó la base del rev 3: no la reemplaza, y a1 que la persona volvió a poner se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la subida de la 1 llegó');
+  let late=null,hold=false;
+  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'&&hold&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)}};
+  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
+  A.edit(d=>{d.favs.artesanos=[]});assert.equal((await B.run('quita')).ok,true);assert.equal(srv28(a,'user_a').rev,3);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
+  A.edit(d=>{d.favs.artesanos=['a1']});hold=true;await B.run('repone');assert.ok(late,'la que repone a1 quedó sin respuesta');
+  A.D.wait=async()=>{};await A.eng.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r5): si la última lectura de la meta antes de anotarla falla, no se anota',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.cigarros=['k1']});await P.sync();assert.equal(srv28(a,'user_a').rev,2);
+  /* las lecturas de la meta en la pasada: al empezar, después del GET y antes de anotar; falla la tercera */
+  let n=0;const D2=mk104(A,{get:k=>{if(k==='lhb_mihoja_v1_sync'&&++n===3)throw new Error('SecurityError')}});
+  const T=SYNC28().LHB_SYNC(D2);const r=await T.run('x');
+  assert.equal(n>=3,true);assert.ok(!r.ok,'la pasada no terminó');assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,1,'no se anotó sin mirar');
+ }finally{a.done()}});
+test('LHB-104 (Codex r6): la base del rev 3 no se puede anotar y queda tachada: la tachada guarda el rev 3, y la subida vieja de la pestaña 1 (rev 2) no vuelve a valer',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* la pestaña 1 (A) sube una nota; llega (rev 2) y su respuesta se pierde */
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la subida de la 1 llegó');
+  /* la pestaña 2 quita a1 (llega, rev 3, sin respuesta); al saberlo no puede anotar la meta del rev 3 y la tacha */
+  let failed=false,n=0,late=null;
+  const D2=mk104(A,{set:(k,v)=>{if(k==='lhb_mihoja_v1_sync'&&!failed){let x=null;try{x=JSON.parse(v)}catch(e){}if(x&&x.rev===3){failed=true;throw new Error('QuotaExceededError')}}}});
+  D2.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
+  A.edit(d=>{d.favs.artesanos=[]});await B.run('quita');assert.equal(srv28(a,'user_a').rev,3,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});await B.run('aprende');assert.ok(failed,'la meta del rev 3 no se pudo anotar');assert.ok(late,'la que repone a1 quedó sin respuesta');
+  A.D.wait=async()=>{};await A.eng.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r6): una edición cuando la meta no se puede leer no la reemplaza por una nueva: la subida vieja de la pestaña 1 no vuelve a valer',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* la pestaña 1 (A) sube una nota; llega (rev 2) y su respuesta se pierde */
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la subida de la 1 llegó');
+  let late=null,hold=false;
+  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'&&hold&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)}};
+  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
+  A.edit(d=>{d.favs.artesanos=[]});assert.equal((await B.run('quita')).ok,true);assert.equal(srv28(a,'user_a').rev,3);
+  A.edit(d=>{d.favs.artesanos=['a1']});hold=true;await B.run('repone');assert.ok(late);
+  /* otra edición, y la lectura de la meta dentro de changed() falla una vez */
+  const g=A.D.ls.get;let bad=true;A.D.ls.get=k=>{if(bad&&k==='lhb_mihoja_v1_sync'){bad=false;throw new Error('SecurityError')}return g(k)};
+  A.edit(d=>{d.ratings.c3=4});A.D.ls.get=g;assert.equal(bad,false,'la lectura falló');
+  assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,3,'la meta del rev 3 sigue');
+  A.D.wait=async()=>{};await A.eng.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r6): ensureOwner con la dueña y la meta sin poder leerse no reemplaza la meta',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();const before=A.ls.get('lhb_mihoja_v1_sync');assert.equal(JSON.parse(before).rev,1);
+  const g=A.D.ls.get;let left={'lhb_mihoja_v1_owner':1,'lhb_mihoja_v1_sync':2};
+  A.D.ls.get=k=>{if(left[k]>0){left[k]--;throw new Error('SecurityError')}return g(k)};
+  const ok=A.eng.ensureOwner();A.D.ls.get=g;
+  assert.equal(ok,false,'no se pudo saber');assert.equal(A.ls.get('lhb_mihoja_v1_sync'),before,'la meta no cambió');
+ }finally{a.done()}});
+test('LHB-104 (Codex r6): si otra pestaña anotó una base más nueva mientras esta pasada subía, la meta que esta tacha guarda ese rev más nuevo',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.cigarros=['k1']});await P.sync();
+  const T=SYNC28().LHB_SYNC(A.D);
+  /* la subida llega (rev 3); al aplicar, otra pestaña ya anotó el rev 5, y la copia no se puede escribir */
+  A.st.beforeApply=()=>{const m=JSON.parse(A.ls.get('lhb_mihoja_v1_sync'));A.ls.set('lhb_mihoja_v1_sync',JSON.stringify({...m,rev:5}));A.st.failSet=true};
+  A.edit(d=>{d.ratings.c2=3});A.edit(d=>{d.favs.artesanos=[]});const r=await T.run('x');A.st.failSet=false;
+  assert.ok(!r.ok,'la pasada no terminó');assert.equal(srv28(a,'user_a').rev,3,'la subida llegó');
+  const m=JSON.parse(A.ls.get('lhb_mihoja_v1_sync'));assert.equal(m.base,null,'tachada');assert.equal(m.rev,5,'con el rev más nuevo');
+ }finally{a.done()}});
+test('LHB-104 (Codex r7): la pestaña 1 guarda en memoria la base del rev 2 (no pudo anotarla); la 2 deja la meta tachada en el rev 3: la de memoria no vuelve a valer y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  /* la primera escritura de la meta con rev 2 y la primera con rev 3 fallan */
+  const s0=A.D.ls.set,failed={};A.D.ls.set=(k,v)=>{if(k==='lhb_mihoja_v1_sync'){let x=null;try{x=JSON.parse(v)}catch(e){}if(x&&(x.rev===2||x.rev===3)&&!failed[x.rev]){failed[x.rev]=true;throw new Error('QuotaExceededError')}}return s0(k,v)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2);assert.ok(failed[2],'la 1 no pudo anotar el rev 2');
+  const api=A.D.api;let n=0,late=null;
+  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)}};
+  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
+  A.edit(d=>{d.favs.artesanos=[]});await B.run('quita');assert.equal(srv28(a,'user_a').rev,3,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});await B.run('aprende');assert.ok(failed[3],'la 2 no pudo anotar el rev 3');assert.ok(late,'la que repone a1 quedó sin respuesta');
+  A.D.wait=async()=>{};await A.eng.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r7): otra pestaña anota la base del rev 2 justo entre que esta mira la meta y la escribe (rev 1): la meta vieja que queda no se toma como base y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;
+  /* la pestaña T trae el rev 1 y espera antes de seguir */
+  let open=null,paused=false,S1=null,applied=false;
+  const D2=mk104(A,{set:k=>{if(k==='lhb_mihoja_v1_sync'&&S1&&!applied){applied=true;A.ls.clear();for(const [x,v] of S1)A.ls.set(x,v)}}});
+  D2.api=async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)};
+  const T=SYNC28().LHB_SYNC(D2);const pT=T.run('x');
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'T espera');
+  const S0=new Map(A.ls);
+  /* mientras, la pestaña 1 quita a1 (llega, rev 2, sin respuesta), lo sabe, anota el rev 2, quita su anotación y repone a1 (sin respuesta) */
+  let n=0,late=null;A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2);
+  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.ok(late);
+  /* lo que la pestaña 1 escribió aparece justo antes de que T escriba su meta */
+  S1=new Map(A.ls);A.ls.clear();for(const [x,v] of S0)A.ls.set(x,v);
+  open();await pT;assert.ok(applied,'lo de la pestaña 1 apareció entre que T miró y escribió');
+  A.D.api=api;A.D.wait=async()=>{};const T2=SYNC28().LHB_SYNC(A.D);await T2.settled({});await T2.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+  assert.equal((await late()).status,409,'la que repone ya no hace falta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r7): la marca de agua queda en una sola llave tras varias subidas, y salir la borra',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  for(const c of ['c2','c3','c4']){A.edit(d=>{d.ratings[c]=3});await A.sync()}
+  const hw=()=>[...A.ls.keys()].filter(k=>k.startsWith('lhb_mihoja_v1_hw.'));
+  assert.deepEqual(hw(),['lhb_mihoja_v1_hw.user_a.'+srv28(a,'user_a').rev],'una sola, la del rev de ahora');
+  A.D.wait=async()=>{};const st=await A.eng.settled({});assert.equal(st.ok,true);assert.equal(await A.eng.forget(st.mark),true);
+  assert.deepEqual(hw(),[],'salir la borra');
+ }finally{a.done()}});
+test('LHB-104 (Codex r7): ni la base nueva ni su marca de agua se pueden anotar: la pestaña no quita su anotación, y al recargar a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,...r);throw new TypeError('sin respuesta')}throw new TypeError('sin red')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  A.st.failKey='lhb_mihoja_v1_sync';A.st.failPre='lhb_mihoja_v1_hw.';const r=await A.sync();A.st.failKey=null;A.st.failPre=null;assert.ok(!r.ok,'la pasada no terminó');
+  A.D.api=api;const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r7): la subida llega (200) mientras la persona vuelve a poner a1, y ni la base nueva ni su marca de agua se pueden anotar: la anotación se queda, y al recargar a1 sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.net.afterPut=async()=>{A.edit(d=>{d.favs.artesanos=['a1']});A.st.failKey='lhb_mihoja_v1_sync';A.st.failPre='lhb_mihoja_v1_hw.'};
+  A.edit(d=>{d.favs.artesanos=[]});const r=await A.eng.run('guardado');A.st.failKey=null;A.st.failPre=null;
+  assert.ok(!r.ok,'la pasada no terminó');assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r7): la persona quitó a1 y la pestaña 1 ya lo subió (rev 2) mientras la respuesta del GET de la 2 (rev 1, con a1) estaba en camino: la 2 no lo trae de vuelta',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let open=null,paused=false;
+  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)}};
+  A.edit(d=>{d.favs.artesanos=[]});
+  const T2=SYNC28().LHB_SYNC(D2);const p2=T2.run('x');
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la respuesta del rev 1 espera');
+  assert.equal((await A.sync()).ok,true);assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita llegó');
+  open();await p2;await T2.run('y');
+  assert.deepEqual(A.doc().favs.artesanos,[],'a1 no vuelve al teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'ni a la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r8): la marca de agua de la meta tachada no se puede escribir: la anotación se queda, y una meta vieja escrita tarde no hace perder a1',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la nota de la 1 llegó sin respuesta');
+  let n=0,late=null;
+  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)}};
+  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
+  /* la 1 quita a1; su changed() escribe la meta del rev 2 tarde (se guarda y se escribe al final) */
+  const s0=A.D.ls.set;let hold=true,held=null,hw3=0;
+  A.D.ls.set=(k,v)=>{if(hold&&k==='lhb_mihoja_v1_sync'){held=v;hold=false;return}if(k==='lhb_mihoja_v1_hw.user_a.3'){hw3++;throw new Error('QuotaExceededError')}return s0(k,v)};
+  A.edit(d=>{d.favs.artesanos=[]});assert.ok(held,'la escritura de la 1 quedó para después');
+  await B.run('quita');assert.equal(srv28(a,'user_a').rev,3,'la quita llegó');
+  {const prev=A.ls.get(A.KEY);const d=A.doc();d.favs.artesanos=['a1'];A.ls.set(A.KEY,JSON.stringify(d));B.changed(prev)}
+  await B.run('aprende');assert.ok(hw3>0,'la marca del rev 3 no se pudo escribir');assert.ok(late,'la que repone a1 quedó sin respuesta');
+  s0('lhb_mihoja_v1_sync',held);A.D.ls.set=s0;
+  A.D.wait=async()=>{};await A.eng.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r8): las subidas que llegaron se olvidan de la memoria de la pestaña',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  for(let i=0;i<12;i++){A.edit(d=>{d.ratings['c'+(i+2)]=3});assert.equal((await A.sync()).ok,true)}
+  assert.equal(srv28(a,'user_a').rev,13);assert.equal([...A.ls.keys()].filter(isP104).length,0,'nada anotado');assert.equal(A.eng._myOps(),0,'y nada en memoria');
+ }finally{a.done()}});
+test('LHB-104 (Codex r9): una escritura tardía deja la meta con el mismo texto que la pestaña leyó, mientras otra pestaña sube la marca de agua: la pestaña no usa la base vieja y a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();assert.equal(srv28(a,'user_a').rev,1);
+  const R0=A.ls.get('lhb_mihoja_v1_sync');assert.ok(R0,'la meta del rev 1');
+  const api=A.D.api;let open=null,gated=false;
+  const DT={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!gated){gated=true;await new Promise(x=>{open=x})}return api(C,m,...r)}};
+  const T=SYNC28().LHB_SYNC(DT);const pT=T.run('t');
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la pestaña T espera su GET');
+  let n=0;A.D.api=async(C,m,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,...r);throw new TypeError('sin respuesta')}throw new TypeError('sin red')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó sin respuesta');
+  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.equal(A.ls.get('lhb_mihoja_v1_hw.user_a.2'),'1','la marca del rev 2');
+  A.ls.set('lhb_mihoja_v1_sync',R0);
+  open();await pT;
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r9): las subidas que otra pestaña supo que llegaron, y las que el servidor rechazó, se olvidan de la memoria',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api,B=SYNC28().LHB_SYNC({...A.D,api});
+  for(let i=0;i<3;i++){let once=true;A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+   A.edit(d=>{d.ratings['c'+(i+2)]=3});await A.sync();await B.run('aprende');A.D.api=api;assert.equal((await A.sync()).ok,true)}
+  assert.equal([...A.ls.keys()].filter(isP104).length,0,'nada anotado');assert.equal(A.eng._myOps(),0,'y nada en memoria (supo otra pestaña)');
+  A.D.api=async(C,m,...r)=>m==='PUT'?{status:400,body:{error:'bad'}}:api(C,m,...r);
+  for(let i=0;i<3;i++){A.edit(d=>{d.ratings['r'+i]=2});const r=await A.sync();assert.ok(!r.ok,'rechazada')}
+  assert.equal([...A.ls.keys()].filter(isP104).length,0,'nada anotado');assert.equal(A.eng._myOps(),0,'y nada en memoria (rechazadas)');
+ }finally{a.done()}});
+test('LHB-104 (Codex r9): la cuenta está por debajo de la marca de agua de este teléfono (la borraron y se creó otra vez): la pasada termina igual, sin base',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();assert.equal(srv28(a,'user_a').rev,1);
+  A.ls.set('lhb_mihoja_v1_hw.user_a.5','1');
+  A.edit(d=>{d.ratings.c9=4});const r=await A.sync();assert.equal(r.ok,true,'la pasada termina');
+  assert.equal(srv28(a,'user_a').doc.ratings.c9,4,'y la cuenta tiene la nota');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'sin dar nada por borrado');
+ }finally{a.done()}});
+test('LHB-104 (Codex r8, con la limpieza de r9): si el teléfono no deja quitar las anotaciones que ya pasaron su If-Match, la anotación se queda para la próxima pasada, pero la memoria de la pestaña la suelta',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;A.D.api=async(C,m,...r)=>{if(m==='PUT')throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});assert.ok(!(await A.sync()).ok,'sin red: no llegó');A.D.api=api;
+  assert.ok([...A.ls.keys()].filter(isP104).length>0,'la subida que no salió queda anotada');assert.ok(A.eng._myOps()>0,'y en la memoria');
+  const rm=A.D.ls.remove;A.D.ls.remove=k=>{if(isP104(k))throw new Error('no se puede');return rm(k)};
+  A.edit(d=>{d.ratings.c3=4});assert.equal((await A.sync()).ok,true,'la pasada termina');assert.equal(srv28(a,'user_a').doc.ratings.c3,4,'la nota está en la cuenta');
+  assert.ok([...A.ls.keys()].filter(isP104).length>0,'la anotación se queda');assert.equal(A.eng._myOps(),0,'la memoria la suelta');
+  A.D.ls.remove=rm;assert.equal((await A.sync()).ok,true);assert.equal([...A.ls.keys()].filter(isP104).length,0,'la próxima pasada la quita');
+ }finally{a.done()}});
+test('LHB-104 (Codex r10): las claves del teléfono se leen de una vez: si otra pestaña borra una marca de agua vieja mientras se leen, la nueva no se pierde',()=>{
+ const hj=read('hoja.js');const m=hj.match(/remove:k=>localStorage\.removeItem\(k\),keys:(\(\)=>(?:\{const o=\[\];[\s\S]*?return o\}|Object\.keys\(localStorage\)))\}/);assert.ok(m,'keys en hoja.js');
+ /* un localStorage de mentira: las claves son propiedades, como en el navegador; en la segunda lectura por índice otra pestaña borra la marca vieja */
+ const L={};let n=0;Object.defineProperties(L,{length:{get:()=>Object.keys(L).length},key:{value:i=>{if(n++===1)delete L['lhb_mihoja_v1_hw.user_a.2'];const k=Object.keys(L)[i];return k===undefined?null:k}}});
+ for(const k of ['lhb_mihoja_v1_hw.user_a.2','lhb_mihoja_v1_hw.user_a.3','otra'])L[k]='1';
+ const got=new Function('localStorage','return '+m[1])(L)();assert.ok(got.includes('lhb_mihoja_v1_hw.user_a.3'),'la marca nueva se lee: '+JSON.stringify(got));
+});
+test('LHB-104 (Codex r11): una subida de otra pestaña todavía puede llegar y la persona acaba de descargar el respaldo: salir sí borra, y la anotación se queda para la próxima entrada',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();A.D.wait=async()=>{};
+  const P='lhb_mihoja_v1_pend.otra_pestana';/* Codex r11: anotada en un If-Match más alto que el rev de la cuenta (la cuenta se borró y se volvió a crear): sigue pudiendo llegar */
+  A.ls.set(P,JSON.stringify({v:1,s:'user_a',r:srv28(a,'user_a').rev+4,o:'otra_pestana'}));
+  assert.equal((await A.eng.settled({})).ok,false,'sin respaldo, no está a salvo');
+  const st=await A.eng.settled({backup:A.X.canon(A.D.getDoc())});assert.equal(st.ok,true);assert.equal(st.via,'backup');
+  assert.equal(await A.eng.forget(st.mark),true,'con el respaldo, salir borra');assert.equal(A.ls.get(A.KEY),null,'la copia se borró');
+  assert.ok(A.ls.get(P)!=null,'la anotación se queda');
+  /* y el respaldo no abre la puerta si la copia cambió desde que se revisó */
+  const B=DEV28(a,'user_a');B.seed(DOC28);await B.sync();B.D.wait=async()=>{};
+  const s2=await B.eng.settled({backup:B.X.canon(B.D.getDoc())});assert.equal(s2.ok,true);B.edit(d=>{d.ratings.c9=4});
+  assert.equal(await B.eng.forget(s2.mark),false,'la copia cambió: no se borra');assert.ok(B.ls.get(B.KEY)!=null);
+ }finally{a.done()}});
+test('LHB-104 (Codex r11): borrar la cuenta en este teléfono quita también sus subidas anotadas (las de otra cuenta se quedan)',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.ls.set('lhb_mihoja_v1_pend.op1',JSON.stringify({v:1,s:'user_a',r:1,o:'op1'}));A.ls.set('lhb_mihoja_v1_pend.x.1.user_a',JSON.stringify({v:1,s:'user_a',r:1,x:true}));
+  A.ls.set('lhb_mihoja_v1_pend.op2',JSON.stringify({v:1,s:'user_b',r:1,o:'op2'}));
+  assert.equal(await A.eng.forget(),true);
+  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith('lhb_mihoja_v1_pend.')),['lhb_mihoja_v1_pend.op2'],'solo queda la de otra cuenta');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{

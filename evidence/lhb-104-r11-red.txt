@@ -1,0 +1,42 @@
+✔ LHB-80 (Codex r11): la meta no se puede leer en la pasada: no sincroniza, y la siguiente sube el borrado (94.6833ms)
+✔ LHB-80 (Codex r11): la subida llega y luego una lectura de la copia lanza: la base de antes ya no vale, y lo que se vuelve a poner se queda (93.2441ms)
+✖ LHB-104 (Codex r11): una subida de otra pestaña todavía puede llegar y la persona acaba de descargar el respaldo: salir sí borra, y la anotación se queda para la próxima entrada (130.2413ms)
+✖ LHB-104 (Codex r11): borrar la cuenta en este teléfono quita también sus subidas anotadas (las de otra cuenta se quedan) (41.7364ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 2
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 478.8937
+
+✖ failing tests:
+
+test at test\site.test.js:7169:1
+✖ LHB-104 (Codex r11): una subida de otra pestaña todavía puede llegar y la persona acaba de descargar el respaldo: salir sí borra, y la anotación se queda para la próxima entrada (130.2413ms)
+  AssertionError [ERR_ASSERTION]: con el respaldo, salir borra
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r11red\test\site.test.js:7178:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7185:1
+✖ LHB-104 (Codex r11): borrar la cuenta en este teléfono quita también sus subidas anotadas (las de otra cuenta se quedan) (41.7364ms)
+  AssertionError [ERR_ASSERTION]: solo queda la de otra cuenta
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r11red\test\site.test.js:7193:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'lhb_mihoja_v1_pend.op1', 'lhb_mihoja_v1_pend.x.1.user_a', 'lhb_mihoja_v1_pend.op2' ],
+    expected: [ 'lhb_mihoja_v1_pend.op2' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }

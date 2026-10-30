@@ -1,0 +1,33 @@
+✖ LHB-104 (Codex r8): la marca de agua de la meta tachada no se puede escribir: la anotación se queda, y una meta vieja escrita tarde no hace perder a1 (175.7937ms)
+✖ LHB-104 (Codex r8): las subidas que llegaron se olvidan de la memoria de la pestaña (290.5559ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 673.903
+
+✖ failing tests:
+
+test at test\site.test.js:7078:1
+✖ LHB-104 (Codex r8): la marca de agua de la meta tachada no se puede escribir: la anotación se queda, y una meta vieja escrita tarde no hace perder a1 (175.7937ms)
+  AssertionError [ERR_ASSERTION]: en el teléfono
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r8\test\site.test.js:7098:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7100:1
+✖ LHB-104 (Codex r8): las subidas que llegaron se olvidan de la memoria de la pestaña (290.5559ms)
+  TypeError: A.eng._myOps is not a function
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r8\test\site.test.js:7106:131)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
