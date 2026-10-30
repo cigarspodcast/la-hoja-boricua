@@ -364,7 +364,7 @@ function menuHTML(hash){const [r0,a0]=String(hash==null?location.hash:hash).repl
  /* LHB-109: lo que no es una ruta de la app: las guías (páginas fijas), el idioma (el nombre del otro, en el otro) y la privacidad */
  const go=(href,i,k,ks)=>`<a class="menu-dest" href="${href}"><span class="menu-ico">${brandIcon(i)}</span><span class="menu-copy"><b>${tt(k)}</b><small>${tt(ks)}</small></span>${brandIcon('arrow','menu-go')}</a>`;
  const I=typeof window!=='undefined'?window.LHB_I18N:null,other=I&&I.ENABLED?(I.lang==='en'?['es','Espa\u00f1ol']:['en','English']):null;
- const extra={descubre:[go('guias/','book','menu.guias','menu.guiasSub')],app:[`<button type="button" class="menu-dest" data-install><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`,
+ const extra={descubre:[go('guias/','book','menu.guias','menu.guiasSub')],app:[`<button type="button" class="menu-dest" data-install${installHidden(window)?' hidden':''}><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`,
   `<button type="button" class="menu-dest" data-theme-next><span class="menu-ico">${brandIcon('moon')}</span><span class="menu-copy"><b>${tt('menu.tema')}</b><small>${tt(THEME_KEY[themeNow()])}</small></span>${brandIcon('arrow','menu-go')}</button>`,
   ...(other?[`<button type="button" class="menu-dest" data-lang="${other[0]}"><span class="menu-ico">${brandIcon('lang')}</span><span class="menu-copy"><b lang="${other[0]}">${other[1]}</b><small>${tt('menu.idiomaSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`]:[]),go('privacidad.html','lock','menu.privacidad','menu.privacidadSub')]};
  return `<header class="menu-welcome"><div class="eyebrow">${tt('menu.welcome')}</div><h2 class="sheet-h">${tt('menu.title')}</h2></header><nav class="menu-groups" aria-label="${tt('h.menu')}">${MENU_GROUPS.map(([g,label])=>`<section aria-labelledby="mg-${g}"><h3 id="mg-${g}">${label()}</h3>${rows(g).join('')}${(extra[g]||[]).join('')}</section>`).join('')}</nav>`}
@@ -403,9 +403,11 @@ function remindLater(){const st=LS.get('instRemind',null)||{n:0};try{LS.set('ins
 function remindBar(how){if($('#instBar'))return;const qr=how==='qr',b=document.createElement('aside');b.id='instBar';b.className='inst-bar';b.setAttribute('aria-label',tt('ins.barLabel'));
  b.innerHTML=`<img class="mark-l" src="icons/icon.svg" alt="" width="44" height="44"><img class="mark-d" src="icons/icon-dark.svg" alt="" width="44" height="44"><p class="inst-bar-t"><b>${tt('ins.barT')}</b><span>${qr?tt('ins.barQrS'):tt('ins.barS')}</span></p><div class="inst-bar-b"><button type="button" class="inst-bar-go" data-install>${qr?tt('ins.verQr'):tt('ins.instalar')}</button><button type="button" class="inst-bar-no" data-inst-later>${tt('ins.ahoraNo')}</button></div>`;
  ($('#app')||document.body).appendChild(b)}
-/* no sale encima de la pantalla del idioma (espera a que se escoja) ni de una hoja abierta; si hay hoja, lo intenta en la próxima vista */
-function maybeRemind(views){if(!remindDue(LS.get('instRemind',null),Date.now(),views,ss.get('lhb_instShown')==='1'))return;
- const go=()=>{const how=installHow(installEnv(window));if(how==='none'||document.body.classList.contains('sheet-on')||ss.get('lhb_instShown')==='1')return;ss.set('lhb_instShown','1');remindBar(how)};
+/* no sale encima de la pantalla del idioma (espera a que se escoja) ni de una hoja abierta; si hay hoja, lo intenta en la próxima vista.
+   Salió en esta visita: se recuerda también en memoria, porque sin sessionStorage (bloqueado) volvería a salir (Codex r1) */
+let instShownMem=false;const instShown=()=>instShownMem||ss.get('lhb_instShown')==='1';
+function maybeRemind(views){if(!remindDue(LS.get('instRemind',null),Date.now(),views,instShown()))return;
+ const go=()=>{const how=installHow(installEnv(window));if(how==='none'||document.body.classList.contains('sheet-on')||instShown())return;instShownMem=true;ss.set('lhb_instShown','1');remindBar(how)};
  const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(go);else go()}
 async function doInstall(){const how=installHow(installEnv(window)),d=window.__lhbBIP;closeBar();
  if(how==='prompt'&&d){window.__lhbBIP=null;EXT.closeSheet();d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted')installedNow(true);else remindLater();syncInstall();return}

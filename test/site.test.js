@@ -200,6 +200,7 @@ test('LHB-121: un toque donde el navegador lo deja, la guía justa donde no, y e
  assert.ok(ap.includes('class="inst-bar-go" data-install>')&&ap.includes('data-inst-later>'),'el recordatorio instala con el mismo botón');
  assert.ok(!/data-sheet="instalar"/.test(ap+hj+ix),'ninguna entrada abre las instrucciones sin pasar por installHow');
  assert.ok(ap.includes("L.afterPick(go)")&&ap.includes("document.body.classList.contains('sheet-on')"),'no sale encima de la pantalla del idioma ni de una hoja');
+ assert.ok(ap.includes("const instShown=()=>instShownMem||ss.get('lhb_instShown')==='1';")&&ap.includes('instShownMem=true;ss.set(')&&!/remindDue\([^)]*ss\.get\('lhb_instShown'\)/.test(ap),'Codex r1: una vez por visita aunque sessionStorage esté bloqueado');
  for(const k of ["arg==='ios'||arg==='ipad'","arg==='inapp-android'","package=com.android.chrome","arg==='inapp-ios'","data-inst-copy","arg==='qr'",'src="icons/qr-app.svg"','data-inst-done'])assert.ok(hj.includes(k),'hoja.js: '+k);
  /* el código lleva a la portada de producción; está en el shell; Android puede decir que ya está instalada */
  const qr=read('icons/qr-app.svg');assert.match(qr,/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 33 33"/);assert.ok(qr.includes('fill="#fff"'),'fondo blanco en los dos temas');
@@ -6665,7 +6666,7 @@ test('LHB-68 (Codex ronda 1): la política del pasaporte /u/ deja cargar lo que 
 function ROUTES71(extra){const vm=require('vm');const src=read('app.js').replace(/\r\n/g,'\n');
  const ic=src.slice(src.indexOf('/* LHB-71: los íconos del menú'),src.indexOf('/* LHB-109: la portada sin atajos'));
  let code=src.slice(src.indexOf('/* LHB-71: la tabla de rutas.'),src.indexOf('\nfunction route(){'));if(extra)code=code.replace('\n];\nconst ROUTE_OF',extra+'\n];\nconst ROUTE_OF');
- const ctx={tt:k=>'<'+k+'>',location:{hash:''},navigator:{userAgent:'x',platform:'x',maxTouchPoints:0},themeNow:()=>'auto',THEME_KEY:{auto:'menu.tema.auto',dark:'menu.tema.dark',light:'menu.tema.light'}};vm.createContext(ctx);
+ const ctx={tt:k=>'<'+k+'>',location:{hash:''},navigator:{userAgent:'x',platform:'x',maxTouchPoints:0},window:{},installHidden:w=>!!w.__inst,themeNow:()=>'auto',THEME_KEY:{auto:'menu.tema.auto',dark:'menu.tema.dark',light:'menu.tema.light'}};vm.createContext(ctx);
  vm.runInContext(ic+code+';this.ROUTES=ROUTES;this.ROUTE_OF=ROUTE_OF;this.menuHTML=menuHTML;this.MENU_GROUPS=MENU_GROUPS',ctx);return ctx}
 /* cada ruta de la tabla sale en el menú, o es detalle o alias de una que sale; devuelve lo que falta */
 function MISSING71(c){const out=[];const html=c.menuHTML('#/catalogo');
@@ -6688,7 +6689,8 @@ test('LHB-71: el menú sale de la tabla de rutas: cada ruta sale en él o es det
  assert.deepEqual(MISSING71(c),[]);assert.ok(n>=15&&dest>=8,'la tabla tiene las rutas de la app (15 rutas; 12 destinos al escribir LHB-71, 8 desde LHB-109: las pestañas no se repiten en el menú)');
  for(const r of ['catalogo','c','lugares','artesanos','a','mihoja','perfil','u','cata','maridajes','subir','eventos','actividades','podcast','buscar'])assert.ok(c.ROUTE_OF[r],'ruta '+r);
  const html=c.menuHTML('#/catalogo');for(const h of ['#/mihoja/personas','#/mihoja/editar'])assert.ok(html.includes('href="'+h+'"'),'el menú trae lo que main tiene y el paquete no: '+h);
- assert.ok(html.includes('<button type="button" class="menu-dest" data-install>')&&!html.includes('data-sheet="instalar"'),'Cómo instalar (LHB-121: instala de un toque donde se puede)');assert.deepEqual(c.MENU_GROUPS.map(g=>g[0]),['descubre','experiencia','comunidad','app']);
+ assert.ok(html.includes('<button type="button" class="menu-dest" data-install>')&&!html.includes('data-sheet="instalar"'),'Cómo instalar (LHB-121: instala de un toque donde se puede)');
+ c.window.__inst=true;assert.ok(c.menuHTML('#/catalogo').includes('<button type="button" class="menu-dest" data-install hidden>'),'LHB-121 (Codex r1): en la app instalada el menú no ofrece instalarla');c.window.__inst=false;assert.deepEqual(c.MENU_GROUPS.map(g=>g[0]),['descubre','experiencia','comunidad','app']);
  assert.deepEqual([...html.matchAll(/<h3 id="mg-[a-z]+">(.*?)<\/h3>/g)].map(m=>m[1]),['<menu.g.descubre>','<menu.g.experiencia>','<menu.g.comunidad>','<menu.g.app>'],'los cuatro grupos en su orden');
  assert.equal((html.match(/class="brand-icon /g)||[]).length,2*(dest+4),'cada destino con su ícono y su flecha (y Guías, Cómo instalar, Tema y Privacidad); el catálogo es una pestaña, así que nada lleva Aquí');
  /* una ruta nueva sin lugar en el menú no pasa */
