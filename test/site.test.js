@@ -5687,7 +5687,9 @@ const TOKENS111=()=>new Set([...read('styles.css').replace(/\/\*[\s\S]*?\*\//g,'
    la cambia. Cambiar la pintura del sitio es cambiar esta lista a sabiendas.
    Codex r21: cada regla se lee con su contexto (@media, @supports, @layer, @keyframes: una regla del juego movida a @media print cambia la lista), y la
    lista lleva toda propiedad de pintura o de alfa (fill-*, stroke-*, opacity, visibility, mask-*, paint-order, animation...) en cualquier regla, y toda
-   declaración de una regla que puede alcanzar un dibujo (.lart, .sec-art, svg y sus elementos, *, [class...]) */
+   declaración de una regla que puede alcanzar un dibujo (.lart, .sec-art, svg y sus elementos, *, [class...]) .
+   Codex r23: una declaración larga lleva el sha256 de su texto entero (un atributo cambiado dentro de un SVG en data URI, como la máscara del estado
+   vacío, cambia la lista), y toda declaración con un SVG en data URI está en la lista, sea cual sea su propiedad */
 const RULES111=c=>{const out=[],st=[],acc=[''];let buf='',q=null,par=0;
  for(const ch of c){
   if(q){buf+=ch;if(ch===q)q=null;continue}
@@ -5701,7 +5703,7 @@ const RULES111=c=>{const out=[],st=[],acc=[''];let buf='',q=null,par=0;
 const PAINT111=()=>{const P=/^((fill|stroke)[\w-]*|filter|-webkit-filter|backdrop-filter|mix-blend-mode|isolation|opacity|visibility|clip-path|paint-order|vector-effect|(-webkit-)?mask[\w-]*|forced-color-adjust|animation|animation-name|--art-[\w-]+|--on-surface|--warm|--amber|--surface|--paper|--fixed-text|--photo|--shadow-strong)\s*:/i;
  const ART=/lart|sec-art|\*|\[class|(^|[\s>+~(,])(svg|g|path|circle|ellipse|rect|line|polyline|polygon|text|tspan)(?=$|[\s:.\[>+~),])/i,out=[];
  for(const f of CSSFILES111())for(const r of RULES111(read(f).replace(/\/\*[\s\S]*?\*\//g,''))){const all=ART.test(r.sel);
-  for(const d of r.body.split(/;(?![^(]*\))/).map(d=>d.trim()).filter(Boolean))if(all||P.test(d))out.push(f+' '+(r.ctx?'['+r.ctx+'] ':'')+r.sel+'{'+(d.length>140?d.slice(0,140)+'...':d)+'}')}
+  for(const d of r.body.split(/;(?![^(]*\))/).map(d=>d.trim()).filter(Boolean))if(all||P.test(d)||/data:image\/svg\+xml/i.test(d))out.push(f+' '+(r.ctx?'['+r.ctx+'] ':'')+r.sel+'{'+(d.length>140?d.slice(0,140)+'... sha256:'+require('crypto').createHash('sha256').update(d).digest('hex').slice(0,16):d)+'}')}
  return out};
 const PAINT_PIN111=[
  "lugares/l.css :root{--surface:#F4F1EA}",
@@ -5802,11 +5804,12 @@ const PAINT_PIN111=[
  "styles.css .map-offline .offline-pin path{transition:transform .2s}",
  "styles.css [@media (prefers-reduced-motion:reduce)] *,*::before,*::after{animation:none!important}",
  "styles.css [@media (prefers-reduced-motion:reduce)] *,*::before,*::after{transition:none!important}",
+ "styles.css body::after{background-image:url(\"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%... sha256:856a7d7e7d96b86d}",
  "styles.css body::after{opacity:.07}",
  "styles.css body::after{mix-blend-mode:overlay}",
  "styles.css .card .ph{filter:sepia(.14) saturate(1.06) contrast(1.02)}",
- "styles.css .empty::before{-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-widt...}",
- "styles.css .empty::before{mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-width='2.4' ...}",
+ "styles.css .empty::before{-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-widt... sha256:d2fe5d5d49635d48}",
+ "styles.css .empty::before{mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-width='2.4' ... sha256:b55855cf0297447e}",
  "styles.css .icon-btn svg{width:19px}",
  "styles.css .icon-btn svg{height:19px}",
  "styles.css .icon-btn svg{fill:none}",

@@ -95,6 +95,8 @@ MUTS = [
     ('site/app.js', 'Codex r22: the header drawing made nearly transparent by an inline style', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art" style="opacity:.01">${art}</div></header>`;'),
     ('site/hoja.js', 'Codex r22: a drawing faded by a script', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.opacity=.01};const CAL_ICO='),
     ('site/404.html', 'Codex r22: an icon with a stroke too thin to see on a static page', '</body>', '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width=".01" d="M4 12h16"/></svg></body>'),
+    ('site/styles.css', 'Codex r23: the empty-state mask drawing made nearly transparent inside its data URI', "stroke-linejoin='round'%3E", "stroke-linejoin='round' opacity='.01'%3E"),
+    ('site/styles.css', 'Codex r23: the grain texture changed inside its data URI', 'numOctaves=%22', 'numOctaves=%229%22 data-x=%22'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

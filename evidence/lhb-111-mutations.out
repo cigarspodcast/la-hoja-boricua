@@ -85,6 +85,8 @@ Codex r22: nearly transparent outlines through a stroke-opacity attribute on eve
 Codex r22: the header drawing made nearly transparent by an inline style RED (caught) (fail 1)
 Codex r22: a drawing faded by a script                                   RED (caught) (fail 1)
 Codex r22: an icon with a stroke too thin to see on a static page        RED (caught) (fail 1)
+Codex r23: the empty-state mask drawing made nearly transparent inside its data URI RED (caught) (fail 1)
+Codex r23: the grain texture changed inside its data URI                 RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 88 of 88 red
+RESULT 90 of 90 red
