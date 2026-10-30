@@ -358,14 +358,13 @@ const ROUTE_OF=Object.fromEntries(ROUTES.map(x=>[x.r,x]));
 /* el menú: los grupos en su orden, cada destino con su ícono, y la página en la que está marcada (aria-current y «Aquí») */
 function menuHTML(hash){const [r0,a0]=String(hash==null?location.hash:hash).replace(/^#\/?/,'').split('/');let arg0=a0||'';try{arg0=decodeURIComponent(arg0)}catch(e){}
  const r=ROUTE_OF[r0]?r0:'catalogo',x=ROUTE_OF[r],home=x&&x.of?x.of:r;
- const ipad=/ipad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),ia=ipad?'ipad':/iphone|ipod/i.test(navigator.userAgent)?'ios':'';
  const rows=g=>ROUTES.flatMap(x=>(x.menu||[]).filter(m=>m[0]===g).map(m=>{const sub=m[4]||'',href='#/'+x.r+(sub?'/'+sub:''),subs=(x.menu||[]).map(n=>n[4]).filter(Boolean);
    const cur=home===x.r&&(sub?r===x.r&&arg0===sub:!(r===x.r&&subs.includes(arg0)));
    return `<a class="menu-dest" href="${href}"${cur?' aria-current="page"':''}><span class="menu-ico">${brandIcon(m[1])}</span><span class="menu-copy"><b>${tt(m[2])}</b><small>${tt(m[3])}</small></span>${cur?`<span class="menu-here">${tt('menu.aqui')}</span>`:brandIcon('arrow','menu-go')}</a>`}));
  /* LHB-109: lo que no es una ruta de la app: las guías (páginas fijas), el idioma (el nombre del otro, en el otro) y la privacidad */
  const go=(href,i,k,ks)=>`<a class="menu-dest" href="${href}"><span class="menu-ico">${brandIcon(i)}</span><span class="menu-copy"><b>${tt(k)}</b><small>${tt(ks)}</small></span>${brandIcon('arrow','menu-go')}</a>`;
  const I=typeof window!=='undefined'?window.LHB_I18N:null,other=I&&I.ENABLED?(I.lang==='en'?['es','Espa\u00f1ol']:['en','English']):null;
- const extra={descubre:[go('guias/','book','menu.guias','menu.guiasSub')],app:[`<button type="button" class="menu-dest" data-sheet="instalar" data-arg="${ia}"><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`,
+ const extra={descubre:[go('guias/','book','menu.guias','menu.guiasSub')],app:[`<button type="button" class="menu-dest" data-install${installHidden(window)?' hidden':''}><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`,
   `<button type="button" class="menu-dest" data-theme-next><span class="menu-ico">${brandIcon('moon')}</span><span class="menu-copy"><b>${tt('menu.tema')}</b><small>${tt(THEME_KEY[themeNow()])}</small></span>${brandIcon('arrow','menu-go')}</button>`,
   ...(other?[`<button type="button" class="menu-dest" data-lang="${other[0]}"><span class="menu-ico">${brandIcon('lang')}</span><span class="menu-copy"><b lang="${other[0]}">${other[1]}</b><small>${tt('menu.idiomaSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`]:[]),go('privacidad.html','lock','menu.privacidad','menu.privacidadSub')]};
  return `<header class="menu-welcome"><div class="eyebrow">${tt('menu.welcome')}</div><h2 class="sheet-h">${tt('menu.title')}</h2></header><nav class="menu-groups" aria-label="${tt('h.menu')}">${MENU_GROUPS.map(([g,label])=>`<section aria-labelledby="mg-${g}"><h3 id="mg-${g}">${label()}</h3>${rows(g).join('')}${(extra[g]||[]).join('')}</section>`).join('')}</nav>`}
@@ -378,15 +377,56 @@ function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,
  if(window.LHB_BOOT)window.LHB_BOOT.ok()}
 window.addEventListener('hashchange',route);
 window.addEventListener('online',()=>{if(location.hash.includes('lugares'))route()});window.addEventListener('offline',()=>{if(location.hash.includes('lugares'))route()});
-/* ---------- install (v21: botón en el home) ---------- */
-function installHidden(w){return !!(w.__lhbInstalled||(w.matchMedia&&w.matchMedia('(display-mode: standalone)').matches)||w.navigator.standalone===true)}
-let deferred=null;const syncInstall=()=>{const b=$('#btnAdd');if(b)b.hidden=installHidden(window)};
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;window.__vbInstallReady=true});
-window.addEventListener('appinstalled',()=>{window.__lhbInstalled=true;deferred=null;syncInstall()});
+/* ---------- install (v21: botón en el home; LHB-121: un toque donde el navegador lo deja, Instalar arriba en todas las páginas y un recordatorio) ---------- */
+/* LHB-121: lo que este navegador dice de sí. El aviso del navegador (__lhbBIP) lo guarda index.html antes que cualquier script con defer */
+function installEnv(w){const n=w.navigator||{},ua=n.userAgent||'',ipad=/ipad/i.test(ua)||(n.platform==='MacIntel'&&n.maxTouchPoints>1);let mem=false;try{mem=!!w.localStorage.getItem('lhb_installed')}catch(x){}
+ return {ua,ipad,ios:ipad||/iphone|ipod/i.test(ua),android:/android/i.test(ua),mobile:/Mobi|Android|iPhone|iPad|iPod/i.test(ua)||ipad,bip:!!w.__lhbBIP,live:!!w.__lhbInstalled,installed:mem,
+  standalone:!!((w.matchMedia&&w.matchMedia('(display-mode: standalone)').matches)||n.standalone===true)}}
+/* LHB-121: cómo se instala aquí. 'prompt': la ventana del navegador, de un toque. 'ios'/'ipad': Safari no deja que una página se instale sola; la guía
+   señala su botón Compartir. 'inapp-android'/'inapp-ios': el navegador de Facebook, Instagram y parecidos no instala; hay que abrirla en Chrome o Safari.
+   'qr': una computadora sin la ventana; el código lleva al teléfono. 'manual': el menú del navegador. 'none': ya está instalada (o se dijo que sí) */
+const IN_APP=/FBAN|FBAV|FB_IAB|FBIOS|Instagram|Messenger|Line\/|MicroMessenger|Snapchat|musical_ly|BytedanceWebview/i;
+/* lo que el navegador acaba de decir (appinstalled, getInstalledRelatedApps) gana sobre su aviso; lo recordado en localStorage, no: si vuelve a ofrecerla es que no está (Codex r3) */
+function installHow(e){if(e.standalone||e.live)return 'none';if(e.bip)return 'prompt';if(e.installed)return 'none';
+ if(IN_APP.test(e.ua))return e.ios?'inapp-ios':e.android?'inapp-android':'manual';
+ if(e.ios)return e.ipad?'ipad':'ios';return e.mobile?'manual':'qr'}
+function installHidden(w){return installHow(installEnv(w))==='none'}
+/* LHB-121: el recordatorio. Nunca en la primera vista de la visita (salvo tras 30 s), a lo sumo una vez por visita, y tras «Ahora no» espera 3, 7, 14 y luego 30 días */
+const REMIND_GAP=[3,7,14,30];
+function remindDue(st,now,views,shown){if(shown||views<2)return false;if(!st||!st.n)return true;return now-st.at>=REMIND_GAP[Math.min(st.n,REMIND_GAP.length)-1]*864e5}
+const ss={get(k){try{return sessionStorage.getItem(k)}catch(x){return null}},set(k,v){try{sessionStorage.setItem(k,v)}catch(x){}}};
+const closeBar=()=>{const b=$('#instBar');if(b)b.remove()};
+const syncInstall=()=>{const how=installHow(installEnv(window)),off=how==='none',b=$('#btnAdd');if(b)b.hidden=off;
+ const t=$('#topInstall');if(t){t.hidden=off;const sp=t.querySelector('span'),k=how==='qr'?'ins.topQr':'ins.top';if(sp&&sp.dataset.i18n!==k){sp.dataset.i18n=k;sp.textContent=how==='qr'?tt('ins.topQr'):tt('ins.top')}}
+ $$('.menu-dest[data-install]').forEach(m=>{m.hidden=off});/* Codex r2: el menú abierto también, si se supo después que ya está instalada */
+ if(off)closeBar()};
+function installedNow(say){window.__lhbInstalled=true;try{localStorage.setItem('lhb_installed',String(Date.now()))}catch(x){}closeBar();syncInstall();if(say)toast(tt('inst.ok'))}
+function remindLater(){const st=LS.get('instRemind',null)||{n:0};try{LS.set('instRemind',{n:(st.n||0)+1,at:Date.now()})}catch(x){}closeBar()}
+function remindBar(how){if($('#instBar'))return;const qr=how==='qr',b=document.createElement('aside');b.id='instBar';b.className='inst-bar';b.setAttribute('aria-label',tt('ins.barLabel'));
+ b.innerHTML=`<img class="mark-l" src="icons/icon.svg" alt="" width="44" height="44"><img class="mark-d" src="icons/icon-dark.svg" alt="" width="44" height="44"><p class="inst-bar-t"><b>${tt('ins.barT')}</b><span>${qr?tt('ins.barQrS'):tt('ins.barS')}</span></p><div class="inst-bar-b"><button type="button" class="inst-bar-go" data-install>${qr?tt('ins.verQr'):tt('ins.instalar')}</button><button type="button" class="inst-bar-no" data-inst-later>${tt('ins.ahoraNo')}</button></div>`;
+ ($('#app')||document.body).appendChild(b)}
+/* no sale encima de la pantalla del idioma (espera a que se escoja) ni de una hoja abierta; si hay hoja, lo intenta en la próxima vista.
+   Salió en esta visita: se recuerda también en memoria, porque sin sessionStorage (bloqueado) volvería a salir (Codex r1) */
+let instShownMem=false;const instShown=()=>instShownMem||ss.get('lhb_instShown')==='1';
+function maybeRemind(views){if(!remindDue(LS.get('instRemind',null),Date.now(),views,instShown()))return;
+ const go=()=>{const how=installHow(installEnv(window));if(how==='none'||document.body.classList.contains('sheet-on')||instShown())return;instShownMem=true;ss.set('lhb_instShown','1');remindBar(how)};
+ const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(go);else go()}
+async function doInstall(){const how=installHow(installEnv(window)),d=window.__lhbBIP;closeBar();
+ if(how==='prompt'&&d){window.__lhbBIP=null;EXT.closeSheet();d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted')installedNow(true);else remindLater();syncInstall();return}
+ if(how==='none'){EXT.closeSheet();toast(tt('ins.yaEsta'));return}
+ EXT.openSheet('instalar',how==='manual'?'':how)}
+document.addEventListener('lhb-bip',syncInstall);
+window.addEventListener('appinstalled',()=>installedNow(false));
 matchMedia('(display-mode: standalone)').addEventListener?.('change',syncInstall);
-document.addEventListener('click',async e=>{if(!e.target.closest('#btnAdd'))return;
- if(deferred){const d=deferred;deferred=null;d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted'){window.__lhbInstalled=true;syncInstall();toast(tt('inst.ok'))}return}
- EXT.openSheet('instalar',isIOS?(/ipad/i.test(navigator.userAgent)||navigator.platform==='MacIntel'?'ipad':'ios'):'')});
+document.addEventListener('click',e=>{if(!(e.target.closest&&e.target.closest('[data-install],[data-inst-later],[data-inst-done],[data-inst-copy],#btnAdd')))return;
+ if(e.target.closest('[data-install],#btnAdd')){e.preventDefault();doInstall();return}
+ if(e.target.closest('[data-inst-later]')){remindLater();return}
+ if(e.target.closest('[data-inst-done]')){installedNow(false);return}
+ if(e.target.closest('[data-inst-copy]')){const u=location.origin+'/',ok=()=>toast(tt('ins.copiado'));try{navigator.clipboard.writeText(u).then(ok,()=>toast(u))}catch(x){toast(u)}}});
+/* Android sabe si la app de este sitio ya está en el teléfono (related_applications del manifest): entonces el navegador no la ofrece */
+if(navigator.getInstalledRelatedApps)navigator.getInstalledRelatedApps().then(a=>{if(a&&a.length){window.__lhbInstalled=true;syncInstall()}}).catch(()=>{});
+let views=+(ss.get('lhb_views')||0);const countView=()=>{views++;ss.set('lhb_views',String(views));maybeRemind(views)};
+window.addEventListener('hashchange',countView);setTimeout(()=>maybeRemind(Math.max(views,2)),30e3);
 if('serviceWorker' in navigator){const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.update&&r.update()).catch(()=>{}))}
-route();topAvatar();refreshData();
+route();topAvatar();refreshData();syncInstall();countView();
 })();

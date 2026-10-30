@@ -1,0 +1,21 @@
+You are reviewing one change in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-121-wt, branch lhb-121-install. This is a TIER 2 review: findings are fixed and the review repeats until no blocking finding remains. Read AGENTS.md for the repository rules.
+
+Ticket LHB-121. The owner's visitors (many over 50) found that "install the app" only showed instructions. The change:
+- site/index.html: an inline head script catches beforeinstallprompt (preventDefault, kept in window.__lhbBIP, event 'lhb-bip') and appinstalled, before any deferred script. An Install pill (#topInstall, data-install, hidden at first) in the top bar.
+- site/app.js: installEnv(window) and installHow(env) decide how this browser installs: 'prompt' (native prompt, one tap), 'ios'/'ipad' (Safari guide), 'inapp-android'/'inapp-ios' (Facebook/Instagram in-app browsers), 'qr' (desktop without the prompt), 'manual' (browser menu) or 'none' (installed). Every install entry point (top bar, home #btnAdd, menu entry, reminder bar) runs doInstall(). A reminder bar (#instBar) appears on the second page view of a visit or after 30 s, at most once per visit, never over the language screen (LHB_INTRO.afterPick) or an open sheet, and after each "Ahora no" waits 3, 7, 14 and then 30 days (remindDue, localStorage vb_instRemind, sessionStorage lhb_views and lhb_instShown). localStorage lhb_installed records an accepted install or "Ya la instalé". navigator.getInstalledRelatedApps hides it when Android reports the app installed.
+- site/hoja.js: the 'instalar' sheet has one guide per installHow value; Android in-app browsers get an intent:// link to Chrome.
+- site/manifest.webmanifest: related_applications (webapp). site/icons/qr-app.svg: a QR code for https://lahojaboricua.com/ (in the SW SHELL). site/sw.js VERSION lhb-v171. site/i18n.js: new ins.* keys in both tables; two unused keys removed.
+- site/styles.css: the pill, the bar and the guides. Header: under 520 px the header wraps and the pill takes a full-width row below the brand and icons (LHB-108 forbids hiding the brand name); 520 to 759 px drops the tagline; 900 to 1099 px (inside the 900 px block, as LHB-112 requires) drops the tagline and the pill icon and tightens the top menu.
+- test/site.test.js: a new LHB-121 test, the v21 test updated, the menu pin, and 30 new paint-table entries (only the new install styles).
+
+Round 3. Round 1 blocked on two P2 findings (reminder once per visit with sessionStorage blocked; the menu entry in the installed app), fixed in d814ffb. Round 2 (evidence/lhb-121-review-r2.txt) concurred on the first and kept the second open for a menu already open when getInstalledRelatedApps reports the app installed; commit 9f2e828 makes syncInstall hide every rendered menu entry. Check that fix and review the whole change again.
+
+What to look for:
+1. Correctness of the install decision on real browsers: Chrome/Edge/Samsung on Android and desktop, iPhone and iPad Safari (iPadOS presents as Mac), Chrome on iOS, Firefox, in-app browsers. A case where a visitor who could install in one tap is sent to instructions, or an installed user keeps being offered the install, is blocking.
+2. The beforeinstallprompt event can only be used once: after prompt() and a dismissal, does the UI degrade sensibly (Chrome may fire the event again later)?
+3. The reminder: can it show twice in a visit, on the first view, over the language screen, over a sheet, in the installed app, or never at all? Does a storage failure (private mode, blocked storage) throw?
+4. Accessibility: the bar is not a modal and must not steal focus; buttons have names; the sheet keeps the existing focus handling. Layout of the header at 320, 375, 520 to 899 and 900 to 1099 px wide.
+5. Anything that breaks existing behaviour (the menu, the home button, the sheet, sign-in, the intro) or a repository rule (translation tables, SHELL, version pins, no dependencies, Spanish comments).
+6. Secrets, private data or a specific preview address in any added file (the repository is public).
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and the concrete problem with what the code shows.

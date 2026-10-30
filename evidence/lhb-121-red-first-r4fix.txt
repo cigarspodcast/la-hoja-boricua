@@ -1,0 +1,27 @@
+✖ v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone (21.6853ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 256.7576
+
+✖ failing tests:
+
+test at test\site.test.js:146:1
+✖ v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone (21.6853ms)
+  AssertionError [ERR_ASSERTION]: Codex r4: un aviso nuevo borra lo recordado, así rechazarlo no esconde Instalar
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--LHB\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red121e\test\site.test.js:151:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
