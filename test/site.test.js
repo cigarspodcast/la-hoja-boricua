@@ -4027,6 +4027,22 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   assert.ok(r.includes('background:radial-gradient('+el[2]+'px '+el[3]+'px at '+el[0]+'px '+el[1]+'px,var(--warm) 100%,var(--on-surface) 100%);'),'el medallón en ámbar: '+el.join(' '))}
  for(const T of [TOKENS65(css),TOKENS65(DARK110.css(css))]){assert.ok(contrast65(T.val('on-surface'),T.val('surface'))>=3);assert.ok(contrast65(T.val('fixed-text'),T.val('photo'))>=3);assert.ok(contrast65(T.val('on-surface'),T.val('warm'))>=1.5,'el acento se distingue de la línea')}
 });
+test('LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noche; y cada vista, con lo que trae dentro, tiene una sola acción llena',()=>{
+ const raw=read('styles.css'),hj=read('hoja.js'),ap=read('app.js');
+ /* la etiqueta: tagChips de verdad en una VM, con una de la rueda y una que no está */
+ {const i=hj.indexOf('const tagChips=');const code=hj.slice(i,hj.indexOf('\n',hj.indexOf('.join(\'\')',i)+1)+200).split(/\r?\n/).slice(0,3).join('\n');
+  const ctx={WHEEL:[{id:'cacao',c:'#ABCDEF'}],esc:x=>String(x),WN:x=>x};require('vm').createContext(ctx);require('vm').runInContext(code.slice(0,code.indexOf('};')+2)+';this.tagChips=tagChips',ctx);
+  const h=ctx.tagChips(['cacao','sabor-viejo']);assert.ok(h.includes('<span class="tchip" style="--wc:#ABCDEF">cacao</span>'),h);assert.ok(h.includes('<span class="tchip other">sabor-viejo</span>'),h)}
+ assert.ok(raw.includes('.tchip.other{background:var(--card-2);color:var(--on-surface)}'));
+ for(const T of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])assert.ok(contrast65(T.val('on-surface'),T.val('card-2'))>=4.5);
+ assert.ok(contrast65(TOKENS65(raw).val('fixed-text'),TOKENS65(DARK110.css(raw)).val('card-2'))<3,'la prueba ve la tinta fija sobre la ficha de noche');
+ /* las vistas: cada una con las piezas que pinta dentro, contadas juntas (aunque una esté plegada) */
+ const body=(src,n)=>{const m=new RegExp('\\n(?:async )?function '+n+'\\(|\\n(?:const|let) '+n+'=').exec(src);assert.ok(m,n);const j=src.slice(m.index+1).search(/\n(?:async )?function |\n(?:const|let) [A-Za-z0-9_]+=(?:async )?\(?[A-Za-z0-9_,]*\)?=>/);return src.slice(m.index,j<0?undefined:m.index+1+j)};
+ const FILLED=/class="(btn|btn cta|btn fw-b|lbtn spotify|pidelo)"/g;
+ const views=[['perfil',[[ap,'vPerfil'],[hj,'pfCounts']]],['eventos',[[hj,'vEventos'],[hj,'anchorCard']]],['diario',[[hj,'vDiario']]],['humidor',[[hj,'vHumidor']]],['cata',[[hj,'vCata']]],['personas',[[hj,'vPersonas']]]];
+ for(const [v,parts] of views){const n=parts.map(([src,f])=>[...body(src,f).matchAll(FILLED)].length).reduce((a,b)=>a+b,0);assert.ok(n<=1,v+': '+n+' acciones llenas')}
+ assert.ok(hj.includes('${own?`<a class="btn secondary" href="#/mihoja/editar" id="pfEdit"'),'Editar perfil con borde');assert.ok(hj.includes('<button class="btn secondary" type="submit">${tt(\'h.guardarSugerencia\')}'),'la sugerencia con borde');
+});
 test('LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar',()=>{
  const ix=read('index.html');assert.ok(ix.includes('<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F1EA">')&&ix.includes('<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141A13">'),'la barra del teléfono en los dos temas');
  assert.ok(ix.includes('<meta name="color-scheme" content="light dark">'));const boot=ix.indexOf("localStorage.getItem('lhb_theme')");assert.ok(boot>0&&boot<ix.indexOf('<link rel="stylesheet" href="styles.css">'),'el tema elegido se pone antes de la hoja de estilos');
@@ -4940,7 +4956,7 @@ test('LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y 
  const p=H.X.profileOwn({sub:'u_a',handle:'ana',name:'Ana S.',avatar:''});
  assert.ok(H.all().includes('<b id="pfNFollowers">·</b><span>Seguidores</span></a></li>'),'mientras llegan, los conteos esperan');await p;const h=H.all();
  assert.deepEqual(H.fetches,['/api/u/ana']);
- for(const s of ['<p class="pf-bio">Mi bio</p>','Marca favorita: <b>Mi marca</b>','<li><b>1</b><span>Reseñas</span></li>','<b id="pfNFollowers">2</b><span>Seguidores</span></a></li>','<b>5</b><span>Siguiendo</span></a></li>','<a class="btn" href="#/mihoja/editar" id="pfEdit">Editar perfil</a>'])assert.ok(h.includes(s),'trae '+s);
+ for(const s of ['<p class="pf-bio">Mi bio</p>','Marca favorita: <b>Mi marca</b>','<li><b>1</b><span>Reseñas</span></li>','<b id="pfNFollowers">2</b><span>Seguidores</span></a></li>','<b>5</b><span>Siguiendo</span></a></li>','<a class="btn secondary" href="#/mihoja/editar" id="pfEdit">Editar perfil</a>'])assert.ok(h.includes(s),'trae '+s);
  assert.deepEqual([...h.matchAll(/data-pftab="([a-z]+)"/g)].map(m=>m[1]),['resenas','pasaporte','favoritos','humidor'],'las cuatro pestañas en tu vista');assert.ok(!h.includes('pfFollow'),'sin botón de seguir en tu vista');
  /* Reseñas: solo la pública; ni la privada ni las que solo parecen públicas */
  assert.ok(h.includes('<b>Pública Mía</b>'));for(const s of ['Privada Mía','secreto mío','Casi Pública','Sin Marca De Pública','foto_mia'])assert.ok(!h.includes(s),'nunca sale '+s);
