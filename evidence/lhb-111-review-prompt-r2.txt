@@ -15,7 +15,7 @@ What changed:
 - hoja.js: the headers of Pairings (maridaje), Podcast (micro), Search (lupa), Events (banda); the humidor's custom entry shows the silhouette; the share image draws the silhouette in the photo's frame (photo ground, 760 x 380 at the photo's place) with tk('fixed-text') and tk('warm').
 - styles.css: .lart rules; .empty::before paints var(--on-surface) through a mask whose shape is the same CAJA paths as art.js (the mask's black is not painted); old art rules removed.
 - i18n.js: a.guagua, a.coqui, a.flor, a.flamboyan and svg.alt removed; sil.alt added.
-- sw.js: cache lhb-v159 (above marca-110's v158); the guagua bitmap leaves the precache.
+- sw.js: cache lhb-v159 (above marca-110's v158). marca-110 (LHB-110 through its round 5 fixes) is merged in, so the diff below is LHB-111 only; the guagua bitmap leaves the precache.
 
 Tests: the new LHB-111 test runs art.js in a VM and checks every drawing (an SVG .lart, no hex, rgb, hsl, fill= or stroke= attribute, style, image or url, and an accent), the share-image silhouette's two resolved colours, that VBArt exports nothing else but CAJA, leaf and star, that every head() with art uses a drawing of the set, that no view references a VBArt drawing outside the set or a static image that is not a photo or a mark, that index.html, sw.js and styles.css name none of the old art, that styles.css holds only the paper texture and the empty-state mask as SVG data URIs and that the mask is CAJA, the silhouette on the card, the detail, the humidor and the share image, the frame rules, and the inks' contrast by day and at night (3:1 for graphics). It is red on main b8b2b89 and on marca-110 800af2d (evidence/lhb-111-red.txt). evidence/lhb-111-mutations.out: 8 of 8 mutants red (a header drawing outside the set, a photo-less card or humidor without the silhouette, a decorative bitmap, a drawing with its own colour, a drawing without its accent, a different empty-state shape, the silhouette's ink following the theme on the fixed light frame). Older tests updated on purpose: app wiring, v8, v12, v15, v17 and LHB-29 (the old art and texts), LHB-67 (allow list: the old drawing's palettes and the flag of the empty state go; the empty-state mask's black is listed as not painted), and the VM stubs (VB111, emptyBox). Full suite: evidence/lhb-111-tests.txt.
 
@@ -29,7 +29,7 @@ Answer with findings ranked P1 (blocking) to P3, each with file and symbol, then
 
 TOOLS: if your shell fails to start, use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
 
-===== git diff marca-110 796828dc768c5fdf4fb5de9784d7d120c5dae40a -- site test/site.test.js =====
+===== git diff marca-110 1925dc8a73a50e10f67dedbf858be3a95544a86e -- site test/site.test.js =====
 diff --git a/site/app.js b/site/app.js
 index 56359e7..bbefcca 100644
 --- a/site/app.js
@@ -263,29 +263,10 @@ index 4a7801f..6252f18 100644
 +window.VBArt={ranchon,banda,chaveta,micro,lupa,hoja,maridaje,caja,CAJA,silueta,aqui,leaf,star};
  })();
 diff --git a/site/hoja.js b/site/hoja.js
-index c0d07ad..4ddcc1b 100644
+index c0d07ad..be6bb3a 100644
 --- a/site/hoja.js
 +++ b/site/hoja.js
-@@ -96,8 +96,7 @@ function wheel(sel,key){const N=WHEEL.length,R=150,r0=48,cx=160,cy=160;const pt=
-  return `<div class="wheel-wrap"><svg class="wheel" viewBox="0 0 320 320" role="group" aria-label="${tt('h.ruedaDeSaboresToca')}">${segs}<circle cx="160" cy="160" r="42" class="whub"/><text x="160" y="157" text-anchor="middle" class="whub-n">${sel.length}</text><text x="160" y="176" text-anchor="middle" class="whub-t">${sel.length===1?tt('h.sabor'):tt('h.sabores')}</text></svg></div>`}
- function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{const k=g.dataset.wk,id=g.dataset.w;const cur=get(k);set(k,cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);rerender(k,id)};g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})})}
- /* inl: dentro de un botón (LHB-61) va en span, que un botón no puede llevar un div */
--/* Codex r5 (LHB-110): una etiqueta fuera de la rueda no tiene color de sabor: va en la ficha neutra del tema (.tchip.other), no con la tinta fija */
--const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>{const w=WHEEL.find(w=>w.id===t);return w?`<span class="tchip" style="--wc:${w.c}">${esc(WN(t))}</span>`:`<span class="tchip other">${esc(WN(t))}</span>`}).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
-+const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'var(--card-2)'}">${esc(WN(t))}</span>`).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
- /* ---------- hoja de acciones (sheet) ---------- */
- let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
- let owed=false; /* LHB-64: se abrió una hoja y el foco todavía no ha vuelto */
-@@ -521,7 +520,7 @@ const pfIni=p=>{const w=String(p.display_name||'').split(/\s+/).filter(Boolean);
-    LHB-60: seguidores y siguiendo llevan a sus listas */
- const pfCounts=(c,own,h)=>{const n=k=>c&&c[k]!=null?pfNum(c[k]):'·';const to=s=>'#/u/'+encodeURIComponent(h)+'/'+s;
-  return `<ul class="pf-counts" id="pfCounts"><li><b>${n('resenas')}</b><span>${tt('h.pfResenas')}</span></li><li><a href="${to('seguidores')}"><b id="pfNFollowers">${n('followers')}</b><span>${tt('h.pfSeguidores')}</span></a></li><li><a href="${to('siguiendo')}"><b>${n('following')}</b><span>${tt('h.pfSiguiendo')}</span></a></li></ul>
-- <div class="pf-act">${own?`<a class="btn secondary" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div><div class="pf-more" id="pfMore"></div>`}</div>`};
-+ <div class="pf-act">${own?`<a class="btn" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div><div class="pf-more" id="pfMore"></div>`}</div>`};
- const pfAbout=p=>`${p.bio?`<p class="pf-bio">${esc(p.bio)}</p>`:''}${p.favorite_brand?`<p class="pf-fav">${tt('h.pfMarcaFav')}: <b>${esc(p.favorite_brand)}</b></p>`:''}`;
- /* el encabezado de otra persona: su foto de Clerk o sus iniciales */
- function pfHead(p,c){const pic=typeof p.avatar_key==='string'&&p.avatar_key.startsWith(PF_IMG)?`<img src="${esc(p.avatar_key)}" alt="${tt('h.pfFotoDe',{a:'@'+esc(p.handle)})}" width="88" height="88">`:`<span aria-hidden="true">${esc(pfIni(p))}</span>`;
-@@ -705,7 +704,7 @@ function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad
+@@ -705,7 +705,7 @@ function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad
   view.innerHTML=`${subnav('humidor')}
   <div class="hum-sum"><div class="stat"><b>${tot}</b><span>${tt('h.cigarros')}</span></div><div class="stat"><b>${s.humidor.length}</b><span>${tt('h.vitolas')}</span></div><button class="btn" type="button" data-sheet="humidor">${tt('h.anadir')}</button></div>
   ${s.humidor.length?`<div class="list">${s.humidor.map(h=>{const c=h.cigarId&&A.cigarById(h.cigarId);return `<div class="row hum">
@@ -294,7 +275,7 @@ index c0d07ad..4ddcc1b 100644
    <div class="hum-b"><div class="t">${esc(h.nombre)}</div><div class="s">${tt('h.desde',{a:h.artesano?esc(h.artesano)+' · ':'',b:c?'':tt('h.tuyo'),c:fmtF(h.fecha)})}</div>${h.nota?`<div class="s">${esc(h.nota)}</div>`:''}
    <div class="hum-act"><div class="qty sm"><button type="button" data-hq="${h.id}:-1" aria-label="${tt('h.unoMenosDe',{a:esc(h.nombre)})}">−</button><span aria-live="polite">${h.cantidad}</span><button type="button" data-hq="${h.id}:1" aria-label="${tt('h.unoMasDe',{a:esc(h.nombre)})}">+</button></div>
    <button class="mini" type="button" data-hcata="${h.id}">${tt('h.catar')}</button><button class="mini" type="button" data-hedit="${h.id}">${tt('h.editar')}</button><button class="mini x" type="button" data-hdel="${h.id}" aria-label="${tt('h.quitarDelHumidor',{a:esc(h.nombre)})}">✕</button></div></div></div>`}).join('')}</div>`
-@@ -967,7 +966,7 @@ function pairing(c){const f=c.fortaleza||'media',t=cigarTags(c);return{ron:pick(
+@@ -967,7 +967,7 @@ function pairing(c){const f=c.fortaleza||'media',t=cigarTags(c);return{ron:pick(
  const mstate={f:'media',t:[]};
  function vMaridajes(){const r=pick(RON,mstate.f,mstate.t),k=pick(CAFE,mstate.f,mstate.t);
   const card=x=>`<article class="pcard"><h3>${x.n}</h3><p class="pp">${x.p}</p><p>${x.m}</p><div class="pills"><span class="pill">${tt('h.fortalezaRango',{a:x.f.map((f,i)=>i?A.fortLabel(f).toLowerCase():A.fortLabel(f)).join(tt('h.rangoA'))})}</span>${x.t.map(t=>`<span class="pill">${WN(t)}</span>`).join('')}</div></article>`;
@@ -303,7 +284,7 @@ index c0d07ad..4ddcc1b 100644
   <section class="pair-tool"><h2>${tt('h.queVasAFumar')}</h2>
   <div class="field"><label>${tt('f.fortaleza')}</label><div class="seg" role="group" aria-label="${tt('f.fortaleza')}">${A.FORT.map(f=>`<button type="button" data-mf="${f}" aria-pressed="${mstate.f===f}">${A.fortLabel(f)}</button>`).join('')}</div></div>
   <div class="field"><label>${tt('h.perfilDeSaborToca')}</label><div class="chips wrapc" role="group" aria-label="${tt('h.perfilDeSabor')}">${WHEEL.map(w=>`<button type="button" class="chip" data-mt="${w.id}" aria-pressed="${mstate.t.includes(w.id)}">${w.n}</button>`).join('')}</div></div>
-@@ -997,7 +996,7 @@ const DOC='<svg class="mic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3
+@@ -997,7 +997,7 @@ const DOC='<svg class="mic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3
  function podBlock(kind,id){const list=ARTS.filter(x=>((kind==='a'?x.a:x.cg)||[]).includes(id));
   if(!list.length&&kind==='c')return '';
   return `<section class="pod">${MIC}<div><div class="eyebrow">${tt('h.escuchaEnCigarsPodcast')}</div>${list.length?list.map(x=>`<a class="pod-a" href="${x.u}" target="_blank" rel="noopener"><b>${esc(x.t)}</b><small>${x.c} · ${fmtF(x.f)}</small></a>`).join(''):`<p class="pod-s">${tt('h.lanzamientosResenasYCultura2')}</p>`}<a class="pod-more" href="${list.length?'#/podcast':POD}" ${list.length?'':'target="_blank" rel="noopener"'}>${list.length?tt('h.masDeCigarsPodcast'):tt('h.visitarCigarsPodcast')}</a></div></section>`}
@@ -312,7 +293,7 @@ index c0d07ad..4ddcc1b 100644
   <div class="links"><a class="lbtn spotify" href="${SPOTIFY}" target="_blank" rel="noopener">${tt('h.escuchaloEnSpotify',{a:SPOT_SVG})}</a><a class="lbtn web" href="${POD}" target="_blank" rel="noopener">${A.ICON.web}Cigars Podcast</a><a class="lbtn ig" href="https://www.instagram.com/cigarspodcast/" target="_blank" rel="noopener">${A.ICON.ig}@cigarspodcast</a></div>
   <div class="section-title"><h2>${tt('h.articulos')}</h2></div><div class="list">${ARTS.map(x=>`<a class="row" href="${x.u}" target="_blank" rel="noopener">${DOC}<div><div class="t">${esc(x.t)}</div><div class="s">${x.c} · ${fmtF(x.f)}</div></div><span class="go">›</span></a>`).join('')}</div>
   <p class="note">${tt('h.seAbrenEnEl')}</p>`}
-@@ -1005,7 +1004,7 @@ function vPodcast(){view.innerHTML=`${A.head(tt('h.podcast'),tt('h.escuchaEnCiga
+@@ -1005,7 +1005,7 @@ function vPodcast(){view.innerHTML=`${A.head(tt('h.podcast'),tt('h.escuchaEnCiga
  const qs={q:'',reg:'',mun:'',fort:''};
  const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
  function vBuscar(){const d=D();const munis=[...new Set([...d.artesanos.map(a=>a.pueblo),...d.places.map(p=>p.pueblo),...d.cigarros.map(c=>c.pueblo),...(d.events.actividades||[]).map(e=>e.pueblo)].map(municipio).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
@@ -321,7 +302,7 @@ index c0d07ad..4ddcc1b 100644
   <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr">${tt('cat.search')}</span><input id="gq" type="search" placeholder="${tt('h.buscarEnTodaLa')}" value="${esc(qs.q)}" autocomplete="off"></label>
   <div class="filter-row"><select id="gReg" aria-label="${tt('h.region')}"><option value="">${tt('h.regionTodas')}</option>${Object.keys(REG).map(r=>`<option value="${r}" ${qs.reg===r?'selected':''}>${lab(r)}</option>`).join('')}</select>
   <select id="gMun" aria-label="${tt('h.municipio')}"><option value="">${tt('h.municipioTodos')}</option>${munis.filter(m=>!qs.reg||region(m)===qs.reg).map(m=>`<option ${qs.mun===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
-@@ -1078,7 +1077,7 @@ function calGrid(evs){if(!evs.length)return '<div class="empty">'+tt('h.noHayEve
+@@ -1078,7 +1078,7 @@ function calGrid(evs){if(!evs.length)return '<div class="empty">'+tt('h.noHayEve
   return html+`<div class="cal-legend"><span><i class="lg-anc"></i>${tt('ev.anclas')}</span><span><i class="lg-ev"></i>${tt('h.otrosEventos')}</span></div><div id="calSel">${sel.length?sel.map(e=>isAnchor(e)?anchorCard(e):evCard(e)).join(''):'<p class="hint">'+tt('h.tocaUnDiaMarcado')+'</p>'}</div>`}
  function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0,0,0);const evs=(D().events.actividades||[]).filter(e=>{const d=A.evDate(e.fecha);return d&&d>=today}).sort((a,b)=>a.fecha.localeCompare(b.fecha));const mine=LS.get('sugeridas',[]);
   const anc=evs.find(isAnchor);const rest=evs.filter(e=>e!==anc);const upd=D().events.actualizado?new Date(D().events.actualizado):null;
@@ -330,16 +311,7 @@ index c0d07ad..4ddcc1b 100644
   ${upd&&!isNaN(upd)?`<p class="updated">${tt('h.listaActualizadaEl',{a:upd.getDate(),b:MES[upd.getMonth()],c:upd.getFullYear(),d:navigator.onLine?'':tt('h.sinConexion')})}</p>`:''}
   <div class="toggle" role="group" aria-label="${tt('lug.view')}"><button type="button" data-evm="lista" aria-pressed="${evst.mode==='lista'}">${tt('lug.list')}</button><button type="button" data-evm="cal" aria-pressed="${evst.mode==='cal'}">${tt('h.calendario')}</button></div>
   ${evst.mode==='cal'?calGrid(evs):`${anc?anchorCard(anc):''}${rest.length?`<div class="section-title"><h2>${tt('h.proximos')}</h2><span class="count">${rest.length}</span></div>`:''}${rest.map(e=>evCard(e)).join('')}${evs.length?'':'<div class="empty">'+tt('h.noHayActividadesProximas')+'</div>'}`}
-@@ -1086,7 +1085,7 @@ function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0
-  <details class="edit"><summary>${tt('h.sugerirActividad')}</summary><form class="form" id="sugForm"><div class="field"><label for="sT">${tt('h.actividad')}</label><input id="sT" required maxlength="80" placeholder="${tt('h.ejNocheDeCata')}"></div>
-  <div class="field"><label for="sF">${tt('h.fecha')}</label><input id="sF" type="date" required></div><div class="field"><label for="sH">${tt('h.hora2')}</label><input id="sH" maxlength="20" placeholder="${tt('h.ej700Pm')}"></div>
-  <div class="field"><label for="sL">${tt('h.lugar')}</label><input id="sL" maxlength="60"></div><div class="field"><label for="sP">${tt('f.pueblo')}</label><input id="sP" maxlength="40"></div>
-- <div class="field"><label for="sE">${tt('h.enlaceIgOWeb')}</label><input id="sE" type="url" maxlength="200" placeholder="https://"></div><button class="btn secondary" type="submit">${tt('h.guardarSugerencia')}</button></form></details>
-+ <div class="field"><label for="sE">${tt('h.enlaceIgOWeb')}</label><input id="sE" type="url" maxlength="200" placeholder="https://"></div><button class="btn" type="submit">${tt('h.guardarSugerencia')}</button></form></details>
-  <div class="section-title"><h2>${tt('h.fuentes')}</h2></div><p class="lead" style="margin-top:-4px">${tt('h.lasCuentasQueEsta')}</p>
-  <div class="list">${(D().events.fuentes||[]).map(f=>`<a class="row" href="${esc(f.url)}" target="_blank" rel="noopener">${A.mono(f.handle.replace('@',''),38)}<div><div class="t">${esc(f.handle)}</div>${f.nombre?`<div class="s">${esc(f.nombre)}</div>`:''}</div><span class="go">›</span></a>`).join('')}</div>${A.PROTO_NOTE}`;
-  $$('[data-evm]').forEach(b=>b.onclick=()=>{evst.mode=b.dataset.evm;vEventos()});
-@@ -1109,10 +1108,10 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
+@@ -1109,10 +1109,10 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
   x.font='600 22px Figtree';x.fillStyle=tk('warm-ink');x.textAlign='center';x.letterSpacing='4px';x.fillText(tt('brand.tagline').toUpperCase(),W/2,198);x.letterSpacing='0px';x.textAlign='left';
   const foto=(!c.yours&&window.LHB_FOTOS)?window.LHB_FOTOS[c.id]:null;let fimg=null;
   if(foto){fimg=new Image();fimg.src=foto.img;await new Promise(r=>{fimg.onload=r;fimg.onerror=()=>{fimg=null;r()}})}
@@ -409,7 +381,7 @@ deleted file mode 100644
 index 3416cd5..0000000
 Binary files a/site/img/guagua/hojas.webp and /dev/null differ
 diff --git a/site/styles.css b/site/styles.css
-index 520d0f6..5c20427 100644
+index 520d0f6..f396a78 100644
 --- a/site/styles.css
 +++ b/site/styles.css
 @@ -233,7 +233,6 @@ details.edit .form{padding:6px 0 14px}
@@ -461,15 +433,6 @@ index 520d0f6..5c20427 100644
  .hum-b{flex:1;min-width:0}
  .hum-act{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
  .qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:var(--r-m);background:var(--card);overflow:hidden}
-@@ -361,7 +357,7 @@ body.sheet-on{overflow:hidden}
- .stars-ro{color:var(--accent-ink);font-size:var(--fs-3);letter-spacing:1px;white-space:nowrap}
- .stars-ro span{color:var(--muted)}
- .tagchips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
--.tchip{background:var(--wc);color:var(--fixed-text);border-radius:var(--r-pill);padding:4px 10px;font-size:var(--fs-1);font-weight:700}.tchip.other{background:var(--card-2);color:var(--on-surface)}
-+.tchip{background:var(--wc);color:var(--fixed-text);border-radius:var(--r-pill);padding:4px 10px;font-size:var(--fs-1);font-weight:700}
- .dnote{margin:10px 0 2px;color:var(--on-surface-2);line-height:1.5;font-size:var(--fs-2)}
- .dentry details{margin-top:8px}
- .dfoto{margin:8px 0}
 @@ -528,10 +524,10 @@ body.sheet-on{overflow:hidden}
  .count-line{font-size:var(--fs-2);color:var(--on-surface-2);margin:4px 0 2px}
  .pill.f-fuerte{color:var(--on-inverse)}
@@ -511,7 +474,7 @@ index ed49b33..b74ae0b 100644
  self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION&&k!=='vb-tiles').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
  self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const url=new URL(req.url);
 diff --git a/test/site.test.js b/test/site.test.js
-index 79d35ff..c46a339 100644
+index 79d35ff..6734b59 100644
 --- a/test/site.test.js
 +++ b/test/site.test.js
 @@ -37,11 +37,12 @@ test('data layer: separate JSON files with real entries and sources',()=>{const
@@ -722,25 +685,10 @@ index 79d35ff..c46a339 100644
   const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
   const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
    const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
-@@ -3972,21 +3975,57 @@ test('LHB-110 (Codex r3): la equis de la burbuja del mapa se lee de día y de no
+@@ -3972,6 +3975,58 @@ test('LHB-110 (Codex r3): la equis de la burbuja del mapa se lee de día y de no
   /* y los grises de Leaflet no pasarían de noche: la prueba ve el problema */
   assert.ok(contrast65('#585858',TOKENS65(DARK110.css(raw)).val('card'))<3);
  });
--test('LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noche; y cada vista, con lo que trae dentro, tiene una sola acción llena',()=>{
-- const raw=read('styles.css'),hj=read('hoja.js'),ap=read('app.js');
-- /* la etiqueta: tagChips de verdad en una VM, con una de la rueda y una que no está */
-- {const i=hj.indexOf('const tagChips=');const code=hj.slice(i,hj.indexOf('\n',hj.indexOf('.join(\'\')',i)+1)+200).split(/\r?\n/).slice(0,3).join('\n');
--  const ctx={WHEEL:[{id:'cacao',c:'#ABCDEF'}],esc:x=>String(x),WN:x=>x};require('vm').createContext(ctx);require('vm').runInContext(code.slice(0,code.indexOf('};')+2)+';this.tagChips=tagChips',ctx);
--  const h=ctx.tagChips(['cacao','sabor-viejo']);assert.ok(h.includes('<span class="tchip" style="--wc:#ABCDEF">cacao</span>'),h);assert.ok(h.includes('<span class="tchip other">sabor-viejo</span>'),h)}
-- assert.ok(raw.includes('.tchip.other{background:var(--card-2);color:var(--on-surface)}'));
-- for(const T of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])assert.ok(contrast65(T.val('on-surface'),T.val('card-2'))>=4.5);
-- assert.ok(contrast65(TOKENS65(raw).val('fixed-text'),TOKENS65(DARK110.css(raw)).val('card-2'))<3,'la prueba ve la tinta fija sobre la ficha de noche');
-- /* las vistas: cada una con las piezas que pinta dentro, contadas juntas (aunque una esté plegada) */
-- const body=(src,n)=>{const m=new RegExp('\\n(?:async )?function '+n+'\\(|\\n(?:const|let) '+n+'=').exec(src);assert.ok(m,n);const j=src.slice(m.index+1).search(/\n(?:async )?function |\n(?:const|let) [A-Za-z0-9_]+=(?:async )?\(?[A-Za-z0-9_,]*\)?=>/);return src.slice(m.index,j<0?undefined:m.index+1+j)};
-- const FILLED=/class="(btn|btn cta|btn fw-b|lbtn spotify|pidelo)"/g;
-- const views=[['perfil',[[ap,'vPerfil'],[hj,'pfCounts']]],['eventos',[[hj,'vEventos'],[hj,'anchorCard']]],['diario',[[hj,'vDiario']]],['humidor',[[hj,'vHumidor']]],['cata',[[hj,'vCata']]],['personas',[[hj,'vPersonas']]]];
-- for(const [v,parts] of views){const n=parts.map(([src,f])=>[...body(src,f).matchAll(FILLED)].length).reduce((a,b)=>a+b,0);assert.ok(n<=1,v+': '+n+' acciones llenas')}
-- assert.ok(hj.includes('${own?`<a class="btn secondary" href="#/mihoja/editar" id="pfEdit"'),'Editar perfil con borde');assert.ok(hj.includes('<button class="btn secondary" type="submit">${tt(\'h.guardarSugerencia\')}'),'la sugerencia con borde');
 +test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de tabaco con un solo acento; ningún arte fuera del juego, y el cigarro sin foto lleva la silueta',()=>{
 + const LINE=['ranchon','banda','chaveta','micro','lupa','hoja','maridaje','caja','silueta','aqui'];
 + const w={LHB_I18N:{t:k=>k}},ctx={window:w,Math};require('vm').createContext(ctx);require('vm').runInContext(read('art.js'),ctx);const A=w.VBArt;
@@ -792,10 +740,11 @@ index 79d35ff..c46a339 100644
 +  assert.equal(+r.match(/height:(\d+)px/)[1],100*k,'la caja guarda la proporción del dibujo');
 +  assert.ok(r.includes('background:radial-gradient('+el[2]+'px '+el[3]+'px at '+el[0]+'px '+el[1]+'px,var(--warm) 100%,var(--on-surface) 100%);'),'el medallón en ámbar: '+el.join(' '))}
 + for(const T of [TOKENS65(css),TOKENS65(DARK110.css(css))]){assert.ok(contrast65(T.val('on-surface'),T.val('surface'))>=3);assert.ok(contrast65(T.val('fixed-text'),T.val('photo'))>=3);assert.ok(contrast65(T.val('on-surface'),T.val('warm'))>=1.5,'el acento se distingue de la línea')}
- });
- test('LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar',()=>{
-  const ix=read('index.html');assert.ok(ix.includes('<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F1EA">')&&ix.includes('<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141A13">'),'la barra del teléfono en los dos temas');
-@@ -4749,7 +4788,7 @@ function HOJA58(opts){opts=opts||{};
++});
+ test('LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noche; y cada vista, con lo que trae dentro, tiene una sola acción llena',()=>{
+  const raw=read('styles.css'),hj=read('hoja.js'),ap=read('app.js');
+  /* la etiqueta: tagChips de verdad en una VM, con una de la rueda y una que no está */
+@@ -4749,7 +4804,7 @@ function HOJA58(opts){opts=opts||{};
   const acctBox={v:opts.acct===undefined?{sub:'u_a',handle:'ana',name:'Ana S.',avatar:''}:opts.acct};const sheets=[],log=[];const loc={hash:''};
   /* LHB-60: la sesión y el adaptador de la API con sesión (api(C,method,path,body,uid)); sin opts.api contesta 500 */
   const toasts=[],calls=[],sheetOn={v:false};
@@ -804,16 +753,7 @@ index 79d35ff..c46a339 100644
    /* opts.token: la llave de la sesión tarda; go es el de api() en hoja.js: con la llave ya puesta, si dice que no el pedido no sale */
    clerk:async()=>({user:{id:'u_a'}}),acctW:new Set(),acctGen:0,api:async(C,method,path,body,uid,extra,go)=>{if(opts.token)await opts.token(method);if(go&&!go())throw new Error('gone');calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
    A:{cigarById:id=>({c1:{id:'c1',nombre:'Yambú Toro'},c2:{id:'c2',nombre:'Don Collins'}})[id]||null,cigarCard:c=>'<a class="card" data-c="'+c.id+'">'+c.nombre+'</a>',hydrate:()=>log.push('hydrate'),route:()=>log.push('route')},
-@@ -4901,7 +4940,7 @@ test('LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y
-  const p=H.X.profileOwn({sub:'u_a',handle:'ana',name:'Ana S.',avatar:''});
-  assert.ok(H.all().includes('<b id="pfNFollowers">·</b><span>Seguidores</span></a></li>'),'mientras llegan, los conteos esperan');await p;const h=H.all();
-  assert.deepEqual(H.fetches,['/api/u/ana']);
-- for(const s of ['<p class="pf-bio">Mi bio</p>','Marca favorita: <b>Mi marca</b>','<li><b>1</b><span>Reseñas</span></li>','<b id="pfNFollowers">2</b><span>Seguidores</span></a></li>','<b>5</b><span>Siguiendo</span></a></li>','<a class="btn secondary" href="#/mihoja/editar" id="pfEdit">Editar perfil</a>'])assert.ok(h.includes(s),'trae '+s);
-+ for(const s of ['<p class="pf-bio">Mi bio</p>','Marca favorita: <b>Mi marca</b>','<li><b>1</b><span>Reseñas</span></li>','<b id="pfNFollowers">2</b><span>Seguidores</span></a></li>','<b>5</b><span>Siguiendo</span></a></li>','<a class="btn" href="#/mihoja/editar" id="pfEdit">Editar perfil</a>'])assert.ok(h.includes(s),'trae '+s);
-  assert.deepEqual([...h.matchAll(/data-pftab="([a-z]+)"/g)].map(m=>m[1]),['resenas','pasaporte','favoritos','humidor'],'las cuatro pestañas en tu vista');assert.ok(!h.includes('pfFollow'),'sin botón de seguir en tu vista');
-  /* Reseñas: solo la pública; ni la privada ni las que solo parecen públicas */
-  assert.ok(h.includes('<b>Pública Mía</b>'));for(const s of ['Privada Mía','secreto mío','Casi Pública','Sin Marca De Pública','foto_mia'])assert.ok(!h.includes(s),'nunca sale '+s);
-@@ -5288,7 +5327,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+@@ -5288,7 +5343,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
   assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
   assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
   assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
@@ -822,7 +762,7 @@ index 79d35ff..c46a339 100644
  });
  /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
  function DOM64(){
-@@ -5381,7 +5420,7 @@ function CAT64(){const vm=require('vm');const D=DOM64();const src=read('app.js')
+@@ -5381,7 +5436,7 @@ function CAT64(){const vm=require('vm');const D=DOM64();const src=read('app.js')
   const code=src.slice(src.indexOf('/* LHB-64: una región de estado'),src.indexOf('\nfunction vCigar('));
   const cs=[{id:'a',nombre:'Toro',capa:'Maduro',fortaleza:'suave',artesano_id:'x'},{id:'b',nombre:'Corona',capa:'Natural',fortaleza:'fuerte',artesano_id:'x'},{id:'c',nombre:'Robusto',capa:'Maduro',fortaleza:'fuerte',artesano_id:'y'}];
   const ctx={document:D.doc,$:D.$,$$:D.$$,view:D.view,window:{},esc:s=>String(s),tt:(k,v)=>v?k+'='+v.a:k,allCigars:()=>cs,fx:(c,k)=>c[k],fq:(c,k)=>c[k]||'',artisanName:()=>'Art',FACADES_BAR:'',installHidden:()=>false,LS:{get:()=>false,set(){}},REDUCED_ALL:true,
@@ -831,7 +771,7 @@ index 79d35ff..c46a339 100644
   vm.createContext(ctx);vm.runInContext(code+';this.vCatalogo=vCatalogo;this.state=state;this.RS=RS;this.newLoad71=()=>{homeCompact=null}',ctx);
   return {...D,ctx,cards:()=>D.$$('.card').length}}
  test('LHB-64: el catálogo: elegir un filtro deja el foco en el mismo filtro aunque la vista se pinte otra vez, y una región de estado fija anuncia cuántas vitolas quedan',()=>{
-@@ -5434,6 +5473,8 @@ test('LHB-64 (Codex ronda 2): el aviso (toast) queda fuera de la app inerte, enc
+@@ -5434,6 +5489,8 @@ test('LHB-64 (Codex ronda 2): el aviso (toast) queda fuera de la app inerte, enc
  });
  /* LHB-110: el tema oscuro. styles.css lo define dos veces con los mismos valores (al teléfono si no se eligió claro, y elegido en el menú);
     l.css y u.css una vez (al teléfono). css() devuelve la hoja con el :root claro cambiado por el de noche, para medirla con las mismas pruebas */
@@ -840,7 +780,7 @@ index 79d35ff..c46a339 100644
  const DARK110={MEDIA:/@media \(prefers-color-scheme:dark\)\{:root:not\(\[data-theme="light"\]\)\{([^}]*)\}\}/,ATTR:/:root\[data-theme="dark"\]\{([^}]*)\}/,
   strip(s,f){return s.replace(this.MEDIA,m=>f(m)).replace(this.ATTR,m=>f(m))},
   css(css){const m=css.match(this.MEDIA);if(!m)return null;const light=css.match(/:root\{([^}]*)\}/)[1].replace(/\/\*[\s\S]*?\*\//g,'').replace(/;?\s*color-scheme:light/,'');
-@@ -5543,21 +5584,18 @@ function extra99(f,s){const at=[];
+@@ -5543,21 +5600,18 @@ function extra99(f,s){const at=[];
   return at}
  const ALLOW67=[
   ['app.js',/THEME_BAR=\{light:'#F4F1EA',dark:'#141A13'\}/,1,'LHB-110: la barra del teléfono por tema; la meta theme-color no lee variables (los mismos valores que index.html y que --surface de día y de noche, abajo)'],
@@ -865,7 +805,7 @@ index 79d35ff..c46a339 100644
   ['hoja.js',/<circle cx="12" cy="12" r="11" fill="#0e2417"\/>[\s\S]*?<\/svg>/,1,'marca de Spotify: su ícono, sobre el botón verde de la marca'],
  ];
  function scan67(over={}){const app=TOKENS65(read('styles.css')),bad=[],stale=[],mirror=[];
-@@ -5612,9 +5650,8 @@ test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabo
+@@ -5612,9 +5666,8 @@ test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabo
   /* LHB-110 (Codex r1): los colores de sabor no cambian de noche, así que su tinta tampoco (--fixed-text, de día y de noche) */
   assert.match(css,/\.tchip\{background:var\(--wc\);color:var\(--fixed-text\)/);assert.match(css,/\.wseg\.on text\{fill:var\(--fixed-text\)\}/);
   for(const A of [app,TOKENS65(DARK110.css(css))])for(const c of W)assert.ok(contrast65(A.val('fixed-text'),c)>=4.5,'sabor '+c+': '+contrast65(A.val('fixed-text'),c).toFixed(2));
@@ -877,7 +817,7 @@ index 79d35ff..c46a339 100644
   const F=a.match(/const FACADE=\[([^\]]*)\]/)[1].match(/#[0-9a-fA-F]{6}/g),m=a.match(/red=\/\^#ed0000\$\/i\.test\(bg\);return `<span class="mono" style="[^"]*color:\$\{red\?'var\(--([a-z-]+)\)':'var\(--([a-z-]+)\)'\}[\s\S]*?fill="\$\{red\?'(#[0-9a-f]{3})':'(#[0-9a-f]{3})'\}" opacity="\$\{red\?'([.\d]+)':'([.\d]+)'\}"/);
   assert.ok(m,'las iniciales eligen tinta y hoja de agua según el fondo');const x3=c=>'#'+c.slice(1).split('').map(d=>d+d).join('');
   const mix=(b,o,al)=>'#'+[1,3,5].map(i=>Math.round(parseInt(b.slice(i,i+2),16)*(1-al)+parseInt(o.slice(i,i+2),16)*al).toString(16).padStart(2,'0')).join('');
-@@ -5815,7 +5852,7 @@ test('LHB-72: el splash viejo se fue; la intro carga antes que la app, sus video
+@@ -5815,7 +5868,7 @@ test('LHB-72: el splash viejo se fue; la intro carga antes que la app, sus video
  function ABOUT73(o={}){const vm=require('vm');const D=DOM64();const src=read('app.js').replace(/\r\n/g,'\n');
   const code=src.slice(src.indexOf('/* LHB-73: Acerca de'),src.indexOf('/* LHB-73: fin */'));
   const loc={hash:''};let last='';const view={set innerHTML(v){last=v;D.view.innerHTML=v},get innerHTML(){return last},focus:o=>D.view.focus(o)};
@@ -886,7 +826,7 @@ index 79d35ff..c46a339 100644
    brandIcon:n=>`<svg data-i="${n}"></svg>`,matchMedia:q=>({matches:!!o.reduced&&q==='(prefers-reduced-motion: reduce)'}),navigator:{connection:o.saveData?{saveData:true}:undefined},location:loc};
   vm.createContext(ctx);vm.runInContext(code+';this.CREDITS=CREDITS;this.vAcerca=vAcerca;this.vCreditos=vCreditos',ctx);return {...D,ctx,loc,html:()=>last}}
  /* ¿tiene sonido un archivo MP4/MOV/3GP? Lee las cajas de verdad, en cualquier orden (tamaño de 32 o de 64 bits, o hasta el final).
-@@ -5963,7 +6000,7 @@ function PASS74(o={}){const vm=require('vm');const src=read('hoja.js').replace(/
+@@ -5963,7 +6016,7 @@ function PASS74(o={}){const vm=require('vm');const src=read('hoja.js').replace(/
   const data={artesanos:mk('a',5),cigarros:mk('c',8,{artesano_id:'a0'}),places:mk('l',3)};const st={pasaporte:{artesanos:{},cigarros:{},lugares:{}}};
   for(const id of o.stamped||[]){const [k,i]=id.split(':');st.pasaporte[k][i]='2026-10-29'}
   const loc={hash:o.hash||'#/mihoja/pasaporte'};
