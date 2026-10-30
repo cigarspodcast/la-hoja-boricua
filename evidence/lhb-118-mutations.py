@@ -11,6 +11,9 @@ MUTANTS = [
     ('the static pages keep the paper tile at night', 'site/lugares/l.css', '--mark-bg:transparent;--mark-light:none;', '--mark-bg:#EFEBE2;--mark-light:none;'),
     ('the favicons come from the full master', 'tools/build_icons.py', "('favicon-16.png', SMALL,", "('favicon-16.png', FULL,"),
     ('the service worker forgets the night mark', 'site/sw.js', "'icons/icon-dark.svg',", ''),
+    # Codex r1 (P3): a higher-specificity rule on the mark img would show both marks
+    ('a brand img rule sets display', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:block;border-radius:var(--r-s);'),
+    ('a static sheet sets display on the mark img', 'site/u.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:inline-block;border-radius:var(--r-s);'),
 ]
 
 

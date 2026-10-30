@@ -8988,6 +8988,19 @@ test('LHB-118: el Medallón en los íconos, la barra de día y de noche, la intr
   assert.ok(css.includes('.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}'),f+': las dos reglas')}
  const m=DARK110.ATTR.exec(read('styles.css'));assert.ok(m&&m[1].includes('--mark-light:none;--mark-dark:block;'),'el tema oscuro escogido también cambia la marca');
  assert.ok(!/\.intro-mark img\{[^}]*display:/.test(read('styles.css')),'la intro no pisa el display de los tokens');
+ /* Codex r1 (P3): que las reglas estén no basta; ninguna otra regla que llegue a la img de la marca (un selector que termina en img, como .brand img,
+    .intro-mark img, también dentro de un @media) puede poner display, porque le ganaría a .mark-l y .mark-d y se verían las dos marcas. Un img a secas
+    (especificidad 0,0,1, como el img{display:block} de la base) pierde contra una clase y no cuenta; uno con clase, id, atributo o pseudoclase sí.
+    Solo cuentan los selectores que pueden llegar a la marca: cada parte fuera de la img es un antepasado que la marca tiene (html, body, div.app#app,
+    header.topbar, a.brand, div.intro, div.intro-mark) o un atributo o pseudoclase; .card .ph img, por ejemplo, no llega */
+ const ANC118=new Set(['html','body','div','.app','#app','header','.topbar','a','.brand','.intro','.intro-mark']);
+ const reach118=x=>{const parts=x.split(/\s*[\s>+~]\s*/).filter(Boolean),last=parts.pop();if(!/^img(?![\w-])/.test(last))return false;
+  const own=(last.slice(3).match(/[.#][\w-]+/g)||[]);if(own.some(s=>s!=='.mark-l'&&s!=='.mark-d'))return false;if(own.length)return false;
+  return parts.every(p=>(p.match(/[.#]?[\w-]+|\[[^\]]*\]|:{1,2}[\w-]+(\([^)]*\))?/g)||[]).every(s=>/^[[:]/.test(s)||ANC118.has(s)))};
+ assert.ok(reach118('.brand img')&&reach118('header.topbar a.brand img')&&reach118('.intro-mark img')&&reach118('a.brand:hover img')&&!reach118('.card .ph img')&&!reach118('.brand img.mark-l'),'el detector de selectores');
+ for(const f of ['styles.css','lugares/l.css','u.css'])for(const m of read(f).replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/([^{}]*)\{([^{}]*)\}/g)){
+  const hits=m[1].split(',').map(x=>x.trim()).filter(x=>/(^|[\s>+~])img(?![\w-])[^\s>+~]*$/.test(x)&&/[.#[:]/.test(x)&&reach118(x));
+  if(hits.length)assert.ok(!/(^|;)\s*display\s*:/.test(m[2]),f+': '+hits.join(',')+'{'+m[2]+'} pisa el display de la marca')}
  const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
  let n=0;for(const f of walk(S).filter(f=>/\.(html|js)$/.test(f))){const h=fs.readFileSync(f,'utf8');
   for(const x of h.matchAll(/<img [^>]*icons\/icon(-dark)?\.svg"[^>]*>/g)){n++;assert.ok(/^<img class="mark-[ld]" /.test(x[0]),path.relative(S,f)+': '+x[0])}
