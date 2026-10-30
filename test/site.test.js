@@ -7140,6 +7140,19 @@ test('LHB-104 (Codex r9): la cuenta está por debajo de la marca de agua de este
   A.edit(d=>{d.ratings.c9=4});const r=await A.sync();assert.equal(r.ok,true,'la pasada termina');
   assert.equal(srv28(a,'user_a').doc.ratings.c9,4,'y la cuenta tiene la nota');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'sin dar nada por borrado');
  }finally{a.done()}});
+test('LHB-104 (Codex r8, con la limpieza de r9): si el teléfono no deja quitar las anotaciones que ya pasaron su If-Match, la anotación se queda para la próxima pasada, pero la memoria de la pestaña la suelta',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;A.D.api=async(C,m,...r)=>{if(m==='PUT')throw new TypeError('sin red');return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});assert.ok(!(await A.sync()).ok,'sin red: no llegó');A.D.api=api;
+  assert.ok([...A.ls.keys()].filter(isP104).length>0,'la subida que no salió queda anotada');assert.ok(A.eng._myOps()>0,'y en la memoria');
+  const rm=A.D.ls.remove;A.D.ls.remove=k=>{if(isP104(k))throw new Error('no se puede');return rm(k)};
+  A.edit(d=>{d.ratings.c3=4});assert.equal((await A.sync()).ok,true,'la pasada termina');assert.equal(srv28(a,'user_a').doc.ratings.c3,4,'la nota está en la cuenta');
+  assert.ok([...A.ls.keys()].filter(isP104).length>0,'la anotación se queda');assert.equal(A.eng._myOps(),0,'la memoria la suelta');
+  A.D.ls.remove=rm;assert.equal((await A.sync()).ok,true);assert.equal([...A.ls.keys()].filter(isP104).length,0,'la próxima pasada la quita');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{
