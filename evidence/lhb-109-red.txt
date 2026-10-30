@@ -1,0 +1,178 @@
+✔ LHB-36: el idioma está encendido (LHB-109: se cambia desde el menú); inglés para un navegador en inglés, español para los demás; la escogida se recuerda (15.2685ms)
+✖ LHB-36: sin el selector en la barra (LHB-109) y el pie de la app lleva a las páginas en inglés cuando la app está en inglés (1.2662ms)
+✖ LHB-109: el idioma sale en el menú con el nombre del otro idioma en ese idioma, y no en la barra; tocarlo lo cambia (3.2301ms)
+✖ LHB-109: cada pestaña es una ruta de la tabla con la misma clave de nombre, y el menú no la repite (2.5004ms)
+✖ LHB-109: cada destino tiene un solo nombre: la etiqueta de su página y los títulos de sus secciones usan la clave de la pestaña o del menú (4.3512ms)
+✖ LHB-109: sin cuenta, el círculo de arriba y el de Mi perfil son la silueta de una persona, la misma desde el primer pintado (0.6258ms)
+✖ LHB-71: el menú sale de la tabla de rutas: cada ruta sale en él o es detalle de una que sale, y el enrutador usa la misma tabla (2.5672ms)
+✖ LHB-71: el menú marca la página en la que estás (aria-current y Aquí), también desde un detalle o una subruta (3.5021ms)
+✖ LHB-71 y LHB-109: la portada no repite la navegación (sin los cuadros ni los tres caminos: las pestañas y el menú los tienen), lleva a la ruta, y quien vuelve ve la portada compacta (3.9611ms)
+✖ LHB-71 (Codex ronda 1): sin espacio para guardar la visita el catálogo se pinta igual; el menú lee la ruta como el enrutador (4.5927ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 1
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 164.7012
+
+✖ failing tests:
+
+test at test\site.test.js:3664:1
+✖ LHB-36: sin el selector en la barra (LHB-109) y el pie de la app lleva a las páginas en inglés cuando la app está en inglés (1.2662ms)
+  AssertionError [ERR_ASSERTION]: LHB-109: sin el selector de la barra (el idioma está en el menú)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:3665:38)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3881:1
+✖ LHB-109: el idioma sale en el menú con el nombre del otro idioma en ese idioma, y no en la barra; tocarlo lo cambia (3.2301ms)
+  evalmachine.<anonymous>:299
+  })();/* LHB-71: la tabla de rutas. El enrutador y el menú salen de aquí, así que una ruta nueva no se queda fuera del menú.
+  ^
+  
+  SyntaxError: Unexpected token '}'
+      at new Script (node:vm:117:7)
+      at createScript (node:vm:269:10)
+      at Object.runInContext (node:vm:300:10)
+      at ROUTES71 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:5557:5)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:3882:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+
+test at test\site.test.js:3896:1
+✖ LHB-109: cada pestaña es una ruta de la tabla con la misma clave de nombre, y el menú no la repite (2.5004ms)
+  evalmachine.<anonymous>:299
+  })();/* LHB-71: la tabla de rutas. El enrutador y el menú salen de aquí, así que una ruta nueva no se queda fuera del menú.
+  ^
+  
+  SyntaxError: Unexpected token '}'
+      at new Script (node:vm:117:7)
+      at createScript (node:vm:269:10)
+      at Object.runInContext (node:vm:300:10)
+      at ROUTES71 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:5557:5)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:3898:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at test\site.test.js:3919:1
+✖ LHB-109: cada destino tiene un solo nombre: la etiqueta de su página y los títulos de sus secciones usan la clave de la pestaña o del menú (4.3512ms)
+  AssertionError [ERR_ASSERTION]: sin la clave vieja cat.eyebrow
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:3925:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3937:1
+✖ LHB-109: sin cuenta, el círculo de arriba y el de Mi perfil son la silueta de una persona, la misma desde el primer pintado (0.6258ms)
+  AssertionError [ERR_ASSERTION]: la silueta en app.js
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:3939:109)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:5570:1
+✖ LHB-71: el menú sale de la tabla de rutas: cada ruta sale en él o es detalle de una que sale, y el enrutador usa la misma tabla (2.5672ms)
+  evalmachine.<anonymous>:299
+  })();/* LHB-71: la tabla de rutas. El enrutador y el menú salen de aquí, así que una ruta nueva no se queda fuera del menú.
+  ^
+  
+  SyntaxError: Unexpected token '}'
+      at new Script (node:vm:117:7)
+      at createScript (node:vm:269:10)
+      at Object.runInContext (node:vm:300:10)
+      at ROUTES71 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:5557:5)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:5571:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+
+test at test\site.test.js:5587:1
+✖ LHB-71: el menú marca la página en la que estás (aria-current y Aquí), también desde un detalle o una subruta (3.5021ms)
+  evalmachine.<anonymous>:299
+  })();/* LHB-71: la tabla de rutas. El enrutador y el menú salen de aquí, así que una ruta nueva no se queda fuera del menú.
+  ^
+  
+  SyntaxError: Unexpected token '}'
+      at new Script (node:vm:117:7)
+      at createScript (node:vm:269:10)
+      at Object.runInContext (node:vm:300:10)
+      at ROUTES71 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:5557:5)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:5588:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at test\site.test.js:5595:1
+✖ LHB-71 y LHB-109: la portada no repite la navegación (sin los cuadros ni los tres caminos: las pestañas y el menú los tienen), lleva a la ruta, y quien vuelve ve la portada compacta (3.9611ms)
+  AssertionError [ERR_ASSERTION]: sin los tres caminos
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:5596:43)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [N],
+    expected: null,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:5606:1
+✖ LHB-71 (Codex ronda 1): sin espacio para guardar la visita el catálogo se pinta igual; el menú lee la ruta como el enrutador (4.5927ms)
+  evalmachine.<anonymous>:299
+  })();/* LHB-71: la tabla de rutas. El enrutador y el menú salen de aquí, así que una ruta nueva no se queda fuera del menú.
+  ^
+  
+  SyntaxError: Unexpected token '}'
+      at new Script (node:vm:117:7)
+      at createScript (node:vm:269:10)
+      at Object.runInContext (node:vm:300:10)
+      at ROUTES71 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:5557:5)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red109\test\site.test.js:5609:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
