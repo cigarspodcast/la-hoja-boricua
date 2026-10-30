@@ -2192,13 +2192,13 @@ test('LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambi
 test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta al guardar y al salir',async()=>{
  const CL='https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ';
  const run=async prof=>{const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:prof}})});h.C.user={id:'user_a'};await h.A.require(h.go);await tick();return h.D.store.get()};
- assert.deepEqual(await run({handle:'ana',display_name:'Ana M.',avatar_key:CL,bio:'x',favorite_brand:'y'}),{sub:'user_a',handle:'ana',name:'Ana M.',avatar:CL},'nada de bio ni marca, solo lo del encabezado');
- assert.deepEqual(await run({handle:'ana',display_name:'Ana M.',avatar_key:'https://evil.example/x.png'}),{sub:'user_a',handle:'ana',name:'Ana M.',avatar:''},'una foto que no es de Clerk no se guarda');
- assert.deepEqual(await run({handle:'ana'}),{sub:'user_a',handle:'ana',name:'',avatar:''},'un perfil de antes, sin nombre ni foto, tampoco rompe');
- assert.deepEqual(await run({handle:'ana',display_name:7,avatar_key:7}),{sub:'user_a',handle:'ana',name:'',avatar:''},'ni valores que no son texto');
+ assert.deepEqual(await run({handle:'ana',display_name:'Ana M.',avatar_key:CL,bio:'x',favorite_brand:'y'}),{sub:'user_a',handle:'ana',name:'Ana M.',avatar:CL,lang:null},'nada de bio ni marca, solo lo del encabezado (y la copia del idioma de la cuenta, LHB-115)');
+ assert.deepEqual(await run({handle:'ana',display_name:'Ana M.',avatar_key:'https://evil.example/x.png'}),{sub:'user_a',handle:'ana',name:'Ana M.',avatar:'',lang:null},'una foto que no es de Clerk no se guarda');
+ assert.deepEqual(await run({handle:'ana'}),{sub:'user_a',handle:'ana',name:'',avatar:'',lang:null},'un perfil de antes, sin nombre ni foto, tampoco rompe');
+ assert.deepEqual(await run({handle:'ana',display_name:7,avatar_key:7}),{sub:'user_a',handle:'ana',name:'',avatar:'',lang:null},'ni valores que no son texto');
  /* al editar y guardar, lo guardado trae el nombre y la foto nuevos */
  const o=await EDT({id:'user_a',hasImage:true,imageUrl:AV},{put:b=>({status:200,body:{profile:{handle:b.handle,display_name:'Bea S.',avatar_key:AV55}}})});
- assert.deepEqual(await o.submit(),{ok:true});assert.deepEqual(o.h.D.store.get(),{sub:'user_a',handle:'ana',name:'Bea S.',avatar:AV55},'tras editar, el teléfono guarda el nombre y la foto nuevos');
+ assert.deepEqual(await o.submit(),{ok:true});assert.deepEqual(o.h.D.store.get(),{sub:'user_a',handle:'ana',name:'Bea S.',avatar:AV55,lang:null},'tras editar, el teléfono guarda el nombre y la foto nuevos');
  /* hoja.js repinta el encabezado cuando se guarda o se borra lo guardado, y app.js se lo da */
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
@@ -9331,6 +9331,25 @@ test('LHB-115 (Codex r1-5): la hoja de entrar espera a que se escoja el idioma; 
   if(quick)await h.A.quick(()=>{},{act:'x'});else await h.A.require(h.go);await tick();
   assert.ok(!h.log.includes('open'),'no se abre mientras se escoge el idioma ('+(quick?'en sitio':'Mi Hoja')+')');assert.equal(waits.length,1);waits[0]();assert.ok(h.log.includes('open'),'y se abre al escoger')}
  const h=CUENTA_HARNESS({});await h.A.require(h.go);await tick();assert.ok(h.log.includes('open'),'sin intro.js, como antes');
+});
+test('LHB-115 (Codex r4-1): lo escogido antes de que cargara la cuenta (o con la recarga del inglés) llega a la cuenta al abrir la app con la sesión guardada',async()=>{
+ const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:200,body:{ok:true}}}});
+ h.win.LHB_I18N={...h.win.LHB_I18N,ENABLED:true,lang:'es',saved:()=>'es'};h.C.user={id:'user_a'};
+ h.cache({sub:'user_a',handle:'ana',lang:'en'});await h.A.reconcile();await tick();
+ assert.deepEqual(sent,[['PUT','/api/profile',{lang:'es'},'user_a']],'el perfil guardado dice que la cuenta tiene otro: se le manda el del teléfono');assert.equal(h.D.store.get().lang,'es','un 200 lo anota en el perfil guardado');
+ sent.length=0;await h.A.reconcile();await tick();assert.deepEqual(sent,[],'ya coinciden: nada');
+ h.cache({sub:'user_a',handle:'ana',lang:'en'});h.C.user={id:'user_b'};await h.A.reconcile();await tick();assert.deepEqual(sent,[],'lo guardado era de otra cuenta: nada');
+ /* lo que se guarda del perfil lleva el idioma de la cuenta */
+ const x=ACC115({lang:'en'},'en');await x.h.A.require(x.h.go);await tick();assert.equal(x.h.D.store.get().lang,'en');
+});
+test('LHB-115 (Codex r4-2): con la pantalla del idioma abierta, completar la identidad o crear el perfil esperan a que se escoja',async()=>{
+ for(const [me,ev] of [[{status:200,body:{profile:{handle:'ana'},needsIdentity:true}},'identity'],[{status:200,body:{needsProfile:true}},'onboarding']]){
+  const h=CUENTA_HARNESS({api:async()=>me});const waits=[];h.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};h.C.user={id:'user_a'};
+  await h.A.require(h.go);await tick();assert.ok(!h.log.includes(ev),ev+' espera');assert.equal(waits.length,1);
+  waits[0]();await tick();assert.ok(h.log.includes(ev),ev+' sale al escoger')}
+ /* si al escoger ya cambió la página, no sale */
+ const h=CUENTA_HARNESS({api:async()=>({status:200,body:{needsProfile:true}})});const waits=[];h.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};h.C.user={id:'user_a'};
+ await h.A.require(h.go);await tick();h.nav('#/lugares');waits[0]();await tick();assert.ok(!h.log.includes('onboarding'),'la página cambió: no sale');
 });
 test('LHB-115: la página de privacidad dice que una cookie recuerda el idioma; el respaldo del arranque lee la cookie',()=>{
  const pv=read('privacidad.html');assert.ok(pv.includes('Una cookie (lhb_lang) recuerda en este dispositivo el idioma que escogiste, por un año. No se usa para nada más.'));

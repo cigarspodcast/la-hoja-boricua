@@ -16,7 +16,9 @@ const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.
 /* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
 const cache=v=>{try{D.store.set(v)}catch(e){}};
 /* LHB-51: lo guardado en el teléfono lleva solo lo público (nombre público y la foto de Clerk) para pintar el encabezado y Perfil; la foto solo vale si es de Clerk */
-const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='string'?p.display_name:'',avatar:typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG)?p.avatar_key:''});
+const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='string'?p.display_name:'',avatar:typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG)?p.avatar_key:'',
+ /* LHB-115 (Codex r4-1): la copia del idioma que tiene la cuenta, para mandarle el del teléfono al abrir la app si no coincide */
+ lang:p.lang==='es'||p.lang==='en'?p.lang:null});
 /* toda salida que da por buena la cuenta con perfil retira el formulario de perfil que siga abierto: quedó viejo y su respuesta tardía ya no corre su acción además de esta */
 const retire=()=>{if(ob){ob=false;D.reroute()}};
 /* LHB-115: el idioma de la cuenta. Lo escogido en este teléfono es lo que vale (la pantalla del primer acceso o el menú; la cookie lo recuerda): la cuenta
@@ -31,10 +33,12 @@ function syncLang(C,uid,p){const I=window.LHB_I18N;if(!I||!I.ENABLED||typeof I.s
    último aunque las respuestas lleguen en otro orden. Nunca rompe la entrada */
 let langBusy=null,langNext=null;
 function putLang(C,uid,l){langNext={C,uid,l};if(langBusy)return langBusy;
- const run=()=>{const n=langNext;langNext=null;return Promise.resolve().then(()=>D.api(n.C,'PUT','/api/profile',{lang:n.l},n.uid)).catch(()=>null).then(r=>langNext?run():r)};
+ const run=()=>{const n=langNext;langNext=null;return Promise.resolve().then(()=>D.api(n.C,'PUT','/api/profile',{lang:n.l},n.uid)).catch(()=>null)
+  .then(r=>{if(r&&r.status===200){let c=null;try{c=D.store.get()}catch(e){}if(c&&c.sub===n.uid)cache({...c,lang:n.l})}return langNext?run():r})};
  langBusy=run().then(r=>{langBusy=null;return r});return langBusy}
-/* Codex r1-5: la hoja de entrar espera a que se escoja el idioma (intro.js), que va antes que nada */
-function openSignIn(C){const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(()=>D.openSignIn(C));else D.openSignIn(C)}
+/* Codex r1-5 y r4-2: la hoja de entrar, y los formularios del perfil y de la identidad, esperan a que se escoja el idioma (intro.js), que va antes que nada */
+function whenPicked(f){const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(f);else f()}
+function openSignIn(C){whenPicked(()=>D.openSignIn(C))}
 /* el menú (y la pantalla del idioma) cambia el idioma con LHB_I18N.set, que llama a esto y espera antes de recargar. Si parece haber sesión (el perfil
    guardado, o, con localStorage bloqueado, la cookie __client_uat de Clerk, que vale 0 sin sesión: Codex r2-4), se manda a la cuenta de la sesión de ahora */
 const signedHint=()=>{let c=null;try{c=D.store.get()}catch(e){}if(c&&c.sub)return true;
@@ -43,6 +47,8 @@ if(window.LHB_I18N)window.LHB_I18N.onSet=l=>signedHint()?Promise.resolve().then(
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 /* LHB-51: al abrir la app con una cuenta guardada, Clerk dice quién es: si es otra (o nadie) lo guardado se descarta; sin conexión se queda */
 async function reconcile(){const c0=D.store.get();if(!c0)return;let C;try{C=await D.clerk()}catch(e){return}hook(C);
+ /* LHB-115 (Codex r4-1): lo escogido antes de que cargara esta parte (la pantalla del idioma, o la recarga del inglés) llega a la cuenta aquí */
+ {const c=D.store.get(),I=window.LHB_I18N,dev=I&&I.ENABLED&&typeof I.saved==='function'?I.saved():null;if(c&&C.user&&c.sub===C.user.id&&dev&&dev!==c.lang)putLang(C,c.sub,dev)}
  /* si lo guardado era de otra cuenta y la persona está en Mi Hoja, lo que se pintó con ello (Perfil) se vuelve a pasar por la puerta */
  if(!D.store.get()&&onMiHoja())D.reroute()}
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
@@ -89,11 +95,11 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
  if(!lv(C,uid))return;
  /* LHB-52: un perfil de antes, sin nombre, apellido, género y fecha de nacimiento, completa su identidad antes de abrir nada; mientras tanto no se guarda para abrir sin conexión */
- if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
+ if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return whenPicked(()=>{if(lv(C,uid))identify(C,done,o,lv,uid,r.body.profile)});
  /* LHB-55: editar el perfil pasa por la misma puerta y abre el formulario con lo que hay guardado; done corre al guardar */
  if(r.status===200&&r.body.profile&&o.edit){cache(snap(uid,r.body.profile));syncLang(C,uid,r.body.profile);D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
  if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));syncLang(C,uid,r.body.profile);D.intent.clear();retire();return done()}
- if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
+ if(r.status===200&&r.body.needsProfile)return whenPicked(()=>{if(lv(C,uid))onboard(C,done,o,lv,uid)});
  if(r.status===401||r.status===403){D.store.clear();fail(tt('cu.check.h'),tt('cu.check.relog'));return}
  const c=D.store.get();
  if(c&&c.sub===uid&&!o.edit&&(r.status===0||r.status>=500)){D.intent.clear();retire();return done()}

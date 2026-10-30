@@ -1,0 +1,48 @@
+✔ LHB-34 (Codex r4): el botón y el que termina un borrado a medias van de a uno: la respuesta de uno no le quita la marca al otro, y el que espera lee la marca otra vez (126.4918ms)
+✔ LHB-80 (Codex r4): ida y vuelta de cuentas mientras una pasada espera su GET (A, B, C, A): la pasada de antes ya no vale; nada se sube como borrado y la cuenta queda entera (97.5297ms)
+✔ LHB-80 (Codex r4): la base en memoria de una cuenta (su meta no se pudo guardar) no vale para su copia nueva después de otra cuenta: nada se sube como borrado (92.3956ms)
+✔ LHB-80 (Codex r4): A sin meta guardada, nueve quitas sin respuesta y la vuelta; B nueve subidas sin respuesta; de vuelta en A con su copia otra vez, la más vieja llega tarde: la vuelta se queda (351.879ms)
+✔ LHB-80 (Codex r4): una subida de A llegó sin respuesta; B entra y A vuelve con su copia vacía: lo que mandó la copia de antes no es base de la nueva, y la cuenta no se vacía (98.3834ms)
+✔ LHB-104 (Codex r4): la respuesta del GET de la pestaña 2 (rev 1, con a1) llega tarde, después de que la 1 anotó la base del rev 2: la 2 no la usa ni la anota, y a1 se queda tras salir (96.6053ms)
+✔ LHB-104 (Codex r4): otra pestaña anota una base más nueva justo antes de que esta escriba la suya: esta no la pisa (95.0507ms)
+✔ LHB-62 (Codex r4, r6): cualquier cookie nueva es otra pregunta, aunque el reloj de aquí la crea vencida o todavía no válida; la misma cookie no pide nada; una respuesta que llega con otra cookie no se pinta (33.2729ms)
+✖ LHB-115 (Codex r4-1): lo escogido antes de que cargara la cuenta (o con la recarga del inglés) llega a la cuenta al abrir la app con la sesión guardada (5.8692ms)
+✖ LHB-115 (Codex r4-2): con la pantalla del idioma abierta, completar la identidad o crear el perfil esperan a que se escoja (5.5773ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 8
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1177.3941
+
+✖ failing tests:
+
+test at test\site.test.js:9339:1
+✖ LHB-115 (Codex r4-1): lo escogido antes de que cargara la cuenta (o con la recarga del inglés) llega a la cuenta al abrir la app con la sesión guardada (5.8692ms)
+  AssertionError [ERR_ASSERTION]: el perfil guardado dice que la cuenta tiene otro: se le manda el del teléfono
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9343:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ [ 'PUT', '/api/profile', [Object], 'user_a' ] ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:9349:1
+✖ LHB-115 (Codex r4-2): con la pantalla del idioma abierta, completar la identidad o crear el perfil esperan a que se escoja (5.5773ms)
+  AssertionError [ERR_ASSERTION]: identity espera
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9352:47)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
