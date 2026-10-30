@@ -1,6 +1,6 @@
 /* La Hoja Boricua · idiomas (LHB-27). Textos de la app: español (es) e inglés (en).
    El español es el texto original, movido aquí sin cambios. El inglés sale sin revisión externa (decisión del dueño, 2026-10-28).
-   E6 (LHB-36): ENABLED encendido; el idioma sigue al navegador (en* da inglés) y el menú lo cambia y lo recuerda (LHB-109). */
+   E6 (LHB-36): ENABLED encendido; el menú lo cambia y lo recuerda (LHB-109). LHB-115: español hasta que se escoja; el idioma del navegador no cuenta. */
 (function(w){'use strict';
 const ENABLED=true;
 const T={es:{
@@ -32,6 +32,7 @@ const T={es:{
  "menu.welcome": "A tu ritmo, por la isla",
  "intro.label": "Introducción a La Hoja Boricua",
  "intro.name": "La Hoja Boricua",
+ "lang.pick": "Escoge el idioma · Choose your language",
  "brand.tagline": "Hecho en Borinquen",
  "intro.skip": "Saltar intro",
  "intro.soundOn": "Activar sonido",
@@ -855,6 +856,7 @@ en:{
  "menu.welcome": "At your pace, around the island",
  "intro.label": "Introduction to La Hoja Boricua",
  "intro.name": "La Hoja Boricua",
+ "lang.pick": "Escoge el idioma · Choose your language",
  "brand.tagline": "Hecho en Borinquen",
  "intro.skip": "Skip intro",
  "intro.soundOn": "Turn sound on",
@@ -1649,18 +1651,32 @@ en:{
  "ac.del.done": "Your account was deleted.",
  "ix.plus": "New tasting, add to humidor or upload a cigar"
  }};
-// en* da inglés, todo lo demás español; la escogida se recuerda en localStorage (lhb_lang)
-function pick(nav,saved){if(saved==='es'||saved==='en')return saved;return /^en/i.test(String(nav||''))?'en':'es'}
-let saved=null;try{saved=w.localStorage.getItem('lhb_lang')}catch(e){}
-const lang=ENABLED?pick(w.navigator&&w.navigator.language,saved):'es';
+/* LHB-115: español salvo que se escoja el inglés. Lo escogido se guarda en la cookie lhb_lang (un año, Path=/, SameSite=Lax) y en localStorage (lhb_lang);
+   se lee primero la cookie y luego localStorage, así quien escogió antes de la cookie conserva lo suyo (y pasa a la cookie) */
+function pick(saved){return saved==='en'?'en':'es'}
+function readCookie(){try{const m=/(?:^|;\s*)lhb_lang=(es|en)(?:;|$)/.exec(String(w.document&&w.document.cookie||''));return m?m[1]:null}catch(e){return null}}
+function readLs(){try{const v=w.localStorage.getItem('lhb_lang');return v==='es'||v==='en'?v:null}catch(e){return null}}
+function writeCookie(l){try{if(w.document)w.document.cookie='lhb_lang='+l+'; Max-Age=31536000; Path=/; SameSite=Lax'+(w.location&&w.location.protocol==='https:'?'; Secure':'')}catch(e){}}
+const readSaved=()=>readCookie()||readLs();
+const saved=readSaved();if(saved&&!readCookie())writeCookie(saved);
+const lang=ENABLED?pick(saved):'es';
 if(w.document)w.document.documentElement.lang=lang==='en'?'en':'es-PR';
 // t('clave',{var}) llena {var}; si falta en inglés usa el español; si falta en los dos, el respaldo o la clave
 function t(k,v,fb){let s=T[lang][k];if(s==null)s=T.es[k];if(s==null)return fb!=null?fb:k;return v?s.replace(/\{(\w+)\}/g,(m,n)=>n in v?String(v[n]):m):s}
-function set(l){try{w.localStorage.setItem('lhb_lang',l)}catch(e){}w.location.reload()}
+/* guarda l en los dos; true si quedó guardado (la próxima visita lo va a leer) */
+function remember(l){if(l!=='es'&&l!=='en')return false;writeCookie(l);try{w.localStorage.setItem('lhb_lang',l)}catch(e){}return readSaved()===l}
+/* cambiar de idioma: se guarda y se recarga. Con la sesión abierta, cuenta.js pone onSet, que lo manda a la cuenta, y la recarga lo espera (hasta 3 s).
+   Si la cuenta no lo guardó, no importa: lo escogido en el teléfono es lo que vale y cuenta.js se lo vuelve a mandar en la próxima entrada.
+   o.local: viene de la cuenta, no se manda de vuelta. Si no se pudo guardar no recarga (volvería igual). Codex r2-2: recarga una sola vez, la del último cambio */
+let seq=0,reloading=false;
+function set(l,o){if(!remember(l))return false;const me=++seq;const go=()=>{if(me!==seq||reloading)return;reloading=true;w.location.reload()};let p=null;
+ if(!(o&&o.local)&&typeof api.onSet==='function'){try{p=api.onSet(l)}catch(e){p=null}}
+ if(!p||typeof p.then!=='function'){go();return true}
+ Promise.resolve(p).then(go,go);setTimeout(go,3000);return true}
 /* LHB-29: index.html trae el español; en inglés se cambia cada [data-i18n] (su HTML) y cada [data-i18n-attr] ("atributo:clave") */
 function apply(d){if(lang==='es')return;d.querySelectorAll('[data-i18n]').forEach(el=>{el.innerHTML=t(el.getAttribute('data-i18n'))});d.querySelectorAll('[data-i18n-attr]').forEach(el=>{for(const p of el.getAttribute('data-i18n-attr').split(';')){const i=p.indexOf(':');if(i>0)el.setAttribute(p.slice(0,i),t(p.slice(i+1)))}})}
 /* LHB-109: el idioma se cambia desde el menú (app.js llama a set); aquí solo se ponen los textos */
 function wire(){apply(w.document)}
 if(w.document){if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',wire);else wire()}
-w.LHB_I18N={t,lang,set,pick,ENABLED,T,apply};
+const api={t,lang,set,pick,ENABLED,T,apply,remember,saved:readSaved,chosen:!!saved,onSet:null};w.LHB_I18N=api;
 })(window);

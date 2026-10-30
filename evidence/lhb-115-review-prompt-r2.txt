@@ -1,0 +1,830 @@
+Code review, LHB-115, TIER 2, round 2. Repository cigarspodcast/la-hoja-boricua, branch lhb-115-espanol (round 1 named it lhb-115-lang by mistake). You are reviewing; do not edit files.
+
+The ticket (owner, 2026-10-30): the app defaults to Spanish, with the choice of changing languages. On the first visit a full-screen choice comes before anything else, including the intro video. The choice is remembered in a cookie for later sessions, and when the person is signed in their language is saved to the account.
+
+Pinned decisions:
+- With no saved choice, the browser language is not read; the app is in Spanish.
+- On the first visit with no saved choice, a full-screen choice ("Español" or "English", each in its own language) comes before anything else, the intro video included. It is saved to the cookie and localStorage and applied at once.
+- Signed in: the choice is saved to the account. On sign-in, a language saved on the account wins over the device's and is written to the cookie. A change from the menu also updates the account.
+- The menu's language switch stays. The privacy page says a cookie remembers the language.
+
+What changed:
+- site/i18n.js:
+  - pick(saved) is 'en' only for a saved 'en'.
+  - The cookie lhb_lang (Max-Age one year, Path=/, SameSite=Lax, Secure on https) is read first, then localStorage lhb_lang. A choice found only in localStorage is copied into the cookie.
+  - remember(l) writes both and returns whether a read-back finds l.
+  - set(l,o) remembers, then reloads. If cuenta.js has set api.onSet and o.local is not set, it calls onSet(l) and waits for its promise (at most 3 s) before reloading.
+  - If nothing could be saved, set returns false and does not reload.
+  - LHB_I18N gains remember, saved(), chosen and onSet.
+- site/intro.js:
+  - decide() returns 'lang' first when LHB_I18N.ENABLED and chosen === false, unless storage is blocked (a choice that cannot be remembered is not asked).
+  - boot() then shows choose(): a role=dialog aria-modal section with two buttons. The app behind it is inert, and Tab cycles between the two buttons.
+  - Español: remember('es'), close, then recompute inputs and decide the intro as usual.
+  - English: set('en'), which reloads in English; if set returns false, close and continue in Spanish.
+- This screen was planned for app.js. It lives in intro.js because intro.js runs before app.js and already decides what shows first; that is a scope move this round should judge.
+- site/cuenta.js:
+  - syncLang(C,uid,profile) runs on the signed-in success path of go().
+  - If the account has a language: when it differs from the page's, set(acc,{local:true}) (save and reload, without sending it back); otherwise remember it if the device differs.
+  - If the account has none and the device has one: PUT /api/profile {lang}, fire and forget.
+  - The factory sets LHB_I18N.onSet: with a cached profile whose sub matches Clerk's current user, it PUTs {lang}; otherwise it returns null.
+- functions/api/profile.js: a PUT body with exactly one key, lang, is the language change. 'es' or 'en', else 400 bad-lang. UPDATE profiles SET lang; 403 no-profile if no row; 503 no-lang if the column does not exist ("no such column").
+- functions/api/me.js: SELECT with lang; on "no such column", the old SELECT without it.
+- migrations/0009_profile_lang.sql: ALTER TABLE profiles ADD COLUMN lang TEXT CHECK (lang IS NULL OR lang IN ('es', 'en')). The owner already ran this statement by hand on both D1 databases (LHB-116); migrations here are applied by hand, not by CI.
+- site/index.html: the LHB-100 boot fallback picks its copy from LHB_I18N.lang, else the cookie, else localStorage, never navigator.language.
+- site/privacidad.html: the cookie sentence. site/styles.css: the .lang-pick screen (not hidden under reduced motion).
+- Tests: the old navigator-based tests are rewritten. Ten tests fail on main (evidence/lhb-115-red.txt). Full suite after merging main: 493 tests, 492 pass, 0 fail, 1 skipped (evidence/lhb-115-tests.txt).
+
+Round 1 (evidence/lhb-115-review-r1.txt, on 76d0cc1) blocked on five P2 findings. Fixed in the commit after it, then main (LHB-117, lhb-v167) was merged in:
+- R1-1 (cached installs keep the old scripts): site/sw.js is now lhb-v168 (main is lhb-v167), so the shell cache turns over.
+- R1-2 (a menu choice undone by the account's old value): when set(l) hands the change to onSet (signed in), i18n.js also writes lhb_lang_pend=l in localStorage. cuenta.js clears it (I.settle) only when the PUT answers 200. On the next sign-in, syncLang sees pending === the device's language: it resends the PUT and does not apply the account's value. A pending value that is no longer the device's is dropped and the account rules as before. set(l,{local:true}) (a value from the account) clears it.
+- R1-3 (no chooser when localStorage throws but cookies work): decide() returns 'lang' whenever nothing is chosen, regardless of intro storage. After Español the intro then decides as usual (it returns 'storage', so no intro).
+- R1-4 (profile creation did not save the language): syncLang also runs on the onboarding 201 path, on the 409-then-recheck path, and when identity completion finishes. A new profile has no language, so the device's is PUT.
+- R1-5 (sign-in opened under the chooser): intro.js exposes picking() and afterPick(f). cuenta.js opens the sign-in sheet through openSignIn(C), which defers to afterPick while the chooser is open. Both the Mi Hoja gate and the in-place quick path use it.
+Each fix has a test seen red first (evidence/lhb-115-r1-red-before.txt, 4 fail; R1-1 is the version bump). Green after: evidence/lhb-115-r1-green-after.txt. Full suite after merging main: 498 tests, 497 pass, 0 fail, 1 skipped (evidence/lhb-115-tests.txt).
+
+Also check in this round: whether the pending marker can loop (resend on every sign-in forever), what happens when localStorage is blocked so the marker cannot be written, and whether deferring the sign-in sheet can lose it, for example when English is picked and the page reloads.
+
+What to look for:
+- Reload loops: storage that half works (cookie blocked but localStorage not, or the reverse), an account language that cannot be saved on this device, and set() racing a second set().
+- The account and device disagreeing: whether a menu change can be undone by the account's old value on the next load (onSet is awaited at most 3 s), and two devices.
+- The first-visit screen: shown when it should not be (an old cached i18n.js or intro.js, deep links, the installed app); never shown; focus and inertness; whether the intro still plays afterwards.
+- Server: the lang-only PUT shape colliding with the identity or full-profile PUT, the guarded queries hiding a real error, and anything exposing lang beyond its owner.
+- Privacy and cookie attributes.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing sequence.
+
+===== git diff origin/main 14eb3d16fc71335a3da92e54ff7c09892a7f7a57 -- site test functions migrations =====
+diff --git a/functions/api/me.js b/functions/api/me.js
+index 0708cb9..e4bbac9 100644
+--- a/functions/api/me.js
++++ b/functions/api/me.js
+@@ -1,6 +1,7 @@
+ /* LHB-24: GET /api/me. 401 sin sesión de Clerk; { needsProfile: true } si aún no creó su perfil; si no, el perfil.
+    LHB-52: el perfil trae también nombre, apellido, género y fecha de nacimiento, solo aquí y solo para su dueño (la sesión decide de quién es). Un perfil al que le falta
+-   alguno de los cuatro (los que existían antes) llega con needsIdentity: true y la app muestra "Completa tu perfil" antes de abrir Mi Hoja. */
++   alguno de los cuatro (los que existían antes) llega con needsIdentity: true y la app muestra "Completa tu perfil" antes de abrir Mi Hoja.
++   LHB-115: también el idioma de la cuenta (lang: 'es', 'en' o null). Antes de la migración 0009 la columna no existe: se lee sin ella y el perfil llega sin lang. */
+ import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
+ 
+ export async function onRequestGet({ request, env }) {
+@@ -9,9 +10,14 @@ export async function onRequestGet({ request, env }) {
+   const user = await userOf(request, env);
+   if (!user) return json({ error: 'no-session' }, 401);
+   if (!env.DB) return json({ error: 'no-db' }, 503);
+-  const p = await env.DB.prepare(
+-    'SELECT handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date FROM profiles WHERE user_id = ?1'
+-  ).bind(user.sub).first();
++  const sel = 'SELECT handle, display_name, bio, favorite_brand, avatar_key, first_name, last_name, gender, birth_date';
++  let p;
++  try {
++    p = await env.DB.prepare(sel + ', lang FROM profiles WHERE user_id = ?1').bind(user.sub).first();
++  } catch (e) {
++    if (!/no such column/i.test(String(e && e.message))) throw e;
++    p = await env.DB.prepare(sel + ' FROM profiles WHERE user_id = ?1').bind(user.sub).first();
++  }
+   if (!p) return json({ needsProfile: true });
+   const needsIdentity = p.first_name == null || p.last_name == null || p.gender == null || p.birth_date == null;
+   return json({ profile: p, needsIdentity });
+diff --git a/functions/api/profile.js b/functions/api/profile.js
+index 14c0b18..131da42 100644
+--- a/functions/api/profile.js
++++ b/functions/api/profile.js
+@@ -2,7 +2,8 @@
+    LHB-52: desde ahora también pide nombre, apellido, género y fecha de nacimiento. La fecha reemplaza la casilla de 21+: age_ok_at se sella cuando la fecha da 21 años o más.
+    display_name sale del nombre y la inicial del apellido ("Ana M."); el género y la fecha de nacimiento nunca salen en la respuesta.
+    PUT /api/profile completa la identidad de un perfil que ya existía sin ella (null en las cuatro columnas nuevas); uno que ya la tiene da 409.
+-   LHB-55: PUT con "avatar_url" en el cuerpo (el perfil entero) edita el perfil entero del dueño (403 sin perfil, 409 si el @ lo tiene otra persona); aquí un segundo POST sigue dando 409. */
++   LHB-55: PUT con "avatar_url" en el cuerpo (el perfil entero) edita el perfil entero del dueño (403 sin perfil, 409 si el @ lo tiene otra persona); aquí un segundo POST sigue dando 409.
++   LHB-115: PUT con solo { lang } guarda el idioma de la cuenta ('es' o 'en'); no toca nada más del perfil. */
+ import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
+ import { checkProfile, checkIdentity } from '../_lib/profile.js';
+ import { fencedRun, idHash, wasDeleted } from '../_lib/account.js';
+@@ -65,9 +66,26 @@ async function editProfile(it, env) {
+   return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key } });
+ }
+ 
++// LHB-115: el idioma de la cuenta. Antes de la migración 0009 (sin la columna) no guarda nada y da 503 no-lang; la app sigue con el idioma del teléfono.
++async function setLang(it, env) {
++  const lang = it.body.lang;
++  if (lang !== 'es' && lang !== 'en') return json({ error: 'bad-lang' }, 400);
++  let r;
++  try {
++    r = await env.DB.prepare('UPDATE profiles SET lang = ?2 WHERE user_id = ?1').bind(it.user.sub, lang).run();
++  } catch (e) {
++    if (/no such column/i.test(String(e && e.message))) return json({ error: 'no-lang' }, 503);
++    throw e;
++  }
++  if (!r.meta.changes) return json({ error: 'no-profile' }, 403);
++  return json({ ok: true, lang });
++}
++
+ export async function onRequestPut({ request, env }) {
+   const it = await intake(request, env);
+   if (it.res) return it.res;
++  // un cuerpo con solo lang es el cambio de idioma (LHB-115)
++  if (it.body && typeof it.body === 'object' && !Array.isArray(it.body) && Object.keys(it.body).length === 1 && Object.prototype.hasOwnProperty.call(it.body, 'lang')) return setLang(it, env);
+   // con la foto (avatar_url) en el cuerpo es editar el perfil entero (LHB-55); sin ella es completar la identidad de un perfil de antes (LHB-52), que nunca toca el @
+   if (it.body && typeof it.body === 'object' && !Array.isArray(it.body) && Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env);
+   const now = new Date();
+diff --git a/migrations/0009_profile_lang.sql b/migrations/0009_profile_lang.sql
+new file mode 100644
+index 0000000..c021031
+--- /dev/null
++++ b/migrations/0009_profile_lang.sql
+@@ -0,0 +1,2 @@
++-- LHB-115: el idioma de la cuenta, 'es' o 'en'; NULL hasta que se escoja. LHB-116: el dueño ya la aplicó a lhb-preview y a lhb-prod el 2026-10-30.
++ALTER TABLE profiles ADD COLUMN lang TEXT CHECK (lang IS NULL OR lang IN ('es', 'en'));
+diff --git a/site/cuenta.js b/site/cuenta.js
+index d280288..93d041c 100644
+--- a/site/cuenta.js
++++ b/site/cuenta.js
+@@ -19,6 +19,22 @@ const cache=v=>{try{D.store.set(v)}catch(e){}};
+ const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='string'?p.display_name:'',avatar:typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG)?p.avatar_key:''});
+ /* toda salida que da por buena la cuenta con perfil retira el formulario de perfil que siga abierto: quedó viejo y su respuesta tardía ya no corre su acción además de esta */
+ const retire=()=>{if(ob){ob=false;D.reroute()}};
++/* LHB-115: el idioma de la cuenta. Al entrar, uno guardado en la cuenta gana al del teléfono: se guarda aquí y, si no es el de esta página, se recarga en ese
++   idioma (sin mandarlo de vuelta). Si la cuenta no tiene ninguno y el teléfono sí, se le manda el del teléfono. Un envío que falla no cambia nada */
++function syncLang(C,uid,p){const I=window.LHB_I18N;if(!I||!I.ENABLED||typeof I.saved!=='function')return;
++ const acc=p&&(p.lang==='es'||p.lang==='en')?p.lang:null,dev=I.saved(),pend=typeof I.pending==='function'?I.pending():null;
++ /* Codex r1-2: un cambio del menú que la cuenta todavía no guardó gana a la cuenta y se vuelve a mandar; uno que ya no es el del teléfono se olvida */
++ if(pend&&pend===dev){putLang(C,uid,dev);return}
++ if(pend)I.settle();
++ if(acc){if(acc!==I.lang)I.set(acc,{local:true});else if(acc!==dev)I.remember(acc);return}
++ if(dev)putLang(C,uid,dev)}
++/* manda el idioma a la cuenta; un 200 lo da por guardado (borra lo anotado). Nunca rompe la entrada */
++function putLang(C,uid,l){return Promise.resolve().then(()=>D.api(C,'PUT','/api/profile',{lang:l},uid)).then(r=>{if(r&&r.status===200){const I=window.LHB_I18N;if(I&&typeof I.settle==='function')I.settle()}return r}).catch(()=>null)}
++/* Codex r1-5: la hoja de entrar espera a que se escoja el idioma (intro.js), que va antes que nada */
++function openSignIn(C){const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(()=>D.openSignIn(C));else D.openSignIn(C)}
++/* el menú cambia el idioma con LHB_I18N.set, que llama a esto y espera antes de recargar: con la sesión de la cuenta guardada (la misma que dice Clerk), se manda a la cuenta */
++if(window.LHB_I18N)window.LHB_I18N.onSet=l=>{const c=D.store.get();if(!c||!c.sub)return null;
++ return Promise.resolve().then(()=>D.clerk()).then(C=>C&&C.user&&C.user.id===c.sub?putLang(C,c.sub,l):null).catch(()=>null)};
+ const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
+ /* LHB-51: al abrir la app con una cuenta guardada, Clerk dice quién es: si es otra (o nadie) lo guardado se descarta; sin conexión se queda */
+ async function reconcile(){const c0=D.store.get();if(!c0)return;let C;try{C=await D.clerk()}catch(e){return}hook(C);
+@@ -57,11 +73,11 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
+  if(!lv(C))return;
+  /* en Mi Hoja y las páginas de la cuenta la puerta de la página es la única que espera: una acción en sitio que no puede hacerse al instante no se guarda ni compite con ella;
+     sin sesión solo se abre la hoja de entrar */
+- if(o.quick&&onMiHoja()){if(!C.user)D.openSignIn(C);return}
++ if(o.quick&&onMiHoja()){if(!C.user)openSignIn(C);return}
+  if(!C.user){D.store.clear();
+   if(o.resume){D.intent.clear();return}
+   pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));
+-  const open=()=>D.openSignIn(C);
++  const open=()=>openSignIn(C);
+   show(tt('cu.gate.h'),tt('cu.gate.p')+(D.hasLocal&&D.hasLocal()?' '+tt('cu.gate.local'):'')+' '+tt('cu.gate.open'),{label:tt('cu.gate.b'),on:open});
+   open();return}
+  const uid=C.user.id;let r;
+@@ -71,7 +87,7 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
+  if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
+  /* LHB-55: editar el perfil pasa por la misma puerta y abre el formulario con lo que hay guardado; done corre al guardar */
+  if(r.status===200&&r.body.profile&&o.edit){cache(snap(uid,r.body.profile));D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
+- if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));D.intent.clear();retire();return done()}
++ if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));syncLang(C,uid,r.body.profile);D.intent.clear();retire();return done()}
+  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
+  if(r.status===401||r.status===403){D.store.clear();fail(tt('cu.check.h'),tt('cu.check.relog'));return}
+  const c=D.store.get();
+@@ -131,7 +147,7 @@ function onboard(C,done,o,lv,uid){ob=true;
+   const same=!!C.user&&C.user.id===uid;
+   if(r.status===201){if(same)cache(snap(uid,r.body.profile));
+    if(!live())return {stale:true};
+-   settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
++   if(same)syncLang(C,uid,null);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(!live())return {stale:true};
+   /* la respuesta se perdió pero el perfil sí se creó: se revisa de nuevo dentro de este mismo envío y, si sale bien, se termina igual que con un 201.
+      Si la revisión falla, el formulario sigue vivo para reintentar; no se anuncia éxito antes de tiempo. */
+@@ -140,7 +156,7 @@ function onboard(C,done,o,lv,uid){ob=true;
+    if(!live())return {stale:true};
+    /* LHB-52: el perfil que apareció tras el 409 sigue sin identidad: se completa antes de guardar nada o abrir Mi Hoja; este formulario ya no vale */
+    if(m.status===200&&m.body.profile&&m.body.needsIdentity===true){identify(C,done,o,lv,uid,m.body.profile);return {stale:true}}
+-   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
++   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));syncLang(C,uid,m.body.profile);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
+    return {error:'recheck'}}
+   return {error:r.body.error||'generic'}};
+  /* un envío y una subida nunca corren a la vez: lo que se manda es la foto que se ve, y la que se sube no llega tarde a un perfil ya enviado */
+@@ -180,7 +196,7 @@ function identify(C,done,o,lv,uid,prof){ob=true;
+  /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, se vuelve a revisar */
+  D.store.clear();
+  const {live,settle}=guard(C,o,lv,uid);let sending=false;
+- const finish=()=>{cache(snap(uid,prof));settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.done'));if(o.inPlace)D.reroute();done();return {ok:true}};
++ const finish=()=>{cache(snap(uid,prof));syncLang(C,uid,prof);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.done'));if(o.inPlace)D.reroute();done();return {ok:true}};
+  const send=async f=>{
+   if(!live())return {stale:true};
+   let r;try{r=await D.api(C,'PUT','/api/profile',{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date},uid)}catch(e){r={status:0,body:{}}}
+diff --git a/site/i18n.js b/site/i18n.js
+index 8e21aa4..6cda307 100644
+--- a/site/i18n.js
++++ b/site/i18n.js
+@@ -1,6 +1,6 @@
+ /* La Hoja Boricua · idiomas (LHB-27). Textos de la app: español (es) e inglés (en).
+    El español es el texto original, movido aquí sin cambios. El inglés sale sin revisión externa (decisión del dueño, 2026-10-28).
+-   E6 (LHB-36): ENABLED encendido; el idioma sigue al navegador (en* da inglés) y el menú lo cambia y lo recuerda (LHB-109). */
++   E6 (LHB-36): ENABLED encendido; el menú lo cambia y lo recuerda (LHB-109). LHB-115: español hasta que se escoja; el idioma del navegador no cuenta. */
+ (function(w){'use strict';
+ const ENABLED=true;
+ const T={es:{
+@@ -32,6 +32,7 @@ const T={es:{
+  "menu.welcome": "A tu ritmo, por la isla",
+  "intro.label": "Introducción a La Hoja Boricua",
+  "intro.name": "La Hoja Boricua",
++ "lang.pick": "Escoge el idioma · Choose your language",
+  "brand.tagline": "Hecho en Borinquen",
+  "intro.skip": "Saltar intro",
+  "intro.soundOn": "Activar sonido",
+@@ -855,6 +856,7 @@ en:{
+  "menu.welcome": "At your pace, around the island",
+  "intro.label": "Introduction to La Hoja Boricua",
+  "intro.name": "La Hoja Boricua",
++ "lang.pick": "Escoge el idioma · Choose your language",
+  "brand.tagline": "Hecho en Borinquen",
+  "intro.skip": "Skip intro",
+  "intro.soundOn": "Turn sound on",
+@@ -1649,18 +1651,35 @@ en:{
+  "ac.del.done": "Your account was deleted.",
+  "ix.plus": "New tasting, add to humidor or upload a cigar"
+  }};
+-// en* da inglés, todo lo demás español; la escogida se recuerda en localStorage (lhb_lang)
+-function pick(nav,saved){if(saved==='es'||saved==='en')return saved;return /^en/i.test(String(nav||''))?'en':'es'}
+-let saved=null;try{saved=w.localStorage.getItem('lhb_lang')}catch(e){}
+-const lang=ENABLED?pick(w.navigator&&w.navigator.language,saved):'es';
++/* LHB-115: español salvo que se escoja el inglés. Lo escogido se guarda en la cookie lhb_lang (un año, Path=/, SameSite=Lax) y en localStorage (lhb_lang);
++   se lee primero la cookie y luego localStorage, así quien escogió antes de la cookie conserva lo suyo (y pasa a la cookie) */
++function pick(saved){return saved==='en'?'en':'es'}
++function readCookie(){try{const m=/(?:^|;\s*)lhb_lang=(es|en)(?:;|$)/.exec(String(w.document&&w.document.cookie||''));return m?m[1]:null}catch(e){return null}}
++function readLs(){try{const v=w.localStorage.getItem('lhb_lang');return v==='es'||v==='en'?v:null}catch(e){return null}}
++function writeCookie(l){try{if(w.document)w.document.cookie='lhb_lang='+l+'; Max-Age=31536000; Path=/; SameSite=Lax'+(w.location&&w.location.protocol==='https:'?'; Secure':'')}catch(e){}}
++const readSaved=()=>readCookie()||readLs();
++const saved=readSaved();if(saved&&!readCookie())writeCookie(saved);
++const lang=ENABLED?pick(saved):'es';
+ if(w.document)w.document.documentElement.lang=lang==='en'?'en':'es-PR';
+ // t('clave',{var}) llena {var}; si falta en inglés usa el español; si falta en los dos, el respaldo o la clave
+ function t(k,v,fb){let s=T[lang][k];if(s==null)s=T.es[k];if(s==null)return fb!=null?fb:k;return v?s.replace(/\{(\w+)\}/g,(m,n)=>n in v?String(v[n]):m):s}
+-function set(l){try{w.localStorage.setItem('lhb_lang',l)}catch(e){}w.location.reload()}
++/* guarda l en los dos; true si quedó guardado (la próxima visita lo va a leer) */
++function remember(l){if(l!=='es'&&l!=='en')return false;writeCookie(l);try{w.localStorage.setItem('lhb_lang',l)}catch(e){}return readSaved()===l}
++/* cambiar de idioma: se guarda y se recarga. Con la sesión abierta, cuenta.js pone onSet, que lo manda a la cuenta, y la recarga lo espera (hasta 3 s):
++   al recargar, el idioma de la cuenta gana. o.local: viene de la cuenta, no se manda de vuelta. Si no se pudo guardar no recarga (volvería igual) */
++/* Codex r1-2: un cambio que se manda a la cuenta queda anotado (lhb_lang_pend) hasta que la cuenta contesta 200 (cuenta.js llama a settle): si la recarga
++   llega antes, o la cuenta no lo guardó, al entrar otra vez el teléfono gana y se vuelve a mandar, en vez de que el idioma viejo de la cuenta lo deshaga */
++function pending(){try{const v=w.localStorage.getItem('lhb_lang_pend');return v==='es'||v==='en'?v:null}catch(e){return null}}
++function settle(){try{w.localStorage.removeItem('lhb_lang_pend')}catch(e){}}
++function set(l,o){if(!remember(l))return false;const go=()=>w.location.reload();let p=null;
++ if(o&&o.local)settle();
++ else if(typeof api.onSet==='function'){try{p=api.onSet(l)}catch(e){p=null}if(p&&typeof p.then==='function'){try{w.localStorage.setItem('lhb_lang_pend',l)}catch(e){}}}
++ if(!p||typeof p.then!=='function'){go();return true}
++ let done=false;const once=()=>{if(!done){done=true;go()}};Promise.resolve(p).then(once,once);setTimeout(once,3000);return true}
+ /* LHB-29: index.html trae el español; en inglés se cambia cada [data-i18n] (su HTML) y cada [data-i18n-attr] ("atributo:clave") */
+ function apply(d){if(lang==='es')return;d.querySelectorAll('[data-i18n]').forEach(el=>{el.innerHTML=t(el.getAttribute('data-i18n'))});d.querySelectorAll('[data-i18n-attr]').forEach(el=>{for(const p of el.getAttribute('data-i18n-attr').split(';')){const i=p.indexOf(':');if(i>0)el.setAttribute(p.slice(0,i),t(p.slice(i+1)))}})}
+ /* LHB-109: el idioma se cambia desde el menú (app.js llama a set); aquí solo se ponen los textos */
+ function wire(){apply(w.document)}
+ if(w.document){if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',wire);else wire()}
+-w.LHB_I18N={t,lang,set,pick,ENABLED,T,apply};
++const api={t,lang,set,pick,ENABLED,T,apply,remember,saved:readSaved,chosen:!!saved,pending,settle,onSet:null};w.LHB_I18N=api;
+ })(window);
+diff --git a/site/index.html b/site/index.html
+index 45c2785..a3c0467 100644
+--- a/site/index.html
++++ b/site/index.html
+@@ -74,7 +74,7 @@
+    app arranca, el aviso se va. En esta rama no hay pantalla de entrada que quitar (LHB-72). Los textos son boot.fail y boot.reload de
+    los idiomas; si los idiomas no cargaron, usa la copia de abajo (una prueba la compara con la de los idiomas) */
+ (function(w,d){var ok=false,shown=false,mine=false,mo=null,T={es:['La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.','Recargar'],en:['The app did not load completely. Check your connection and try again.','Reload']};
+-function txt(i){var I=w.LHB_I18N;try{if(I&&I.t){var v=i?w.LHB_I18N.t('boot.reload'):w.LHB_I18N.t('boot.fail');if(v&&v.indexOf('boot.')!==0)return v}}catch(e){}return T[/^en/i.test((I&&I.lang)||navigator.language||'')?'en':'es'][i]}
++function txt(i){var I=w.LHB_I18N;try{if(I&&I.t){var v=i?w.LHB_I18N.t('boot.reload'):w.LHB_I18N.t('boot.fail');if(v&&v.indexOf('boot.')!==0)return v}}catch(e){}var s=null;try{s=(/(?:^|;\s*)lhb_lang=(es|en)(?:;|$)/.exec(String(d.cookie||''))||[])[1]||w.localStorage.getItem('lhb_lang')}catch(e){}return T[((I&&I.lang)||s)==='en'?'en':'es'][i]}
+ function fail(){if(ok||shown)return;shown=true;var b=d.createElement('div'),p=d.createElement('p'),r=d.createElement('button');b.id='bootFail';b.className='boot-fail';b.setAttribute('role','alert');
+  p.textContent=txt(0);r.type='button';r.className='btn';r.textContent=txt(1);r.onclick=function(){location.reload()};b.appendChild(p);b.appendChild(r);d.body.appendChild(b)}
+ function up(){if(mine)return false;var v=d.getElementById('view');return !!(v&&(v.children.length||/\S/.test(v.textContent||'')))}
+diff --git a/site/intro.js b/site/intro.js
+index 9c4543f..2574a41 100644
+--- a/site/intro.js
++++ b/site/intro.js
+@@ -1,11 +1,15 @@
+ /* LHB-72: la intro, la guagua que pasa por la montaña (seis segundos, sin bucle). Se ve la primera vez y luego a lo sumo una vez cada 14 días,
+    nunca dos veces en la misma sesión. No sale con menos movimiento, con ahorro de datos, con la página escondida, en un enlace directo, ni
+    al abrir la app instalada si ya se vio. Empieza sin sonido (botón para oírla), se salta con el botón o con Escape y tiene límites de tiempo.
+-   Lo esencial de la app no depende de ella. La vuelve a mostrar ?intro=1 (el enlace "Ver intro" de Acerca de), una vez: sale de la dirección. */
++   Lo esencial de la app no depende de ella. La vuelve a mostrar ?intro=1 (el enlace "Ver intro" de Acerca de), una vez: sale de la dirección.
++   LHB-115: sin un idioma escogido, antes que nada (también antes de la intro) sale la pantalla que lo escoge: Español o English, cada uno en su idioma.
++   Español se guarda y sigue aquí (la intro decide como siempre); English se guarda y recarga en inglés. Se pregunta aunque localStorage no deje: la cookie
++   puede recordarlo (Codex r1-3). Mientras la pantalla está abierta, lo que la app quiera abrir encima (la hoja de entrar) espera con afterPick (Codex r1-5). */
+ (()=>{'use strict';
+ const KEY='vb_introAt',SKEY='vb_intro',DAY=864e5,EVERY=14;
+ /* la decisión, sin tocar el navegador: devuelve 'play' o la razón para no mostrarla */
+ function decide(o){
++ if(o.lang)return 'lang';
+  if(o.hidden)return 'hidden';
+  if(o.reduced)return 'reduced';
+  if(o.saveData)return 'saveData';
+@@ -27,7 +31,8 @@ function inputs(now){
+  /* lo que la intro necesita del resto de la app: sus estilos (styles.css marca --intro-ready) y sus textos (i18n.js); un shell viejo en caché no los trae */
+  let css='';try{css=w.getComputedStyle(w.document.documentElement).getPropertyValue('--intro-ready').trim()}catch(e){}
+  const assets=css==='1'&&!!w.LHB_I18N&&w.LHB_I18N.t('intro.skip')!=='intro.skip';
+- return {now,last,session,storage,assets,replay,hidden:!!w.document.hidden,reduced:mm('(prefers-reduced-motion: reduce)'),
++ const I=w.LHB_I18N,lang=!!(I&&I.ENABLED&&I.chosen===false);
++ return {now,last,session,storage,assets,replay,lang,hidden:!!w.document.hidden,reduced:mm('(prefers-reduced-motion: reduce)'),
+   saveData:!!(w.navigator.connection&&w.navigator.connection.saveData),deep:!!h&&!/^#\/?(catalogo\/?)?$/.test(h),
+   standalone:mm('(display-mode: standalone)')||w.navigator.standalone===true}
+ }
+@@ -58,11 +63,26 @@ function play(now){
+  try{const p=v.play();if(p&&p.catch)p.catch(finish)}catch(e){finish()}
+  api.finish=finish;
+ }
++/* LHB-115: la pantalla del idioma; next sigue con la intro cuando se escoge Español (o cuando no se pudo guardar el inglés) */
++/* cada idioma con su nombre en ese idioma, como en el menú (app.js) */
++const NAMES=[['es','Espa\u00f1ol'],['en','English']];
++let picking=false;const after=[];
++function choose(next){
++ const w=window,d=w.document,I=w.LHB_I18N,app=d.getElementById('app'),tt=k=>I.t(k);picking=true;
++ const ov=d.createElement('section');ov.className='lang-pick';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','langPickH');
++ ov.innerHTML=`<div class="lang-pick-in"><img src="icons/icon.svg" alt="" width="56" height="56"><h1 id="langPickH">${tt('intro.name')}</h1><p>${tt('lang.pick')}</p><div class="lang-pick-b">${NAMES.map(([l,n])=>`<button type="button" class="lbtn" lang="${l}" data-l="${l}">${n}</button>`).join('')}</div></div>`;
++ const btns=[...ov.querySelectorAll('.lang-pick-b button')];let done=false;
++ for(const b of btns){const l=b.getAttribute('data-l');
++  b.onclick=()=>{if(done)return;done=true;if(l==='en'&&I.set('en')!==false)return;if(l==='es')I.remember('es');if(app)app.inert=false;ov.remove();picking=false;next();for(const f of after.splice(0)){try{f()}catch(e){}}}}
++ ov.onkeydown=e=>{if(e.key!=='Tab')return;const i=btns.indexOf(d.activeElement);e.preventDefault();btns[(i+(e.shiftKey?btns.length-1:1))%btns.length].focus()};
++ d.body.appendChild(ov);if(app)app.inert=true;btns[0].focus({preventScroll:true})}
+ /* ?intro=1 vale una vez: sale de la dirección antes de decidir; si no se puede quitar, no cuenta (Codex ronda 2), para que recargar no la repita */
+ function boot(now){const i=inputs(now);
+  if(i.replay){let gone=false;try{const w=window,u=new URL(w.location.href);u.searchParams.delete('intro');w.history.replaceState(w.history.state,'',u.pathname+u.search+u.hash);gone=true}catch(e){}if(!gone)i.replay=false}
+- const why=decide(i);if(why==='play')api.play(now);return why}
+-const api={decide,inputs,play,boot,KEY,SKEY,EVERY,finish:()=>{}};
++ const why=decide(i);if(why==='play')api.play(now);
++ else if(why==='lang')api.choose(()=>{const t=Date.now(),j=inputs(t);j.lang=false;j.replay=i.replay;api.last=decide(j);if(api.last==='play')api.play(t)});
++ return why}
++const api={decide,inputs,play,boot,choose,picking:()=>picking,afterPick:f=>{if(picking)after.push(f);else f()},KEY,SKEY,EVERY,finish:()=>{}};
+ window.LHB_INTRO=api;
+ api.last=boot(Date.now());
+ })();
+diff --git a/site/privacidad.html b/site/privacidad.html
+index c4d54ed..e2b5c83 100644
+--- a/site/privacidad.html
++++ b/site/privacidad.html
+@@ -47,7 +47,7 @@
+ <p>Solo para que funcione Mi Hoja: dejarte entrar, guardar tus datos, tenerlos iguales en tus teléfonos y mostrar tu perfil. No vendemos tus datos, no los usamos para anuncios y no los compartimos con nadie para su propio uso.</p>
+ 
+ <h2>Cookies</h2>
+-<p>Cuando entras a tu cuenta, se usan las cookies necesarias para mantener tu sesión abierta. No usamos cookies de anuncios ni de rastreo.</p>
++<p>Cuando entras a tu cuenta, se usan las cookies necesarias para mantener tu sesión abierta. Una cookie (lhb_lang) recuerda en este dispositivo el idioma que escogiste, por un año. No se usa para nada más. Si entras a tu cuenta, el idioma también se guarda en ella. No usamos cookies de anuncios ni de rastreo.</p>
+ 
+ <h2>Quién nos ayuda a guardarlos</h2>
+ <ul>
+diff --git a/site/styles.css b/site/styles.css
+index a5cb364..0b5a662 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -655,6 +655,15 @@ body.sheet-on{overflow:hidden}
+ .intro :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+ @media (min-width:700px){.intro-skip,.intro-sound{top:calc(var(--sat) + 22px);bottom:auto}.intro-sound{left:auto;right:150px}.intro-credit{right:auto}}
+ @media (prefers-reduced-motion:reduce){.intro{display:none}}
++/* LHB-115: la primera vez, antes que nada, se escoge el idioma (intro.js). Sale también con menos movimiento: no se mueve nada */
++.lang-pick{position:fixed;inset:0;z-index:130;display:grid;place-items:center;padding:calc(var(--sat) + 24px) 20px calc(var(--sab) + 24px);background:var(--surface);color:var(--on-surface);overflow:auto}
++.lang-pick-in{display:grid;justify-items:center;gap:14px;width:min(100%,360px);text-align:center}
++.lang-pick-in img{border-radius:var(--r-m);background:var(--mark-bg)}
++.lang-pick h1{margin:0;font-family:var(--display);font-weight:600;font-size:var(--fs-6);line-height:1.1;text-wrap:balance}
++.lang-pick p{margin:0;color:var(--on-surface-2);font-size:var(--fs-3)}
++.lang-pick-b{display:grid;gap:12px;width:100%;margin-top:8px}
++.lang-pick-b .lbtn{min-height:56px;font-size:var(--fs-4);background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
++.lang-pick :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+ /* LHB-73: Acerca de y los créditos de la intro */
+ .about-sec{display:grid;gap:8px;margin:18px 0}
+ .about-sec h2{font-size:var(--fs-3);margin:0}
+diff --git a/site/sw.js b/site/sw.js
+index 73b7f3e..40b5485 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v167';
++const VERSION='lhb-v168';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-16.png','icons/favicon-32.png',
+diff --git a/test/site.test.js b/test/site.test.js
+index 749d0e0..4e034c9 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -51,7 +51,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v167'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v168'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -71,24 +71,24 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
+- assert.match(sw,/const VERSION='lhb-v167'/);
++ assert.match(sw,/const VERSION='lhb-v168'/);
+  /* LHB-111: la guagua ya no es ilustración de la app: ni se precachea, ni la nombra art.js, ni queda el archivo */
+  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(!a.includes(g),g);assert.ok(!fs.existsSync(path.join(__dirname,'..','site',g)),g)}
+  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
+  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
+ test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v167'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v168'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
+  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v167'/);
++ assert.match(sw,/const VERSION='lhb-v168'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v167'/);
++ assert.match(sw,/const VERSION='lhb-v168'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
+  /* LHB-111: el estado vacío lleva la caja de cigarros de línea (abajo), ya no la bandera en su asta */
+@@ -111,12 +111,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v167'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v168'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v167'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v168'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes('VBArt.aqui()')&&!js.includes('VBArt.carro'),'LHB-111: el aquí del mapa es de línea');});
+ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -124,7 +124,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
+-test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v167'/)});
++test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v168'/)});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -141,7 +141,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v167/);});
++ assert.match(read('sw.js'),/lhb-v168/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -154,19 +154,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v167'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v167'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v167'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
+ 
+ test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
+  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
+- for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v167'/);});
++ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
+@@ -260,14 +260,14 @@ test('LHB-27: ningún texto en español queda escrito en las vistas de app.js (a
+  const {scan}=require('./i18n-scan.js');assert.deepEqual(scan(read('app.js')),['str: Volkswagen Type 2_revving up2.wav','str: CC BY 4.0','str: Jungle, Tropical birds and insects','str: CC0 1.0']);
+  const before=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-27-scan-before.txt'),'utf8').trim().split(/\r?\n/);assert.equal(before[before.length-1],'TOTAL 161');
+ });
+-test('LHB-27: idioma por navigator.language, se recuerda (encendido en E6, LHB-36)',()=>{
++test('LHB-27 (LHB-115): español salvo que se escoja el inglés, y se recuerda (encendido en E6, LHB-36)',()=>{
+  const I=I18N();assert.equal(I.ENABLED,true);assert.equal(I.lang,'es','sin navegador: español');
+- assert.equal(I.pick('en-US',null),'en');assert.equal(I.pick('en',null),'en');assert.equal(I.pick('es-PR',null),'es');assert.equal(I.pick('fr',null),'es');assert.equal(I.pick(undefined,null),'es');
+- assert.equal(I.pick('en-US','es'),'es');assert.equal(I.pick('es-PR','en'),'en');assert.equal(I.pick('en-US','xx'),'en');
++ /* LHB-115: sin escoger, español; el idioma del navegador no cuenta */
++ assert.equal(I.pick(null),'es');assert.equal(I.pick(undefined),'es');assert.equal(I.pick('es'),'es');assert.equal(I.pick('en'),'en');assert.equal(I.pick('xx'),'es');
+  assert.equal(I.t('lug.lead',{nL:28,nV:13}),'28 lounges y 13 puntos de venta en la isla.');assert.equal(I.t('no.existe',null,'x'),'x');assert.equal(I.t('no.existe'),'no.existe');
+  const src=read('i18n.js');assert.ok(src.includes("localStorage.getItem('lhb_lang')")&&src.includes("localStorage.setItem('lhb_lang'"));
+- // con el selector activado, inglés para en-*, y el html lang cambia
+- const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[]}};
++ // con el inglés escogido, y el html lang cambia
++ const w={navigator:{language:'en-US'},localStorage:{getItem:k=>k==='lhb_lang'?'en':null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[]}};
+  require('vm').runInNewContext(src.replace('const ENABLED=false;','const ENABLED=true;'),{window:w});
+  assert.equal(w.LHB_I18N.lang,'en');assert.equal(w.document.documentElement.lang,'en');assert.equal(w.LHB_I18N.t('cig.notFound'),'We could not find that vitola.');
+  const ix=read('index.html');assert.ok(!/langSwitch|lang-switch/.test(ix),'LHB-109: el idioma ya no está en la barra (está en el menú)');
+@@ -293,7 +293,7 @@ test('LHB-29: lo que se guarda sigue en espa\u00f1ol; cada opci\u00f3n de la cat
+  for(const s of ['<dd>${esc(v)}</dd>','${esc(o)}</button>','<h1>${p.t}</h1>','<dt>${esc(p.paso)}</dt>'])assert.equal(cnt(s),0,'sin lab(): '+s);
+ });
+ test('LHB-29 (LHB-111): los dibujos de art.js no llevan texto (las cabeceras son adorno); la silueta del cigarro lleva el nombre que le da app.js, en los dos idiomas',()=>{
+- const run=(lang,on)=>{const w={navigator:{language:lang},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'loading',addEventListener(){},getElementById:()=>null,querySelectorAll:()=>[]}};
++ const run=(lang,on)=>{const w={navigator:{language:lang},localStorage:{getItem:k=>k==='lhb_lang'&&/^en/.test(lang)?'en':null},document:{documentElement:{},readyState:'loading',addEventListener(){},getElementById:()=>null,querySelectorAll:()=>[]}};
+   const ctx={window:w,Math};require('vm').createContext(ctx);const i=read('i18n.js');require('vm').runInContext(on?i:i.replace('const ENABLED=true;','const ENABLED=false;'),ctx);require('vm').runInContext(read('art.js'),ctx);return w};
+  for(const on of [false,true]){const w=run('en-US',on),A=w.VBArt;for(const k of ['ranchon','banda','chaveta','micro','lupa','hoja','maridaje','caja','aqui']){const h=A[k]();assert.match(h,/aria-hidden="true"/,k);assert.ok(!/aria-label|<title|<text/.test(h),k)}
+   const lab=w.LHB_I18N.t('sil.alt',{n:'Corona'});assert.equal(lab,on?'Corona, no photo yet':'Corona, sin foto todavía');assert.match(A.silueta(lab),new RegExp('role="img" aria-label="'+lab+'"'))}
+@@ -311,10 +311,11 @@ test('LHB-29: index.html trae el espa\u00f1ol y marca cada texto con data-i18n o
+  const els=[{a:{'data-i18n':'ix.footLug'},innerHTML:'Cigar lounges en Puerto Rico'},{a:{'data-i18n-attr':'aria-label:ix.tabs','aria-label':'Secciones'}}];
+  for(const e of els){e.getAttribute=n=>e.a[n];e.setAttribute=(n,v)=>{e.a[n]=v}}
+  const doc={documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)};
+- const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:doc};
++ const w={navigator:{language:'en-US'},localStorage:{getItem:k=>k==='lhb_lang'?'en':null},document:doc};
+  require('vm').runInNewContext(read('i18n.js').replace('const ENABLED=false;','const ENABLED=true;'),{window:w});
+  assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');assert.equal(els[1].a['aria-label'],'Sections');
+- const w2={navigator:{language:'es-PR'},localStorage:{getItem:()=>null},document:{...doc,querySelectorAll:()=>{throw new Error('en espa\u00f1ol no se toca el DOM')}}};
++ /* LHB-115: la corrida en inglés dejó su cookie en doc; esta es otra visita, sin cookie */
++ const w2={navigator:{language:'es-PR'},localStorage:{getItem:()=>null},document:{...doc,cookie:'',querySelectorAll:()=>{throw new Error('en espa\u00f1ol no se toca el DOM')}}};
+  require('vm').runInNewContext(read('i18n.js'),{window:w2});assert.equal(w2.LHB_I18N.lang,'es');
+ });
+ /* LHB-30: los campos descriptivos que llevan inglés; nombres, direcciones, enlaces y teléfonos no se traducen */
+@@ -456,7 +457,7 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido,
+ });
+ /* LHB-94: i18n.js va antes, como en index.html; sin idioma el navegador no dice nada y sale el español */
+ function CUENTA_HARNESS(over,lang){
+- const vm=require('vm');const ctx={window:lang?{navigator:{language:lang}}:{}};vm.createContext(ctx);vm.runInContext(read('i18n.js'),ctx);vm.runInContext(read('cuenta.js'),ctx);
++ const vm=require('vm');const ctx={window:lang?{navigator:{language:lang},localStorage:{getItem:k=>k==='lhb_lang'&&/^en/.test(lang)?'en':null}}:{}};vm.createContext(ctx);vm.runInContext(read('i18n.js'),ctx);vm.runInContext(read('cuenta.js'),ctx);
+  const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;const navL=[];
+  /* LHB-49: una cuenta de prueba sin hasImage explícito trae foto (la que Clerk importa de Google); las pruebas de la foto lo ponen en false */
+  let cu=null;const C={get user(){return cu},set user(v){cu=v&&v.hasImage===undefined?{hasImage:true,imageUrl:'https://img.clerk.com/test-'+v.id,...v}:v},addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
+@@ -465,7 +466,7 @@ function CUENTA_HARNESS(over,lang){
+   intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
+   openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>{lastNotice=null;log.push('closeAll')},onboarding:f=>log.push('onboarding'),identity:f=>log.push('identity'),toast:m=>log.push('toast')},...over};
+  const A=ctx.window.LHB_CUENTA(D);
+- return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{const ch=h!==hash;hash=h;if(ch)navL.forEach(f=>f())},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
++ return {A,C,D,win:ctx.window,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{const ch=h!==hash;hash=h;if(ch)navL.forEach(f=>f())},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
+ }
+ const tick=async(n=8)=>{for(let i=0;i<n;i++)await new Promise(r=>setImmediate(r))};
+ const defer=()=>{let ok;const p=new Promise(r=>ok=r);return {p,ok}};
+@@ -1228,7 +1229,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1475,7 +1476,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v167'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v168'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1653,7 +1654,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1900,7 +1901,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2202,7 +2203,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2485,7 +2486,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3454,7 +3455,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v167'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v168'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -3661,11 +3662,13 @@ const run36=(language,saved,{store}={})=>{const btn={hidden:true,innerHTML:'',la
+  require('vm').runInNewContext(read('i18n.js'),{window:w});return {I:w.LHB_I18N,btn,st,html:w.document.documentElement,reloads:()=>reloaded}};
+ test('LHB-36: el idioma está encendido (LHB-109: se cambia desde el menú); inglés para un navegador en inglés, español para los demás; la escogida se recuerda',()=>{
+  const src=read('i18n.js');assert.ok(src.includes('const ENABLED=true;')&&!src.includes('const ENABLED=false;'),'E6: encendido');
+- const en=run36('en-US',null);assert.equal(en.I.ENABLED,true);assert.equal(en.I.lang,'en');assert.equal(en.html.lang,'en');
++ /* LHB-115: un navegador en inglés sin escoger abre en español; con el inglés escogido, inglés */
++ assert.equal(run36('en-US',null).I.lang,'es','navegador en inglés, sin escoger: español');assert.equal(run36('en-US',null).html.lang,'es-PR');
++ const en=run36('en-US','en');assert.equal(en.I.ENABLED,true);assert.equal(en.I.lang,'en');assert.equal(en.html.lang,'en');
+  en.I.set('es');assert.deepEqual(en.st.set,['lhb_lang','es'],'se recuerda');assert.equal(en.reloads(),1);
+  const es=run36('es-PR',null);assert.equal(es.I.lang,'es');assert.equal(es.html.lang,'es-PR');
+  es.I.set('en');assert.deepEqual(es.st.set,['lhb_lang','en']);
+- assert.equal(run36('fr-FR',null).I.lang,'es','otro idioma: español');assert.equal(run36('es-PR','en').I.lang,'en','lo escogido gana al navegador');assert.equal(run36('en-US','es').I.lang,'es');
++ assert.equal(run36('fr-FR',null).I.lang,'es','otro idioma: español');assert.equal(run36('es-PR','en').I.lang,'en','lo escogido gana');assert.equal(run36('en-US','es').I.lang,'es');assert.equal(run36('en-GB','xx').I.lang,'es');
+  assert.equal(I18N().lang,'es','sin navegador (las pruebas): español');
+  assert.ok(!/ENABLED se queda en false/.test(src)&&!/borrador que revisa Sergio/.test(src),'el comentario de arriba ya no dice que está apagado');
+ });
+@@ -3677,7 +3680,7 @@ test('LHB-36: sin el selector en la barra (LHB-109) y el pie de la app lleva a l
+  for(const [sec,k] of [['lugares','ix.footLug'],['artesanos','ix.footArt']]){assert.ok(ix.includes('<a href="'+sec+'/" data-i18n="'+k+'" data-i18n-attr="href:'+k+'Href">'),'pie '+sec);assert.equal(T.es[k+'Href'],sec+'/');assert.equal(T.en[k+'Href'],'en/'+sec+'/');
+   assert.ok(fs.existsSync(path.join(S,'en',sec,'index.html')),'la página en inglés existe '+sec)}
+  const els=[{a:{'data-i18n':'ix.footLug','data-i18n-attr':'href:ix.footLugHref',href:'lugares/'},innerHTML:'Cigar lounges en Puerto Rico'}];for(const e of els){e.getAttribute=n=>e.a[n];e.setAttribute=(n,v)=>{e.a[n]=v}}
+- const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
++ const w={navigator:{language:'en-US'},localStorage:{getItem:k=>k==='lhb_lang'?'en':null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
+  require('vm').runInNewContext(read('i18n.js'),{window:w});assert.equal(els[0].a.href,'en/lugares/');assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');
+ });
+ /* LHB-87: en el mapa ningún pin tapa a otro: los que se taparían van juntos en un grupo */
+@@ -5539,7 +5542,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v167'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v168'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -6240,6 +6243,10 @@ const PAINT_PIN111=[
+  "styles.css .intro-skip{background:var(--accent)}",
+  "styles.css .intro-sound{background:var(--surface)}",
+  "styles.css .intro-credit{background:var(--veil)}",
++ /* LHB-115: la pantalla del idioma, antes de la intro */
++ "styles.css .lang-pick{background:var(--surface)}",
++ "styles.css .lang-pick-in img{background:var(--mark-bg)}",
++ "styles.css .lang-pick-b .lbtn{background:var(--accent)}",
+  "styles.css .about-replay .brand-icon{fill:currentColor}",
+  "styles.css .about-replay .brand-icon{stroke:none}",
+  "styles.css .cred-item{background:var(--card)}",
+@@ -6645,7 +6652,7 @@ function INTRO72(o={}){const vm=require('vm');const D=DOM64(),doc=D.doc;const P=
+  const hist=[];const loc={hash:o.hash||'',search:o.search||'',pathname:'/'};loc.href='https://lahojaboricua.com/'+loc.search+loc.hash;
+  const win={document:doc,localStorage:ls,sessionStorage:ss,location:loc,history:{state:null,replaceState:(st,t,u)=>{if(o.histThrows)throw new Error('SecurityError');hist.push(u)}},navigator:{connection:o.saveData?{saveData:true}:undefined},
+   getComputedStyle:()=>({getPropertyValue:k=>k==='--intro-ready'&&!o.oldCss?' 1':''}),
+-  matchMedia:q=>({matches:!!mq[q],addEventListener(){},removeEventListener(){}}),innerWidth:o.w||390,innerHeight:o.h||844,LHB_I18N:{t:o.oldKeys?k=>k:k=>'<'+k+'>'},addEventListener(){},removeEventListener(){}};
++  matchMedia:q=>({matches:!!mq[q],addEventListener(){},removeEventListener(){}}),innerWidth:o.w||390,innerHeight:o.h||844,LHB_I18N:o.i18n||{t:o.oldKeys?k=>k:k=>'<'+k+'>'},addEventListener(){},removeEventListener(){}};
+  const tm=[];const ctx={window:win,URLSearchParams,URL,Date:{now:()=>o.now||0},setTimeout:(fn,ms)=>{tm.push({fn,ms,live:true});return tm.length},clearTimeout:id=>{if(tm[id-1])tm[id-1].live=false}};
+  /* fire(ms): corre los relojes vivos de esa duración (o de todas, sin argumento) */
+  const fire=ms=>{for(const t of tm)if(t.live&&(ms==null||t.ms===ms)){t.live=false;t.fn()}};
+@@ -6996,7 +7003,7 @@ function BOOT100(o={}){const vm=require('vm');const ix=read('index.html');const
+  const root=mk('body');const splash=mk('div');splash.id='splash';if(!o.noSplash)root.appendChild(splash);const view=mk('main');view.id='view';root.appendChild(view);
+  const find=(n,id)=>{if(n.id===id)return n;for(const c of n.children){const f=find(c,id);if(f)return f}return null};
+  const document={getElementById:id=>find(root,id),createElement:mk,addEventListener:(t,f)=>{(ev[t]=ev[t]||[]).push(f)},body:root};
+- const win={LHB_I18N:o.i18n};if(o.mo)win.MutationObserver=class{constructor(cb){win._mo=cb}observe(n,opt){win._moOn=[n,opt]}disconnect(){win._moOff=true}};
++ const win={LHB_I18N:o.i18n,localStorage:{getItem:k=>k==='lhb_lang'?(o.saved||null):null}};if(o.mo)win.MutationObserver=class{constructor(cb){win._mo=cb}observe(n,opt){win._moOn=[n,opt]}disconnect(){win._moOff=true}};
+  const ctx={window:win,document,navigator:{language:o.lang||'es-PR'},location:{reload:()=>reloads.push(1)},setTimeout:(f,ms)=>{timers.push([f,ms]);return timers.length}};
+  vm.createContext(ctx);vm.runInContext(m[1].replace(/\(window,document\);\s*$/,'(window,document);'),ctx);
+  const fire=ms=>{for(const t of timers.filter(t=>t[1]===ms&&!t.done)){t.done=true;t[0]()}};
+@@ -7008,8 +7015,9 @@ test('LHB-100: si el arranque falla (un script que no cargó), sale un aviso con
+  let m=B.msg();assert.ok(m,'sale el aviso');assert.equal(m.attrs.role,'alert');const [p,btn]=m.children;
+  assert.equal(p.textContent,I18N().T.es['boot.fail'],'el texto de i18n.js (sin i18n.js cargado, la copia en español)');assert.equal(btn.textContent,I18N().T.es['boot.reload']);
+  btn.onclick();assert.equal(B.reloads.length,1,'Recargar recarga');B.fire(12000);assert.equal(B.reloads.length,1,'y nada reintenta solo');
+- /* en inglés, sin i18n.js: la copia en inglés, igual a la de i18n.js */
+- B=BOOT100({lang:'en-US'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.en['boot.fail']);assert.equal(B.msg().children[1].textContent,I18N().T.en['boot.reload']);
++ /* LHB-115: sin i18n.js, un navegador en inglés sin escoger ve el español; con el inglés escogido, la copia en inglés, igual a la de i18n.js */
++ B=BOOT100({lang:'en-US'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.es['boot.fail']);
++ B=BOOT100({lang:'en-US',saved:'en'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.en['boot.fail']);assert.equal(B.msg().children[1].textContent,I18N().T.en['boot.reload']);
+  /* con i18n.js cargado, el texto sale de ahí (el idioma que la persona eligió) */
+  B=BOOT100({i18n:{lang:'en',t:k=>'T:'+k}});B.loaded();assert.equal(B.msg().children[0].textContent,'T:boot.fail');
+  /* arranque bueno: app.js avisa antes de que terminen de cargar los scripts; no hay aviso, ni al terminar ni a los 12 s */
+@@ -9182,3 +9190,131 @@ test('LHB-112: desde 900 px la navegación va arriba y la grilla se abre; el tel
+  for(const w of [900,1366])assert.ok(ev.some(l=>l.startsWith('PASS artisan '+w+': all ')),'Codex r1: Chrome midió la página del artesano a '+w);
+  for(const l of ['PASS layout 390: no sideways scroll (scrollWidth 390)','PASS layout 390: the bottom tab bar is drawn (drawn)','PASS layout 390: the top navigation is hidden (hidden)','PASS layout 1366: no sideways scroll (scrollWidth 1366)','PASS layout 1366: the bottom tab bar is hidden (hidden)','PASS layout 1366: the top navigation is drawn (drawn)'])assert.ok(ev.includes(l),l);
+ });
++/* LHB-115: el idioma se escoge una vez (Español o English) y se recuerda en la cookie lhb_lang y en localStorage; sin escoger, español.
++   I18N115: i18n.js de verdad con una cookie, un localStorage y una recarga de mentira */
++function I18N115(o={}){const jar={v:o.cookie||''},m=Object.assign({},o.ls),reloads=[],writes=[];
++ const document={documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[],
++  get cookie(){if(o.cookieBlocked)throw new Error('SecurityError');return jar.v},set cookie(s){if(o.cookieBlocked)throw new Error('SecurityError');writes.push(s);const kv=s.split(';')[0];const k=kv.split('=')[0];
++   const rest=jar.v.split(/;\s*/).filter(p=>p&&p.split('=')[0]!==k);jar.v=[...rest,kv].join('; ')}};
++ const localStorage={getItem:k=>{if(o.lsBlocked)throw new Error('bloqueado');return k in m?m[k]:null},setItem:(k,v)=>{if(o.lsBlocked)throw new Error('bloqueado');m[k]=String(v)},removeItem:k=>{if(o.lsBlocked)throw new Error('bloqueado');delete m[k]}};
++ const w={document,localStorage,navigator:{language:o.nav||'en-US'},location:{protocol:o.protocol||'https:',reload:()=>reloads.push(1)}};
++ const tm=[];require('vm').runInNewContext(read('i18n.js'),{window:w,setTimeout:(f,ms)=>{tm.push([f,ms]);return tm.length},Promise});
++ return {I:w.LHB_I18N,w,jar,m,writes,reloads,tm}}
++test('LHB-115: sin escoger, español aunque el navegador esté en inglés; la cookie lhb_lang dice el idioma, y gana a localStorage; lo de localStorage pasa a la cookie',()=>{
++ let r=I18N115({nav:'en-US'});assert.equal(r.I.lang,'es','navegador en inglés, nada escogido: español');assert.equal(r.I.chosen,false,'nada escogido');assert.equal(r.w.document.documentElement.lang,'es-PR');assert.deepEqual(r.writes,[],'sin escoger no se escribe cookie');
++ r=I18N115({cookie:'otra=1; lhb_lang=en'});assert.equal(r.I.lang,'en','la cookie de la visita anterior');assert.equal(r.I.chosen,true);
++ r=I18N115({cookie:'lhb_lang=es',ls:{lhb_lang:'en'}});assert.equal(r.I.lang,'es','la cookie gana a localStorage');
++ r=I18N115({cookie:'lhb_lang=xx'});assert.equal(r.I.lang,'es','un valor que no sirve no cuenta');assert.equal(r.I.chosen,false);
++ r=I18N115({ls:{lhb_lang:'en'}});assert.equal(r.I.lang,'en','quien ya había escogido antes de la cookie conserva lo suyo');assert.equal(r.I.chosen,true);
++ assert.match(r.jar.v,/(^|; )lhb_lang=en(;|$)/,'y queda en la cookie');
++ r=I18N115({lsBlocked:true,cookie:'lhb_lang=en'});assert.equal(r.I.lang,'en','sin localStorage, la cookie basta');
++ r=I18N115({cookieBlocked:true,lsBlocked:true});assert.equal(r.I.lang,'es','sin ninguno de los dos: español, sin romperse');
++});
++test('LHB-115: escoger escribe la cookie (un año, Path=/, SameSite=Lax, Secure en https) y localStorage; set recarga, y con sesión espera a que la cuenta lo guarde',async()=>{
++ let r=I18N115();assert.equal(r.I.remember('en'),true);
++ assert.deepEqual(r.writes,['lhb_lang=en; Max-Age=31536000; Path=/; SameSite=Lax; Secure']);assert.equal(r.m.lhb_lang,'en');
++ r=I18N115({protocol:'http:'});r.I.remember('es');assert.deepEqual(r.writes,['lhb_lang=es; Max-Age=31536000; Path=/; SameSite=Lax'],'sin https no lleva Secure');
++ r=I18N115();assert.equal(r.I.remember('fr'),false,'solo es o en');assert.deepEqual(r.writes,[]);
++ /* sin cuenta (sin onSet): guarda y recarga en el acto */
++ r=I18N115();r.I.set('en');assert.equal(r.m.lhb_lang,'en');assert.match(r.jar.v,/lhb_lang=en/);assert.equal(r.reloads.length,1);
++ /* con cuenta: la recarga espera a que la cuenta lo guarde */
++ r=I18N115();let ok;const sent=[];r.I.onSet=l=>{sent.push(l);return new Promise(res=>{ok=res})};
++ r.I.set('en');assert.deepEqual(sent,['en'],'se manda a la cuenta');assert.equal(r.reloads.length,0,'todavía no recarga');
++ ok();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,1,'recarga cuando la cuenta lo guardó');
++ /* la cuenta no contesta: recarga a los 3 s igual */
++ r=I18N115();r.I.onSet=()=>new Promise(()=>{});r.I.set('en');assert.equal(r.reloads.length,0);const t=r.tm.find(x=>x[1]===3000);assert.ok(t,'un límite de 3 s');t[0]();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,1);
++ /* lo que viene de la cuenta no se vuelve a mandar a la cuenta */
++ r=I18N115();const s2=[];r.I.onSet=l=>{s2.push(l);return null};r.I.set('en',{local:true});assert.deepEqual(s2,[]);assert.equal(r.reloads.length,1);
++ /* si no se puede guardar, no recarga (recargar no cambiaría nada y volvería a preguntar) */
++ r=I18N115({cookieBlocked:true,lsBlocked:true});assert.equal(r.I.set('en'),false);assert.equal(r.reloads.length,0);
++});
++/* la pantalla de escoger el idioma, en intro.js de verdad, antes de la intro */
++const LANG115=(o={})=>{const calls=[];const r=INTRO72({now:T72,...o,i18n:{chosen:o.chosen,ENABLED:true,t:k=>'<'+k+'>',remember:l=>{calls.push(['remember',l]);return o.cannot?false:true},set:l=>{calls.push(['set',l]);return o.cannot?false:true}}});r.calls=calls;r.pick=()=>r.D.$('.lang-pick');return r};
++test('LHB-115: la primera vez, sin idioma escogido, antes que nada sale Español o English (cada uno en su idioma); con uno escogido no sale',()=>{
++ let r=LANG115({chosen:false});assert.equal(r.api.last,'lang','primero el idioma');assert.ok(r.pick(),'sale la pantalla');assert.equal(r.ov(),null,'la intro espera');
++ assert.equal(r.pick().getAttribute('role'),'dialog');assert.equal(r.pick().getAttribute('aria-modal'),'true');
++ const b=r.pick().querySelectorAll('button');assert.equal(b.length,2);
++ assert.deepEqual([...b].map(x=>[x.getAttribute('lang'),x.getAttribute('data-l'),x.textContent]),[['es','es','Espa\u00f1ol'],['en','en','English']]);
++ assert.equal(r.ls.m.vb_introAt,undefined,'la intro no cuenta como vista');
++ for(const o of [{hash:'#/lugares'},{reduced:true},{saveData:true},{standalone:true}]){const x=LANG115({chosen:false,...o});assert.ok(x.pick(),'también '+JSON.stringify(o))}
++ r=LANG115({chosen:true});assert.equal(r.pick(),null,'con un idioma escogido no sale');assert.equal(r.api.last,'play');
++ r=LANG115({});assert.equal(r.pick(),null,'una i18n.js sin chosen (un shell viejo) no pregunta');
++ /* Codex r1-3: sin localStorage la cookie puede recordarlo, así que pregunta (prueba aparte) */
++});
++test('LHB-115: Español se guarda y sigue la intro; English se guarda y recarga en inglés; si no se pudo guardar, sigue en español',()=>{
++ let r=LANG115({chosen:false});r.pick().querySelector('[data-l="es"]').click();
++ assert.deepEqual(r.calls,[['remember','es']]);assert.equal(r.pick(),null,'la pantalla se va');assert.ok(r.ov(),'y sale la intro');assert.equal(r.api.last,'play');
++ r=LANG115({chosen:false});r.pick().querySelector('[data-l="en"]').click();
++ assert.deepEqual(r.calls,[['set','en']],'English recarga en inglés');assert.equal(r.ov(),null,'la intro sale después de recargar');
++ r=LANG115({chosen:false,cannot:true});r.pick().querySelector('[data-l="en"]').click();assert.equal(r.pick(),null,'no se pudo guardar: la pantalla se va');
++});
++/* al entrar: la cuenta manda */
++const ACC115=(prof,dev,o={})=>{const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{if(m==='GET')return {status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'',...prof}}};sent.push([m,p,b,uid]);return {status:o.put||200,body:{ok:true}}}});
++ const set=[],kept=[];let settled=0;const I=h.win.LHB_I18N;h.win.LHB_I18N={...I,ENABLED:true,lang:dev||'es',saved:()=>dev||null,set:(l,x)=>set.push([l,x]),remember:l=>{kept.push(l);return true},pending:()=>o.pending||null,settle:()=>{settled++}};
++ h.C.user={id:'user_a'};return {h,sent,set,kept,settled:()=>settled}};
++test('LHB-115: al entrar, el idioma guardado en la cuenta gana al del teléfono (se guarda y se recarga en ese idioma, sin volver a mandarlo); sin idioma en la cuenta se le manda el del teléfono',async()=>{
++ let x=ACC115({lang:'en'},'es');await x.h.A.require(x.h.go);await tick();
++ assert.deepEqual(x.set,[['en',{local:true}]],'la cuenta dice inglés');assert.deepEqual(x.sent,[],'no se manda de vuelta');assert.ok(x.h.log.includes('GO'),'y Mi Hoja abre');
++ x=ACC115({lang:'en'},'en');await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[]);assert.deepEqual(x.sent,[],'los dos iguales: nada');
++ x=ACC115({lang:'es'},null);await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[],'ya está en español');assert.deepEqual(x.kept,['es'],'pero se guarda en el teléfono');
++ x=ACC115({lang:null},'en');await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'la cuenta no tenía: se le manda el del teléfono');assert.deepEqual(x.set,[]);
++ x=ACC115({},null);await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[]);assert.deepEqual(x.set,[],'ninguno: nada');
++});
++test('LHB-115: cambiar el idioma desde el menú con la sesión abierta lo manda a la cuenta; sin sesión no manda nada',async()=>{
++ const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:200,body:{ok:true}}}});
++ assert.equal(typeof h.win.LHB_I18N.onSet,'function','cuenta.js se lo da a i18n.js');
++ assert.equal(h.win.LHB_I18N.onSet('en'),null,'sin cuenta guardada: nada');assert.deepEqual(sent,[]);
++ h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});await h.win.LHB_I18N.onSet('en');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'en'},'user_a']]);
++ h.C.user={id:'user_b'};sent.length=0;await h.win.LHB_I18N.onSet('es');assert.deepEqual(sent,[],'la sesión es de otra cuenta: nada');
++ assert.match(read('app.js'),/closest\('\[data-lang\]'\);if\(!b\)return;const I=window\.LHB_I18N;if\(I&&I\.set\)I\.set\(b\.dataset\.lang\)/,'el menú cambia con set');
++});
++test('LHB-115: el servidor guarda y devuelve el idioma de la cuenta (PUT /api/profile con solo lang, GET /api/me), y sin la columna sigue funcionando',async()=>{
++ for(const col of [true,false]){const a=await API52();if(col)a.db.exec(a.mig('0009_profile_lang.sql'));try{
++  a.freeze(T0);const t=await a.tok('user_a');assert.equal((await a.post(t,{handle:'tabaquero',...IDN,avatar_url:AV}))[0],201);
++  let [s,b]=await a.put(t,{lang:'en'});
++  if(col){assert.equal(s,200);assert.deepEqual(b,{ok:true,lang:'en'});[s,b]=await a.me(t);assert.equal(s,200);assert.equal(b.profile.lang,'en','/api/me lo devuelve');
++   [s,b]=await a.put(t,{lang:'es'});assert.equal(s,200);[s,b]=await a.me(t);assert.equal(b.profile.lang,'es');assert.equal(ROW(a.db,'user_a').handle,'tabaquero','el perfil no cambia')}
++  else{assert.equal(s,503);assert.deepEqual(b,{error:'no-lang'});[s,b]=await a.me(t);assert.equal(s,200,'/api/me sin la columna');assert.equal(b.profile.handle,'tabaquero');assert.ok(!('lang' in b.profile))}
++  [s,b]=await a.put(t,{lang:'fr'});assert.equal(s,400);assert.deepEqual(b,{error:'bad-lang'});
++  [s]=await a.put(await a.tok('user_z'),{lang:'en'});assert.equal(s,col?403:503,'sin perfil');
++  [s,b]=await a.put(t,{lang:'en',first_name:'X'});assert.ok(!(b&&b.lang==='en'),'con otros campos no es el cambio de idioma');
++ }finally{a.done()}}
++ const sql=fs.readFileSync(path.join(__dirname,'..','migrations','0009_profile_lang.sql'),'utf8');
++ assert.match(sql,/ALTER TABLE profiles ADD COLUMN lang TEXT CHECK \(lang IS NULL OR lang IN \('es', 'en'\)\);/);
++});
++test('LHB-115 (Codex r1-2): un cambio del menú que la cuenta no guardó (503, o más de 3 s) queda anotado; al volver a entrar el teléfono gana y se vuelve a mandar',async()=>{
++ let r=I18N115();r.I.onSet=()=>new Promise(()=>{});r.I.set('en');assert.equal(r.m.lhb_lang_pend,'en','queda anotado que falta guardarlo en la cuenta');assert.equal(r.I.pending(),'en');
++ r.I.settle();assert.equal(r.m.lhb_lang_pend,undefined,'settle lo borra');assert.equal(r.I.pending(),null);
++ r=I18N115();r.I.set('en');assert.equal(r.m.lhb_lang_pend,undefined,'sin cuenta (sin onSet) no se anota');
++ r=I18N115({ls:{lhb_lang_pend:'en'}});r.I.set('es',{local:true});assert.equal(r.m.lhb_lang_pend,undefined,'lo que viene de la cuenta lo borra');
++ for(const st of [200,503]){const x=ACC115({lang:'es'},'en',{pending:'en',put:st});await x.h.A.require(x.h.go);await tick();
++  assert.deepEqual(x.set,[],'la cuenta vieja no gana ('+st+')');assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'se vuelve a mandar');assert.equal(x.settled(),st===200?1:0,'solo un 200 lo da por guardado');assert.ok(x.h.log.includes('GO'))}
++ /* lo anotado ya no es lo del teléfono (cambió después): se olvida y la cuenta manda como siempre */
++ let x=ACC115({lang:'es'},'en',{pending:'es'});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['es',{local:true}]]);assert.equal(x.settled(),1);
++ /* el menú con sesión: un 200 lo da por guardado, un 503 no */
++ for(const st of [200,503]){const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:st,body:{}}}});let n=0;h.win.LHB_I18N.settle=()=>n++;
++  h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});await h.win.LHB_I18N.onSet('en');assert.equal(n,st===200?1:0,'onSet '+st)}
++});
++test('LHB-115 (Codex r1-3): sin localStorage la cookie todavía puede recordar el idioma: la pantalla sale igual, y Español sigue sin intro (la intro no tiene dónde anotarse)',()=>{
++ const r=LANG115({chosen:false,blocked:true});assert.ok(r.pick(),'pregunta');r.pick().querySelector('[data-l="es"]').click();assert.equal(r.pick(),null);assert.equal(r.api.last,'storage');assert.equal(r.ov(),null);
++});
++test('LHB-115 (Codex r1-4): al crear el perfil, y al completar la identidad, el idioma del teléfono se guarda en la cuenta',async()=>{
++ const run=async(me,put,fn)=>{const sent=[];let cb=null;const ui={card:()=>{},notice:()=>{},closeAll:()=>{},toast:()=>{},onboarding:f=>{cb=f},edit:(p,f)=>{cb=f},identity:f=>{cb=f}};
++  const h=CUENTA_HARNESS({ui,api:async(C,m,p,b,uid)=>{if(m==='GET')return me;sent.push([m,p,b,uid]);return b&&b.lang?{status:200,body:{ok:true}}:put}});
++  h.win.LHB_I18N={...h.win.LHB_I18N,ENABLED:true,lang:'en',saved:()=>'en',set:()=>{},remember:()=>true,pending:()=>null,settle:()=>{}};h.C.user={id:'user_a'};
++  await h.A.require(h.go);await tick();assert.equal(typeof cb,'function');assert.deepEqual(await cb(fn),{ok:true});await tick();return sent.filter(s=>s[2]&&s[2].lang)};
++ assert.deepEqual(await run({status:200,body:{needsProfile:true}},{status:201,body:{profile:{handle:'ana'}}},{handle:'ana'}),[['PUT','/api/profile',{lang:'en'},'user_a']],'perfil nuevo');
++ assert.deepEqual(await run({status:200,body:{profile:{handle:'ana'},needsIdentity:true}},{status:200,body:{}},{first_name:'A'}),[['PUT','/api/profile',{lang:'en'},'user_a']],'identidad completada');
++});
++test('LHB-115 (Codex r1-5): la hoja de entrar espera a que se escoja el idioma; sin la pantalla abierta sale en el acto',async()=>{
++ const r=LANG115({chosen:false});assert.equal(r.api.picking(),true);const q=[];r.api.afterPick(()=>q.push('luego'));assert.deepEqual(q,[],'espera');
++ r.pick().querySelector('[data-l="es"]').click();assert.deepEqual(q,['luego'],'corre al escoger');assert.equal(r.api.picking(),false);r.api.afterPick(()=>q.push('ya'));assert.deepEqual(q,['luego','ya'],'sin pantalla, en el acto');
++ for(const quick of [false,true]){const h=CUENTA_HARNESS({});const waits=[];h.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};
++  if(quick)await h.A.quick(()=>{},{act:'x'});else await h.A.require(h.go);await tick();
++  assert.ok(!h.log.includes('open'),'no se abre mientras se escoge el idioma ('+(quick?'en sitio':'Mi Hoja')+')');assert.equal(waits.length,1);waits[0]();assert.ok(h.log.includes('open'),'y se abre al escoger')}
++ const h=CUENTA_HARNESS({});await h.A.require(h.go);await tick();assert.ok(h.log.includes('open'),'sin intro.js, como antes');
++});
++test('LHB-115: la página de privacidad dice que una cookie recuerda el idioma; el respaldo del arranque lee la cookie',()=>{
++ const pv=read('privacidad.html');assert.ok(pv.includes('Una cookie (lhb_lang) recuerda en este dispositivo el idioma que escogiste, por un año. No se usa para nada más.'));
++ const ix=read('index.html');assert.ok(!/navigator\.language/.test(ix),'el respaldo no mira el idioma del navegador');assert.ok(/lhb_lang=\(es\|en\)/.test(ix),'lee la cookie');
++});

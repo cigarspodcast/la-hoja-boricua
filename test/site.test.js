@@ -51,7 +51,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v167'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v168'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -71,24 +71,24 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
- assert.match(sw,/const VERSION='lhb-v167'/);
+ assert.match(sw,/const VERSION='lhb-v168'/);
  /* LHB-111: la guagua ya no es ilustración de la app: ni se precachea, ni la nombra art.js, ni queda el archivo */
  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(!a.includes(g),g);assert.ok(!fs.existsSync(path.join(__dirname,'..','site',g)),g)}
  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
 test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v167'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v168'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v167'/);
+ assert.match(sw,/const VERSION='lhb-v168'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v167'/);
+ assert.match(sw,/const VERSION='lhb-v168'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
  /* LHB-111: el estado vacío lleva la caja de cigarros de línea (abajo), ya no la bandera en su asta */
@@ -111,12 +111,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v167'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v168'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v167'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v168'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes('VBArt.aqui()')&&!js.includes('VBArt.carro'),'LHB-111: el aquí del mapa es de línea');});
 test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -124,7 +124,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
-test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v167'/)});
+test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v168'/)});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -141,7 +141,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v167/);});
+ assert.match(read('sw.js'),/lhb-v168/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -154,19 +154,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v167'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v167'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v167'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
 
 test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
- for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v167'/);});
+ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
@@ -260,14 +260,14 @@ test('LHB-27: ningún texto en español queda escrito en las vistas de app.js (a
  const {scan}=require('./i18n-scan.js');assert.deepEqual(scan(read('app.js')),['str: Volkswagen Type 2_revving up2.wav','str: CC BY 4.0','str: Jungle, Tropical birds and insects','str: CC0 1.0']);
  const before=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-27-scan-before.txt'),'utf8').trim().split(/\r?\n/);assert.equal(before[before.length-1],'TOTAL 161');
 });
-test('LHB-27: idioma por navigator.language, se recuerda (encendido en E6, LHB-36)',()=>{
+test('LHB-27 (LHB-115): español salvo que se escoja el inglés, y se recuerda (encendido en E6, LHB-36)',()=>{
  const I=I18N();assert.equal(I.ENABLED,true);assert.equal(I.lang,'es','sin navegador: español');
- assert.equal(I.pick('en-US',null),'en');assert.equal(I.pick('en',null),'en');assert.equal(I.pick('es-PR',null),'es');assert.equal(I.pick('fr',null),'es');assert.equal(I.pick(undefined,null),'es');
- assert.equal(I.pick('en-US','es'),'es');assert.equal(I.pick('es-PR','en'),'en');assert.equal(I.pick('en-US','xx'),'en');
+ /* LHB-115: sin escoger, español; el idioma del navegador no cuenta */
+ assert.equal(I.pick(null),'es');assert.equal(I.pick(undefined),'es');assert.equal(I.pick('es'),'es');assert.equal(I.pick('en'),'en');assert.equal(I.pick('xx'),'es');
  assert.equal(I.t('lug.lead',{nL:28,nV:13}),'28 lounges y 13 puntos de venta en la isla.');assert.equal(I.t('no.existe',null,'x'),'x');assert.equal(I.t('no.existe'),'no.existe');
  const src=read('i18n.js');assert.ok(src.includes("localStorage.getItem('lhb_lang')")&&src.includes("localStorage.setItem('lhb_lang'"));
- // con el selector activado, inglés para en-*, y el html lang cambia
- const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[]}};
+ // con el inglés escogido, y el html lang cambia
+ const w={navigator:{language:'en-US'},localStorage:{getItem:k=>k==='lhb_lang'?'en':null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[]}};
  require('vm').runInNewContext(src.replace('const ENABLED=false;','const ENABLED=true;'),{window:w});
  assert.equal(w.LHB_I18N.lang,'en');assert.equal(w.document.documentElement.lang,'en');assert.equal(w.LHB_I18N.t('cig.notFound'),'We could not find that vitola.');
  const ix=read('index.html');assert.ok(!/langSwitch|lang-switch/.test(ix),'LHB-109: el idioma ya no está en la barra (está en el menú)');
@@ -293,7 +293,7 @@ test('LHB-29: lo que se guarda sigue en espa\u00f1ol; cada opci\u00f3n de la cat
  for(const s of ['<dd>${esc(v)}</dd>','${esc(o)}</button>','<h1>${p.t}</h1>','<dt>${esc(p.paso)}</dt>'])assert.equal(cnt(s),0,'sin lab(): '+s);
 });
 test('LHB-29 (LHB-111): los dibujos de art.js no llevan texto (las cabeceras son adorno); la silueta del cigarro lleva el nombre que le da app.js, en los dos idiomas',()=>{
- const run=(lang,on)=>{const w={navigator:{language:lang},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'loading',addEventListener(){},getElementById:()=>null,querySelectorAll:()=>[]}};
+ const run=(lang,on)=>{const w={navigator:{language:lang},localStorage:{getItem:k=>k==='lhb_lang'&&/^en/.test(lang)?'en':null},document:{documentElement:{},readyState:'loading',addEventListener(){},getElementById:()=>null,querySelectorAll:()=>[]}};
   const ctx={window:w,Math};require('vm').createContext(ctx);const i=read('i18n.js');require('vm').runInContext(on?i:i.replace('const ENABLED=true;','const ENABLED=false;'),ctx);require('vm').runInContext(read('art.js'),ctx);return w};
  for(const on of [false,true]){const w=run('en-US',on),A=w.VBArt;for(const k of ['ranchon','banda','chaveta','micro','lupa','hoja','maridaje','caja','aqui']){const h=A[k]();assert.match(h,/aria-hidden="true"/,k);assert.ok(!/aria-label|<title|<text/.test(h),k)}
   const lab=w.LHB_I18N.t('sil.alt',{n:'Corona'});assert.equal(lab,on?'Corona, no photo yet':'Corona, sin foto todavía');assert.match(A.silueta(lab),new RegExp('role="img" aria-label="'+lab+'"'))}
@@ -311,10 +311,11 @@ test('LHB-29: index.html trae el espa\u00f1ol y marca cada texto con data-i18n o
  const els=[{a:{'data-i18n':'ix.footLug'},innerHTML:'Cigar lounges en Puerto Rico'},{a:{'data-i18n-attr':'aria-label:ix.tabs','aria-label':'Secciones'}}];
  for(const e of els){e.getAttribute=n=>e.a[n];e.setAttribute=(n,v)=>{e.a[n]=v}}
  const doc={documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)};
- const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:doc};
+ const w={navigator:{language:'en-US'},localStorage:{getItem:k=>k==='lhb_lang'?'en':null},document:doc};
  require('vm').runInNewContext(read('i18n.js').replace('const ENABLED=false;','const ENABLED=true;'),{window:w});
  assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');assert.equal(els[1].a['aria-label'],'Sections');
- const w2={navigator:{language:'es-PR'},localStorage:{getItem:()=>null},document:{...doc,querySelectorAll:()=>{throw new Error('en espa\u00f1ol no se toca el DOM')}}};
+ /* LHB-115: la corrida en inglés dejó su cookie en doc; esta es otra visita, sin cookie */
+ const w2={navigator:{language:'es-PR'},localStorage:{getItem:()=>null},document:{...doc,cookie:'',querySelectorAll:()=>{throw new Error('en espa\u00f1ol no se toca el DOM')}}};
  require('vm').runInNewContext(read('i18n.js'),{window:w2});assert.equal(w2.LHB_I18N.lang,'es');
 });
 /* LHB-30: los campos descriptivos que llevan inglés; nombres, direcciones, enlaces y teléfonos no se traducen */
@@ -456,7 +457,7 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, 
 });
 /* LHB-94: i18n.js va antes, como en index.html; sin idioma el navegador no dice nada y sale el español */
 function CUENTA_HARNESS(over,lang){
- const vm=require('vm');const ctx={window:lang?{navigator:{language:lang}}:{}};vm.createContext(ctx);vm.runInContext(read('i18n.js'),ctx);vm.runInContext(read('cuenta.js'),ctx);
+ const vm=require('vm');const ctx={window:lang?{navigator:{language:lang},localStorage:{getItem:k=>k==='lhb_lang'&&/^en/.test(lang)?'en':null}}:{}};vm.createContext(ctx);vm.runInContext(read('i18n.js'),ctx);vm.runInContext(read('cuenta.js'),ctx);
  const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;const navL=[];
  /* LHB-49: una cuenta de prueba sin hasImage explícito trae foto (la que Clerk importa de Google); las pruebas de la foto lo ponen en false */
  let cu=null;const C={get user(){return cu},set user(v){cu=v&&v.hasImage===undefined?{hasImage:true,imageUrl:'https://img.clerk.com/test-'+v.id,...v}:v},addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
@@ -465,7 +466,7 @@ function CUENTA_HARNESS(over,lang){
   intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
   openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>{lastNotice=null;log.push('closeAll')},onboarding:f=>log.push('onboarding'),identity:f=>log.push('identity'),toast:m=>log.push('toast')},...over};
  const A=ctx.window.LHB_CUENTA(D);
- return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{const ch=h!==hash;hash=h;if(ch)navL.forEach(f=>f())},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
+ return {A,C,D,win:ctx.window,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{const ch=h!==hash;hash=h;if(ch)navL.forEach(f=>f())},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
 }
 const tick=async(n=8)=>{for(let i=0;i<n;i++)await new Promise(r=>setImmediate(r))};
 const defer=()=>{let ok;const p=new Promise(r=>ok=r);return {p,ok}};
@@ -1228,7 +1229,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1475,7 +1476,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v167'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v168'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1653,7 +1654,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1900,7 +1901,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
@@ -2191,18 +2192,18 @@ test('LHB-51: Mi perfil pinta la foto y el nombre de la cuenta y no ofrece cambi
 test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (nombre público y foto de Clerk), también al editar; y el encabezado se repinta al guardar y al salir',async()=>{
  const CL='https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ';
  const run=async prof=>{const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:prof}})});h.C.user={id:'user_a'};await h.A.require(h.go);await tick();return h.D.store.get()};
- assert.deepEqual(await run({handle:'ana',display_name:'Ana M.',avatar_key:CL,bio:'x',favorite_brand:'y'}),{sub:'user_a',handle:'ana',name:'Ana M.',avatar:CL},'nada de bio ni marca, solo lo del encabezado');
- assert.deepEqual(await run({handle:'ana',display_name:'Ana M.',avatar_key:'https://evil.example/x.png'}),{sub:'user_a',handle:'ana',name:'Ana M.',avatar:''},'una foto que no es de Clerk no se guarda');
- assert.deepEqual(await run({handle:'ana'}),{sub:'user_a',handle:'ana',name:'',avatar:''},'un perfil de antes, sin nombre ni foto, tampoco rompe');
- assert.deepEqual(await run({handle:'ana',display_name:7,avatar_key:7}),{sub:'user_a',handle:'ana',name:'',avatar:''},'ni valores que no son texto');
+ assert.deepEqual(await run({handle:'ana',display_name:'Ana M.',avatar_key:CL,bio:'x',favorite_brand:'y'}),{sub:'user_a',handle:'ana',name:'Ana M.',avatar:CL,lang:null},'nada de bio ni marca, solo lo del encabezado (y la copia del idioma de la cuenta, LHB-115)');
+ assert.deepEqual(await run({handle:'ana',display_name:'Ana M.',avatar_key:'https://evil.example/x.png'}),{sub:'user_a',handle:'ana',name:'Ana M.',avatar:'',lang:null},'una foto que no es de Clerk no se guarda');
+ assert.deepEqual(await run({handle:'ana'}),{sub:'user_a',handle:'ana',name:'',avatar:'',lang:null},'un perfil de antes, sin nombre ni foto, tampoco rompe');
+ assert.deepEqual(await run({handle:'ana',display_name:7,avatar_key:7}),{sub:'user_a',handle:'ana',name:'',avatar:'',lang:null},'ni valores que no son texto');
  /* al editar y guardar, lo guardado trae el nombre y la foto nuevos */
  const o=await EDT({id:'user_a',hasImage:true,imageUrl:AV},{put:b=>({status:200,body:{profile:{handle:b.handle,display_name:'Bea S.',avatar_key:AV55}}})});
- assert.deepEqual(await o.submit(),{ok:true});assert.deepEqual(o.h.D.store.get(),{sub:'user_a',handle:'ana',name:'Bea S.',avatar:AV55},'tras editar, el teléfono guarda el nombre y la foto nuevos');
+ assert.deepEqual(await o.submit(),{ok:true});assert.deepEqual(o.h.D.store.get(),{sub:'user_a',handle:'ana',name:'Bea S.',avatar:AV55,lang:null},'tras editar, el teléfono guarda el nombre y la foto nuevos');
  /* hoja.js repinta el encabezado cuando se guarda o se borra lo guardado, y app.js se lo da */
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -2485,7 +2486,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
 });
 test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
- assert.match(read('sw.js'),/const VERSION='lhb-v167'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
@@ -3454,7 +3455,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
 });
 test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v167'/);
+ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v168'/);
  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
@@ -3661,11 +3662,13 @@ const run36=(language,saved,{store}={})=>{const btn={hidden:true,innerHTML:'',la
  require('vm').runInNewContext(read('i18n.js'),{window:w});return {I:w.LHB_I18N,btn,st,html:w.document.documentElement,reloads:()=>reloaded}};
 test('LHB-36: el idioma está encendido (LHB-109: se cambia desde el menú); inglés para un navegador en inglés, español para los demás; la escogida se recuerda',()=>{
  const src=read('i18n.js');assert.ok(src.includes('const ENABLED=true;')&&!src.includes('const ENABLED=false;'),'E6: encendido');
- const en=run36('en-US',null);assert.equal(en.I.ENABLED,true);assert.equal(en.I.lang,'en');assert.equal(en.html.lang,'en');
+ /* LHB-115: un navegador en inglés sin escoger abre en español; con el inglés escogido, inglés */
+ assert.equal(run36('en-US',null).I.lang,'es','navegador en inglés, sin escoger: español');assert.equal(run36('en-US',null).html.lang,'es-PR');
+ const en=run36('en-US','en');assert.equal(en.I.ENABLED,true);assert.equal(en.I.lang,'en');assert.equal(en.html.lang,'en');
  en.I.set('es');assert.deepEqual(en.st.set,['lhb_lang','es'],'se recuerda');assert.equal(en.reloads(),1);
  const es=run36('es-PR',null);assert.equal(es.I.lang,'es');assert.equal(es.html.lang,'es-PR');
  es.I.set('en');assert.deepEqual(es.st.set,['lhb_lang','en']);
- assert.equal(run36('fr-FR',null).I.lang,'es','otro idioma: español');assert.equal(run36('es-PR','en').I.lang,'en','lo escogido gana al navegador');assert.equal(run36('en-US','es').I.lang,'es');
+ assert.equal(run36('fr-FR',null).I.lang,'es','otro idioma: español');assert.equal(run36('es-PR','en').I.lang,'en','lo escogido gana');assert.equal(run36('en-US','es').I.lang,'es');assert.equal(run36('en-GB','xx').I.lang,'es');
  assert.equal(I18N().lang,'es','sin navegador (las pruebas): español');
  assert.ok(!/ENABLED se queda en false/.test(src)&&!/borrador que revisa Sergio/.test(src),'el comentario de arriba ya no dice que está apagado');
 });
@@ -3677,7 +3680,7 @@ test('LHB-36: sin el selector en la barra (LHB-109) y el pie de la app lleva a l
  for(const [sec,k] of [['lugares','ix.footLug'],['artesanos','ix.footArt']]){assert.ok(ix.includes('<a href="'+sec+'/" data-i18n="'+k+'" data-i18n-attr="href:'+k+'Href">'),'pie '+sec);assert.equal(T.es[k+'Href'],sec+'/');assert.equal(T.en[k+'Href'],'en/'+sec+'/');
   assert.ok(fs.existsSync(path.join(S,'en',sec,'index.html')),'la página en inglés existe '+sec)}
  const els=[{a:{'data-i18n':'ix.footLug','data-i18n-attr':'href:ix.footLugHref',href:'lugares/'},innerHTML:'Cigar lounges en Puerto Rico'}];for(const e of els){e.getAttribute=n=>e.a[n];e.setAttribute=(n,v)=>{e.a[n]=v}}
- const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
+ const w={navigator:{language:'en-US'},localStorage:{getItem:k=>k==='lhb_lang'?'en':null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
  require('vm').runInNewContext(read('i18n.js'),{window:w});assert.equal(els[0].a.href,'en/lugares/');assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');
 });
 /* LHB-87: en el mapa ningún pin tapa a otro: los que se taparían van juntos en un grupo */
@@ -5539,7 +5542,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
- assert.match(read('sw.js'),/const VERSION='lhb-v167'/);
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/);
 });
 /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
 function DOM64(){
@@ -6240,6 +6243,10 @@ const PAINT_PIN111=[
  "styles.css .intro-skip{background:var(--accent)}",
  "styles.css .intro-sound{background:var(--surface)}",
  "styles.css .intro-credit{background:var(--veil)}",
+ /* LHB-115: la pantalla del idioma, antes de la intro */
+ "styles.css .lang-pick{background:var(--surface)}",
+ "styles.css .lang-pick-in img{background:var(--mark-bg)}",
+ "styles.css .lang-pick-b .lbtn{background:var(--accent)}",
  "styles.css .about-replay .brand-icon{fill:currentColor}",
  "styles.css .about-replay .brand-icon{stroke:none}",
  "styles.css .cred-item{background:var(--card)}",
@@ -6645,7 +6652,7 @@ function INTRO72(o={}){const vm=require('vm');const D=DOM64(),doc=D.doc;const P=
  const hist=[];const loc={hash:o.hash||'',search:o.search||'',pathname:'/'};loc.href='https://lahojaboricua.com/'+loc.search+loc.hash;
  const win={document:doc,localStorage:ls,sessionStorage:ss,location:loc,history:{state:null,replaceState:(st,t,u)=>{if(o.histThrows)throw new Error('SecurityError');hist.push(u)}},navigator:{connection:o.saveData?{saveData:true}:undefined},
   getComputedStyle:()=>({getPropertyValue:k=>k==='--intro-ready'&&!o.oldCss?' 1':''}),
-  matchMedia:q=>({matches:!!mq[q],addEventListener(){},removeEventListener(){}}),innerWidth:o.w||390,innerHeight:o.h||844,LHB_I18N:{t:o.oldKeys?k=>k:k=>'<'+k+'>'},addEventListener(){},removeEventListener(){}};
+  matchMedia:q=>({matches:!!mq[q],addEventListener(){},removeEventListener(){}}),innerWidth:o.w||390,innerHeight:o.h||844,LHB_I18N:o.i18n||{t:o.oldKeys?k=>k:k=>'<'+k+'>'},addEventListener(){},removeEventListener(){}};
  const tm=[];const ctx={window:win,URLSearchParams,URL,Date:{now:()=>o.now||0},setTimeout:(fn,ms)=>{tm.push({fn,ms,live:true});return tm.length},clearTimeout:id=>{if(tm[id-1])tm[id-1].live=false}};
  /* fire(ms): corre los relojes vivos de esa duración (o de todas, sin argumento) */
  const fire=ms=>{for(const t of tm)if(t.live&&(ms==null||t.ms===ms)){t.live=false;t.fn()}};
@@ -6996,7 +7003,7 @@ function BOOT100(o={}){const vm=require('vm');const ix=read('index.html');const 
  const root=mk('body');const splash=mk('div');splash.id='splash';if(!o.noSplash)root.appendChild(splash);const view=mk('main');view.id='view';root.appendChild(view);
  const find=(n,id)=>{if(n.id===id)return n;for(const c of n.children){const f=find(c,id);if(f)return f}return null};
  const document={getElementById:id=>find(root,id),createElement:mk,addEventListener:(t,f)=>{(ev[t]=ev[t]||[]).push(f)},body:root};
- const win={LHB_I18N:o.i18n};if(o.mo)win.MutationObserver=class{constructor(cb){win._mo=cb}observe(n,opt){win._moOn=[n,opt]}disconnect(){win._moOff=true}};
+ const win={LHB_I18N:o.i18n,localStorage:{getItem:k=>k==='lhb_lang'?(o.saved||null):null}};if(o.mo)win.MutationObserver=class{constructor(cb){win._mo=cb}observe(n,opt){win._moOn=[n,opt]}disconnect(){win._moOff=true}};
  const ctx={window:win,document,navigator:{language:o.lang||'es-PR'},location:{reload:()=>reloads.push(1)},setTimeout:(f,ms)=>{timers.push([f,ms]);return timers.length}};
  vm.createContext(ctx);vm.runInContext(m[1].replace(/\(window,document\);\s*$/,'(window,document);'),ctx);
  const fire=ms=>{for(const t of timers.filter(t=>t[1]===ms&&!t.done)){t.done=true;t[0]()}};
@@ -7008,8 +7015,9 @@ test('LHB-100: si el arranque falla (un script que no cargó), sale un aviso con
  let m=B.msg();assert.ok(m,'sale el aviso');assert.equal(m.attrs.role,'alert');const [p,btn]=m.children;
  assert.equal(p.textContent,I18N().T.es['boot.fail'],'el texto de i18n.js (sin i18n.js cargado, la copia en español)');assert.equal(btn.textContent,I18N().T.es['boot.reload']);
  btn.onclick();assert.equal(B.reloads.length,1,'Recargar recarga');B.fire(12000);assert.equal(B.reloads.length,1,'y nada reintenta solo');
- /* en inglés, sin i18n.js: la copia en inglés, igual a la de i18n.js */
- B=BOOT100({lang:'en-US'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.en['boot.fail']);assert.equal(B.msg().children[1].textContent,I18N().T.en['boot.reload']);
+ /* LHB-115: sin i18n.js, un navegador en inglés sin escoger ve el español; con el inglés escogido, la copia en inglés, igual a la de i18n.js */
+ B=BOOT100({lang:'en-US'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.es['boot.fail']);
+ B=BOOT100({lang:'en-US',saved:'en'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.en['boot.fail']);assert.equal(B.msg().children[1].textContent,I18N().T.en['boot.reload']);
  /* con i18n.js cargado, el texto sale de ahí (el idioma que la persona eligió) */
  B=BOOT100({i18n:{lang:'en',t:k=>'T:'+k}});B.loaded();assert.equal(B.msg().children[0].textContent,'T:boot.fail');
  /* arranque bueno: app.js avisa antes de que terminen de cargar los scripts; no hay aviso, ni al terminar ni a los 12 s */
@@ -9181,4 +9189,190 @@ test('LHB-112: desde 900 px la navegación va arriba y la grilla se abre; el tel
  const ev=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-112-widths.txt'),'utf8').trim().split(/\r?\n/);assert.match(ev[ev.length-1],/^RESULT PASS (\d+) of \1 checks$/);
  for(const w of [900,1366])assert.ok(ev.some(l=>l.startsWith('PASS artisan '+w+': all ')),'Codex r1: Chrome midió la página del artesano a '+w);
  for(const l of ['PASS layout 390: no sideways scroll (scrollWidth 390)','PASS layout 390: the bottom tab bar is drawn (drawn)','PASS layout 390: the top navigation is hidden (hidden)','PASS layout 1366: no sideways scroll (scrollWidth 1366)','PASS layout 1366: the bottom tab bar is hidden (hidden)','PASS layout 1366: the top navigation is drawn (drawn)'])assert.ok(ev.includes(l),l);
+});
+/* LHB-115: el idioma se escoge una vez (Español o English) y se recuerda en la cookie lhb_lang y en localStorage; sin escoger, español.
+   I18N115: i18n.js de verdad con una cookie, un localStorage y una recarga de mentira */
+function I18N115(o={}){const jar={v:o.cookie||''},m=Object.assign({},o.ls),reloads=[],writes=[];
+ const document={documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[],
+  get cookie(){if(o.cookieBlocked)throw new Error('SecurityError');return jar.v},set cookie(s){if(o.cookieBlocked)throw new Error('SecurityError');writes.push(s);const kv=s.split(';')[0];const k=kv.split('=')[0];
+   const rest=jar.v.split(/;\s*/).filter(p=>p&&p.split('=')[0]!==k);jar.v=[...rest,kv].join('; ')}};
+ const localStorage={getItem:k=>{if(o.lsBlocked)throw new Error('bloqueado');return k in m?m[k]:null},setItem:(k,v)=>{if(o.lsBlocked)throw new Error('bloqueado');m[k]=String(v)},removeItem:k=>{if(o.lsBlocked)throw new Error('bloqueado');delete m[k]}};
+ const w={document,localStorage,navigator:{language:o.nav||'en-US'},location:{protocol:o.protocol||'https:',reload:()=>reloads.push(1)}};
+ const tm=[];require('vm').runInNewContext(read('i18n.js'),{window:w,setTimeout:(f,ms)=>{tm.push([f,ms]);return tm.length},Promise});
+ return {I:w.LHB_I18N,w,jar,m,writes,reloads,tm}}
+test('LHB-115: sin escoger, español aunque el navegador esté en inglés; la cookie lhb_lang dice el idioma, y gana a localStorage; lo de localStorage pasa a la cookie',()=>{
+ let r=I18N115({nav:'en-US'});assert.equal(r.I.lang,'es','navegador en inglés, nada escogido: español');assert.equal(r.I.chosen,false,'nada escogido');assert.equal(r.w.document.documentElement.lang,'es-PR');assert.deepEqual(r.writes,[],'sin escoger no se escribe cookie');
+ r=I18N115({cookie:'otra=1; lhb_lang=en'});assert.equal(r.I.lang,'en','la cookie de la visita anterior');assert.equal(r.I.chosen,true);
+ r=I18N115({cookie:'lhb_lang=es',ls:{lhb_lang:'en'}});assert.equal(r.I.lang,'es','la cookie gana a localStorage');
+ r=I18N115({cookie:'lhb_lang=xx'});assert.equal(r.I.lang,'es','un valor que no sirve no cuenta');assert.equal(r.I.chosen,false);
+ r=I18N115({ls:{lhb_lang:'en'}});assert.equal(r.I.lang,'en','quien ya había escogido antes de la cookie conserva lo suyo');assert.equal(r.I.chosen,true);
+ assert.match(r.jar.v,/(^|; )lhb_lang=en(;|$)/,'y queda en la cookie');
+ r=I18N115({lsBlocked:true,cookie:'lhb_lang=en'});assert.equal(r.I.lang,'en','sin localStorage, la cookie basta');
+ r=I18N115({cookieBlocked:true,lsBlocked:true});assert.equal(r.I.lang,'es','sin ninguno de los dos: español, sin romperse');
+});
+test('LHB-115: escoger escribe la cookie (un año, Path=/, SameSite=Lax, Secure en https) y localStorage; set recarga, y con sesión espera a que la cuenta lo guarde',async()=>{
+ let r=I18N115();assert.equal(r.I.remember('en'),true);
+ assert.deepEqual(r.writes,['lhb_lang=en; Max-Age=31536000; Path=/; SameSite=Lax; Secure']);assert.equal(r.m.lhb_lang,'en');
+ r=I18N115({protocol:'http:'});r.I.remember('es');assert.deepEqual(r.writes,['lhb_lang=es; Max-Age=31536000; Path=/; SameSite=Lax'],'sin https no lleva Secure');
+ r=I18N115();assert.equal(r.I.remember('fr'),false,'solo es o en');assert.deepEqual(r.writes,[]);
+ /* sin cuenta (sin onSet): guarda y recarga en el acto */
+ r=I18N115();r.I.set('en');assert.equal(r.m.lhb_lang,'en');assert.match(r.jar.v,/lhb_lang=en/);assert.equal(r.reloads.length,1);
+ /* con cuenta: la recarga espera a que la cuenta lo guarde */
+ r=I18N115();let ok;const sent=[];r.I.onSet=l=>{sent.push(l);return new Promise(res=>{ok=res})};
+ r.I.set('en');assert.deepEqual(sent,['en'],'se manda a la cuenta');assert.equal(r.reloads.length,0,'todavía no recarga');
+ ok();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,1,'recarga cuando la cuenta lo guardó');
+ /* la cuenta no contesta: recarga a los 3 s igual */
+ r=I18N115();r.I.onSet=()=>new Promise(()=>{});r.I.set('en');assert.equal(r.reloads.length,0);const t=r.tm.find(x=>x[1]===3000);assert.ok(t,'un límite de 3 s');t[0]();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,1);
+ /* lo que viene de la cuenta no se vuelve a mandar a la cuenta */
+ r=I18N115();const s2=[];r.I.onSet=l=>{s2.push(l);return null};r.I.set('en',{local:true});assert.deepEqual(s2,[]);assert.equal(r.reloads.length,1);
+ /* si no se puede guardar, no recarga (recargar no cambiaría nada y volvería a preguntar) */
+ r=I18N115({cookieBlocked:true,lsBlocked:true});assert.equal(r.I.set('en'),false);assert.equal(r.reloads.length,0);
+});
+/* la pantalla de escoger el idioma, en intro.js de verdad, antes de la intro */
+const LANG115=(o={})=>{const calls=[];const r=INTRO72({now:T72,...o,i18n:{chosen:o.chosen,ENABLED:true,t:k=>'<'+k+'>',remember:l=>{calls.push(['remember',l]);return o.cannot?false:true},set:l=>{calls.push(['set',l]);return o.cannot?false:true},onSet:o.onSet}});r.calls=calls;r.pick=()=>r.D.$('.lang-pick');return r};
+test('LHB-115: la primera vez, sin idioma escogido, antes que nada sale Español o English (cada uno en su idioma); con uno escogido no sale',()=>{
+ let r=LANG115({chosen:false});assert.equal(r.api.last,'lang','primero el idioma');assert.ok(r.pick(),'sale la pantalla');assert.equal(r.ov(),null,'la intro espera');
+ assert.equal(r.pick().getAttribute('role'),'dialog');assert.equal(r.pick().getAttribute('aria-modal'),'true');
+ const b=r.pick().querySelectorAll('button');assert.equal(b.length,2);
+ assert.deepEqual([...b].map(x=>[x.getAttribute('lang'),x.getAttribute('data-l'),x.textContent]),[['es','es','Espa\u00f1ol'],['en','en','English']]);
+ assert.equal(r.ls.m.vb_introAt,undefined,'la intro no cuenta como vista');
+ for(const o of [{hash:'#/lugares'},{reduced:true},{saveData:true},{standalone:true}]){const x=LANG115({chosen:false,...o});assert.ok(x.pick(),'también '+JSON.stringify(o))}
+ r=LANG115({chosen:true});assert.equal(r.pick(),null,'con un idioma escogido no sale');assert.equal(r.api.last,'play');
+ r=LANG115({});assert.equal(r.pick(),null,'una i18n.js sin chosen (un shell viejo) no pregunta');
+ /* Codex r1-3: sin localStorage la cookie puede recordarlo, así que pregunta (prueba aparte) */
+});
+test('LHB-115: Español se guarda y sigue la intro; English se guarda y recarga en inglés; si no se pudo guardar, sigue en español',()=>{
+ let r=LANG115({chosen:false});r.pick().querySelector('[data-l="es"]').click();
+ assert.deepEqual(r.calls,[['remember','es']]);assert.equal(r.pick(),null,'la pantalla se va');assert.ok(r.ov(),'y sale la intro');assert.equal(r.api.last,'play');
+ r=LANG115({chosen:false});r.pick().querySelector('[data-l="en"]').click();
+ assert.deepEqual(r.calls,[['set','en']],'English recarga en inglés');assert.equal(r.ov(),null,'la intro sale después de recargar');
+ r=LANG115({chosen:false,cannot:true});r.pick().querySelector('[data-l="en"]').click();assert.equal(r.pick(),null,'no se pudo guardar: la pantalla se va');
+});
+/* al entrar: la cuenta manda */
+const ACC115=(prof,dev,o={})=>{const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{if(m==='GET')return {status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'',...prof}}};sent.push([m,p,b,uid]);return {status:o.put||200,body:{ok:true}}}});
+ const set=[],kept=[];let settled=0;const I=h.win.LHB_I18N;h.win.LHB_I18N={...I,ENABLED:true,lang:dev||'es',saved:()=>dev||null,set:(l,x)=>set.push([l,x]),remember:l=>{kept.push(l);return true},pending:()=>o.pending||null,settle:()=>{settled++}};
+ h.C.user={id:'user_a'};if(o.cached||o.cachedSub)h.cache({sub:o.cachedSub||'user_a',handle:'ana'});return {h,sent,set,kept,settled:()=>settled}};
+test('LHB-115 (Codex r3): el idioma escogido en el teléfono es el que vale; la cuenta guarda una copia y solo se lee cuando el teléfono no tiene ninguno',async()=>{
+ for(const cached of [false,true]){const c=' ('+(cached?'la misma cuenta ya abierta aquí':'entrando en este teléfono')+')';
+  let x=ACC115({lang:'en'},'es',{cached});await x.h.A.require(x.h.go);await tick();
+  assert.deepEqual(x.set,[],'la cuenta no deshace lo escogido en el teléfono'+c);assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'es'},'user_a']],'se le manda a la cuenta'+c);assert.ok(x.h.log.includes('GO'));
+  x=ACC115({lang:'en'},'en',{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[]);assert.deepEqual(x.sent,[],'iguales: nada'+c);
+  x=ACC115({lang:null},'en',{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'la cuenta no tenía'+c);
+  x=ACC115({lang:'en'},null,{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['en',{local:true}]],'el teléfono no tiene ninguno: el de la cuenta, sin mandarlo de vuelta'+c);assert.deepEqual(x.sent,[]);
+  x=ACC115({lang:'es'},null,{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[],'ya está en español'+c);assert.deepEqual(x.kept,['es'],'pero se guarda en el teléfono'+c);
+  x=ACC115({},null,{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[]);assert.deepEqual(x.set,[],'ninguno: nada'+c)}
+ /* otra cuenta en el mismo teléfono (salió A, entra B): B recibe el idioma del teléfono, que es lo escogido aquí; nada más de A */
+ const x=ACC115({lang:'es'},'en',{cachedSub:'user_b'});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[]);assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']]);
+ assert.ok(!/fresh\(|lhb_lang_pend|I\.pending|I\.settle/.test(read('i18n.js')+read('cuenta.js')),'nada que adivine si se acaba de entrar, ni marcas aparte');
+ /* Codex r3-1: editar el perfil también manda el idioma del teléfono */
+ const sent=[];let cb=null;const ui={card:()=>{},notice:()=>{},closeAll:()=>{},toast:()=>{},onboarding:f=>{cb=f},edit:(p,f)=>{cb=f},identity:f=>{cb=f}};
+ const h=CUENTA_HARNESS({ui,api:async(C,m,p,b,uid)=>{if(m==='GET')return {status:200,body:{profile:{handle:'ana',lang:'en'}}};sent.push([m,p,b,uid]);return {status:200,body:{ok:true}}}});
+ const set=[];h.win.LHB_I18N={...h.win.LHB_I18N,ENABLED:true,lang:'es',saved:()=>'es',set:(l,o)=>set.push([l,o]),remember:()=>true};h.C.user={id:'user_a'};
+ await h.A.require(h.go,{edit:true});await tick();assert.equal(typeof cb,'function','abre editar');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'es'},'user_a']]);assert.deepEqual(set,[]);
+});
+test('LHB-115: cambiar el idioma desde el menú con la sesión abierta lo manda a la cuenta; sin sesión no manda nada',async()=>{
+ const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:200,body:{ok:true}}}});
+ assert.equal(typeof h.win.LHB_I18N.onSet,'function','cuenta.js se lo da a i18n.js');
+ assert.equal(h.win.LHB_I18N.onSet('en'),null,'sin cuenta guardada: nada');assert.deepEqual(sent,[]);
+ h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});await h.win.LHB_I18N.onSet('en');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'en'},'user_a']]);
+ h.C.user={id:'user_b'};sent.length=0;await h.win.LHB_I18N.onSet('es');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'es'},'user_b']],'va a la cuenta de la sesión de ahora (Codex r2)');
+ assert.match(read('app.js'),/closest\('\[data-lang\]'\);if\(!b\)return;const I=window\.LHB_I18N;if\(I&&I\.set\)I\.set\(b\.dataset\.lang\)/,'el menú cambia con set');
+});
+test('LHB-115: el servidor guarda y devuelve el idioma de la cuenta (PUT /api/profile con solo lang, GET /api/me), y sin la columna sigue funcionando',async()=>{
+ for(const col of [true,false]){const a=await API52();if(col)a.db.exec(a.mig('0009_profile_lang.sql'));try{
+  a.freeze(T0);const t=await a.tok('user_a');assert.equal((await a.post(t,{handle:'tabaquero',...IDN,avatar_url:AV}))[0],201);
+  let [s,b]=await a.put(t,{lang:'en'});
+  if(col){assert.equal(s,200);assert.deepEqual(b,{ok:true,lang:'en'});[s,b]=await a.me(t);assert.equal(s,200);assert.equal(b.profile.lang,'en','/api/me lo devuelve');
+   [s,b]=await a.put(t,{lang:'es'});assert.equal(s,200);[s,b]=await a.me(t);assert.equal(b.profile.lang,'es');assert.equal(ROW(a.db,'user_a').handle,'tabaquero','el perfil no cambia')}
+  else{assert.equal(s,503);assert.deepEqual(b,{error:'no-lang'});[s,b]=await a.me(t);assert.equal(s,200,'/api/me sin la columna');assert.equal(b.profile.handle,'tabaquero');assert.ok(!('lang' in b.profile))}
+  [s,b]=await a.put(t,{lang:'fr'});assert.equal(s,400);assert.deepEqual(b,{error:'bad-lang'});
+  [s]=await a.put(await a.tok('user_z'),{lang:'en'});assert.equal(s,col?403:503,'sin perfil');
+  [s,b]=await a.put(t,{lang:'en',first_name:'X'});assert.ok(!(b&&b.lang==='en'),'con otros campos no es el cambio de idioma');
+ }finally{a.done()}}
+ const sql=fs.readFileSync(path.join(__dirname,'..','migrations','0009_profile_lang.sql'),'utf8');
+ assert.match(sql,/ALTER TABLE profiles ADD COLUMN lang TEXT CHECK \(lang IS NULL OR lang IN \('es', 'en'\)\);/);
+});
+test('LHB-115 (Codex r2-4, r3-4): el menú manda a la cuenta de la sesión de ahora (perfil guardado o la cookie __client_uat de Clerk); los envíos van de uno en uno y el último es el que queda',async()=>{
+ const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:200,body:{}}}});h.C.user={id:'user_a'};
+ assert.equal(h.win.LHB_I18N.onSet('en'),null,'ni perfil guardado ni sesión en las cookies: nada');
+ h.win.document={cookie:'otra=1; __client_uat=1761830000'};await h.win.LHB_I18N.onSet('en');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'la cookie de sesión de Clerk basta');
+ h.win.document={cookie:'__client_uat=0'};sent.length=0;assert.equal(h.win.LHB_I18N.onSet('en'),null,'__client_uat=0 es sin sesión');
+ h.win.document=undefined;h.C.user=null;h.cache({sub:'user_a',handle:'ana'});await h.win.LHB_I18N.onSet('es');assert.deepEqual(sent,[],'Clerk dice que no hay nadie: nada');
+ /* cuatro cambios seguidos: uno a la vez, y después de cada respuesta solo el último que falte */
+ const order=[],waits=[];const g=CUENTA_HARNESS({api:async(C,m,p,b)=>{order.push(b.lang);await new Promise(r=>waits.push(r));return {status:200,body:{}}}});g.C.user={id:'user_a'};g.cache({sub:'user_a',handle:'ana'});
+ const ps=['en','es','en','es'].map(l=>g.win.LHB_I18N.onSet(l));await tick();assert.deepEqual(order,['en'],'uno a la vez');
+ waits[0]();await tick();assert.deepEqual(order,['en','es'],'después, solo el último');waits[1]();await Promise.all(ps);await tick();assert.deepEqual(order,['en','es'],'y nada más: la cuenta queda con el último');
+ g.win.LHB_I18N.onSet('en');await tick();assert.deepEqual(order,['en','es','en'],'uno nuevo después sale solo');waits[2]();
+});
+test('LHB-115 (Codex r2-2): dos cambios seguidos del menú recargan una sola vez, cuando contesta el último',async()=>{
+ const r=I18N115();const ok=[];r.I.onSet=()=>new Promise(res=>ok.push(res));r.I.set('en');r.I.set('es');
+ ok[0]();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,0,'la respuesta del primero no recarga');
+ ok[1]();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,1);assert.match(r.jar.v,/(^|; )lhb_lang=es(;|$)/,'con el último');
+ for(const t of r.tm.filter(x=>x[1]===3000))t[0]();assert.equal(r.reloads.length,1,'y los límites de 3 s no recargan otra vez');
+});
+test('LHB-115 (Codex r2-5): escoger Español en la pantalla también lo manda a la cuenta (con sesión, cuenta.js pone onSet)',()=>{
+ const sent=[];const r=LANG115({chosen:false,onSet:l=>{sent.push(l);return Promise.resolve(null)}});r.pick().querySelector('[data-l="es"]').click();assert.deepEqual(sent,['es']);assert.deepEqual(r.calls,[['remember','es']]);
+});
+test('LHB-115 (Codex r1-3): sin localStorage la cookie todavía puede recordar el idioma: la pantalla sale igual, y Español sigue sin intro (la intro no tiene dónde anotarse)',()=>{
+ const r=LANG115({chosen:false,blocked:true});assert.ok(r.pick(),'pregunta');r.pick().querySelector('[data-l="es"]').click();assert.equal(r.pick(),null);assert.equal(r.api.last,'storage');assert.equal(r.ov(),null);
+});
+test('LHB-115 (Codex r1-4): al crear el perfil, y al completar la identidad, el idioma del teléfono se guarda en la cuenta',async()=>{
+ const run=async(me,put,fn)=>{const sent=[];let cb=null;const ui={card:()=>{},notice:()=>{},closeAll:()=>{},toast:()=>{},onboarding:f=>{cb=f},edit:(p,f)=>{cb=f},identity:f=>{cb=f}};
+  const h=CUENTA_HARNESS({ui,api:async(C,m,p,b,uid)=>{if(m==='GET')return me;sent.push([m,p,b,uid]);return b&&b.lang?{status:200,body:{ok:true}}:put}});
+  h.win.LHB_I18N={...h.win.LHB_I18N,ENABLED:true,lang:'en',saved:()=>'en',set:()=>{},remember:()=>true,pending:()=>null,settle:()=>{}};h.C.user={id:'user_a'};
+  await h.A.require(h.go);await tick();assert.equal(typeof cb,'function');assert.deepEqual(await cb(fn),{ok:true});await tick();return sent.filter(s=>s[2]&&s[2].lang)};
+ assert.deepEqual(await run({status:200,body:{needsProfile:true}},{status:201,body:{profile:{handle:'ana'}}},{handle:'ana'}),[['PUT','/api/profile',{lang:'en'},'user_a']],'perfil nuevo');
+ assert.deepEqual(await run({status:200,body:{profile:{handle:'ana'},needsIdentity:true}},{status:200,body:{}},{first_name:'A'}),[['PUT','/api/profile',{lang:'en'},'user_a']],'identidad completada');
+});
+test('LHB-115 (Codex r1-5): la hoja de entrar espera a que se escoja el idioma; sin la pantalla abierta sale en el acto',async()=>{
+ const r=LANG115({chosen:false});assert.equal(r.api.picking(),true);const q=[];r.api.afterPick(()=>q.push('luego'));assert.deepEqual(q,[],'espera');
+ r.pick().querySelector('[data-l="es"]').click();assert.deepEqual(q,['luego'],'corre al escoger');assert.equal(r.api.picking(),false);r.api.afterPick(()=>q.push('ya'));assert.deepEqual(q,['luego','ya'],'sin pantalla, en el acto');
+ for(const quick of [false,true]){const h=CUENTA_HARNESS({});const waits=[];h.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};
+  if(quick)await h.A.quick(()=>{},{act:'x'});else await h.A.require(h.go);await tick();
+  assert.ok(!h.log.includes('open'),'no se abre mientras se escoge el idioma ('+(quick?'en sitio':'Mi Hoja')+')');assert.equal(waits.length,1);waits[0]();assert.ok(h.log.includes('open'),'y se abre al escoger')}
+ const h=CUENTA_HARNESS({});await h.A.require(h.go);await tick();assert.ok(h.log.includes('open'),'sin intro.js, como antes');
+});
+test('LHB-115 (Codex r4-1): lo escogido antes de que cargara la cuenta (o con la recarga del inglés) llega a la cuenta al abrir la app con la sesión guardada',async()=>{
+ const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:200,body:{ok:true}}}});
+ h.win.LHB_I18N={...h.win.LHB_I18N,ENABLED:true,lang:'es',saved:()=>'es'};h.C.user={id:'user_a'};
+ h.cache({sub:'user_a',handle:'ana',lang:'en'});await h.A.reconcile();await tick();
+ assert.deepEqual(sent,[['PUT','/api/profile',{lang:'es'},'user_a']],'el perfil guardado dice que la cuenta tiene otro: se le manda el del teléfono');assert.equal(h.D.store.get().lang,'es','un 200 lo anota en el perfil guardado');
+ sent.length=0;await h.A.reconcile();await tick();assert.deepEqual(sent,[],'ya coinciden: nada');
+ h.cache({sub:'user_a',handle:'ana',lang:'en'});h.C.user={id:'user_b'};await h.A.reconcile();await tick();assert.deepEqual(sent,[],'lo guardado era de otra cuenta: nada');
+ /* lo que se guarda del perfil lleva el idioma de la cuenta */
+ const x=ACC115({lang:'en'},'en');await x.h.A.require(x.h.go);await tick();assert.equal(x.h.D.store.get().lang,'en');
+});
+test('LHB-115 (Codex r4-2): con la pantalla del idioma abierta, completar la identidad o crear el perfil esperan a que se escoja',async()=>{
+ for(const [me,ev] of [[{status:200,body:{profile:{handle:'ana'},needsIdentity:true}},'identity'],[{status:200,body:{needsProfile:true}},'onboarding']]){
+  const h=CUENTA_HARNESS({api:async()=>me});const waits=[];h.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};h.C.user={id:'user_a'};
+  await h.A.require(h.go);await tick();assert.ok(!h.log.includes(ev),ev+' espera');assert.equal(waits.length,1);
+  waits[0]();await tick();assert.ok(h.log.includes(ev),ev+' sale al escoger')}
+ /* si al escoger ya cambió la página, no sale */
+ const h=CUENTA_HARNESS({api:async()=>({status:200,body:{needsProfile:true}})});const waits=[];h.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};h.C.user={id:'user_a'};
+ await h.A.require(h.go);await tick();h.nav('#/lugares');waits[0]();await tick();assert.ok(!h.log.includes('onboarding'),'la página cambió: no sale');
+});
+test('LHB-115 (Codex r5-1): con la pantalla del idioma abierta, los avisos de la cuenta (el error de una acción en sitio, y el de volver a entrar) esperan a que se escoja',async()=>{
+ const t=k=>h.win.LHB_I18N.t(k);let h;
+ const mk=()=>{h=CUENTA_HARNESS({api:async()=>({status:401,body:{}})});const waits=[];h.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};h.nav('#/catalogo');h.C.user={id:'user_a'};return waits};
+ let waits=mk();await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();
+ assert.ok(!h.log.some(x=>x.startsWith('notice:')),'el aviso del error espera');assert.equal(waits.length,1);
+ waits[0]();await tick();assert.deepEqual(h.log.filter(x=>x.startsWith('notice:')),['notice:'+t('cu.check.h')],'sale al escoger');
+ /* si al escoger ya cambió la página, no sale */
+ waits=mk();await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();h.nav('#/lugares');waits.forEach(f=>f());await tick();assert.ok(!h.log.some(x=>x.startsWith('notice:')),'la página cambió: no sale');
+ /* sale de la cuenta con el error pendiente: el aviso de volver a entrar también espera, y el del error ya no vale */
+ waits=mk();await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();h.C.signIn(null);await tick();
+ assert.ok(!h.log.some(x=>x.startsWith('notice:')),'ninguno sale con la pantalla abierta');assert.equal(waits.length,2);
+ waits.forEach(f=>f());await tick();assert.deepEqual(h.log.filter(x=>x.startsWith('notice:')),['notice:'+t('cu.again.h')],'al escoger, solo el de volver a entrar');
+});
+test('LHB-115 (Codex r6-1): con la pantalla del idioma abierta, la acción que se retoma al volver de entrar espera a que se escoja, y se descarta si cambió la página',async()=>{
+ const mk=()=>{const g=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});const waits=[];g.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};
+  g.nav('#/c/yambo-toro');g.A.register('humidor',g.go);g.setIntent({from:'#/c/yambo-toro',act:'humidor'});g.C.user={id:'user_a'};return {g,waits}};
+ let {g,waits}=mk();await g.A.resume();await tick();
+ assert.ok(!g.log.includes('GO'),'la acción espera');assert.equal(waits.length,1);assert.ok(g.intent(),'lo guardado para retomarla sigue ahí');
+ waits[0]();await tick();assert.deepEqual(g.log.filter(x=>x==='GO'),['GO'],'al escoger, se retoma una vez');assert.equal(g.intent(),null);
+ ({g,waits}=mk());await g.A.resume();await tick();g.nav('#/catalogo');waits[0]();await tick();assert.ok(!g.log.includes('GO'),'la página cambió: no corre');assert.equal(g.intent(),null,'y se descarta');
+});
+test('LHB-115: la página de privacidad dice que una cookie recuerda el idioma; el respaldo del arranque lee la cookie',()=>{
+ const pv=read('privacidad.html');assert.ok(pv.includes('Una cookie (lhb_lang) recuerda en este dispositivo el idioma que escogiste, por un año. No se usa para nada más.'));
+ const ix=read('index.html');assert.ok(!/navigator\.language/.test(ix),'el respaldo no mira el idioma del navegador');assert.ok(/lhb_lang=\(es\|en\)/.test(ix),'lee la cookie');
 });

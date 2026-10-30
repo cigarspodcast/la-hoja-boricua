@@ -1,0 +1,81 @@
+Code review, LHB-115, TIER 2, round 6. Repository cigarspodcast/la-hoja-boricua, branch lhb-115-espanol (round 1 named it lhb-115-lang by mistake). You are reviewing; do not edit files.
+
+The ticket (owner, 2026-10-30): the app defaults to Spanish, with the choice of changing languages. On the first visit a full-screen choice comes before anything else, including the intro video. The choice is remembered in a cookie for later sessions, and when the person is signed in their language is saved to the account.
+
+Pinned decisions:
+- With no saved choice, the browser language is not read; the app is in Spanish.
+- On the first visit with no saved choice, a full-screen choice ("Español" or "English", each in its own language) comes before anything else, the intro video included. It is saved to the cookie and localStorage and applied at once.
+- Signed in: the choice is saved to the account. A change from the menu also updates the account. AMENDED after round 3, see below: the device's choice is what counts; the account keeps a copy and is read only when the device has no choice.
+- The menu's language switch stays. The privacy page says a cookie remembers the language.
+
+What changed:
+- site/i18n.js:
+  - pick(saved) is 'en' only for a saved 'en'.
+  - The cookie lhb_lang (Max-Age one year, Path=/, SameSite=Lax, Secure on https) is read first, then localStorage lhb_lang. A choice found only in localStorage is copied into the cookie.
+  - remember(l) writes both and returns whether a read-back finds l.
+  - set(l,o) remembers, then reloads. If cuenta.js has set api.onSet and o.local is not set, it calls onSet(l) and waits for its promise (at most 3 s) before reloading.
+  - If nothing could be saved, set returns false and does not reload.
+  - LHB_I18N gains remember, saved(), chosen and onSet.
+- site/intro.js:
+  - decide() returns 'lang' first when LHB_I18N.ENABLED and chosen === false, unless storage is blocked (a choice that cannot be remembered is not asked).
+  - boot() then shows choose(): a role=dialog aria-modal section with two buttons. The app behind it is inert, and Tab cycles between the two buttons.
+  - Español: remember('es'), close, then recompute inputs and decide the intro as usual.
+  - English: set('en'), which reloads in English; if set returns false, close and continue in Spanish.
+- This screen was planned for app.js. It lives in intro.js because intro.js runs before app.js and already decides what shows first; that is a scope move this round should judge.
+- site/cuenta.js:
+  - syncLang(C,uid,profile) runs on the signed-in success path of go().
+  - If the account has a language: when it differs from the page's, set(acc,{local:true}) (save and reload, without sending it back); otherwise remember it if the device differs.
+  - If the account has none and the device has one: PUT /api/profile {lang}, fire and forget.
+  - The factory sets LHB_I18N.onSet: with a cached profile whose sub matches Clerk's current user, it PUTs {lang}; otherwise it returns null.
+- functions/api/profile.js: a PUT body with exactly one key, lang, is the language change. 'es' or 'en', else 400 bad-lang. UPDATE profiles SET lang; 403 no-profile if no row; 503 no-lang if the column does not exist ("no such column").
+- functions/api/me.js: SELECT with lang; on "no such column", the old SELECT without it.
+- migrations/0009_profile_lang.sql: ALTER TABLE profiles ADD COLUMN lang TEXT CHECK (lang IS NULL OR lang IN ('es', 'en')). The owner already ran this statement by hand on both D1 databases (LHB-116); migrations here are applied by hand, not by CI.
+- site/index.html: the LHB-100 boot fallback picks its copy from LHB_I18N.lang, else the cookie, else localStorage, never navigator.language.
+- site/privacidad.html: the cookie sentence. site/styles.css: the .lang-pick screen (not hidden under reduced motion).
+- Tests: the old navigator-based tests are rewritten. Ten tests fail on main (evidence/lhb-115-red.txt). Full suite after merging main: 493 tests, 492 pass, 0 fail, 1 skipped (evidence/lhb-115-tests.txt).
+
+Round 1 (evidence/lhb-115-review-r1.txt, on 76d0cc1) blocked on five P2 findings. Fixed in the commit after it, then main (LHB-117, lhb-v167) was merged in:
+- R1-1 (cached installs keep the old scripts): site/sw.js is now lhb-v168 (main is lhb-v167), so the shell cache turns over.
+- R1-2 (a menu choice undone by the account's old value): when set(l) hands the change to onSet (signed in), i18n.js also writes lhb_lang_pend=l in localStorage. cuenta.js clears it (I.settle) only when the PUT answers 200. On the next sign-in, syncLang sees pending === the device's language: it resends the PUT and does not apply the account's value. A pending value that is no longer the device's is dropped and the account rules as before. set(l,{local:true}) (a value from the account) clears it.
+- R1-3 (no chooser when localStorage throws but cookies work): decide() returns 'lang' whenever nothing is chosen, regardless of intro storage. After Español the intro then decides as usual (it returns 'storage', so no intro).
+- R1-4 (profile creation did not save the language): syncLang also runs on the onboarding 201 path, on the 409-then-recheck path, and when identity completion finishes. A new profile has no language, so the device's is PUT.
+- R1-5 (sign-in opened under the chooser): intro.js exposes picking() and afterPick(f). cuenta.js opens the sign-in sheet through openSignIn(C), which defers to afterPick while the chooser is open. Both the Mi Hoja gate and the in-place quick path use it.
+Each fix has a test seen red first (evidence/lhb-115-r1-red-before.txt, 4 fail; R1-1 is the version bump). Green after: evidence/lhb-115-r1-green-after.txt. Full suite after merging main: 498 tests, 497 pass, 0 fail, 1 skipped (evidence/lhb-115-tests.txt).
+
+Round 2 (evidence/lhb-115-review-r2.txt, on 14eb3d1) concurred with R1-1, R1-3, R1-4 and R1-5. It maintained R1-2 through four new P2 findings, all against the pending marker, plus R2-5. The marker is gone. The design is now:
+- Device versus account. cuenta.js syncLang(C,uid,profile,fresh). fresh means this is a sign-in on this device: no cached profile of this uid existed before this /api/me answer. Sign-out clears that cache, and so does a different account (LHB-51).
+  - fresh: the account's language wins, as before (set(acc,{local:true}) or remember).
+  - Not fresh (the same account already open on this device): the device's language wins, and if it differs from the account's it is PUT. A menu change whose PUT failed or timed out is therefore not undone by the old account value on the next load; it is resent until the account matches. Codex round 2 noted that this resubmission is bounded by page loads, not a loop.
+  - If the device has no choice, the account's applies either way.
+  This answers R2-1 (no marker can carry account A's choice to account B: a new account is fresh, so B's value wins and nothing is PUT to B), R2-2's marker half and R2-3 (no marker to write or lose).
+- R2-2, reloads: set() numbers its calls and only the latest one reloads, once, when its onSet answers or after 3 s.
+- R2-4: onSet no longer requires the cached profile. It runs when there is a cached profile or Clerk's __client_uat cookie is present and not 0, and it PUTs to the account of Clerk's current session (C.user.id).
+- R2-5: choosing Español on the first-visit screen also calls LHB_I18N.onSet('es') (fire and forget), so a signed-in account gets it.
+Tests: four red on the round 2 code (evidence/lhb-115-r2-red-before.txt), green after (evidence/lhb-115-r2-green-after.txt). The old R1-2 marker test is replaced by these. Full suite: 500 tests, 499 pass, 0 fail, 1 skipped (evidence/lhb-115-tests.txt).
+
+Round 3 (evidence/lhb-115-review-r3.txt, on d2b07c3) concurred with R2-1, R2-4 and R2-5, and blocked on four P2 findings. Three of them (R3-1 edit path, R3-2 cookie-only storage, R3-3 a stale account read reversing a chooser choice) come from one rule: "on sign-in the account's language wins". That rule was the planner's own elaboration. The owner's words on the ticket are: "a prompt then that gets recoded in cookies for future sessions - if they are logged in their language preference is saved". With the first-visit chooser, every device has a choice before anyone can sign in, so pulling the account's value at sign-in could only ever override the person's latest choice. The decision is amended (recorded on the ticket):
+- cuenta.js syncLang(C,uid,profile): if the device has a choice, it wins; if the account's copy differs, the device's is PUT. Only when the device has no choice is the account's applied (set(acc,{local:true}), or remember when the page already shows it). There is no "fresh" detection, cache dependence or marker. It runs on every signed-in success path, including edit (R3-1), onboarding and identity.
+- R3-4: putLang sends one request at a time. A request made while one is in flight replaces any queued value, and when the in-flight request ends only the latest queued value is sent. The account therefore ends with the last choice whatever order the responses arrive in. A hung request blocks further sends in that page only; the next load resyncs.
+- Unchanged from round 3: set() reloads once, for the latest change; onSet uses Clerk's current session (cached profile or __client_uat); Español on the chooser calls onSet.
+Tests: two red on the round 3 code (evidence/lhb-115-r3-red-before.txt), green after (evidence/lhb-115-r3-green-after.txt). The earlier "account wins on sign-in" expectations are rewritten to the amended rule. Full suite: 500 tests, 499 pass, 0 fail, 1 skipped (evidence/lhb-115-tests.txt).
+
+Round 4 (evidence/lhb-115-review-r4.txt, on 20622d6) blocked on two P2 findings, fixed as follows:
+- R4-1, an early choice can miss the account. The cached profile snapshot (cuenta.js snap) now carries the account's copy of the language (lang, 'es', 'en' or null). reconcile(), which hoja.js runs about 2.5 s after load when a cached profile exists, compares the device's saved choice with that copy once Clerk is loaded; if they differ and Clerk's current user is the cached account, it PUTs the device's choice. putLang writes the new lang into the cached snapshot after a 200 for the same account, so a match sends nothing on the next load. This covers a chooser choice made before LHB_CUENTA installed onSet, and the English reload. A device with no cached profile (never opened Mi Hoja here) still syncs on the next Mi Hoja visit through syncLang.
+- R4-2, profile forms behind the chooser. A whenPicked(f) helper defers f through LHB_INTRO.afterPick while the chooser is open (openSignIn now uses it too). The identity and onboarding forms from require() go through it and recheck lv(C,uid) (same request, same route, same account) when they finally run. The 409 recheck inside the onboarding submit is not wrapped: the onboarding form is already showing there, so the chooser is closed.
+- The LHB-51 test pins exactly what the phone keeps of the profile; it now includes lang, deliberately (the language is not private, and the lhb_lang cookie already holds the device's own). An edit save whose response profile has no lang writes lang:null into the snapshot, so the next load sends the device's choice once more; that is one redundant PUT, not a loop.
+Tests: two red on the round 4 code (evidence/lhb-115-r4-red-before.txt), green after (evidence/lhb-115-r4-green-after.txt). Full suite: 502 tests, 501 pass, 0 fail, 1 skipped (evidence/lhb-115-tests.txt).
+
+Round 5 (evidence/lhb-115-review-r5.txt, on 5f12c7d) concurred with R4-1 and R4-2 and blocked on one P2:
+- R5-1, account notices behind the chooser. Both notices in cuenta.js now go through whenPicked: the in-place failure notice in go()'s fail() (shown on pick only if lv() still holds: same operation, same route), and the "sign in again" notice in the Clerk listener (shown on pick only if gen is unchanged and the route is the same). failure is still recorded at once, so a sign-out during the chooser still offers the "sign in again" notice, and the stale failure notice is dropped because the account change advanced sip. The other D.ui calls: card renders inside #app (inert under the chooser, as round 5 noted for edit); toast takes no focus; onboarding and identity were deferred in round 4.
+Tests: one red on the round 5 code (evidence/lhb-115-r5-red-before.txt), green after with the round 4 tests (evidence/lhb-115-r5-green-after.txt). Full suite: 503 tests, 502 pass, 0 fail, 1 skipped (evidence/lhb-115-tests.txt).
+
+Also check in this round: whether any other account surface can still take focus while the chooser is open.
+
+What to look for:
+- Reload loops: storage that half works (cookie blocked but localStorage not, or the reverse), an account language that cannot be saved on this device, and set() racing a second set().
+- The account and device disagreeing: whether a menu change can be undone by the account's old value on the next load (onSet is awaited at most 3 s), and two devices.
+- The first-visit screen: shown when it should not be (an old cached i18n.js or intro.js, deep links, the installed app); never shown; focus and inertness; whether the intro still plays afterwards.
+- Server: the lang-only PUT shape colliding with the identity or full-profile PUT, the guarded queries hiding a real error, and anything exposing lang beyond its owner.
+- Privacy and cookie attributes.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing sequence.
