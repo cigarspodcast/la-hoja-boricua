@@ -1,5 +1,5 @@
-baseline (no mutation): pass 130 fail 0
-settled ignores the other tabs (before LHB-104)              RED (caught) (fail 1)
+baseline (no mutation): pass 132 fail 0
+settled ignores the other tabs (before LHB-104)              RED (caught) (fail 2)
 the upload is not recorded for the other tabs                RED (caught) (fail 15)
 no fence for an upload of another tab                        RED (caught) (fail 2)
 a landed upload of another tab keeps the base                RED (caught) (fail 6)
@@ -46,4 +46,8 @@ r9: an unchanged meta keeps its old base above a newer mark  RED (caught) (fail 
 r9: below the mark the pass asks again on every answer       RED (caught) (fail 1)
 r9: uploads that left storage and the asked list stay in memory RED (caught) (fail 1)
 r10: the storage keys are read one index at a time           RED (caught) (fail 1)
-RESULT 47 of 47 red; 0 named equivalent; 0 unexpected survivors
+r11: forget rejects every shared upload even after a backup  RED (caught) (fail 1)
+r11: settled does not say the copy is in a backup            RED (caught) (fail 1)
+r11: deleting the account keeps its upload records           RED (caught) (fail 1)
+r11: deleting the account drops every upload record          RED (caught) (fail 1)
+RESULT 51 of 51 red; 0 named equivalent; 0 unexpected survivors

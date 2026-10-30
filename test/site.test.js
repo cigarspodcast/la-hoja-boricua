@@ -7162,6 +7162,32 @@ test('LHB-104 (Codex r10): las claves del teléfono se leen de una vez: si otra 
  for(const k of ['lhb_mihoja_v1_hw.user_a.2','lhb_mihoja_v1_hw.user_a.3','otra'])L[k]='1';
  const got=new Function('localStorage','return '+m[1])(L)();assert.ok(got.includes('lhb_mihoja_v1_hw.user_a.3'),'la marca nueva se lee: '+JSON.stringify(got));
 });
+test('LHB-104 (Codex r11): una subida de otra pestaña todavía puede llegar y la persona acaba de descargar el respaldo: salir sí borra, y la anotación se queda para la próxima entrada',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();A.D.wait=async()=>{};
+  const P='lhb_mihoja_v1_pend.otra_pestana';/* Codex r11: anotada en un If-Match más alto que el rev de la cuenta (la cuenta se borró y se volvió a crear): sigue pudiendo llegar */
+  A.ls.set(P,JSON.stringify({v:1,s:'user_a',r:srv28(a,'user_a').rev+4,o:'otra_pestana'}));
+  assert.equal((await A.eng.settled({})).ok,false,'sin respaldo, no está a salvo');
+  const st=await A.eng.settled({backup:A.X.canon(A.D.getDoc())});assert.equal(st.ok,true);assert.equal(st.via,'backup');
+  assert.equal(await A.eng.forget(st.mark),true,'con el respaldo, salir borra');assert.equal(A.ls.get(A.KEY),null,'la copia se borró');
+  assert.ok(A.ls.get(P)!=null,'la anotación se queda');
+  /* y el respaldo no abre la puerta si la copia cambió desde que se revisó */
+  const B=DEV28(a,'user_a');B.seed(DOC28);await B.sync();B.D.wait=async()=>{};
+  const s2=await B.eng.settled({backup:B.X.canon(B.D.getDoc())});assert.equal(s2.ok,true);B.edit(d=>{d.ratings.c9=4});
+  assert.equal(await B.eng.forget(s2.mark),false,'la copia cambió: no se borra');assert.ok(B.ls.get(B.KEY)!=null);
+ }finally{a.done()}});
+test('LHB-104 (Codex r11): borrar la cuenta en este teléfono quita también sus subidas anotadas (las de otra cuenta se quedan)',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.ls.set('lhb_mihoja_v1_pend.op1',JSON.stringify({v:1,s:'user_a',r:1,o:'op1'}));A.ls.set('lhb_mihoja_v1_pend.x.1.user_a',JSON.stringify({v:1,s:'user_a',r:1,x:true}));
+  A.ls.set('lhb_mihoja_v1_pend.op2',JSON.stringify({v:1,s:'user_b',r:1,o:'op2'}));
+  assert.equal(await A.eng.forget(),true);
+  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith('lhb_mihoja_v1_pend.')),['lhb_mihoja_v1_pend.op2'],'solo queda la de otra cuenta');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{

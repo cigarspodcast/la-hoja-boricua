@@ -388,7 +388,7 @@ window.LHB_SYNC=function(D){
   /* Codex r2: la marca se lee ANTES que la copia que se revisa (el contador y el texto guardado, luego la copia): si otra pestaña escribe en medio, la marca ya no es la de ahora y forget no borra nada */
   const seq=readSeq(),raw=markNow().raw,d=D.getDoc(),mark={raw,seq};
   if(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length)return {ok:false,why:'draft'};
-  if(typeof o.backup==='string'&&canon(d)===o.backup)return {ok:true,via:'backup',mark};
+  if(typeof o.backup==='string'&&canon(d)===o.backup){mark.via='backup';return {ok:true,via:'backup',mark}}
   if(!r||!r.ok)return {ok:false,why:(r&&(r.fail||r.skip))||'fail'};
   const m=readMeta(),acc=D.acct();
   if(dirty||!m||!acc||m.sub!==acc.sub||m.dirty||!m.base||canon(d)!==canon(m.base))return {ok:false,why:'pending'};
@@ -415,11 +415,15 @@ window.LHB_SYNC=function(D){
    await D.wait(FENCE_MS);
    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
    if(!same(mark))return back();
-   /* LHB-104 (Codex r1): con la valla puesta, otra vez las subidas anotadas: una que otra pestaña anotó después de settled() todavía puede llegar */
-   {const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);let sh;try{sh=shRead()}catch(e){return back()}if(sh.some(e=>subs.includes(e.s)))return back()}}
+   /* LHB-104 (Codex r1): con la valla puesta, otra vez las subidas anotadas: una que otra pestaña anotó después de settled() todavía puede llegar.
+      Codex r11: salvo si la copia está en el respaldo que la persona acaba de descargar (settled la halló igual, y same() dice que sigue igual): ahí está a salvo
+      aunque una subida llegue después, como settled ya lo decía. Las anotaciones se quedan, para cuando vuelva a entrar en este teléfono */
+   if(mark.via!=='backup'){const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);let sh;try{sh=shRead()}catch(e){return back()}if(sh.some(e=>subs.includes(e.s)))return back()}}
   hold(true);mem=null;pend=[];evict=new Map();dirty=false;let ok=true;
   /* Codex r7: y las marcas de agua de esta cuenta (si vuelve a entrar con la cuenta nueva, no quedan bases tachadas de antes) */
   {const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);for(const u of subs){try{for(const x of hwKeys(u))D.ls.remove(x.k)}catch(e){ok=false}}}
+  /* Codex r11: al borrar la cuenta (sin mark), también sus subidas anotadas: la cuenta a la que iban ya no existe */
+  if(!mark){const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);try{for(const x of shRead())if(subs.includes(x.s))D.ls.remove(x.k)}catch(e){ok=false}}
   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
   set('off');return ok}
  function start(){

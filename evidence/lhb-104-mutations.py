@@ -58,6 +58,10 @@ MUTS = [
     (SY, 'r9: below the mark the pass asks again on every answer', 'meta.rev>rev&&(ch||meta.rev>r0))continue', 'meta.rev>rev)continue'),
     (SY, 'r9: uploads that left storage and the asked list stay in memory', 'try{const live=new Set(shRead().map(e=>e.o).filter(Boolean));for(const [o] of myOps)if(!live.has(o)&&!pend.some(x=>x.op===o))myOps.delete(o)}catch(e){}', ''),
     ('site/hoja.js', 'r10: the storage keys are read one index at a time', 'keys:()=>Object.keys(localStorage)}', 'keys:()=>{const o=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k!=null)o.push(k)}return o}}'),
+    ('site/sync.js', 'r11: forget rejects every shared upload even after a backup', "if(mark.via!=='backup'){const a=D.acct()", "if(true){const a=D.acct()"),
+    ('site/sync.js', 'r11: settled does not say the copy is in a backup', "{mark.via='backup';return {ok:true,via:'backup',mark}}", "{return {ok:true,via:'backup',mark}}"),
+    ('site/sync.js', 'r11: deleting the account keeps its upload records', "if(!mark){const a=D.acct(),subs=", "if(false){const a=D.acct(),subs="),
+    ('site/sync.js', 'r11: deleting the account drops every upload record', "for(const x of shRead())if(subs.includes(x.s))D.ls.remove(x.k)", "for(const x of shRead())D.ls.remove(x.k)"),
 ]
 
 EQUIV = {}
