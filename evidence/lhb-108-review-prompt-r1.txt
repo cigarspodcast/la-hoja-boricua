@@ -10,12 +10,13 @@ Contract impact: none to data or APIs. The /api/u/<handle> response is byte-iden
 
 Tests: (1) every HTML page under site/ (273) and the /u/ function carry exactly one lockup and no other brand link; (2) the tagline keys are gone, brand.tagline is the same in both languages, no other slogan remains, and the intro uses the stacked lockup. Both fail on marca (evidence/lhb-108-red.txt). Older tests updated on purpose: LHB-88 (the static brand link is the lockup and its logo is decorative), LHB-32 (the tagline may stay in Spanish on English pages), LHB-29 (the tagline is brand text on index.html), LHB-72 (the intro has 7 intro.* keys, not 8), LHB-74 (the /u/ page pin), the i18n sample now uses ix.footLug.
 Full suite: evidence/lhb-108-tests.txt (413 of 414 pass, 1 skipped).
+The diff below covers the sources (site/*.js, site/*.html, the stylesheets, tools, functions, test) and two generated samples (site/lugares/index.html, site/en/lugares/612-c-lounge-arecibo.html). The other 271 generated pages differ only in the same header line; read any of them in the worktree.
 
 What to look for: a page or surface that still shows another wordmark or slogan (the share image drawn in hoja.js, the manifest, JSON-LD, the 404, the credits or about screens, llms.txt), a broken relative path (English pages at depth 2, guides, privacy), accessibility of the brand link (its name should read as the visible text; the logo must stay decorative), lang marking of the Spanish tagline, the header at 320 px wide (the lockup plus four buttons) and on the static pages at phone width, and anything in the tests that could pass while a page lacks the lockup.
 
 Answer with findings ranked P1 (blocking) to P3, each with file and symbol, then VERDICT: PASS or VERDICT: BLOCK as the last line.
 
-===== git diff marca a02eaa66ee42f414c113ec244547fa51f10918c8 -- site test tools functions =====
+===== git diff marca 2e87a0940e10eb10f0bf2c734f42bcf1b2ae9073 -- site/*.js site/*.html site/*.css site/lugares/l.css site/lugares/index.html site/en/lugares/612-c-lounge-arecibo.html test tools functions =====
 diff --git a/functions/u/[handle].js b/functions/u/[handle].js
 index b6071b6..c1d1ef6 100644
 --- a/functions/u/[handle].js
