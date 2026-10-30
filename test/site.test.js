@@ -7625,10 +7625,10 @@ test('LHB-105 (Codex r6): otra pestaña está a mitad de escribir cuando esta, c
   assert.ok(!L.held.some(h=>h.mode==='exclusive'),'el exclusivo se soltó');
  }finally{a.done()}});
 /* Codex r7: dos pestañas con el cambio de cuenta (sw), los avisos del cambio pasan por set98 (o.sync: llegan en el acto, sin esperar una tarea;
-   o.dedup: como el navegador, no hay aviso si el valor no cambió; o.fails: escribir el aviso falla) */
+   o.dedup: como el navegador, no hay aviso si el valor no cambió; o.fails: escribir el aviso falla; o.asleep: la otra pestaña está dormida y no oye el aviso, LHB-119) */
 const SW105=async o=>{o=o||{};const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));const dev=DEV28(a,'user_a');
  dev.seed(DOC28);await dev.sync();
- const L=LOCKS98(),timers=[];const X=TAB98(dev,L,{sw:true,timers,clock:o.clock}),Y=TAB98(dev,L,{sw:true,clock:o.clock});
+ const L=LOCKS98(),timers=[];const X=TAB98(dev,L,{sw:true,timers,clock:o.clock}),Y=TAB98(dev,L,{sw:true,clock:o.clock,suspend:o.asleep});
  const set0=dev.ls.set.bind(dev.ls);const s={fails:!!o.fails,notes:0};
  dev.ls.set=(k,v)=>{if(k==='lhb_mihoja_v1_cambiando'){if(s.fails)throw new Error('QuotaExceededError');const old=dev.ls.has(k)?dev.ls.get(k):null;set0(k,v);
    if(o.dedup&&old===String(v))return dev.ls;s.notes++;const e={key:k,newValue:String(v)};if(o.sync)Y.hear(e);else Y.tell(e);return dev.ls}
@@ -7637,6 +7637,15 @@ const SW105=async o=>{o=o||{};const a=await ENG28();a.db.exec(a.mig('0008_mihoja
  const owner=()=>dev.ls.has('lhb_mihoja_v1_owner')?dev.ls.get('lhb_mihoja_v1_owner'):null;
  const to=async u=>{dev.st.acct=dev.st.user=u;X.eng.isolate();await until105(()=>!X.eng.switching());await tick98(20)};
  return {a,dev,L,X,Y,timers,s,owner,to}};
+test('LHB-119 (LHB-105 Codex R8-1): una escritura mientras el cambio de cuenta espera el exclusivo no se hace, y dice que se está cambiando de cuenta, no que se está saliendo',async()=>{
+ const t=await SW105({asleep:true});try{
+  t.dev.st.acct=t.dev.st.user='user_b';assert.equal(t.X.eng.isolate(),false);await tick98(20);
+  assert.equal(t.X.eng.switching(),true,'el cambio espera: la otra pestaña no soltó su compartido');
+  const doc=JSON.parse(t.dev.ls.get('lhb_mihoja_v1'));doc.humidor.push({id:'durante',marca:'Durante el cambio',actualizado:'2026-10-30'});
+  assert.equal(t.X.X.write(doc),false,'la escritura no se hace');
+  assert.deepEqual(t.X.toasts,['Cambiando de cuenta en este tel\u00e9fono. Espera unos segundos e intenta otra vez.']);
+  assert.ok(!JSON.parse(t.dev.ls.get('lhb_mihoja_v1')).humidor.some(x=>x.id==='durante'),'y no quedó nada');
+ }finally{t.a.done()}});
 test('LHB-105 (Codex r7-1): la otra pestaña oye el aviso del cambio antes de que este pida el exclusivo: suelta y vuelve a pedir su compartido detrás del exclusivo, y el cambio termina',async()=>{
  const t=await SW105({sync:true});try{
   assert.ok(t.L.held.some(h=>h.mode==='shared'),'la otra pestaña tiene su compartido');

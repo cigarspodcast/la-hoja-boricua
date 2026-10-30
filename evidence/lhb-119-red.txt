@@ -1,0 +1,35 @@
+✖ LHB-119 (LHB-105 Codex R8-1): una escritura mientras el cambio de cuenta espera el exclusivo no se hace, y dice que se está cambiando de cuenta, no que se está saliendo (193.3206ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 405.6266
+
+✖ failing tests:
+
+test at test\site.test.js:7644:1
+✖ LHB-119 (LHB-105 Codex R8-1): una escritura mientras el cambio de cuenta espera el exclusivo no se hace, y dice que se está cambiando de cuenta, no que se está saliendo (193.3206ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:
+  
+  [
+    'Se está saliendo de la cuenta en este teléfono. Espera unos segundos e intenta otra vez.'
+  ]
+  
+  should loosely deep-equal
+  
+  [
+    'Cambiando de cuenta en este teléfono. Espera unos segundos e intenta otra vez.'
+  ]
+      at TestContext.<anonymous> (C:\LHB\lhb-119-wt\test\site.test.js:7650:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'Se está saliendo de la cuenta en este teléfono. Espera unos segundos e intenta otra vez.' ],
+    expected: [ 'Cambiando de cuenta en este teléfono. Espera unos segundos e intenta otra vez.' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
