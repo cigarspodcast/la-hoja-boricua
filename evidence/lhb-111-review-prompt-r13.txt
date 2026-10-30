@@ -1,0 +1,979 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-marca111-wt (branch marca-111, cut from marca-110, which carries LHB-107 (type), LHB-108 (one lockup), LHB-109 (one navigation) and LHB-110 (colour roles and the dark theme)). TIER 2, round 13.
+
+Ticket LHB-111 (M8-5): one illustration language: line art in tobacco ink; the intro video stays.
+Pinned decisions:
+- The vernacular is the cigar band and the cigar-box lithograph: single-colour line art in tobacco ink with one accent, original drawings in the repo.
+- The frog on Events and the flower on Places are replaced by line-art headers in that style.
+- Cigars without a photo get a neutral line silhouette in the same frame as the product photos.
+- The intro video stays as it is.
+Proof asked: a test that fails if a decorative asset outside the line-art set is referenced, and if a cigar card without a photo uses anything but the silhouette; seen red on main.
+
+What changed:
+- site/art.js is rewritten. The set: ranchon (Places: a tobacco barn with leaves hung to dry), banda (Events: a cigar band with its medallion and star), chaveta (Artisans: the roller's knife, a leaf and a rolled cigar), micro (Podcast), lupa (Search: a magnifier over a leaf), hoja (About and Credits: a leaf tied at the stem), maridaje (Pairings: a coffee cup and a cigar on the saucer), caja (Upload and the empty states: an open cigar box with a lithograph lid), silueta (the photo-less cigar, viewBox 600 x 300, the 2:1 frame of the product photos), aqui (the map's you-are-here marker). Each drawing is an SVG with class lart and no colours of its own: styles.css paints the line with --art-ink (var(--on-surface), so it follows the theme) and the one accent (.ac fill, .acs stroke) with --art-ac (var(--warm)); .bg fills with the page surface to hide lines behind a shape. Header drawings are aria-hidden (the title says it); the silhouette carries the name (sil.alt: "{n}, sin foto todavía" / "{n}, no photo yet"). The silhouette and the map marker sit on fixed light grounds (the photo frame, the map tiles), so their ink is --fixed-text. silueta(label, lit) takes resolved colours for the share image, which draws the SVG as an image and cannot read the stylesheet.
+- Retired: coqui, flor (and its alias garita), flamboyan, guagua, volky and carro from art.js; the guagua bitmaps in site/img/guagua (none was referenced any more but the one precached for the map marker); the patterned cigar drawing in app.js (cigarSVG, CAPA_COLORS, BG) and the flag-on-a-pole SVG of .empty::before. VBArt.leaf stays: it is the icon of the pins, the legend, menu rows and earned stamps, coloured by meaning, not an illustration.
+- app.js: the headers of Artisans (chaveta), Upload (caja), Places (ranchon), About and Credits (hoja); cigarSVG is now the silhouette; the photo-less card and detail use class sin-foto, which shares the photo frame rules (.card .ph.has-foto, .detail-ph.has-foto); emptyCoqui became emptyBox (the box comes from .empty::before); the map marker is aqui (30 x 30) instead of the guagua bitmap.
+- hoja.js: the headers of Pairings (maridaje), Podcast (micro), Search (lupa), Events (banda); the humidor's custom entry shows the silhouette; the share image draws the silhouette in the photo's frame (photo ground, 760 x 380 at the photo's place) with tk('fixed-text') and tk('warm').
+- styles.css: .lart rules; .empty::before paints var(--on-surface) through a mask whose shape is the same CAJA paths as art.js (the mask's black is not painted); old art rules removed.
+- i18n.js: a.guagua, a.coqui, a.flor, a.flamboyan and svg.alt removed; sil.alt added.
+- sw.js: cache lhb-v162 (above marca-110's v161). marca-110 (LHB-110 through its round 8 fixes, which its round 9 passed) is merged in, so the diff below is LHB-111 only; the guagua bitmap leaves the precache.
+
+Tests: the new LHB-111 test runs art.js in a VM and checks every drawing (an SVG .lart, no hex, rgb, hsl, fill= or stroke= attribute, style, image or url, and an accent), the share-image silhouette's two resolved colours, that VBArt exports nothing else but CAJA, leaf and star, that every head() with art uses a drawing of the set, that no view references a VBArt drawing outside the set or a static image that is not a photo or a mark, that index.html, sw.js and styles.css name none of the old art, that styles.css holds only the paper texture and the empty-state mask as SVG data URIs and that the mask is CAJA, the silhouette on the card, the detail, the humidor and the share image, the frame rules, and the inks' contrast by day and at night (3:1 for graphics). It is red on main b8b2b89 and on marca-110 800af2d (evidence/lhb-111-red.txt). evidence/lhb-111-mutations.out: 8 of 8 mutants red (a header drawing outside the set, a photo-less card or humidor without the silhouette, a decorative bitmap, a drawing with its own colour, a drawing without its accent, a different empty-state shape, the silhouette's ink following the theme on the fixed light frame). Older tests updated on purpose: app wiring, v8, v12, v15, v17 and LHB-29 (the old art and texts), LHB-67 (allow list: the old drawing's palettes and the flag of the empty state go; the empty-state mask's black is listed as not painted), and the VM stubs (VB111, emptyBox). Full suite: evidence/lhb-111-tests.txt.
+
+Round 1 (evidence/lhb-111-review-r1.txt) blocked on two; both fixed in round 2:
+- R1-1 (P2): the exclusion test missed static pages, inline SVG in templates, bitmaps through CSS and an unpainted accent. The LHB-111 test now also: requires every <svg> start tag in app.js, hoja.js, cuenta.js, intro.js and i18n.js to be a 24 x 24 icon or one of four named functional graphics (the initials' leaf watermark, the offline map, the flavour wheel, the zone stamp); walks every .html under site/ (273 pages) and requires its images to come from icons/, img/cigarros, img/logos, img/hero or img/eventos, its SVGs to be 24 x 24 icons, and no url() outside scripts but fonts; requires every url() in styles.css, u.css and lugares/l.css to be a font or an SVG data URI (vendor-leaflet.css keeps its own map images); and requires the accent rules (.lart .ac fill, .lart .acs stroke). New negative controls in the proof, each red: a coloured SVG in the header helper, a decorative SVG on 404.html, a bitmap through CSS, the accent rule emptied, the empty state without its accent (evidence/lhb-111-mutations.out: 13 of 13 red).
+- R1-2 (P3): the empty state painted its mask in one ink, losing the medallion's amber. The ground under the mask is now radial-gradient(7px 4.9px at 50.4px 22.4px, var(--warm) 100%, var(--on-surface) 100%): the medallion of CAJA (cx 72 cy 32 rx 10 ry 7, at the drawing's scale .7 in the 84 x 70 box) in amber, the rest in ink. The test derives that position from art.js CAJA and the box size. The LHB-67 pin of the empty state follows.
+
+Round 2 (evidence/lhb-111-review-r2.txt) blocked on one; fixed in round 3:
+- R2-1 (P2): a 24 x 24 viewBox let any SVG pass as an icon, and an SVG data URI was allowed in every stylesheet. An icon is now judged by its content: the test helper ICON111 rejects an SVG carrying a colour of its own (a hex value, rgb/hsl, or a fill, stroke, stop-color or color attribute other than none and currentColor), a size of its own (style=) or an embedded image or foreignObject. It is applied to every 24 x 24 SVG in app.js, hoja.js, cuenta.js, intro.js and i18n.js (the Spotify brand mark, a logo LHB-67 lists, is the one exception) and to every SVG on the static pages. An SVG data URI is allowed in styles.css only (the paper texture and the empty-state mask); u.css and lugares/l.css allow fonts only. Three new negative controls in the proof, each red: a coloured, sized SVG with an icon viewBox on 404.html, an SVG background through u.css, and a coloured SVG with an icon viewBox in a hoja.js template (evidence/lhb-111-mutations.out: 16 of 16 red).
+Round 3 (evidence/lhb-111-review-r3.txt) concurred on R1-2 and blocked on one; fixed in round 4:
+- R3-1 (P2): ICON111 read colours only in double quotes and size only from style=. Attributes are now read by ATTR111 in all three forms the HTML parser accepts (double quotes, single quotes, unquoted, the unquoted value running to the next space or >). ICON111 rejects any paint attribute (fill, stroke, stop-color, color, flood-color, lighting-color) whose value is not none or currentColor, any style attribute, a <style>, <image> or <foreignObject> element, a hex, rgb or hsl value anywhere, and a width, height or transform on the root <svg> (a width and height inside, on a rect, are geometry and stay allowed). The test checks the reader itself: ATTR111 returns the three quote forms, ICON111 rejects six bad samples (single-quoted fill, unquoted stroke, root width, root height, root transform, an embedded style) and accepts a real icon. Three new negative controls in the proof: your exact sample on 404.html, an unquoted colour in a hoja.js template, and a sized icon-shaped SVG in the header helper. evidence/lhb-111-mutations.out: 19 of 19 red; evidence/lhb-111-r3-red-before.txt: the same proof with the round 3 test (f92be85) leaves exactly those three green (16 of 19).
+Round 4 (evidence/lhb-111-review-r4.txt) concurred on R3-1, R2-1 and R1-2 and blocked on one; fixed in round 5:
+- R4-1 (P2): the image scans read only a double-quoted src on <img>. They now read every image source the way the browser does. TAG111 reads a start tag with its quoting (a > inside a quoted value does not end it), and in a script a ${...} expression is one piece of the tag (an attribute that comes and goes, or a value, with an attribute allowed right after it). MEDIA111 returns every source of every tag that draws an image: img and source (src and each srcset candidate), image (href, xlink:href), input (src), video (poster, src), object (data), embed and iframe (src). A media start tag the reader cannot parse fails the test rather than being skipped. Static pages: every source must be an icon, a cigar photo, a mark or a hero or event photo. Scripts (app.js, hoja.js, cuenta.js, intro.js, i18n.js): a source that starts with ${ is a photo from the data or from the reader; a literal one must be a photo, a mark, an icon or the intro (assets/intro/). Two catch-alls over those scripts: every image file name written anywhere (including inside an attribute that comes and goes) must be under those folders (the LHB-85 thumbnail suffixes _thumb.webp and _thumb-s.webp, and perfil.jpg, the name the reader's own photo uploads under, are the named exceptions); and the only image data URI is the share image's silhouette in hoja.js; a literal img.src, srcset or poster set from script follows the same rule. The test checks the reader itself (three quote forms, srcset, poster, a > in a quoted value, conditional attributes, and an unreadable tag that throws).
+  Seven new negative controls in the proof: your sample on 404.html, an unquoted decorative image, a decorative image through picture and source srcset, a single-quoted one in a hoja.js template, one set from script (new Image().src), one inside an attribute that comes and goes, and a second image data URI in app.js. evidence/lhb-111-mutations.out: 26 of 26 red. evidence/lhb-111-r4-red-before.txt: the same proof with the round 4 test (7690e2a) leaves four of the seven green (the sample, the unquoted image, the srcset one and the second data URI); the other three name the retired guagua path, which an older check already caught.
+marca-110 round 8 is merged in.
+Round 5 (evidence/lhb-111-review-r5.txt) concurred on R4-1, R3-1, R2-1 and R1-2 and blocked on one; fixed in round 6 (tests only; no site file changed, so the cache stays lhb-v162):
+- R5-1 (P2): inline scripts on static pages, and site scripts other than the five, were not scanned for image names, data URIs or sources set from script. One helper, SCRIPT111(text, where, data URIs allowed), now holds those rules: every image file named is under img/cigarros, img/logos, img/hero, img/eventos, icons or assets/intro (relative or at https://lahojaboricua.com/; the named exceptions are the LHB-85 thumbnail suffixes, perfil.jpg, the name the reader's own photo uploads under, and https://lahojaboricua.com/og.jpg, the link-preview card other sites show for a shared page); the text carries exactly the image data URIs it is allowed (one in the whole site: the share image's silhouette in hoja.js); and a literal source set from script (.src, .srcset, .poster, or setAttribute of src, srcset, poster, or an image href) is under those folders or is that data URI. It runs on every .js under site/ except vendor-leaflet.js (the third-party Leaflet build; its default marker images are not used, the pins are the app's), listed by a walk of the folder (the test requires at least the ten known scripts to be found), and on the whole text of every static page, which takes in its inline <script> blocks, JSON-LD and handler attributes such as onload, with no image data URI allowed. The test runs SCRIPT111 on samples: your inline-script sample, setAttribute, an onload background and a photo on another domain fail; the site's own forms pass.
+  Four new negative controls in the proof: your sample on 404.html, a background set by an onload attribute, an image named in sync.js, and an image set with setAttribute in app.js. evidence/lhb-111-mutations.out: 30 of 30 red. evidence/lhb-111-r5-red-before.txt: the same proof with the round 5 test (a0241e8) leaves your sample and the sync.js one green (28 of 30); the onload and setAttribute ones were already caught by the url() and image-name checks.
+Round 6 (evidence/lhb-111-review-r6.txt) concurred on R5-1 to R1-2 and blocked on one; fixed in round 7 (tests only; cache stays lhb-v162):
+- R6-1 (P2): the SVG checks ran over five scripts. They now run over every script SITEJS111() finds except art.js, which is the drawing set itself and is checked drawing by drawing at the top of the test (and except vendor-leaflet.js, as before); the test requires at least app.js, hoja.js, sync.js, fotos.js and sw.js in that list. The two other ways a script can draw are closed over the same list: no SVG made through the DOM (createElementNS), and a canvas (getContext) only where there is one today, once each: the reader's photo resize in app.js and the share image in hoja.js (which paints the photo or the silhouette).
+  Three new negative controls in the proof: your sample appended to sync.js, an SVG made with createElementNS in sync.js, and a canvas drawing in cuenta.js. evidence/lhb-111-mutations.out: 33 of 33 red. evidence/lhb-111-r6-red-before.txt: the round 6 test (54bd53c) leaves all three green (30 of 33).
+Round 7 (evidence/lhb-111-review-r7.txt) concurred on R6-1 to R1-2 and blocked on one; fixed in round 8 (tests only; cache stays lhb-v162):
+- R7-1 (P2): the drawing guards (createElementNS, getContext) ran over script files only. They are now inside SCRIPT111, which runs on every site script but Leaflet and on the whole text of every static page (its inline scripts and handler attributes included): no SVG made through the DOM (createElementNS), no <canvas> element or OffscreenCanvas written, and getContext exactly as many times as the caller allows: once in app.js (the reader's photo resize) and once in hoja.js (the share image), zero everywhere else, every static page included. The separate guard over the script list is folded into it. SCRIPT111 is checked on samples: a canvas with getContext in an inline script, createElementNS in an inline script, and an OffscreenCanvas each throw.
+  Two new negative controls in the proof, both on 404.html: your canvas sample, and a red SVG made through createElementNS in an inline script. evidence/lhb-111-mutations.out: 35 of 35 red. evidence/lhb-111-r7-red-before.txt: the round 7 test (59bd1ba) leaves both green (33 of 35).
+Round 8 (evidence/lhb-111-review-r8.txt) concurred on R7-1 to R2-1 and R1-2 and blocked on two; both fixed in round 9 (tests only; cache stays lhb-v162):
+- R8-1 (P2): a drawing of the set could carry its own paint through a single-quoted or unquoted style or paint attribute. Each drawing art.js returns is now also read with ATTR111 (all quoting forms): no style attribute and no fill, stroke, stop-color, color, flood-color or lighting-color attribute at all (the set is painted by class from styles.css), and no <style> element.
+- R8-2 (P2): the SVG scans were case-sensitive. Every SVG scan, on the scripts and on the static pages, now reads tags without regard to case (<SVG ...>...</SVG>, and a closing tag with spaces before its >), and ICON111 reads the root tag the same way. Beyond your report: an <svg> left unclosed (the HTML parser closes it at the end of the page) escaped a scan that needs </svg>; now every <svg start tag in a script or a page must belong to a whole <svg>...</svg> the scan reads, or the test fails.
+  Four new negative controls in the proof: your style sample on ranchon's circle in art.js, your uppercase SVG on 404.html, an unclosed SVG on 404.html, and an uppercase SVG in a hoja.js template. evidence/lhb-111-mutations.out: 39 of 39 red. evidence/lhb-111-r8-red-before.txt: the round 8 test (a98fffd) leaves all four green (35 of 39).
+Round 9 (evidence/lhb-111-review-r9.txt) concurred on R8-1 to R2-1 and R1-2 and blocked on one; fixed in round 10 (tests only; cache stays lhb-v162):
+- R9-1 (P2): the stylesheet rules read three named files. CSSFILES111() now walks site/ for every .css (vendor-leaflet.css, Leaflet's own with its map images, stays out; the test requires at least styles.css, u.css and lugares/l.css), and every one it finds gets the url() rule (fonts only; an SVG data URI only in styles.css), plus two new rules: no @import, and none of the CSS functions that paint without url() (image-set, paint, element, cross-fade, -webkit-canvas, -moz-element). A second guard, CSSNAME111, runs on every site script, every static page and every functions/ script: no @import, and every stylesheet name the text writes (relative, root-relative or at https://lahojaboricua.com/) is one the walk checks (or vendor-leaflet.css); a page under lugares/ may write l.css.
+  Beyond your report: functions/ renders the public passport page (/u/<handle>) on the server, outside site/. Its scripts now pass the same rules as the site's: SCRIPT111 (image names, no image data URI, no canvas, no DOM-made SVG), CSSNAME111, MEDIA111 (a source built by string concatenation, ' + esc(...) + ', counts as data, like ${...}), and the SVG scan (every svg closed, every svg an icon). og.jpg, the link-preview card, joins the named exceptions with a root-relative and a bare form, as functions write it.
+  Five new negative controls in the proof: your link and your stylesheet (added as a new file, which the walk finds even unlinked), an @import in lugares/l.css, an image-set() in styles.css, and a coloured SVG on the passport page in functions/u/[handle].js. evidence/lhb-111-mutations.out: 44 of 44 red. evidence/lhb-111-r9-red-before.txt: the round 9 test (56a33b9) leaves four of the five green (40 of 44); the @import one was already caught by the url() rule.
+Round 10 (evidence/lhb-111-review-r10.txt) concurred on R9-1 to R2-1 and R1-2 and blocked on one; fixed in round 11 (tests only; cache stays lhb-v162):
+- R10-1 (P2): url() was read case-sensitively, and the CSS function rules ran on stylesheet files only. One rule, CSS111(css, where, SVG data URI allowed), now serves a stylesheet file and the CSS a page carries alike, without regard to case: url() brings only fonts (and an SVG data URI where allowed: styles.css alone); no @import; none of the functions that paint without url() (image-set, paint, element, cross-fade, src, -webkit-canvas, -moz-element); and no backslash at all, because a CSS escape can spell a name (u\72 l is url); the stylesheets have none today. It runs on every stylesheet the walk finds, on every <style> block of every static page, and on every style attribute of every page (read with ATTR111, any quoting form). The page-wide url( check is now case-insensitive too, and SCRIPT111 rejects the image-painting CSS functions written anywhere in a script or page.
+  Four new negative controls in the proof: your uppercase URL( in u.css, your image-set() in a <style> block on 404.html, a single-quoted style attribute with Url( on 404.html, and a CSS escape spelling url in styles.css. evidence/lhb-111-mutations.out: 48 of 48 red. evidence/lhb-111-r10-red-before.txt: the round 10 test (0a426b8) leaves all four green (44 of 48).
+Round 11 (evidence/lhb-111-review-r11.txt) concurred on R10-1 to R2-1 and R1-2 and blocked on one; fixed in round 12 (tests only; cache stays lhb-v162):
+- R11-1 (P2): CSS that a script writes was not checked. SCRIPT111 (which runs on every site script but Leaflet, every functions/ script and the whole text of every static page) now passes that CSS through CSS111: every <style> block in the text, and every style attribute in any quoting form, with each ${...} template expression set aside first as a data value (so a regex inside an expression is not read as a CSS escape). And any CSS url( the text writes, in any case and in any quoting (including a template literal), with block comments set aside and JavaScript's own new URL( left out, must bring a font; today no script writes one. The test runs SCRIPT111 on samples: your style block, a URL( set through element.style, and an image-set() inside a template's style attribute each fail; new URL(...) and a template style attribute with expressions pass.
+  Three new negative controls in the proof: your style block in head()'s .sec-art in app.js, a bitmap set through element.style.backgroundImage in hoja.js, and an Image-Set() in a template's style attribute in app.js. evidence/lhb-111-mutations.out: 51 of 51 red. evidence/lhb-111-r11-red-before.txt: the round 11 test (3111b90) leaves the first two green (49 of 51); the image-set one was already caught by the round 10 rule.
+Round 12 (evidence/lhb-111-review-r12.txt) concurred on R10-1 to R2-1 and R1-2 and maintained R11-1 for one remaining path; fixed in round 13 (tests only; cache stays lhb-v162):
+- R12-1 (P2): an unquoted style attribute was not read, and the url( scan did not see an escaped url. SCRIPT111 now reads a style attribute in every form a script can write it: double quotes, single quotes, quotes escaped inside a string (style=\"...\", as i18n.js writes them) and no quotes at all; each goes through CSS111, which refuses any backslash, so a CSS escape in a style attribute fails there. And before the url( scan and the image-function scan, the text is decoded the way the browser would read it: JavaScript escapes (\u0075, \u{75}, \x75) and CSS escapes (u\72 l, a backslash before any character) are turned into their characters, so an escaped url( or Image-\x53et( set through element.style is seen. The test runs SCRIPT111 on your unquoted sample and on four more (an escaped url and a JavaScript-escaped url through element.style, an escaped Image-Set, an image function in an escaped-quote style attribute): each fails; an i18n-style string with escaped-quote style and a regex full of backslashes pass.
+  Four new negative controls in the proof: your unquoted style attribute in head(), an escaped url and a JavaScript-escaped url set through element.style in hoja.js, and element() in the escaped-quote style attribute of an i18n.js string. evidence/lhb-111-mutations.out: 55 of 55 red. evidence/lhb-111-r12-red-before.txt: the round 12 test (3617c17) leaves all four green (51 of 55).
+  What a static scan of source cannot see, stated as the limit: a url( or an image function assembled at run time from separate strings ('ur'+'l('). No script does that today; the guard reads what the source says.
+Full suite 425 tests, 424 pass, 0 fail, 1 skipped (evidence/lhb-111-tests.txt).
+
+What to look for: an illustration or decorative image anywhere in the app (views, sheets, the map, the share image, empty states, static pages in site/lugares, site/artesanos, site/cigarros, site/guias, site/en, site/u.css or 404.html) that is not in the set or not in its style; a drawing that cannot be read at night or on its ground; an accessible name lost or duplicated (a header drawing that should be hidden, a silhouette without the cigar's name where it is the only content of a link); the silhouette's frame differing from the photo frame on the card, the detail, the humidor or the share image; the share image drawn with colours that ignore the theme; anything left referencing the retired art (CSS, JS, i18n keys, the cache list); and anything in the tests that could pass while the rule is broken.
+
+Answer with findings ranked P1 (blocking) to P3, each with file and symbol, then VERDICT: PASS or VERDICT: BLOCK as the last line.
+
+TOOLS: if your shell fails to start, use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff marca-110 62fb8749c12c5cfa5012f9a44a83fab9ef16c9e6 -- site test/site.test.js =====
+diff --git a/site/app.js b/site/app.js
+index 1496f51..28ba6a0 100644
+--- a/site/app.js
++++ b/site/app.js
+@@ -31,22 +31,10 @@ const fx=(r,k)=>{const v=r?r[k]:undefined;if(window.LHB_I18N.lang!=='en')return
+ const fq=(r,k)=>window.LHB_I18N.lang==='en'?[r[k],r[k+'_en']].filter(Boolean).join(' '):r[k];
+ const artisanName=c=>{const a=artisanById(c.artesano_id);return a?a.nombre:(c.artesano_texto||tt('art.noProfile'))};
+ /* ---------- art ---------- */
+-const CAPA_COLORS={claro:['#d8b47c','#b68a52'],connecticut:['#dcbd88','#b99256'],natural:['#b07a45','#8a5a30'],colorado:['#9b5a32','#74401f'],habano:['#a3683a','#7a4b25'],corojo:['#94532d','#6d3a1c'],sumatra:['#8a5634','#653c21'],criollo:['#9a6136','#704324'],maduro:['#5e3820','#3f2414'],oscuro:['#3e2416','#26150c'],'broadleaf':['#4a2b19','#2d190e']};
+-const capaKey=c=>{const s=(c||'').toLowerCase();for(const k of Object.keys(CAPA_COLORS))if(s.includes(k))return k;if(s.includes('ecuador'))return'habano';return'colorado'};
+-const BG=['#7fb0ff','#ffd27a','#ff9a9a','#a9c487','#c5cdf5','#8fb8ff'];
+ function hash(s){let h=0;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))|0;return Math.abs(h)}
+ function starPath(cx,cy,R){const r=R*.382;let p='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r:R;p+=(i?'L':'M')+(cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1)}return p+'Z'}
+-function cigarSVG(c){const [w1,w2]=CAPA_COLORS[capaKey(c.capa)];const ix=allCigars().findIndex(x=>x.id===c.id);const bg=BG[(ix<0?hash(c.id):ix)%BG.length];const h=hash(c.nombre);const tilt=-8+(h%7);
+- return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${tt('svg.alt',{n:esc(c.nombre)})}"><defs>
+- <linearGradient id="w${c.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${w1}"/><stop offset=".55" stop-color="${w2}"/><stop offset="1" stop-color="${w2}" stop-opacity=".85"/></linearGradient>
+- <pattern id="t${c.id}" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="${bg}"/><path d="M0 20h40M20 0v40" stroke="#fff" stroke-opacity=".18" stroke-width="2"/><circle cx="20" cy="20" r="6" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="2"/></pattern></defs>
+- <rect width="400" height="300" fill="url(#t${c.id})"/><rect width="400" height="300" fill="#1d130d" opacity=".18"/>
+- <g transform="rotate(${tilt} 200 150)"><ellipse cx="205" cy="196" rx="160" ry="14" fill="#000" opacity=".18"/>
+- <rect x="40" y="128" width="320" height="46" rx="23" fill="url(#w${c.id})"/>
+- <path d="M60 140 C 140 134 260 146 345 138 M70 160 C 160 166 250 154 340 162" stroke="#000" stroke-opacity=".14" stroke-width="2" fill="none"/>
+- <circle cx="352" cy="151" r="20" fill="${w2}"/><circle cx="356" cy="151" r="15" fill="#3a2214" opacity=".35"/>
+- <rect x="248" y="124" width="46" height="54" rx="5" fill="#ed0000"/><rect x="248" y="141" width="46" height="20" fill="#f4e9d6"/>
+- <path d="${starPath(271,151,9)}" fill="#1EA8D7"/></g></svg>`}
++/* LHB-111: el cigarro sin foto lleva la silueta de línea neutra, en el mismo marco que las fotos */
++const cigarSVG=c=>VBArt.silueta(tt('sil.alt',{n:esc(c.nombre)}));
+ const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7'];
+ function initials(n){const ov=(D.artesanos||[]).find(x=>x.nombre===n&&x.iniciales);if(ov)return ov.iniciales;const f=String(n).trim().split(/\s+/)[0].replace(/[^A-Z]/g,'');if(f.length>=2&&f.length<=4&&f===String(n).trim().split(/\s+/)[0].replace(/[.,]/g,''))return f;return String(n).replace(/[^\p{L}\p{N} ]/gu,' ').split(/\s+/).filter(w=>w&&!/^(de|del|la|las|los|el|y|cigar|cigars|cigarros|tabacalera|corp)$/i.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'VB'}
+ const LOGOS=new Set(["jfc-hoja-boricua", "don-rey-cigar", "el-club-del-turro", "don-collins", "finca-neo-jibairo", "willys-cigars", "san-pedrito-cigars", "yambo-cigars", "el-chapu-pr", "el-buho-ricamontes", "cohoba-cigars", "cigarros-caimito", "tabacalera-la-trascendencia", "pitirre-cigars", "villareno-cigars"]);
+@@ -71,11 +59,11 @@ const FORT=['suave','media','fuerte'];
+ const fortLabel=f=>f?tt('fort.'+f,null,f[0].toUpperCase()+f.slice(1)):'\u2014';
+ const PROTO_NOTE=`<p class="note">${tt('proto.note')}</p>`;
+ const head=(eyebrow,title,lead,art)=>`<header class="sec-head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${lead?`<p class="lead">${lead}</p>`:''}</div><div class="sec-art">${art}</div></header>`;
+-const emptyCoqui=msg=>`<div class="empty">${VBArt.coqui('coqui-empty')}<div>${msg}</div></div>`;
++const emptyBox=msg=>`<div class="empty"><div>${msg}</div></div>`;
+ /* ---------- cards ---------- */
+ const fotoOf=c=>(!c||c.yours||!window.LHB_FOTOS)?null:(window.LHB_FOTOS[c.id]||null);
+ async function hydratePhotos(root=view){for(const el of $$('[data-photo]',root)){const u=await photoURL(el.dataset.photo);if(u){el.innerHTML=`<img src="${u}" alt="">`}}}
+-function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
++function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+  ${favs.includes(c.id)?'<span class="fav-dot" aria-label="'+tt('card.fav')+'">♥</span>':''}
+  <div class="body"><div class="name">${esc(c.nombre)}</div><div class="meta">${esc(artisanName(c))}${c.pueblo?' · '+esc(c.pueblo):''}</div>
+  <div class="pills">${c.capa?`<span class="pill">${esc(fx(c,'capa'))}</span>`:''}${c.fortaleza?`<span class="pill f-${c.fortaleza}">${fortLabel(c.fortaleza)}</span>`:''}${c.yours?'<span class="pill yours">'+tt('card.yours')+'</span>':''}</div></div></a>`}
+@@ -126,7 +114,7 @@ function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.ca
+  <div class="chips" role="group" aria-label="${tt('f.fortaleza')}"><button class="chip" data-fort="" aria-pressed="${!state.fort}">${tt('cat.allFort')}</button>${FORT.map(f=>`<button class="chip" data-fort="${f}" aria-pressed="${state.fort===f}">${fortLabel(f)}</button>`).join('')}</div>
+  <div class="filter-row"><select id="fCapa" aria-label="${tt('f.capa')}"><option value="">${tt('cat.allCapa')}</option>${capas.map(x=>`<option value="${esc(x)}" ${state.capa===x?'selected':''}>${esc(capaLbl.get(x))}</option>`).join('')}</select>
+  <select id="fArt" aria-label="${tt('f.artesano')}"><option value="">${tt('cat.allArt')}</option>${D.artesanos.map(a=>`<option value="${esc(a.id)}" ${state.art===a.id?'selected':''}>${esc(a.nombre)}</option>`).join('')}</select></div>
+- ${list.length?`<div class="grid">${list.map(cigarCard).join('')}</div>`:emptyCoqui(tt('cat.empty'))}
++ ${list.length?`<div class="grid">${list.map(cigarCard).join('')}</div>`:emptyBox(tt('cat.empty'))}
+  ${PROTO_NOTE}`;
+  const qi=$('#q');qi.addEventListener('input',e=>{state.q=e.target.value;const pos=e.target.selectionStart;vCatalogo();const n=$('#q');n.focus();n.setSelectionRange(pos,pos)});
+  /* LHB-64: pintar el catálogo otra vez reemplaza los filtros; el foco vuelve al mismo filtro y el número de resultados se anuncia */
+@@ -136,7 +124,7 @@ function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.ca
+ function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="empty">${tt('cig.notFound')}</div>`;return}
+  const a=artisanById(c.artesano_id);const favs=EXT.S().favs.cigarros;const rat=EXT.S().ratings[c.id]||0;const isFav=favs.includes(c.id);
+  view.innerHTML=`<button class="back" data-back>${tt('back')}</button>
+- ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
++ ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+  <div class="detail-head"><div><div class="eyebrow">${c.yours?tt('cig.byYou'):tt('cig.madePR')}</div><h1>${esc(c.nombre)}</h1></div>
+  <button class="fav-btn" id="fav" aria-pressed="${isFav}">${isFav?tt('cig.saved'):tt('cig.save')}</button></div>
+  <div class="specs"><div class="spec"><small>${tt('f.capa')}</small><span>${esc(fx(c,'capa')||tt('notPub'))}</span></div><div class="spec"><small>${tt('f.fortaleza')}</small><span>${c.fortaleza?fortLabel(c.fortaleza):tt('notPub')}</span></div>
+@@ -155,7 +143,7 @@ function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="emp
+  const del=$('#del');if(del)del.onclick=async()=>{if(!confirm(tt('cig.confirmDel')))return;LS.set('uploads',uploads().filter(u=>u.id!==c.id));if(c.foto)await idb.del(c.foto).catch(()=>{});toast(tt('cig.deleted'));location.hash='#/perfil'};
+  hydratePhotos()}
+ function artTags(a){const t=[];if(a.etiqueta)t.push(`<span class="atag rd">${esc(a.etiqueta)}</span>`);if(a.por_confirmar)t.push(`<span class="atag pend">${esc(a.por_confirmar)}</span>`);return t.length?`<div class="atags">${t.join('')}</div>`:''}
+-function vArtesanos(){view.innerHTML=`${head(tt('menu.artesanos'),tt('arts.title'),tt('arts.lead'),VBArt.flamboyan())}
++function vArtesanos(){view.innerHTML=`${head(tt('menu.artesanos'),tt('arts.title'),tt('arts.lead'),VBArt.chaveta())}
+  <div class="list">${D.artesanos.map(a=>{const n=allCigars().filter(c=>c.artesano_id===a.id).length;return `<a class="row" href="#/a/${encodeURIComponent(a.id)}">${mono(a.nombre,50)}<div><div class="t">${esc(a.nombre)}</div><div class="s">${esc(a.pueblo||'')}${a.tipo?(a.pueblo?' · ':'')+esc(fx(a,'tipo')):''}${n?` · ${tt(n>1?'arts.nVitolas':'arts.nVitola',{n})}`:''}</div>${artTags(a)}</div><span class="go">›</span></a>`}).join('')||'<div class="empty">'+tt('soon')+'</div>'}</div>${PROTO_NOTE}`}
+ function vArtesano(id){const a=artisanById(id);if(!a){view.innerHTML='<div class="empty">'+tt('art.notFound')+'</div>';return}
+  const cs=allCigars().filter(c=>c.artesano_id===a.id);const ig=a.instagram_label||igHandle(a.instagram);
+@@ -173,7 +161,7 @@ function vArtesano(id){const a=artisanById(id);if(!a){view.innerHTML='<div class
+ let pendingPhoto=null;
+ function resizeImage(file,max=1100,q=.8){return new Promise((res,rej)=>{const img=new Image();const u=URL.createObjectURL(file);img.onload=()=>{const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*s);cv.height=Math.round(img.naturalHeight*s);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(u);cv.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',q)};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};img.src=u})}
+ function vSubir(){pendingPhoto=null;let fort='';
+- view.innerHTML=`${head(tt('up.eyebrow'),tt('up.title'),tt('up.lead'),VBArt.leaf('#d9a75a','sec-leaf'))}
++ view.innerHTML=`${head(tt('up.eyebrow'),tt('up.title'),tt('up.lead'),VBArt.caja())}
+  <form class="form" id="upForm" novalidate>
+  <div><div class="photo-drop" id="drop"><div class="ph-empty">📷<br>${tt('up.noFoto')}</div></div>
+  <div class="photo-btns"><label>${tt('up.camera')}<input type="file" accept="image/*" capture="environment" id="fCam"></label><label>${tt('up.gallery')}<input type="file" accept="image/*" id="fGal"></label></div></div>
+@@ -220,7 +208,7 @@ function placeCard(p){const ig=igHandle(p.instagram);return `<div class="pop"><d
+ function filteredPlaces(){return D.places.filter(p=>(!state.lugCat||p.categoria===state.lugCat)&&(!state.lugTown||p.pueblo===state.lugTown))}
+ function vLugares(arg){if(arg==='ruta')state.lugMode='ruta';else if(state.lugMode==='ruta')state.lugMode='mapa';const ru=state.lugMode==='ruta';const towns=[...new Set(D.places.map(p=>p.pueblo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));const ps=filteredPlaces();
+  const nL=D.places.filter(p=>p.categoria==='lounge').length,nV=D.places.filter(p=>p.categoria==='venta').length;
+- view.innerHTML=`${head(tt('menu.lugares'),tt('lug.title'),tt('lug.lead',{nL,nV}),VBArt.flor())}
++ view.innerHTML=`${head(tt('menu.lugares'),tt('lug.title'),tt('lug.lead',{nL,nV}),VBArt.ranchon())}
+  <div class="toggle t3" role="group" aria-label="${tt('lug.view')}"><button data-mode="mapa" aria-pressed="${state.lugMode==='mapa'}">${tt('lug.map')}</button><button data-mode="lista" aria-pressed="${state.lugMode==='lista'}">${tt('lug.list')}</button><button data-mode="ruta" aria-pressed="${ru}">${tt('lug.ruta')}</button></div>
+  ${ru?EXT.vRuta()+PROTO_NOTE:`<div class="chips"><button class="chip" data-cat="" aria-pressed="${!state.lugCat}">${tt('lug.all')}</button><button class="chip" data-cat="lounge" aria-pressed="${state.lugCat==='lounge'}">${tt('lug.lounges')}</button><button class="chip" data-cat="venta" aria-pressed="${state.lugCat==='venta'}">${tt('lug.venta')}</button></div>
+  <div class="filter-row"><select id="fTown" aria-label="${tt('f.pueblo')}"><option value="">${tt('lug.allTowns')}</option>${towns.map(t=>`<option ${state.lugTown===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+@@ -268,7 +256,7 @@ function drawMap(ps){if(leafletMap){leafletMap.remove();leafletMap=null}
+   const n=g.ms.length,at=map.layerPointToLatLng([g.x,g.y]),c=L.marker(at,{icon:L.divIcon({className:'pin-group',html:`<span>${n}</span>`,iconSize:[36,36],iconAnchor:[18,18]}),title:tt('map.group',{n}),keyboard:true});
+   c.on('click',()=>{map.closePopup();const b=L.latLngBounds(g.ms.map(m=>m.ll));if(tapGroup(map.getZoom(),map.getBoundsZoom(b,false,L.point(96,96)),b.getNorthEast().equals(b.getSouthWest()))==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)}).setLatLng(at).setContent('<div class="pops">'+g.ms.map(m=>placeCard(m.p)).join('')+'</div>').openOn(map);else map.fitBounds(b,{padding:[48,48],maxZoom:17})});pins.addLayer(c)}};
+  map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));
+- const nb=$('#near');if(nb)nb.onclick=()=>{if(!navigator.geolocation){toast(tt('geo.none'));return}nb.textContent=tt('geo.searching');navigator.geolocation.getCurrentPosition(pos=>{nb.textContent=tt('lug.near');const ll=[pos.coords.latitude,pos.coords.longitude];const vi=L.divIcon({className:'volky-pin',html:VBArt.carro('mini'),iconSize:[66,43],iconAnchor:[33,40]});L.marker(ll,{icon:vi,title:tt('geo.here'),zIndexOffset:1000}).addTo(map).bindTooltip(tt('geo.here'));map.setView(ll,12)},()=>{nb.textContent=tt('lug.near');toast(tt('geo.err'))},{timeout:10000})};
++ const nb=$('#near');if(nb)nb.onclick=()=>{if(!navigator.geolocation){toast(tt('geo.none'));return}nb.textContent=tt('geo.searching');navigator.geolocation.getCurrentPosition(pos=>{nb.textContent=tt('lug.near');const ll=[pos.coords.latitude,pos.coords.longitude];const vi=L.divIcon({className:'aqui-pin',html:VBArt.aqui(),iconSize:[30,30],iconAnchor:[15,15]});L.marker(ll,{icon:vi,title:tt('geo.here'),zIndexOffset:1000}).addTo(map).bindTooltip(tt('geo.here'));map.setView(ll,12)},()=>{nb.textContent=tt('lug.near');toast(tt('geo.err'))},{timeout:10000})};
+  if(pts.length>1)map.fitBounds(pts,{padding:[28,28],maxZoom:state.lugTown?14:11});else if(pts.length===1)map.setView(pts[0],14);layout()}
+ /* ---------- actividades ---------- */
+ const MES=tt('months').split(',');
+@@ -301,7 +289,7 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
+  <details class="edit"><summary>${tt('pf.favCapa')}</summary><form class="form" id="pForm">
+  <div class="field"><label for="pC">${tt('pf.favCapa')}</label><select id="pC"><option value="">\u2014</option>${['Claro','Connecticut','Natural','Colorado','Habano','Corojo','Criollo','Maduro','Oscuro'].map(x=>`<option ${p.capa===x?'selected':''}>${x}</option>`).join('')}</select></div>
+  <button class="btn" type="submit">${tt('pf.save')}</button></form></details>
+- <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
++ <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyBox(tt('pf.noUploads'))}
+  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--accent-ink);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
+  ${EXT.accountPanel()}<p class="note">${tt('pf.note')}</p>`;
+  if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));EXT.bindAccount();
+@@ -325,13 +313,13 @@ const ext=(href,txt)=>`<a href="${href}" target="_blank" rel="noopener">${txt}</
+ const keepFocus=()=>{const a=document.activeElement;if(!a||a===document.body||!a.isConnected)view.focus({preventScroll:true})};
+ /* Ver intro: ?intro=1 la repite una vez aunque no hayan pasado los 14 días, y vuelve aquí; con menos movimiento o ahorro de datos la intro no sale, así que no se ofrece (se mira al pintar: el ajuste puede cambiar sin recargar) */
+ function vAcerca(){const off=matchMedia('(prefers-reduced-motion: reduce)').matches||!!(navigator.connection&&navigator.connection.saveData);
+- view.innerHTML=`${head(tt('about.eyebrow'),tt('about.title'),tt('about.lead'),VBArt.leaf('#ffd27a'))}
++ view.innerHTML=`${head(tt('about.eyebrow'),tt('about.title'),tt('about.lead'),VBArt.hoja())}
+  <section class="about-sec" aria-labelledby="ab-intro"><h2 id="ab-intro">${tt('about.introH')}</h2>${off?`<p class="hint">${tt('about.introOff')}</p>`:`<p class="hint">${tt('about.replayNote')}</p><a class="lbtn about-replay" href="/?intro=1#/acerca" data-intro-replay>${brandIcon('play')}<span>${tt('about.replay')}</span></a>`}</section>
+  <section class="about-sec" aria-labelledby="ab-more"><h2 id="ab-more">${tt('about.moreH')}</h2>
+  <a class="menu-dest" href="#/creditos"><span class="menu-ico">${brandIcon('info')}</span><span class="menu-copy"><b>${tt('about.credits')}</b><small>${tt('about.creditsSub')}</small></span>${brandIcon('arrow','menu-go')}</a>
+  <a class="menu-dest" href="/privacidad"><span class="menu-ico">${brandIcon('people')}</span><span class="menu-copy"><b>${tt('about.privacy')}</b><small>${tt('about.privacySub')}</small></span>${brandIcon('arrow','menu-go')}</a></section>`;keepFocus()}
+ function vCreditos(){
+- view.innerHTML=`<button class="back" type="button" data-back>${tt('cred.back')}</button>${head(tt('about.eyebrow'),tt('cred.title'),tt('cred.lead'),VBArt.leaf('#8fd162'))}
++ view.innerHTML=`<button class="back" type="button" data-back>${tt('cred.back')}</button>${head(tt('about.eyebrow'),tt('cred.title'),tt('cred.lead'),VBArt.hoja())}
+  <section class="about-sec" aria-labelledby="cr-bus"><h2 id="cr-bus">${tt('cred.busH')}</h2><p class="cred-p">${tt('cred.bus')} ${ext('https://callepomarrosas.com/',tt('intro.creditName'))}.</p></section>
+  <section class="about-sec" aria-labelledby="cr-sound"><h2 id="cr-sound">${tt('cred.soundH')}</h2><p class="hint">${tt('cred.soundLead')}</p>
+  <ul class="cred-list">${CREDITS.audio.map(c=>`<li class="cred-item" data-credit="${c.id}"><b>${c.part()}</b><span>${ext(c.href,esc(c.title))} ${tt('cred.by')} ${esc(c.author)}</span><span>${tt('cred.license')}: ${ext(c.licenseHref,esc(c.license))}</span><span>${tt('cred.changes')}: ${c.changes()}</span></li>`).join('')}</ul>
+diff --git a/site/art.js b/site/art.js
+index 4a7801f..6252f18 100644
+--- a/site/art.js
++++ b/site/art.js
+@@ -1,52 +1,58 @@
+ (()=>{
+-const tt=window.LHB_I18N.t;/* LHB-29: i18n.js carga antes que art.js */
+ function star(cx,cy,R){const r=R*.382;let p='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r:R;p+=(i?'L':'M')+(cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1)}return p+'Z'}
+-let n=0;
+-// v9: el dibujo SVG viejo se borró; volky() queda como alias para no romper llamadas.
+-function volky(cls=''){return guagua(cls)}
+ 
+-const COQUI_INNER=`<ellipse cx="60" cy="102" rx="36" ry="5" fill="#000" opacity=".2"/>
+- <path d="M24 92 C 10 92 12 78 26 80 M96 92 C 110 92 108 78 94 80" stroke="#6b4a2a" stroke-width="7" fill="none" stroke-linecap="round"/>
+- <ellipse cx="60" cy="70" rx="36" ry="28" fill="#a7743f" stroke="#3a2417" stroke-width="4"/>
+- <ellipse cx="60" cy="80" rx="22" ry="14" fill="#e3c08e"/>
+- <circle cx="40" cy="38" r="17" fill="#a7743f" stroke="#3a2417" stroke-width="4"/><circle cx="80" cy="38" r="17" fill="#a7743f" stroke="#3a2417" stroke-width="4"/>
+- <circle cx="40" cy="38" r="11" fill="#fff"/><circle cx="80" cy="38" r="11" fill="#fff"/><circle cx="42" cy="40" r="6" fill="#2a1a12"/><circle cx="82" cy="40" r="6" fill="#2a1a12"/><circle cx="44" cy="37" r="2" fill="#fff"/><circle cx="84" cy="37" r="2" fill="#fff"/>
+- <path d="M48 62 q 12 10 24 0" stroke="#3a2417" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="34" cy="60" r="5" fill="#e88a6a" opacity=".7"/><circle cx="86" cy="60" r="5" fill="#e88a6a" opacity=".7"/>
+- <path d="M30 92 c -4 6 4 8 8 2 M90 92 c 4 6 -4 8 -8 2" stroke="#3a2417" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+-function guagua(cls=''){
+- // v8: la guagua es la ilustración B que escogió Sergio (turquesa y crema, sin logo), recortada en WebP con transparencia.
+- // Sustituye el dibujo SVG de la v6 (tablilla HOJA PR). Mismo nombre y VEHICULO='guagua' para no romper nada.
+- return `<img class="volky guagua ${cls}" src="img/guagua/guagua_recorte.webp" width="600" height="400" alt="${tt('a.guagua')}" decoding="async" draggable="false">`}
+-
+-function coqui(cls=''){return `<svg class="coqui ${cls}" viewBox="0 0 120 110" role="img" aria-label="${tt('a.coqui')}">${COQUI_INNER}</svg>`}
+-// v17: la garita se sustituyó por la flor de tabaco (pedido de Sergio, 21 oct 2026). Estilo vectorial con sombreado suave.
+-function rs(R,k=.5){let p='';for(let i=0;i<5;i++){const a=-1.5708+i*1.2566,v=(b,r)=>(r*Math.cos(b)).toFixed(1)+' '+(r*Math.sin(b)).toFixed(1);p+=(i?'':'M'+v(a-.6283,R*k))+'Q'+v(a,R*1.25)+' '+v(a+.6283,R*k)}return p+'Z'}
+-function flor(cls=''){const k='f'+(++n),u=(id,x,y,a=0,s=1,m)=>`<use href="#${k}${id}" transform="translate(${x} ${y})${m?' scale(-1 1)':''} rotate(${a}) scale(${s})"/>`;
+- return `<svg class="flor ${cls}" viewBox="0 0 130 160" role="img" aria-label="${tt('a.flor')}"><defs><linearGradient id="${k}g" x2="1" y2="1"><stop offset="0" stop-color="#9ad866"/><stop offset="1" stop-color="#3f8a35"/></linearGradient><linearGradient id="${k}t" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f7e3c8"/><stop offset="1" stop-color="#ee79a6"/></linearGradient><linearGradient id="${k}b" x1="0" y1="1" x2="0" y2="0"><stop offset=".3" stop-color="#8cc05a"/><stop offset="1" stop-color="#f07fab"/></linearGradient>
+- <g id="${k}l"><path d="M0 0C6-22 44-26 62-3C46 16 10 18 0 0Z" fill="url(#${k}g)"/><path d="M0 0Q30-3 62-3C46 16 10 18 0 0Z" fill="#14381c" opacity=".2"/><path d="M2 0Q30-3 59-3M14-1l8-12M28-2l9-12M42-3l8-9M14 0l8 9M28-1l9 9M42-2l8 6" stroke="#e2f3bf" stroke-width="1.1" fill="none" opacity=".6"/></g>
+- <g id="${k}f"><path d="M-2.2-5C-2.4-12-3-17-6-21H6C3-17 2.4-12 2.2-5Z" fill="url(#${k}t)"/><path d="${rs(9)}" transform="translate(0 -22) scale(1 .45)" fill="#e8619a"/><ellipse cy="-22" rx="2.6" ry="1.1" fill="#a8335f"/><path d="M-3.2 0-4-6H4L3.2 0Z" fill="#6fae44"/></g>
+- <g id="${k}s"><path d="${rs(9)}" fill="#ec6ba0"/><path d="${rs(5,.6)}" fill="#f9b3cf"/><circle r="1.6" fill="#fff2b0"/></g>
+- <path id="${k}d" d="M0 0C-3.5-6-3.5-14 0-20C3.5-14 3.5-6 0 0Z" fill="url(#${k}b)"/></defs>
+- <ellipse cx="65" cy="156" rx="34" ry="3.5" fill="#000" opacity=".22"/>
+- <path d="M65 157C66 124 63 88 65 56M65 60 50 46M65 60 80 46M65 60 56 40M65 60 74 40M65 60 65 36M65 60 46 56M65 60 84 56" stroke="#4f8f32" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M64 150C64.5 122 62.5 90 64 62" stroke="#a6d77a" stroke-width="1" fill="none" opacity=".6"/>
+- ${[[128,22,1],[113,14,.94,1],[97,6,.82],[83,-4,.68,1],[71,-16,.5]].map(([y,a,s,m])=>u('l',65,y,a,s,m)).join('')}
+- ${[[46,56,-70,1.3],[84,56,68,1.3]].map(([x,y,a,s])=>u('d',x,y,a,s)).join('')}
+- ${[[50,46,-50,1.3],[56,40,-20,1.35],[74,40,20,1.35],[80,46,50,1.3]].map(([x,y,a,s])=>u('f',x,y,a,s)).join('')}
+- ${[[65,26,0,1.2],[36,32,-10,.95],[94,33,10,.95]].map(([x,y,a,s])=>u('s',x,y,a,s)).join('')}
+- ${u('d',65,12,0,.6)}</svg>`}
+-function flamboyan(cls=''){const k='b'+(++n),q=i=>{const x=Math.sin(i*91.7)*4e4;return x-Math.floor(x)},B=[[16,52,11],[30,44,14],[48,37,16],[70,34,17],[92,37,16],[110,44,14],[124,52,11],[40,54,11],[62,55,12],[84,55,12],[104,54,11]];let t='';
+- for(let i=0;i<120;i++){const a=q(i)*6.283,r=Math.sqrt(q(i+.37)),x=70+Math.cos(a)*r*56,y=44+Math.sin(a)*r*14;t+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(1.2+q(i+.7)*1.5).toFixed(1)}" fill="${y<40?(q(i+.2)<.5?'#ffd25a':'#ffaa44'):(q(i+.2)<.5?'#d63a26':'#f26a31')}"/>`}
+- return `<svg class="flamboyan ${cls}" viewBox="0 0 140 124" role="img" aria-label="${tt('a.flamboyan')}"><defs><radialGradient id="${k}" cx="66" cy="18" r="66" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ff9a3e"/><stop offset=".45" stop-color="#ec5a2c"/><stop offset="1" stop-color="#c22c22"/></radialGradient><linearGradient id="${k}t" x2="1"><stop offset="0" stop-color="#8a5a34"/><stop offset=".6" stop-color="#5e3b22"/><stop offset="1" stop-color="#3f2716"/></linearGradient></defs>
+- <ellipse cx="70" cy="119" rx="40" ry="4" fill="#000" opacity=".25"/><ellipse cx="68" cy="116" rx="28" ry="5" fill="#3f8a35"/><path d="M46 116l-2-6 4 5 1-7 2 8M86 116l2-6 1 6 3-5-1 6M60 117l-1-5 3 5" stroke="#7cc04a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+- <path d="M58 117C64 104 62 94 66 84C60 76 46 70 26 66L28 62C46 66 58 70 66 76C66 70 62 64 54 58L57 55C66 61 70 68 70 76C76 68 90 62 112 61L112 65C94 66 82 72 74 80C82 76 90 70 94 62L97 64C92 74 82 82 74 88C72 98 74 108 80 117Z" fill="url(#${k}t)"/>
+- <path d="M65 112C67 104 69 98 68 90M70 108C73 100 70 94 72 88" stroke="#3a2314" stroke-width="1.2" fill="none" opacity=".7"/>
+- ${[[26,62,8],[114,62,8],[50,64,7],[90,64,7],[70,62,7]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#3c7a32"/>`).join('')}
+- ${B.map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#a3221d"/>`).join('')}
+- ${B.map(([x,y,r])=>`<circle cx="${x}" cy="${y-2.5}" r="${r-2.5}" fill="url(#${k})"/>`).join('')}
+- ${t}</svg>`}
++/* LHB-111: una sola manera de ilustrar fuera de la intro, la del anillo del cigarro y la litografía de la caja de cigarros: dibujo de línea en un solo color,
++   la tinta de tabaco (--art-ink), con un solo acento (--art-ac, el ámbar). El color lo pone styles.css (.lart), así que siguen al tema; los dibujos no llevan
++   colores propios. Las cabeceras son adorno (aria-hidden: el título ya lo dice). Dibujos originales de este repositorio */
++const LA=(name,cls,vb,body)=>`<svg class="lart ${name} ${cls}" viewBox="${vb}" aria-hidden="true" focusable="false">${body}</svg>`;
++const sprig=(x,y,d)=>`<path class="fn" d="M${x} ${y}h${18*d}M${x+4*d} ${y}q${3*d} -5 ${7*d} -5q${-1*d} 4 ${-7*d} 5M${x+4*d} ${y}q${3*d} 5 ${7*d} 5q${-1*d} -4 ${-7*d} -5M${x+11*d} ${y}q${3*d} -4 ${6*d} -4q${-1*d} 3 ${-6*d} 4M${x+11*d} ${y}q${3*d} 4 ${6*d} 4q${-1*d} -3 ${-6*d} -4"/>`;
++/* Lugares: el ranchón de tabaco, con la hoja colgada a secar */
++const ranchon=(cls='')=>LA('ranchon',cls,'0 0 120 100',
++ `<circle class="ac" cx="98" cy="22" r="8"/><path d="M6 64C20 54 32 54 40 58M86 56C96 50 106 52 114 58"/>
++ <path d="M14 58L60 28L106 58M22 53V90M98 53V90M6 90H114"/><path d="M52 90V66H68V90"/>
++ <path class="fn" d="M30 90V48M38 90V43M46 90V38M74 90V38M82 90V43M90 90V48M50 46H70"/>
++ <path class="fn" d="M54 46c-3 4-3 10 0 14c3-4 3-10 0-14M60 46c-3 4-3 10 0 14c3-4 3-10 0-14M66 46c-3 4-3 10 0 14c3-4 3-10 0-14"/>`);
++/* Eventos: el anillo del cigarro, con su medallón y la estrella */
++const banda=(cls='')=>LA('banda',cls,'0 0 120 100',
++ `<path d="M8 44Q60 37 112 44V66Q60 73 8 66Z"/><path class="fn" d="M14 49Q60 43 106 49M14 61Q60 67 106 61"/>
++ ${sprig(16,55,1)}${sprig(104,55,-1)}
++ <path class="bg" d="M42 30Q60 22 78 30V78Q60 88 42 78Z"/><path class="fn" d="M47 34Q60 28 73 34V75Q60 82 47 75Z"/>
++ <path class="ac" d="${star(60,54,10)}"/><path class="fn" d="M48 22q6-6 12 0q6-6 12 0"/>`);
++/* Artesanos: la chaveta del torcedor, la hoja y el cigarro ya torcido */
++const chaveta=(cls='')=>LA('chaveta',cls,'0 0 120 100',
++ `<path d="M14 72C10 40 40 12 80 12C80 46 52 74 14 72Z"/><path class="fn" d="M14 72Q44 46 80 12M30 56l-2-14M42 46l-2-16M54 36l-1-14M30 56l14 2M42 46l16 1M54 36l14-1"/>
++ <path class="bg" d="M62 82A22 22 0 0 1 106 82Z"/><path d="M62 82A22 22 0 0 1 106 82Z"/><path class="fn" d="M70 82A14 14 0 0 1 98 82"/>
++ <rect x="8" y="84" width="74" height="9" rx="4.5"/><rect class="ac" x="60" y="84" width="8" height="9"/>`);
++/* Podcast: el micrófono de cápsula */
++const micro=(cls='')=>LA('micro',cls,'0 0 120 100',
++ `<rect x="44" y="8" width="32" height="48" rx="16"/><path class="fn" d="M48 22H72M46 31H74M46 40H74M48 49H72"/><rect class="ac" x="42" y="54" width="36" height="6" rx="3"/>
++ <path d="M34 36V46A26 26 0 0 0 86 46V36M60 72V88M42 92H78"/><path class="fn" d="M24 26q-7 12 0 24M96 26q7 12 0 24M16 20q-11 18 0 36M104 20q11 18 0 36"/>`);
++/* Buscar: la lupa sobre la hoja */
++const lupa=(cls='')=>LA('lupa',cls,'0 0 120 100',
++ `<path d="M10 86C6 48 38 16 78 14C78 52 50 84 10 86Z"/><path class="fn" d="M10 86Q42 54 78 14M26 70l-2-14M38 58l-1-16M50 46l-1-14M26 70l14 1M38 58l15 0"/>
++ <circle class="bg" cx="76" cy="58" r="18"/><circle cx="76" cy="58" r="18"/><path class="fn" d="M66 52a12 12 0 0 1 8-6"/><path class="acs th" d="M89 71L106 88"/>`);
++/* Acerca de y créditos: la hoja de tabaco, atada por el tallo como se cuelga a secar */
++const hoja=(cls='')=>LA('hoja',cls,'0 0 120 100',
++ `<path d="M60 92C34 78 26 46 60 8C94 46 86 78 60 92Z"/><path class="fn" d="M60 92V14M60 30l-12-8M60 30l12-8M60 46l-16-10M60 46l16-10M60 62l-18-10M60 62l18-10M60 76l-14-8M60 76l14-8"/>
++ <rect class="ac" x="54" y="84" width="12" height="7" rx="2"/><path d="M60 91V97"/>`);
++/* Maridajes: la taza de café y el cigarro en el plato */
++const maridaje=(cls='')=>LA('maridaje',cls,'0 0 120 100',
++ `<path d="M22 54H70V62C70 78 60 86 46 86C32 86 22 78 22 62Z"/><path d="M70 60c11 0 11 15 0 15M12 92H80"/><path class="fn" d="M36 46c-4-6 4-10 0-16M48 46c-4-6 4-10 0-16M58 46c-4-6 4-10 0-16"/>
++ <rect x="62" y="82" width="50" height="8" rx="4"/><rect class="ac" x="96" y="82" width="6" height="8"/><path class="fn" d="M109 78c-4-6 4-10 0-18"/>`);
++/* Subir y los estados vacíos: la caja de cigarros abierta, con su litografía en la tapa */
++const CAJA=`<path d="M32 50L40 14H112L104 50"/><path class="fn" d="M45 20H105L100 44H40Z"/><ellipse class="ac" cx="72" cy="32" rx="10" ry="7"/>
++ <path d="M14 60H86V90H14ZM86 60L104 50V80L86 90M14 60L32 50H104"/><path class="fn" d="M36 68H64V80H36Z"/>`;
++const caja=(cls='')=>LA('caja',cls,'0 0 120 100',CAJA);
++/* LHB-111: el cigarro sin foto, una silueta de línea neutra en el mismo marco 2:1 que las fotos de producto. lit (los colores ya resueltos) es para la imagen
++   para compartir, que la dibuja como imagen suelta y no lee la hoja de estilos */
++function silueta(label,lit){const st=lit?` fill="none" stroke="${lit.ink}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"`:'',ac=lit?` fill="${lit.ac}"`:'',fn=lit?` stroke-width="4"`:'';
++ return `<svg class="lart sil" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300"${label?` role="img" aria-label="${label}"`:' aria-hidden="true" focusable="false"'}${st}>
++ <path d="M96 122H462C494 122 510 136 510 150C510 164 494 178 462 178H96"/><ellipse cx="96" cy="150" rx="10" ry="28"/>
++ <path class="fn"${fn} d="M150 136q60 8 120-2M196 165q70-7 150 2M298 140q40 5 80-1M486 126c-11 9-11 39 0 48"/>
++ <rect class="ac"${ac} x="402" y="118" width="38" height="64" rx="5"/></svg>`}
++/* el mapa: aquí estás */
++const aqui=(cls='')=>LA('aqui',cls,'0 0 30 30',`<circle class="bg" cx="15" cy="15" r="11"/><circle cx="15" cy="15" r="11"/><circle class="ac" cx="15" cy="15" r="4.5"/>`);
++/* la hoja de tabaco en los íconos y los pines: no es ilustración, es un ícono con su color (lounge o tienda, la hoja ganada) */
+ function leaf(color,cls=''){return `<svg class="leafsvg ${cls}" viewBox="0 0 40 52" aria-hidden="true"><path d="M20 2 C 34 12 38 28 32 40 C 28 47 23 50 20 51 C 17 50 12 47 8 40 C 2 28 6 12 20 2Z" fill="${color}" stroke="#2a1a12" stroke-width="3" stroke-linejoin="round"/><path d="M20 8 V48 M20 20 l7 -5 M20 28 l9 -5 M20 36 l8 -4 M20 20 l-7 -5 M20 28 l-9 -5 M20 36 l-8 -4" stroke="#2a1a12" stroke-width="2" stroke-linecap="round" opacity=".55"/></svg>`}
+-// Vehículo de la app: 'volky' (Beetle caricatura) o 'guagua' (camper). Un solo cambio aquí.
+-const VEHICULO='guagua';
+-const carro=(cls)=>VEHICULO==='guagua'?guagua(cls):volky(cls);
+-window.VBArt={volky,guagua,carro,coqui,flor,garita:flor,flamboyan,leaf,star};
++window.VBArt={ranchon,banda,chaveta,micro,lupa,hoja,maridaje,caja,CAJA,silueta,aqui,leaf,star};
+ })();
+diff --git a/site/hoja.js b/site/hoja.js
+index c0d07ad..be6bb3a 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -705,7 +705,7 @@ function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad
+  view.innerHTML=`${subnav('humidor')}
+  <div class="hum-sum"><div class="stat"><b>${tot}</b><span>${tt('h.cigarros')}</span></div><div class="stat"><b>${s.humidor.length}</b><span>${tt('h.vitolas')}</span></div><button class="btn" type="button" data-sheet="humidor">${tt('h.anadir')}</button></div>
+  ${s.humidor.length?`<div class="list">${s.humidor.map(h=>{const c=h.cigarId&&A.cigarById(h.cigarId);return `<div class="row hum">
+-  ${c?`<a class="hum-ph" href="#/c/${encodeURIComponent(c.id)}" aria-label="${tt('h.ver',{a:esc(c.nombre)})}">${A.cigarSVG(c)}</a>`:`<span class="hum-ph custom" aria-hidden="true">${VBArt.leaf('#a9c487')}</span>`}
++  ${c?`<a class="hum-ph" href="#/c/${encodeURIComponent(c.id)}" aria-label="${tt('h.ver',{a:esc(c.nombre)})}">${A.cigarSVG(c)}</a>`:`<span class="hum-ph custom" aria-hidden="true">${VBArt.silueta('')}</span>`}
+   <div class="hum-b"><div class="t">${esc(h.nombre)}</div><div class="s">${tt('h.desde',{a:h.artesano?esc(h.artesano)+' · ':'',b:c?'':tt('h.tuyo'),c:fmtF(h.fecha)})}</div>${h.nota?`<div class="s">${esc(h.nota)}</div>`:''}
+   <div class="hum-act"><div class="qty sm"><button type="button" data-hq="${h.id}:-1" aria-label="${tt('h.unoMenosDe',{a:esc(h.nombre)})}">−</button><span aria-live="polite">${h.cantidad}</span><button type="button" data-hq="${h.id}:1" aria-label="${tt('h.unoMasDe',{a:esc(h.nombre)})}">+</button></div>
+   <button class="mini" type="button" data-hcata="${h.id}">${tt('h.catar')}</button><button class="mini" type="button" data-hedit="${h.id}">${tt('h.editar')}</button><button class="mini x" type="button" data-hdel="${h.id}" aria-label="${tt('h.quitarDelHumidor',{a:esc(h.nombre)})}">✕</button></div></div></div>`}).join('')}</div>`
+@@ -967,7 +967,7 @@ function pairing(c){const f=c.fortaleza||'media',t=cigarTags(c);return{ron:pick(
+ const mstate={f:'media',t:[]};
+ function vMaridajes(){const r=pick(RON,mstate.f,mstate.t),k=pick(CAFE,mstate.f,mstate.t);
+  const card=x=>`<article class="pcard"><h3>${x.n}</h3><p class="pp">${x.p}</p><p>${x.m}</p><div class="pills"><span class="pill">${tt('h.fortalezaRango',{a:x.f.map((f,i)=>i?A.fortLabel(f).toLowerCase():A.fortLabel(f)).join(tt('h.rangoA'))})}</span>${x.t.map(t=>`<span class="pill">${WN(t)}</span>`).join('')}</div></article>`;
+- view.innerHTML=`${A.head(tt('menu.maridajes'),tt('h.ronCafeYHumo'),tt('h.guiaGeneralParaAcompanar'),VBArt.leaf('#8fd162','sec-leaf'))}
++ view.innerHTML=`${A.head(tt('menu.maridajes'),tt('h.ronCafeYHumo'),tt('h.guiaGeneralParaAcompanar'),VBArt.maridaje())}
+  <section class="pair-tool"><h2>${tt('h.queVasAFumar')}</h2>
+  <div class="field"><label>${tt('f.fortaleza')}</label><div class="seg" role="group" aria-label="${tt('f.fortaleza')}">${A.FORT.map(f=>`<button type="button" data-mf="${f}" aria-pressed="${mstate.f===f}">${A.fortLabel(f)}</button>`).join('')}</div></div>
+  <div class="field"><label>${tt('h.perfilDeSaborToca')}</label><div class="chips wrapc" role="group" aria-label="${tt('h.perfilDeSabor')}">${WHEEL.map(w=>`<button type="button" class="chip" data-mt="${w.id}" aria-pressed="${mstate.t.includes(w.id)}">${w.n}</button>`).join('')}</div></div>
+@@ -997,7 +997,7 @@ const DOC='<svg class="mic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3
+ function podBlock(kind,id){const list=ARTS.filter(x=>((kind==='a'?x.a:x.cg)||[]).includes(id));
+  if(!list.length&&kind==='c')return '';
+  return `<section class="pod">${MIC}<div><div class="eyebrow">${tt('h.escuchaEnCigarsPodcast')}</div>${list.length?list.map(x=>`<a class="pod-a" href="${x.u}" target="_blank" rel="noopener"><b>${esc(x.t)}</b><small>${x.c} · ${fmtF(x.f)}</small></a>`).join(''):`<p class="pod-s">${tt('h.lanzamientosResenasYCultura2')}</p>`}<a class="pod-more" href="${list.length?'#/podcast':POD}" ${list.length?'':'target="_blank" rel="noopener"'}>${list.length?tt('h.masDeCigarsPodcast'):tt('h.visitarCigarsPodcast')}</a></div></section>`}
+-function vPodcast(){view.innerHTML=`${A.head(tt('h.podcast'),tt('h.escuchaEnCigarsPodcast2'),tt('h.lanzamientosResenasYCultura3'),VBArt.coqui())}
++function vPodcast(){view.innerHTML=`${A.head(tt('h.podcast'),tt('h.escuchaEnCigarsPodcast2'),tt('h.lanzamientosResenasYCultura3'),VBArt.micro())}
+  <div class="links"><a class="lbtn spotify" href="${SPOTIFY}" target="_blank" rel="noopener">${tt('h.escuchaloEnSpotify',{a:SPOT_SVG})}</a><a class="lbtn web" href="${POD}" target="_blank" rel="noopener">${A.ICON.web}Cigars Podcast</a><a class="lbtn ig" href="https://www.instagram.com/cigarspodcast/" target="_blank" rel="noopener">${A.ICON.ig}@cigarspodcast</a></div>
+  <div class="section-title"><h2>${tt('h.articulos')}</h2></div><div class="list">${ARTS.map(x=>`<a class="row" href="${x.u}" target="_blank" rel="noopener">${DOC}<div><div class="t">${esc(x.t)}</div><div class="s">${x.c} · ${fmtF(x.f)}</div></div><span class="go">›</span></a>`).join('')}</div>
+  <p class="note">${tt('h.seAbrenEnEl')}</p>`}
+@@ -1005,7 +1005,7 @@ function vPodcast(){view.innerHTML=`${A.head(tt('h.podcast'),tt('h.escuchaEnCiga
+ const qs={q:'',reg:'',mun:'',fort:''};
+ const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ function vBuscar(){const d=D();const munis=[...new Set([...d.artesanos.map(a=>a.pueblo),...d.places.map(p=>p.pueblo),...d.cigarros.map(c=>c.pueblo),...(d.events.actividades||[]).map(e=>e.pueblo)].map(municipio).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+- view.innerHTML=`${A.head(tt('cat.search'),tt('h.buscaEnTodo'),tt('h.cigarrosArtesanosLugaresY'),VBArt.flor())}
++ view.innerHTML=`${A.head(tt('cat.search'),tt('h.buscaEnTodo'),tt('h.cigarrosArtesanosLugaresY'),VBArt.lupa())}
+  <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr">${tt('cat.search')}</span><input id="gq" type="search" placeholder="${tt('h.buscarEnTodaLa')}" value="${esc(qs.q)}" autocomplete="off"></label>
+  <div class="filter-row"><select id="gReg" aria-label="${tt('h.region')}"><option value="">${tt('h.regionTodas')}</option>${Object.keys(REG).map(r=>`<option value="${r}" ${qs.reg===r?'selected':''}>${lab(r)}</option>`).join('')}</select>
+  <select id="gMun" aria-label="${tt('h.municipio')}"><option value="">${tt('h.municipioTodos')}</option>${munis.filter(m=>!qs.reg||region(m)===qs.reg).map(m=>`<option ${qs.mun===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
+@@ -1078,7 +1078,7 @@ function calGrid(evs){if(!evs.length)return '<div class="empty">'+tt('h.noHayEve
+  return html+`<div class="cal-legend"><span><i class="lg-anc"></i>${tt('ev.anclas')}</span><span><i class="lg-ev"></i>${tt('h.otrosEventos')}</span></div><div id="calSel">${sel.length?sel.map(e=>isAnchor(e)?anchorCard(e):evCard(e)).join(''):'<p class="hint">'+tt('h.tocaUnDiaMarcado')+'</p>'}</div>`}
+ function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0,0,0);const evs=(D().events.actividades||[]).filter(e=>{const d=A.evDate(e.fecha);return d&&d>=today}).sort((a,b)=>a.fecha.localeCompare(b.fecha));const mine=LS.get('sugeridas',[]);
+  const anc=evs.find(isAnchor);const rest=evs.filter(e=>e!==anc);const upd=D().events.actualizado?new Date(D().events.actualizado):null;
+- view.innerHTML=`${A.head(tt('menu.eventos'),tt('h.eventosYCatas'),tt('h.loQueVieneEn'),VBArt.coqui())}
++ view.innerHTML=`${A.head(tt('menu.eventos'),tt('h.eventosYCatas'),tt('h.loQueVieneEn'),VBArt.banda())}
+  ${upd&&!isNaN(upd)?`<p class="updated">${tt('h.listaActualizadaEl',{a:upd.getDate(),b:MES[upd.getMonth()],c:upd.getFullYear(),d:navigator.onLine?'':tt('h.sinConexion')})}</p>`:''}
+  <div class="toggle" role="group" aria-label="${tt('lug.view')}"><button type="button" data-evm="lista" aria-pressed="${evst.mode==='lista'}">${tt('lug.list')}</button><button type="button" data-evm="cal" aria-pressed="${evst.mode==='cal'}">${tt('h.calendario')}</button></div>
+  ${evst.mode==='cal'?calGrid(evs):`${anc?anchorCard(anc):''}${rest.length?`<div class="section-title"><h2>${tt('h.proximos')}</h2><span class="count">${rest.length}</span></div>`:''}${rest.map(e=>evCard(e)).join('')}${evs.length?'':'<div class="empty">'+tt('h.noHayActividadesProximas')+'</div>'}`}
+@@ -1109,10 +1109,10 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
+  x.font='600 22px Figtree';x.fillStyle=tk('warm-ink');x.textAlign='center';x.letterSpacing='4px';x.fillText(tt('brand.tagline').toUpperCase(),W/2,198);x.letterSpacing='0px';x.textAlign='left';
+  const foto=(!c.yours&&window.LHB_FOTOS)?window.LHB_FOTOS[c.id]:null;let fimg=null;
+  if(foto){fimg=new Image();fimg.src=foto.img;await new Promise(r=>{fimg.onload=r;fimg.onerror=()=>{fimg=null;r()}})}
+- const img=new Image();if(!fimg){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(A.cigarSVG(c));await new Promise(r=>{img.onload=r;img.onerror=r})}
++ const img=new Image();if(!fimg){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(VBArt.silueta('',{ink:tk('fixed-text'),ac:tk('warm')}));await new Promise(r=>{img.onload=r;img.onerror=r})}
+  x.save();x.translate(W/2,520);x.rotate(-.025);x.shadowColor=tk('shadow-strong');x.shadowBlur=30;x.shadowOffsetY=12;x.fillStyle=tk('photo');x.fillRect(-410,-300,820,640);x.shadowColor='transparent';
+  if(fimg){x.fillStyle=tk('photo');x.fillRect(-380,-270,760,570);try{x.drawImage(fimg,-380,-205,760,380)}catch(e){}x.fillStyle=tk('fixed-text');x.font='600 20px Figtree';x.textAlign='center';x.fillText(foto.credito+(foto.match==='linea'?tt('h.fotoDeLaLinea'):''),0,282);x.textAlign='left'}
+- else{try{x.drawImage(img,-380,-270,760,570)}catch(e){x.fillStyle=tk('card-2');x.fillRect(-380,-270,760,570)}}x.restore();
++ else{x.fillStyle=tk('photo');x.fillRect(-380,-270,760,570);try{x.drawImage(img,-380,-205,760,380)}catch(e){}}x.restore();
+  x.fillStyle=tk('on-surface');x.font='600 68px Fraunces';x.textAlign='center';let y=960;const nl=wrap(x,c.nombre,W-140).slice(0,2);if(nl.length>1){x.font='600 56px Fraunces';y=930}nl.forEach((l,i)=>x.fillText(l,W/2,y+i*68));y+= (nl.length-1)*68;
+  x.font='600 34px Figtree';x.fillStyle=tk('on-surface-2');x.fillText([A.artisanName(c),c.pueblo].filter(Boolean).join(' · '),W/2,y+56);x.textAlign='left';
+  const vs=c.vitolas||[];const specs=[[tt('h.cardCapa'),(A.fx(c,'capa')||tt('notPub')).replace(/\s*\(.*?\)/g,'')],[tt('h.cardFortaleza'),c.fortaleza?A.fortLabel(c.fortaleza):tt('notPub')],[tt('h.cardVitola'),vs.length?vs[0]+(vs.length>1?' +'+(vs.length-1):''):tt('h.enVerificacion')]];
+diff --git a/site/i18n.js b/site/i18n.js
+index f5cea99..f2e90b4 100644
+--- a/site/i18n.js
++++ b/site/i18n.js
+@@ -6,7 +6,7 @@ const ENABLED=true;
+ const T={es:{
+  "proto.note": "<b>Prototipo</b> \u2014 información pública, sujeta a verificación.",
+  "pf.note": "<b>Prototipo</b> \u2014 información pública, sujeta a verificación. Tus datos se guardan solo en este teléfono.",
+- "svg.alt": "Ilustración de {n}",
++ "sil.alt": "{n}, sin foto todavía",
+  "card.photoAlt": "Foto del cigarro {n}",
+  "card.fav": "Favorito",
+  "card.yours": "Tuyo",
+@@ -777,10 +777,6 @@ const T={es:{
+  "val.Centro": "Centro",
+  "val.Sur": "Sur",
+  /* LHB-29: art.js e index.html */
+- "a.guagua": "Guagua turquesa y crema",
+- "a.coqui": "Coquí",
+- "a.flor": "Flor de tabaco",
+- "a.flamboyan": "Flamboyán",
+  "ix.title": "La Hoja Boricua · Cigar lounges y cigarros boricuas en Puerto Rico",
+  "ix.searchAll": "Buscar en toda la app",
+  "ix.footLug": "Cigar lounges en Puerto Rico",
+@@ -835,7 +831,7 @@ const T={es:{
+ en:{
+  "proto.note": "<b>Prototype</b> \u2014 public information, subject to verification.",
+  "pf.note": "<b>Prototype</b> \u2014 public information, subject to verification. Your data is stored only on this phone.",
+- "svg.alt": "Illustration of {n}",
++ "sil.alt": "{n}, no photo yet",
+  "card.photoAlt": "Photo of the cigar {n}",
+  "card.fav": "Favorite",
+  "card.yours": "Yours",
+@@ -1606,10 +1602,6 @@ en:{
+  "val.Centro": "Central",
+  "val.Sur": "South",
+  /* LHB-29: art.js e index.html */
+- "a.guagua": "Turquoise and cream guagua",
+- "a.coqui": "Coquí",
+- "a.flor": "Tobacco flower",
+- "a.flamboyan": "Flamboyán",
+  "ix.title": "La Hoja Boricua · Cigar lounges and Boricua cigars in Puerto Rico",
+  "ix.searchAll": "Search the whole app",
+  "ix.footLug": "Cigar lounges in Puerto Rico",
+diff --git a/site/img/guagua/campo.webp b/site/img/guagua/campo.webp
+deleted file mode 100644
+index 1e3c4b4..0000000
+Binary files a/site/img/guagua/campo.webp and /dev/null differ
+diff --git a/site/img/guagua/guagua_recorte.webp b/site/img/guagua/guagua_recorte.webp
+deleted file mode 100644
+index a1f93eb..0000000
+Binary files a/site/img/guagua/guagua_recorte.webp and /dev/null differ
+diff --git a/site/img/guagua/hojas.webp b/site/img/guagua/hojas.webp
+deleted file mode 100644
+index 3416cd5..0000000
+Binary files a/site/img/guagua/hojas.webp and /dev/null differ
+diff --git a/site/styles.css b/site/styles.css
+index 2beabc2..035181b 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -237,7 +237,6 @@ details.edit .form{padding:6px 0 14px}
+ .boot-fail{position:fixed;left:16px;right:16px;top:28%;z-index:101;padding:20px;border:1px solid var(--line);border-radius:var(--r-m);background:var(--card);text-align:center}
+ .boot-fail p{margin:0 0 14px;font-size:var(--fs-3);line-height:1.4}
+ .road{position:relative;height:118px;margin:18px 0 6px;overflow:hidden;border-bottom:4px dashed var(--warn)}
+-.volky{display:block;width:100%;height:auto;overflow:visible}
+ @keyframes spin{to{transform:rotate(360deg)}}
+ @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-3px)}}
+ @keyframes look{0%,40%,100%{transform:translateX(0)}50%,85%{transform:translateX(-3px)}}
+@@ -248,10 +247,8 @@ details.edit .form{padding:6px 0 14px}
+ .sec-head>div:first-child{flex:1;min-width:0}
+ .sec-art{flex:none;width:92px}
+ .sec-art svg{width:100%;height:auto;display:block}
+-.sec-art .sec-leaf{width:56px;margin:0 auto;transform:rotate(18deg)}
+ .sec-art svg{animation:wiggle 4s ease-in-out infinite;transform-origin:50% 100%}
+ @keyframes wiggle{0%,100%{transform:rotate(0)}50%{transform:rotate(-3deg)}}
+-.coqui-empty{width:76px;margin:0 auto 8px;display:block}
+ .leaf-pin{background:none;border:0}
+ .leaf-pin svg{width:26px;height:34px;filter:drop-shadow(0 2px 3px var(--shadow-strong));transition:transform .2s}
+ .leaf-pin:hover svg,.leaf-pin:focus svg{transform:scale(1.15)}
+@@ -259,8 +256,7 @@ details.edit .form{padding:6px 0 14px}
+ .pin-group{background:none;border:0}
+ .pin-group span{width:36px;height:36px;box-sizing:border-box;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on-accent);border:2.5px solid var(--photo);box-shadow:0 2px 6px var(--shadow-strong);font:700 var(--fs-2)/1 var(--sans)}
+ .pin-group:focus span,.pin-group:hover span{outline:2px solid var(--focus);outline-offset:2px}
+-.volky-pin{background:none;border:0}
+-.volky.mini{width:66px;filter:drop-shadow(0 2px 3px var(--shadow-strong))}
++.aqui-pin{background:none;border:0}.aqui-pin .lart{width:30px;height:30px;display:block;filter:drop-shadow(0 2px 3px var(--shadow-strong))}
+ .list-leaf{flex:none;width:22px}
+ .list-leaf svg{width:22px;height:28px}
+ .legend{align-items:center}
+@@ -292,7 +288,8 @@ h1 em,h2 em,.brand-name em{font-style:normal;font-weight:400;color:var(--accent-
+ .card{background:var(--card);padding:7px 7px 0}
+ .card .ph{border:5px solid var(--photo);border-bottom-width:12px;border-radius:var(--r-s);box-shadow:0 3px 10px var(--shadow);filter:sepia(.14) saturate(1.06) contrast(1.02)}
+ .card:nth-child(odd) .ph{transform:rotate(-.6deg)} .card:nth-child(even) .ph{transform:rotate(.6deg)}
+-.empty::before{content:"";display:block;width:54px;height:64px;margin:0 auto 10px;background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 120%22%3E%3Cellipse cx=%2215%22 cy=%22114%22 rx=%2213%22 ry=%223.6%22 fill=%22%231a3a22%22 opacity=%22.55%22/%3E%3Cpath d=%22M7 114 Q15 106 23 114Z%22 fill=%22%235b7a3a%22 stroke=%22%232a1a12%22 stroke-width=%222%22/%3E%3Cpath d=%22M15 5 L15 113%22 stroke=%22%232a1a12%22 stroke-width=%228.5%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M15 5 L15 113%22 stroke=%22%239a6a3c%22 stroke-width=%224.6%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M13.6 10 L13.6 110%22 stroke=%22%23c89660%22 stroke-width=%221.3%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2215%22 cy=%225%22 r=%224.4%22 fill=%22%23e9c98f%22 stroke=%22%232a1a12%22 stroke-width=%222.4%22/%3E%3Cpath d=%22M15 14 L19 14 M15 57 L19 57%22 stroke=%22%232a1a12%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3Cg class=%22tela%22%3E%3Cpath d=%22M19 12 25 12.7 31 13.3 37 13.6 43 13.3 49 12.5 55 11.3 61 10.1 67 9.4 73 9.5 79 10.5 85 12.2 91 14 91 23.4 85 21.6 79 19.9 73 18.9 67 18.8 61 19.5 55 20.7 49 21.9 43 22.7 37 23 31 22.7 25 22.1 19 21.4Z%22 fill=%22%23ED0000%22/%3E%3Cpath d=%22M19 21.4 25 22.1 31 22.7 37 23 43 22.7 49 21.9 55 20.7 61 19.5 67 18.8 73 18.9 79 19.9 85 21.6 91 23.4 91 32.8 85 31 79 29.3 73 28.3 67 28.2 61 28.9 55 30.1 49 31.3 43 32.1 37 32.4 31 32.1 25 31.5 19 30.8Z%22 fill=%22%23fbfaf5%22/%3E%3Cpath d=%22M19 30.8 25 31.5 31 32.1 37 32.4 43 32.1 49 31.3 55 30.1 61 28.9 67 28.2 73 28.3 79 29.3 85 31 91 32.8 91 42.2 85 40.4 79 38.7 73 37.7 67 37.6 61 38.3 55 39.5 49 40.7 43 41.5 37 41.8 31 41.5 25 40.9 19 40.2Z%22 fill=%22%23ED0000%22/%3E%3Cpath d=%22M19 40.2 25 40.9 31 41.5 37 41.8 43 41.5 49 40.7 55 39.5 61 38.3 67 37.6 73 37.7 79 38.7 85 40.4 91 42.2 91 51.6 85 49.8 79 48.1 73 47.1 67 47 61 47.7 55 48.9 49 50.1 43 50.9 37 51.2 31 50.9 25 50.3 19 49.6Z%22 fill=%22%23fbfaf5%22/%3E%3Cpath d=%22M19 49.6 25 50.3 31 50.9 37 51.2 43 50.9 49 50.1 55 48.9 61 47.7 67 47 73 47.1 79 48.1 85 49.8 91 51.6 91 61 85 59.2 79 57.5 73 56.5 67 56.4 61 57.1 55 58.3 49 59.5 43 60.3 37 60.6 31 60.3 25 59.7 19 59Z%22 fill=%22%23ED0000%22/%3E%3Cpath d=%22M19 12 L59.7 33.9 L19 59Z%22 fill=%22%231EA8D7%22/%3E%3Cpath d=%22M32.6 29.9 L34.2 34.7 L39.3 34.7 L35.1 37.7 L36.7 42.6 L32.6 39.6 L28.4 42.6 L30 37.7 L25.9 34.7 L31 34.7Z%22 fill=%22%23fbfaf5%22/%3E%3Cg fill=%22none%22 stroke-linecap=%22round%22%3E%3Cpath d=%22M34.8 14.5 L34.8 59.5%22 stroke=%22%232a1a12%22 stroke-width=%225%22 opacity=%220.16%22/%3E%3Cpath d=%22M52.8 12.8 L52.8 57.8%22 stroke=%22%232a1a12%22 stroke-width=%223%22 opacity=%220.1%22/%3E%3Cpath d=%22M70.8 10.4 L70.8 55.4%22 stroke=%22%232a1a12%22 stroke-width=%225%22 opacity=%220.16%22/%3E%3Cpath d=%22M86 13.5 L86 58.5%22 stroke=%22%232a1a12%22 stroke-width=%223%22 opacity=%220.1%22/%3E%3Cpath d=%22M43.5 15.3 L43.5 58.3%22 stroke=%22%23fff%22 stroke-width=%222%22 opacity=%22.12%22/%3E%3Cpath d=%22M62.2 11.9 L62.2 54.9%22 stroke=%22%23fff%22 stroke-width=%222%22 opacity=%22.12%22/%3E%3Cpath d=%22M79.5 12.6 L79.5 55.6%22 stroke=%22%23fff%22 stroke-width=%222%22 opacity=%22.12%22/%3E%3C/g%3E%3Cpath d=%22M19 12 25 12.7 31 13.3 37 13.6 43 13.3 49 12.5 55 11.3 61 10.1 67 9.4 73 9.5 79 10.5 85 12.2 91 14 91 61 85 59.2 79 57.5 73 56.5 67 56.4 61 57.1 55 58.3 49 59.5 43 60.3 37 60.6 31 60.3 25 59.7 19 59Z%22 fill=%22none%22 stroke=%22%232a1a12%22 stroke-width=%223%22 stroke-linejoin=%22round%22/%3E%3C/g%3E%3C/svg%3E") no-repeat center/contain}
++/* LHB-111: el estado vacío lleva la caja de cigarros abierta de art.js (CAJA), en la tinta de las ilustraciones: el SVG es solo la máscara (su forma); debajo, la tinta y el medallón en ámbar, el mismo acento (Codex r1) */
++.empty::before{content:"";display:block;width:84px;height:70px;margin:0 auto 10px;background:radial-gradient(7px 4.9px at 50.4px 22.4px,var(--warm) 100%,var(--on-surface) 100%);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M32 50L40 14H112L104 50'/%3E%3Cpath stroke-width='1.4' d='M45 20H105L100 44H40Z'/%3E%3Cellipse fill='%23000' cx='72' cy='32' rx='10' ry='7'/%3E %3Cpath d='M14 60H86V90H14ZM86 60L104 50V80L86 90M14 60L32 50H104'/%3E%3Cpath stroke-width='1.4' d='M36 68H64V80H36Z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M32 50L40 14H112L104 50'/%3E%3Cpath stroke-width='1.4' d='M45 20H105L100 44H40Z'/%3E%3Cellipse fill='%23000' cx='72' cy='32' rx='10' ry='7'/%3E %3Cpath d='M14 60H86V90H14ZM86 60L104 50V80L86 90M14 60L32 50H104'/%3E%3Cpath stroke-width='1.4' d='M36 68H64V80H36Z'/%3E%3C/svg%3E") center/contain no-repeat}
+ .tabbar{border-top:1px solid var(--line)}
+ .hero p{max-width:50%}
+ .tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;background:none;border:0;padding:4px 0;min-height:48px;color:var(--muted);cursor:pointer}
+@@ -344,8 +341,7 @@ body.sheet-on{overflow:hidden}
+ .hum-sum .btn{padding:10px}
+ .row.hum{align-items:flex-start}
+ .hum-ph{flex:none;width:76px;aspect-ratio:4/3;border:4px solid var(--photo);border-bottom-width:9px;border-radius:var(--r-s);overflow:hidden;background:var(--card-2);display:grid;place-items:center;transform:rotate(-1.2deg);box-shadow:0 2px 8px var(--shadow)}
+-.hum-ph svg{width:100%;height:100%;display:block}
+-.hum-ph.custom .leafsvg{width:30px;height:38px}
++.hum-ph svg{width:100%;height:100%;display:block}.hum-ph:has(.sil){background:var(--photo)}
+ .hum-b{flex:1;min-width:0}
+ .hum-act{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+ .qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:var(--r-m);background:var(--card);overflow:hidden}
+@@ -534,10 +530,10 @@ body.sheet-on{overflow:hidden}
+ .count-line{font-size:var(--fs-2);color:var(--on-surface-2);margin:4px 0 2px}
+ .pill.f-fuerte{color:var(--on-inverse)}
+ .hum-ph{width:64px}.hum-act{gap:5px;flex-wrap:nowrap}.hum-act .mini{padding:8px 9px}.hum-act .mini.x{padding:8px 10px;margin-left:auto}.qty.sm button{width:32px}
+-.card .ph.has-foto{background:var(--photo);filter:none;display:flex;align-items:center;justify-content:center}
++.card .ph.has-foto,.card .ph.sin-foto{background:var(--photo);filter:none;display:flex;align-items:center;justify-content:center}
+ .card .ph.has-foto img{object-fit:contain;width:100%;height:auto;aspect-ratio:2/1}
+ .detail-foto{margin:0}
+-.detail-ph.has-foto{background:var(--photo);aspect-ratio:2/1;border:6px solid var(--photo);border-bottom-width:14px;border-radius:var(--r-s);box-shadow:0 4px 14px var(--shadow-strong)}
++.detail-ph.has-foto,.detail-ph.sin-foto{background:var(--photo);aspect-ratio:2/1;border:6px solid var(--photo);border-bottom-width:14px;border-radius:var(--r-s);box-shadow:0 4px 14px var(--shadow-strong)}
+ .detail-ph.has-foto img{object-fit:contain;background:var(--photo)}
+ .foto-cred{font-size:var(--fs-1);color:var(--muted);margin:6px 2px 0;text-align:right}
+ .foto-linea{color:var(--warm-ink)}
+@@ -708,3 +704,9 @@ body.sheet-on{overflow:hidden}
+ /* LHB-109: la portada lleva a la Ruta del Tabaco (un enlace sobre el velo, de 44 px de alto); sin cuenta, la silueta de una persona */
+ .hero-cta{position:relative;z-index:2;display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-top:4px;font-weight:700;font-size:var(--fs-2);color:var(--accent-ink);text-decoration:none}.hero-cta .brand-icon{width:18px;height:18px}
+ .avatar-link .person-glyph,.me .pic .person-glyph{width:62%;height:62%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
++/* LHB-111: una sola manera de ilustrar fuera de la intro (art.js): línea en un solo color, la tinta de tabaco, con un solo acento ámbar, como el anillo del cigarro
++   y la litografía de la caja. Sigue al tema; la silueta del cigarro y el aquí del mapa van sobre fondos claros fijos (el marco de la foto, el mapa), así que su tinta es fija */
++.lart{--art-ink:var(--on-surface);--art-ac:var(--warm);fill:none;stroke:var(--art-ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
++.lart .ac{fill:var(--art-ac)}.lart .acs{stroke:var(--art-ac)}.lart .bg{fill:var(--surface)}.lart .th{stroke-width:5}.lart .fn{stroke-width:1.4}
++.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}.lart.aqui .bg{fill:var(--photo)}.lart.sil{stroke-width:7}.lart.sil .fn{stroke-width:4}
++.card .ph .sil,.detail-ph .sil{width:100%;height:auto;aspect-ratio:2/1}
+diff --git a/site/sw.js b/site/sw.js
+index 3c76849..f1961fd 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,10 +1,10 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v161';
++const VERSION='lhb-v162';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-16.png','icons/favicon-32.png',
+  'intro.js','fonts/figtree.woff2','fonts/fraunces-normal-600.woff2','fonts/fraunces-italic-500.woff2',
+- 'img/hero/banner.webp','img/logos/jfc-hoja-boricua.webp','img/logos/don-rey-cigar.webp','img/logos/el-club-del-turro.webp','img/logos/don-collins.webp','img/logos/finca-neo-jibairo.webp','img/logos/willys-cigars.webp','img/logos/san-pedrito-cigars.webp','img/logos/yambo-cigars.webp','img/logos/el-chapu-pr.webp','img/logos/el-buho-ricamontes.webp','img/logos/cohoba-cigars.webp','img/logos/cigarros-caimito.webp','img/logos/tabacalera-la-trascendencia.webp','img/logos/pitirre-cigars.webp','img/logos/villareno-cigars.webp','img/guagua/guagua_recorte.webp','img/cigarros/galiz-spirit_thumb.webp','img/cigarros/villareno-surtido_thumb.webp','img/cigarros/don-collins-corona-grande_thumb.webp','img/cigarros/don-collins-linea_thumb.webp','img/cigarros/hoja-boricua-gran-reserva_thumb.webp','img/cigarros/hoja-boricua_thumb.webp','img/cigarros/puerto-rico-965_thumb.webp','img/cigarros/turro-albizu-campos_thumb.webp','img/cigarros/turro-angel-david_thumb.webp','img/cigarros/turro-barber-pole_thumb.webp','img/cigarros/turro-cartucho_thumb.webp','img/cigarros/turro-deja-el-drama_thumb.webp','img/cigarros/turro-don-pepe_thumb.webp','img/cigarros/turro-el-turrito_thumb.webp','img/cigarros/turro-escopeta_thumb.webp','img/cigarros/turro-gallo-pinto_thumb.webp','img/cigarros/turro-hva-robusto_thumb.webp','img/cigarros/turro-lancero_thumb.webp','img/cigarros/turro-mamposteao_thumb.webp','img/cigarros/turro-naturola_thumb.webp','img/cigarros/turro-timber-blues_thumb.webp','img/cigarros/monte-mistica-connecticut_thumb.webp','img/cigarros/monte-mistica-corojo_thumb.webp','img/cigarros/monte-mistica-maduro_thumb.webp','img/cigarros/yambo-toro_thumb.webp','img/cigarros/yambo_a_oscuro_thumb.webp','img/cigarros/yambo_a_pareja_thumb.webp','img/cigarros/yambo_a_torpedo_thumb.webp','img/cigarros/willys-banda-negra-oro_thumb.webp','img/cigarros/willys-banda-azul-oro_thumb.webp','img/cigarros/willys-banda-azul-roja-oro_thumb.webp','img/cigarros/willys-banda-azul-coleta_thumb.webp','img/cigarros/willys-banda-azul-ovalada_thumb.webp','img/cigarros/willys-tripa-corta_thumb.webp','img/cigarros/san-pedrito-linea_thumb.webp','img/cigarros/san-pedrito-barber-pole_thumb.webp','img/cigarros/galiz-spirit_thumb-s.webp','img/cigarros/villareno-surtido_thumb-s.webp','img/cigarros/don-collins-corona-grande_thumb-s.webp','img/cigarros/don-collins-linea_thumb-s.webp','img/cigarros/hoja-boricua-gran-reserva_thumb-s.webp','img/cigarros/hoja-boricua_thumb-s.webp','img/cigarros/puerto-rico-965_thumb-s.webp','img/cigarros/turro-albizu-campos_thumb-s.webp','img/cigarros/turro-angel-david_thumb-s.webp','img/cigarros/turro-barber-pole_thumb-s.webp','img/cigarros/turro-cartucho_thumb-s.webp','img/cigarros/turro-deja-el-drama_thumb-s.webp','img/cigarros/turro-don-pepe_thumb-s.webp','img/cigarros/turro-el-turrito_thumb-s.webp','img/cigarros/turro-escopeta_thumb-s.webp','img/cigarros/turro-gallo-pinto_thumb-s.webp','img/cigarros/turro-hva-robusto_thumb-s.webp','img/cigarros/turro-lancero_thumb-s.webp','img/cigarros/turro-mamposteao_thumb-s.webp','img/cigarros/turro-naturola_thumb-s.webp','img/cigarros/turro-timber-blues_thumb-s.webp','img/cigarros/monte-mistica-connecticut_thumb-s.webp','img/cigarros/monte-mistica-corojo_thumb-s.webp','img/cigarros/monte-mistica-maduro_thumb-s.webp','img/cigarros/yambo-toro_thumb-s.webp','img/cigarros/yambo_a_oscuro_thumb-s.webp','img/cigarros/yambo_a_pareja_thumb-s.webp','img/cigarros/yambo_a_torpedo_thumb-s.webp','img/cigarros/willys-banda-negra-oro_thumb-s.webp','img/cigarros/willys-banda-azul-oro_thumb-s.webp','img/cigarros/willys-banda-azul-roja-oro_thumb-s.webp','img/cigarros/willys-banda-azul-coleta_thumb-s.webp','img/cigarros/willys-banda-azul-ovalada_thumb-s.webp','img/cigarros/willys-tripa-corta_thumb-s.webp','img/cigarros/san-pedrito-linea_thumb-s.webp','img/cigarros/san-pedrito-barber-pole_thumb-s.webp'];
++ 'img/hero/banner.webp','img/logos/jfc-hoja-boricua.webp','img/logos/don-rey-cigar.webp','img/logos/el-club-del-turro.webp','img/logos/don-collins.webp','img/logos/finca-neo-jibairo.webp','img/logos/willys-cigars.webp','img/logos/san-pedrito-cigars.webp','img/logos/yambo-cigars.webp','img/logos/el-chapu-pr.webp','img/logos/el-buho-ricamontes.webp','img/logos/cohoba-cigars.webp','img/logos/cigarros-caimito.webp','img/logos/tabacalera-la-trascendencia.webp','img/logos/pitirre-cigars.webp','img/logos/villareno-cigars.webp','img/cigarros/galiz-spirit_thumb.webp','img/cigarros/villareno-surtido_thumb.webp','img/cigarros/don-collins-corona-grande_thumb.webp','img/cigarros/don-collins-linea_thumb.webp','img/cigarros/hoja-boricua-gran-reserva_thumb.webp','img/cigarros/hoja-boricua_thumb.webp','img/cigarros/puerto-rico-965_thumb.webp','img/cigarros/turro-albizu-campos_thumb.webp','img/cigarros/turro-angel-david_thumb.webp','img/cigarros/turro-barber-pole_thumb.webp','img/cigarros/turro-cartucho_thumb.webp','img/cigarros/turro-deja-el-drama_thumb.webp','img/cigarros/turro-don-pepe_thumb.webp','img/cigarros/turro-el-turrito_thumb.webp','img/cigarros/turro-escopeta_thumb.webp','img/cigarros/turro-gallo-pinto_thumb.webp','img/cigarros/turro-hva-robusto_thumb.webp','img/cigarros/turro-lancero_thumb.webp','img/cigarros/turro-mamposteao_thumb.webp','img/cigarros/turro-naturola_thumb.webp','img/cigarros/turro-timber-blues_thumb.webp','img/cigarros/monte-mistica-connecticut_thumb.webp','img/cigarros/monte-mistica-corojo_thumb.webp','img/cigarros/monte-mistica-maduro_thumb.webp','img/cigarros/yambo-toro_thumb.webp','img/cigarros/yambo_a_oscuro_thumb.webp','img/cigarros/yambo_a_pareja_thumb.webp','img/cigarros/yambo_a_torpedo_thumb.webp','img/cigarros/willys-banda-negra-oro_thumb.webp','img/cigarros/willys-banda-azul-oro_thumb.webp','img/cigarros/willys-banda-azul-roja-oro_thumb.webp','img/cigarros/willys-banda-azul-coleta_thumb.webp','img/cigarros/willys-banda-azul-ovalada_thumb.webp','img/cigarros/willys-tripa-corta_thumb.webp','img/cigarros/san-pedrito-linea_thumb.webp','img/cigarros/san-pedrito-barber-pole_thumb.webp','img/cigarros/galiz-spirit_thumb-s.webp','img/cigarros/villareno-surtido_thumb-s.webp','img/cigarros/don-collins-corona-grande_thumb-s.webp','img/cigarros/don-collins-linea_thumb-s.webp','img/cigarros/hoja-boricua-gran-reserva_thumb-s.webp','img/cigarros/hoja-boricua_thumb-s.webp','img/cigarros/puerto-rico-965_thumb-s.webp','img/cigarros/turro-albizu-campos_thumb-s.webp','img/cigarros/turro-angel-david_thumb-s.webp','img/cigarros/turro-barber-pole_thumb-s.webp','img/cigarros/turro-cartucho_thumb-s.webp','img/cigarros/turro-deja-el-drama_thumb-s.webp','img/cigarros/turro-don-pepe_thumb-s.webp','img/cigarros/turro-el-turrito_thumb-s.webp','img/cigarros/turro-escopeta_thumb-s.webp','img/cigarros/turro-gallo-pinto_thumb-s.webp','img/cigarros/turro-hva-robusto_thumb-s.webp','img/cigarros/turro-lancero_thumb-s.webp','img/cigarros/turro-mamposteao_thumb-s.webp','img/cigarros/turro-naturola_thumb-s.webp','img/cigarros/turro-timber-blues_thumb-s.webp','img/cigarros/monte-mistica-connecticut_thumb-s.webp','img/cigarros/monte-mistica-corojo_thumb-s.webp','img/cigarros/monte-mistica-maduro_thumb-s.webp','img/cigarros/yambo-toro_thumb-s.webp','img/cigarros/yambo_a_oscuro_thumb-s.webp','img/cigarros/yambo_a_pareja_thumb-s.webp','img/cigarros/yambo_a_torpedo_thumb-s.webp','img/cigarros/willys-banda-negra-oro_thumb-s.webp','img/cigarros/willys-banda-azul-oro_thumb-s.webp','img/cigarros/willys-banda-azul-roja-oro_thumb-s.webp','img/cigarros/willys-banda-azul-coleta_thumb-s.webp','img/cigarros/willys-banda-azul-ovalada_thumb-s.webp','img/cigarros/willys-tripa-corta_thumb-s.webp','img/cigarros/san-pedrito-linea_thumb-s.webp','img/cigarros/san-pedrito-barber-pole_thumb-s.webp'];
+ self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
+ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION&&k!=='vb-tiles').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+ self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const url=new URL(req.url);
+diff --git a/test/site.test.js b/test/site.test.js
+index 03f6980..d599874 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -37,11 +37,12 @@ test('data layer: separate JSON files with real entries and sources',()=>{const
+  for(const x of a)assert.ok(x.por_confirmar||(x.fuentes&&x.fuentes.length),'sources '+x.id);});
+ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map; Volky art',()=>{const js=read('app.js'),h=read('art.js');
+  assert.ok(js.includes('capture="environment"')&&js.includes('indexedDB.open'));assert.ok(js.includes('drawOffline'));assert.ok(js.includes("serviceWorker.register('sw.js')"));
+- assert.ok(h.includes('function volky')&&h.includes('function guagua')&&h.includes("VEHICULO='guagua'")&&h.includes('function coqui')&&h.includes('function flamboyan')&&h.includes('function flor'));
++ /* LHB-111: el arte es el juego de línea (la guagua, el coquí, la flor y el flamboyán se fueron; la intro sigue con su video) */
++ assert.ok(h.includes('window.VBArt={ranchon,banda,chaveta,micro,lupa,hoja,maridaje,caja,CAJA,silueta,aqui,leaf,star}')&&!/function (volky|guagua|coqui|flor|flamboyan)\b|VEHICULO/.test(h));
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v161'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v162'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,26 +62,28 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
+- assert.match(sw,/const VERSION='lhb-v161'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
+- assert.ok(a.includes(f)&&a.includes("VEHICULO='guagua'"));
+- for(const g of ['img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
++ assert.match(sw,/const VERSION='lhb-v162'/);
++ /* LHB-111: la guagua ya no es ilustración de la app: ni se precachea, ni la nombra art.js, ni queda el archivo */
++ for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(!a.includes(g),g);assert.ok(!fs.existsSync(path.join(__dirname,'..','site',g)),g)}
++ for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
+  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
+ test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v161'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v162'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
+  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v161'/);
++ assert.match(sw,/const VERSION='lhb-v162'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v161'/);
++ assert.match(sw,/const VERSION='lhb-v162'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
+- const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%231EA8D7')&&em.includes('%23ED0000'),'bandera de los vacíos con el celeste y el rojo de la bandera (LHB-67: el celeste de la guagua)');
++ /* LHB-111: el estado vacío lleva la caja de cigarros de línea (abajo), ya no la bandera en su asta */
++ const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('mask:url(')&&!em.includes('%239a6a3c'),'la caja, no el asta');
+  assert.ok(!/\.tela\{|ondea/.test(css),'LHB-72: la bandera que ondeaba en el splash se fue con él');assert.ok(/@media \(prefers-reduced-motion:reduce\)\{\*,\*::before,\*::after\{animation:none!important/.test(css));
+  const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));assert.equal(Object.keys(F).length,33);
+  assert.equal(F['galiz-spirit'].credito,'Foto: Entre Humos');assert.equal(F['galiz-spirit'].match,'linea');
+@@ -99,20 +102,20 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v161'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v162'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v161'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v162'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+- assert.ok(js.includes("VBArt.carro('mini')"));});
++ assert.ok(js.includes('VBArt.aqui()')&&!js.includes('VBArt.carro'),'LHB-111: el aquí del mapa es de línea');});
+ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+  for(const v of ['--paper:#F4F1EA','--tobacco:#344C31','--amber:#C77943','--celeste:#1EA8D7','--red:#D12A1B','--sun:#EAB91B','--flag-blue:var(--celeste)','--flag-red:#ED0000'])assert.ok(c.includes(v),v);
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v161'/);});
++test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v162'/)});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -129,7 +132,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v161/);});
++ assert.match(read('sw.js'),/lhb-v162/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -142,19 +145,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v161'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v162'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v161'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v162'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v161'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v162'/);});
+ 
+ test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
+  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
+- for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v161'/);});
++ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v162'/);});
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
+@@ -280,12 +283,12 @@ test('LHB-29: lo que se guarda sigue en espa\u00f1ol; cada opci\u00f3n de la cat
+  for(const [s,n] of [['<dd>${esc(lab(v))}</dd>',2],['<dt>${esc(lab(p.paso))}</dt>',1],['<h1>${lab(p.t)}</h1>',1],['${esc(lab(o))}</button>',2],['lab(region(municipio(a.pueblo)))',1],['<option value="${r}" ',1]])assert.equal(cnt(s),n,s);
+  for(const s of ['<dd>${esc(v)}</dd>','${esc(o)}</button>','<h1>${p.t}</h1>','<dt>${esc(p.paso)}</dt>'])assert.equal(cnt(s),0,'sin lab(): '+s);
+ });
+-test('LHB-29: art.js toma sus textos de i18n.js (cargado antes): en espa\u00f1ol como antes, en ingl\u00e9s traducidos',()=>{
++test('LHB-29 (LHB-111): los dibujos de art.js no llevan texto (las cabeceras son adorno); la silueta del cigarro lleva el nombre que le da app.js, en los dos idiomas',()=>{
+  const run=(lang,on)=>{const w={navigator:{language:lang},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'loading',addEventListener(){},getElementById:()=>null,querySelectorAll:()=>[]}};
+-  const ctx={window:w,Math};require('vm').createContext(ctx);const i=read('i18n.js');require('vm').runInContext(on?i:i.replace('const ENABLED=true;','const ENABLED=false;'),ctx);/* LHB-36: encendido; apagado a mano para ver el español */require('vm').runInContext(read('art.js'),ctx);return w.VBArt};
+- const es=run('en-US',false),en=run('en-US',true);
+- assert.match(es.guagua(),/alt="Guagua turquesa y crema"/);assert.match(es.coqui(),/aria-label="Coqu\u00ed"/);assert.match(es.flor(),/aria-label="Flor de tabaco"/);assert.match(es.flamboyan(),/aria-label="Flamboy\u00e1n"/);
+- assert.match(en.guagua(),/alt="Turquoise and cream guagua"/);assert.match(en.flor(),/aria-label="Tobacco flower"/);
++  const ctx={window:w,Math};require('vm').createContext(ctx);const i=read('i18n.js');require('vm').runInContext(on?i:i.replace('const ENABLED=true;','const ENABLED=false;'),ctx);require('vm').runInContext(read('art.js'),ctx);return w};
++ for(const on of [false,true]){const w=run('en-US',on),A=w.VBArt;for(const k of ['ranchon','banda','chaveta','micro','lupa','hoja','maridaje','caja','aqui']){const h=A[k]();assert.match(h,/aria-hidden="true"/,k);assert.ok(!/aria-label|<title|<text/.test(h),k)}
++  const lab=w.LHB_I18N.t('sil.alt',{n:'Corona'});assert.equal(lab,on?'Corona, no photo yet':'Corona, sin foto todavía');assert.match(A.silueta(lab),new RegExp('role="img" aria-label="'+lab+'"'))}
++ assert.ok(read('app.js').includes("const cigarSVG=c=>VBArt.silueta(tt('sil.alt',{n:esc(c.nombre)}));"));
+ });
+ test('LHB-29: index.html trae el espa\u00f1ol y marca cada texto con data-i18n o data-i18n-attr; en ingl\u00e9s i18n.js los cambia',()=>{
+  const {T}=I18N();const {scan}=require('./i18n-scan.js');const ix=read('index.html');
+@@ -1216,7 +1219,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1463,7 +1466,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v161'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v162'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1641,7 +1644,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1888,7 +1891,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2134,7 +2137,7 @@ function PERFIL_HARNESS(opts){
+  function Image(){}
+  const ctx={$,view,Image,esc:s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),tt:k=>k,
+   LS:{get:(k,d)=>store[k]===undefined||store[k]===null?d:store[k],set:(k,v)=>{store[k]=v}},
+-  photoURL:async()=>{calls.photoURL++;return photoP},uploads:()=>[],EXT:{subnav:()=>'',S:()=>({favs:{cigarros:[]},ratings:{}}),profileOwn:a=>{calls.profileOwn=(calls.profileOwn||[]).concat([a])},accountPanel:()=>'',bindAccount:()=>{}},cigarById:()=>null,cigarCard:()=>'',cigarSVG:()=>'',artisanName:()=>'',emptyCoqui:()=>'',
++  photoURL:async()=>{calls.photoURL++;return photoP},uploads:()=>[],EXT:{subnav:()=>'',S:()=>({favs:{cigarros:[]},ratings:{}}),profileOwn:a=>{calls.profileOwn=(calls.profileOwn||[]).concat([a])},accountPanel:()=>'',bindAccount:()=>{}},cigarById:()=>null,cigarCard:()=>'',cigarSVG:()=>'',artisanName:()=>'',emptyBox:()=>'',
+   hydratePhotos:()=>{calls.hydrate++},toast:m=>calls.toast.push(m),route:()=>{calls.route++},idb:{put:async()=>{}},urlCache:{},resizeImage:async f=>f};
+  vm.createContext(ctx);vm.runInContext(code+';this.vPerfil=vPerfil;this.topAvatar=topAvatar;this.acctNow=acctNow;this.acctAvatar=acctAvatar;this.paintAvatar=paintAvatar;this.initialsOf=initialsOf',ctx);
+  return {ctx,$,store,calls,html:()=>html,setPhoto:p=>{photoP=p}}}
+@@ -2190,7 +2193,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2240,7 +2243,7 @@ function HOJA38(opts){opts=opts||{};
+  const lists={};const $$=s=>lists[s]||[];
+  const toasts=[],blobs=[],log=[];const acctBox={v:{sub:'u_a'}};
+  const resized=[];
+- const ctx={...TT(),window:{addEventListener(t,f){if(opts.win)(opts.win[t]=opts.win[t]||[]).push(f)}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
++ const ctx={...TT(),window:{addEventListener(t,f){if(opts.win)(opts.win[t]=opts.win[t]||[]).push(f)}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:VB111(),esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
+   A:{D:()=>opts.D||({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),cigarById:id=>id==='c1'?{id:'c1',nombre:'Yambú Toro'}:null,artisanName:c=>'Casa Yambú',allCigars:()=>[],
+    resizeImage:opts.resize||(async(f,max,q)=>{resized.push([max,q]);return {blob:1}}),hydrate:r=>log.push('hydrate'),route:()=>log.push('route')},
+   D:()=>opts.D||({artesanos:[{nombre:'Tabaquero B'},{nombre:'Tabaquero A'}]}),APP_URL:'https://x.test/',acct:{get:()=>acctBox.v},
+@@ -2473,7 +2476,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3442,7 +3445,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v161'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v162'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -3991,6 +3994,100 @@ test('LHB-110 (Codex r3): la equis de la burbuja del mapa se lee de día y de no
+  /* y los grises de Leaflet no pasarían de noche: la prueba ve el problema */
+  assert.ok(contrast65('#585858',TOKENS65(DARK110.css(raw)).val('card'))<3);
+ });
++test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de tabaco con un solo acento; ningún arte fuera del juego, y el cigarro sin foto lleva la silueta',()=>{
++ const LINE=['ranchon','banda','chaveta','micro','lupa','hoja','maridaje','caja','silueta','aqui'];
++ const w={LHB_I18N:{t:k=>k}},ctx={window:w,Math};require('vm').createContext(ctx);require('vm').runInContext(read('art.js'),ctx);const A=w.VBArt;
++ /* el juego: cada dibujo es un SVG .lart sin colores propios (el color lo pone styles.css) y con un acento */
++ for(const k of LINE){assert.equal(typeof A[k],'function',k);const h=k==='silueta'?A.silueta('x'):A[k]();
++  assert.match(h,new RegExp('^<svg class="lart '+(k==='silueta'?'sil':k)+'[ "]'),k);assert.ok(!/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|\b(fill|stroke)="|style="|<image|url\(/.test(h),k+': sin colores ni imágenes propias');
++  /* Codex r8: leído con ATTR111 (comillas dobles, simples o ninguna): ningún atributo de pintura ni style, y ningún <style> dentro; lo pinta styles.css por clase */
++  assert.ok(!/<style\b/i.test(h)&&!ATTR111(h).some(([k])=>['style','fill','stroke','stop-color','color','flood-color','lighting-color'].includes(k)),k+': un atributo de pintura o style: '+ATTR111(h).filter(([k])=>/style|fill|stroke|color/.test(k)).map(x=>x.join('=')).join(' '));
++  assert.ok(/class="(ac|acs[^"]*)"/.test(h),k+': su acento')}
++ /* la silueta para la imagen para compartir, con los colores ya resueltos: solo esos dos */
++ {const h=A.silueta('',{ink:'#263723',ac:'#C77943'});assert.deepEqual([...new Set(h.match(/#[0-9A-Fa-f]{6}/g))].sort(),['#263723','#C77943']);assert.match(h,/viewBox="0 0 600 300"/,'el marco 2:1 de las fotos')}
++ const ex=Object.keys(A).filter(k=>!LINE.includes(k)).sort();assert.deepEqual(ex,['CAJA','leaf','star'],'fuera del juego solo la caja en texto, el ícono de hoja y la estrella');
++ /* las cabeceras: cada head() lleva un dibujo del juego */
++ const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');
++ const heads=[...(ap+hj).matchAll(/\bhead\((?:[^()]|\([^()]*(?:\([^()]*\))*[^()]*\))*\)/g)].map(m=>m[0]).filter(x=>!x.startsWith('head=(')&&/VBArt\./.test(x));
++ assert.ok(heads.length>=9,'cabeceras con arte: '+heads.length);for(const h of heads){const m=h.match(/VBArt\.([a-zA-Z]+)\(\)\)$/);assert.ok(m&&LINE.includes(m[1])&&m[1]!=='silueta','la cabecera lleva un dibujo del juego: '+h.slice(-60))}
++ /* ningún arte de fuera del juego: ni los dibujos viejos, ni la guagua, ni otra imagen que no sea foto */
++ /* Codex r5: todos los scripts del sitio (menos Leaflet), no cinco */
++ {const js=SITEJS111();for(const f of ['app.js','hoja.js','cuenta.js','intro.js','i18n.js','sync.js','art.js','fotos.js','sw.js','data/bundle.js'])assert.ok(js.includes(f),'scripts: '+f)}
++ for(const [f,x] of SITEJS111().map(f=>[f,read(f)])){for(const m of x.matchAll(/VBArt\.([a-zA-Z]+)/g))assert.ok(LINE.includes(m[1])||['leaf','star'].includes(m[1]),f+': VBArt.'+m[1]);
++  /* Codex r4: cada fuente de imagen en cualquier forma de comillas; la que empieza con ${ es una foto de los datos o del lector */
++  for(const m of MEDIA111(x,f))assert.ok(m.u.startsWith('${')||/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m.u),f+': una imagen que no es foto ni marca: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
++  assert.ok(!/img\/guagua|\.coqui|class="(volky|flor|flamboyan|coqui)/.test(x),f);
++  /* Codex r4 y r5: lo que el script nombra, sus data URI y las fuentes que pone (SCRIPT111) */
++  SCRIPT111(x,f,f==='hoja.js'?1:0,['app.js','hoja.js'].includes(f)?1:0);CSSNAME111(x,f)}
++ /* Codex r9: y los scripts de functions/ (la página del pasaporte): las mismas reglas de fuentes, nombres, lienzos, hojas de estilo y SVG */
++ for(const [f,x] of FUNCJS111()){SCRIPT111(x,f,0,0);CSSNAME111(x,f);for(const m of MEDIA111(x,f))assert.ok(m.u.startsWith('${')||/^'\s*\+/.test(m.u)||IMGOK111.test(m.u),f+': una imagen que no es foto ni marca: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
++  assert.equal([...x.matchAll(/<svg\b/gi)].length,[...x.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi)].length,f+': un <svg> sin cerrar');
++  for(const m of x.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi))assert.ok(/^<svg\b[^>]*viewBox="0 0 24 24"/i.test(m[0])&&ICON111(m[0]),f+': un SVG que no es ícono: '+m[0].slice(0,120))}
++ for(const f of ['index.html','sw.js','styles.css'])assert.ok(!/img\/guagua|\.coqui\b|\.volky|\.flamboyan|\.garita/.test(read(f)),f);
++ /* Codex r1: todo SVG escrito en los scripts es un ícono (24 x 24) o uno de los gráficos que dicen algo (no adornan): la hoja de agua de las iniciales,
++    el mapa sin conexión, la rueda de sabores y el sello de zona. Uno nuevo no pasa sin ponerlo aquí */
++ {const FUNC=['viewBox="0 0 100 100" aria-hidden="true"','viewBox="0 -20 1000 370" role="img"','class="wheel" viewBox="0 0 320 320"','viewBox="-6-6 12 12" aria-hidden="true"'];
++  /* Codex r6: todos los scripts del sitio menos art.js (el juego mismo, revisado dibujo por dibujo arriba) y Leaflet, no cinco */
++  const SVGJS=SITEJS111().filter(f=>f!=='art.js');for(const f of ['app.js','hoja.js','sync.js','fotos.js','sw.js'])assert.ok(SVGJS.includes(f),f);
++  /* Codex r8: sin mirar mayúsculas (HTML acepta <SVG>), y cada <svg que empieza tiene que cerrarse dentro del mismo texto: uno sin cerrar no se escapa */
++  for(const f of SVGJS){const x=read(f);assert.equal([...x.matchAll(/<svg\b/gi)].length,[...x.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi)].length,f+': un <svg> sin cerrar')}
++  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*>/gi)){const t=m[0];assert.ok(/viewBox="0 0 24 24"/.test(t)||FUNC.some(x=>t.includes(x)),f+': un SVG que no es ícono ni gráfico conocido: '+t.slice(0,90))}
++  /* Codex r2: un ícono se juzga por lo que lleva, no por su viewBox: sin colores propios (solo none y currentColor) y sin tamaño propio (style). La única
++     excepción es la marca de Spotify, un logo de marca (LHB-67 la lista) */
++  /* Codex r3: el lector de atributos ve las tres formas de comillas, y el <svg> de un ícono no trae medida propia */
++  assert.deepEqual(ATTR111('<circle fill="red" stroke=\'blue\' color=green />'),[['fill','red'],['stroke','blue'],['color','green']]);
++  /* Codex r4: MEDIA111 lee src en las tres formas, cada candidato de srcset, poster, y un > dentro de un valor entre comillas; lo que no sabe leer, falla */
++  assert.deepEqual(MEDIA111('<p><img alt="" src=\'a.webp\'><img src=b.webp><picture><source srcset="c.webp 1x, d.webp 2x"></picture><video poster=\'e.webp\'></video><img alt="a>b" src="f.webp"></p>','x').map(m=>m.u),['a.webp','b.webp','c.webp','d.webp','e.webp','f.webp']);
++  assert.deepEqual(MEDIA111('<input type="checkbox" ${on?\'checked\':\'\'}><img src="${esc(u)}" alt="" ${c.mini?`a`:{b:1}.b}decoding="async">','x').map(m=>m.u),['${esc(u)}'],'una expresión ${...} es una pieza de la etiqueta');
++  assert.throws(()=>MEDIA111('<img src="a.webp" alt="x>','x'),/no sabe leer/);
++  /* Codex r5: SCRIPT111 sobre muestras: lo de afuera falla, lo del sitio pasa */
++  for(const bad of ['`<span style=background:u\\\\72l(/img/hero/banner.webp)></span>`','e.style.background="u\\\\72 l(img/hero/banner.webp)"','e.style.background="\\u0075rl(img/hero/banner.webp)"','e.style.background="Image-\\x53et(a.webp 1x)"','"<a style=\\"background:element(#hero)\\">"','`<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style>`','e.style.backgroundImage="URL(img/hero/banner.webp)"','`<b style="background:image-set(${x} 1x)">`','<canvas id="d"></canvas><script>document.getElementById("d").getContext("2d")</script>','<script>document.createElementNS("http://www.w3.org/2000/svg","svg")</script>','<script>new OffscreenCanvas(9,9)</script>','<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|lienzo|DOM|x:/,bad);
++  SCRIPT111('"x":"<a href=\\"#/subir\\" style=\\"color:var(--accent-ink)\\">y</a>",const r=/\\s+\\d\\b/g;','x',0);
++  SCRIPT111('const u=new URL(location.href);`<span style="width:${size}px;background:${bg.replace(/\\s/g,\'\')}">`','x',0);
++  SCRIPT111('{"image":"https://lahojaboricua.com/img/cigarros/a.webp","logo":"../icons/icon-512.png"};i.src=\'icons/icon.svg\'','x',0);
++  for(const bad of ['<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
++  assert.ok(ICON111('<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" fill="none"/><path stroke=\'currentColor\' d="M4 4"/></svg>'),'un ícono de verdad pasa (un rect con su width y height dentro está bien)');
++  /* Codex r6 y r7: ni un SVG hecho por el DOM ni un lienzo de más: lo revisa SCRIPT111, en cada script y en cada página */
++  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg\s*>/gi))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
++ /* Codex r1: las páginas estáticas: sus imágenes son íconos, fotos de cigarros y marcas; sus SVG, íconos */
++ {const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.html')?[path.join(d,x.name)]:[]);const pages=walk(path.join(__dirname,'..','site'));assert.ok(pages.length>100,'páginas: '+pages.length);
++  for(const p of pages){const h=fs.readFileSync(p,'utf8'),rel=path.relative(path.join(__dirname,'..','site'),p);
++   /* Codex r5: el texto entero de la página (sus <script> y sus atributos onload y demás) con las mismas reglas que un script, sin ningún data URI de imagen */
++   SCRIPT111(h,rel,0);CSSNAME111(h,rel);
++   for(const m of MEDIA111(h,rel))assert.ok(/^(\.\.\/)*\/?(icons\/|img\/(cigarros|logos|hero|eventos)\/)/.test(m.u),rel+': una imagen que no es foto, marca ni ícono: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
++   assert.equal([...h.matchAll(/<svg\b/gi)].length,[...h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi)].length,rel+': un <svg> sin cerrar');
++   for(const m of h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi))assert.ok(/^<svg\b[^>]*viewBox="0 0 24 24"/.test(m[0])&&ICON111(m[0]),rel+': un SVG que no es ícono: '+m[0].slice(0,120));
++   /* Codex r10: el CSS de la página, sus bloques <style> y sus atributos style (en cualquier forma de comillas), con CSS111; y url( sin mirar mayúsculas */
++   for(const m of h.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi))CSS111(m[1],rel+' <style>',false);
++   for(const m of h.matchAll(/<[a-zA-Z][^>]*>/g))for(const [k,v] of ATTR111(m[0]))if(k==='style')CSS111(v,rel+' style=',false);
++   assert.ok(!/url\((?!['"]?(\/?fonts\/))/i.test(h.replace(/<script[\s\S]*?<\/script\s*>/gi,'')),rel+': una imagen por CSS')}}
++ /* Codex r1: en las hojas de estilo, url() solo trae las fuentes y los dos SVG en data URI de arriba (la de Leaflet, sus propias imágenes del mapa) */
++ /* Codex r2: un SVG en data URI solo en styles.css (los dos de arriba: la textura del papel y la máscara del estado vacío); u.css y l.css, solo fuentes */
++ /* Codex r9: cada hoja que el recorrido encuentra, no tres; ni @import, ni las funciones que pintan sin url() (image-set, paint, element, cross-fade, -webkit-canvas) */
++ {const cs=CSSFILES111();for(const f of ['styles.css','u.css','lugares/l.css'])assert.ok(cs.includes(f),f);
++  /* Codex r10: CSS111 en cada una (url() sin mirar mayúsculas, sin escapes) */
++  for(const f of cs)CSS111(read(f),f,f==='styles.css')}
++ /* en styles.css, los SVG en data URI son la textura del papel y la caja del estado vacío, que es la misma CAJA de art.js */
++ {const svgs=[...css.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/([^{}]+)\{[^{}]*data:image\/svg\+xml/g)].map(m=>m[1].trim());assert.deepEqual(svgs,['body::after','.empty::before']);
++  const em=css.match(/\.empty::before\{[^}]*\}/)[0].replace(/%([0-9A-Fa-f]{2})/g,(m,h)=>String.fromCharCode(parseInt(h,16))),ds=s=>[...s.matchAll(/ d=["']([^"']+)["']/g)].map(m=>m[1]);assert.deepEqual(ds(em),[...ds(A.CAJA),...ds(A.CAJA)],'la caja del estado vacío es CAJA (en -webkit-mask y en mask)');
++  assert.ok(!/class="empty"[^`]*VBArt/.test(ap+hj),'el estado vacío no trae otro dibujo')}
++ /* el cigarro sin foto: la silueta, en el mismo marco que las fotos, en la tarjeta, la ficha, el humidor y la imagen para compartir */
++ assert.ok(ap.includes("const cigarSVG=c=>VBArt.silueta(tt('sil.alt',{n:esc(c.nombre)}));"));assert.ok(!/viewBox="0 0 400 300"|CAPA_COLORS/.test(ap+hj),'el dibujo viejo no queda');
++ assert.ok(ap.includes(':`<div class="ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:\'\'}>${cigarSVG(c)}</div>`)(fotoOf(c))}'),'la tarjeta');
++ assert.ok(ap.includes(':`<div class="detail-ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:\'\'}>${cigarSVG(c)}</div>`)(fotoOf(c))}'),'la ficha');
++ assert.ok(hj.includes('${A.cigarSVG(c)}</a>`:`<span class="hum-ph custom" aria-hidden="true">${VBArt.silueta(\'\')}</span>`}'),'el humidor');
++ assert.ok(hj.includes("encodeURIComponent(VBArt.silueta('',{ink:tk('fixed-text'),ac:tk('warm')}))")&&hj.includes("else{x.fillStyle=tk('photo');x.fillRect(-380,-270,760,570);try{x.drawImage(img,-380,-205,760,380)}catch(e){}}"),'la imagen para compartir, en el marco de la foto');
++ for(const x of ['.card .ph.has-foto,.card .ph.sin-foto{background:var(--photo);','.detail-ph.has-foto,.detail-ph.sin-foto{','.hum-ph:has(.sil){background:var(--photo)}'])assert.ok(css.includes(x),x);
++ /* la tinta: la de tabaco sobre la página, y la fija sobre el marco de la foto y el mapa; se leen de día y de noche */
++ assert.ok(css.includes('.lart{--art-ink:var(--on-surface);--art-ac:var(--warm);fill:none;stroke:var(--art-ink);')&&css.includes('.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}'));
++ /* Codex r1: el acento se pinta (relleno y trazo) */
++ assert.ok(css.includes('.lart .ac{fill:var(--art-ac)}')&&css.includes('.lart .acs{stroke:var(--art-ac)}'),'el acento se pinta');
++ /* Codex r1: el estado vacío guarda el acento: debajo de la máscara, el medallón de CAJA en ámbar sobre la tinta, en su sitio (escala del dibujo) */
++ {const r=css.match(/\.empty::before\{[^}]*\}/)[0],w=+r.match(/width:(\d+)px/)[1],k=w/120,el=A.CAJA.match(/<ellipse class="ac" cx="([\d.]+)" cy="([\d.]+)" rx="([\d.]+)" ry="([\d.]+)"/).slice(1).map(Number).map(x=>+(x*k).toFixed(2));
++  assert.equal(+r.match(/height:(\d+)px/)[1],100*k,'la caja guarda la proporción del dibujo');
++  assert.ok(r.includes('background:radial-gradient('+el[2]+'px '+el[3]+'px at '+el[0]+'px '+el[1]+'px,var(--warm) 100%,var(--on-surface) 100%);'),'el medallón en ámbar: '+el.join(' '))}
++ for(const T of [TOKENS65(css),TOKENS65(DARK110.css(css))]){assert.ok(contrast65(T.val('on-surface'),T.val('surface'))>=3);assert.ok(contrast65(T.val('fixed-text'),T.val('photo'))>=3);assert.ok(contrast65(T.val('on-surface'),T.val('warm'))>=1.5,'el acento se distingue de la línea')}
++});
+ test('LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noche; y cada vista, con lo que trae dentro, tiene una sola acción llena',()=>{
+  const raw=read('styles.css'),hj=read('hoja.js'),ap=read('app.js');
+  /* la etiqueta: tagChips de verdad en una VM, con una de la rueda y una que no está */
+@@ -4769,7 +4866,7 @@ function HOJA58(opts){opts=opts||{};
+  const acctBox={v:opts.acct===undefined?{sub:'u_a',handle:'ana',name:'Ana S.',avatar:''}:opts.acct};const sheets=[],log=[];const loc={hash:''};
+  /* LHB-60: la sesión y el adaptador de la API con sesión (api(C,method,path,body,uid)); sin opts.api contesta 500 */
+  const toasts=[],calls=[],sheetOn={v:false};
+- const ctx={...TT(),window:{addEventListener(){}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:{leaf:()=>''},esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
++ const ctx={...TT(),window:{addEventListener(){}},LHB_MERGE:SYNC28().LHB_MERGE,$,$$,view,VBArt:VB111(),esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:m=>toasts.push(m),
+   /* opts.token: la llave de la sesión tarda; go es el de api() en hoja.js: con la llave ya puesta, si dice que no el pedido no sale */
+   clerk:async()=>({user:{id:'u_a'}}),acctW:new Set(),acctGen:0,api:async(C,method,path,body,uid,extra,go)=>{if(opts.token)await opts.token(method);if(go&&!go())throw new Error('gone');calls.push([method,path,body?JSON.stringify(body):null,uid]);const r=opts.api?await opts.api(method,path,body):{status:500,body:{}};if(r instanceof Error)throw r;return r},
+   A:{cigarById:id=>({c1:{id:'c1',nombre:'Yambú Toro'},c2:{id:'c2',nombre:'Don Collins'}})[id]||null,cigarCard:c=>'<a class="card" data-c="'+c.id+'">'+c.nombre+'</a>',hydrate:()=>log.push('hydrate'),route:()=>log.push('route')},
+@@ -5308,7 +5405,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v161'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v162'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -5401,7 +5498,7 @@ function CAT64(){const vm=require('vm');const D=DOM64();const src=read('app.js')
+  const code=src.slice(src.indexOf('/* LHB-64: una región de estado'),src.indexOf('\nfunction vCigar('));
+  const cs=[{id:'a',nombre:'Toro',capa:'Maduro',fortaleza:'suave',artesano_id:'x'},{id:'b',nombre:'Corona',capa:'Natural',fortaleza:'fuerte',artesano_id:'x'},{id:'c',nombre:'Robusto',capa:'Maduro',fortaleza:'fuerte',artesano_id:'y'}];
+  const ctx={document:D.doc,$:D.$,$$:D.$$,view:D.view,window:{},esc:s=>String(s),tt:(k,v)=>v?k+'='+v.a:k,allCigars:()=>cs,fx:(c,k)=>c[k],fq:(c,k)=>c[k]||'',artisanName:()=>'Art',FACADES_BAR:'',installHidden:()=>false,LS:{get:()=>false,set(){}},REDUCED_ALL:true,
+-  VBArt:{leaf:()=>''},FORT:['suave','medio','fuerte'],fortLabel:f=>f,D:{artesanos:[{id:'x',nombre:'X'},{id:'y',nombre:'Y'}]},cigarCard:c=>`<a class="card" href="#/c/${c.id}">${c.nombre}</a>`,emptyCoqui:t=>`<div class="empty">${t}</div>`,PROTO_NOTE:'',hydratePhotos:()=>{}};
++  VBArt:VB111(),FORT:['suave','medio','fuerte'],fortLabel:f=>f,D:{artesanos:[{id:'x',nombre:'X'},{id:'y',nombre:'Y'}]},cigarCard:c=>`<a class="card" href="#/c/${c.id}">${c.nombre}</a>`,emptyBox:t=>`<div class="empty">${t}</div>`,PROTO_NOTE:'',hydratePhotos:()=>{}};
+  vm.createContext(ctx);vm.runInContext(code+';this.vCatalogo=vCatalogo;this.state=state;this.RS=RS;this.newLoad71=()=>{homeCompact=null}',ctx);
+  return {...D,ctx,cards:()=>D.$$('.card').length}}
+ test('LHB-64: el catálogo: elegir un filtro deja el foco en el mismo filtro aunque la vista se pinte otra vez, y una región de estado fija anuncia cuántas vitolas quedan',()=>{
+@@ -5454,6 +5551,71 @@ test('LHB-64 (Codex ronda 2): el aviso (toast) queda fuera de la app inerte, enc
+ });
+ /* LHB-110: el tema oscuro. styles.css lo define dos veces con los mismos valores (al teléfono si no se eligió claro, y elegido en el menú);
+    l.css y u.css una vez (al teléfono). css() devuelve la hoja con el :root claro cambiado por el de noche, para medirla con las mismas pruebas */
++/* LHB-111 (Codex r2 y r3): un ícono no lleva colores propios (solo none y currentColor) ni tamaño propio (style, ni width, height o transform en su
++   <svg>); su color y su tamaño los pone la página. Los atributos se leen con comillas dobles, simples o sin comillas */
++const ATTR111=tag=>[...tag.matchAll(/\s([a-zA-Z][\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)].map(m=>[m[1].toLowerCase(),(m[2]??m[3]??m[4]).trim()]);
++/* LHB-111 (Codex r4): toda fuente de imagen, leída como la lee el navegador. TAG111 lee una etiqueta de apertura respetando sus comillas; MEDIA111 da cada
++   fuente de cada etiqueta que pinta una imagen (img y source: src y srcset; image: href; input: src; video: poster y src; object: data; embed e iframe: src).
++   Cada <img, <source, <image, <input, <video, <object, <embed o <iframe tiene que leerse entero, o la prueba falla: ninguna se salta por no entenderla.
++   En un script, una expresión ${...} dentro de la etiqueta es una pieza de ella (un atributo que va o no va, o un valor) */
++const TPL111=String.raw`\$\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}`;
++const TAG111=new RegExp(String.raw`<([a-zA-Z][\w:-]*)((?:\s*`+TPL111+String.raw`|(?:\s+|(?<=\}))[^\s=>"'\/$]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|`+TPL111+String.raw`|[^\s"'>]+))?)*)\s*\/?>`,'y');
++const MEDIA_TAGS111={img:['src','srcset'],source:['src','srcset'],image:['href','xlink:href'],input:['src'],video:['poster','src'],object:['data'],embed:['src'],iframe:['src']};
++const MEDIA111=(h,where)=>{const out=[];for(const s of h.matchAll(/<(img|source|image|input|video|object|embed|iframe)\b/gi)){TAG111.lastIndex=s.index;const m=TAG111.exec(h);
++  assert.ok(m,where+': una etiqueta que la prueba no sabe leer: '+h.slice(s.index,s.index+90));const want=MEDIA_TAGS111[m[1].toLowerCase()];
++  for(const [k,v] of ATTR111(m[2]))if(want.includes(k))for(const u of k==='srcset'?v.split(',').map(x=>x.trim().split(/\s+/)[0]).filter(Boolean):[v])out.push({tag:m[1].toLowerCase(),k,u})}return out};
++/* LHB-111 (Codex r5): las reglas de un texto con script, las mismas para un archivo .js, un <script> dentro de una página y la página entera (sus
++   atributos onload y demás): todo archivo de imagen que nombra es foto, marca, ícono o la intro (con o sin la dirección del sitio delante; los sufijos
++   de las miniaturas de LHB-85, perfil.jpg, el nombre con que sube la foto del propio lector, y og.jpg, la tarjeta que otros sitios muestran al compartir
++   un enlace, son las excepciones con nombre); trae tantos data URI
++   de imagen como se le dice (uno solo en todo el sitio: la silueta de la imagen para compartir, en hoja.js); y la fuente que pone (img.src=,
++   srcset, poster, o setAttribute) es literal de esas carpetas o ese data URI. Codex r7: y no dibuja por su cuenta: ningún SVG hecho por el DOM
++   (createElementNS), ningún <canvas> ni OffscreenCanvas escrito, y getContext tantas veces como se le dice (en todo el sitio, dos: achicar la foto que
++   sube el lector, en app.js, y la imagen para compartir, en hoja.js) */
++const IMGOK111=/^(https:\/\/lahojaboricua\.com\/)?(\.\.\/)*\/?(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/;
++const SCRIPT111=(x,where,du,canvas=0)=>{
++ assert.ok(!/createElementNS\s*\(/.test(x),where+': un SVG hecho por el DOM');assert.ok(!/<canvas\b|OffscreenCanvas/i.test(x),where+': un lienzo escrito');
++ assert.equal([...x.matchAll(/getContext\b/g)].length,canvas,where+': un lienzo');
++ for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*[\w./-]+\.(?:webp|png|jpe?g|gif|avif|svg|bmp|ico))(?![\w])/gi))assert.ok(IMGOK111.test(m[1])||['_thumb.webp','_thumb-s.webp','perfil.jpg','https://lahojaboricua.com/og.jpg','/og.jpg','og.jpg'].includes(m[1]),where+': nombra una imagen de fuera: '+m[1]);
++ assert.equal([...x.matchAll(/data:image\//gi)].length,du,where+': un data URI de imagen');
++ /* Codex r12: los escapes se leen como el navegador antes de buscar url( o una función de imagen: los de JavaScript (\u0075, \u{75}, \x75) y los de CSS
++    (u\72 l, \l); y el atributo style se lee en toda forma: comillas dobles o simples, comillas escapadas dentro de una cadena (style=\"...\") y sin comillas */
++ const D=v=>v.replace(/\\u\{([0-9a-f]+)\}|\\u([0-9a-f]{4})|\\x([0-9a-f]{2})/gi,(_,a,b,c)=>CP111(parseInt(a??b??c,16))).replace(/\\+([0-9a-f]{1,6})\s?|\\+([\s\S])/gi,(_,h,c)=>h?CP111(parseInt(h,16)):c);
++ /* Codex r11: el CSS que un script o una página escribe pasa por CSS111: sus bloques <style> y sus atributos style (cada expresión ${...} se aparta antes:
++    es un valor de los datos), y todo url( de CSS que escribe (no el new URL( de JavaScript; sin los comentarios de bloque) trae solo una fuente */
++ {const t=x.replace(/\/\* [\s\S]*?\*\//g,'');const T=v=>v.replace(new RegExp(TPL111,'g'),'T');
++  for(const m of t.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi))CSS111(T(m[1]),where+' <style>',false);
++  for(const m of t.matchAll(/\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)'|\\(["'])([\s\S]*?)\\\3|([^\s"'`>]+))/gi))CSS111(T(m[1]??m[2]??m[4]??m[5]),where+' style=',false);
++  for(const m of D(t).matchAll(/(?<![\w.$])(?<!\bnew\s{0,4})url\(\s*['"`]?([^'"`)]*)/gi))assert.ok(/^\/?fonts\/[a-z0-9-]+\.woff2$/.test(m[1]),where+': url('+m[1].slice(0,60))}
++ /* Codex r10: ninguna función de CSS que pinte una imagen, escrita en el texto (un script que arma estilos, una página) */
++ assert.ok(!/\b(image-set|cross-fade|-webkit-canvas|-moz-element)\s*\(/i.test(D(x)),where+': una imagen pintada por CSS');
++ const lit=v=>IMGOK111.test(v)||v==='data:image/svg+xml;charset=utf-8,';
++ for(const m of x.matchAll(/\.(src|srcset|poster)\s*=\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g))assert.ok(IMGOK111.test(m[3])||(m[3]==='data:image/svg+xml;charset=utf-8,'&&x.startsWith('+encodeURIComponent(VBArt.silueta(',m.index+m[0].length)),where+': '+m[0].slice(0,90));
++ for(const m of x.matchAll(/setAttribute\(\s*(['"])(src|srcset|poster|href|xlink:href)\1\s*,\s*(['"`])((?:(?!\3)[^\\]|\\.)*)\3/g))if(m[2]!=='href'||/\.(webp|png|jpe?g|gif|avif|svg)\b|^data:/i.test(m[4]))assert.ok(lit(m[4]),where+': '+m[0].slice(0,90))};
++/* el sitio entero con script, menos vendor-leaflet.js (Leaflet de afuera; sus imágenes de marcador por omisión no se usan: los pines son los de la app) */
++const SITEJS111=()=>{const root=path.join(__dirname,'..','site');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.js')?[path.relative(root,path.join(d,x.name)).replace(/\\/g,'/')]:[]);return walk(root).filter(f=>f!=='vendor-leaflet.js')};
++/* LHB-111 (Codex r9): las hojas de estilo del sitio se buscan recorriendo site/ (menos vendor-leaflet.css, la de Leaflet, con sus propias imágenes del mapa),
++   y todo texto (script o página) que nombra una hoja de estilo nombra una de esas: una hoja nueva no entra sin pasar por las reglas de abajo */
++const CSSFILES111=()=>{const root=path.join(__dirname,'..','site');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.css')?[path.relative(root,path.join(d,x.name)).replace(/\\/g,'/')]:[]);return walk(root).filter(f=>f!=='vendor-leaflet.css')};
++const CSSNAME111=(x,where)=>{const known=[...CSSFILES111(),'vendor-leaflet.css'];assert.ok(!/@import\b/i.test(x),where+': un @import');
++ for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*\/?[\w./-]+\.css)(?![\w])/gi)){const n=m[1].replace(/^https:\/\/lahojaboricua\.com\//,'').replace(/^(\.\.\/)+|^\//g,'');
++  assert.ok(known.includes(n)||(n==='l.css'&&/^lugares\//.test(where.replace(/\\/g,'/'))),where+': nombra una hoja de estilo que la prueba no revisa: '+m[1])}};
++/* functions/: la página pública del pasaporte (/u/<handle>) se arma en el servidor; sus scripts pasan por las mismas reglas */
++const FUNCJS111=()=>{const root=path.join(__dirname,'..','functions');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.js')?[path.join(d,x.name)]:[]);return walk(root).map(p=>['functions/'+path.relative(root,p).replace(/\\/g,'/'),fs.readFileSync(p,'utf8')])};
++/* LHB-111 (Codex r10): una sola regla de CSS, la misma para una hoja y para el CSS que trae una página (bloques <style> y atributos style), sin mirar
++   mayúsculas (CSS acepta URL( y Image-Set( ): url() solo trae fuentes (y un SVG en data URI donde se permite: styles.css); ni @import, ni las funciones
++   que pintan sin url() (image-set, paint, element, cross-fade, src, -webkit-canvas, -moz-element); y ninguna barra invertida, porque un escape de CSS
++   (u\72 l, \40 import) disfraza un nombre: hoy no hay ninguna en las hojas */
++const CP111=n=>n>0&&n<=0x10ffff?String.fromCodePoint(n):'\ufffd';
++const CSS111=(c,where,svgOK)=>{c=c.replace(/\/\*[\s\S]*?\*\//g,'');assert.ok(!c.includes('\\'),where+': un escape de CSS');
++ assert.ok(!/@import\b|\b(image-set|paint|element|cross-fade|src|-webkit-canvas|-moz-element)\s*\(/i.test(c),where+': @import o una imagen pintada por CSS');
++ for(const m of c.matchAll(/\burl\(\s*['"]?([^'")]*)/gi))assert.ok(/^\/?fonts\/[a-z0-9-]+\.woff2$/.test(m[1])||(svgOK&&m[1].startsWith('data:image/svg+xml')),where+': url('+m[1].slice(0,60))};
++const ICON111=svg=>{const root=(svg.match(/^<svg\b[^>]*>/i)||[''])[0],paint=['fill','stroke','stop-color','color','flood-color','lighting-color'];
++ return !/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|<(image|foreignObject|style)\b/i.test(svg)
++  &&ATTR111(svg).every(([k,v])=>k!=='style'&&(!paint.includes(k)||v==='none'||v==='currentColor'))
++  &&!ATTR111(root).some(([k])=>k==='width'||k==='height'||k==='transform')};
++/* LHB-111: art.js de mentira para las vistas que se corren en una VM: cada dibujo del juego de línea devuelve una marca con su nombre */
++function VB111(){const o={leaf:()=>''};for(const k of ['ranchon','banda','chaveta','micro','lupa','hoja','maridaje','caja','aqui'])o[k]=()=>'<i data-art="'+k+'"></i>';o.silueta=()=>'<i data-art="silueta"></i>';return o}
+ const DARK110={MEDIA:/@media \(prefers-color-scheme:dark\)\{:root:not\(\[data-theme="light"\]\)\{([^}]*)\}\}/,ATTR:/:root\[data-theme="dark"\]\{([^}]*)\}/,
+  strip(s,f){return s.replace(this.MEDIA,m=>f(m)).replace(this.ATTR,m=>f(m))},
+  css(css){const m=css.match(this.MEDIA);if(!m)return null;const light=css.match(/:root\{([^}]*)\}/)[1].replace(/\/\*[\s\S]*?\*\//g,'').replace(/;?\s*color-scheme:light/,'');
+@@ -5563,21 +5725,18 @@ function extra99(f,s){const at=[];
+  return at}
+ const ALLOW67=[
+  ['app.js',/THEME_BAR=\{light:'#F4F1EA',dark:'#141A13'\}/,1,'LHB-110: la barra del teléfono por tema; la meta theme-color no lee variables (los mismos valores que index.html y que --surface de día y de noche, abajo)'],
+- ['app.js',/const CAPA_COLORS=\{[^;]*\};/,1,'arte: el color de cada capa de tabaco en el dibujo del cigarro'],
+- ['app.js',/const BG=\[[^\]]*\];/,1,'arte: el fondo del dibujo del cigarro'],
+- ['app.js',/function cigarSVG[\s\S]*?<\/svg>`\}/,1,'arte: el dibujo del cigarro (su anilla en rojo de la bandera y la estrella en el celeste)'],
+  ['app.js',/const FACADE=\[[^\]]*\];/,1,'la fachada de las iniciales con la bandera (azul y rojo de --flag-blue y --flag-red; su blanco de pared); la tinta se mide abajo'],
+  ['app.js',/red=\/\^#ed0000\$\/i/,1,'no es un color pintado: la prueba de si el fondo de las iniciales es el rojo de la bandera'],
+  ['app.js',/fill="\$\{red\?'#000':'#fff'\}"/,1,'la hoja de agua de las iniciales (oscurece el rojo para que la tinta blanca pase, abajo)'],
+- ['app.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,4,'la paleta de los íconos de hoja (art.js les pone un borde oscuro: se ven en el tema claro)'],
++ ['app.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,1,'la paleta de los íconos de hoja (art.js les pone un borde oscuro: se ven en el tema claro)'],
+  ['app.js',/const cols=\[color\|\|'#d9a75a'[^\]]*\]/,1,'arte: las hojas que caen al marcar un favorito'],
+  ['app.js',/stroke="#2a1a12"/,1,'arte: el borde de la hoja del pin, el mismo de art.js'],
+  ['hoja.js',/WHEEL=\[[\s\S]*?\];/,1,'la paleta de la rueda de sabores, una por categoría (su texto pasa 4.5, abajo)'],
+- ['hoja.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,9,'la paleta de los íconos de hoja (art.js les pone un borde oscuro)'],
++ ['hoja.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,7,'la paleta de los íconos de hoja (art.js les pone un borde oscuro)'],
+  ['hoja.js',/VBArt\.leaf\(p\.categoria==='venta'\?'#ffd27a':'#8fd162'\)/,1,'la paleta de los íconos de hoja'],
+  ['hoja.js',/VBArt\.leaf\(lit\.length\?'#8fd162'/,1,'la paleta de los íconos de hoja: la hoja ganada'],
+  ['hoja.js',/return v\|\|'#263723'/,1,'respaldo de tk() si un token faltara al pintar la imagen para compartir: espejo de --on-surface',['on-surface']],
+- ['styles.css',/\.empty::before\{[^}]*\}/,1,'arte: la bandera en su asta del estado vacío, un SVG en data URI que no lee las variables de la página (su azul y su rojo se miden abajo)'],
++ ['styles.css',/\.empty::before\{[^}]*\}/,1,'LHB-111: la caja de cigarros del estado vacío es una máscara (un SVG en data URI): su negro no se pinta, solo da la forma; el color es --on-surface'],
+  ['hoja.js',/<circle cx="12" cy="12" r="11" fill="#0e2417"\/>[\s\S]*?<\/svg>/,1,'marca de Spotify: su ícono, sobre el botón verde de la marca'],
+ ];
+ function scan67(over={}){const app=TOKENS65(read('styles.css')),bad=[],stale=[],mirror=[];
+@@ -5632,9 +5791,8 @@ test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabo
+  /* LHB-110 (Codex r1): los colores de sabor no cambian de noche, así que su tinta tampoco (--fixed-text, de día y de noche) */
+  assert.match(css,/\.tchip\{background:var\(--wc\);color:var\(--fixed-text\)/);assert.match(css,/\.wseg\.on text\{fill:var\(--fixed-text\)\}/);
+  for(const A of [app,TOKENS65(DARK110.css(css))])for(const c of W)assert.ok(contrast65(A.val('fixed-text'),c)>=4.5,'sabor '+c+': '+contrast65(A.val('fixed-text'),c).toFixed(2));
+- const em=decodeURIComponent((css.match(/\.empty::before\{[^}]*\}/)||[''])[0]),flag=new Set((em.match(/#[0-9a-fA-F]{6}/g)||[]).map(x=>x.toUpperCase()));
+- for(const tkn of ['flag-blue','flag-red'])assert.ok(flag.has(app.val(tkn).toUpperCase()),'la bandera del estado vacío lleva --'+tkn+' '+app.val(tkn)+': '+[...flag].join(' '));
+- for(const old of ['#5FB4E5','#0050F0','#E92A2F'])assert.ok(!flag.has(old),'la bandera del estado vacío sin el color viejo '+old);
++ /* LHB-111: el estado vacío: la máscara solo da la forma (todo en negro) y el color es la tinta de las ilustraciones */
++ {const em=(css.match(/\.empty::before\{[^}]*\}/)||[''])[0].replace(/%([0-9A-Fa-f]{2})/g,(m,h)=>String.fromCharCode(parseInt(h,16)));assert.deepEqual([...new Set(em.match(/#[0-9a-fA-F]{3,6}\b/g))],['#000']);assert.match(em,/background:radial-gradient\([^;]*var\(--warm\) 100%,var\(--on-surface\) 100%\)/)}
+  const F=a.match(/const FACADE=\[([^\]]*)\]/)[1].match(/#[0-9a-fA-F]{6}/g),m=a.match(/red=\/\^#ed0000\$\/i\.test\(bg\);return `<span class="mono" style="[^"]*color:\$\{red\?'var\(--([a-z-]+)\)':'var\(--([a-z-]+)\)'\}[\s\S]*?fill="\$\{red\?'(#[0-9a-f]{3})':'(#[0-9a-f]{3})'\}" opacity="\$\{red\?'([.\d]+)':'([.\d]+)'\}"/);
+  assert.ok(m,'las iniciales eligen tinta y hoja de agua según el fondo');const x3=c=>'#'+c.slice(1).split('').map(d=>d+d).join('');
+  const mix=(b,o,al)=>'#'+[1,3,5].map(i=>Math.round(parseInt(b.slice(i,i+2),16)*(1-al)+parseInt(o.slice(i,i+2),16)*al).toString(16).padStart(2,'0')).join('');
+@@ -5835,7 +5993,7 @@ test('LHB-72: el splash viejo se fue; la intro carga antes que la app, sus video
+ function ABOUT73(o={}){const vm=require('vm');const D=DOM64();const src=read('app.js').replace(/\r\n/g,'\n');
+  const code=src.slice(src.indexOf('/* LHB-73: Acerca de'),src.indexOf('/* LHB-73: fin */'));
+  const loc={hash:''};let last='';const view={set innerHTML(v){last=v;D.view.innerHTML=v},get innerHTML(){return last},focus:o=>D.view.focus(o)};
+- const ctx={document:D.doc,view,$:D.$,esc:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'),tt:k=>'['+k+']',head:(e,t,l)=>`<header><h1>${t}</h1><p>${l}</p></header>`,VBArt:{leaf:()=>''},
++ const ctx={document:D.doc,view,$:D.$,esc:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'),tt:k=>'['+k+']',head:(e,t,l)=>`<header><h1>${t}</h1><p>${l}</p></header>`,VBArt:VB111(),
+   brandIcon:n=>`<svg data-i="${n}"></svg>`,matchMedia:q=>({matches:!!o.reduced&&q==='(prefers-reduced-motion: reduce)'}),navigator:{connection:o.saveData?{saveData:true}:undefined},location:loc};
+  vm.createContext(ctx);vm.runInContext(code+';this.CREDITS=CREDITS;this.vAcerca=vAcerca;this.vCreditos=vCreditos',ctx);return {...D,ctx,loc,html:()=>last}}
+ /* ¿tiene sonido un archivo MP4/MOV/3GP? Lee las cajas de verdad, en cualquier orden (tamaño de 32 o de 64 bits, o hasta el final).
+@@ -5983,7 +6141,7 @@ function PASS74(o={}){const vm=require('vm');const src=read('hoja.js').replace(/
+  const data={artesanos:mk('a',5),cigarros:mk('c',8,{artesano_id:'a0'}),places:mk('l',3)};const st={pasaporte:{artesanos:{},cigarros:{},lugares:{}}};
+  for(const id of o.stamped||[]){const [k,i]=id.split(':');st.pasaporte[k][i]='2026-10-29'}
+  const loc={hash:o.hash||'#/mihoja/pasaporte'};
+- const ctx={...TT(),view,document,MutationObserver,S:()=>st,D:()=>data,isStamp:(k,id)=>!!st.pasaporte[k][id],VBArt:{leaf:()=>''},esc:x=>String(x),fmtF:x=>x,hoy:()=>'2026-10-29',
++ const ctx={...TT(),view,document,MutationObserver,S:()=>st,D:()=>data,isStamp:(k,id)=>!!st.pasaporte[k][id],VBArt:VB111(),esc:x=>String(x),fmtF:x=>x,hoy:()=>'2026-10-29',
+   subnav:k=>'<nav data-sub="'+k+'"></nav>',backupPanel:()=>'',sheet:()=>{},stampBtn:()=>'',toast:()=>{},closeSheet:()=>{},zonaSheet:()=>{},scrollTo:()=>{},scrollY:0,location:loc,
+   toggleStamp:(k,id)=>{const on=!st.pasaporte[k][id];if(on)st.pasaporte[k][id]='2026-10-29';else delete st.pasaporte[k][id];return on},
+   A:{mono:()=>'',artisanName:()=>'Art',artisanById:id=>data.artesanos.find(x=>x.id===id),route:()=>{log.push(['route',now-t0]);ctx.P.vPasaporte()}},
