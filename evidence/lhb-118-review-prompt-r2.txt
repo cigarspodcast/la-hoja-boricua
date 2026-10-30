@@ -1,0 +1,72 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-118-wt (branch lhb-118-medallon, staged for the owner's review, not merged). This is round 2 of a TIER 2 review of LHB-118 (the Medallon logo with its own dark mark, swapped by the tokens --mark-light and --mark-dark through the rules .mark-l and .mark-d). Round 1 (evidence/lhb-118-review-r1.txt, on 470ee9e) said VERDICT: PASS with one nonblocking P3, quoted here:
+
+"test/site.test.js, test LHB-118. The assertion css.includes('.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}') checks rule presence, not the winning cascade. I injected .brand img{display:block} into file reads in memory: the test still passed, although that higher-specificity rule would display both marks."
+
+The fix is the diff below (470ee9e to HEAD, site, test and the mutation runner only):
+- In the LHB-118 test, every rule of styles.css, lugares/l.css and u.css (CSS comments stripped first; rules inside @media are matched too) whose selector ends at an img, carries a class, id, attribute or pseudo-class, and can reach the mark img, must not set display. reach118 judges reach: the img's own compound may carry no class (img.mark-l, our own rules, is excluded) and every part before it must be an ancestor the mark has (html, body, div, .app, #app, header, .topbar, a, .brand, .intro, .intro-mark) or an attribute or pseudo-class. A self-check pins reach118 on five selectors.
+- Why the narrowing: the base has img{max-width:100%;display:block} (specificity 0,0,1, which loses to a class) and .card .ph img{...display:block} (a catalogue photo, never an ancestor of the mark); both are correctly out of reach.
+- site/styles.css: a stale comment above .brand img (it said the mark sits on a paper tile at night) is rewritten. It is also why comments are stripped: the comment text sat in the matched selector and hid the rule.
+- evidence/lhb-118-mutations.py: two new mutants (display on .brand img in styles.css and in u.css). evidence/lhb-118/mutations-r2.txt: 10 of 10 killed, green before and after. evidence/lhb-118/suite-3.txt: 474 tests, 473 pass, 0 fail, 1 skipped.
+
+Check in particular:
+- Does the new guard close the P3 you raised? Run your own injection again (.brand img{display:block}, and others you choose: header .brand img, a.brand>img, .topbar img, .intro-mark img inside an @media, .brand img:not(.x)).
+- False negatives in reach118 or the selector-end regex (a selector with a combinator and no spaces, a :is()/:where() list, an attribute with a space in it, a !important display on a bare img, display set through the shorthand of another property). Say which you consider in scope; a real way for both marks to show that the test misses is a BLOCK, a theoretical one is not.
+- False positives a future, legitimate edit would hit.
+- Anything else in the diff.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before merge).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree, for example: node --test --test-name-pattern=LHB-118 test/site.test.js. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff 470ee9e 0bbe9176d39dfedad70425b69ee826a72b5a7ee9 -- site test evidence/lhb-118-mutations.py =====
+diff --git a/evidence/lhb-118-mutations.py b/evidence/lhb-118-mutations.py
+index c6aceb6..c91b54f 100644
+--- a/evidence/lhb-118-mutations.py
++++ b/evidence/lhb-118-mutations.py
+@@ -11,6 +11,9 @@ MUTANTS = [
+     ('the static pages keep the paper tile at night', 'site/lugares/l.css', '--mark-bg:transparent;--mark-light:none;', '--mark-bg:#EFEBE2;--mark-light:none;'),
+     ('the favicons come from the full master', 'tools/build_icons.py', "('favicon-16.png', SMALL,", "('favicon-16.png', FULL,"),
+     ('the service worker forgets the night mark', 'site/sw.js', "'icons/icon-dark.svg',", ''),
++    # Codex r1 (P3): a higher-specificity rule on the mark img would show both marks
++    ('a brand img rule sets display', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:block;border-radius:var(--r-s);'),
++    ('a static sheet sets display on the mark img', 'site/u.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:inline-block;border-radius:var(--r-s);'),
+ ]
+ 
+ 
+diff --git a/site/styles.css b/site/styles.css
+index 72c995d..dffdaf1 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -45,7 +45,7 @@ button,input,select,textarea{font:inherit;color:inherit}
+  padding:calc(var(--sat) + 10px) calc(var(--sar) + 16px) 10px calc(var(--sal) + 16px);
+  background:var(--bar);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+ .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+-/* LHB-110: la hoja está pintada en tabaco oscuro; de noche va sobre su teja de papel */
++/* LHB-118: el Medallón trae su marca de noche (icon-dark.svg), así que no hay teja: --mark-bg es transparente en los dos temas y --mark-light y --mark-dark escogen la marca */
+ .brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}
+ .brand-text{display:flex;flex-direction:column;line-height:1.05}
+ .brand-name{font-family:var(--serif);font-weight:600;font-size:var(--fs-4);letter-spacing:.2px}
+diff --git a/test/site.test.js b/test/site.test.js
+index b6b0bba..f0e34f1 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -8988,6 +8988,19 @@ test('LHB-118: el Medallón en los íconos, la barra de día y de noche, la intr
+   assert.ok(css.includes('.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}'),f+': las dos reglas')}
+  const m=DARK110.ATTR.exec(read('styles.css'));assert.ok(m&&m[1].includes('--mark-light:none;--mark-dark:block;'),'el tema oscuro escogido también cambia la marca');
+  assert.ok(!/\.intro-mark img\{[^}]*display:/.test(read('styles.css')),'la intro no pisa el display de los tokens');
++ /* Codex r1 (P3): que las reglas estén no basta; ninguna otra regla que llegue a la img de la marca (un selector que termina en img, como .brand img,
++    .intro-mark img, también dentro de un @media) puede poner display, porque le ganaría a .mark-l y .mark-d y se verían las dos marcas. Un img a secas
++    (especificidad 0,0,1, como el img{display:block} de la base) pierde contra una clase y no cuenta; uno con clase, id, atributo o pseudoclase sí.
++    Solo cuentan los selectores que pueden llegar a la marca: cada parte fuera de la img es un antepasado que la marca tiene (html, body, div.app#app,
++    header.topbar, a.brand, div.intro, div.intro-mark) o un atributo o pseudoclase; .card .ph img, por ejemplo, no llega */
++ const ANC118=new Set(['html','body','div','.app','#app','header','.topbar','a','.brand','.intro','.intro-mark']);
++ const reach118=x=>{const parts=x.split(/\s*[\s>+~]\s*/).filter(Boolean),last=parts.pop();if(!/^img(?![\w-])/.test(last))return false;
++  const own=(last.slice(3).match(/[.#][\w-]+/g)||[]);if(own.some(s=>s!=='.mark-l'&&s!=='.mark-d'))return false;if(own.length)return false;
++  return parts.every(p=>(p.match(/[.#]?[\w-]+|\[[^\]]*\]|:{1,2}[\w-]+(\([^)]*\))?/g)||[]).every(s=>/^[[:]/.test(s)||ANC118.has(s)))};
++ assert.ok(reach118('.brand img')&&reach118('header.topbar a.brand img')&&reach118('.intro-mark img')&&reach118('a.brand:hover img')&&!reach118('.card .ph img')&&!reach118('.brand img.mark-l'),'el detector de selectores');
++ for(const f of ['styles.css','lugares/l.css','u.css'])for(const m of read(f).replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/([^{}]*)\{([^{}]*)\}/g)){
++  const hits=m[1].split(',').map(x=>x.trim()).filter(x=>/(^|[\s>+~])img(?![\w-])[^\s>+~]*$/.test(x)&&/[.#[:]/.test(x)&&reach118(x));
++  if(hits.length)assert.ok(!/(^|;)\s*display\s*:/.test(m[2]),f+': '+hits.join(',')+'{'+m[2]+'} pisa el display de la marca')}
+  const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
+  let n=0;for(const f of walk(S).filter(f=>/\.(html|js)$/.test(f))){const h=fs.readFileSync(f,'utf8');
+   for(const x of h.matchAll(/<img [^>]*icons\/icon(-dark)?\.svg"[^>]*>/g)){n++;assert.ok(/^<img class="mark-[ld]" /.test(x[0]),path.relative(S,f)+': '+x[0])}
