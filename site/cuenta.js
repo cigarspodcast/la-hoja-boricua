@@ -16,12 +16,39 @@ const intentOf=(from,o)=>{const v={from,act:o.act};if(typeof o.arg==='string')v.
 /* el perfil guardado es solo para abrir sin conexión: si el teléfono no lo deja guardar (almacenamiento lleno), entrar y crear el perfil igual funcionan */
 const cache=v=>{try{D.store.set(v)}catch(e){}};
 /* LHB-51: lo guardado en el teléfono lleva solo lo público (nombre público y la foto de Clerk) para pintar el encabezado y Perfil; la foto solo vale si es de Clerk */
-const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='string'?p.display_name:'',avatar:typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG)?p.avatar_key:''});
+const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='string'?p.display_name:'',avatar:typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG)?p.avatar_key:'',
+ /* LHB-115 (Codex r4-1): la copia del idioma que tiene la cuenta, para mandarle el del teléfono al abrir la app si no coincide */
+ lang:p.lang==='es'||p.lang==='en'?p.lang:null});
 /* toda salida que da por buena la cuenta con perfil retira el formulario de perfil que siga abierto: quedó viejo y su respuesta tardía ya no corre su acción además de esta */
 const retire=()=>{if(ob){ob=false;D.reroute()}};
+/* LHB-115: el idioma de la cuenta. Lo escogido en este teléfono es lo que vale (la pantalla del primer acceso o el menú; la cookie lo recuerda): la cuenta
+   guarda una copia, que se le manda cada vez que no coincide, y solo se lee cuando el teléfono no tiene ninguno (entonces se guarda aquí y, si hace falta,
+   se recarga en ese idioma sin mandarlo de vuelta). Así una lectura vieja de la cuenta, un envío que falló o un perfil que no se pudo guardar en el teléfono
+   nunca deshacen lo escogido (Codex r1-2, r2-1 a r2-3, r3-1 a r3-3). Un envío que falla no cambia nada: la próxima entrada lo vuelve a mandar */
+function syncLang(C,uid,p){const I=window.LHB_I18N;if(!I||!I.ENABLED||typeof I.saved!=='function')return;
+ const acc=p&&(p.lang==='es'||p.lang==='en')?p.lang:null,dev=I.saved();
+ if(dev){if(dev!==acc)putLang(C,uid,dev);return}
+ if(acc){if(acc!==I.lang)I.set(acc,{local:true});else I.remember(acc)}}
+/* manda el idioma a la cuenta, de uno en uno: si ya hay uno en camino, al terminar se manda solo el último pedido (Codex r3-4), así la cuenta queda con el
+   último aunque las respuestas lleguen en otro orden. Nunca rompe la entrada */
+let langBusy=null,langNext=null;
+function putLang(C,uid,l){langNext={C,uid,l};if(langBusy)return langBusy;
+ const run=()=>{const n=langNext;langNext=null;return Promise.resolve().then(()=>D.api(n.C,'PUT','/api/profile',{lang:n.l},n.uid)).catch(()=>null)
+  .then(r=>{if(r&&r.status===200){let c=null;try{c=D.store.get()}catch(e){}if(c&&c.sub===n.uid)cache({...c,lang:n.l})}return langNext?run():r})};
+ langBusy=run().then(r=>{langBusy=null;return r});return langBusy}
+/* Codex r1-5 y r4-2: la hoja de entrar, y los formularios del perfil y de la identidad, esperan a que se escoja el idioma (intro.js), que va antes que nada */
+function whenPicked(f){const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(f);else return f()}
+function openSignIn(C){whenPicked(()=>D.openSignIn(C))}
+/* el menú (y la pantalla del idioma) cambia el idioma con LHB_I18N.set, que llama a esto y espera antes de recargar. Si parece haber sesión (el perfil
+   guardado, o, con localStorage bloqueado, la cookie __client_uat de Clerk, que vale 0 sin sesión: Codex r2-4), se manda a la cuenta de la sesión de ahora */
+const signedHint=()=>{let c=null;try{c=D.store.get()}catch(e){}if(c&&c.sub)return true;
+ try{const m=/(?:^|;\s*)__client_uat=(\d+)/.exec(String(window.document&&window.document.cookie||''));return !!m&&m[1]!=='0'}catch(e){return false}};
+if(window.LHB_I18N)window.LHB_I18N.onSet=l=>signedHint()?Promise.resolve().then(()=>D.clerk()).then(C=>C&&C.user?putLang(C,C.user.id,l):null).catch(()=>null):null;
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 /* LHB-51: al abrir la app con una cuenta guardada, Clerk dice quién es: si es otra (o nadie) lo guardado se descarta; sin conexión se queda */
 async function reconcile(){const c0=D.store.get();if(!c0)return;let C;try{C=await D.clerk()}catch(e){return}hook(C);
+ /* LHB-115 (Codex r4-1): lo escogido antes de que cargara esta parte (la pantalla del idioma, o la recarga del inglés) llega a la cuenta aquí */
+ {const c=D.store.get(),I=window.LHB_I18N,dev=I&&I.ENABLED&&typeof I.saved==='function'?I.saved():null;if(c&&C.user&&c.sub===C.user.id&&dev&&dev!==c.lang)putLang(C,c.sub,dev)}
  /* si lo guardado era de otra cuenta y la persona está en Mi Hoja, lo que se pintó con ello (Perfil) se vuelve a pasar por la puerta */
  if(!D.store.get()&&onMiHoja())D.reroute()}
 function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
@@ -36,13 +63,14 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}
   /* el aviso de error pedía salir y volver a entrar: al salir, la hoja se cierra con todo y su botón; se deja un botón nuevo para entrar y seguir con la acción */
-  if(!id&&fl&&fl.from===D.here())D.ui.notice(tt('cu.again.h'),tt('cu.again.p'),{label:tt('cu.again.b'),on:()=>go(fl.done,{...fl.o,resume:false})})})}
+  /* LHB-115 (Codex r5-1): con la pantalla del idioma abierta, espera a que se escoja, y sale solo si sigue en la misma página y la misma cuenta */
+  if(!id&&fl&&fl.from===D.here()){const g1=gen;whenPicked(()=>{if(gen===g1&&fl.from===D.here())D.ui.notice(tt('cu.again.h'),tt('cu.again.p'),{label:tt('cu.again.b'),on:()=>go(fl.done,{...fl.o,resume:false})})})}})}
 /* una acción en sitio (corazón, sello, estrella, humidor) cuenta aparte de la puerta de una página: tocar un corazón no cancela el dibujo de Mi Hoja ni al revés; un cambio de cuenta cancela las dos */
 async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=vis,op=inp?++sip:++seq;if(inp){failure=null;/* un toque nuevo sustituye al anterior: lo guardado del anterior para volver de Google ya no vale (el nuevo guarda el suyo si hace falta) */if(!o.resume)D.intent.clear()}else ob=false;
  const lv=(C,uid)=>op===(inp?sip:seq)&&vis===v0&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
  const show=(h,p,b)=>{if(!inp&&op===seq)D.ui.card(h,p,b)};
  /* un error nunca se esconde: sobre la página (en sitio) o en la tarjeta de Mi Hoja, siempre con reintento que conserva la acción */
- const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:tt('cu.retry'),on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}else D.ui.card(h,p,b)};
+ const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:tt('cu.retry'),on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};/* LHB-115 (Codex r5-1) */whenPicked(()=>{if(lv())D.ui.notice(h,p,b)})}else D.ui.card(h,p,b)};
  show(tt('cu.wait.h'),tt('cu.wait.p'));
  let C;
  try{C=await D.clerk()}catch(e){
@@ -57,22 +85,22 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  if(!lv(C))return;
  /* en Mi Hoja y las páginas de la cuenta la puerta de la página es la única que espera: una acción en sitio que no puede hacerse al instante no se guarda ni compite con ella;
     sin sesión solo se abre la hoja de entrar */
- if(o.quick&&onMiHoja()){if(!C.user)D.openSignIn(C);return}
+ if(o.quick&&onMiHoja()){if(!C.user)openSignIn(C);return}
  if(!C.user){D.store.clear();
   if(o.resume){D.intent.clear();return}
   pending={go:done,o,from};if(o.act)D.intent.set(intentOf(from,o));
-  const open=()=>D.openSignIn(C);
+  const open=()=>openSignIn(C);
   show(tt('cu.gate.h'),tt('cu.gate.p')+(D.hasLocal&&D.hasLocal()?' '+tt('cu.gate.local'):'')+' '+tt('cu.gate.open'),{label:tt('cu.gate.b'),on:open});
   open();return}
  const uid=C.user.id;let r;
  try{r=await D.api(C,'GET','/api/me',null,uid)}catch(e){r={status:0,body:{}}}
  if(!lv(C,uid))return;
  /* LHB-52: un perfil de antes, sin nombre, apellido, género y fecha de nacimiento, completa su identidad antes de abrir nada; mientras tanto no se guarda para abrir sin conexión */
- if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
+ if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return whenPicked(()=>{if(lv(C,uid))identify(C,done,o,lv,uid,r.body.profile)});
  /* LHB-55: editar el perfil pasa por la misma puerta y abre el formulario con lo que hay guardado; done corre al guardar */
- if(r.status===200&&r.body.profile&&o.edit){cache(snap(uid,r.body.profile));D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
- if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));D.intent.clear();retire();return done()}
- if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
+ if(r.status===200&&r.body.profile&&o.edit){cache(snap(uid,r.body.profile));syncLang(C,uid,r.body.profile);D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
+ if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));syncLang(C,uid,r.body.profile);D.intent.clear();retire();return done()}
+ if(r.status===200&&r.body.needsProfile)return whenPicked(()=>{if(lv(C,uid))onboard(C,done,o,lv,uid)});
  if(r.status===401||r.status===403){D.store.clear();fail(tt('cu.check.h'),tt('cu.check.relog'));return}
  const c=D.store.get();
  if(c&&c.sub===uid&&!o.edit&&(r.status===0||r.status>=500)){D.intent.clear();retire();return done()}
@@ -131,7 +159,7 @@ function onboard(C,done,o,lv,uid){ob=true;
   const same=!!C.user&&C.user.id===uid;
   if(r.status===201){if(same)cache(snap(uid,r.body.profile));
    if(!live())return {stale:true};
-   settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(same)syncLang(C,uid,null);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
   if(!live())return {stale:true};
   /* la respuesta se perdió pero el perfil sí se creó: se revisa de nuevo dentro de este mismo envío y, si sale bien, se termina igual que con un 201.
      Si la revisión falla, el formulario sigue vivo para reintentar; no se anuncia éxito antes de tiempo. */
@@ -140,7 +168,7 @@ function onboard(C,done,o,lv,uid){ob=true;
    if(!live())return {stale:true};
    /* LHB-52: el perfil que apareció tras el 409 sigue sin identidad: se completa antes de guardar nada o abrir Mi Hoja; este formulario ya no vale */
    if(m.status===200&&m.body.profile&&m.body.needsIdentity===true){identify(C,done,o,lv,uid,m.body.profile);return {stale:true}}
-   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));syncLang(C,uid,m.body.profile);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}};
  /* un envío y una subida nunca corren a la vez: lo que se manda es la foto que se ve, y la que se sube no llega tarde a un perfil ya enviado */
@@ -180,7 +208,7 @@ function identify(C,done,o,lv,uid,prof){ob=true;
  /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, se vuelve a revisar */
  D.store.clear();
  const {live,settle}=guard(C,o,lv,uid);let sending=false;
- const finish=()=>{cache(snap(uid,prof));settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.done'));if(o.inPlace)D.reroute();done();return {ok:true}};
+ const finish=()=>{cache(snap(uid,prof));syncLang(C,uid,prof);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.done'));if(o.inPlace)D.reroute();done();return {ok:true}};
  const send=async f=>{
   if(!live())return {stale:true};
   let r;try{r=await D.api(C,'PUT','/api/profile',{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date},uid)}catch(e){r={status:0,body:{}}}
@@ -201,7 +229,9 @@ function identify(C,done,o,lv,uid,prof){ob=true;
    termine la revisión, vale la última: cada toque es una sola acción y corre una vez o ninguna. */
 const quick=(done,o)=>go(done,{...o,inPlace:true,fast:true,quick:true});
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
-function resume(){const it=D.intent.get();
+/* LHB-115 (Codex r6-1): con la pantalla del idioma abierta, todo lo que se retoma (la acción, sus hojas, sus avisos) espera a que se escoja; lo guardado y la página se revisan entonces */
+function resume(){return whenPicked(resumeNow)}
+function resumeNow(){const it=D.intent.get();
  if(it&&it.from===D.here()&&!onMiHoja()&&typeof it.act==='string'&&typeof ACT[it.act]==='function'){const act=it.act,arg=typeof it.arg==='string'?it.arg:undefined;
   return quick(()=>ACT[act](arg),{resume:true,act,arg})}
  D.intent.clear()}

@@ -1,0 +1,30 @@
+✔ LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noche; y cada vista, con lo que trae dentro, tiene una sola acción llena (6.4461ms)
+✔ LHB-34 (Codex r5): cerrar la sesión falla, la valla caduca y se vuelve a escribir Mi Hoja: el reintento revisa otra vez; sin red no se sale, con red lo nuevo llega a la cuenta y luego se sale (209.2021ms)
+✔ LHB-34 (Codex r4): el botón y el que termina un borrado a medias van de a uno: la respuesta de uno no le quita la marca al otro, y el que espera lee la marca otra vez (68.0214ms)
+✔ LHB-80 (Codex r4): ida y vuelta de cuentas mientras una pasada espera su GET (A, B, C, A): la pasada de antes ya no vale; nada se sube como borrado y la cuenta queda entera (90.2513ms)
+✔ LHB-80 (Codex r4): la base en memoria de una cuenta (su meta no se pudo guardar) no vale para su copia nueva después de otra cuenta: nada se sube como borrado (108.8408ms)
+✔ LHB-80 (Codex r4): A sin meta guardada, nueve quitas sin respuesta y la vuelta; B nueve subidas sin respuesta; de vuelta en A con su copia otra vez, la más vieja llega tarde: la vuelta se queda (315.3555ms)
+✔ LHB-80 (Codex r4): una subida de A llegó sin respuesta; B entra y A vuelve con su copia vacía: lo que mandó la copia de antes no es base de la nueva, y la cuenta no se vacía (85.3227ms)
+✔ LHB-80 (Codex r5): si la época nueva no se puede escribir, isolate no toca la copia; la pasada que esperaba su GET sigue y la cuenta queda entera (48.7413ms)
+✔ LHB-80 (Codex r5): cuando isolate vacía la copia, la época ya cambió (otra pestaña que espera ya no vale mientras el cambio está a medias) (45.2556ms)
+✔ LHB-80 (Codex r5): la meta de A que no se pudo reponer al pasar a B no es base de la copia nueva de A al volver: nada se sube como borrado (47.4541ms)
+✔ LHB-80 (Codex r5): nueve quitas de A sin respuesta, la vuelta de a1, B sin poder reponer la meta y nueve subidas sin respuesta; de vuelta en A, la más vieja llega tarde: a1 se queda (324.6237ms)
+✔ LHB-104 (Codex r4): la respuesta del GET de la pestaña 2 (rev 1, con a1) llega tarde, después de que la 1 anotó la base del rev 2: la 2 no la usa ni la anota, y a1 se queda tras salir (131.7231ms)
+✔ LHB-104 (Codex r4): otra pestaña anota una base más nueva justo antes de que esta escriba la suya: esta no la pisa (86.7979ms)
+✔ LHB-104 (Codex r5): la pestaña 1 se entera tarde de que su subida llegó (rev 2), cuando la 2 ya anotó la base del rev 3: no la reemplaza, y a1 que la persona volvió a poner se queda (83.294ms)
+✔ LHB-104 (Codex r5): si la última lectura de la meta antes de anotarla falla, no se anota (134.4601ms)
+✔ LHB-62 (Codex r4, r6): cualquier cookie nueva es otra pregunta, aunque el reloj de aquí la crea vencida o todavía no válida; la misma cookie no pide nada; una respuesta que llega con otra cookie no se pinta (16.5216ms)
+✔ LHB-62 (Codex r5, r6): si el servidor contestó con otra sesión que la cookie del pedido (X-Lhb-Viewer), se le pregunta a Clerk: nadie entró y lo sin sesión vale; alguien, y se pide otra vez con su llave; si no se sabe, dice que no pudo cargar, sin vueltas; las listas también (25.3144ms)
+✔ LHB-62 (Codex r5): la sesión cambia dos veces seguidas mientras llegan las respuestas: ninguna de las dos se pinta (el perfil y las listas) (13.1664ms)
+✔ LHB-62 (Codex r5): /api/u/<handle> y las listas dicen con qué sesión contestaron (X-Lhb-Viewer): el user_id de quien mira, o - sin sesión (44.0315ms)
+✔ LHB-115 (Codex r4-1): lo escogido antes de que cargara la cuenta (o con la recarga del inglés) llega a la cuenta al abrir la app con la sesión guardada (4.282ms)
+✔ LHB-115 (Codex r4-2): con la pantalla del idioma abierta, completar la identidad o crear el perfil esperan a que se escoja (5.3743ms)
+✔ LHB-115 (Codex r5-1): con la pantalla del idioma abierta, los avisos de la cuenta (el error de una acción en sitio, y el de volver a entrar) esperan a que se escoja (4.7742ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2133.2463

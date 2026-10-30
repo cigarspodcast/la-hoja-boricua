@@ -1,0 +1,93 @@
+✔ LHB-27 (LHB-115): español salvo que se escoja el inglés, y se recuerda (encendido en E6, LHB-36) (11.3097ms)
+✔ LHB-115: sin escoger, español aunque el navegador esté en inglés; la cookie lhb_lang dice el idioma, y gana a localStorage; lo de localStorage pasa a la cookie (14.4966ms)
+✔ LHB-115: escoger escribe la cookie (un año, Path=/, SameSite=Lax, Secure en https) y localStorage; set recarga, y con sesión espera a que la cuenta lo guarde (20.5511ms)
+✔ LHB-115: la primera vez, sin idioma escogido, antes que nada sale Español o English (cada uno en su idioma); con uno escogido no sale (12.7892ms)
+✔ LHB-115: Español se guarda y sigue la intro; English se guarda y recarga en inglés; si no se pudo guardar, sigue en español (4.585ms)
+✔ LHB-115: al entrar, el idioma guardado en la cuenta gana al del teléfono (se guarda y se recarga en ese idioma, sin volver a mandarlo); sin idioma en la cuenta se le manda el del teléfono (14.6107ms)
+✖ LHB-115: cambiar el idioma desde el menú con la sesión abierta lo manda a la cuenta; sin sesión no manda nada (4.9891ms)
+✔ LHB-115: el servidor guarda y devuelve el idioma de la cuenta (PUT /api/profile con solo lang, GET /api/me), y sin la columna sigue funcionando (221.5916ms)
+✖ LHB-115 (Codex r2-1, r2-3, r2-4): la cuenta gana solo al entrar en este teléfono; con la misma cuenta ya abierta aquí el teléfono gana y se le manda a la cuenta, sin ninguna marca aparte (5.0805ms)
+✖ LHB-115 (Codex r2-2): dos cambios seguidos del menú recargan una sola vez, cuando contesta el último (2.8212ms)
+✖ LHB-115 (Codex r2-5): escoger Español en la pantalla también lo manda a la cuenta (con sesión, cuenta.js pone onSet) (1.8758ms)
+✔ LHB-115 (Codex r1-3): sin localStorage la cookie todavía puede recordar el idioma: la pantalla sale igual, y Español sigue sin intro (la intro no tiene dónde anotarse) (1.6192ms)
+✔ LHB-115 (Codex r1-4): al crear el perfil, y al completar la identidad, el idioma del teléfono se guarda en la cuenta (13.9667ms)
+✔ LHB-115 (Codex r1-5): la hoja de entrar espera a que se escoja el idioma; sin la pantalla abierta sale en el acto (7.9213ms)
+✔ LHB-115: la página de privacidad dice que una cookie recuerda el idioma; el respaldo del arranque lee la cookie (0.6472ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 11
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 506.9926
+
+✖ failing tests:
+
+test at test\site.test.js:9267:1
+✖ LHB-115: cambiar el idioma desde el menú con la sesión abierta lo manda a la cuenta; sin sesión no manda nada (4.9891ms)
+  AssertionError [ERR_ASSERTION]: va a la cuenta de la sesión de ahora (Codex r2)
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9272:79)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ [ 'PUT', '/api/profile', [Object], 'user_b' ] ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:9289:1
+✖ LHB-115 (Codex r2-1, r2-3, r2-4): la cuenta gana solo al entrar en este teléfono; con la misma cuenta ya abierta aquí el teléfono gana y se le manda a la cuenta, sin ninguna marca aparte (5.0805ms)
+  AssertionError [ERR_ASSERTION]: con la misma cuenta ya abierta aquí, el idioma viejo de la cuenta no deshace el del menú (200)
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9292:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ [ 'es', [Object] ] ],
+    expected: [],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:9305:1
+✖ LHB-115 (Codex r2-2): dos cambios seguidos del menú recargan una sola vez, cuando contesta el último (2.8212ms)
+  AssertionError [ERR_ASSERTION]: la respuesta del primero no recarga
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9307:59)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:9311:1
+✖ LHB-115 (Codex r2-5): escoger Español en la pantalla también lo manda a la cuenta (con sesión, cuenta.js pone onSet) (1.8758ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:
+  
+  []
+  
+  should loosely deep-equal
+  
+  [
+    'es'
+  ]
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9312:156)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'es' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,84 @@
+✔ LHB-27 (LHB-115): español salvo que se escoja el inglés, y se recuerda (encendido en E6, LHB-36) (16.3354ms)
+✔ LHB-115: sin escoger, español aunque el navegador esté en inglés; la cookie lhb_lang dice el idioma, y gana a localStorage; lo de localStorage pasa a la cookie (30.0802ms)
+✔ LHB-115: escoger escribe la cookie (un año, Path=/, SameSite=Lax, Secure en https) y localStorage; set recarga, y con sesión espera a que la cuenta lo guarde (29.9382ms)
+✔ LHB-115: la primera vez, sin idioma escogido, antes que nada sale Español o English (cada uno en su idioma); con uno escogido no sale (17.6905ms)
+✔ LHB-115: Español se guarda y sigue la intro; English se guarda y recarga en inglés; si no se pudo guardar, sigue en español (4.4083ms)
+✔ LHB-115: al entrar, el idioma guardado en la cuenta gana al del teléfono (se guarda y se recarga en ese idioma, sin volver a mandarlo); sin idioma en la cuenta se le manda el del teléfono (25.8787ms)
+✔ LHB-115: cambiar el idioma desde el menú con la sesión abierta lo manda a la cuenta; sin sesión no manda nada (20.5816ms)
+✔ LHB-115: el servidor guarda y devuelve el idioma de la cuenta (PUT /api/profile con solo lang, GET /api/me), y sin la columna sigue funcionando (394.6935ms)
+✖ LHB-115 (Codex r1-2): un cambio del menú que la cuenta no guardó (503, o más de 3 s) queda anotado; al volver a entrar el teléfono gana y se vuelve a mandar (6.1418ms)
+✖ LHB-115 (Codex r1-3): sin localStorage la cookie todavía puede recordar el idioma: la pantalla sale igual, y Español sigue sin intro (la intro no tiene dónde anotarse) (2.8358ms)
+✖ LHB-115 (Codex r1-4): al crear el perfil, y al completar la identidad, el idioma del teléfono se guarda en la cuenta (24.5323ms)
+✖ LHB-115 (Codex r1-5): la hoja de entrar espera a que se escoja el idioma; sin la pantalla abierta sale en el acto (3.7474ms)
+✔ LHB-115: la página de privacidad dice que una cookie recuerda el idioma; el respaldo del arranque lee la cookie (6.1904ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 9
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1080.672
+
+✖ failing tests:
+
+test at test\site.test.js:9280:1
+✖ LHB-115 (Codex r1-2): un cambio del menú que la cuenta no guardó (503, o más de 3 s) queda anotado; al volver a entrar el teléfono gana y se vuelve a mandar (6.1418ms)
+  AssertionError [ERR_ASSERTION]: queda anotado que falta guardarlo en la cuenta
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9281:73)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'en',
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:9293:1
+✖ LHB-115 (Codex r1-3): sin localStorage la cookie todavía puede recordar el idioma: la pantalla sale igual, y Español sigue sin intro (la intro no tiene dónde anotarse) (2.8358ms)
+  AssertionError [ERR_ASSERTION]: pregunta
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9294:54)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:9296:1
+✖ LHB-115 (Codex r1-4): al crear el perfil, y al completar la identidad, el idioma del teléfono se guarda en la cuenta (24.5323ms)
+  AssertionError [ERR_ASSERTION]: perfil nuevo
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9301:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ [ 'PUT', '/api/profile', [Object], 'user_a' ] ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:9304:1
+✖ LHB-115 (Codex r1-5): la hoja de entrar espera a que se escoja el idioma; sin la pantalla abierta sale en el acto (3.7474ms)
+  TypeError: r.api.picking is not a function
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9305:53)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
