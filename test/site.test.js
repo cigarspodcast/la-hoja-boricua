@@ -4041,7 +4041,8 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   assert.deepEqual(MEDIA111('<input type="checkbox" ${on?\'checked\':\'\'}><img src="${esc(u)}" alt="" ${c.mini?`a`:{b:1}.b}decoding="async">','x').map(m=>m.u),['${esc(u)}'],'una expresión ${...} es una pieza de la etiqueta');
   assert.throws(()=>MEDIA111('<img src="a.webp" alt="x>','x'),/no sabe leer/);
   /* Codex r5: SCRIPT111 sobre muestras: lo de afuera falla, lo del sitio pasa */
-  for(const bad of ['`<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style>`','e.style.backgroundImage="URL(img/hero/banner.webp)"','`<b style="background:image-set(${x} 1x)">`','<canvas id="d"></canvas><script>document.getElementById("d").getContext("2d")</script>','<script>document.createElementNS("http://www.w3.org/2000/svg","svg")</script>','<script>new OffscreenCanvas(9,9)</script>','<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|lienzo|DOM|x:/,bad);
+  for(const bad of ['`<span style=background:u\\\\72l(/img/hero/banner.webp)></span>`','e.style.background="u\\\\72 l(img/hero/banner.webp)"','e.style.background="\\u0075rl(img/hero/banner.webp)"','e.style.background="Image-\\x53et(a.webp 1x)"','"<a style=\\"background:element(#hero)\\">"','`<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style>`','e.style.backgroundImage="URL(img/hero/banner.webp)"','`<b style="background:image-set(${x} 1x)">`','<canvas id="d"></canvas><script>document.getElementById("d").getContext("2d")</script>','<script>document.createElementNS("http://www.w3.org/2000/svg","svg")</script>','<script>new OffscreenCanvas(9,9)</script>','<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|lienzo|DOM|x:/,bad);
+  SCRIPT111('"x":"<a href=\\"#/subir\\" style=\\"color:var(--accent-ink)\\">y</a>",const r=/\\s+\\d\\b/g;','x',0);
   SCRIPT111('const u=new URL(location.href);`<span style="width:${size}px;background:${bg.replace(/\\s/g,\'\')}">`','x',0);
   SCRIPT111('{"image":"https://lahojaboricua.com/img/cigarros/a.webp","logo":"../icons/icon-512.png"};i.src=\'icons/icon.svg\'','x',0);
   for(const bad of ['<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
@@ -5577,14 +5578,17 @@ const SCRIPT111=(x,where,du,canvas=0)=>{
  assert.equal([...x.matchAll(/getContext\b/g)].length,canvas,where+': un lienzo');
  for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*[\w./-]+\.(?:webp|png|jpe?g|gif|avif|svg|bmp|ico))(?![\w])/gi))assert.ok(IMGOK111.test(m[1])||['_thumb.webp','_thumb-s.webp','perfil.jpg','https://lahojaboricua.com/og.jpg','/og.jpg','og.jpg'].includes(m[1]),where+': nombra una imagen de fuera: '+m[1]);
  assert.equal([...x.matchAll(/data:image\//gi)].length,du,where+': un data URI de imagen');
+ /* Codex r12: los escapes se leen como el navegador antes de buscar url( o una función de imagen: los de JavaScript (\u0075, \u{75}, \x75) y los de CSS
+    (u\72 l, \l); y el atributo style se lee en toda forma: comillas dobles o simples, comillas escapadas dentro de una cadena (style=\"...\") y sin comillas */
+ const D=v=>v.replace(/\\u\{([0-9a-f]+)\}|\\u([0-9a-f]{4})|\\x([0-9a-f]{2})/gi,(_,a,b,c)=>CP111(parseInt(a??b??c,16))).replace(/\\+([0-9a-f]{1,6})\s?|\\+([\s\S])/gi,(_,h,c)=>h?CP111(parseInt(h,16)):c);
  /* Codex r11: el CSS que un script o una página escribe pasa por CSS111: sus bloques <style> y sus atributos style (cada expresión ${...} se aparta antes:
     es un valor de los datos), y todo url( de CSS que escribe (no el new URL( de JavaScript; sin los comentarios de bloque) trae solo una fuente */
  {const t=x.replace(/\/\* [\s\S]*?\*\//g,'');const T=v=>v.replace(new RegExp(TPL111,'g'),'T');
   for(const m of t.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi))CSS111(T(m[1]),where+' <style>',false);
-  for(const m of t.matchAll(/\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/gi))CSS111(T(m[1]??m[2]),where+' style=',false);
-  for(const m of t.matchAll(/(?<![\w.$])(?<!\bnew\s{0,4})url\(\s*['"`]?([^'"`)]*)/gi))assert.ok(/^\/?fonts\/[a-z0-9-]+\.woff2$/.test(m[1]),where+': url('+m[1].slice(0,60))}
+  for(const m of t.matchAll(/\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)'|\\(["'])([\s\S]*?)\\\3|([^\s"'`>]+))/gi))CSS111(T(m[1]??m[2]??m[4]??m[5]),where+' style=',false);
+  for(const m of D(t).matchAll(/(?<![\w.$])(?<!\bnew\s{0,4})url\(\s*['"`]?([^'"`)]*)/gi))assert.ok(/^\/?fonts\/[a-z0-9-]+\.woff2$/.test(m[1]),where+': url('+m[1].slice(0,60))}
  /* Codex r10: ninguna función de CSS que pinte una imagen, escrita en el texto (un script que arma estilos, una página) */
- assert.ok(!/\b(image-set|cross-fade|-webkit-canvas|-moz-element)\s*\(/i.test(x),where+': una imagen pintada por CSS');
+ assert.ok(!/\b(image-set|cross-fade|-webkit-canvas|-moz-element)\s*\(/i.test(D(x)),where+': una imagen pintada por CSS');
  const lit=v=>IMGOK111.test(v)||v==='data:image/svg+xml;charset=utf-8,';
  for(const m of x.matchAll(/\.(src|srcset|poster)\s*=\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g))assert.ok(IMGOK111.test(m[3])||(m[3]==='data:image/svg+xml;charset=utf-8,'&&x.startsWith('+encodeURIComponent(VBArt.silueta(',m.index+m[0].length)),where+': '+m[0].slice(0,90));
  for(const m of x.matchAll(/setAttribute\(\s*(['"])(src|srcset|poster|href|xlink:href)\1\s*,\s*(['"`])((?:(?!\3)[^\\]|\\.)*)\3/g))if(m[2]!=='href'||/\.(webp|png|jpe?g|gif|avif|svg)\b|^data:/i.test(m[4]))assert.ok(lit(m[4]),where+': '+m[0].slice(0,90))};
@@ -5602,6 +5606,7 @@ const FUNCJS111=()=>{const root=path.join(__dirname,'..','functions');const walk
    mayúsculas (CSS acepta URL( y Image-Set( ): url() solo trae fuentes (y un SVG en data URI donde se permite: styles.css); ni @import, ni las funciones
    que pintan sin url() (image-set, paint, element, cross-fade, src, -webkit-canvas, -moz-element); y ninguna barra invertida, porque un escape de CSS
    (u\72 l, \40 import) disfraza un nombre: hoy no hay ninguna en las hojas */
+const CP111=n=>n>0&&n<=0x10ffff?String.fromCodePoint(n):'\ufffd';
 const CSS111=(c,where,svgOK)=>{c=c.replace(/\/\*[\s\S]*?\*\//g,'');assert.ok(!c.includes('\\'),where+': un escape de CSS');
  assert.ok(!/@import\b|\b(image-set|paint|element|cross-fade|src|-webkit-canvas|-moz-element)\s*\(/i.test(c),where+': @import o una imagen pintada por CSS');
  for(const m of c.matchAll(/\burl\(\s*['"]?([^'")]*)/gi))assert.ok(/^\/?fonts\/[a-z0-9-]+\.woff2$/.test(m[1])||(svgOK&&m[1].startsWith('data:image/svg+xml')),where+': url('+m[1].slice(0,60))};

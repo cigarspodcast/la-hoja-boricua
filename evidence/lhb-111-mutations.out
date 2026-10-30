@@ -48,6 +48,10 @@ Codex r10: a CSS escape that spells url                                  RED (ca
 Codex r11: a style block with a bitmap in the header helper              RED (caught) (fail 1)
 Codex r11: a bitmap set through element.style                            RED (caught) (fail 1)
 Codex r11: an image-set in a style attribute of a template               RED (caught) (fail 1)
+Codex r12: an unquoted style attribute with an escaped url in the header helper RED (caught) (fail 1)
+Codex r12: an escaped url set through element.style                      RED (caught) (fail 1)
+Codex r12: a JavaScript escape that spells url through element.style     RED (caught) (fail 1)
+Codex r12: an image function in an escaped-quote style attribute of a string RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 51 of 51 red
+RESULT 55 of 55 red

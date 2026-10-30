@@ -58,6 +58,10 @@ MUTS = [
     ('site/app.js', 'Codex r11: a style block with a bitmap in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art">${art}<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style></div></header>`;'),
     ('site/hoja.js', 'Codex r11: a bitmap set through element.style', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.backgroundImage="URL(img/hero/banner.webp)"};const CAL_ICO='),
     ('site/app.js', 'Codex r11: an image-set in a style attribute of a template', 'const thumbS=', 'const LHB_X=x=>`<b style="background:Image-Set(${x} 1x)"></b>`;const thumbS='),
+    ('site/app.js', 'Codex r12: an unquoted style attribute with an escaped url in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art">${art}<span style=background:u\\\\72l(/img/hero/banner.webp);display:block;width:92px;height:92px></span></div></header>`;'),
+    ('site/hoja.js', 'Codex r12: an escaped url set through element.style', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.background="u\\\\72 l(img/hero/banner.webp)"};const CAL_ICO='),
+    ('site/hoja.js', 'Codex r12: a JavaScript escape that spells url through element.style', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.background="\\u0075rl(img/hero/banner.webp)"};const CAL_ICO='),
+    ('site/i18n.js', 'Codex r12: an image function in an escaped-quote style attribute of a string', 'style=\\"color:var(--accent-ink)\\">Sube', 'style=\\"color:var(--accent-ink);background:element(#hero)\\">Sube'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
