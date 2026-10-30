@@ -4098,7 +4098,10 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  assert.deepEqual(INLINEBG111(),INLINEBG_PIN111,'un suelo puesto en línea por un script o una página cambió');
  /* Codex r28: una regla @ cambia la cascada sin una declaración de pintura (@property registra --art-ac con otro valor inicial y sin herencia; @layer
     reordena; @scope, @container y @supports condicionan): las hojas del sitio usan solo @font-face, @keyframes y @media, y solo esas se permiten */
- for(const f of CSSFILES111()){const at=[...read(f).replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/(?:^|[;{}])\s*@(-?[a-zA-Z][\w-]*)/g)].map(m=>m[1].toLowerCase());
+ /* Codex r29: cada @ seguido de un nombre en cualquier lugar de la hoja, no solo al empezar una sentencia (CSS ignora <!-- y --> arriba, y así una regla
+    escondida tras ellos empezaba sin ; ni llave antes); y ni <!-- ni --> en una hoja. Un escape (@\70 roperty) ya no puede: CSS111 no deja barras */
+ for(const f of CSSFILES111()){const c=read(f).replace(/\/\*[\s\S]*?\*\//g,''),at=[...c.matchAll(/@(-?[a-zA-Z][\w-]*)/g)].map(m=>m[1].toLowerCase());
+  assert.ok(!c.includes('<!--')&&!c.includes('-->'),f+': <!-- o --> en una hoja');
   assert.deepEqual(at.filter(a=>!['font-face','keyframes','media'].includes(a)),[],f+': una regla @ que la prueba no lee')}
  /* Codex r1: el acento se pinta (relleno y trazo) */
  assert.ok(css.includes('.lart .ac{fill:var(--art-ac)}')&&css.includes('.lart .acs{stroke:var(--art-ac)}'),'el acento se pinta');
