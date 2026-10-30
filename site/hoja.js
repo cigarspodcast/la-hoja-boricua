@@ -842,15 +842,15 @@ function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got
  ${rutaCard()}
  <div class="section-title"><h2>${tt('h.insignias')}</h2><span class="count">${tt('h.de2',{a:got.length+ru.ok.length,b:BADGES.length+6})}</span></div>
  <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" data-badge="${b.id}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:var(--flag-red)"><div class="bico">${VBArt.leaf(on?'var(--flag-red)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
- ${sec('artesanos',tt('arts.eyebrow'),d.artesanos,x=>x.nombre,x=>x.pueblo)}
+ ${sec('artesanos',tt('menu.artesanos'),d.artesanos,x=>x.nombre,x=>x.pueblo)}
  ${sec('cigarros',tt('h.cigarros2'),d.cigarros,x=>x.nombre,x=>A.artisanName(x))}
- ${sec('lugares',tt('lug.eyebrow'),d.places,x=>x.nombre,x=>x.pueblo)}
+ ${sec('lugares',tt('menu.lugares'),d.places,x=>x.nombre,x=>x.pueblo)}
  ${backupPanel()}`}
 function vFavoritos(){const s=S(),d=D();const cs=s.favs.cigarros.map(A.cigarById).filter(Boolean),as=s.favs.artesanos.map(A.artisanById).filter(Boolean),ps=s.favs.lugares.map(id=>d.places.find(p=>p.id===id)).filter(Boolean);
  view.innerHTML=`${subnav('favoritos')}
  <div class="section-title"><h2>${tt('h.cigarros2')}</h2><span class="count">${cs.length}</span></div>${cs.length?`<div class="grid">${cs.map(A.cigarCard).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnUnCigarro')+'</div>'}
- <div class="section-title"><h2>${tt('arts.eyebrow')}</h2><span class="count">${as.length}</span></div>${as.length?`<div class="list">${as.map(artRow).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnElPerfil')+'</div>'}
- <div class="section-title"><h2>${tt('lug.eyebrow')}</h2><span class="count">${ps.length}</span></div>${ps.length?`<div class="list">${ps.map(placeRow).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnUnLugar')+'</div>'}
+ <div class="section-title"><h2>${tt('menu.artesanos')}</h2><span class="count">${as.length}</span></div>${as.length?`<div class="list">${as.map(artRow).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnElPerfil')+'</div>'}
+ <div class="section-title"><h2>${tt('menu.lugares')}</h2><span class="count">${ps.length}</span></div>${ps.length?`<div class="list">${ps.map(placeRow).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnUnLugar')+'</div>'}
  ${backupPanel()}`;A.hydrate()}
 const artRow=a=>`<div class="row"><a href="#/a/${encodeURIComponent(a.id)}" class="rowlink">${A.mono(a.nombre,42)}<div><div class="t">${esc(a.nombre)}</div><div class="s">${esc(a.pueblo||'')}${municipio(a.pueblo)?' · '+lab(region(municipio(a.pueblo))):''}</div></div></a>${favBtn('artesanos',a.id,'icon')}</div>`;
 const placeRow=p=>`<div class="row"><a class="rowlink" href="${esc(A.goLink(p))}" target="_blank" rel="noopener"><span class="list-leaf">${VBArt.leaf(p.categoria==='venta'?'#ffd27a':'#8fd162')}</span><div><div class="t">${esc(p.nombre)}</div><div class="s">${tt('h.comoLlegar',{a:esc(A.fx(p,'tipo')||''),b:esc(p.pueblo||'')})}</div></div></a>${favBtn('lugares',p.id,'icon')}</div>`;
@@ -882,7 +882,7 @@ function persistDraft(){const s=S();s.draft=CD;return write(s)}
 let fotoSeq=0;
 function startCata(cid,nombre){fotoSeq++;const old=S().draft;CD=NEWDRAFT(cid,nombre);if(cid||nombre)CD.paso=1;dropFoto(old,persistDraft());if(location.hash!=='#/cata')location.hash='#/cata';else renderCata()}
 function vCata(cid){const dr=S().draft;
- if(cid&&dr&&dr.paso>0&&dr.cigarId!==cid){const c=A.cigarById(cid);view.innerHTML=`<div class="cata"><div class="eyebrow">${tt('tile.cata')}</div><h1>${tt('h.cataAMediasH')}</h1><p class="lead">${tt('h.vaPorElPaso',{a:esc(dr.nombre||tt('h.sinNombre')),b:dr.paso,c:PASOS.length-1})}</p><div class="stack"><button class="btn" id="cCont" type="button">${tt('h.seguirCon',{a:esc(dr.nombre||tt('h.esaCata'))})}</button><button class="btn secondary" id="cNew" type="button">${tt('h.empezarCigarro',{a:esc(c?c.nombre:tt('h.otra'))})}</button></div></div>`;
+ if(cid&&dr&&dr.paso>0&&dr.cigarId!==cid){const c=A.cigarById(cid);view.innerHTML=`<div class="cata"><div class="eyebrow">${tt('menu.cata')}</div><h1>${tt('h.cataAMediasH')}</h1><p class="lead">${tt('h.vaPorElPaso',{a:esc(dr.nombre||tt('h.sinNombre')),b:dr.paso,c:PASOS.length-1})}</p><div class="stack"><button class="btn" id="cCont" type="button">${tt('h.seguirCon',{a:esc(dr.nombre||tt('h.esaCata'))})}</button><button class="btn secondary" id="cNew" type="button">${tt('h.empezarCigarro',{a:esc(c?c.nombre:tt('h.otra'))})}</button></div></div>`;
   $('#cCont').onclick=()=>{CD=dr;location.hash='#/cata'};$('#cNew').onclick=()=>{startCata(cid,c?c.nombre:'')};return}
  if(cid&&(!dr||dr.cigarId!==cid)){fotoSeq++;const c=A.cigarById(cid);CD=NEWDRAFT(cid,c?c.nombre:'');CD.paso=1;dropFoto(dr,persistDraft())}else CD=dr?normDraft(dr):NEWDRAFT();renderCata()}
 const normDraft=d=>{const n=NEWDRAFT();return {...n,...d,tags:{...n.tags,...(d.tags||{})},notas:d.notas||{}}};
@@ -966,7 +966,7 @@ function pairing(c){const f=c.fortaleza||'media',t=cigarTags(c);return{ron:pick(
 const mstate={f:'media',t:[]};
 function vMaridajes(){const r=pick(RON,mstate.f,mstate.t),k=pick(CAFE,mstate.f,mstate.t);
  const card=x=>`<article class="pcard"><h3>${x.n}</h3><p class="pp">${x.p}</p><p>${x.m}</p><div class="pills"><span class="pill">${tt('h.fortalezaRango',{a:x.f.map((f,i)=>i?A.fortLabel(f).toLowerCase():A.fortLabel(f)).join(tt('h.rangoA'))})}</span>${x.t.map(t=>`<span class="pill">${WN(t)}</span>`).join('')}</div></article>`;
- view.innerHTML=`${A.head(tt('tile.mar'),tt('h.ronCafeYHumo'),tt('h.guiaGeneralParaAcompanar'),VBArt.leaf('#8fd162','sec-leaf'))}
+ view.innerHTML=`${A.head(tt('menu.maridajes'),tt('h.ronCafeYHumo'),tt('h.guiaGeneralParaAcompanar'),VBArt.leaf('#8fd162','sec-leaf'))}
  <section class="pair-tool"><h2>${tt('h.queVasAFumar')}</h2>
  <div class="field"><label>${tt('f.fortaleza')}</label><div class="seg" role="group" aria-label="${tt('f.fortaleza')}">${A.FORT.map(f=>`<button type="button" data-mf="${f}" aria-pressed="${mstate.f===f}">${A.fortLabel(f)}</button>`).join('')}</div></div>
  <div class="field"><label>${tt('h.perfilDeSaborToca')}</label><div class="chips wrapc" role="group" aria-label="${tt('h.perfilDeSabor')}">${WHEEL.map(w=>`<button type="button" class="chip" data-mt="${w.id}" aria-pressed="${mstate.t.includes(w.id)}">${w.n}</button>`).join('')}</div></div>
@@ -1018,9 +1018,9 @@ function vBuscar(){const d=D();const munis=[...new Set([...d.artesanos.map(a=>a.
   const n=cs.length+as.length+ps.length+es.length;
   $('#gres').innerHTML=`<p class="count-line">${n===1?tt('h.nResultado',{n}):tt('h.nResultados',{n})}${qs.fort?tt('h.fortalezaFiltra'):''}</p>
   ${cs.length?`<div class="section-title"><h2>${tt('h.cigarros2')}</h2><span class="count">${cs.length}</span></div><div class="grid">${cs.map(A.cigarCard).join('')}</div>`:''}
-  ${as.length?`<div class="section-title"><h2>${tt('arts.eyebrow')}</h2><span class="count">${as.length}</span></div><div class="list">${as.map(artRow).join('')}</div>`:''}
-  ${ps.length?`<div class="section-title"><h2>${tt('lug.eyebrow')}</h2><span class="count">${ps.length}</span></div><div class="list">${ps.map(placeRow).join('')}</div>`:''}
-  ${es.length?`<div class="section-title"><h2>${tt('tile.ev')}</h2><span class="count">${es.length}</span></div><div class="list">${es.map(e=>`<a class="row" href="#/eventos/${encodeURIComponent(e.id)}"><div><div class="t">${esc(e.titulo)}</div><div class="s">${[fmtF(e.fecha),esc(okv(e.pueblo)||okv(e.lugar))].filter(Boolean).join(' · ')}</div></div><span class="go">›</span></a>`).join('')}</div>`:''}
+  ${as.length?`<div class="section-title"><h2>${tt('menu.artesanos')}</h2><span class="count">${as.length}</span></div><div class="list">${as.map(artRow).join('')}</div>`:''}
+  ${ps.length?`<div class="section-title"><h2>${tt('menu.lugares')}</h2><span class="count">${ps.length}</span></div><div class="list">${ps.map(placeRow).join('')}</div>`:''}
+  ${es.length?`<div class="section-title"><h2>${tt('menu.eventos')}</h2><span class="count">${es.length}</span></div><div class="list">${es.map(e=>`<a class="row" href="#/eventos/${encodeURIComponent(e.id)}"><div><div class="t">${esc(e.titulo)}</div><div class="s">${[fmtF(e.fecha),esc(okv(e.pueblo)||okv(e.lugar))].filter(Boolean).join(' · ')}</div></div><span class="go">›</span></a>`).join('')}</div>`:''}
   ${n?'':'<div class="empty">'+tt('h.nadaConEsaBusqueda')+'</div>'}`;A.hydrate($('#gres'))};
  $('#gq').addEventListener('input',e=>{qs.q=e.target.value;run()});
  $('#gReg').onchange=e=>{qs.reg=e.target.value;if(qs.mun&&region(qs.mun)!==qs.reg)qs.mun='';vBuscar()};$('#gMun').onchange=e=>{qs.mun=e.target.value;run()};
@@ -1074,10 +1074,10 @@ function calGrid(evs){if(!evs.length)return '<div class="empty">'+tt('h.noHayEve
   html+=`<div class="cal"><div class="cal-h">${MESL[mo]} ${y}</div><div class="cal-g">${DIAS.map(x=>`<span class="dw">${x[0].toUpperCase()}</span>`).join('')}${cells}</div></div>`;
   if(mo===11){mo=0;y++}else mo++}
  const sel=evst.day?by[evst.day]||[]:[];
- return html+`<div class="cal-legend"><span><i class="lg-anc"></i>${tt('tile.evSub')}</span><span><i class="lg-ev"></i>${tt('h.otrosEventos')}</span></div><div id="calSel">${sel.length?sel.map(e=>isAnchor(e)?anchorCard(e):evCard(e)).join(''):'<p class="hint">'+tt('h.tocaUnDiaMarcado')+'</p>'}</div>`}
+ return html+`<div class="cal-legend"><span><i class="lg-anc"></i>${tt('ev.anclas')}</span><span><i class="lg-ev"></i>${tt('h.otrosEventos')}</span></div><div id="calSel">${sel.length?sel.map(e=>isAnchor(e)?anchorCard(e):evCard(e)).join(''):'<p class="hint">'+tt('h.tocaUnDiaMarcado')+'</p>'}</div>`}
 function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0,0,0);const evs=(D().events.actividades||[]).filter(e=>{const d=A.evDate(e.fecha);return d&&d>=today}).sort((a,b)=>a.fecha.localeCompare(b.fecha));const mine=LS.get('sugeridas',[]);
  const anc=evs.find(isAnchor);const rest=evs.filter(e=>e!==anc);const upd=D().events.actualizado?new Date(D().events.actualizado):null;
- view.innerHTML=`${A.head(tt('h.actividades'),tt('h.eventosYCatas'),tt('h.loQueVieneEn'),VBArt.coqui())}
+ view.innerHTML=`${A.head(tt('menu.eventos'),tt('h.eventosYCatas'),tt('h.loQueVieneEn'),VBArt.coqui())}
  ${upd&&!isNaN(upd)?`<p class="updated">${tt('h.listaActualizadaEl',{a:upd.getDate(),b:MES[upd.getMonth()],c:upd.getFullYear(),d:navigator.onLine?'':tt('h.sinConexion')})}</p>`:''}
  <div class="toggle" role="group" aria-label="${tt('lug.view')}"><button type="button" data-evm="lista" aria-pressed="${evst.mode==='lista'}">${tt('lug.list')}</button><button type="button" data-evm="cal" aria-pressed="${evst.mode==='cal'}">${tt('h.calendario')}</button></div>
  ${evst.mode==='cal'?calGrid(evs):`${anc?anchorCard(anc):''}${rest.length?`<div class="section-title"><h2>${tt('h.proximos')}</h2><span class="count">${rest.length}</span></div>`:''}${rest.map(e=>evCard(e)).join('')}${evs.length?'':'<div class="empty">'+tt('h.noHayActividadesProximas')+'</div>'}`}
