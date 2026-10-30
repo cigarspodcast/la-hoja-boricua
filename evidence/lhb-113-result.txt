@@ -1,0 +1,24 @@
+LHB-113 result: measured; no change made. The measurement is the result (the ticket's Done-when, "changed only if it matters").
+
+Sources: evidence/lhb-113-perf.txt (the runner's transcript: six Lighthouse 13.6.0 mobile runs of production, main bfdfeae, lhb-v117,
+2026-10-30T06:18:56Z to 06:20:24Z, under a CORRUPTIBLE host claim with no other claim open), evidence/lhb-113-lh/*.json (the six reports),
+evidence/lhb-113-lcp.txt (what bounds the home's LCP, read from the three home reports by evidence/lhb-113-lcp.py).
+Counting basis: as stated at the top of evidence/lhb-113-perf.txt; "observed" values are Lighthouse's unthrottled trace, the others its
+simulated mobile values.
+
+1. The hypothesis is false for search. Search lands on the static pages (the cigar, artisan, place and guide pages), not on the app.
+   A cigar page (cigarros/turro-lancero.html) scored 100 in all three runs: median FCP 905 ms, LCP 967 ms, TBT 0, 10.2 KiB of script.
+   The app's scripts (hoja.js, sync.js, the data bundle and the rest) do not load there.
+
+2. On the app's home, the JavaScript does not set the first paint of content. Median: score 93, FCP 1005 ms, LCP 2805 ms, TBT 72 ms,
+   174.1 KiB of script as served (compressed). In the observed trace every script has finished by 300 to 457 ms, and the hero image
+   is requested at about 171 to 239 ms and loaded within about 122 ms more; then its render waits about 2.1 s ("element render delay"
+   2107 and 2170 ms in runs 1 and 3). That wait is the intro (the owner keeps the intro video): in run 2 the LCP element was the
+   intro's video itself. Loading Mi Hoja on demand would not move the paint the intro holds back.
+
+3. What lazy loading or minifying could save, by Lighthouse's own estimate: unused JavaScript 37.1 to 37.6 KiB, all of it in hoja.js
+   (of 49.5 to 50.2 KiB transferred), with an estimated LCP saving of 150 to 300 ms that the intro's 2.1 s render delay absorbs on a
+   first visit; unminified JavaScript 12.2 to 20.7 KiB of transfer. Total blocking time is already 65 to 89 ms (good is under 200).
+
+Decision: no build step and no lazy loading. They would add a build to a site that has none, and change how site/ is produced, for a
+saving the first visit cannot see. Reopen this if the intro stops gating the home, or if TBT on the home passes 200 ms.
