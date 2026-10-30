@@ -5387,7 +5387,6 @@ const ALLOW67=[
  ['hoja.js',/return v\|\|'#263723'/,1,'respaldo de tk() si un token faltara al pintar la imagen para compartir: espejo de --on-surface',['on-surface']],
  ['styles.css',/\.empty::before\{[^}]*\}/,1,'arte: la bandera en su asta del estado vacío, un SVG en data URI que no lee las variables de la página (su azul y su rojo se miden abajo)'],
  ['hoja.js',/<circle cx="12" cy="12" r="11" fill="#0e2417"\/>[\s\S]*?<\/svg>/,1,'marca de Spotify: su ícono, sobre el botón verde de la marca'],
- ['hoja.js',/function drawLeaf[\s\S]*?x\.restore\(\)\}/,1,'arte: la hoja de tabaco dibujada en la imagen para compartir'],
 ];
 function scan67(over={}){const app=TOKENS65(read('styles.css')),bad=[],stale=[],mirror=[];
  for(const f of ['styles.css','app.js','hoja.js','cuenta.js','intro.js']){let s=over[f]!=null?over[f]:read(f);const blank=m=>' '.repeat(m.length);
@@ -7282,8 +7281,14 @@ test('LHB-108: cada página del sitio lleva la misma firma, una vez, con el lema
   assert.equal((h.match(/class="brand"/g)||[]).length,1,path.relative(S,f)+': otra marca')}
  const u=fs.readFileSync(path.join(__dirname,'..','functions','u','[handle].js'),'utf8');assert.equal((u.match(LOCK108)||[]).length,1,'el pasaporte /u/');
 });
+test('LHB-108 (Codex r1): bajo 360 px la firma se achica pero el nombre no se esconde',()=>{const css=read('styles.css');
+ assert.ok(css.includes('@media (max-width:359px){.brand{gap:6px;min-width:0}.brand img{width:28px;height:28px}.brand-name{font-size:var(--fs-3)}.brand-sub{display:none}}'),'la firma compacta');
+ for(const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g))if(/\.brand(-text|-name)?\s*$/.test(m[1].split(',').pop()))assert.ok(!/position:absolute|clip:|display:none|width:1px/.test(m[2]),'el nombre se ve: '+m[1].trim().slice(-40)+'{'+m[2]+'}');
+});
 test('LHB-108: el lema no se traduce, y la intro usa la misma firma',()=>{
  const T=I18N().T;for(const k of ['ix.brandSub','intro.tagline'])assert.ok(!(k in T.es)&&!(k in T.en),k);assert.equal(T.es['brand.tagline'],'Hecho en Borinquen');assert.equal(T.en['brand.tagline'],'Hecho en Borinquen');
  assert.ok(!/Made in Borinquen|Discover the tobacco|Descubre el tabaco/.test(read('i18n.js')+read('intro.js')+read('index.html')),'otro lema');
+ const hj=read('hoja.js'),cb=hj.slice(hj.indexOf('async function cardBlob'),hj.indexOf('async function cardBlob')+3000);/* Codex r1: la imagen para compartir lleva la misma hoja y el mismo lema */
+ assert.ok(cb.includes("mk.src='icons/icon.svg'")&&cb.includes('x.drawImage(mk,')&&cb.includes("tt('brand.tagline')"),'la imagen para compartir');assert.ok(!/drawLeaf|hechoEnPuertoRico/.test(hj+read('i18n.js'))&&!/madePR|Puerto Rico/i.test(cb),'ni otra hoja ni otro lema en la imagen');
  assert.match(read('intro.js'),/<div class="intro-mark"><img src="icons\/icon\.svg" alt="" width="40" height="40"><b>\$\{tt\('intro\.name'\)\}<\/b><span lang="es">\$\{tt\('brand\.tagline'\)\}<\/span><\/div>/);
 });

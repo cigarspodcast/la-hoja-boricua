@@ -293,7 +293,8 @@ h1 em,h2 em,.brand-name em{font-style:normal;font-weight:400;color:var(--accent-
    below 360px the wordmark is hidden from sight but kept as the brand link's accessible name (LHB-88) */
 .lang-switch .ls-short{display:none}
 @media (max-width:399px){.lang-switch{min-width:42px;padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}
-@media (max-width:359px){.brand-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+/* LHB-108 (Codex r1): bajo 360 px la firma compacta: la hoja y el nombre, más chicos; el lema sale desde 360 px. El nombre nunca se esconde */
+@media (max-width:359px){.brand{gap:6px;min-width:0}.brand img{width:28px;height:28px}.brand-name{font-size:var(--fs-3)}.brand-sub{display:none}}
 .top-actions{gap:8px}
 button.row{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
 .rowlink{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-decoration:none;color:inherit}

@@ -67,7 +67,7 @@ str: 600 64px Fraunces
 str: 600 36px Figtree
 str: 700 30px Figtree
 str: 600 64px Fraunces
-str: 600 24px Figtree
+str: 600 22px Figtree
 str: 600 20px Figtree
 str: 600 68px Fraunces
 str: 600 56px Fraunces

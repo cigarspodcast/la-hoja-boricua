@@ -1095,10 +1095,6 @@ function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0
  if(focus){const el=document.getElementById('ev-'+focus);if(el){setTimeout(()=>{el.scrollIntoView({block:'start'});scrollBy(0,-80);el.classList.add('flash')},60)}}}
 /* ---------- compartir ficha (PNG en canvas) ---------- */
 const LEAF_P='M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408 C34 370 18 320 14 250 C10 160 24 70 60 22Z',LEAF_H='M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408Z';
-function drawLeaf(x,cx,cy,sc,rot,op){x.save();x.translate(cx,cy);x.rotate(rot);x.scale(sc,sc);x.translate(-60,-220);x.globalAlpha=op;
- x.strokeStyle='#a7d46f';x.lineWidth=5;x.beginPath();x.moveTo(60,436);x.lineTo(60,30);x.stroke();
- x.fillStyle='#3f9150';x.fill(new Path2D(LEAF_P));x.fillStyle='#2c7a3e';x.fill(new Path2D(LEAF_H));
- x.strokeStyle='#1e5a2d';x.lineWidth=2.4;x.beginPath();for(let y=70;y<=378;y+=22){const w=34+Math.min(8,(y-70)/30);x.moveTo(60,y);x.lineTo(60-w,y-14);x.moveTo(60,y);x.lineTo(60+w,y-14)}x.stroke();x.restore()}
 function rr(x,X,Y,W,H,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+H,r);x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath()}
 function wrap(x,t,maxW){const w=String(t).split(/\s+/);const lines=[];let cur='';for(const s of w){const n=cur?cur+' '+s:s;if(x.measureText(n).width>maxW&&cur){lines.push(cur);cur=s}else cur=n}if(cur)lines.push(cur);return lines}
 /* LHB-67: la imagen se pinta con los tokens de la app, leídos al pintarla */
@@ -1106,10 +1102,10 @@ const tk=n=>{let v='';try{v=getComputedStyle(document.documentElement).getProper
 async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
  try{await Promise.all(['600 64px Fraunces','600 36px Figtree','700 30px Figtree'].map(f=>document.fonts.load(f)))}catch(e){}
  const g=x.createLinearGradient(0,0,W*.4,H);g.addColorStop(0,tk('surface-2'));g.addColorStop(.55,tk('surface'));g.addColorStop(1,tk('card-2'));x.fillStyle=g;x.fillRect(0,0,W,H);
- drawLeaf(x,70,250,1.25,.5,.4);drawLeaf(x,1010,1120,1.35,-2.6,.33);
- const fb=[[tk('flag-blue'),.18],[tk('flag-red'),.27],[tk('flag-white'),.1],[tk('flag-red'),.27],[tk('flag-white'),.04],[tk('flag-red'),.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});
- x.textBaseline='alphabetic';x.font='600 64px Fraunces';x.fillStyle=tk('on-surface');const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,120);x.fillStyle=tk('accent-ink');x.fillText('Boricua',sx+w1,120);
- x.font='600 24px Figtree';x.fillStyle=tk('info-ink');x.textAlign='center';x.fillText(tt('h.hechoEnPuertoRico'),W/2,162);x.textAlign='left';
+ const mk=new Image();mk.src='icons/icon.svg';await new Promise(r=>{mk.onload=r;mk.onerror=r});
+ const fb=[[tk('flag-blue'),.18],[tk('flag-red'),.27],[tk('flag-white'),.1],[tk('flag-red'),.27],[tk('flag-white'),.04],[tk('flag-red'),.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});try{x.drawImage(mk,W/2-32,32,64,64)}catch(e){}
+ x.textBaseline='alphabetic';x.font='600 64px Fraunces';x.fillStyle=tk('on-surface');const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,158);x.fillStyle=tk('accent-ink');x.fillText('Boricua',sx+w1,158);
+ x.font='600 22px Figtree';x.fillStyle=tk('info-ink');x.textAlign='center';x.letterSpacing='4px';x.fillText(tt('brand.tagline').toUpperCase(),W/2,198);x.letterSpacing='0px';x.textAlign='left';
  const foto=(!c.yours&&window.LHB_FOTOS)?window.LHB_FOTOS[c.id]:null;let fimg=null;
  if(foto){fimg=new Image();fimg.src=foto.img;await new Promise(r=>{fimg.onload=r;fimg.onerror=()=>{fimg=null;r()}})}
  const img=new Image();if(!fimg){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(A.cigarSVG(c));await new Promise(r=>{img.onload=r;img.onerror=r})}
