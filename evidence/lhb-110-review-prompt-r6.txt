@@ -46,7 +46,7 @@ Answer with findings ranked P1 (blocking) to P3, each with file and symbol, then
 
 TOOLS: if your shell fails to start, use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
 
-===== git diff marca-109 156bf7a1788535577ba77cb0d48e4b686ec503d5 -- :(glob)site/*.js :(glob)site/*.html :(glob)site/*.css site/lugares/l.css test/site.test.js =====
+===== git diff marca-109 f21e74f0c3542e4e42655b1a12ee1a6c36b37371 -- :(glob)site/*.js :(glob)site/*.html :(glob)site/*.css site/lugares/l.css test/site.test.js =====
 diff --git a/site/app.js b/site/app.js
 index f10c9cc..56359e7 100644
 --- a/site/app.js
@@ -104,7 +104,7 @@ index f10c9cc..56359e7 100644
   return `<header class="menu-welcome"><div class="eyebrow">${tt('menu.welcome')}</div><h2 class="sheet-h">${tt('menu.title')}</h2></header><nav class="menu-groups" aria-label="${tt('h.menu')}">${MENU_GROUPS.map(([g,label])=>`<section aria-labelledby="mg-${g}"><h3 id="mg-${g}">${label()}</h3>${rows(g).join('')}${(extra[g]||[]).join('')}</section>`).join('')}</nav>`}
  function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');let id='';if(arg){try{id=decodeURIComponent(arg)}catch(e){id=arg}}
 diff --git a/site/hoja.js b/site/hoja.js
-index ef70735..fb12219 100644
+index ef70735..c0d07ad 100644
 --- a/site/hoja.js
 +++ b/site/hoja.js
 @@ -96,7 +96,8 @@ function wheel(sel,key){const N=WHEEL.length,R=150,r0=48,cx=160,cy=160;const pt=
@@ -112,8 +112,8 @@ index ef70735..fb12219 100644
  function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{const k=g.dataset.wk,id=g.dataset.w;const cur=get(k);set(k,cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);rerender(k,id)};g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})})}
  /* inl: dentro de un botón (LHB-61) va en span, que un botón no puede llevar un div */
 -const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'var(--card-2)'}">${esc(WN(t))}</span>`).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
-+const tagChips=(ts,inl)=>{if(!ts.length)return '';/* Codex r5 (LHB-110): una etiqueta fuera de la rueda no tiene color de sabor: va en la ficha neutra del tema (.tchip.other), no con la tinta fija */
-+ const ch=ts.map(t=>{const w=WHEEL.find(w=>w.id===t);return w?`<span class="tchip" style="--wc:${w.c}">${esc(WN(t))}</span>`:`<span class="tchip other">${esc(WN(t))}</span>`}).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
++/* Codex r5 (LHB-110): una etiqueta fuera de la rueda no tiene color de sabor: va en la ficha neutra del tema (.tchip.other), no con la tinta fija */
++const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>{const w=WHEEL.find(w=>w.id===t);return w?`<span class="tchip" style="--wc:${w.c}">${esc(WN(t))}</span>`:`<span class="tchip other">${esc(WN(t))}</span>`}).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
  /* ---------- hoja de acciones (sheet) ---------- */
  let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
  let owed=false; /* LHB-64: se abrió una hoja y el foco todavía no ha vuelto */
@@ -679,7 +679,7 @@ index 7ff305b..f017e14 100644
  :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
  h1{font:600 var(--fs-6)/1.2 'Fraunces',Georgia,serif;margin:0 0 2px;overflow-wrap:anywhere}h2{font:600 var(--fs-5) 'Fraunces',Georgia,serif;margin:26px 0 10px}h3{font:600 var(--fs-4)/1.25 'Fraunces',Georgia,serif;margin:0 32px 4px 0;overflow-wrap:anywhere}
 diff --git a/test/site.test.js b/test/site.test.js
-index 4dee963..0e81961 100644
+index 4dee963..79d35ff 100644
 --- a/test/site.test.js
 +++ b/test/site.test.js
 @@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
@@ -986,6 +986,15 @@ index 4dee963..0e81961 100644
  /* LHB-109 (antes LHB-93, el selector de la barra): el idioma está en el menú, en La app, con el nombre del otro idioma en ese idioma */
  test('LHB-109: el idioma sale en el menú con el nombre del otro idioma en ese idioma, y no en la barra; tocarlo lo cambia',()=>{
   const c=ROUTES71();const row=h=>h.match(/<button type="button" class="menu-dest" data-lang="(\w+)">[\s\S]*?<b lang="(\w+)">([^<]+)<\/b><small>(.*?)<\/small>/);
+@@ -4761,7 +4901,7 @@ test('LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y
+  const p=H.X.profileOwn({sub:'u_a',handle:'ana',name:'Ana S.',avatar:''});
+  assert.ok(H.all().includes('<b id="pfNFollowers">·</b><span>Seguidores</span></a></li>'),'mientras llegan, los conteos esperan');await p;const h=H.all();
+  assert.deepEqual(H.fetches,['/api/u/ana']);
+- for(const s of ['<p class="pf-bio">Mi bio</p>','Marca favorita: <b>Mi marca</b>','<li><b>1</b><span>Reseñas</span></li>','<b id="pfNFollowers">2</b><span>Seguidores</span></a></li>','<b>5</b><span>Siguiendo</span></a></li>','<a class="btn" href="#/mihoja/editar" id="pfEdit">Editar perfil</a>'])assert.ok(h.includes(s),'trae '+s);
++ for(const s of ['<p class="pf-bio">Mi bio</p>','Marca favorita: <b>Mi marca</b>','<li><b>1</b><span>Reseñas</span></li>','<b id="pfNFollowers">2</b><span>Seguidores</span></a></li>','<b>5</b><span>Siguiendo</span></a></li>','<a class="btn secondary" href="#/mihoja/editar" id="pfEdit">Editar perfil</a>'])assert.ok(h.includes(s),'trae '+s);
+  assert.deepEqual([...h.matchAll(/data-pftab="([a-z]+)"/g)].map(m=>m[1]),['resenas','pasaporte','favoritos','humidor'],'las cuatro pestañas en tu vista');assert.ok(!h.includes('pfFollow'),'sin botón de seguir en tu vista');
+  /* Reseñas: solo la pública; ni la privada ni las que solo parecen públicas */
+  assert.ok(h.includes('<b>Pública Mía</b>'));for(const s of ['Privada Mía','secreto mío','Casi Pública','Sin Marca De Pública','foto_mia'])assert.ok(!h.includes(s),'nunca sale '+s);
 @@ -5148,7 +5288,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
   assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
   assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
