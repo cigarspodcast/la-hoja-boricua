@@ -75,6 +75,8 @@ MUTS = [
     ('site/art.js', 'Codex r16: a drawing whose accent is coloured by an animation', '<circle class="ac" cx="98" cy="22" r="8"/>', '<circle class="ac" cx="98" cy="22" r="8"><set attributeName="fill" to="red"/></circle>'),
     ('site/hoja.js', 'Codex r16: a script that paints an SVG', 'const CAL_ICO=', "const CAL_X=e=>{e.setAttribute('fill','red')};const CAL_ICO="),
     ('site/styles.css', 'Codex r16: an animation inside the empty-state SVG data URI', "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'", "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Canimate attributeName='opacity' values='0;1' dur='1s'/%3E%3Cg"),
+    ('site/404.html', 'Codex r17: a drawing painted through cssText by a script on a static page', '</body>', '<svg viewBox="0 0 24 24"><circle id="deco" cx="12" cy="12" r="11"/></svg><script>document.getElementById("deco").style.cssText="fill:red";</script></body>'),
+    ('site/hoja.js', 'Codex r17: a drawing painted through Object.assign on its style', 'const CAL_ICO=', "const CAL_X=e=>{Object.assign(e.style,{fill:'#e33'})};const CAL_ICO="),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

@@ -65,6 +65,8 @@ Codex r16: an icon-shaped SVG coloured by an animation on a static page  RED (ca
 Codex r16: a drawing whose accent is coloured by an animation            RED (caught) (fail 1)
 Codex r16: a script that paints an SVG                                   RED (caught) (fail 1)
 Codex r16: an animation inside the empty-state SVG data URI              RED (caught) (fail 1)
+Codex r17: a drawing painted through cssText by a script on a static page RED (caught) (fail 1)
+Codex r17: a drawing painted through Object.assign on its style          RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 68 of 68 red
+RESULT 70 of 70 red
