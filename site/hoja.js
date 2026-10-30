@@ -1120,7 +1120,7 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
  const vs=c.vitolas||[];const specs=[[tt('h.cardCapa'),(A.fx(c,'capa')||tt('notPub')).replace(/\s*\(.*?\)/g,'')],[tt('h.cardFortaleza'),c.fortaleza?A.fortLabel(c.fortaleza):tt('notPub')],[tt('h.cardVitola'),vs.length?vs[0]+(vs.length>1?' +'+(vs.length-1):''):tt('h.enVerificacion')]];
  const bw=300,gap=24,bx=(W-bw*3-gap*2)/2,by=y+96;specs.forEach(([k,v],i)=>{const X=bx+i*(bw+gap);x.fillStyle=tk('card');rr(x,X,by,bw,110,18);x.fill();x.strokeStyle=tk('line');x.lineWidth=2;x.stroke();
   x.fillStyle=tk('warm-ink');x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle=tk('on-surface');x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
- x.textAlign='center';x.fillStyle=tk('accent-ink');x.font='700 30px Figtree';x.fillText('lahojaboricua.com',W/2,H-62);x.fillStyle=tk('muted');x.font='600 20px Figtree';x.fillText(tt('h.prototipoInformacionPublicaSujeta'),W/2,H-28);
+ x.textAlign='center';x.fillStyle=tk('accent-ink');x.font='700 30px Figtree';x.fillText('lahojaboricua.com',W/2,H-62);
  return new Promise(r=>cv.toBlob(b=>r(b),'image/png'))}
 async function shareCard(id){const c=A.cigarById(id);if(!c)return;
  const el=sheet(`<h2 class="sheet-h">${tt('h.compartirFicha')}</h2><div class="share-prev" id="shPrev"><p class="hint">${tt('h.preparandoLaImagen')}</p></div><div class="links" id="shBtns" hidden><button class="btn" type="button" id="shGo">${tt('h.compartir')}</button><button class="btn secondary" type="button" id="shDl">${tt('h.descargarPng')}</button></div>`,tt('h.compartirFicha'));

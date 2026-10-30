@@ -24,11 +24,20 @@ test('manifest: standalone, icons 192/512/maskable exist',()=>{const m=JSON.pars
  for(const i of m.icons)assert.ok(fs.existsSync(path.join(S,i.src)),i.src);});
 test('service worker precaches files that exist',()=>{const sw=read('sw.js');const list=JSON.parse(sw.match(/const SHELL=(\[[\s\S]*?\]);/)[1].replace(/'/g,'"'));
  for(const f of list){if(f==='./')continue;assert.ok(fs.existsSync(path.join(S,f)),'sw precache missing '+f)}});
-test('Spanish UI, Fortaleza wording, prototype note, forbidden names absent',()=>{const all=['index.html','app.js','i18n.js','art.js','hoja.js','fotos.js','data/bundle.js'].map(read).join('\n');
+test('Spanish UI, Fortaleza wording, forbidden names absent',()=>{const all=['index.html','app.js','i18n.js','art.js','hoja.js','fotos.js','data/bundle.js'].map(read).join('\n');
  assert.ok(all.includes('Fortaleza'));assert.ok(!/fuerza/i.test(all),'uses "fuerza"');assert.ok(!/Lector de la Hoja/i.test(all));
- assert.ok(I18N().T.es['proto.note'].includes('información pública, sujeta a verificación')&&read('app.js').includes("${tt('proto.note')}"));
+ /* LHB-117 (LHB-16): sin la nota de Prototipo */
  for(const w of ['Cigarros','Artesanos','Lugares','Actividades','Mi perfil','Guardar en favoritos','Sugerir actividad','Fuentes','Cómo llegar'])assert.ok(all.includes(w),w);
  assert.ok(!/lorem ipsum/i.test(all)&&!/\bTODO\b|\bTBD\b|\[PLACEHOLDER\]|\{\{/.test(all),'placeholder text');});
+test('LHB-117 (LHB-16, el dueño 2026-10-30): la nota de Prototipo ya no sale en la app, en la tarjeta para compartir ni en el README (llms.txt no es la nota y se queda)',()=>{
+ const LABEL=/Prototipo|Prototype|sujeta a verificaci|subject to verification/;
+ const files=fs.readdirSync(S).filter(f=>/\.(js|html|css|json|webmanifest)$/.test(f));
+ for(const f of files)assert.ok(!LABEL.test(read(f)),f+' todavía trae la nota');
+ const I=I18N();for(const l of ['es','en'])for(const k of ['proto.note','pf.note','h.prototipoInformacionPublicaSujeta'])assert.equal(I.T[l][k],undefined,l+' '+k);
+ assert.ok(!read('hoja.js').includes('h.prototipoInformacionPublicaSujeta'),'la tarjeta para compartir no la pinta');
+ assert.ok(!LABEL.test(fs.readFileSync(path.join(__dirname,'..','README.md'),'utf8')),'README');
+ assert.ok(/estadísticas de visitas que no usan cookies ni identifican a nadie/.test(read('privacidad.html')),'LHB-19: privacidad dice que las visitas se cuentan sin cookies');
+});
 test('data layer: separate JSON files with real entries and sources',()=>{const a=JSON.parse(readD('artesanos.json')),c=JSON.parse(readD('cigarros.json')),p=JSON.parse(readD('places.json')),e=JSON.parse(readD('events.json'));
  assert.ok(a.length>=4&&c.length>=4&&p.length>=6);assert.ok(Array.isArray(e.actividades)&&Array.isArray(e.fuentes));
  assert.ok(e.actividades.some(x=>/Humo y Tambor/.test(x.titulo)));
