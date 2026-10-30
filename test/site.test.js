@@ -7033,6 +7033,44 @@ test('LHB-104 (Codex r7): la marca de agua queda en una sola llave tras varias s
   A.D.wait=async()=>{};const st=await A.eng.settled({});assert.equal(st.ok,true);assert.equal(await A.eng.forget(st.mark),true);
   assert.deepEqual(hw(),[],'salir la borra');
  }finally{a.done()}});
+test('LHB-104 (Codex r7): ni la base nueva ni su marca de agua se pueden anotar: la pestaña no quita su anotación, y al recargar a1 se queda',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let n=0;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,...r);throw new TypeError('sin respuesta')}throw new TypeError('sin red')}return api(C,m,...r)};
+  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  A.edit(d=>{d.favs.artesanos=['a1']});
+  A.st.failKey='lhb_mihoja_v1_sync';A.st.failPre='lhb_mihoja_v1_hw.';const r=await A.sync();A.st.failKey=null;A.st.failPre=null;assert.ok(!r.ok,'la pasada no terminó');
+  A.D.api=api;const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r7): la subida llega (200) mientras la persona vuelve a poner a1, y ni la base nueva ni su marca de agua se pueden anotar: la anotación se queda, y al recargar a1 sigue',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  A.net.afterPut=async()=>{A.edit(d=>{d.favs.artesanos=['a1']});A.st.failKey='lhb_mihoja_v1_sync';A.st.failPre='lhb_mihoja_v1_hw.'};
+  A.edit(d=>{d.favs.artesanos=[]});const r=await A.eng.run('guardado');A.st.failKey=null;A.st.failPre=null;
+  assert.ok(!r.ok,'la pasada no terminó');assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
+  const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r7): la persona quitó a1 y la pestaña 1 ya lo subió (rev 2) mientras la respuesta del GET de la 2 (rev 1, con a1) estaba en camino: la 2 no lo trae de vuelta',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let open=null,paused=false;
+  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)}};
+  A.edit(d=>{d.favs.artesanos=[]});
+  const T2=SYNC28().LHB_SYNC(D2);const p2=T2.run('x');
+  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la respuesta del rev 1 espera');
+  assert.equal((await A.sync()).ok,true);assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita llegó');
+  open();await p2;await T2.run('y');
+  assert.deepEqual(A.doc().favs.artesanos,[],'a1 no vuelve al teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'ni a la cuenta');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{
