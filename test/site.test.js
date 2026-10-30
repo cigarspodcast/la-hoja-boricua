@@ -251,14 +251,14 @@ test('LHB-27: ningún texto en español queda escrito en las vistas de app.js (a
  const {scan}=require('./i18n-scan.js');assert.deepEqual(scan(read('app.js')),['str: Volkswagen Type 2_revving up2.wav','str: CC BY 4.0','str: Jungle, Tropical birds and insects','str: CC0 1.0']);
  const before=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-27-scan-before.txt'),'utf8').trim().split(/\r?\n/);assert.equal(before[before.length-1],'TOTAL 161');
 });
-test('LHB-27: idioma por navigator.language, se recuerda (encendido en E6, LHB-36)',()=>{
+test('LHB-27 (LHB-115): español salvo que se escoja el inglés, y se recuerda (encendido en E6, LHB-36)',()=>{
  const I=I18N();assert.equal(I.ENABLED,true);assert.equal(I.lang,'es','sin navegador: español');
- assert.equal(I.pick('en-US',null),'en');assert.equal(I.pick('en',null),'en');assert.equal(I.pick('es-PR',null),'es');assert.equal(I.pick('fr',null),'es');assert.equal(I.pick(undefined,null),'es');
- assert.equal(I.pick('en-US','es'),'es');assert.equal(I.pick('es-PR','en'),'en');assert.equal(I.pick('en-US','xx'),'en');
+ /* LHB-115: sin escoger, español; el idioma del navegador no cuenta */
+ assert.equal(I.pick(null),'es');assert.equal(I.pick(undefined),'es');assert.equal(I.pick('es'),'es');assert.equal(I.pick('en'),'en');assert.equal(I.pick('xx'),'es');
  assert.equal(I.t('lug.lead',{nL:28,nV:13}),'28 lounges y 13 puntos de venta en la isla.');assert.equal(I.t('no.existe',null,'x'),'x');assert.equal(I.t('no.existe'),'no.existe');
  const src=read('i18n.js');assert.ok(src.includes("localStorage.getItem('lhb_lang')")&&src.includes("localStorage.setItem('lhb_lang'"));
- // con el selector activado, inglés para en-*, y el html lang cambia
- const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[]}};
+ // con el inglés escogido, y el html lang cambia
+ const w={navigator:{language:'en-US'},localStorage:{getItem:k=>k==='lhb_lang'?'en':null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[]}};
  require('vm').runInNewContext(src.replace('const ENABLED=false;','const ENABLED=true;'),{window:w});
  assert.equal(w.LHB_I18N.lang,'en');assert.equal(w.document.documentElement.lang,'en');assert.equal(w.LHB_I18N.t('cig.notFound'),'We could not find that vitola.');
  const ix=read('index.html');assert.ok(!/langSwitch|lang-switch/.test(ix),'LHB-109: el idioma ya no está en la barra (está en el menú)');
@@ -284,7 +284,7 @@ test('LHB-29: lo que se guarda sigue en espa\u00f1ol; cada opci\u00f3n de la cat
  for(const s of ['<dd>${esc(v)}</dd>','${esc(o)}</button>','<h1>${p.t}</h1>','<dt>${esc(p.paso)}</dt>'])assert.equal(cnt(s),0,'sin lab(): '+s);
 });
 test('LHB-29 (LHB-111): los dibujos de art.js no llevan texto (las cabeceras son adorno); la silueta del cigarro lleva el nombre que le da app.js, en los dos idiomas',()=>{
- const run=(lang,on)=>{const w={navigator:{language:lang},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'loading',addEventListener(){},getElementById:()=>null,querySelectorAll:()=>[]}};
+ const run=(lang,on)=>{const w={navigator:{language:lang},localStorage:{getItem:k=>k==='lhb_lang'&&/^en/.test(lang)?'en':null},document:{documentElement:{},readyState:'loading',addEventListener(){},getElementById:()=>null,querySelectorAll:()=>[]}};
   const ctx={window:w,Math};require('vm').createContext(ctx);const i=read('i18n.js');require('vm').runInContext(on?i:i.replace('const ENABLED=true;','const ENABLED=false;'),ctx);require('vm').runInContext(read('art.js'),ctx);return w};
  for(const on of [false,true]){const w=run('en-US',on),A=w.VBArt;for(const k of ['ranchon','banda','chaveta','micro','lupa','hoja','maridaje','caja','aqui']){const h=A[k]();assert.match(h,/aria-hidden="true"/,k);assert.ok(!/aria-label|<title|<text/.test(h),k)}
   const lab=w.LHB_I18N.t('sil.alt',{n:'Corona'});assert.equal(lab,on?'Corona, no photo yet':'Corona, sin foto todavía');assert.match(A.silueta(lab),new RegExp('role="img" aria-label="'+lab+'"'))}
@@ -302,10 +302,11 @@ test('LHB-29: index.html trae el espa\u00f1ol y marca cada texto con data-i18n o
  const els=[{a:{'data-i18n':'ix.footLug'},innerHTML:'Cigar lounges en Puerto Rico'},{a:{'data-i18n-attr':'aria-label:ix.tabs','aria-label':'Secciones'}}];
  for(const e of els){e.getAttribute=n=>e.a[n];e.setAttribute=(n,v)=>{e.a[n]=v}}
  const doc={documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)};
- const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:doc};
+ const w={navigator:{language:'en-US'},localStorage:{getItem:k=>k==='lhb_lang'?'en':null},document:doc};
  require('vm').runInNewContext(read('i18n.js').replace('const ENABLED=false;','const ENABLED=true;'),{window:w});
  assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');assert.equal(els[1].a['aria-label'],'Sections');
- const w2={navigator:{language:'es-PR'},localStorage:{getItem:()=>null},document:{...doc,querySelectorAll:()=>{throw new Error('en espa\u00f1ol no se toca el DOM')}}};
+ /* LHB-115: la corrida en inglés dejó su cookie en doc; esta es otra visita, sin cookie */
+ const w2={navigator:{language:'es-PR'},localStorage:{getItem:()=>null},document:{...doc,cookie:'',querySelectorAll:()=>{throw new Error('en espa\u00f1ol no se toca el DOM')}}};
  require('vm').runInNewContext(read('i18n.js'),{window:w2});assert.equal(w2.LHB_I18N.lang,'es');
 });
 /* LHB-30: los campos descriptivos que llevan inglés; nombres, direcciones, enlaces y teléfonos no se traducen */
@@ -447,7 +448,7 @@ test('LHB-25: POST /api/profile en SQLite real: 401, 415, 400, 201, @ repetido, 
 });
 /* LHB-94: i18n.js va antes, como en index.html; sin idioma el navegador no dice nada y sale el español */
 function CUENTA_HARNESS(over,lang){
- const vm=require('vm');const ctx={window:lang?{navigator:{language:lang}}:{}};vm.createContext(ctx);vm.runInContext(read('i18n.js'),ctx);vm.runInContext(read('cuenta.js'),ctx);
+ const vm=require('vm');const ctx={window:lang?{navigator:{language:lang},localStorage:{getItem:k=>k==='lhb_lang'&&/^en/.test(lang)?'en':null}}:{}};vm.createContext(ctx);vm.runInContext(read('i18n.js'),ctx);vm.runInContext(read('cuenta.js'),ctx);
  const log=[];let hash='#/mihoja',lis=null,store=null,intent=null,lastNotice=null;const navL=[];
  /* LHB-49: una cuenta de prueba sin hasImage explícito trae foto (la que Clerk importa de Google); las pruebas de la foto lo ponen en false */
  let cu=null;const C={get user(){return cu},set user(v){cu=v&&v.hasImage===undefined?{hasImage:true,imageUrl:'https://img.clerk.com/test-'+v.id,...v}:v},addListener(f){lis=f},signIn(id){C.user=id?{id}:null;lis&&lis({user:C.user})}};
@@ -456,7 +457,7 @@ function CUENTA_HARNESS(over,lang){
   intent:{get:()=>intent,set:v=>{intent=v;log.push('intent')},clear:()=>{intent=null}},
   openSignIn:()=>log.push('open'),ui:{card:h=>log.push('card:'+h),notice:(h,p,b)=>{log.push('notice:'+h);lastNotice=b},closeAll:()=>{lastNotice=null;log.push('closeAll')},onboarding:f=>log.push('onboarding'),identity:f=>log.push('identity'),toast:m=>log.push('toast')},...over};
  const A=ctx.window.LHB_CUENTA(D);
- return {A,C,D,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{const ch=h!==hash;hash=h;if(ch)navL.forEach(f=>f())},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
+ return {A,C,D,win:ctx.window,log,notice:()=>lastNotice,go:()=>log.push('GO'),nav:h=>{const ch=h!==hash;hash=h;if(ch)navL.forEach(f=>f())},cache:v=>{store=v},intent:()=>intent,setIntent:v=>{intent=v},ui:()=>D.ui};
 }
 const tick=async(n=8)=>{for(let i=0;i<n;i++)await new Promise(r=>setImmediate(r))};
 const defer=()=>{let ok;const p=new Promise(r=>ok=r);return {p,ok}};
@@ -3652,11 +3653,13 @@ const run36=(language,saved,{store}={})=>{const btn={hidden:true,innerHTML:'',la
  require('vm').runInNewContext(read('i18n.js'),{window:w});return {I:w.LHB_I18N,btn,st,html:w.document.documentElement,reloads:()=>reloaded}};
 test('LHB-36: el idioma está encendido (LHB-109: se cambia desde el menú); inglés para un navegador en inglés, español para los demás; la escogida se recuerda',()=>{
  const src=read('i18n.js');assert.ok(src.includes('const ENABLED=true;')&&!src.includes('const ENABLED=false;'),'E6: encendido');
- const en=run36('en-US',null);assert.equal(en.I.ENABLED,true);assert.equal(en.I.lang,'en');assert.equal(en.html.lang,'en');
+ /* LHB-115: un navegador en inglés sin escoger abre en español; con el inglés escogido, inglés */
+ assert.equal(run36('en-US',null).I.lang,'es','navegador en inglés, sin escoger: español');assert.equal(run36('en-US',null).html.lang,'es-PR');
+ const en=run36('en-US','en');assert.equal(en.I.ENABLED,true);assert.equal(en.I.lang,'en');assert.equal(en.html.lang,'en');
  en.I.set('es');assert.deepEqual(en.st.set,['lhb_lang','es'],'se recuerda');assert.equal(en.reloads(),1);
  const es=run36('es-PR',null);assert.equal(es.I.lang,'es');assert.equal(es.html.lang,'es-PR');
  es.I.set('en');assert.deepEqual(es.st.set,['lhb_lang','en']);
- assert.equal(run36('fr-FR',null).I.lang,'es','otro idioma: español');assert.equal(run36('es-PR','en').I.lang,'en','lo escogido gana al navegador');assert.equal(run36('en-US','es').I.lang,'es');
+ assert.equal(run36('fr-FR',null).I.lang,'es','otro idioma: español');assert.equal(run36('es-PR','en').I.lang,'en','lo escogido gana');assert.equal(run36('en-US','es').I.lang,'es');assert.equal(run36('en-GB','xx').I.lang,'es');
  assert.equal(I18N().lang,'es','sin navegador (las pruebas): español');
  assert.ok(!/ENABLED se queda en false/.test(src)&&!/borrador que revisa Sergio/.test(src),'el comentario de arriba ya no dice que está apagado');
 });
@@ -3668,7 +3671,7 @@ test('LHB-36: sin el selector en la barra (LHB-109) y el pie de la app lleva a l
  for(const [sec,k] of [['lugares','ix.footLug'],['artesanos','ix.footArt']]){assert.ok(ix.includes('<a href="'+sec+'/" data-i18n="'+k+'" data-i18n-attr="href:'+k+'Href">'),'pie '+sec);assert.equal(T.es[k+'Href'],sec+'/');assert.equal(T.en[k+'Href'],'en/'+sec+'/');
   assert.ok(fs.existsSync(path.join(S,'en',sec,'index.html')),'la página en inglés existe '+sec)}
  const els=[{a:{'data-i18n':'ix.footLug','data-i18n-attr':'href:ix.footLugHref',href:'lugares/'},innerHTML:'Cigar lounges en Puerto Rico'}];for(const e of els){e.getAttribute=n=>e.a[n];e.setAttribute=(n,v)=>{e.a[n]=v}}
- const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
+ const w={navigator:{language:'en-US'},localStorage:{getItem:k=>k==='lhb_lang'?'en':null},document:{documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:s=>els.filter(e=>e.a[s.slice(1,-1)]!==undefined)}};
  require('vm').runInNewContext(read('i18n.js'),{window:w});assert.equal(els[0].a.href,'en/lugares/');assert.equal(els[0].innerHTML,'Cigar lounges in Puerto Rico');
 });
 /* LHB-87: en el mapa ningún pin tapa a otro: los que se taparían van juntos en un grupo */
@@ -6231,6 +6234,10 @@ const PAINT_PIN111=[
  "styles.css .intro-skip{background:var(--accent)}",
  "styles.css .intro-sound{background:var(--surface)}",
  "styles.css .intro-credit{background:var(--veil)}",
+ /* LHB-115: la pantalla del idioma, antes de la intro */
+ "styles.css .lang-pick{background:var(--surface)}",
+ "styles.css .lang-pick-in img{background:var(--mark-bg)}",
+ "styles.css .lang-pick-b .lbtn{background:var(--accent)}",
  "styles.css .about-replay .brand-icon{fill:currentColor}",
  "styles.css .about-replay .brand-icon{stroke:none}",
  "styles.css .cred-item{background:var(--card)}",
@@ -6636,7 +6643,7 @@ function INTRO72(o={}){const vm=require('vm');const D=DOM64(),doc=D.doc;const P=
  const hist=[];const loc={hash:o.hash||'',search:o.search||'',pathname:'/'};loc.href='https://lahojaboricua.com/'+loc.search+loc.hash;
  const win={document:doc,localStorage:ls,sessionStorage:ss,location:loc,history:{state:null,replaceState:(st,t,u)=>{if(o.histThrows)throw new Error('SecurityError');hist.push(u)}},navigator:{connection:o.saveData?{saveData:true}:undefined},
   getComputedStyle:()=>({getPropertyValue:k=>k==='--intro-ready'&&!o.oldCss?' 1':''}),
-  matchMedia:q=>({matches:!!mq[q],addEventListener(){},removeEventListener(){}}),innerWidth:o.w||390,innerHeight:o.h||844,LHB_I18N:{t:o.oldKeys?k=>k:k=>'<'+k+'>'},addEventListener(){},removeEventListener(){}};
+  matchMedia:q=>({matches:!!mq[q],addEventListener(){},removeEventListener(){}}),innerWidth:o.w||390,innerHeight:o.h||844,LHB_I18N:o.i18n||{t:o.oldKeys?k=>k:k=>'<'+k+'>'},addEventListener(){},removeEventListener(){}};
  const tm=[];const ctx={window:win,URLSearchParams,URL,Date:{now:()=>o.now||0},setTimeout:(fn,ms)=>{tm.push({fn,ms,live:true});return tm.length},clearTimeout:id=>{if(tm[id-1])tm[id-1].live=false}};
  /* fire(ms): corre los relojes vivos de esa duración (o de todas, sin argumento) */
  const fire=ms=>{for(const t of tm)if(t.live&&(ms==null||t.ms===ms)){t.live=false;t.fn()}};
@@ -6987,7 +6994,7 @@ function BOOT100(o={}){const vm=require('vm');const ix=read('index.html');const 
  const root=mk('body');const splash=mk('div');splash.id='splash';if(!o.noSplash)root.appendChild(splash);const view=mk('main');view.id='view';root.appendChild(view);
  const find=(n,id)=>{if(n.id===id)return n;for(const c of n.children){const f=find(c,id);if(f)return f}return null};
  const document={getElementById:id=>find(root,id),createElement:mk,addEventListener:(t,f)=>{(ev[t]=ev[t]||[]).push(f)},body:root};
- const win={LHB_I18N:o.i18n};if(o.mo)win.MutationObserver=class{constructor(cb){win._mo=cb}observe(n,opt){win._moOn=[n,opt]}disconnect(){win._moOff=true}};
+ const win={LHB_I18N:o.i18n,localStorage:{getItem:k=>k==='lhb_lang'?(o.saved||null):null}};if(o.mo)win.MutationObserver=class{constructor(cb){win._mo=cb}observe(n,opt){win._moOn=[n,opt]}disconnect(){win._moOff=true}};
  const ctx={window:win,document,navigator:{language:o.lang||'es-PR'},location:{reload:()=>reloads.push(1)},setTimeout:(f,ms)=>{timers.push([f,ms]);return timers.length}};
  vm.createContext(ctx);vm.runInContext(m[1].replace(/\(window,document\);\s*$/,'(window,document);'),ctx);
  const fire=ms=>{for(const t of timers.filter(t=>t[1]===ms&&!t.done)){t.done=true;t[0]()}};
@@ -6999,8 +7006,9 @@ test('LHB-100: si el arranque falla (un script que no cargó), sale un aviso con
  let m=B.msg();assert.ok(m,'sale el aviso');assert.equal(m.attrs.role,'alert');const [p,btn]=m.children;
  assert.equal(p.textContent,I18N().T.es['boot.fail'],'el texto de i18n.js (sin i18n.js cargado, la copia en español)');assert.equal(btn.textContent,I18N().T.es['boot.reload']);
  btn.onclick();assert.equal(B.reloads.length,1,'Recargar recarga');B.fire(12000);assert.equal(B.reloads.length,1,'y nada reintenta solo');
- /* en inglés, sin i18n.js: la copia en inglés, igual a la de i18n.js */
- B=BOOT100({lang:'en-US'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.en['boot.fail']);assert.equal(B.msg().children[1].textContent,I18N().T.en['boot.reload']);
+ /* LHB-115: sin i18n.js, un navegador en inglés sin escoger ve el español; con el inglés escogido, la copia en inglés, igual a la de i18n.js */
+ B=BOOT100({lang:'en-US'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.es['boot.fail']);
+ B=BOOT100({lang:'en-US',saved:'en'});B.loaded();assert.equal(B.msg().children[0].textContent,I18N().T.en['boot.fail']);assert.equal(B.msg().children[1].textContent,I18N().T.en['boot.reload']);
  /* con i18n.js cargado, el texto sale de ahí (el idioma que la persona eligió) */
  B=BOOT100({i18n:{lang:'en',t:k=>'T:'+k}});B.loaded();assert.equal(B.msg().children[0].textContent,'T:boot.fail');
  /* arranque bueno: app.js avisa antes de que terminen de cargar los scripts; no hay aviso, ni al terminar ni a los 12 s */
@@ -9006,4 +9014,100 @@ test('LHB-112: desde 900 px la navegación va arriba y la grilla se abre; el tel
  const ev=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-112-widths.txt'),'utf8').trim().split(/\r?\n/);assert.match(ev[ev.length-1],/^RESULT PASS (\d+) of \1 checks$/);
  for(const w of [900,1366])assert.ok(ev.some(l=>l.startsWith('PASS artisan '+w+': all ')),'Codex r1: Chrome midió la página del artesano a '+w);
  for(const l of ['PASS layout 390: no sideways scroll (scrollWidth 390)','PASS layout 390: the bottom tab bar is drawn (drawn)','PASS layout 390: the top navigation is hidden (hidden)','PASS layout 1366: no sideways scroll (scrollWidth 1366)','PASS layout 1366: the bottom tab bar is hidden (hidden)','PASS layout 1366: the top navigation is drawn (drawn)'])assert.ok(ev.includes(l),l);
+});
+/* LHB-115: el idioma se escoge una vez (Español o English) y se recuerda en la cookie lhb_lang y en localStorage; sin escoger, español.
+   I18N115: i18n.js de verdad con una cookie, un localStorage y una recarga de mentira */
+function I18N115(o={}){const jar={v:o.cookie||''},m=Object.assign({},o.ls),reloads=[],writes=[];
+ const document={documentElement:{},readyState:'complete',getElementById:()=>null,querySelectorAll:()=>[],
+  get cookie(){if(o.cookieBlocked)throw new Error('SecurityError');return jar.v},set cookie(s){if(o.cookieBlocked)throw new Error('SecurityError');writes.push(s);const kv=s.split(';')[0];const k=kv.split('=')[0];
+   const rest=jar.v.split(/;\s*/).filter(p=>p&&p.split('=')[0]!==k);jar.v=[...rest,kv].join('; ')}};
+ const localStorage={getItem:k=>{if(o.lsBlocked)throw new Error('bloqueado');return k in m?m[k]:null},setItem:(k,v)=>{if(o.lsBlocked)throw new Error('bloqueado');m[k]=String(v)}};
+ const w={document,localStorage,navigator:{language:o.nav||'en-US'},location:{protocol:o.protocol||'https:',reload:()=>reloads.push(1)}};
+ const tm=[];require('vm').runInNewContext(read('i18n.js'),{window:w,setTimeout:(f,ms)=>{tm.push([f,ms]);return tm.length},Promise});
+ return {I:w.LHB_I18N,w,jar,m,writes,reloads,tm}}
+test('LHB-115: sin escoger, español aunque el navegador esté en inglés; la cookie lhb_lang dice el idioma, y gana a localStorage; lo de localStorage pasa a la cookie',()=>{
+ let r=I18N115({nav:'en-US'});assert.equal(r.I.lang,'es','navegador en inglés, nada escogido: español');assert.equal(r.I.chosen,false,'nada escogido');assert.equal(r.w.document.documentElement.lang,'es-PR');assert.deepEqual(r.writes,[],'sin escoger no se escribe cookie');
+ r=I18N115({cookie:'otra=1; lhb_lang=en'});assert.equal(r.I.lang,'en','la cookie de la visita anterior');assert.equal(r.I.chosen,true);
+ r=I18N115({cookie:'lhb_lang=es',ls:{lhb_lang:'en'}});assert.equal(r.I.lang,'es','la cookie gana a localStorage');
+ r=I18N115({cookie:'lhb_lang=xx'});assert.equal(r.I.lang,'es','un valor que no sirve no cuenta');assert.equal(r.I.chosen,false);
+ r=I18N115({ls:{lhb_lang:'en'}});assert.equal(r.I.lang,'en','quien ya había escogido antes de la cookie conserva lo suyo');assert.equal(r.I.chosen,true);
+ assert.match(r.jar.v,/(^|; )lhb_lang=en(;|$)/,'y queda en la cookie');
+ r=I18N115({lsBlocked:true,cookie:'lhb_lang=en'});assert.equal(r.I.lang,'en','sin localStorage, la cookie basta');
+ r=I18N115({cookieBlocked:true,lsBlocked:true});assert.equal(r.I.lang,'es','sin ninguno de los dos: español, sin romperse');
+});
+test('LHB-115: escoger escribe la cookie (un año, Path=/, SameSite=Lax, Secure en https) y localStorage; set recarga, y con sesión espera a que la cuenta lo guarde',async()=>{
+ let r=I18N115();assert.equal(r.I.remember('en'),true);
+ assert.deepEqual(r.writes,['lhb_lang=en; Max-Age=31536000; Path=/; SameSite=Lax; Secure']);assert.equal(r.m.lhb_lang,'en');
+ r=I18N115({protocol:'http:'});r.I.remember('es');assert.deepEqual(r.writes,['lhb_lang=es; Max-Age=31536000; Path=/; SameSite=Lax'],'sin https no lleva Secure');
+ r=I18N115();assert.equal(r.I.remember('fr'),false,'solo es o en');assert.deepEqual(r.writes,[]);
+ /* sin cuenta (sin onSet): guarda y recarga en el acto */
+ r=I18N115();r.I.set('en');assert.equal(r.m.lhb_lang,'en');assert.match(r.jar.v,/lhb_lang=en/);assert.equal(r.reloads.length,1);
+ /* con cuenta: la recarga espera a que la cuenta lo guarde */
+ r=I18N115();let ok;const sent=[];r.I.onSet=l=>{sent.push(l);return new Promise(res=>{ok=res})};
+ r.I.set('en');assert.deepEqual(sent,['en'],'se manda a la cuenta');assert.equal(r.reloads.length,0,'todavía no recarga');
+ ok();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,1,'recarga cuando la cuenta lo guardó');
+ /* la cuenta no contesta: recarga a los 3 s igual */
+ r=I18N115();r.I.onSet=()=>new Promise(()=>{});r.I.set('en');assert.equal(r.reloads.length,0);const t=r.tm.find(x=>x[1]===3000);assert.ok(t,'un límite de 3 s');t[0]();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,1);
+ /* lo que viene de la cuenta no se vuelve a mandar a la cuenta */
+ r=I18N115();const s2=[];r.I.onSet=l=>{s2.push(l);return null};r.I.set('en',{local:true});assert.deepEqual(s2,[]);assert.equal(r.reloads.length,1);
+ /* si no se puede guardar, no recarga (recargar no cambiaría nada y volvería a preguntar) */
+ r=I18N115({cookieBlocked:true,lsBlocked:true});assert.equal(r.I.set('en'),false);assert.equal(r.reloads.length,0);
+});
+/* la pantalla de escoger el idioma, en intro.js de verdad, antes de la intro */
+const LANG115=(o={})=>{const calls=[];const r=INTRO72({now:T72,...o,i18n:{chosen:o.chosen,ENABLED:true,t:k=>'<'+k+'>',remember:l=>{calls.push(['remember',l]);return o.cannot?false:true},set:l=>{calls.push(['set',l]);return o.cannot?false:true}}});r.calls=calls;r.pick=()=>r.D.$('.lang-pick');return r};
+test('LHB-115: la primera vez, sin idioma escogido, antes que nada sale Español o English (cada uno en su idioma); con uno escogido no sale',()=>{
+ let r=LANG115({chosen:false});assert.equal(r.api.last,'lang','primero el idioma');assert.ok(r.pick(),'sale la pantalla');assert.equal(r.ov(),null,'la intro espera');
+ assert.equal(r.pick().getAttribute('role'),'dialog');assert.equal(r.pick().getAttribute('aria-modal'),'true');
+ const b=r.pick().querySelectorAll('button');assert.equal(b.length,2);
+ assert.deepEqual([...b].map(x=>[x.getAttribute('lang'),x.getAttribute('data-l'),x.textContent]),[['es','es','Espa\u00f1ol'],['en','en','English']]);
+ assert.equal(r.ls.m.vb_introAt,undefined,'la intro no cuenta como vista');
+ for(const o of [{hash:'#/lugares'},{reduced:true},{saveData:true},{standalone:true}]){const x=LANG115({chosen:false,...o});assert.ok(x.pick(),'también '+JSON.stringify(o))}
+ r=LANG115({chosen:true});assert.equal(r.pick(),null,'con un idioma escogido no sale');assert.equal(r.api.last,'play');
+ r=LANG115({});assert.equal(r.pick(),null,'una i18n.js sin chosen (un shell viejo) no pregunta');
+ r=LANG115({chosen:false,blocked:true});assert.equal(r.pick(),null,'sin almacenamiento no se podría recordar: no pregunta');
+});
+test('LHB-115: Español se guarda y sigue la intro; English se guarda y recarga en inglés; si no se pudo guardar, sigue en español',()=>{
+ let r=LANG115({chosen:false});r.pick().querySelector('[data-l="es"]').click();
+ assert.deepEqual(r.calls,[['remember','es']]);assert.equal(r.pick(),null,'la pantalla se va');assert.ok(r.ov(),'y sale la intro');assert.equal(r.api.last,'play');
+ r=LANG115({chosen:false});r.pick().querySelector('[data-l="en"]').click();
+ assert.deepEqual(r.calls,[['set','en']],'English recarga en inglés');assert.equal(r.ov(),null,'la intro sale después de recargar');
+ r=LANG115({chosen:false,cannot:true});r.pick().querySelector('[data-l="en"]').click();assert.equal(r.pick(),null,'no se pudo guardar: la pantalla se va');
+});
+/* al entrar: la cuenta manda */
+const ACC115=(prof,dev)=>{const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{if(m==='GET')return {status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'',...prof}}};sent.push([m,p,b,uid]);return {status:200,body:{ok:true}}}});
+ const set=[],kept=[];const I=h.win.LHB_I18N;h.win.LHB_I18N={...I,ENABLED:true,lang:dev||'es',saved:()=>dev||null,set:(l,o)=>set.push([l,o]),remember:l=>{kept.push(l);return true}};
+ h.C.user={id:'user_a'};return {h,sent,set,kept}};
+test('LHB-115: al entrar, el idioma guardado en la cuenta gana al del teléfono (se guarda y se recarga en ese idioma, sin volver a mandarlo); sin idioma en la cuenta se le manda el del teléfono',async()=>{
+ let x=ACC115({lang:'en'},'es');await x.h.A.require(x.h.go);await tick();
+ assert.deepEqual(x.set,[['en',{local:true}]],'la cuenta dice inglés');assert.deepEqual(x.sent,[],'no se manda de vuelta');assert.ok(x.h.log.includes('GO'),'y Mi Hoja abre');
+ x=ACC115({lang:'en'},'en');await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[]);assert.deepEqual(x.sent,[],'los dos iguales: nada');
+ x=ACC115({lang:'es'},null);await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[],'ya está en español');assert.deepEqual(x.kept,['es'],'pero se guarda en el teléfono');
+ x=ACC115({lang:null},'en');await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'la cuenta no tenía: se le manda el del teléfono');assert.deepEqual(x.set,[]);
+ x=ACC115({},null);await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[]);assert.deepEqual(x.set,[],'ninguno: nada');
+});
+test('LHB-115: cambiar el idioma desde el menú con la sesión abierta lo manda a la cuenta; sin sesión no manda nada',async()=>{
+ const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:200,body:{ok:true}}}});
+ assert.equal(typeof h.win.LHB_I18N.onSet,'function','cuenta.js se lo da a i18n.js');
+ assert.equal(h.win.LHB_I18N.onSet('en'),null,'sin cuenta guardada: nada');assert.deepEqual(sent,[]);
+ h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});await h.win.LHB_I18N.onSet('en');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'en'},'user_a']]);
+ h.C.user={id:'user_b'};sent.length=0;await h.win.LHB_I18N.onSet('es');assert.deepEqual(sent,[],'la sesión es de otra cuenta: nada');
+ assert.match(read('app.js'),/closest\('\[data-lang\]'\);if\(!b\)return;const I=window\.LHB_I18N;if\(I&&I\.set\)I\.set\(b\.dataset\.lang\)/,'el menú cambia con set');
+});
+test('LHB-115: el servidor guarda y devuelve el idioma de la cuenta (PUT /api/profile con solo lang, GET /api/me), y sin la columna sigue funcionando',async()=>{
+ for(const col of [true,false]){const a=await API52();if(col)a.db.exec(a.mig('0009_profile_lang.sql'));try{
+  a.freeze(T0);const t=await a.tok('user_a');assert.equal((await a.post(t,{handle:'tabaquero',...IDN,avatar_url:AV}))[0],201);
+  let [s,b]=await a.put(t,{lang:'en'});
+  if(col){assert.equal(s,200);assert.deepEqual(b,{ok:true,lang:'en'});[s,b]=await a.me(t);assert.equal(s,200);assert.equal(b.profile.lang,'en','/api/me lo devuelve');
+   [s,b]=await a.put(t,{lang:'es'});assert.equal(s,200);[s,b]=await a.me(t);assert.equal(b.profile.lang,'es');assert.equal(ROW(a.db,'user_a').handle,'tabaquero','el perfil no cambia')}
+  else{assert.equal(s,503);assert.deepEqual(b,{error:'no-lang'});[s,b]=await a.me(t);assert.equal(s,200,'/api/me sin la columna');assert.equal(b.profile.handle,'tabaquero');assert.ok(!('lang' in b.profile))}
+  [s,b]=await a.put(t,{lang:'fr'});assert.equal(s,400);assert.deepEqual(b,{error:'bad-lang'});
+  [s]=await a.put(await a.tok('user_z'),{lang:'en'});assert.equal(s,col?403:503,'sin perfil');
+  [s,b]=await a.put(t,{lang:'en',first_name:'X'});assert.ok(!(b&&b.lang==='en'),'con otros campos no es el cambio de idioma');
+ }finally{a.done()}}
+ const sql=fs.readFileSync(path.join(__dirname,'..','migrations','0009_profile_lang.sql'),'utf8');
+ assert.match(sql,/ALTER TABLE profiles ADD COLUMN lang TEXT CHECK \(lang IS NULL OR lang IN \('es', 'en'\)\);/);
+});
+test('LHB-115: la página de privacidad dice que una cookie recuerda el idioma; el respaldo del arranque lee la cookie',()=>{
+ const pv=read('privacidad.html');assert.ok(pv.includes('Una cookie (lhb_lang) recuerda en este dispositivo el idioma que escogiste, por un año. No se usa para nada más.'));
+ const ix=read('index.html');assert.ok(!/navigator\.language/.test(ix),'el respaldo no mira el idioma del navegador');assert.ok(/lhb_lang=\(es\|en\)/.test(ix),'lee la cookie');
 });

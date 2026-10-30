@@ -74,7 +74,7 @@
    app arranca, el aviso se va. En esta rama no hay pantalla de entrada que quitar (LHB-72). Los textos son boot.fail y boot.reload de
    los idiomas; si los idiomas no cargaron, usa la copia de abajo (una prueba la compara con la de los idiomas) */
 (function(w,d){var ok=false,shown=false,mine=false,mo=null,T={es:['La app no cargó completa. Revisa tu conexión y vuelve a intentarlo.','Recargar'],en:['The app did not load completely. Check your connection and try again.','Reload']};
-function txt(i){var I=w.LHB_I18N;try{if(I&&I.t){var v=i?w.LHB_I18N.t('boot.reload'):w.LHB_I18N.t('boot.fail');if(v&&v.indexOf('boot.')!==0)return v}}catch(e){}return T[/^en/i.test((I&&I.lang)||navigator.language||'')?'en':'es'][i]}
+function txt(i){var I=w.LHB_I18N;try{if(I&&I.t){var v=i?w.LHB_I18N.t('boot.reload'):w.LHB_I18N.t('boot.fail');if(v&&v.indexOf('boot.')!==0)return v}}catch(e){}var s=null;try{s=(/(?:^|;\s*)lhb_lang=(es|en)(?:;|$)/.exec(String(d.cookie||''))||[])[1]||w.localStorage.getItem('lhb_lang')}catch(e){}return T[((I&&I.lang)||s)==='en'?'en':'es'][i]}
 function fail(){if(ok||shown)return;shown=true;var b=d.createElement('div'),p=d.createElement('p'),r=d.createElement('button');b.id='bootFail';b.className='boot-fail';b.setAttribute('role','alert');
  p.textContent=txt(0);r.type='button';r.className='btn';r.textContent=txt(1);r.onclick=function(){location.reload()};b.appendChild(p);b.appendChild(r);d.body.appendChild(b)}
 function up(){if(mine)return false;var v=d.getElementById('view');return !!(v&&(v.children.length||/\S/.test(v.textContent||'')))}

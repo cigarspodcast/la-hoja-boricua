@@ -2,7 +2,8 @@
    LHB-52: desde ahora también pide nombre, apellido, género y fecha de nacimiento. La fecha reemplaza la casilla de 21+: age_ok_at se sella cuando la fecha da 21 años o más.
    display_name sale del nombre y la inicial del apellido ("Ana M."); el género y la fecha de nacimiento nunca salen en la respuesta.
    PUT /api/profile completa la identidad de un perfil que ya existía sin ella (null en las cuatro columnas nuevas); uno que ya la tiene da 409.
-   LHB-55: PUT con "avatar_url" en el cuerpo (el perfil entero) edita el perfil entero del dueño (403 sin perfil, 409 si el @ lo tiene otra persona); aquí un segundo POST sigue dando 409. */
+   LHB-55: PUT con "avatar_url" en el cuerpo (el perfil entero) edita el perfil entero del dueño (403 sin perfil, 409 si el @ lo tiene otra persona); aquí un segundo POST sigue dando 409.
+   LHB-115: PUT con solo { lang } guarda el idioma de la cuenta ('es' o 'en'); no toca nada más del perfil. */
 import { userOf, tokenOf, issuersOf, json } from '../_lib/auth.js';
 import { checkProfile, checkIdentity } from '../_lib/profile.js';
 import { fencedRun, idHash, wasDeleted } from '../_lib/account.js';
@@ -65,9 +66,26 @@ async function editProfile(it, env) {
   return json({ profile: { handle, display_name, bio, favorite_brand, avatar_key } });
 }
 
+// LHB-115: el idioma de la cuenta. Antes de la migración 0009 (sin la columna) no guarda nada y da 503 no-lang; la app sigue con el idioma del teléfono.
+async function setLang(it, env) {
+  const lang = it.body.lang;
+  if (lang !== 'es' && lang !== 'en') return json({ error: 'bad-lang' }, 400);
+  let r;
+  try {
+    r = await env.DB.prepare('UPDATE profiles SET lang = ?2 WHERE user_id = ?1').bind(it.user.sub, lang).run();
+  } catch (e) {
+    if (/no such column/i.test(String(e && e.message))) return json({ error: 'no-lang' }, 503);
+    throw e;
+  }
+  if (!r.meta.changes) return json({ error: 'no-profile' }, 403);
+  return json({ ok: true, lang });
+}
+
 export async function onRequestPut({ request, env }) {
   const it = await intake(request, env);
   if (it.res) return it.res;
+  // un cuerpo con solo lang es el cambio de idioma (LHB-115)
+  if (it.body && typeof it.body === 'object' && !Array.isArray(it.body) && Object.keys(it.body).length === 1 && Object.prototype.hasOwnProperty.call(it.body, 'lang')) return setLang(it, env);
   // con la foto (avatar_url) en el cuerpo es editar el perfil entero (LHB-55); sin ella es completar la identidad de un perfil de antes (LHB-52), que nunca toca el @
   if (it.body && typeof it.body === 'object' && !Array.isArray(it.body) && Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env);
   const now = new Date();

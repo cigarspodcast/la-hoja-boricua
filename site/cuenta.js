@@ -19,6 +19,15 @@ const cache=v=>{try{D.store.set(v)}catch(e){}};
 const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='string'?p.display_name:'',avatar:typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG)?p.avatar_key:''});
 /* toda salida que da por buena la cuenta con perfil retira el formulario de perfil que siga abierto: quedó viejo y su respuesta tardía ya no corre su acción además de esta */
 const retire=()=>{if(ob){ob=false;D.reroute()}};
+/* LHB-115: el idioma de la cuenta. Al entrar, uno guardado en la cuenta gana al del teléfono: se guarda aquí y, si no es el de esta página, se recarga en ese
+   idioma (sin mandarlo de vuelta). Si la cuenta no tiene ninguno y el teléfono sí, se le manda el del teléfono. Un envío que falla no cambia nada */
+function syncLang(C,uid,p){const I=window.LHB_I18N;if(!I||!I.ENABLED||typeof I.saved!=='function')return;
+ const acc=p&&(p.lang==='es'||p.lang==='en')?p.lang:null,dev=I.saved();
+ if(acc){if(acc!==I.lang)I.set(acc,{local:true});else if(acc!==dev)I.remember(acc);return}
+ if(dev)Promise.resolve().then(()=>D.api(C,'PUT','/api/profile',{lang:dev},uid)).catch(()=>{})}
+/* el menú cambia el idioma con LHB_I18N.set, que llama a esto y espera antes de recargar: con la sesión de la cuenta guardada (la misma que dice Clerk), se manda a la cuenta */
+if(window.LHB_I18N)window.LHB_I18N.onSet=l=>{const c=D.store.get();if(!c||!c.sub)return null;
+ return Promise.resolve().then(()=>D.clerk()).then(C=>C&&C.user&&C.user.id===c.sub?D.api(C,'PUT','/api/profile',{lang:l},c.sub):null).catch(()=>null)};
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 /* LHB-51: al abrir la app con una cuenta guardada, Clerk dice quién es: si es otra (o nadie) lo guardado se descarta; sin conexión se queda */
 async function reconcile(){const c0=D.store.get();if(!c0)return;let C;try{C=await D.clerk()}catch(e){return}hook(C);
@@ -71,7 +80,7 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
  /* LHB-55: editar el perfil pasa por la misma puerta y abre el formulario con lo que hay guardado; done corre al guardar */
  if(r.status===200&&r.body.profile&&o.edit){cache(snap(uid,r.body.profile));D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
- if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));D.intent.clear();retire();return done()}
+ if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));syncLang(C,uid,r.body.profile);D.intent.clear();retire();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
  if(r.status===401||r.status===403){D.store.clear();fail(tt('cu.check.h'),tt('cu.check.relog'));return}
  const c=D.store.get();

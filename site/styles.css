@@ -655,6 +655,15 @@ body.sheet-on{overflow:hidden}
 .intro :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
 @media (min-width:700px){.intro-skip,.intro-sound{top:calc(var(--sat) + 22px);bottom:auto}.intro-sound{left:auto;right:150px}.intro-credit{right:auto}}
 @media (prefers-reduced-motion:reduce){.intro{display:none}}
+/* LHB-115: la primera vez, antes que nada, se escoge el idioma (intro.js). Sale también con menos movimiento: no se mueve nada */
+.lang-pick{position:fixed;inset:0;z-index:130;display:grid;place-items:center;padding:calc(var(--sat) + 24px) 20px calc(var(--sab) + 24px);background:var(--surface);color:var(--on-surface);overflow:auto}
+.lang-pick-in{display:grid;justify-items:center;gap:14px;width:min(100%,360px);text-align:center}
+.lang-pick-in img{border-radius:var(--r-m);background:var(--mark-bg)}
+.lang-pick h1{margin:0;font-family:var(--display);font-weight:600;font-size:var(--fs-6);line-height:1.1;text-wrap:balance}
+.lang-pick p{margin:0;color:var(--on-surface-2);font-size:var(--fs-3)}
+.lang-pick-b{display:grid;gap:12px;width:100%;margin-top:8px}
+.lang-pick-b .lbtn{min-height:56px;font-size:var(--fs-4);background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.lang-pick :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
 /* LHB-73: Acerca de y los créditos de la intro */
 .about-sec{display:grid;gap:8px;margin:18px 0}
 .about-sec h2{font-size:var(--fs-3);margin:0}
