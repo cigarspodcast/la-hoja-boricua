@@ -9252,13 +9252,23 @@ test('LHB-115: Español se guarda y sigue la intro; English se guarda y recarga 
 const ACC115=(prof,dev,o={})=>{const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{if(m==='GET')return {status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'',...prof}}};sent.push([m,p,b,uid]);return {status:o.put||200,body:{ok:true}}}});
  const set=[],kept=[];let settled=0;const I=h.win.LHB_I18N;h.win.LHB_I18N={...I,ENABLED:true,lang:dev||'es',saved:()=>dev||null,set:(l,x)=>set.push([l,x]),remember:l=>{kept.push(l);return true},pending:()=>o.pending||null,settle:()=>{settled++}};
  h.C.user={id:'user_a'};if(o.cached||o.cachedSub)h.cache({sub:o.cachedSub||'user_a',handle:'ana'});return {h,sent,set,kept,settled:()=>settled}};
-test('LHB-115: al entrar, el idioma guardado en la cuenta gana al del teléfono (se guarda y se recarga en ese idioma, sin volver a mandarlo); sin idioma en la cuenta se le manda el del teléfono',async()=>{
- let x=ACC115({lang:'en'},'es');await x.h.A.require(x.h.go);await tick();
- assert.deepEqual(x.set,[['en',{local:true}]],'la cuenta dice inglés');assert.deepEqual(x.sent,[],'no se manda de vuelta');assert.ok(x.h.log.includes('GO'),'y Mi Hoja abre');
- x=ACC115({lang:'en'},'en');await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[]);assert.deepEqual(x.sent,[],'los dos iguales: nada');
- x=ACC115({lang:'es'},null);await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[],'ya está en español');assert.deepEqual(x.kept,['es'],'pero se guarda en el teléfono');
- x=ACC115({lang:null},'en');await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'la cuenta no tenía: se le manda el del teléfono');assert.deepEqual(x.set,[]);
- x=ACC115({},null);await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[]);assert.deepEqual(x.set,[],'ninguno: nada');
+test('LHB-115 (Codex r3): el idioma escogido en el teléfono es el que vale; la cuenta guarda una copia y solo se lee cuando el teléfono no tiene ninguno',async()=>{
+ for(const cached of [false,true]){const c=' ('+(cached?'la misma cuenta ya abierta aquí':'entrando en este teléfono')+')';
+  let x=ACC115({lang:'en'},'es',{cached});await x.h.A.require(x.h.go);await tick();
+  assert.deepEqual(x.set,[],'la cuenta no deshace lo escogido en el teléfono'+c);assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'es'},'user_a']],'se le manda a la cuenta'+c);assert.ok(x.h.log.includes('GO'));
+  x=ACC115({lang:'en'},'en',{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[]);assert.deepEqual(x.sent,[],'iguales: nada'+c);
+  x=ACC115({lang:null},'en',{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'la cuenta no tenía'+c);
+  x=ACC115({lang:'en'},null,{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['en',{local:true}]],'el teléfono no tiene ninguno: el de la cuenta, sin mandarlo de vuelta'+c);assert.deepEqual(x.sent,[]);
+  x=ACC115({lang:'es'},null,{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[],'ya está en español'+c);assert.deepEqual(x.kept,['es'],'pero se guarda en el teléfono'+c);
+  x=ACC115({},null,{cached});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.sent,[]);assert.deepEqual(x.set,[],'ninguno: nada'+c)}
+ /* otra cuenta en el mismo teléfono (salió A, entra B): B recibe el idioma del teléfono, que es lo escogido aquí; nada más de A */
+ const x=ACC115({lang:'es'},'en',{cachedSub:'user_b'});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[]);assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']]);
+ assert.ok(!/fresh\(|lhb_lang_pend|I\.pending|I\.settle/.test(read('i18n.js')+read('cuenta.js')),'nada que adivine si se acaba de entrar, ni marcas aparte');
+ /* Codex r3-1: editar el perfil también manda el idioma del teléfono */
+ const sent=[];let cb=null;const ui={card:()=>{},notice:()=>{},closeAll:()=>{},toast:()=>{},onboarding:f=>{cb=f},edit:(p,f)=>{cb=f},identity:f=>{cb=f}};
+ const h=CUENTA_HARNESS({ui,api:async(C,m,p,b,uid)=>{if(m==='GET')return {status:200,body:{profile:{handle:'ana',lang:'en'}}};sent.push([m,p,b,uid]);return {status:200,body:{ok:true}}}});
+ const set=[];h.win.LHB_I18N={...h.win.LHB_I18N,ENABLED:true,lang:'es',saved:()=>'es',set:(l,o)=>set.push([l,o]),remember:()=>true};h.C.user={id:'user_a'};
+ await h.A.require(h.go,{edit:true});await tick();assert.equal(typeof cb,'function','abre editar');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'es'},'user_a']]);assert.deepEqual(set,[]);
 });
 test('LHB-115: cambiar el idioma desde el menú con la sesión abierta lo manda a la cuenta; sin sesión no manda nada',async()=>{
  const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:200,body:{ok:true}}}});
@@ -9282,21 +9292,17 @@ test('LHB-115: el servidor guarda y devuelve el idioma de la cuenta (PUT /api/pr
  const sql=fs.readFileSync(path.join(__dirname,'..','migrations','0009_profile_lang.sql'),'utf8');
  assert.match(sql,/ALTER TABLE profiles ADD COLUMN lang TEXT CHECK \(lang IS NULL OR lang IN \('es', 'en'\)\);/);
 });
-test('LHB-115 (Codex r2-1, r2-3, r2-4): la cuenta gana solo al entrar en este teléfono; con la misma cuenta ya abierta aquí el teléfono gana y se le manda a la cuenta, sin ninguna marca aparte',async()=>{
- let x=ACC115({lang:'es'},'en');await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['es',{local:true}]],'al entrar en este teléfono, la cuenta');assert.deepEqual(x.sent,[]);
- for(const st of [200,503]){x=ACC115({lang:'es'},'en',{cached:true,put:st});await x.h.A.require(x.h.go);await tick();
-  assert.deepEqual(x.set,[],'con la misma cuenta ya abierta aquí, el idioma viejo de la cuenta no deshace el del menú ('+st+')');assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'se le manda a la cuenta');assert.ok(x.h.log.includes('GO'))}
- x=ACC115({lang:'en'},'en',{cached:true});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[]);assert.deepEqual(x.sent,[],'iguales: nada');
- x=ACC115({lang:'en'},null,{cached:true});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['en',{local:true}]],'el teléfono no tiene ninguno: el de la cuenta');
- /* lo guardado era de otra cuenta (salió A, entra B): es entrar en este teléfono, así que gana B, y nada de A llega a B */
- x=ACC115({lang:'es'},'en',{cachedSub:'user_b'});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['es',{local:true}]]);assert.deepEqual(x.sent,[]);
- assert.ok(!/lhb_lang_pend|I\.pending|I\.settle/.test(read('i18n.js')+read('cuenta.js')),'sin marca aparte que se pueda cruzar de cuenta o quedar vieja');
- /* el menú: va a la cuenta de la sesión de ahora; sin perfil guardado (localStorage bloqueado) basta la cookie __client_uat de Clerk, que vale 0 sin sesión */
+test('LHB-115 (Codex r2-4, r3-4): el menú manda a la cuenta de la sesión de ahora (perfil guardado o la cookie __client_uat de Clerk); los envíos van de uno en uno y el último es el que queda',async()=>{
  const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:200,body:{}}}});h.C.user={id:'user_a'};
  assert.equal(h.win.LHB_I18N.onSet('en'),null,'ni perfil guardado ni sesión en las cookies: nada');
  h.win.document={cookie:'otra=1; __client_uat=1761830000'};await h.win.LHB_I18N.onSet('en');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'la cookie de sesión de Clerk basta');
  h.win.document={cookie:'__client_uat=0'};sent.length=0;assert.equal(h.win.LHB_I18N.onSet('en'),null,'__client_uat=0 es sin sesión');
  h.win.document=undefined;h.C.user=null;h.cache({sub:'user_a',handle:'ana'});await h.win.LHB_I18N.onSet('es');assert.deepEqual(sent,[],'Clerk dice que no hay nadie: nada');
+ /* cuatro cambios seguidos: uno a la vez, y después de cada respuesta solo el último que falte */
+ const order=[],waits=[];const g=CUENTA_HARNESS({api:async(C,m,p,b)=>{order.push(b.lang);await new Promise(r=>waits.push(r));return {status:200,body:{}}}});g.C.user={id:'user_a'};g.cache({sub:'user_a',handle:'ana'});
+ const ps=['en','es','en','es'].map(l=>g.win.LHB_I18N.onSet(l));await tick();assert.deepEqual(order,['en'],'uno a la vez');
+ waits[0]();await tick();assert.deepEqual(order,['en','es'],'después, solo el último');waits[1]();await Promise.all(ps);await tick();assert.deepEqual(order,['en','es'],'y nada más: la cuenta queda con el último');
+ g.win.LHB_I18N.onSet('en');await tick();assert.deepEqual(order,['en','es','en'],'uno nuevo después sale solo');waits[2]();
 });
 test('LHB-115 (Codex r2-2): dos cambios seguidos del menú recargan una sola vez, cuando contesta el último',async()=>{
  const r=I18N115();const ok=[];r.I.onSet=()=>new Promise(res=>ok.push(res));r.I.set('en');r.I.set('es');

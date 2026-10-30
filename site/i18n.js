@@ -1666,7 +1666,7 @@ function t(k,v,fb){let s=T[lang][k];if(s==null)s=T.es[k];if(s==null)return fb!=n
 /* guarda l en los dos; true si quedó guardado (la próxima visita lo va a leer) */
 function remember(l){if(l!=='es'&&l!=='en')return false;writeCookie(l);try{w.localStorage.setItem('lhb_lang',l)}catch(e){}return readSaved()===l}
 /* cambiar de idioma: se guarda y se recarga. Con la sesión abierta, cuenta.js pone onSet, que lo manda a la cuenta, y la recarga lo espera (hasta 3 s).
-   Si la cuenta no lo guardó, no importa: con la misma cuenta abierta en este teléfono, el idioma del teléfono gana y cuenta.js se lo vuelve a mandar.
+   Si la cuenta no lo guardó, no importa: lo escogido en el teléfono es lo que vale y cuenta.js se lo vuelve a mandar en la próxima entrada.
    o.local: viene de la cuenta, no se manda de vuelta. Si no se pudo guardar no recarga (volvería igual). Codex r2-2: recarga una sola vez, la del último cambio */
 let seq=0,reloading=false;
 function set(l,o){if(!remember(l))return false;const me=++seq;const go=()=>{if(me!==seq||reloading)return;reloading=true;w.location.reload()};let p=null;
