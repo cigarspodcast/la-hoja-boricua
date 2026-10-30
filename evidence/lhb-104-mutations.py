@@ -26,7 +26,7 @@ MUTS = [
     (SY, 'r1: the evidence is removed before the base is struck', 'if(gone.length&&(!(voided||staleBase)||poison())){', 'if(gone.length){'),
     (SY, 'r1: no bound on the uploads listed for one If-Match', 'const full=shRead().filter(e=>e.s===uid&&e.r===rev).length>=OPS_ASK;', 'const full=false;'),
     (SY, 'r1: no second look at the fence after the upload is listed', "  if(fenceOn()){if(!full){try{D.ls.remove(k)}catch(e){}}throw new Error('fenced')}", ''),
-    ('site/hoja.js', 'r1: the page gives the engine no list of keys', 'keys:()=>{const o=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k!=null)o.push(k)}return o}', 'keys:()=>[]'),
+    ('site/hoja.js', 'r1: the page gives the engine no list of keys', 'keys:()=>Object.keys(localStorage)', 'keys:()=>[]'),
     (SY, 'r2: the entries seen before the GET are not judged after it', 'for(const e of [...seen.values()]){', 'for(const e of now.filter(x=>x.s===uid)){'),
     (SY, 'r2: the base is read before any entry is seen', 'const seen=new Map(),see=l=>{for(const e of l)if(e.s===uid)seen.set(e.k,e)};see(shRead());', 'const seen=new Map(),see=l=>{for(const e of l)if(e.s===uid)seen.set(e.k,e)};'),
     (SY, 'r2: entries are removed while the new base is not recorded', '(!(voided||staleBase)||poison())', '(!voided||poison())'),
@@ -57,6 +57,7 @@ MUTS = [
     (SY, 'r9: an unchanged meta keeps its old base above a newer mark', 'if(ch){metaRaw=mr;meta=lift(pm(mr))}else meta=lift(meta);', 'if(ch){metaRaw=mr;meta=lift(pm(mr))}'),
     (SY, 'r9: below the mark the pass asks again on every answer', 'meta.rev>rev&&(ch||meta.rev>r0))continue', 'meta.rev>rev)continue'),
     (SY, 'r9: uploads that left storage and the asked list stay in memory', 'try{const live=new Set(shRead().map(e=>e.o).filter(Boolean));for(const [o] of myOps)if(!live.has(o)&&!pend.some(x=>x.op===o))myOps.delete(o)}catch(e){}', ''),
+    ('site/hoja.js', 'r10: the storage keys are read one index at a time', 'keys:()=>Object.keys(localStorage)}', 'keys:()=>{const o=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k!=null)o.push(k)}return o}}'),
 ]
 
 EQUIV = {}

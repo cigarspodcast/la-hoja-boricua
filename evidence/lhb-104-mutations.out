@@ -1,4 +1,4 @@
-baseline (no mutation): pass 129 fail 0
+baseline (no mutation): pass 130 fail 0
 settled ignores the other tabs (before LHB-104)              RED (caught) (fail 1)
 the upload is not recorded for the other tabs                RED (caught) (fail 15)
 no fence for an upload of another tab                        RED (caught) (fail 2)
@@ -14,7 +14,7 @@ r1: sign-out does not look at the uploads again behind its fence RED (caught) (f
 r1: the evidence is removed before the base is struck        RED (caught) (fail 3)
 r1: no bound on the uploads listed for one If-Match          RED (caught) (fail 3)
 r1: no second look at the fence after the upload is listed   RED (caught) (fail 2)
-r1: the page gives the engine no list of keys                RED (caught) (fail 1)
+r1: the page gives the engine no list of keys                RED (caught) (fail 2)
 r2: the entries seen before the GET are not judged after it  RED (caught) (fail 1)
 r2: the base is read before any entry is seen                RED (caught) (fail 1)
 r2: entries are removed while the new base is not recorded   RED (caught) (fail 2)
@@ -45,4 +45,5 @@ r8: landed uploads stay in the tab memory                    RED (caught) (fail 
 r9: an unchanged meta keeps its old base above a newer mark  RED (caught) (fail 1)
 r9: below the mark the pass asks again on every answer       RED (caught) (fail 1)
 r9: uploads that left storage and the asked list stay in memory RED (caught) (fail 1)
-RESULT 46 of 46 red; 0 named equivalent; 0 unexpected survivors
+r10: the storage keys are read one index at a time           RED (caught) (fail 1)
+RESULT 47 of 47 red; 0 named equivalent; 0 unexpected survivors

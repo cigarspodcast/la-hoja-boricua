@@ -6736,7 +6736,9 @@ test('LHB-104 (Codex r1): hoja.js le da al motor la lista de llaves del almacena
  const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
  const i=src.indexOf('SYNC=window.LHB_SYNC({ls:'),j=src.indexOf(',getDoc:',i);assert.ok(i>=0&&j>i);
  const m=new Map([['lhb_mihoja_v1','{}'],['lhb_mihoja_v1_pend.abcdefgh','{"v":1}'],['vb_cuenta2','{}']]);
- const localStorage={getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>{m.set(k,String(v))},removeItem:k=>{m.delete(k)},key:n=>[...m.keys()][n]??null,get length(){return m.size}};
+ /* Codex r10: como el localStorage del navegador, las llaves guardadas son sus propiedades (Object.keys) y los métodos no */
+ const api={getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>{m.set(k,String(v))},removeItem:k=>{m.delete(k)},key:n=>[...m.keys()][n]??null};
+ const localStorage=new Proxy(api,{ownKeys:()=>[...m.keys()],getOwnPropertyDescriptor:(t,k)=>m.has(k)?{value:m.get(k),enumerable:true,configurable:true,writable:true}:undefined,get:(t,k)=>k==='length'?m.size:(k in t?t[k]:m.get(k))});
  const ls=vm.runInNewContext('('+src.slice(i+'SYNC=window.LHB_SYNC({ls:'.length,j)+')',{localStorage});
  assert.equal(typeof ls.keys,'function','hay keys');assert.deepEqual([...ls.keys()].sort(),[...m.keys()].sort());
 });
@@ -7153,6 +7155,13 @@ test('LHB-104 (Codex r8, con la limpieza de r9): si el teléfono no deja quitar 
   assert.ok([...A.ls.keys()].filter(isP104).length>0,'la anotación se queda');assert.equal(A.eng._myOps(),0,'la memoria la suelta');
   A.D.ls.remove=rm;assert.equal((await A.sync()).ok,true);assert.equal([...A.ls.keys()].filter(isP104).length,0,'la próxima pasada la quita');
  }finally{a.done()}});
+test('LHB-104 (Codex r10): las claves del teléfono se leen de una vez: si otra pestaña borra una marca de agua vieja mientras se leen, la nueva no se pierde',()=>{
+ const hj=read('hoja.js');const m=hj.match(/remove:k=>localStorage\.removeItem\(k\),keys:(\(\)=>(?:\{const o=\[\];[\s\S]*?return o\}|Object\.keys\(localStorage\)))\}/);assert.ok(m,'keys en hoja.js');
+ /* un localStorage de mentira: las claves son propiedades, como en el navegador; en la segunda lectura por índice otra pestaña borra la marca vieja */
+ const L={};let n=0;Object.defineProperties(L,{length:{get:()=>Object.keys(L).length},key:{value:i=>{if(n++===1)delete L['lhb_mihoja_v1_hw.user_a.2'];const k=Object.keys(L)[i];return k===undefined?null:k}}});
+ for(const k of ['lhb_mihoja_v1_hw.user_a.2','lhb_mihoja_v1_hw.user_a.3','otra'])L[k]='1';
+ const got=new Function('localStorage','return '+m[1])(L)();assert.ok(got.includes('lhb_mihoja_v1_hw.user_a.3'),'la marca nueva se lee: '+JSON.stringify(got));
+});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{
