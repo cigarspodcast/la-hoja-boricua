@@ -198,7 +198,10 @@ window.LHB_SYNC=function(D){
    if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return back();try{D.ls.set(k,raw)}catch(e){return back()}}
    /* LHB-105 (Codex r1): un cambio que se quedó dormido a mitad y vuelve no sigue si otra pestaña ya cambió la época: la copia ya no es la que iba a vaciar */
    const still=()=>{try{return D.ls.get(EPOCH)===e2}catch(e){return false}};
-   if(!still())return false;
+   /* Codex r4: antes de vaciar, una lectura de la época que falla no dice que otra pestaña cambió: la copia sigue igual, así que vuelve la época de antes
+      (back, solo si sigue siendo la que se escribió aquí), como en los demás fallos antes de vaciar, y lo que la persona borró sigue contando */
+   let cur;try{cur=D.ls.get(EPOCH)}catch(e){return back()}
+   if(cur!==e2)return false;
    applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
    if(!ok)return back();
    if(!still())return false;

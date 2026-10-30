@@ -18,13 +18,14 @@ MUTS = [
     ('site/sync.js', 'Codex r1: the pass switches the copy before it checks for another tab mid-switch', "  if(await switching())return {fail:'switching',at:'start'};\n", ''),
     ('site/sync.js', 'Codex r1: isolate starts while another tab is mid-switch', "if(ms.some(liveNow))return false;", ''),
     ('site/sync.js', 'Codex r1: a mark that could not be removed is not retried', "catch(e){unmark=mine}", "catch(e){}"),
-    ('site/sync.js', 'Codex r1: a switch that wakes after another tab switched still clears the copy', "   if(!still())return false;\n   applying=true;", "   applying=true;"),
+    ('site/sync.js', 'Codex r1: a switch that wakes after another tab switched still clears the copy', "   if(cur!==e2)return false;\n   applying=true;", "   applying=true;"),
     ('site/sync.js', 'Codex r1: the mark of a closed tab is left behind', "try{D.ls.remove(m.k)}catch(e){}", ''),
     ('site/sync.js', 'Codex r2: without Web Locks, an expired mark is removed without moving the epoch', "if(!held&&!gone){if(!newEpoch()){live=true;continue}gone=true}", ''),
     ('site/sync.js', 'Codex r2: isolate goes by recent marks only, not by live tabs', "if(ms.some(liveNow))return false;", "if(ms.some(fresh))return false;"),
     ('site/sync.js', 'Codex r2: before the first lock query, an old mark counts as dead', "(heldKnown===null||heldAt<m.t+SWITCH_TTL||heldKnown.has(TABLOCK+m.tab))", "(heldKnown!==null&&(heldAt<m.t+SWITCH_TTL||heldKnown.has(TABLOCK+m.tab)))"),
     ('site/sync.js', 'Codex r3: every switch of a tab marks the same key', "const mine=SWITCH+TAB+'.'+(++seq);", "const mine=SWITCH+TAB+'.0';"),
     ('site/sync.js', 'Codex r3: a lock query from before the mark went stale still decides', "heldAt<m.t+SWITCH_TTL||", ""),
+    ('site/sync.js', 'Codex r4: a failed epoch read before the clear leaves the new epoch', "let cur;try{cur=D.ls.get(EPOCH)}catch(e){return back()}", "let cur;try{cur=D.ls.get(EPOCH)}catch(e){return false}"),
     ('site/sync.js', 'Codex r2: a switch that throws leaves its mark', "inIso=true;try{return iso1(acc,old)}finally{inIso=false;try{D.ls.remove(mine)}catch(e){unmark=mine}}}", "inIso=true;let out;try{out=iso1(acc,old)}finally{inIso=false}try{D.ls.remove(mine)}catch(e){unmark=mine}return out}"),
 ]
 

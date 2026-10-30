@@ -6629,6 +6629,21 @@ test('LHB-105 (Codex r3): una consulta de candados de antes de que se abriera ot
   assert.equal(zr,false,'Z no cambia la copia: Y sigue viva y su consulta es de antes de Y');
   assert.equal(yr,true,'Y termina su cambio');assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_b');
  }finally{a.done()}});
+test('LHB-105 (Codex r4): si justo antes de vaciar no se puede leer la época, el cambio no sigue y vuelve la época de antes: lo que se borró sin subir sigue borrado',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  assert.equal(A.doc().humidor.length,1);A.edit(d=>{d.humidor=[]});
+  const Y=SYNC28().LHB_SYNC(A.D),get=A.D.ls.get,E=A.KEY+'_epoca',ep=A.ls.get(E),copy=A.ls.get(A.KEY);let n=0;
+  /* Y cambia a B: lee la época de antes, pone la nueva y aparta la copia; la lectura de la época justo antes de vaciar falla */
+  A.D.ls.get=k=>{if(k===E&&++n===2)throw new Error('SecurityError');return get(k)};
+  A.st.acct=A.st.user='user_b';assert.equal(Y.isolate(),false,'no sigue');A.D.ls.get=get;
+  assert.equal(n>=2,true,'la lectura de antes de vaciar pasó por aquí');
+  assert.equal(A.ls.get(A.KEY),copy,'la copia no se vació');assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_a');assert.equal(A.ls.get(E),ep,'vuelve la época de antes');
+  A.st.acct=A.st.user='user_a';const r=await A.sync();
+  assert.equal(r.ok,true);assert.deepEqual(A.doc().humidor,[],'lo borrado sigue borrado');assert.equal(srv28(a,'user_a').doc.humidor.length,0,'y el borrado se subió');
+ }finally{a.done()}});
 for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
                            ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
 test('LHB-80 (Codex r8): el cambio de cuenta falla antes de tocar la copia y volver a la época de antes también falla ('+como+'): se reintenta antes de sincronizar y el borrado sigue',async()=>{
