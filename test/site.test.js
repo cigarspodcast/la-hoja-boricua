@@ -4007,7 +4007,12 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   assert.ok(ATTR111(h).every(([a])=>DRAWATTR111.has(a)),k+': un atributo que no es de geometría: '+ATTR111(h).filter(([a])=>!DRAWATTR111.has(a)).map(x=>x.join('=')).join(' '));
   assert.ok(/class="(ac|acs[^"]*)"/.test(h),k+': su acento')}
  /* la silueta para la imagen para compartir, con los colores ya resueltos: solo esos dos */
- {const h=A.silueta('',{ink:'#263723',ac:'#C77943'});assert.deepEqual([...new Set(h.match(/#[0-9A-Fa-f]{6}/g))].sort(),['#263723','#C77943']);assert.match(h,/viewBox="0 0 600 300"/,'el marco 2:1 de las fotos')}
+ {const h=A.silueta('',{ink:'#263723',ac:'#C77943'});assert.deepEqual([...new Set(h.match(/#[0-9A-Fa-f]{6}/g))].sort(),['#263723','#C77943']);assert.match(h,/viewBox="0 0 600 300"/,'el marco 2:1 de las fotos');
+  /* Codex r30: la silueta resuelta lleva los mismos elementos y la misma geometría que la del juego, y de pintura solo la suya: fill y stroke en none o
+     en sus dos colores, el grosor del juego (7 y el fino de 4) y la forma del trazo; nada de alfa, filtro ni style */
+  const PA={fill:v=>['none','#263723','#C77943'].includes(v),stroke:v=>['none','#263723','#C77943'].includes(v),'stroke-width':v=>['7','4'].includes(v),'stroke-linecap':v=>v==='round','stroke-linejoin':v=>v==='round'};
+  assert.ok(SVGEL111(h),'la silueta resuelta: un elemento con que la app no dibuja');
+  for(const [k,v] of ATTR111(h))assert.ok(DRAWATTR111.has(k)||(PA[k]&&PA[k](v)),'la silueta resuelta: un atributo que no es suyo: '+k+'='+v)}
  const ex=Object.keys(A).filter(k=>!LINE.includes(k)).sort();assert.deepEqual(ex,['CAJA','leaf','star'],'fuera del juego solo la caja en texto, el ícono de hoja y la estrella');
  /* las cabeceras: cada head() lleva un dibujo del juego */
  const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');

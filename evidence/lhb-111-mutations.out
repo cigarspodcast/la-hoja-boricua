@@ -100,6 +100,7 @@ Codex r28: a layer that reorders the cascade                             RED (ca
 Codex r28: the accent token registered by a script                       RED (caught) (fail 1)
 Codex r29: the accent registration hidden behind the CSS legacy delimiters at the end of the sheet RED (caught) (fail 1)
 Codex r29: an at-rule reached after a selector without a delimiter       RED (caught) (fail 1)
+Codex r30: the share-image silhouette made nearly transparent            RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 103 of 103 red
+RESULT 104 of 104 red
