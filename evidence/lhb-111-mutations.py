@@ -105,6 +105,9 @@ MUTS = [
     ('site/hoja.js', 'Codex r26: a ground set by a script', 'const CAL_ICO=', "const CAL_X=e=>{e.style.backgroundColor='#EFEBE2'};const CAL_ICO="),
     ('site/app.js', 'Codex r27: an inline ground hidden behind a comment before its colon', '`<header class="sec-head">', '`<header class="sec-head" style="background/**/:var(--photo)">'),
     ('site/404.html', 'Codex r27: a page ground hidden behind a comment before its colon', '<body', '<body style="background /* x */ :var(--photo)"'),
+    ('site/styles.css', 'Codex r28: the accent token registered transparent and not inherited', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}@property --art-ac{syntax:"<color>";inherits:false;initial-value:transparent}'),
+    ('site/styles.css', 'Codex r28: a layer that reorders the cascade', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}@layer base{.x{color:inherit}}'),
+    ('site/hoja.js', 'Codex r28: the accent token registered by a script', 'const CAL_ICO=', "const CAL_X=()=>CSS.registerProperty({name:'--art-ac',syntax:'<color>',inherits:false,initialValue:'transparent'});const CAL_ICO="),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
