@@ -1,0 +1,16 @@
+LHB-118, Codex round 2 fix: browser check, 2026-10-30 (in-app browser, Chromium), branch working tree served on 127.0.0.1:8118, page /#/catalogo.
+
+Precondition: the loaded styles.css carries the fix (a rule whose text contains "display: var(--mark-light) !important"): true.
+A first run without a cache-busting reload read the previous styles.css from the HTTP cache and showed both marks; it is discarded as a stale-cache reading.
+
+Injected as one <style> element after the page's own sheets (every rule Codex rounds 1 and 2 used, plus three of its own checks):
+.brand img{display:block} .brand img:not(.x){display:block} :is(.brand,.card) img{display:block} .brand img[alt="" i]{display:block}
+.brand>img+img{display:block} .brand img{all:initial} .brand img{DISPLAY:block} header .brand img{display:inline} a.brand>img{display:block}
+.topbar img{display:block}
+
+Computed display of the two .brand img, by data-theme:
+light: mark-l:block  mark-d:none
+dark:  mark-l:none   mark-d:block
+
+So with !important on .mark-l and .mark-d, none of these normal rules shows both marks; the remaining overrides (another !important display or all,
+an inline style) are what the LHB-118 test now pins.

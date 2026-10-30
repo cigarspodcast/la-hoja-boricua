@@ -7,13 +7,18 @@ MUTANTS = [
     ('a static page loses its night mark', 'site/lugares/index.html', '<img class="mark-d" src="../icons/icon-dark.svg" alt="" width="30" height="30">', ''),
     ('the share card keeps the small day mark', 'site/hoja.js', "mk.src=tk('mark-dark')==='block'?'icons/icon-full-dark.svg':'icons/icon-full.svg'", "mk.src='icons/icon.svg'"),
     ('the maskable icon crops the ring', 'tools/build_icons.py', "('icon-maskable-512.png', FULL, 512, .78, True)", "('icon-maskable-512.png', FULL, 512, .9, True)"),
-    ('the intro pins display:block over the tokens', 'site/styles.css', '.intro-mark img{margin-bottom:6px;', '.intro-mark img{display:block;margin-bottom:6px;'),
     ('the static pages keep the paper tile at night', 'site/lugares/l.css', '--mark-bg:transparent;--mark-light:none;', '--mark-bg:#EFEBE2;--mark-light:none;'),
     ('the favicons come from the full master', 'tools/build_icons.py', "('favicon-16.png', SMALL,", "('favicon-16.png', FULL,"),
     ('the service worker forgets the night mark', 'site/sw.js', "'icons/icon-dark.svg',", ''),
-    # Codex r1 (P3): a higher-specificity rule on the mark img would show both marks
-    ('a brand img rule sets display', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:block;border-radius:var(--r-s);'),
-    ('a static sheet sets display on the mark img', 'site/u.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:inline-block;border-radius:var(--r-s);'),
+    # Codex r1 and r2: the swap must win the cascade. The swap rules carry !important, so a normal rule (r1's .brand img{display:block},
+    # r2's :not(), :is(), [alt="" i], +img, all:initial) loses and is no defect; what can still beat them is below
+    ('the swap rules lose !important', 'site/styles.css', '.mark-l{display:var(--mark-light)!important}', '.mark-l{display:var(--mark-light)}'),
+    ('a static sheet loses !important on the night rule', 'site/u.css', '.mark-d{display:var(--mark-dark)!important}', '.mark-d{display:var(--mark-dark)}'),
+    ('another rule forces display with !important', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand img{display:block!important;border-radius:var(--r-s);'),
+    ('an uppercase spaced important display', 'site/u.css', '.brand img{border-radius:var(--r-s);', '.brand img{DISPLAY:block ! IMPORTANT;border-radius:var(--r-s);'),
+    ('an all reset with !important', 'site/lugares/l.css', '.brand img{border-radius:var(--r-s);', '.brand img{all:initial!important;border-radius:var(--r-s);'),
+    ('a bare img forces display with !important', 'site/styles.css', '.brand img{border-radius:var(--r-s);', 'img{display:block!important}.brand img{border-radius:var(--r-s);'),
+    ('a mark carries an inline style', 'site/lugares/index.html', '<img class="mark-d" src="../icons/icon-dark.svg" alt=""', '<img class="mark-d" src="../icons/icon-dark.svg" style="display:block" alt=""'),
 ]
 
 
