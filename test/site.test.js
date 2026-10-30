@@ -4495,11 +4495,14 @@ test('LHB-95: la herramienta mide en los anchos de la evidencia de LHB-85 y LHB-
  const ev=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-85-slot-widths.txt'),'utf8');
  const vps=[...ev.matchAll(/^ {1,2}(\d{3,4}) {3,}\d+\.\d/gm)].map(m=>+m[1]);assert.equal(vps.length,14,'los 14 anchos de LHB-85');
  assert.deepEqual(JSON.parse(t.match(/const GRID_W = (\[[^\]]*\])/)[1]),vps);
- assert.deepEqual(JSON.parse(t.match(/const SWITCH_W = (\[[^\]]*\])/)[1]),[320,360,412,1024]);
- assert.match(t,/over >= 0 && over <= 3/);assert.match(t,/ds < 1 && dt < 1/);
+ assert.deepEqual(JSON.parse(t.match(/const HEADER_W = (\[[^\]]*\])/)[1]),[320,360,412,1024]);
+ assert.match(t,/over >= 0 && over <= 3/);assert.match(t,/dt < 1 && same && mv\.every\(x => x\.d < 1\) && dbox < 1/);
  /* Codex r1: cada foto de la grilla y la fila mini en todos los anchos; cada control de top-actions en cada borde; el cambio de idioma se mide con el botón dibujado; cada orden al navegador tiene plazo */
  assert.match(t,/querySelectorAll\('\.grid \.card \.ph\.has-foto img'\)/);assert.match(t,/for \(const w of GRID_W\) \{\r?\n    await size\(w\);\r?\n    const m = await js\(`\(\(\)=>\{const i=document\.getElementById\('lhb95mini'\)/);
- assert.match(t,/mv\.every\(x => x\.d < 1\) && dbox < 1/);assert.match(t,/s\.display!=='none'&&s\.visibility==='visible'&&r\.width>0&&r\.height>0/);
+ /* LHB-109 (Codex r1): el idioma salió de la barra: la barra tiene sus tres controles y ningún #langSwitch, y la fila del menú nombra el otro idioma en ese idioma */
+ assert.match(t,/!m\.old && m\.kids\.length === 3 && m\.kids\.every\(k => k\.shown\)/);assert.match(t,/rows\.Spanish\.to === 'en' && rows\.Spanish\.text === 'English' && rows\.Spanish\.lang === 'en'/);assert.ok(!/getElementById\('langSwitch'\)\.|ls-long/.test(t),'la herramienta no busca el selector viejo');
+ const w9=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-109-widths.txt'),'utf8').trim().split(/\r?\n/);assert.match(w9[w9.length-1],/^RESULT PASS \d+ of \d+ checks$/,'la corrida de LHB-109 en Chrome');
+ assert.match(t,/s\.display!=='none'&&s\.visibility==='visible'&&r\.width>0&&r\.height>0/);
  assert.match(t,/const CMD_MS = 15000, WATCHDOG_MS = 90000;/);assert.ok(/WATCHDOG_MS/.test(t)&&90000<120000,'el perro guardián llega antes que el plazo de la prueba (120 s)');
  /* lo que la herramienta midió al cerrar LHB-95, leído hasta la última línea */
  const w=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-95-widths.txt'),'utf8').trim().split(/\r?\n/);assert.match(w[w.length-1],/^RESULT PASS 70 of 70 checks$/);
