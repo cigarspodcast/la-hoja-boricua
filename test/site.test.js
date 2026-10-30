@@ -4030,6 +4030,11 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   assert.ok(!/&(?!(amp|lt|gt|quot|apos);)/.test(h),'la silueta resuelta: un & suelto');
   /* Codex r33: y entera por el lector estricto (un atributo repetido, una etiqueta mal anidada o dos raíces no se decodifican) */
   assert.ok(XML111(h),'la silueta resuelta no es XML que se decodifique');
+  /* Codex r34: y todo en el espacio de nombres de SVG: xmlns una sola vez, en la raíz; ningún xmlns:prefijo; ningún nombre de elemento o de atributo con
+     prefijo. Un hijo con xmlns="" deja de ser una forma de SVG */
+  {const t=[...h.matchAll(/<([a-zA-Z][\w:.-]*)((?:\s+[a-zA-Z_][\w:.-]*="[^"]*")*)\s*\/?>/g)];
+   assert.deepEqual(t.map((m,i)=>[...m[2].matchAll(/([a-zA-Z_][\w:.-]*)=/g)].map(x=>x[1]).filter(a=>a==='xmlns'||a.startsWith('xmlns:')).length),t.map((m,i)=>i===0?1:0),'la silueta resuelta: xmlns fuera de la raíz o un prefijo');
+   assert.ok(t.every(m=>!m[1].includes(':')&&![...m[2].matchAll(/([a-zA-Z_][\w:.-]*)=/g)].some(x=>x[1].includes(':'))),'la silueta resuelta: un nombre con prefijo de espacio de nombres')}
   for(const bad of ['<svg xmlns="a" xmlns="a"></svg>','<svg><g></svg></g>','<svg></svg><svg></svg>','<svg a=\'1\'></svg>','<svg>x</svg>','<svg><path/>'])assert.ok(!XML111(bad),'XML111 deja pasar: '+bad);
   assert.ok(XML111('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1">\n <path d="M0 0"/><g><rect x="1"/></g></svg>'),'un SVG bien formado pasa')}
  const ex=Object.keys(A).filter(k=>!LINE.includes(k)).sort();assert.deepEqual(ex,['CAJA','leaf','star'],'fuera del juego solo la caja en texto, el ícono de hoja y la estrella');
