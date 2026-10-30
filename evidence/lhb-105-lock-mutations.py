@@ -7,18 +7,23 @@ WT, D = sys.argv[1], sys.argv[2]
 if os.path.exists(D):
     shutil.rmtree(D)
 shutil.copytree(WT, D, ignore=shutil.ignore_patterns('.git', 'node_modules', 'evidence'))
-PAT = 'LHB-105'
+PAT = 'LHB-105|LHB-98'
 MUTS = [
-    ('site/sync.js', 'the switch runs at once even while another tab holds the lock', "if(D.locks&&!locked){switchSoon();return false}", ''),
-    ('site/sync.js', 'the switch is never asked for (isolate just says no)', "if(D.locks&&!locked){switchSoon();return false}", "if(D.locks&&!locked)return false;"),
-    ('site/sync.js', 'the switch skips the lock', "swP=Promise.resolve().then(()=>withLock(()=>isolate()))", "swP=Promise.resolve().then(()=>{locked=true;try{return isolate()}finally{locked=false}})"),
-    ('site/sync.js', 'a pass does not mark this tab as holding the lock (its own switch would wait for itself)', "r=await (D.lock?withLock(once):once());", "r=await (D.lock?D.lock(once):once());"),
-    ('site/sync.js', 'the lock flag is never cleared', "locked=true;try{return await f()}finally{locked=false}", "locked=true;return f()"),
+    ('site/sync.js', 'the switch runs at once even while another tab holds the lock', "if(D.locks&&!inSwitch){switchSoon();return false}", ''),
+    ('site/sync.js', 'the switch is never asked for (isolate just says no)', "if(D.locks&&!inSwitch){switchSoon();return false}", "if(D.locks&&!inSwitch)return false;"),
+    ('site/sync.js', 'the switch skips the sync lock', "const body=()=>D.lock(async()=>{inSwitch=true;try{return isolate()}finally{inSwitch=false}});", "const body=async()=>{inSwitch=true;try{return isolate()}finally{inSwitch=false}};"),
+    ('site/sync.js', 'Codex r6: the switch skips the write lock', "D.switchLock?D.switchLock(body):body()", "body()"),
+    ('site/sync.js', 'Codex r6: a pass switches inline (any isolate inside the sync lock)', "  if(!isolate())return {fail:'park'};", "  {inSwitch=true;let k;try{k=isolate()}finally{inSwitch=false}if(!k)return {fail:'park'}}"),
+    ('site/sync.js', 'the switch flag is never cleared', "inSwitch=true;try{return isolate()}finally{inSwitch=false}", "inSwitch=true;return isolate()"),
     ('site/sync.js', 'the screen is not repainted after the switch', "if(ok&&a&&ownerOf()===a.sub&&D.onApplied){try{D.onApplied()}catch(e){}}", ''),
     ('site/sync.js', 'the screen is repainted after a failed switch', "if(ok&&a&&ownerOf()===a.sub&&D.onApplied)", "if(D.onApplied)"),
     ('site/sync.js', 'switching() always says no', "switching:()=>!!swP,", "switching:()=>false,"),
     ('site/sync.js', 'two requests start two switches', "function switchSoon(){if(swP)return swP;", "function switchSoon(){"),
-    ('site/hoja.js', 'hoja.js does not tell sync.js about Web Locks', " locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function',\n", ''),
+    ('site/hoja.js', 'hoja.js does not tell sync.js about Web Locks', "locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function',switchLock:f=>wlSwitch(f),", "switchLock:f=>wlSwitch(f),"),
+    ('site/hoja.js', 'Codex r6: hoja.js gives sync.js no write lock for the switch', "switchLock:f=>wlSwitch(f),", ""),
+    ('site/hoja.js', 'Codex r6: other tabs do not yield on a switch', "||e.key==='lhb_mihoja_v1_cambiando'&&e.newValue)wlYield();", ")wlYield();"),
+    ('site/hoja.js', 'Codex r6: the switching tab cannot write while it holds the exclusive', "&&!w.have&&!w.sw}", "&&!w.have}"),
+    ('site/hoja.js', 'Codex r6: the switch takes the write lock shared, not exclusive', "w.lm.request('lhb_mihoja',{mode:'exclusive'},async()=>{w.sw=true;", "w.lm.request('lhb_mihoja',{mode:'shared'},async()=>{w.sw=true;"),
     ('site/hoja.js', 'writing during the switch says storage is full', "toast(SYNC.switching&&SYNC.switching()?tt('h.cambiandoCuenta'):tt('h.noSePudoSeparar'))", "toast(tt('h.noSePudoSeparar'))"),
 ]
 

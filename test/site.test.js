@@ -7560,13 +7560,14 @@ test('LHB-105: una pestaña que abre Mi Hoja varias veces mientras el cambio esp
   free();await hold;await until105(()=>!A.eng.switching());
   assert.equal(owner(),'user_b');assert.equal(A.st.applied,n+1,'pinta una vez');
  }finally{a.done()}});
-test('LHB-105: dentro de una pasada, con el candado en la mano, el cambio corre en el momento (no pide el candado otra vez)',async()=>{
+test('LHB-105 (Codex r6): una pasada que encuentra la copia de otra cuenta no cambia en medio: termina, y el cambio corre después con los candados (sin esperarse a sí misma)',async()=>{
  const {a,A,owner}=await TABS105();
  try{
   A.st.acct=A.st.user='user_b';
   const r=await Promise.race([A.sync(),new Promise(r=>setTimeout(()=>r('colgada'),1500))]);
-  assert.notEqual(r,'colgada','la pasada no se queda esperando su propio candado');assert.equal(r.ok,true);
-  assert.equal(owner(),'user_b');
+  assert.notEqual(r,'colgada','la pasada no se queda esperando su propio candado');assert.notEqual(r.ok,true,'la pasada no sigue con la copia de A');
+  await until105(()=>!A.eng.switching());assert.equal(owner(),'user_b','el cambio corrió después');
+  assert.equal((await A.sync()).ok,true,'y la pasada siguiente es de B');
  }finally{a.done()}});
 test('LHB-105: sin Web Locks el cambio es como antes, en el momento',async()=>{
  const {a,A,owner}=await TABS105();
@@ -7585,11 +7586,44 @@ test('LHB-105: si el cambio falla (sin espacio) no se vuelve a pintar la pantall
  }finally{a.done()}});
 test('LHB-105: hoja.js le dice a sync.js si hay Web Locks, y mientras el cambio espera, escribir avisa que se está cambiando de cuenta (en los dos idiomas)',()=>{
  const h=read('hoja.js');
- assert.ok(h.includes("locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function'"));
+ assert.ok(h.includes("locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function',switchLock:f=>wlSwitch(f),"));
+ assert.ok(h.includes("e.key==='lhb_mihoja_v1_cambiando'&&e.newValue)wlYield();"),'otra pestaña suelta su compartido al ver un cambio de cuenta');
+ assert.ok(h.includes('function wlClosed(){const w=WLS;return !!(w&&w.lm)&&!w.have&&!w.sw}'),'con el exclusivo del cambio, esta pestaña escribe');
  assert.ok(h.includes("toast(SYNC.switching&&SYNC.switching()?tt('h.cambiandoCuenta'):tt('h.noSePudoSeparar'))"));
  const I=I18N();assert.ok(I.T.es['h.cambiandoCuenta']);assert.ok(I.T.en['h.cambiandoCuenta']);
  assert.ok(!/tabLock|tabsHeld|_cambio\.|_pestana\./.test(h+read('sync.js')),'nada queda de las anotaciones de antes');
 });
+test('LHB-105 (Codex r6): otra pestaña está a mitad de escribir cuando esta, con una pasada en curso, pide el cambio de cuenta: la escritura termina con la copia de A, el cambio espera el exclusivo y la aparta, y nada de A llega a B',async()=>{
+ const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC28);await dev.sync();
+  const L=LOCKS98();
+  /* lo que tiene el candado de escribir en el momento en que el cambio vacía la copia */
+  const sd=dev.D.setDoc;let atClear=null;dev.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length&&atClear===null)atClear=L.held.map(h=>h.mode);return sd(d,...r)};
+  const X=TAB98(dev,L,{sw:true}),Y=TAB98(dev,L,{sw:true});
+  /* el aviso del cambio le llega a la otra pestaña como un aviso storage */
+  const set0=dev.ls.set.bind(dev.ls);dev.ls.set=(k,v)=>{set0(k,v);if(k==='lhb_mihoja_v1_cambiando')Y.tell({key:k,newValue:String(v)});return dev.ls};
+  await tick98();
+  /* X tiene una pasada con el candado de las pasadas, esperando el GET */
+  let go;const paused=new Promise(r=>{dev.net.beforeGet=()=>new Promise(res=>{go=res;r()})});
+  const pass=X.eng.run('prueba');await paused;
+  /* Y escribe; a mitad de su escritura la cuenta pasa a B y la pantalla de X pide el cambio */
+  const get=dev.ls.get.bind(dev.ls);let hooked=false,xr=null;
+  dev.ls.get=k=>{if(!hooked&&k==='lhb_mihoja_v1'){hooked=true;dev.st.acct=dev.st.user='user_b';xr=X.eng.isolate()}return get(k)};
+  const doc=JSON.parse(get('lhb_mihoja_v1'));doc.humidor.push({id:'old_A_edit',marca:'De A',actualizado:'2026-10-30'});
+  const ok=Y.X.write(doc);dev.ls.get=get;
+  assert.equal(hooked,true,'la escritura pasó por la lectura');
+  assert.equal(xr,false,'X no cambia en medio de la escritura de Y: pide el cambio y espera');
+  assert.equal(ok,true,'la escritura de Y termina');assert.equal(get('lhb_mihoja_v1_owner'),'user_a','con la copia todavía de A');
+  go();await pass;await tick98(80);await until105(()=>!X.eng.switching());await tick98(40);
+  assert.equal(get('lhb_mihoja_v1_owner'),'user_b','el cambio terminó');
+  assert.deepEqual(atClear,['exclusive'],'al vaciar, solo el cambio tiene el candado de escribir: ninguna pestaña puede estar a mitad de una escritura');
+  assert.deepEqual(hid28(dev.doc()),[],'la copia de B está vacía');
+  const parked=[...dev.ls.keys()].filter(k=>k.startsWith('lhb_mihoja_v1_de_'));assert.equal(parked.length,1);
+  assert.ok(JSON.parse(get(parked[0])).humidor.some(x=>x.id==='old_A_edit'),'lo de A, con la escritura de Y, quedó apartado');
+  await X.eng.run('b');await tick98(40);
+  const b=srv28(a,'user_b');assert.ok(!b||!(b.doc.humidor||[]).some(x=>x.id==='old_A_edit'||x.id==='h1'),'nada de A en la cuenta de B');
+  assert.ok(!L.held.some(h=>h.mode==='exclusive'),'el exclusivo se soltó');
+ }finally{a.done()}});
 for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
                            ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
 test('LHB-80 (Codex r8): el cambio de cuenta falla antes de tocar la copia y volver a la época de antes también falla ('+como+'): se reintenta antes de sincronizar y el borrado sigue',async()=>{
@@ -8889,8 +8923,8 @@ function TAB98(dev,locks,o){o=o||{};const vm=require('vm');const src=read('hoja.
  const toasts=[],listeners=[];let eng=null;
  const ctx={...TT(),KEY:'lhb_mihoja_v1',PEND:[],toast:m=>toasts.push(m),navigator:{locks},AbortController,setTimeout:()=>0,clearTimeout:()=>{},location:{assign:()=>{}},
   localStorage:{getItem:k=>dev.ls.has(k)?dev.ls.get(k):null,setItem:(k,v)=>dev.ls.set(k,String(v))},window:{addEventListener:(t,f)=>listeners.push([t,f])}};
- eng=SYNC28().LHB_SYNC({...dev.D,closed:()=>!!ctx.X.wlClosed&&ctx.X.wlClosed()});ctx.SYNC=eng;
- vm.createContext(ctx);vm.runInContext('let ST=null,STRAW=null;'+wline+';'+gate+lst+';this.X={write,wlClosed:typeof wlClosed==="function"?wlClosed:null}',ctx);
+ eng=SYNC28().LHB_SYNC({...dev.D,closed:()=>!!ctx.X.wlClosed&&ctx.X.wlClosed(),...(o.sw?{locks:true,lock:f=>locks.request('lhb_mihoja_sync',f),switchLock:f=>ctx.X.wlSwitch(f)}:{})});ctx.SYNC=eng;
+ vm.createContext(ctx);vm.runInContext('let ST=null,STRAW=null;'+wline+';'+gate+lst+';this.X={write,wlClosed:typeof wlClosed==="function"?wlClosed:null,wlSwitch:typeof wlSwitch==="function"?wlSwitch:null}',ctx);
  let asleep=!!o.suspend;const waiting=[];
  const deliver=e=>{for(const [t,f] of listeners)if(t==='storage')f(e)};
  /* la otra pestaña escribe la valla: el aviso le llega a esta como una tarea, o espera si está dormida */

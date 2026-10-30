@@ -212,7 +212,7 @@ async function api(C,method,path,body,uid,extra,go){const t=await C.session.getT
 SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k),keys:()=>Object.keys(localStorage)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),closed:()=>wlClosed(),
  /* LHB-105: con Web Locks, el cambio de cuenta espera el candado de las pasadas (sync.js isolate) */
- locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function',
+ locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function',switchLock:f=>wlSwitch(f),
  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),wait:ms=>new Promise(r=>setTimeout(r,ms)),toast,
  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
@@ -229,11 +229,11 @@ let lastBackup=null,acBusy=false,outDone=false;
    Sin Web Locks, o si una pestaña no lo suelta en WL_WAIT, queda la valla con tiempo (LHB-34). Funciones y var: SYNC las llama antes de que corra este bloque */
 var WLS=null;const WL_WAIT=5e3;
 function wlInit(){let lm=null;try{lm=typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.request==='function'?navigator.locks:null}catch(e){}
- WLS={lm,have:false,ask:false,free:null,mine:false};wlTake()}
+ WLS={lm,have:false,ask:false,free:null,mine:false,sw:false};wlTake()}
 /* pide el compartido; mientras no llega, o después de soltarlo por una salida, lo que escribe la persona no se guarda (sync.js fenced) */
 function wlTake(){const w=WLS;if(!w||!w.lm||w.ask||w.have||w.mine)return;w.ask=true;
  w.lm.request('lhb_mihoja',{mode:'shared'},()=>{w.ask=false;if(w.mine)return;w.have=true;ST=null;return new Promise(r=>{w.free=r})}).catch(()=>{w.ask=false})}
-function wlClosed(){const w=WLS;return !!(w&&w.lm)&&!w.have}
+function wlClosed(){const w=WLS;return !!(w&&w.lm)&&!w.have&&!w.sw}
 const wlDrop=w=>{const r=w.free;w.have=false;w.free=null;ST=null;if(r)r()};
 /* otra pestaña sale: se suelta y se pide otra vez, en la fila detrás de la salida */
 function wlYield(){const w=WLS;if(!w||!w.lm||!w.have)return;wlDrop(w);wlTake()}
@@ -249,6 +249,13 @@ async function wlOnly(f,onWait){const w=WLS;if(!w||!w.lm)return f();
  catch(e){if(ran)throw e}
  finally{clearTimeout(t);w.mine=false}
  wlTake();return out}
+/* LHB-105 (Codex r6): el cambio de cuenta pide el exclusivo, como salir, para que ninguna pestaña esté a mitad de una escritura mientras la copia cambia de dueña.
+   Avisa con su propia llave (lhb_mihoja_v1_cambiando), no con la valla: al terminar, todas vuelven a escribir sin esperar a que caduque. Con el exclusivo en la
+   mano esta pestaña sí escribe lo del cambio (w.sw). Sin Web Locks corre f sola */
+async function wlSwitch(f){const w=WLS;if(!w||!w.lm)return f();
+ w.mine=true;wlDrop(w);try{localStorage.setItem('lhb_mihoja_v1_cambiando',String(Date.now()))}catch(e){}
+ try{return await w.lm.request('lhb_mihoja',{mode:'exclusive'},async()=>{w.sw=true;try{return await f()}finally{w.sw=false}})}
+ finally{w.mine=false;wlTake()}}
 wlInit();
 const acMsg=t=>{const el=$('#acMsg');if(el){el.textContent=t;el.hidden=!t}};
 /* lo que queda de esta página después de salir o de borrar: el aviso para la página que abre después */
@@ -328,7 +335,7 @@ async function resumeDelete(){if(!delMark.get())return;let C;try{C=await clerk()
 if(delMark.get())setTimeout(resumeDelete,1500);
 /* otra pestaña salió de la cuenta o la borró (sync.js forget quita el dueño): esta suelta su Mi Hoja en memoria, para no volver a escribirla, y abre de nuevo */
 /* LHB-98: otra pestaña está saliendo (puso la valla): esta suelta el candado de Mi Hoja */
-window.addEventListener('storage',e=>{if(e.key==='lhb_mihoja_v1_saliendo'&&e.newValue)wlYield();
+window.addEventListener('storage',e=>{if(e.key==='lhb_mihoja_v1_saliendo'&&e.newValue||e.key==='lhb_mihoja_v1_cambiando'&&e.newValue)wlYield();
  if(e.key==='lhb_mihoja_v1_owner'&&e.oldValue&&e.newValue===null){SYNC.hold(true);ST=null;STRAW=null;location.assign('/')}});
 function accountCard(h,p,b){view.innerHTML=`<header class="mh-head"><div class="eyebrow">${tt('h.miHoja')}</div><h1>${tt('h.loTuyo')}</h1></header><div class="empty acct"><p><b>${h}</b></p><p>${p}</p>${b?`<button class="btn" type="button" id="acctBtn">${esc(b.label)}</button>`:''}</div>`;if(b)$('#acctBtn').onclick=b.on}
 function accountNotice(h,p,b){const el=sheet(`<h2 class="sheet-h">${esc(h)}</h2><p>${esc(p)}</p>${b?`<button class="btn" type="button" id="acctNB">${esc(b.label)}</button>`:''}`,h);

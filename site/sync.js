@@ -141,19 +141,21 @@ window.LHB_SYNC=function(D){
  /* Lo guardado era de otra cuenta: se aparta en una llave libre (nunca sobre otra copia apartada), Mi Hoja queda vacía y la dueña pasa a ser la nueva. Es síncrono: se llama antes de leer o escribir Mi Hoja, sin esperar a la red */
  /* LHB-105: el cambio de cuenta corre con el candado de las pasadas en la mano ('lhb_mihoja_sync', D.lock), el mismo que toma cada pasada de cada pestaña.
     Así ninguna pasada está a mitad mientras la copia cambia de dueña (la que empezó antes termina primero, con la copia de antes, y la que pide después ve la
-    copia nueva), y dos cambios de cuenta no se cruzan. isolate() es síncrona: si esta pestaña ya tiene el candado (dentro de una pasada) o no hay Web Locks
-    (D.locks falso), cambia aquí mismo. Si no, pide el candado y devuelve false: Mi Hoja no se lee ni se escribe hasta que el cambio termine; al terminar bien,
+    copia nueva), y dos cambios de cuenta no se cruzan. Codex r6: antes pide además el candado de escribir de LHB-98 ('lhb_mihoja', exclusivo; D.switchLock en
+    hoja.js): cada pestaña termina lo que está escribiendo y suelta su compartido, así ninguna escritura de la persona en otra pestaña queda a mitad del cambio.
+    isolate() es síncrona: sin Web Locks (D.locks falso), o ya dentro del cambio, cambia aquí mismo. Si no, pide los candados y devuelve false: Mi Hoja no se
+    lee ni se escribe hasta que el cambio termine (también dentro de una pasada, que termina sin cambiar y deja el cambio para después); al terminar bien,
     D.onApplied vuelve a pintar la pantalla. Sin Web Locks queda lo de antes: la época nueva deja sin vida a una pasada que empezó antes del cambio */
- let inIso=false,locked=false,swP=null;
- const withLock=f=>D.lock(async()=>{locked=true;try{return await f()}finally{locked=false}});
+ let inIso=false,inSwitch=false,swP=null;
+ const body=()=>D.lock(async()=>{inSwitch=true;try{return isolate()}finally{inSwitch=false}});
  function switchSoon(){if(swP)return swP;
-  swP=Promise.resolve().then(()=>withLock(()=>isolate())).then(ok=>ok,()=>false).then(ok=>{swP=null;const a=D.acct();
+  swP=Promise.resolve().then(()=>D.switchLock?D.switchLock(body):body()).then(ok=>ok,()=>false).then(ok=>{swP=null;const a=D.acct();
    /* solo si quedó cambiada: si falló (sin espacio), la pantalla no se vuelve a pintar sola, así no pide el cambio una y otra vez */
    if(ok&&a&&ownerOf()===a.sub&&D.onApplied){try{D.onApplied()}catch(e){}}return ok});
   return swP}
  function isolate(){if(inIso)return true;const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
   const old=ownerOf();if(old===null||old===acc.sub)return true;
-  if(D.locks&&!locked){switchSoon();return false}
+  if(D.locks&&!inSwitch){switchSoon();return false}
   if(!tryUndo())return false;
   inIso=true;try{
    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
@@ -369,7 +371,7 @@ window.LHB_SYNC=function(D){
   if(o.minAge){const m=readMeta(),a=D.acct();if(m&&a&&m.sub===a.sub&&m.at&&D.nowMs()-new Date(m.at).getTime()<o.minAge)return Promise.resolve({skip:'reciente'})}
   if(busy){again=true;return busy}
   busy=(async()=>{let r;try{
-    for(let n=0;n<3;n++){again=false;set('syncing');r=await (D.lock?withLock(once):once());if(!(r.ok&&again))break}
+    for(let n=0;n<3;n++){again=false;set('syncing');r=await (D.lock?D.lock(once):once());if(!(r.ok&&again))break}
     if(r.ok){fails=0;set('ok');if(retryT){D.clearTimer(retryT);retryT=0}if(again){again=false;schedule(DEBOUNCE,()=>run('pendiente'))}}
     else if(r.skip==='signed-out'||r.skip==='other-account'){set('off')}
     else{fails++;set(r.skip==='offline'?'offline':'error',r.fail||r.skip);retryLater()}

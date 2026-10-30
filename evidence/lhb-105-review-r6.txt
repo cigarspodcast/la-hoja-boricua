@@ -1,0 +1,524 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\lhb-105-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18cda-cd46-7363-8da7-769449171e53
+--------
+user
+Code review, LHB-105, TIER 2, round 6: a REBUILD. Repository cigarspodcast/la-hoja-boricua, branch lhb-105-switch. You are reviewing; do not edit files.
+
+The defect (LHB-105): Mi Hoja (the user's data, in localStorage key lhb_mihoja_v1) syncs to the signed-in account through site/sync.js. When the account changes, isolate() parks the old account's copy, clears Mi Hoja and records the new owner. A sync pass that another tab had started, or started while the switch was half done, could survive the copy change and write or upload the old account's data into the new account's copy.
+
+Rounds 1 to 5 tried to fix this with per-tab marks in localStorage, timeouts and lock queries; every round found a new cross-tab timing (evidence/lhb-105-review-r1.txt to r5.txt). Round 5's two findings: the takeover epoch invalidated a valid base (R5-1), and scan-before-mark let two switches overlap (R5-2). The owner chose to rebuild on the exclusive Web Lock instead.
+
+The rebuild (diff below is against origin/main, which has none of the round 1 to 5 code):
+- Every sync pass in every tab already runs inside navigator.locks.request('lhb_mihoja_sync') (hoja.js passes it as D.lock; run() calls it). The account switch now runs inside that same exclusive lock. A pass that started earlier finishes first, with the old copy; a pass that asks later sees the new copy. Two switches are serialised.
+- isolate() stays synchronous (hoja.js calls it before every read, S(), and every write, write()). If this tab already holds the lock (locked, set by withLock around a pass) or there are no Web Locks (D.locks false), it switches at once, exactly as main does. Otherwise it asks for the lock (switchSoon, one request at a time) and returns false. Mi Hoja then reads as empty and refuses writes, with a "switching accounts" toast, until the switch ends. After a switch that succeeded, D.onApplied repaints; after one that failed (storage full), it does not repaint, so it does not ask for the switch again and again.
+- Without Web Locks, behaviour is main's (the epoch still invalidates a pass that began before a switch); the cross-tab residual there is accepted.
+- hoja.js passes D.locks; the toast key h.cambiandoCuenta is in both languages; the cache version is lhb-v166.
+
+Tests: seven LHB-105 tests (test/site.test.js), with a fake FIFO exclusive lock shared by two engines on one storage, as two tabs. On main's code 6 of 7 fail (evidence/lhb-105-lock-red.txt). The seventh, a switch inside a pass not waiting for its own lock, passes on main and is proven by a mutant. Mutants: evidence/lhb-105-lock-mutations.py and .out. The full suite is in evidence/lhb-105-tests.txt.
+
+What to look for:
+- Any order of events, across two or more tabs, where a pass writes or uploads the old account's data into the new account's copy or account, or where the switch clears data that a pass just wrote for the new account.
+- Re-entrancy and deadlock. Can a tab wait for a lock it holds itself? Look at locked: it stays true while this tab's pass awaits the network, and a synchronous isolate() from the UI of the same tab can then switch in the middle of that pass. Is the epoch check that main's pass already does (alive()) enough there?
+- Starvation or loops: a pass that hangs holds the lock, so the switch waits. The repaint loop on failure. Two requests.
+- Anything the lock does not cover that LHB-105 is about. User writes from another tab are guarded by isolate() per write and by the LHB-98 shared lock; say so if that is wrong for this defect.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing sequence.
+
+===== git diff origin/main 2f38f76e53ec42ef67f68747ade3681159257c26 -- site test =====
+diff --git a/site/hoja.js b/site/hoja.js
+index 21ac931..6d68ced 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -53,7 +53,7 @@ let SYNC=null;
+ let DFOC=null;window.addEventListener('hashchange',()=>{DFOC=null});
+ /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona.
+    LHB-98 (Codex r1): sin el candado compartido en la mano (wlClosed) tampoco se guarda: se queda en memoria, y al llegar el candado (wlTake suelta ST) se lee y se escribe otra vez */
+-function write(s,quiet){if(quiet&&typeof wlClosed==='function'&&wlClosed())return true;if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
++function write(s,quiet){if(quiet&&typeof wlClosed==='function'&&wlClosed())return true;if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(SYNC.switching&&SYNC.switching()?tt('h.cambiandoCuenta'):tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
+ /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
+ /* LHB-101: si el navegador bloquea leer el almacenamiento, Mi Hoja vacía; nunca un error dentro de una pintura (un catálogo en blanco) */
+ const S=()=>{try{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST}catch(e){ST=null;return DEF()}};
+@@ -211,6 +211,8 @@ async function api(C,method,path,body,uid,extra,go){const t=await C.session.getT
+    corre la nueva a un índice ya leído, y esta pestaña no la ve */
+ SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k),keys:()=>Object.keys(localStorage)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),closed:()=>wlClosed(),
++ /* LHB-105: con Web Locks, el cambio de cuenta espera el candado de las pasadas (sync.js isolate) */
++ locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function',
+  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),wait:ms=>new Promise(r=>setTimeout(r,ms)),toast,
+  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
+  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
+diff --git a/site/i18n.js b/site/i18n.js
+index f2e90b4..1cb646f 100644
+--- a/site/i18n.js
++++ b/site/i18n.js
+@@ -226,6 +226,7 @@ const T={es:{
+  "h.noPudeCrearLa": "No pude crear la imagen.",
+  "h.costoPreguntaAlOrganizador": "Costo: pregunta al organizador",
+  "h.noSePudoSeparar": "No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.",
++ "h.cambiandoCuenta": "Cambiando de cuenta en este teléfono. Espera unos segundos e intenta otra vez.",
+  "h.noHayEspacioPara": "No hay espacio para guardar. Exporta un respaldo.",
+  "h.sellado": "Sellado",
+  "h.sellarPasaporte": "Sellar pasaporte",
+@@ -1051,6 +1052,7 @@ en:{
+  "h.noPudeCrearLa": "I could not create the image.",
+  "h.costoPreguntaAlOrganizador": "Cost: ask the organizer",
+  "h.noSePudoSeparar": "Could not set aside the other account's data. Free up space and sign in again.",
++ "h.cambiandoCuenta": "Switching accounts on this phone. Wait a few seconds and try again.",
+  "h.noHayEspacioPara": "No space left to save. Export a backup.",
+  "h.sellado": "Stamped",
+  "h.sellarPasaporte": "Stamp passport",
+diff --git a/site/sw.js b/site/sw.js
+index 31adf56..97651ae 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v165';
++const VERSION='lhb-v166';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-16.png','icons/favicon-32.png',
+diff --git a/site/sync.js b/site/sync.js
+index 78b51a2..7c1f937 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -139,9 +139,21 @@ window.LHB_SYNC=function(D){
+  /* se aparta si tiene datos o un borrador sin terminar (la cata a medias es de quien la escribía); una copia que no se puede leer también */
+  const rawHasData=raw=>{try{const d=JSON.parse(raw);return hasData(d)||(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length>0)}catch(e){return true}};
+  /* Lo guardado era de otra cuenta: se aparta en una llave libre (nunca sobre otra copia apartada), Mi Hoja queda vacía y la dueña pasa a ser la nueva. Es síncrono: se llama antes de leer o escribir Mi Hoja, sin esperar a la red */
+- let inIso=false;
++ /* LHB-105: el cambio de cuenta corre con el candado de las pasadas en la mano ('lhb_mihoja_sync', D.lock), el mismo que toma cada pasada de cada pestaña.
++    Así ninguna pasada está a mitad mientras la copia cambia de dueña (la que empezó antes termina primero, con la copia de antes, y la que pide después ve la
++    copia nueva), y dos cambios de cuenta no se cruzan. isolate() es síncrona: si esta pestaña ya tiene el candado (dentro de una pasada) o no hay Web Locks
++    (D.locks falso), cambia aquí mismo. Si no, pide el candado y devuelve false: Mi Hoja no se lee ni se escribe hasta que el cambio termine; al terminar bien,
++    D.onApplied vuelve a pintar la pantalla. Sin Web Locks queda lo de antes: la época nueva deja sin vida a una pasada que empezó antes del cambio */
++ let inIso=false,locked=false,swP=null;
++ const withLock=f=>D.lock(async()=>{locked=true;try{return await f()}finally{locked=false}});
++ function switchSoon(){if(swP)return swP;
++  swP=Promise.resolve().then(()=>withLock(()=>isolate())).then(ok=>ok,()=>false).then(ok=>{swP=null;const a=D.acct();
++   /* solo si quedó cambiada: si falló (sin espacio), la pantalla no se vuelve a pintar sola, así no pide el cambio una y otra vez */
++   if(ok&&a&&ownerOf()===a.sub&&D.onApplied){try{D.onApplied()}catch(e){}}return ok});
++  return swP}
+  function isolate(){if(inIso)return true;const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
+   const old=ownerOf();if(old===null||old===acc.sub)return true;
++  if(D.locks&&!locked){switchSoon();return false}
+   if(!tryUndo())return false;
+   inIso=true;try{
+    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
+@@ -357,7 +369,7 @@ window.LHB_SYNC=function(D){
+   if(o.minAge){const m=readMeta(),a=D.acct();if(m&&a&&m.sub===a.sub&&m.at&&D.nowMs()-new Date(m.at).getTime()<o.minAge)return Promise.resolve({skip:'reciente'})}
+   if(busy){again=true;return busy}
+   busy=(async()=>{let r;try{
+-    for(let n=0;n<3;n++){again=false;set('syncing');r=await (D.lock?D.lock(once):once());if(!(r.ok&&again))break}
++    for(let n=0;n<3;n++){again=false;set('syncing');r=await (D.lock?withLock(once):once());if(!(r.ok&&again))break}
+     if(r.ok){fails=0;set('ok');if(retryT){D.clearTimer(retryT);retryT=0}if(again){again=false;schedule(DEBOUNCE,()=>run('pendiente'))}}
+     else if(r.skip==='signed-out'||r.skip==='other-account'){set('off')}
+     else{fails++;set(r.skip==='offline'?'offline':'error',r.fail||r.skip);retryLater()}
+@@ -430,5 +442,5 @@ window.LHB_SYNC=function(D){
+   D.listen('online',()=>run('en-linea'));
+   D.listen('visible',()=>run('visible',{minAge:30e3}));
+   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
+- return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy,_myOps:()=>myOps.size}};
++ return {run,changed,start,isolate,switching:()=>!!swP,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy,_myOps:()=>myOps.size}};
+ })();
+diff --git a/test/site.test.js b/test/site.test.js
+index e1e9a40..1fa37a6 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -42,7 +42,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v165'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v166'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -62,24 +62,24 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
+- assert.match(sw,/const VERSION='lhb-v165'/);
++ assert.match(sw,/const VERSION='lhb-v166'/);
+  /* LHB-111: la guagua ya no es ilustración de la app: ni se precachea, ni la nombra art.js, ni queda el archivo */
+  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(!a.includes(g),g);assert.ok(!fs.existsSync(path.join(__dirname,'..','site',g)),g)}
+  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
+  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
+ test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v165'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v166'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
+  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v165'/);
++ assert.match(sw,/const VERSION='lhb-v166'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v165'/);
++ assert.match(sw,/const VERSION='lhb-v166'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
+  /* LHB-111: el estado vacío lleva la caja de cigarros de línea (abajo), ya no la bandera en su asta */
+@@ -102,12 +102,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v165'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v166'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v165'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v166'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes('VBArt.aqui()')&&!js.includes('VBArt.carro'),'LHB-111: el aquí del mapa es de línea');});
+ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -115,7 +115,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
+-test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v165'/)});
++test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v166'/)});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -132,7 +132,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v165/);});
++ assert.match(read('sw.js'),/lhb-v166/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -145,19 +145,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v165'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v166'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v165'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v166'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v165'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v166'/);});
+ 
+ test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
+  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
+- for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v165'/);});
++ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v166'/);});
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
+@@ -1219,7 +1219,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v165'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1466,7 +1466,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v165'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v166'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1644,7 +1644,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v165'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1891,7 +1891,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v165'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2193,7 +2193,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v165'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2476,7 +2476,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v165'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3435,7 +3435,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+  assert.ok(h.includes("getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST}"),'la sincronización lee del almacenamiento y no de la copia en memoria');
+  assert.ok(h.includes("window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null})"),'otra pestaña que escribe invalida la copia en memoria');
+  assert.ok(h.includes("const S=()=>{try{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST}catch(e){ST=null;return DEF()}};"),/* LHB-101: dentro de un try */'S aparta lo de otra cuenta antes de leer, no muestra lo de la otra si no pudo y solo confía en la copia en memoria si el texto guardado no cambió');
+- assert.ok(h.includes("if(SYNC&&!SYNC.isolate()){ST=null;toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}"),'write no escribe si no se pudo apartar lo de la otra cuenta y suelta la copia en memoria');
++ assert.ok(h.includes("if(SYNC&&!SYNC.isolate()){ST=null;toast(SYNC.switching&&SYNC.switching()?'Cambiando de cuenta en este teléfono. Espera unos segundos e intenta otra vez.':'No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}"),/* LHB-105: mientras el cambio de cuenta espera el candado, el aviso lo dice */'write no escribe si no se pudo apartar lo de la otra cuenta y suelta la copia en memoria');
+  assert.ok(h.includes("if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}")&&h.includes("STRAW=txt}catch(e){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}"),'una escritura rechazada suelta la copia en memoria, que ya traía el cambio rechazado');
+  assert.ok(read('sync.js').includes('if(inIso)return true;'),'aislar dentro de aislar se corta (write llama a isolate y isolate escribe por setDoc)');
+  assert.ok(h.includes("s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}"),'la copia nueva o dañada que la app crea sola no cuenta como un cambio de la persona');
+@@ -3445,7 +3445,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v165'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v166'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -5530,7 +5530,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v165'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v166'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -7496,6 +7496,100 @@ test('LHB-80 (Codex r7): otra pestaña cambió la época mientras este cambio de
+   A.st.acct=A.st.user='user_a';await A.eng.settled({});
+   const s=srv28(a,'user_a').doc;assert.equal(s.humidor.length,1);assert.equal(s.diario.length,1);assert.ok(s.favs.artesanos.includes('a1'),'la cuenta sigue entera');
+  }finally{a.done()}});
++/* LHB-105: el cambio de cuenta corre con el candado de las pasadas (D.lock). LOCK105 es un candado exclusivo de mentira, en fila como Web Locks;
++   dos motores sobre el mismo D son dos pestañas con la misma sesión. until espera a que algo se cumpla (las promesas del candado van solas) */
++const LOCK105=()=>{let tail=Promise.resolve();return f=>{const p=tail.then(()=>f());tail=p.then(()=>{},()=>{});return p}};
++const until105=async f=>{for(let i=0;i<500&&!f();i++)await new Promise(r=>setTimeout(r,2))};
++const TABS105=async()=>{const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));
++ const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();A.D.lock=LOCK105();A.D.locks=true;
++ const Y=SYNC28().LHB_SYNC(A.D);
++ return {a,A,Y,owner:()=>A.ls.get('lhb_mihoja_v1_owner'),parked:()=>[...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_de_'))}};
++test('LHB-105: el cambio de cuenta espera el candado: la pasada de otra pestaña termina con la copia de A, y luego el cambio la aparta y deja la de B vacía',async()=>{
++ const {a,A,Y,owner,parked}=await TABS105();
++ try{
++  assert.equal(srv28(a,'user_a').rev,1);
++  A.edit(d=>{d.humidor.push({id:'h2',nombre:'Nuevo',cantidad:1})});
++  /* la pasada de A se queda a mitad de su subida, con el candado en la mano */
++  let go;const paused=new Promise(r=>{A.net.beforePut=()=>new Promise(res=>{go=res;r()})});
++  const p=A.eng.run('prueba');await paused;
++  /* la cuenta de la app pasa a B y la otra pestaña abre Mi Hoja */
++  A.st.acct='user_b';
++  const raw=A.ls.get(A.KEY),ep=A.ls.get(A.KEY+'_epoca');
++  assert.equal(Y.isolate(),false,'no cambia mientras una pasada tiene el candado');assert.equal(Y.switching(),true,'el cambio espera su turno');
++  await new Promise(r=>setTimeout(r,10));
++  assert.equal(A.ls.get(A.KEY),raw,'la copia no se tocó');assert.equal(owner(),'user_a','la dueña tampoco');assert.equal(A.ls.get(A.KEY+'_epoca'),ep,'ni la época');
++  go();await p;A.st.user='user_b';await until105(()=>!Y.switching());
++  assert.equal(owner(),'user_b','el cambio terminó después de la pasada');
++  assert.deepEqual(A.X.strip(A.doc()).humidor,[],'la copia de B está vacía');
++  assert.equal(parked().length,1,'lo de A quedó apartado una vez');
++  assert.ok(JSON.parse(A.ls.get(parked()[0])).humidor.some(x=>x.id==='h2'),'con lo último que escribió A');
++  assert.ok(A.st.applied>0,'la pantalla se vuelve a pintar');
++  assert.equal((await A.sync()).ok,true,'B sincroniza');
++  const b=srv28(a,'user_b');assert.ok(!b||!(b.doc.humidor||[]).length&&!(b.doc.favs&&b.doc.favs.artesanos||[]).length,'nada de A en la cuenta de B');
++ }finally{a.done()}});
++test('LHB-105: una pasada que pide el candado después del cambio ya ve la copia de B: no sube nada de A a ninguna cuenta',async()=>{
++ const {a,A,Y,owner,parked}=await TABS105();
++ try{
++  /* otra cosa tiene el candado; mientras, la cuenta pasa a B, esta pestaña pide el cambio y la otra pide una pasada, en ese orden */
++  let free;const hold=A.D.lock(()=>new Promise(r=>{free=r}));
++  A.st.acct=A.st.user='user_b';const p0=A.net.log.filter(m=>m==='PUT').length;
++  assert.equal(A.eng.isolate(),false);const run=Y.run('prueba');
++  await new Promise(r=>setTimeout(r,10));assert.equal(owner(),'user_a','nada cambia mientras el candado está tomado');
++  free();await hold;await run;await until105(()=>!A.eng.switching());
++  assert.equal(owner(),'user_b');assert.equal(parked().length,1);
++  assert.equal(srv28(a,'user_a').rev,1,'la cuenta de A no cambió');
++  const b=srv28(a,'user_b');assert.ok(!b||!(b.doc.humidor||[]).length&&!(b.doc.favs&&b.doc.favs.artesanos||[]).length,'nada de A en la cuenta de B');
++  assert.ok(A.net.log.filter(m=>m==='PUT').length>=p0);
++ }finally{a.done()}});
++test('LHB-105: dos pestañas piden el cambio a la vez: uno cambia y aparta, el otro ya encuentra la copia de B',async()=>{
++ const {a,A,Y,owner,parked}=await TABS105();
++ try{
++  A.st.acct=A.st.user='user_b';const ep=A.ls.get(A.KEY+'_epoca');
++  assert.equal(A.eng.isolate(),false);assert.equal(Y.isolate(),false);
++  await until105(()=>!A.eng.switching()&&!Y.switching());
++  assert.equal(owner(),'user_b');assert.equal(parked().length,1,'apartado una sola vez');assert.notEqual(A.ls.get(A.KEY+'_epoca'),ep);
++  assert.equal(A.eng.isolate(),true);assert.equal(Y.isolate(),true);
++ }finally{a.done()}});
++test('LHB-105: una pestaña que abre Mi Hoja varias veces mientras el cambio espera pide un solo cambio',async()=>{
++ const {a,A,owner}=await TABS105();
++ try{
++  let free;const hold=A.D.lock(()=>new Promise(r=>{free=r}));
++  A.st.acct=A.st.user='user_b';const n=A.st.applied;let calls=0;const L=A.D.lock;A.D.lock=f=>{calls++;return L(f)};
++  for(let i=0;i<3;i++)assert.equal(A.eng.isolate(),false);
++  await new Promise(r=>setTimeout(r,10));assert.equal(calls,1,'un solo pedido del candado');
++  free();await hold;await until105(()=>!A.eng.switching());
++  assert.equal(owner(),'user_b');assert.equal(A.st.applied,n+1,'pinta una vez');
++ }finally{a.done()}});
++test('LHB-105: dentro de una pasada, con el candado en la mano, el cambio corre en el momento (no pide el candado otra vez)',async()=>{
++ const {a,A,owner}=await TABS105();
++ try{
++  A.st.acct=A.st.user='user_b';
++  const r=await Promise.race([A.sync(),new Promise(r=>setTimeout(()=>r('colgada'),1500))]);
++  assert.notEqual(r,'colgada','la pasada no se queda esperando su propio candado');assert.equal(r.ok,true);
++  assert.equal(owner(),'user_b');
++ }finally{a.done()}});
++test('LHB-105: sin Web Locks el cambio es como antes, en el momento',async()=>{
++ const {a,A,owner}=await TABS105();
++ try{
++  A.D.locks=false;A.st.acct=A.st.user='user_b';
++  assert.equal(A.eng.isolate(),true);assert.equal(owner(),'user_b');assert.equal(A.eng.switching(),false);
++ }finally{a.done()}});
++test('LHB-105: si el cambio falla (sin espacio) no se vuelve a pintar la pantalla sola; la vez siguiente que se abre Mi Hoja se intenta otra vez',async()=>{
++ const {a,A,owner}=await TABS105();
++ try{
++  A.st.acct=A.st.user='user_b';A.st.failSet=true;const n=A.st.applied;
++  assert.equal(A.eng.isolate(),false);await until105(()=>!A.eng.switching());
++  assert.equal(owner(),'user_a','no cambió');assert.equal(A.st.applied,n,'no pinta otra vez (no pediría el cambio una y otra vez)');
++  A.st.failSet=false;assert.equal(A.eng.isolate(),false);await until105(()=>!A.eng.switching());
++  assert.equal(owner(),'user_b');assert.equal(A.st.applied,n+1);
++ }finally{a.done()}});
++test('LHB-105: hoja.js le dice a sync.js si hay Web Locks, y mientras el cambio espera, escribir avisa que se está cambiando de cuenta (en los dos idiomas)',()=>{
++ const h=read('hoja.js');
++ assert.ok(h.includes("locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function'"));
++ assert.ok(h.includes("toast(SYNC.switching&&SYNC.switching()?tt('h.cambiandoCuenta'):tt('h.noSePudoSeparar'))"));
++ const I=I18N();assert.ok(I.T.es['h.cambiandoCuenta']);assert.ok(I.T.en['h.cambiandoCuenta']);
++ assert.ok(!/tabLock|tabsHeld|_cambio\.|_pestana\./.test(h+read('sync.js')),'nada queda de las anotaciones de antes');
++});
+ for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
+                            ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
+ test('LHB-80 (Codex r8): el cambio de cuenta falla antes de tocar la copia y volver a la época de antes también falla ('+como+'): se reintenta antes de sincronizar y el borrado sigue',async()=>{
+
+2026-10-30T12:48:39.357811Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-30T12:48:40.743325Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Likely] The main gap to test is same-tab re-entry while a pass holds the lock and awaits the network. I’ll trace that path, check the cross-tab ordering, and run the relevant tests without editing files.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command "Get-Location; git status --short; git rev-parse HEAD; git branch --show-current; Get-Content C:\\Users\\Owner\\Documents\\Codex\\PRE_ENGINE_CONTROL_METHODOLOGY.md" in C:\LHB\lhb-105-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-30T12:48:49.724983Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The shell failed before running any repository command. Read-only Node access works, so I can continue inspecting the files. No matching proven fix appeared in the recovery log; I’ll keep any test-execution limits explicit.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All eight current LHB-105 tests pass. The pass checks `alive()` after both network waits and before applying a document. I’m now checking the separate LHB-98 shared lock: it uses a different name, so its coverage depends on how UI writes and switching interact.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] I reproduced cross-account contamination through a UI write. Tab Y passed `isolate()` for A, then paused before writing. While tab X’s pass awaited GET with `locked=true`, X switched to B synchronously. Y resumed and wrote A’s data under owner B; B’s next pass uploaded it. LHB-98’s shared lock does not exclude this switch.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The selected sync, logout, and pending-upload regressions passed. Additional probes at GET and PUT confirmed that `alive()` stops the old pass and preserves B’s new data. The remaining failure is the concurrent UI write, which neither the sync lock nor the epoch check covers.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. [Certain] **R6-1, P1: LHB-98 does not prevent a concurrent UI write from carrying A’s data into B.**
+
+   Files: [site/hoja.js:56](C:/LHB/lhb-105-wt/site/hoja.js:56), [site/sync.js:156](C:/LHB/lhb-105-wt/site/sync.js:156), [site/hoja.js:235](C:/LHB/lhb-105-wt/site/hoja.js:235).
+
+   | Claim | Repository artifact |
+   |---|---|
+   | A UI write can pass isolation before switching, then store afterward. | `SYNC.isolate()` precedes `localStorage.setItem(KEY,txt)`; the final check is only `SYNC.fenced()`. |
+   | Switching does not exclude that writer. | The switch uses `lhb_mihoja_sync`; UI writers hold `lhb_mihoja` with `{mode:'shared'}`. |
+
+   [Certain] Reproduced using the existing SQLite harness, actual `write()` and LHB-98 lock code, with a storage hook modeling a paused tab:
+
+   - Both tabs hold their LHB-98 shared locks; owner is A.
+   - X starts a sync pass, holds the sync lock, and awaits GET.
+   - Y starts writing A’s document, passes `isolate()` and `ensureOwner()`, then pauses at the subsequent document read.
+   - The account changes to B. X’s UI calls `isolate()`. Because X has `locked=true`, it synchronously clears the copy and records owner B.
+   - Y resumes. Its shared lock remains held and `fenced()` is false, so it writes A’s document under owner B.
+   - X’s old pass correctly returns `{skip:'other-account'}`. B’s next pass nevertheless uploads the contaminated document.
+
+   [Certain] Measured results: two shared locks remained held, Y’s write returned `true`, and B’s pass returned `{ok:true,pushed:true,pulled:false,rev:1}`. B’s server document contained both `h1` and `old_A_edit`. Completing Y’s write before switching left B empty.
+
+   [Certain] UI writes and switching need a common exclusion protocol, plus a regression at this boundary. The epoch check protects the old pass, but cannot reject this UI write.
+
+[Certain] **R5-1: CONCUR** with the rebuild’s removal of takeover cleanup. **R5-2: CONCUR** with exclusive-lock arbitration between switches.
+
+[Certain] All **8 LHB-105 tests** and the selected sync/logout/pending-upload regressions passed. Additional GET and PUT probes confirmed epoch cancellation preserves B’s new data. Native browser interleaving is **NOT VERIFIED**; the failing sequence was executed through deterministic harness injection. No files were edited.
+
+VERDICT: BLOCK
+tokens used
+128,363
+1. [Certain] **R6-1, P1: LHB-98 does not prevent a concurrent UI write from carrying A’s data into B.**
+
+   Files: [site/hoja.js:56](C:/LHB/lhb-105-wt/site/hoja.js:56), [site/sync.js:156](C:/LHB/lhb-105-wt/site/sync.js:156), [site/hoja.js:235](C:/LHB/lhb-105-wt/site/hoja.js:235).
+
+   | Claim | Repository artifact |
+   |---|---|
+   | A UI write can pass isolation before switching, then store afterward. | `SYNC.isolate()` precedes `localStorage.setItem(KEY,txt)`; the final check is only `SYNC.fenced()`. |
+   | Switching does not exclude that writer. | The switch uses `lhb_mihoja_sync`; UI writers hold `lhb_mihoja` with `{mode:'shared'}`. |
+
+   [Certain] Reproduced using the existing SQLite harness, actual `write()` and LHB-98 lock code, with a storage hook modeling a paused tab:
+
+   - Both tabs hold their LHB-98 shared locks; owner is A.
+   - X starts a sync pass, holds the sync lock, and awaits GET.
+   - Y starts writing A’s document, passes `isolate()` and `ensureOwner()`, then pauses at the subsequent document read.
+   - The account changes to B. X’s UI calls `isolate()`. Because X has `locked=true`, it synchronously clears the copy and records owner B.
+   - Y resumes. Its shared lock remains held and `fenced()` is false, so it writes A’s document under owner B.
+   - X’s old pass correctly returns `{skip:'other-account'}`. B’s next pass nevertheless uploads the contaminated document.
+
+   [Certain] Measured results: two shared locks remained held, Y’s write returned `true`, and B’s pass returned `{ok:true,pushed:true,pulled:false,rev:1}`. B’s server document contained both `h1` and `old_A_edit`. Completing Y’s write before switching left B empty.
+
+   [Certain] UI writes and switching need a common exclusion protocol, plus a regression at this boundary. The epoch check protects the old pass, but cannot reject this UI write.
+
+[Certain] **R5-1: CONCUR** with the rebuild’s removal of takeover cleanup. **R5-2: CONCUR** with exclusive-lock arbitration between switches.
+
+[Certain] All **8 LHB-105 tests** and the selected sync/logout/pending-upload regressions passed. Additional GET and PUT probes confirmed epoch cancellation preserves B’s new data. Native browser interleaving is **NOT VERIFIED**; the failing sequence was executed through deterministic harness injection. No files were edited.
+
+VERDICT: BLOCK

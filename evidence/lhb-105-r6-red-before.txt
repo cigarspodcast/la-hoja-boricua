@@ -1,0 +1,40 @@
+✖ LHB-105 (Codex r6): una pasada que encuentra la copia de otra cuenta no cambia en medio: termina, y el cambio corre después con los candados (sin esperarse a sí misma) (356.643ms)
+✖ LHB-105 (Codex r6): otra pestaña está a mitad de escribir cuando esta, con una pasada en curso, pide el cambio de cuenta: la escritura termina con la copia de A, el cambio espera el exclusivo y la aparta, y nada de A llega a B (163.4283ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2471.2837
+
+✖ failing tests:
+
+test at test\site.test.js:7567:1
+✖ LHB-105 (Codex r6): una pasada que encuentra la copia de otra cuenta no cambia en medio: termina, y el cambio corre después con los candados (sin esperarse a sí misma) (356.643ms)
+  AssertionError [ERR_ASSERTION]: la pasada no sigue con la copia de A
+      at TestContext.<anonymous> (C:\LHB\lhb-105-wt\test\site.test.js:7572:91)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: true,
+    operator: '!=',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7600:1
+✖ LHB-105 (Codex r6): otra pestaña está a mitad de escribir cuando esta, con una pasada en curso, pide el cambio de cuenta: la escritura termina con la copia de A, el cambio espera el exclusivo y la aparta, y nada de A llega a B (163.4283ms)
+  AssertionError [ERR_ASSERTION]: X no cambia en medio de la escritura de Y: pide el cambio y espera
+      at TestContext.<anonymous> (C:\LHB\lhb-105-wt\test\site.test.js:7616:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }
