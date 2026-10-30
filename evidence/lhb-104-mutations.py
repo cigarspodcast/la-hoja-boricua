@@ -44,6 +44,13 @@ MUTS = [
     (SY, 'r6: the poisoned meta ignores a newer stored rev', 'try{const x=pm(D.ls.get(META));top(x&&x.rev)}catch(e){}', ''),
     (SY, 'r6: changed() replaces an unreadable meta', 'let m=null,ch=false,bad=false;try{m=readMetaHard()}catch(e){bad=true}', 'let m=readMeta(),ch=false,bad=false;'),
     (SY, 'r6: setOwner() replaces an unreadable meta', 'const m=readMetaHard();if(!m||m.sub!==uid)', 'const m=readMeta();if(!m||m.sub!==uid)'),
+    (SY, 'r7: memOk ignores a newer poisoned meta', '!(meta&&Number.isInteger(meta.rev)&&meta.rev>mem.rev)', '!(meta&&meta.base&&meta.rev>mem.rev)'),
+    (SY, 'r7: a meta below the high-water mark is trusted', '{...m,rev:h,base:null,seed:null,was:m.base}:m', 'm:m'),
+    (SY, 'r7: the base learned from an upload writes no high-water key', 'staleBase=!(hwPut(uid,best.rev)&&writeMeta(meta))', 'staleBase=!writeMeta(meta)'),
+    (SY, 'r7: the final base writes no high-water key', 'hwPut(uid,newRev)&&', 'true&&'),
+    (SY, 'r7: older high-water keys are kept', '   try{for(const x of hwKeys(uid))if(x.r<newRev)D.ls.remove(x.k)}catch(e){}', ''),
+    (SY, 'r7: sign-out leaves the high-water keys', 'for(const u of subs){try{for(const x of hwKeys(u))D.ls.remove(x.k)}catch(e){ok=false}}', ''),
+    (SY, 'r7: the lost-copy check ignores the base set aside', 'const wb=meta&&(meta.base||meta.was)', 'const wb=meta&&meta.base'),
 ]
 
 EQUIV = {}
