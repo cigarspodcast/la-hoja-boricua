@@ -1,0 +1,26 @@
+Code review, LHB-105, TIER 2, round 7 (the rebuild, second review). Repository cigarspodcast/la-hoja-boricua, branch lhb-105-switch. You are reviewing; do not edit files.
+
+The defect (LHB-105): Mi Hoja (the user's data, in localStorage key lhb_mihoja_v1) syncs to the signed-in account through site/sync.js. When the account changes, isolate() parks the old account's copy, clears Mi Hoja and records the new owner. A sync pass that another tab had started, or started while the switch was half done, could survive the copy change and write or upload the old account's data into the new account's copy.
+
+Rounds 1 to 5 tried to fix this with per-tab marks in localStorage, timeouts and lock queries; every round found a new cross-tab timing (evidence/lhb-105-review-r1.txt to r5.txt). Round 5's two findings: the takeover epoch invalidated a valid base (R5-1), and scan-before-mark let two switches overlap (R5-2). The owner chose to rebuild on the exclusive Web Lock instead.
+
+The rebuild (diff below is against origin/main, which has none of the round 1 to 5 code):
+- Every sync pass in every tab already runs inside navigator.locks.request('lhb_mihoja_sync') (hoja.js passes it as D.lock; run() calls it). The account switch now runs inside that same exclusive lock. A pass that started earlier finishes first, with the old copy; a pass that asks later sees the new copy. Two switches are serialised.
+- isolate() stays synchronous (hoja.js calls it before every read, S(), and every write, write()). If this tab already holds the lock (locked, set by withLock around a pass) or there are no Web Locks (D.locks false), it switches at once, exactly as main does. Otherwise it asks for the lock (switchSoon, one request at a time) and returns false. Mi Hoja then reads as empty and refuses writes, with a "switching accounts" toast, until the switch ends. After a switch that succeeded, D.onApplied repaints; after one that failed (storage full), it does not repaint, so it does not ask for the switch again and again.
+- Without Web Locks, behaviour is main's (the epoch still invalidates a pass that began before a switch); the cross-tab residual there is accepted.
+- hoja.js passes D.locks; the toast key h.cambiandoCuenta is in both languages; the cache version is lhb-v166.
+
+Tests: seven LHB-105 tests (test/site.test.js), with a fake FIFO exclusive lock shared by two engines on one storage, as two tabs. On main's code 6 of 7 fail (evidence/lhb-105-lock-red.txt). The seventh, a switch inside a pass not waiting for its own lock, passes on main and is proven by a mutant. Mutants: evidence/lhb-105-lock-mutations.py and .out. The full suite is in evidence/lhb-105-tests.txt.
+
+Round 6 (evidence/lhb-105-review-r6.txt) blocked on R6-1 (P1): inside a pass, the tab's UI could switch inline (locked) while another tab was half way through write(), so A's data landed under owner B. Codex concurred with dropping the round 1 to 5 machinery (R5-1, R5-2). Fixed in commit 4b86c55:
+- The switch now takes the LHB-98 write lock 'lhb_mihoja' EXCLUSIVE first (hoja.js wlSwitch, passed to sync.js as D.switchLock), then the sync lock. wlSwitch drops this tab's shared lock, writes lhb_mihoja_v1_cambiando so every other tab yields its shared lock after it finishes the write in progress (the storage listener calls wlYield), and sets w.sw while it holds the exclusive, so wlClosed() lets this tab write the switch itself. Unlike sign-out it does not set the timed fence, so writing resumes as soon as the switch ends.
+- isolate() never switches inline any more (the locked shortcut is gone): with Web Locks it always queues the switch, also from inside a pass, which then ends with {fail:'park'} and lets the switch run after it releases the sync lock.
+Tests added: Codex's sequence on the real write() and LHB-98 lock code (TAB98 harness), asserting the switch waits and that at the moment it clears the copy only its own exclusive holds the write lock; and a pass that finds another account's copy ends without switching, then the switch runs. Both are red on the r6 code (evidence/lhb-105-r6-red-before.txt). Mutants 16 of 16 red (evidence/lhb-105-lock-mutations.out). Full suite: tests 482, pass 481, fail 0, skipped 1.
+
+What to look for:
+- Any order of events, across two or more tabs, where a pass writes or uploads the old account's data into the new account's copy or account, or where the switch clears data that a pass just wrote for the new account.
+- Deadlock and lock order: the switch holds lhb_mihoja exclusive while it waits for lhb_mihoja_sync; a pass holds lhb_mihoja_sync and its tab holds (or has yielded) lhb_mihoja shared, and sign-out (wlOnly) also takes lhb_mihoja exclusive. Any cycle? A tab that never yields?
+- Starvation or loops: a pass that hangs holds the lock, so the switch waits. The repaint loop on failure. Two requests.
+- Anything the lock does not cover that LHB-105 is about. User writes from another tab are guarded by isolate() per write and by the LHB-98 shared lock; say so if that is wrong for this defect.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing sequence.
