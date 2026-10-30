@@ -11,5 +11,8 @@ Codex r1: a decorative SVG on a static page                              RED (ca
 Codex r1: a bitmap through CSS                                           RED (caught) (fail 1)
 Codex r1: the accent not painted                                         RED (caught) (fail 1)
 Codex r1: the empty state without its accent                             RED (caught) (fail 1)
+Codex r2: a coloured SVG with an icon viewBox on a static page           RED (caught) (fail 1)
+Codex r2: an SVG background through u.css                                RED (caught) (fail 1)
+Codex r2: a coloured SVG with an icon viewBox in a template              RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
-RESULT 13 of 13 red
+RESULT 16 of 16 red
