@@ -1,0 +1,25 @@
+✖ LHB-115 (Codex r6-1): con la pantalla del idioma abierta, la acción que se retoma al volver de entrar espera a que se escoja, y se descarta si cambió la página (10.3684ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 144.8146
+
+✖ failing tests:
+
+test at test\site.test.js:9371:1
+✖ LHB-115 (Codex r6-1): con la pantalla del idioma abierta, la acción que se retoma al volver de entrar espera a que se escoja, y se descarta si cambió la página (10.3684ms)
+  AssertionError [ERR_ASSERTION]: la acción espera
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9375:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

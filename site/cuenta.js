@@ -37,7 +37,7 @@ function putLang(C,uid,l){langNext={C,uid,l};if(langBusy)return langBusy;
   .then(r=>{if(r&&r.status===200){let c=null;try{c=D.store.get()}catch(e){}if(c&&c.sub===n.uid)cache({...c,lang:n.l})}return langNext?run():r})};
  langBusy=run().then(r=>{langBusy=null;return r});return langBusy}
 /* Codex r1-5 y r4-2: la hoja de entrar, y los formularios del perfil y de la identidad, esperan a que se escoja el idioma (intro.js), que va antes que nada */
-function whenPicked(f){const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(f);else f()}
+function whenPicked(f){const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(f);else return f()}
 function openSignIn(C){whenPicked(()=>D.openSignIn(C))}
 /* el menú (y la pantalla del idioma) cambia el idioma con LHB_I18N.set, que llama a esto y espera antes de recargar. Si parece haber sesión (el perfil
    guardado, o, con localStorage bloqueado, la cookie __client_uat de Clerk, que vale 0 sin sesión: Codex r2-4), se manda a la cuenta de la sesión de ahora */
@@ -229,7 +229,9 @@ function identify(C,done,o,lv,uid,prof){ob=true;
    termine la revisión, vale la última: cada toque es una sola acción y corre una vez o ninguna. */
 const quick=(done,o)=>go(done,{...o,inPlace:true,fast:true,quick:true});
 /* tras volver de Google u otra redirección: si el usuario empezó una acción nombrada en esta página, se retoma */
-function resume(){const it=D.intent.get();
+/* LHB-115 (Codex r6-1): con la pantalla del idioma abierta, todo lo que se retoma (la acción, sus hojas, sus avisos) espera a que se escoja; lo guardado y la página se revisan entonces */
+function resume(){return whenPicked(resumeNow)}
+function resumeNow(){const it=D.intent.get();
  if(it&&it.from===D.here()&&!onMiHoja()&&typeof it.act==='string'&&typeof ACT[it.act]==='function'){const act=it.act,arg=typeof it.arg==='string'?it.arg:undefined;
   return quick(()=>ACT[act](arg),{resume:true,act,arg})}
  D.intent.clear()}

@@ -9364,6 +9364,14 @@ test('LHB-115 (Codex r5-1): con la pantalla del idioma abierta, los avisos de la
  assert.ok(!h.log.some(x=>x.startsWith('notice:')),'ninguno sale con la pantalla abierta');assert.equal(waits.length,2);
  waits.forEach(f=>f());await tick();assert.deepEqual(h.log.filter(x=>x.startsWith('notice:')),['notice:'+t('cu.again.h')],'al escoger, solo el de volver a entrar');
 });
+test('LHB-115 (Codex r6-1): con la pantalla del idioma abierta, la acción que se retoma al volver de entrar espera a que se escoja, y se descarta si cambió la página',async()=>{
+ const mk=()=>{const g=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana'}}})});const waits=[];g.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};
+  g.nav('#/c/yambo-toro');g.A.register('humidor',g.go);g.setIntent({from:'#/c/yambo-toro',act:'humidor'});g.C.user={id:'user_a'};return {g,waits}};
+ let {g,waits}=mk();await g.A.resume();await tick();
+ assert.ok(!g.log.includes('GO'),'la acción espera');assert.equal(waits.length,1);assert.ok(g.intent(),'lo guardado para retomarla sigue ahí');
+ waits[0]();await tick();assert.deepEqual(g.log.filter(x=>x==='GO'),['GO'],'al escoger, se retoma una vez');assert.equal(g.intent(),null);
+ ({g,waits}=mk());await g.A.resume();await tick();g.nav('#/catalogo');waits[0]();await tick();assert.ok(!g.log.includes('GO'),'la página cambió: no corre');assert.equal(g.intent(),null,'y se descarta');
+});
 test('LHB-115: la página de privacidad dice que una cookie recuerda el idioma; el respaldo del arranque lee la cookie',()=>{
  const pv=read('privacidad.html');assert.ok(pv.includes('Una cookie (lhb_lang) recuerda en este dispositivo el idioma que escogiste, por un año. No se usa para nada más.'));
  const ix=read('index.html');assert.ok(!/navigator\.language/.test(ix),'el respaldo no mira el idioma del navegador');assert.ok(/lhb_lang=\(es\|en\)/.test(ix),'lee la cookie');
