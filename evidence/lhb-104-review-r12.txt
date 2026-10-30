@@ -1,0 +1,1338 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\lhb-104-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18b3b-2033-7b61-aec2-7a1f613db528
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-104-wt (branch lhb-104-shared-pend). TIER 2, round 12.
+
+Ticket LHB-104: sign-out in one tab could not see another tab's upload with a lost answer. The upload fence and settled() read only this engine's in-memory pending records (pend, evict). Reproduction (measured 2026-10-29, identical on main before and after LHB-80):
+1. Tab 1 syncs DOC28 (rev 1), removes favorite a1, and the PUT's answer is lost while the request stays queued at If-Match 1.
+2. Tab 1 re-adds a1.
+3. Tab 2 runs settled({}): GET only, ok. Then forget(mark): true.
+4. The queued PUT lands: 200, rev 2, and a1 is gone from the account.
+Done-when: sign-out in any tab reports pending while any tab's upload can still land, and a fenced sign-out leaves the account whole in the reproduction.
+
+Round 1 (evidence/lhb-104-review-r1.txt) blocked on four findings (one shared list overwritten by concurrent tabs; an upload registered after settled() escaped forget(); evidence removed before the base invalidation was durable; unbounded growth). Round 2 (evidence/lhb-104-review-r2.txt) concurred with the fixes for 1 to 3 and blocked on three: (R2-1) a tab that read its base and then waited on its GET missed evidence another tab removed meanwhile, and used its stale base; (R2-2) the second look at the fence after recording an upload treated an unreadable fence as down; (R2-3) one overflow key per page load let reloads grow the record until quota blocked recovery. Round 3 (evidence/lhb-104-review-r3.txt) concurred with R2-2, maintained R2-1 and R2-3, and blocked on three: (R3-1) an entry created and removed while this tab's GET waited was never seen, so the base read at the start stayed in use; (R3-2) after a 200, cleanup ran before the new base was recorded; (R3-3) concurrent admission of per-tab overflow keys exceeded the bound. Round 4 (evidence/lhb-104-review-r4.txt) concurred with R3-2 and R3-3, maintained R3-1, and blocked on one: (R4-1) a GET answer captured at rev 1 and delivered after another tab recorded the rev 2 base made the pass merge against rev 1 and write a rev 1 base over the rev 2 one; a later pass then read the rev 2 absence of a1 as a deletion. The diff below is against origin/main b8b2b89 and covers all rounds. Round 4 changes: commits 416c6ef, 82eb9cd, a5e40a1 and 8bdbc36 on top of e070f81. Round 5 changes: commits 75ecb54 and 99b1c07. Round 5 (evidence/lhb-104-review-r5.txt) maintained R4-1 on two paths, now fixed in commit 89ff144 (round 6 changes):
+- R5-1 (also with serialized passes): learning that an older own upload landed (best, in the ask loop) wrote that upload's base over a newer base another tab had recorded. Now best is adopted only when the current meta (the one re-read after the GET) does not have a higher rev; otherwise the newer base stays and nothing is written. The landed upload still counts for won/wonAt.
+- R5-2: the final META read before writeMeta now fails closed (fail 'storage'), like the post-GET read.
+Round 6 (evidence/lhb-104-review-r6.txt) concurred with R5-2, maintained R5-1 through reset paths, and blocked on two; fixed in b30b4ea and f427e87 (round 7 changes):
+- R6-1: poison() wrote rev 0, so an older upload's base passed the R5-1 guard afterwards. The poisoned meta now keeps the highest rev known: this pass's GET revs, the newRev of a 200, the meta it holds, and the stored META read at poison time (a failed read there is ignored and the known maximum is used). It still has base null.
+- R6-2: changed() and setOwner() treated an unreadable META as absent and wrote a fresh rev 0 meta. They now read with readMetaHard(), which lets a read error propagate: changed() then leaves META untouched (the in-memory dirty flag still marks the edit), and setOwner() returns false (ensureOwner() reports false; a pass returns fail 'storage'). A META that parses badly still counts as absent, as before. readMeta() (the lenient read) remains only for readers: settled(), run's minAge, status, and changed()'s debounce callback, which writes only when it read a meta.
+Round 7 (evidence/lhb-104-review-r7.txt) concurred with R6-1 and R6-2 and blocked on two; fixed in d74502b and e8d90cf (round 8 changes):
+- R7-1: memOk accepted an older in-memory base when the newer META was poisoned (base null). memOk now rejects memory whenever META's rev is higher, base or not.
+- R7-2 (no Web Locks, check-then-write is not atomic across tabs): a high-water mark that only grows. Before writing a real base (the best base in the ask loop, and the final meta), the pass writes the key lhb_mihoja_v1_hw.<account>.<rev> = '1'; if that write fails, it counts as a failed meta write (staleBase). Readers (the META read at the pass start and the re-read after each GET) lift a META whose rev is below the highest mark for the account to "poisoned at the mark's rev": base null and seed null, with the old base kept as `was`, used only by the lost-copy check (wipe). So a META that a slower tab overwrote with an older rev, after the newer base was recorded and its entries removed, is no longer trusted as a base, whatever the timing. After a successful final write, marks below newRev are removed; forget() removes the marks of the signed-in account and the copy's owner. poison() also takes the mark into its rev. Contract impact: new localStorage keys lhb_mihoja_v1_hw.<account>.<rev>.
+Round 8 (evidence/lhb-104-review-r8.txt) concurred with R7-1, maintained R7-2 through the poisoned-META fallback, and found one leak; fixed in 1dc4d8a (round 9 changes):
+- R8-1: poison() wrote the poisoned META without a high-water key, so a slower tab's delayed changed() write of an older META made the older base usable again after the entries were removed. poison() now writes the high-water key for topRev too (hwPut) and counts as recorded only when BOTH writes succeed (return h&&w). When the mark cannot be stored, the pass keeps its entries (the existing !(voided||staleBase)||poison() rule), so the upload evidence stays until the invalidation is durable.
+- R8-2 (nonblocking): myOps is now a Map from op to {s:account, r:If-Match rev}; when a 200 cleans the entries of an account up to rev clean, the same ops are released from memory. Exposed for the test as _myOps() (size).
+Round 9 (evidence/lhb-104-review-r9.txt) concurred with R8-1, maintained R7-2 through a byte-identical META restoration, and maintained R8-2 as nonblocking; fixed in e09ee14 plus one test (round 10 changes):
+- R9-1: after each GET the pass re-read META but lifted it against the high-water mark only when its text had changed, so a delayed write that restored exactly the text the pass had read kept the old base under a newer mark. Now the meta is lifted after every GET (changed text: parse and lift; same text: lift the held meta again), so a newer mark poisons it either way. The re-ask loop (continue) now runs only when the text changed or the lifted rev rose above the rev held before the GET, so an account below this device's mark (deleted and recreated elsewhere) still completes its pass with no base instead of asking again on every answer.
+- R9-2 (nonblocking): at the end of every once() call, any op in myOps that is neither in the shared record nor in this tab's asked list (pend) is released from memory, which covers another tab learning the landing and a clear rejection (4xx). The R8-2 release (r<=clean after a 200) stays for entries whose storage removal failed: they remain in storage for the next pass but leave memory.
+Round 10 (evidence/lhb-104-review-r10.txt) ended before its verdict (the review service stopped the session with a content flag), after reporting two findings; fixed or stated in round 11:
+- R10-1 (reproduced by the reviewer with two tab workers): hoja.js gave the engine the storage keys by reading localStorage.key(i) one index at a time. Another tab removing an older high-water key in the middle of that loop shifted the newer key to an index already read, so the reading tab missed the mark and used its stale base (a1 erased). hoja.js now reads the keys in one call, Object.keys(localStorage), which returns the stored keys as one list. The same list feeds shRead (the shared record), so it is covered too.
+- R10-2 (stated as a known limit, below): after the account is deleted and recreated elsewhere, an entry recorded at an If-Match above the recreated account's rev stays pending (settled() reports pending) until the account's rev passes it.
+Round 11 (evidence/lhb-104-review-r11.txt, BLOCK) found two; both fixed in round 12:
+- R11-1 (blocking): the backup escape did not work. settled({backup}) returned ok when the copy equals a fresh backup, but forget(mark) then refused because a shared upload entry for the account still existed. settled() now records how it found the copy safe in the mark (mark.via = 'backup'), and forget skips the shared-entry check for that mark only: the copy is in the file the person just downloaded, which is what settled() already promised. same(mark) still runs before and after the fence, so a copy changed since the backup is not erased. The shared entries are kept, so a later sign-in on this device still guards against the upload that can land.
+- R11-2 (nonblocking): deleting the account (forget with no mark) left the account's shared upload entries. forget with no mark now removes the entries of the account and its owner (by s), and leaves other accounts' entries.
+
+Round 5 changes:
+- After each GET, when META changed since this pass last read it and the re-read meta's rev is above the GET's rev, the answer is older than a base another tab already recorded: the pass discards it and asks again (continue; after TRIES it returns fail 'conflict'). Only a change during this pass triggers it, so a meta whose rev is above the server's for another reason (an account deleted and recreated) does not loop.
+- Before the final writeMeta, META is read again; when it changed since this pass read it and its rev is above newRev, the pass does not overwrite it and returns fail 'conflict' (retried later). This tab's own writes in the pass (the best base, dirty marks from edits) never have a higher rev, so they do not trigger it.
+
+Round 4 changes (this replaces the R2-1 and R2-3 descriptions below where they differ):
+- One ordering rule. A WRITER removes an entry only after it has recorded the base that makes the entry unnecessary: its own landed upload's base (best, written in the ask loop), the poisoned meta when voided or staleBase (shared loop), or the final meta after a 200 (cleanup of entries with r <= the If-Match now runs only after the final writeMeta succeeds; if that fails, the entries stay). A READER, after each GET, reads the entries first (now = shRead(), added to seen) and then reads META again; if it changed, the pass uses the re-read meta (same rules as at the start: same account and epoch). So either the reader sees the entry, or it reads the newer base (R3-1, R3-2).
+- Overflow (R3-3): after OPS_ASK entries for one account and rev, every upload, from any tab, goes under one shared key PEND+'x.'+rev+'.'+account, written once (idempotent: tabs writing it at the same moment write the same key). It is never removed because the fence went up (another tab may be sending under it; sign-out sees it and backs out). No tab counts it as its own. At r < rev it voids, unless the pass knows some upload at If-Match r landed (wonAt: an asked upload, this tab's or another's, landed at r+1); since one PUT per If-Match can land, then no other upload at r did. The same rule clears another tab's unanswerable id entry. The per-tab overflow keys and XTABS are gone. Bound: OPS_ASK id keys plus one shared key per account and rev; tabs adding at the same moment can each add one more id key.
+- When voided or staleBase and even the poisoned (minimal) meta cannot be written, the pass no longer returns fail 'storage': it keeps the entries (keeping is always safe) and goes on, so a pass that can upload still does (the LHB-31 test 'dos fallos seguidos sin recargar' requires the deletion to be uploaded there). This tab's own entries stay in myOps until they are actually removed.
+- R2-2 (fail-closed fence checks in shAdd) and the R2-1 `seen` map are unchanged.
+
+Contract impact: localStorage keys with the prefix lhb_mihoja_v1_pend. (one key per upload), replacing round 1's single lhb_mihoja_v1_pend list (never released, so nothing to migrate).
+- PEND+<upload id> = {v:1,s:account,r:If-Match rev,o:id}. Overflow: PEND+'x.'+<rev>+'.'+<account> (shared) = {v:1,s,r,x:true}, no id. A key whose value does not parse as either shape is ignored. A read or write that throws propagates (inside a pass, once()'s wrapper turns it into fail 'storage'; settled() treats it as pending; forget() backs out).
+- shAdd (before each PUT): if this account already has OPS_ASK or more entries at this rev, the upload goes under this tab's overflow key (written once); otherwise under its own key. After the write it reads the fence again: if the fence is up, it removes what it just wrote and throws, so the PUT is not sent. forget() raises the fence, waits FENCE_MS, raises it again, checks the mark, and now reads the record again: an entry for the signed-in account or the copy's owner backs out (finding 2). The protocol is two flags: either sign-out sees the entry, or the upload sees the fence. Its cross-process visibility rests on the same assumption as the existing fence (FENCE_MS for a write to reach other tabs).
+- Each key is written only by the tab that created it. Any tab removes a key by name: a 409/4xx removes that upload's own key (not an overflow key); a 200 at If-Match rev removes every entry of the account with r <= rev; after a GET, entries with r < rev are removed (finding 1). A tab that rewrites its overflow key after another tab removed it leaves a stale entry, which the next pass judges and removes.
+- After a GET: for each entry of the account with r < rev that is not this tab's (myOps for ids; round 4 removed myX) and that the server does not answer as not landed (null and covered by opsFrom), the pass merges with no base (voided); an overflow key cannot be asked about, so it always voids. Before removing those entries, if voided is set, the pass writes the poisoned meta (rev 0, base null, dirty); if that write fails, the pass keeps the entries (finding 3; round 4: and goes on).
+- Bound: per account and rev, at most OPS_ASK id keys (plus one per tab adding at the same moment) and one shared overflow key.
+- hoja.js gives the engine ls.keys() (localStorage.key(i) over length).
+- Cache version lhb-v117.
+
+Tests: the eight LHB-104 tests from round 1, plus six LHB-104 (Codex r1) tests, each failing on 8c817c3's sync.js and hoja.js in a scratch copy (evidence/lhb-104-r1-red.txt, 6 fail of 6):
+1. A tab removes its rejected upload while another tab records one (storage hooks between read and write): the other entry stays, sign-out fences, and the other tab's PUT answers 409.
+2. Another tab's pass, paused after it read the copy, records and sends its upload after this tab's settled(): forget(mark) returns false.
+3. Another tab learns the removal landed, the person re-added a1, and storage stops reading right after the entry is removed: after a reload a1 stays, locally and in the account.
+4. Thirty unanswered retries at one If-Match under a 900-character quota across the record's keys: when the network returns, the pass uploads and nothing is left recorded.
+5. The sign-out fence goes up while this tab records its upload: no PUT is sent and nothing stays recorded.
+6. hoja.js's storage wrapper lists every key.
+Plus five LHB-104 (Codex r2) tests, each failing on 899cb90's sync.js and hoja.js in a scratch copy (evidence/lhb-104-r2-red.txt, 5 fail of 5):
+7. Tab 2 reads its base and waits on its GET; tab 1 learns its removal landed, removes its entry and sends a restorative upload that loses its answer: a1 stays in the account and locally, and tab 1's late PUT answers 409.
+8. Another tab removes the entry right after this tab read its base (storage hook on that read): a1 stays.
+9. A tab learns its removal landed but cannot write the new base: it keeps the entry, and after a reload a1 stays.
+10. The fence goes up while a tab records its upload and the second fence read throws: no PUT, nothing left recorded.
+11. Thirty fresh engines (reloads), each with one unanswered upload at one If-Match, under a 900-character quota: at most 13 keys, and when the network returns the pass uploads and nothing is left recorded.
+Plus three LHB-104 (Codex r3) tests, each failing on e070f81's sync.js and hoja.js in a scratch copy (evidence/lhb-104-r3-red.txt, 3 fail of 3):
+12. Tab 2 starts settled() and its GET waits before reaching the server; tab 1 removes a1 (lands, answer lost), learns it landed, records its base, removes its entry and sends a restorative upload that loses its answer: a1 stays in the account and locally, and tab 1's late PUT answers 409.
+13. A 200 arrives while the person re-adds a1, and the final meta cannot be written: the entry stays, and after a reload a1 stays.
+14. Thirty fresh engines at one If-Match under a 600-character quota: at most 9 keys; when the network returns, the pass uploads and nothing is left recorded.
+16. Tab 2's GET answer (rev 1, with a1) is captured and held while tab 1 removes a1 (lands without an answer), records the rev 2 base, removes its entry and sends a restorative upload that loses its answer; then tab 2's answer is delivered and tab 2 runs settled() twice more: a1 stays in the account and locally (forget only if settled is ok), and tab 1's late PUT answers 409.
+17. Another tab records a newer base (rev 3) just before this pass writes its rev 2 base: the pass does not overwrite it and reports a retry.
+18. Tab 1 learns late that its upload landed at rev 2 after tab 2 recorded the rev 3 base (tab 2 removed a1, then the person re-added it and tab 2's restorative PUT lost its answer): tab 1 keeps the rev 3 base and a1 stays locally and in the account.
+19. The final META read throws: the pass does not finish and META is not written.
+20. Tab 2's removal lands at rev 3 without an answer; when it learns it landed, the rev 3 meta write fails once and the meta is poisoned; tab 1 then learns its older rev 2 upload landed: a1 (re-added) stays locally and in the account.
+21. An edit while the META read inside changed() throws once: META stays at rev 3, and tab 1's older rev 2 upload does not replace it; a1 stays.
+22. ensureOwner() with the OWNER read and two META reads throwing: it returns false and META is unchanged.
+23. Another tab records rev 5 while this pass's upload lands at rev 3 and the copy write fails: the poisoned meta has rev 5.
+24. Tab 1 holds the rev 2 base in memory (its META write failed); tab 2 removes a1 (lands at rev 3), cannot write the rev 3 META and poisons it, and its restorative upload loses its answer: tab 1 does not use its in-memory base, and a1 stays.
+25. Tab T's GET (rev 1) is held; meanwhile tab 1 removes a1 (lands at rev 2), records the rev 2 base, removes its entry and sends a restorative upload that loses its answer. Tab 1's storage writes are replayed right before T writes its rev 1 META (between its final check and its write). T's older META stays, but it is not trusted: a1 stays locally and in the account, and tab 1's late PUT answers 409.
+26. After three uploads exactly one high-water key remains (the current rev), and sign-out removes it.
+27. Neither the new base nor its high-water key can be written when a tab learns its removal landed: it keeps its entry, and after a reload a1 stays.
+28. A 200 arrives while the person re-adds a1, and neither the final meta nor its high-water key can be written: the entry stays, and after a reload a1 stays.
+29. The person removed a1 and tab 1 uploaded it (rev 2) while tab 2's GET answer (rev 1, with a1) was on its way: tab 2 does not bring a1 back.
+(27 to 29 guard the staleBase poisoning, the deferred 200 cleanup and the post-GET re-ask, which the high-water mark shadows in the earlier tests; each was seen red under its mutant.)
+30. Round 8's reproduction: tab 1's rating lands at rev 2 without an answer and tab 2 records rev 2; tab 1 removes a1 and its changed() META write (rev 2) is held; tab 2's removal lands at rev 3 without an answer; a1 is re-added through tab 2; every write of lhb_mihoja_v1_hw.user_a.3 fails; tab 2 learns the landing (its poison cannot store the mark, so the entry stays) and its restorative PUT gets no network; the held rev 2 META is then written; tab 1 runs settled({}): a1 stays locally and in the account.
+31. After 12 successful uploads no entry remains in storage and _myOps() is 0.
+32. Round 9's reproduction, in one process: tab T's GET (rev 1) is held; tab A removes a1 (lands at rev 2 without an answer), re-adds it and records the rev 2 base and mark; the META text T read at its start is then written back byte for byte; T's GET is delivered: T does not use the rev 1 base, and a1 stays locally and in the account.
+33. Three uploads whose answers are lost and whose landing another tab learns, then three uploads the server rejects with 400: nothing is left in storage and _myOps() is 0 after each group.
+34. The account's rev is below this device's mark (lhb_mihoja_v1_hw.user_a.5 with the account at rev 1): an edit's pass completes ok, the account has the edit, and nothing is taken as deleted.
+35. An upload that never left (no network) is recorded; on the next pass every removal of a recorded upload throws: the pass completes, the records stay in storage, _myOps() is 0, and the pass after that removes them. (This is the case the R8-2 release still covers once R9-2's sweep exists; it is red under the R8-2 mutant.)
+36. A fake localStorage whose keys are its properties (as in the browser) removes the older mark lhb_mihoja_v1_hw.user_a.2 during the second key(i) read: hoja.js's key list still holds lhb_mihoja_v1_hw.user_a.3 (evidence/lhb-104-r10-red.txt: red on the previous hoja.js). The LHB-104 (Codex r1) key-list test now uses the same browser-like fake (stored keys enumerable, methods not).
+37. Another tab's entry at an If-Match above the account's rev (the R10-2 case) keeps settled({}) pending; settled({backup}) of the current copy returns ok via backup, forget(mark) returns true and erases the copy, and the entry stays. A second device whose copy changes after its backup check: forget(mark) returns false and the copy stays.
+38. forget() with no mark (account deletion) removes user_a's id entry and its shared overflow key and keeps user_b's entry.
+(37 and 38 fail on 3183ace's sync.js: evidence/lhb-104-r11-red.txt, 2 of 2, at 'con el respaldo, salir borra' and 'solo queda la de otra cuenta'.)
+(32 and 33 fail on 52123b9's sync.js: evidence/lhb-104-r9-red.txt, 2 of 2; 34 is red under the r9 mutant that asks again on every answer.)
+(30 and 31 fail on cef6b61's sync.js: evidence/lhb-104-r8-red.txt, 2 of 2.)
+(24 to 26 fail on 5acd5dd's sync.js: evidence/lhb-104-r7-red.txt, 3 of 3.)
+(20 to 23 fail on c019040's sync.js: evidence/lhb-104-r6-red.txt, 4 of 4.)
+(18 and 19 fail on d5d0bbe's sync.js: evidence/lhb-104-r5-red.txt, 2 of 2.)
+(16 and 17 fail on 0b96423's sync.js: evidence/lhb-104-r4-red.txt, 2 of 2.)
+15. Without the ops column (0008 not applied), another tab's removal landed without an answer and the person re-added a1: nobody can answer for the entry, so the pass voids and a1 stays (guards the final void; seen red under that mutant).
+The LHB-80 test with nine unanswered uploads (the ninth landed) now also guards wonAt: this tab's own uploads under the shared key do not void its base when one of its asked uploads is known to have landed.
+Evidence: evidence/lhb-104-mutations.out (51 mutants: three new for round 9, one for round 10, the per-index key read, and four for round 11: forget refuses after a backup, settled does not mark the backup, deletion keeps the entries, deletion drops every account's entries; the round 1 mutant that empties the key list now targets the new line, proven against the LHB-104, LHB-80, LHB-31 and LHB-28 tests), evidence/lhb-104-tests.txt (full suite).
+
+Known limits, stated: if another device deletes the account and it is recreated, its rev restarts below this device's high-water mark until this device signs out, so passes merge with no base (deletions do not travel) until the rev passes the mark; each such pass completes (test 34). In that same case, an entry this device recorded at an If-Match above the recreated account's rev stays pending until the account's rev passes it: an old PUT still in flight with that If-Match could land then, so the entry cannot be dropped as impossible, and sign-out reports pending; the person can still leave the way ac.pending says ("Sincroniza o descarga un respaldo primero"): settled({backup}) returns ok when the copy equals a freshly downloaded backup, and forget(mark) honours it (test 37). If that old upload lands after such a sign-out, the account takes an older copy than the backup; the backup holds the newer one, as settled({backup}) already accepted before this ticket. Account deletion on this device clears the record (forget, test 38), so this needs a deletion on another device while this one holds an unanswered upload.  the shared overflow key voids once passed unless an upload at its If-Match is known to have landed, and another tab's unanswerable keys after a reload void (conservative: one pass with no base). myOps lives in memory, so after a reload this tab's own earlier entries read as another tab's (conservative: one pass with no base). The two-flag protocol inherits the fence's visibility assumption. Web Locks (hoja.js D.lock) serialize passes across tabs where the browser has them; this design does not rely on them.
+
+Check that the R11-1 fix cannot erase a copy that is not in the backup (the copy changed, another tab wrote, the fence failed) and that no path other than a backup mark skips the shared-entry check. Check that R11-2 removes only the deleted account's entries. Also check every other META write (poison, changed(), setOwner, isolate) for the same regression class, and report any you find. Check that the Done-when holds in every interleaving of two tabs (uploads, lost answers, late landings, sign-out, account switches) with and without Web Locks, and with storage failures at each new read, write and removal. Check whether a shared entry can make a tab apply a stale base, discard a valid base forever, or keep settled() pending forever when the network and storage are healthy. Check the record's bound and that LHB-80's in-tab guarantees still hold. Cross-tab account-switch races belong to LHB-105.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff b8b2b89 38611bf71355fb499581a2356e0220734a0c0488 -- site/hoja.js site/sw.js site/sync.js test/site.test.js =====
+diff --git a/site/hoja.js b/site/hoja.js
+index 398c7fc..a771317 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -206,7 +206,9 @@ function clerk(){if(clerkP)return clerkP;
+ /* extra: cabeceras de más (If-Match en la sincronización). go: si dice que no cuando ya está la llave, el pedido no sale (LHB-60: la página se fue mientras tanto) */
+ async function api(C,method,path,body,uid,extra,go){const t=await C.session.getToken();if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');if(go&&!go())throw new Error('gone');const r=await fetch(path,{method,headers:{Authorization:'Bearer '+t,...(body?{'Content-Type':'application/json'}:{}),...(extra||{})},body:body?JSON.stringify(body):undefined});let j={};try{j=await r.json()}catch(e){}return {status:r.status,body:j}}
+ /* LHB-28 y LHB-31: Mi Hoja viaja a la cuenta (site/sync.js). Aquí solo se conecta con el teléfono: el almacenamiento, Clerk, la red y el aviso de lo que llegó */
+-SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
++/* Codex r10: las claves se leen de una vez (Object.keys). Leídas una a una con key(i), otra pestaña que borra una marca de agua vieja a mitad de la lectura
++   corre la nueva a un índice ya leído, y esta pestaña no la ve */
++SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k),keys:()=>Object.keys(localStorage)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),closed:()=>wlClosed(),
+  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),wait:ms=>new Promise(r=>setTimeout(r,ms)),toast,
+  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
+diff --git a/site/sw.js b/site/sw.js
+index bde3dee..86db184 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v116';
++const VERSION='lhb-v117';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-16.png','icons/favicon-32.png',
+diff --git a/site/sync.js b/site/sync.js
+index d3b8018..78b51a2 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -82,11 +82,27 @@ const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
+ const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
+ /* LHB-80 (Codex r1): cuántas subidas sin respuesta se recuerdan y se preguntan en un GET (OPS_ASK en functions/_lib/mihoja.js) */
+ const OPS_ASK=8;
++/* LHB-104: las subidas sin respuesta de todas las pestañas, cada una en su propia llave chica que todas leen: PEND+id = {v:1,s:cuenta,r:If-Match,o:id}.
++   La pestaña que sube la anota antes de mandar; cualquier pestaña la quita cuando sabe que ya no puede llegar. Así otra pestaña pone la valla, y no sale mientras una pueda llegar.
++   Codex r1: una llave por subida, para que nadie lea y reescriba una lista que otra pestaña está cambiando (sin Web Locks se pisaban).
++   Con OPS_ASK anotadas para la misma cuenta y el mismo If-Match, las demás (de cualquier pestaña) van en una sola llave compartida sin id (PEND+'x.'+rev+'.'+cuenta,
++   {v:1,s,r,x:true}), que se escribe una vez y nadie cuenta como suya (Codex r3): la lista no crece sin límite, ni con recargas ni con pestañas a la vez.
++   Codex r3: quien quita una anotación ya anotó la base que la hace innecesaria; quien lee, lee primero las anotaciones y luego la base */
++const PEND=KEY+'_pend.';
++/* LHB-104 (Codex r7): la marca de agua de las bases anotadas, HW+cuenta+'.'+rev = '1'. Se escribe antes de anotar una base y nunca se reescribe: es el rev más
++   alto con base anotada. Sin Web Locks, otra pestaña puede anotar entre que esta mira la meta y la escribe; si esta deja una meta más vieja que la marca, quien
++   la lea la toma como tachada (sin base) */
++const HW=KEY+'_hw.';
+ window.LHB_SYNC=function(D){
+  let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,pend=[],evict=new Map(),mem=null,held=false,state={state:'idle',err:null};
+  /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
+  const newOp=()=>{if(D.opId)return D.opId();try{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)};
+  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
++ /* Codex r6: para quien la va a reemplazar, una meta que no se puede leer no es una meta que no hay: la lectura que falla sube */
++ const hwKeys=uid=>{const pre=HW+uid+'.',out=[];for(const k of D.ls.keys()){if(typeof k!=='string'||k.slice(0,pre.length)!==pre)continue;const t=k.slice(pre.length);if(/^[0-9]+$/.test(t))out.push({k,r:parseInt(t,10)})}return out};
++ const hwMax=uid=>hwKeys(uid).reduce((a,x)=>Math.max(a,x.r),0);
++ const hwPut=(uid,rev)=>{if(fenced())return false;try{D.ls.set(HW+uid+'.'+rev,'1');return true}catch(e){return false}};
++ const readMetaHard=()=>{const raw=D.ls.get(META);if(raw==null)return null;try{const m=JSON.parse(raw);return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
+  /* Codex r4: un reloj que se atrasa no hace eterna la valla; uno que se adelanta en medio de la espera lo cubre forget, que la vuelve a poner antes de revisar */
+  /* LHB-98: con Web Locks, D.closed() dice si esta pestaña no tiene en la mano el candado compartido de Mi Hoja (hoja.js wlClosed): entonces tampoco se escribe.
+     (Codex r1: lo que la app escribe por sí sola, write quiet, tampoco: hoja.js lo deja en memoria hasta tener el candado) */
+@@ -116,7 +132,7 @@ window.LHB_SYNC=function(D){
+  /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
+     que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
+  const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
+- const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false,ep:epochOf()}));return true}catch(e){return false}};
++ const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMetaHard();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false,ep:epochOf()}));return true}catch(e){return false}};
+  /* antes de guardar lo que escribe la persona hay que poder anotar de quién es; si no se puede, no se guarda */
+  const ensureOwner=()=>{const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;if(ownerOf()!==null)return true;return setOwner(acc.sub)};
+  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
+@@ -146,10 +162,32 @@ window.LHB_SYNC=function(D){
+     en ese tramo por cualquier camino (una lectura que lanza, la cuenta o la época que cambian, una lectura de la época que falla), ninguna base de antes vale:
+     se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada. Una subida que el servidor rechazó (409) no cuenta.
+     Cualquier otra excepción del almacenamiento a mitad de la pasada la para sin más (se reintenta) */
++ const shOk=v=>isObj(v)&&v.v===1&&typeof v.s==='string'&&Number.isInteger(v.r)&&v.r>=0&&(v.x===true||typeof v.o==='string');
++ /* LHB-104: una llave que no se puede leer como anotación (otra versión, rota) no cuenta; una lectura que lanza sube */
++ const shRead=()=>{const out=[];for(const k of D.ls.keys()){if(typeof k!=='string'||k.slice(0,PEND.length)!==PEND)continue;const raw=D.ls.get(k);if(raw==null)continue;
++   let v;try{v=JSON.parse(raw)}catch(e){continue}if(shOk(v))out.push({k,s:v.s,r:v.r,o:v.x===true?null:v.o})}return out};
++ const shDel=e=>{if(fenced())throw new Error('fenced');D.ls.remove(e.k)};
++ /* se anota antes de mandar. Codex r1: después de anotarla se mira la valla otra vez (salir pone la valla y luego mira las anotadas): o salir ve esta, o esta ve la valla y no se manda */
++ /* Codex r2: la valla que no se puede leer cuenta como puesta (aquí no se sabe si salir ya miró las anotadas) */
++ const fencedHard=()=>{if(D.closed&&D.closed())return true;const t=parseInt(D.ls.get(FENCE),10);const d=D.nowMs()-t;return t>0&&d<FENCE_TTL&&d>-FENCE_TTL};
++ const fenceOn=()=>{try{return fencedHard()}catch(e){return true}};
++ /* la llave compartida de sobra no se quita aquí aunque haya valla: otra pestaña pudo anotarse en ella a la vez y ya estar mandando (salir la ve y espera) */
++ const shAdd=(uid,rev,op)=>{if(fenceOn())throw new Error('fenced');
++  const full=shRead().filter(e=>e.s===uid&&e.r===rev).length>=OPS_ASK;
++  const k=full?PEND+'x.'+rev+'.'+uid:PEND+op,had=full&&D.ls.get(k)!=null;
++  if(!had)D.ls.set(k,JSON.stringify(full?{v:1,s:uid,r:rev,x:true}:{v:1,s:uid,r:rev,o:op}));
++  if(fenceOn()){if(!full){try{D.ls.remove(k)}catch(e){}}throw new Error('fenced')}
++  return k};
++ /* las que mandó esta pestaña (aunque ya no las pregunte): de esas se encarga la memoria de esta pestaña (pend, evict); las demás de la lista son de otra */
++ /* Codex r8: con su cuenta y su If-Match, para soltarlas cuando una subida de esa cuenta llega */
++ const myOps=new Map();
+  let unrecorded=false,poisonNow=null;
+  async function once(){unrecorded=false;poisonNow=null;let r;
+   try{r=await once0()}catch(e){r={fail:'storage'}}
+   if(unrecorded){unrecorded=false;mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}
++  /* Codex r9: una subida de esta pestaña que ya no está anotada (otra pestaña supo que llegó y la quitó, o el servidor la rechazó) ni se sigue preguntando, ya no se puede
++     confundir con la de otra: se olvida también de la memoria */
++  try{const live=new Set(shRead().map(e=>e.o).filter(Boolean));for(const [o] of myOps)if(!live.has(o)&&!pend.some(x=>x.op===o))myOps.delete(o)}catch(e){}
+   return r}
+  async function once0(){
+   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};
+@@ -165,71 +203,120 @@ window.LHB_SYNC=function(D){
+   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid&&epochOf()===ep0};
+   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
+   /* Codex r11: una meta que no se puede leer no es una meta que no hay: no se sincroniza (se reintenta) */
++  /* Codex r2: las anotaciones de esta cuenta que esta pasada vio, desde antes de leer su base. Si otra pestaña quita una (porque supo que llegó) entre que esta lee
++     su base y que pregunta, esta igual la juzga: la base que leyó puede ser de antes de esa subida */
++  const seen=new Map(),see=l=>{for(const e of l)if(e.s===uid)seen.set(e.k,e)};see(shRead());
+   let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){return {fail:'storage'}}
+-  const meta0=(()=>{if(metaRaw==null)return null;try{const m=JSON.parse(metaRaw);return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}})();let meta=meta0&&meta0.sub===uid&&epOf(meta0)===ep0?meta0:null;
++  const pm=raw=>{if(raw==null)return null;let m;try{m=JSON.parse(raw)}catch(e){return null}return isObj(m)&&typeof m.sub==='string'&&m.sub===uid&&epOf(m)===ep0?m:null};
++  /* Codex r7: una meta más vieja que la marca de agua se pisó sobre una más nueva: vale como tachada en el rev de la marca */
++  const lift=m=>{if(!m)return m;const h=hwMax(uid);return (Number.isInteger(m.rev)?m.rev:0)<h?{...m,rev:h,base:null,seed:null,was:m.base}:m};let meta=lift(pm(metaRaw));
+   /* LHB-80 (Codex r1): el servidor contestó por las subidas que se le preguntaron (tiene la columna ops) */
+   let opsSeen=false;
+   const first=!meta||!meta.at;
+   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
+-  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});poisonNow=poison;
++  /* Codex r6: la meta tachada guarda el rev más alto que se conoce (el de la cuenta, el de la meta leída o la guardada): sin base, pero una subida o una respuesta
++     más vieja no vuelve a valer contra ella */
++  let topRev=0;const top=n=>{if(Number.isInteger(n)&&n>topRev)topRev=n};
++  const poison=()=>{top(meta&&meta.rev);try{top(hwMax(uid))}catch(e){}try{const x=pm(D.ls.get(META));top(x&&x.rev)}catch(e){}/* Codex r8: la tachada también pone su marca de agua; si la marca no queda, la meta tachada se escribe igual pero no cuenta como anotada (las anotaciones se quedan) */
++   const h=hwPut(uid,topRev),w=writeMeta({sub:uid,rev:topRev,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});return h&&w};poisonNow=poison;
+   for(let i=0;i<TRIES;i++){
+    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
+    /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
+    const ask=pend.filter(x=>x.sub===uid);
+-   let g;try{g=await D.api(C,'GET','/api/mihoja'+(ask.length?'?'+ask.map(x=>'op='+encodeURIComponent(x.op)).join('&'):''),null,uid)}catch(e){return {skip:'offline'}}
++   /* LHB-104: y por las que otra pestaña anotó y esta no conoce (de esta cuenta) */
++   const mineOps=new Set(ask.map(x=>x.op));
++   see(shRead());
++   const room=Math.max(0,OPS_ASK-ask.length),oth=[...seen.values()].filter(e=>e.o&&!mineOps.has(e.o)&&!myOps.has(e.o)),other=room?oth.slice(-room).map(e=>e.o):[];
++   const q=ask.map(x=>x.op).concat(other);
++   let g;try{g=await D.api(C,'GET','/api/mihoja'+(q.length?'?'+q.map(o=>'op='+encodeURIComponent(o)).join('&'):''),null,uid)}catch(e){return {skip:'offline'}}
+    if(!alive())return {skip:'other-account'};
+    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
+    if(g.body.rev>0&&(!isObj(g.body.doc)||!(g.body.schema<=1)))return {fail:'schema'};
+-   const rev=g.body.rev,remote=rev>0?g.body.doc:null;
++   const rev=g.body.rev,remote=rev>0?g.body.doc:null;top(rev);
++   /* Codex r3: después de la respuesta, primero las anotaciones y luego la base otra vez: si otra pestaña quitó una anotación mientras esta esperaba, antes anotó
++      la base nueva, y esa es la que se lee aquí */
++   const now=shRead();see(now);
++   /* Codex r4: si la base que otra pestaña anotó mientras tanto es más nueva que esta respuesta, la respuesta es vieja: se pregunta otra vez */
++   /* Codex r9: la meta puede volver a ser el mismo texto que esta pasada leyó (otra escritura tardía) y la marca de agua haber subido mientras tanto: la marca se aplica
++      igual a la meta que esta pasada tiene en la mano (sin leerla otra vez si no cambió: puede ser la base que esta pasada adoptó y no pudo escribir). Se vuelve a preguntar
++      solo si la meta cambió o la marca subió (si la cuenta de verdad está por debajo de la marca, la pasada sigue sin base, como antes) */
++   {let mr;try{mr=D.ls.get(META)}catch(e){return {fail:'storage'}}const r0=meta&&Number.isInteger(meta.rev)?meta.rev:0,ch=mr!==metaRaw;if(ch){metaRaw=mr;meta=lift(pm(mr))}else meta=lift(meta);
++    if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev&&(ch||meta.rev>r0))continue}
+    /* LHB-80: el servidor dice de cada una si llegó. Llegó en el rev n: lo que se mandó es lo que la cuenta tenía en n, y esa es la base (se anota ya, así vale también
+       si esta pasada repite tras un 409). No está y la cuenta ya pasó del rev que pedía (If-Match): ya no puede llegar. Que no llegó se sabe solo si la lista cubre ese rev
+       (opsFrom; Codex r1: lo que llegó antes de 0008, o ya olvidado, no está); si no, no se sabe y se junta sin dar nada por borrado.
+       Si la cuenta sigue en el rev que pedía, todavía puede llegar (Codex r1: una escritura que el servidor no terminó): se sigue preguntando */
+-   const oks=ask.length&&Array.isArray(g.body.ops)?g.body.ops:null;
++   const oks=q.length&&Array.isArray(g.body.ops)?g.body.ops:null;
+    let won=0;
++   /* Codex r3: los If-Match en que se sabe que llegó una subida (con un mismo If-Match llega una sola: las demás de ese rev no llegaron) */
++   const wonAt=new Set();
+    if(oks){opsSeen=true;let best=null;
+     for(const x of ask){const o=oks.find(y=>isObj(y)&&y.id===x.op);if(!o)continue;
+-     if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(o.rev===x.rev+1)won=Math.max(won,o.rev);if(x.ep!==ep0)voided=true;else if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
++     if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(o.rev===x.rev+1){won=Math.max(won,o.rev);wonAt.add(x.rev)}if(x.ep!==ep0)voided=true;else if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
+      else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true}}
+-    if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}}
++    /* Codex r5: si otra pestaña ya anotó una base más nueva que la de esa subida, vale la nueva (saber que llegó no la reemplaza) */
++    if(best&&!(meta&&Number.isInteger(meta.rev)&&meta.rev>best.rev)){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!(hwPut(uid,best.rev)&&writeMeta(meta))}}
+    /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
+       LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
+    if(!oks&&ask.some(x=>rev>=x.rev+2))voided=true;
++   /* LHB-104: la lista de todas las pestañas. Las de un rev que la cuenta ya pasó no pueden llegar y se quitan; si eran de otra pestaña y no se sabe que no llegaron,
++      pudieron llegar sobre esta misma copia (la comparten las pestañas): se junta sin dar nada por borrado. Las del rev de ahora todavía pueden llegar: valla */
++   let shLive=false;
++   /* la que no tiene id (la de sobra) no se puede preguntar: vale solo si se sabe que otra con ese If-Match llegó */
++   /* Codex r1: si la base ya no vale, eso se anota (poison) antes de quitar las anotaciones que lo dicen: si la pasada se corta, la próxima tampoco se fía de ella */
++   {const gone=[],live=new Set(now.map(e=>e.k)),ans=e=>e.o&&oks?oks.find(y=>isObj(y)&&y.id===e.o):null;
++    for(const e of seen.values())if(e.r<rev){const o=ans(e);if(o&&o.rev===e.r+1)wonAt.add(e.r)}
++    for(const e of [...seen.values()]){if(e.r>=rev){if(e.r===rev&&live.has(e.k))shLive=true;continue}seen.delete(e.k);
++     gone.push(e);if(e.o&&(myOps.has(e.o)||mineOps.has(e.o)))continue;
++     const o=ans(e);
++     /* llegó la de otra pestaña: no se sabe sobre qué base */
++     if(o&&Number.isInteger(o.rev)&&o.rev>0){voided=true;continue}
++     /* no llegó: el servidor lo dice (y su lista cubre ese rev), o llegó otra con su mismo If-Match */
++     if(o&&o.rev===null&&Number.isInteger(g.body.opsFrom)&&e.r+1>=g.body.opsFrom)continue;
++     if(wonAt.has(e.r))continue;
++     voided=true}
++    /* Codex r2: tampoco se quitan si la base buena de esta pasada no quedó anotada (staleBase): otra pestaña leería la vieja sin la anotación que la invalida */
++    /* si ni la meta mínima cabe, se quedan (quedarse siempre es seguro) y la pasada sigue; las suyas siguen contando como suyas */
++    if(gone.length&&(!(voided||staleBase)||poison())){for(const e of gone)if(live.has(e.k))shDel(e);for(const e of gone)if(e.o)myOps.delete(e.o)}}
+    /* Codex r2: una subida olvidada por exceso (más de OPS_ASK sin respuesta) puede llegar mientras la cuenta siga en su If-Match. Cuando la cuenta pasa de ese rev:
+       si una de las preguntadas llegó justo ahí, la olvidada perdió (con un mismo If-Match llega una sola); si no, no se sabe si fue ella y se junta sin dar nada por borrado */
+    /* Codex r3: una por cuenta (evict es un Map de sub a If-Match): otra cuenta en este teléfono no borra la de esta */
+    if(evict.has(uid)&&rev>evict.get(uid)){if(!(oks&&won===evict.get(uid)+1))voided=true;evict.delete(uid)}
+    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
+       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
+-   const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
++   /* Codex r7: con la meta tachada por la marca, la base de antes (was) sirve solo para reconocer la copia perdida */
++   const wb=meta&&(meta.base||meta.was),wipe=!!wb&&hasData(wb)&&!hasData(L)&&!dirty&&!meta.dirty;
+    /* si la meta no se pudo anotar la vez pasada, vale lo que esta pestaña recuerda de esa pasada (si ya no lo recuerda, se junta sin dar nada por borrado) */
+    /* ...salvo que otra pestaña ya anotó una meta más nueva que la de esa pasada: esa base es la buena */
+-   const memOk=staleBase&&!!mem&&mem.sub===uid&&mem.ep===ep0&&!(meta&&meta.base&&meta.rev>mem.rev);
++   /* Codex r7: también si esa meta más nueva está tachada (sin base): lo de memoria es más viejo */
++   const memOk=staleBase&&!!mem&&mem.sub===uid&&mem.ep===ep0&&!(meta&&Number.isInteger(meta.rev)&&meta.rev>mem.rev);
+    /* si lo subido no se pudo aplicar aquí, ninguna base recordada ni guardada vale hasta que una pasada termine completa (voided): se junta sin dar nada por borrado */
+    /* sin base guardada, la semilla (cómo estaba este teléfono antes de la primera edición de la persona) da una: lo que quitó de lo que estaba también en la cuenta es borrado suyo */
+    const base0=meta&&meta.base&&!wipe&&(!staleBase||!memOk)?meta.base:memOk&&!wipe?mem.base:null;
+    const base=voided?null:base0||(remote&&meta&&isObj(meta.seed)&&!wipe?meet(meta.seed,remote):null);
+    const merged=remote?merge(base,L,remote):L;
+-   let newRev=rev,pushed=false;
++   let newRev=rev,pushed=false,clean=-1;
+    /* Codex r2: si alguna subida sin respuesta (o la olvidada) todavía puede llegar porque la cuenta sigue en su If-Match, esta pasada sube aunque no haya nada nuevo:
+       con el mismo If-Match, si esta llega ninguna de aquellas puede llegar despues (la valla); si una de aquellas llega antes, esta da 409 y se pregunta otra vez */
+-   const fence=pend.some(x=>x.sub===uid&&x.rev===rev)||evict.get(uid)===rev;
++   const fence=pend.some(x=>x.sub===uid&&x.rev===rev)||evict.get(uid)===rev||shLive;
+    if(!remote||canon(merged)!==canon(remote)||fence){
+     /* se anota antes de mandar: si la respuesta no llega, no se puede leer, o la cuenta cambia mientras tanto, el PUT pudo haber llegado. Solo una respuesta clara (409, otro error 4xx o un 200 con revisión) lo borra */
+     /* LHB-80: con su id y lo que se manda, para saber después si llegó */
+     /* Codex r1: se suma a las que siguen sin saberse (no las reemplaza); si son demasiadas, la más vieja deja de preguntarse.
+        Codex r2: pero queda anotado su If-Match (evict) hasta que la cuenta pase de él, y mientras tanto cada pasada pone la valla */
+     /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
+-    const op=newOp();pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
++    const op=newOp(),sk=shAdd(uid,rev,op);myOps.set(op,{s:uid,r:rev});pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
+     if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
+     let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
+     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
+-    if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
++    if(p.status===409||(p.status<500&&p.status!==200)){pend=pend.filter(x=>x.op!==op);if(sk===PEND+op)shDel({k:sk})}
+     if(!alive())return {skip:'other-account'};
+     if(p.status===409)continue;
+     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
+     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
+-    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true;unrecorded=true}
++    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;top(newRev);pushed=true;unrecorded=true;
++    /* LHB-104: tampoco las de otras pestañas con ese If-Match o uno más viejo; se quitan cuando la base nueva ya está anotada (Codex r3) */
++    clean=rev}
+    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
+    let now0,Ln,quiet,final,wrote=true;
+    for(let k=0;k<4;k++){
+@@ -245,10 +332,17 @@ window.LHB_SYNC=function(D){
+    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
+    /* ...y lo que cambió en la copia mientras tanto (aunque el contador compartido no se haya podido escribir) */
+    const edited=edits!==e0||readSeq()!==s0||!quiet;
++   /* Codex r4: y al final tampoco se pisa una base más nueva que otra pestaña anotó mientras tanto (esta pasada se reintenta) */
++   /* Codex r5: si no se puede mirar, no se anota */
++   {let mr;try{mr=D.ls.get(META)}catch(e){return {fail:'storage'}}if(mr!==metaRaw){const m2=pm(mr);if(m2&&Number.isInteger(m2.rev)&&m2.rev>newRev)return {fail:'conflict'}}}
+    mem={sub:uid,base:merged,rev:newRev,ep:ep0};unrecorded=false;
+-   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0})){staleBase=true;poison();return {fail:'storage'}}
++   if(!(hwPut(uid,newRev)&&writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0}))){staleBase=true;poison();return {fail:'storage'}}
+    /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */
+    staleBase=false;voided=false;if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);if(!edited)dirty=false;
++   /* si no se pueden quitar, se quedan: la próxima pasada las quita (ya pasaron su If-Match) */
++   if(clean>=0){try{for(const e of shRead())if(e.s===uid&&e.r<=clean)shDel(e)}catch(e){}for(const [o,x] of myOps)if(x.s===uid&&x.r<=clean)myOps.delete(o)}
++   /* las marcas de más abajo ya no hacen falta (la más alta sigue) */
++   try{for(const x of hwKeys(uid))if(x.r<newRev)D.ls.remove(x.k)}catch(e){}
+    if(!quiet&&canon(final)!==canon(merged))again=true;
+    const pulled=!!remote&&canon(merged)!==canon(L);
+    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');
+@@ -277,8 +371,9 @@ window.LHB_SYNC=function(D){
+   /* lo escrito pertenece a quien lo escribió, aunque la cuenta cambie antes de la primera pasada */
+   ensureOwner();
+   /* sin base guardada, lo que había en este teléfono antes de esta primera edición queda como semilla (meta.seed) para la primera pasada */
+-  {const acc=D.acct(),sub=acc&&typeof acc.sub==='string'?acc.sub:'';let m=readMeta(),ch=false;
+-   if(sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false,ep:epochOf()};ch=true}
++  /* Codex r6: si la meta no se puede leer, no se toca (no se reemplaza por una nueva) */
++  {const acc=D.acct(),sub=acc&&typeof acc.sub==='string'?acc.sub:'';let m=null,ch=false,bad=false;try{m=readMetaHard()}catch(e){bad=true}
++   if(!bad&&sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false,ep:epochOf()};ch=true}
+    if(m){if(!m.dirty){m.dirty=true;ch=true}
+     if(sub&&m.sub===sub&&!m.base&&!m.seed&&prev!=null){try{const p=JSON.parse(prev);if(isObj(p)){m.seed=std(p);ch=true}}catch(e){}}
+     if(ch)writeMeta(m)}}
+@@ -293,12 +388,14 @@ window.LHB_SYNC=function(D){
+   /* Codex r2: la marca se lee ANTES que la copia que se revisa (el contador y el texto guardado, luego la copia): si otra pestaña escribe en medio, la marca ya no es la de ahora y forget no borra nada */
+   const seq=readSeq(),raw=markNow().raw,d=D.getDoc(),mark={raw,seq};
+   if(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length)return {ok:false,why:'draft'};
+-  if(typeof o.backup==='string'&&canon(d)===o.backup)return {ok:true,via:'backup',mark};
++  if(typeof o.backup==='string'&&canon(d)===o.backup){mark.via='backup';return {ok:true,via:'backup',mark}}
+   if(!r||!r.ok)return {ok:false,why:(r&&(r.fail||r.skip))||'fail'};
+   const m=readMeta(),acc=D.acct();
+   if(dirty||!m||!acc||m.sub!==acc.sub||m.dirty||!m.base||canon(d)!==canon(m.base))return {ok:false,why:'pending'};
+   /* Codex r2: una subida sin respuesta que todavía puede llegar cambiaría la cuenta despues de salir, con la copia de aqui ya borrada: no está a salvo (la pasada de salir pone la valla; si su respuesta tampoco llega, queda el respaldo) */
+   if(pend.some(x=>x.sub===acc.sub)||evict.has(acc.sub))return {ok:false,why:'pending'};
++  /* LHB-104: ni una de otra pestaña (si la lista no se puede leer, tampoco se sabe) */
++  try{if(shRead().some(e=>e.s===acc.sub))return {ok:false,why:'pending'}}catch(e){return {ok:false,why:'pending'}}
+   return {ok:true,via:'sync',mark}}
+  const markNow=()=>{let raw=null;try{raw=D.ls.get(KEY)}catch(e){raw={}}return {raw,seq:readSeq()}};
+  /* LHB-34: mientras se sale o se borra la cuenta no corre ninguna pasada (una a destiempo volvería a llevar Mi Hoja a la cuenta). hold(true) espera la que esté corriendo */
+@@ -317,13 +414,21 @@ window.LHB_SYNC=function(D){
+    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
+    await D.wait(FENCE_MS);
+    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
+-   if(!same(mark))return back()}
++   if(!same(mark))return back();
++   /* LHB-104 (Codex r1): con la valla puesta, otra vez las subidas anotadas: una que otra pestaña anotó después de settled() todavía puede llegar.
++      Codex r11: salvo si la copia está en el respaldo que la persona acaba de descargar (settled la halló igual, y same() dice que sigue igual): ahí está a salvo
++      aunque una subida llegue después, como settled ya lo decía. Las anotaciones se quedan, para cuando vuelva a entrar en este teléfono */
++   if(mark.via!=='backup'){const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);let sh;try{sh=shRead()}catch(e){return back()}if(sh.some(e=>subs.includes(e.s)))return back()}}
+   hold(true);mem=null;pend=[];evict=new Map();dirty=false;let ok=true;
++  /* Codex r7: y las marcas de agua de esta cuenta (si vuelve a entrar con la cuenta nueva, no quedan bases tachadas de antes) */
++  {const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);for(const u of subs){try{for(const x of hwKeys(u))D.ls.remove(x.k)}catch(e){ok=false}}}
++  /* Codex r11: al borrar la cuenta (sin mark), también sus subidas anotadas: la cuenta a la que iban ya no existe */
++  if(!mark){const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);try{for(const x of shRead())if(subs.includes(x.s))D.ls.remove(x.k)}catch(e){ok=false}}
+   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
+   set('off');return ok}
+  function start(){
+   D.listen('online',()=>run('en-linea'));
+   D.listen('visible',()=>run('visible',{minAge:30e3}));
+   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
+- return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
++ return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy,_myOps:()=>myOps.size}};
+ })();
+diff --git a/test/site.test.js b/test/site.test.js
+index 3c672c6..89331ac 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v116'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v117'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -61,23 +61,23 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
+- assert.match(sw,/const VERSION='lhb-v116'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
++ assert.match(sw,/const VERSION='lhb-v117'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
+  assert.ok(a.includes(f)&&a.includes("VEHICULO='guagua'"));
+  for(const g of ['img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
+  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
+ test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v116'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v117'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
+  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v116'/);
++ assert.match(sw,/const VERSION='lhb-v117'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v116'/);
++ assert.match(sw,/const VERSION='lhb-v117'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
+  const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%231EA8D7')&&em.includes('%23ED0000'),'bandera de los vacíos con el celeste y el rojo de la bandera (LHB-67: el celeste de la guagua)');
+@@ -99,12 +99,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v116'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v117'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v116'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v117'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes("VBArt.carro('mini')"));});
+ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -112,7 +112,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
+-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v116'/);});
++test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v117'/);});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -129,7 +129,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v116/);});
++ assert.match(read('sw.js'),/lhb-v117/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -142,19 +142,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v116'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v117'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v116'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v117'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v116'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v117'/);});
+ 
+ test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
+  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
+- for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v116'/);});
++ for(const k of ['intro.name','intro.tagline'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v117'/);});
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
+@@ -1216,7 +1216,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v117'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1463,7 +1463,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v116'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v117'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1641,7 +1641,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v117'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1888,7 +1888,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v117'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2190,7 +2190,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v117'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2473,7 +2473,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v116'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v117'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -2817,7 +2817,7 @@ test('LHB-28: propiedades de juntar con 400 casos al azar: el orden no importa,
+ /* un teléfono de mentira para probar el motor contra el servidor de verdad (SQLite): su almacenamiento, su reloj, sus temporizadores y su red */
+ function DEV28(a,sub,o){o=o||{};const KEY='lhb_mihoja_v1';const ls=new Map();const net={off:false,log:[],beforePut:null,status:null};const timers=[];const toasts=[];const st={acct:sub,user:sub,failSet:false,full:false,failKey:null,failBigKey:null,failBig:0,applied:0,clock:Date.parse('2026-10-27T12:00:00Z'),setDocs:0,states:[]};const handlers={};let eng=null;
+  const rawDoc=()=>{try{return JSON.parse(ls.get(KEY))||{}}catch(e){return {}}};
+- const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)},remove:k=>{ls.delete(k)}},
++ const D={ls:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>{if(st.full||k===st.failKey||(st.failPre&&k.startsWith(st.failPre))||(k===st.failBigKey&&String(v).length>st.failBig))throw new Error('QuotaExceededError');ls.set(k,v)},remove:k=>{ls.delete(k)},keys:()=>{if(st.failKeys)throw new Error('SecurityError');return [...ls.keys()]}},
+   getDoc:()=>rawDoc(),setDoc:(d,exp)=>{st.setDocs++;if(st.beforeApply){const f=st.beforeApply;st.beforeApply=null;f()}if(exp!==undefined&&win.LHB_MERGE.stable(rawDoc())!==exp)return 'stale';if(st.failSet)return false;ls.set(KEY,JSON.stringify(d));if(eng)eng.changed();return true},
+   clerk:async()=>{if(net.off)throw new Error('sin red');return {user:st.user?{id:st.user}:null}},
+   api:async(C,method,path,body,uid,headers)=>{if(net.off)throw new TypeError('sin red');if(uid&&(!C.user||C.user.id!==uid))throw new Error('account-changed');
+@@ -3442,7 +3442,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v116'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v117'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -5121,7 +5121,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v116'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v117'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -6561,6 +6561,633 @@ test('LHB-80 (Codex r8): todas las épocas tienen el mismo largo',async()=>{
+   for(const [i,x] of [0.5,0.744854709076402,0.1,0.999999999,1e-9].entries()){Math.random=()=>x;A.st.acct=A.st.user='user_'+(i%2?'a':'b');assert.equal(A.eng.isolate(),true);seen.add(A.ls.get(E).length)}
+   assert.deepEqual([...seen],[19]);
+  }finally{Math.random=R;a.done()}});
++/* LHB-104: dos pestañas (dos motores sobre el mismo almacenamiento y la misma red) */
++test('LHB-104: una pestaña sube una quita que se queda sin respuesta y la persona vuelve a poner a1; otra pestaña sale: primero pone la valla, la quita ya no llega y la cuenta queda entera',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let late=null;
++  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  A.D.wait=async()=>{};const T2=SYNC28().LHB_SYNC(A.D);
++  const st=await T2.settled({});assert.equal(st.ok,true,'la otra pestaña puso la valla');assert.equal(await T2.forget(st.mark),true);
++  assert.equal((await late()).status,409,'la quita ya no puede llegar');
++  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue en la cuenta');
++ }finally{a.done()}});
++test('LHB-104: si la valla de la otra pestaña también se queda sin respuesta, salir no está a salvo',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;A.D.api=async(C,m,...r)=>{if(m==='PUT')throw new TypeError('sin red');return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();A.edit(d=>{d.favs.artesanos=['a1']});
++  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.settled({})).ok,false);
++ }finally{a.done()}});
++test('LHB-104: una pestaña manda una subida mientras otra sale, después de su pasada: no está a salvo',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const T2=SYNC28().LHB_SYNC(A.D);const gd=A.D.getDoc;let n=0;
++  /* la pasada de salir ya leyó la lista; cuando escribe la copia, la otra pestaña anota una subida nueva con el rev de ahora */
++  A.D.getDoc=()=>{if(++n===2)A.ls.set('lhb_mihoja_v1_pend.otra_pestana',JSON.stringify({v:1,s:'user_a',r:1,o:'otra_pestana'}));return gd()};
++  const s2=await T2.settled({});A.D.getDoc=gd;
++  assert.equal(s2.ok,false,'una subida de otra pestaña todavía puede llegar');
++ }finally{a.done()}});
++test('LHB-104: si la subida no se puede anotar para las otras pestañas, no se manda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let puts=0;A.D.api=async(C,m,...r)=>{if(m==='PUT')puts++;return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});A.st.failPre='lhb_mihoja_v1_pend.';const r=await A.eng.run('guardado');A.st.failPre=null;
++  assert.ok(r.fail,'la pasada no terminó');assert.equal(puts,0,'no se mandó');assert.equal(srv28(a,'user_a').rev,1);
++  assert.equal((await A.sync()).ok,true);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'luego sí');
++ }finally{a.done()}});
++test('LHB-104: la quita de una pestaña llegó sin que lo supiera y la persona vuelve a poner a1; la otra pestaña sincroniza: no la da por borrada, a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let once=true;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.run('x')).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104: la subida de otra pestaña no llegó (el servidor lo dice) y otro teléfono quitó algo: la base vale y lo quitado no vuelve',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const P=DEV28(a,'user_a');await P.sync();
++  const api=A.D.api;let once=true;A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;throw new TypeError('sin red')}return api(C,m,...r)};
++  A.edit(d=>{d.ratings.c2=3});await A.sync();
++  P.edit(d=>{d.favs.artesanos=[]});await P.sync();
++  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.run('x')).ok,true);
++  assert.deepEqual(A.doc().favs.artesanos,[],'lo que quitó el otro teléfono no vuelve');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
++ }finally{a.done()}});
++test('LHB-104: una subida que el servidor rechazó claramente deja de estar anotada: otra pestaña sale sin poner valla',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let once=true,puts=0;A.D.api=async(C,m,...r)=>{if(m==='PUT'){if(once){once=false;return {status:400,body:{error:'bad'}}}puts++}return api(C,m,...r)};
++  A.edit(d=>{d.ratings.c2=3});const r=await A.eng.run('guardado');assert.equal(r.fail,'put-400');
++  A.edit(d=>{d.ratings.c2=undefined;delete d.ratings.c2});
++  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.settled({})).ok,true);assert.equal(puts,0,'sin valla');
++ }finally{a.done()}});
++test('LHB-104: esta pestaña tiene una subida sin respuesta y otra pestaña nueve: se pregunta a lo sumo por OPS_ASK (las de esta primero) y la pasada termina',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let off=true;A.D.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});for(let i=0;i<9;i++)await A.sync();
++  const T2=SYNC28().LHB_SYNC(A.D);await T2.run('x');
++  off=false;const r=await T2.run('y');assert.equal(r.ok,true,JSON.stringify(r));assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
++ }finally{a.done()}});
++/* LHB-104 (Codex r1): una pestaña con ganchos en su almacenamiento (h.get/h.keys después de leer; h.set/h.remove antes de escribir) sobre el mismo de A */
++const isP104=k=>typeof k==='string'&&k.startsWith('lhb_mihoja_v1_pend');
++const mk104=(A,h)=>({...A.D,ls:{get:k=>{const v=A.D.ls.get(k);if(h.get)h.get(k);return v},set:(k,v)=>{if(h.set)h.set(k,v);A.D.ls.set(k,v)},remove:k=>{if(h.remove)h.remove(k);A.D.ls.remove(k)},keys:()=>{const v=A.D.ls.keys();if(h.keys)h.keys();return v}}});
++test('LHB-104 (Codex r1): una pestaña quita su subida rechazada mientras otra anota la suya: la de la otra sigue anotada, salir pone la valla y la otra ya no llega',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  let armed=false,C0=null;const OP='otra_pestana_op';
++  /* la otra pestaña anota su subida justo entre la lectura y la escritura de esta */
++  const otra=k=>{if(k==='lhb_mihoja_v1_pend'){const v=JSON.parse(A.ls.get(k)||'{"v":1,"l":[]}');v.l.push({s:'user_a',r:1,o:OP});A.ls.set(k,JSON.stringify(v))}else A.ls.set('lhb_mihoja_v1_pend.'+OP,JSON.stringify({v:1,s:'user_a',r:1,o:OP}))};
++  const fire=k=>{if(armed&&isP104(k)){armed=false;otra(k)}};
++  const D2=mk104(A,{get:fire,remove:fire}),api=A.D.api;
++  D2.api=async(C,m,...r)=>{C0=C;if(m==='PUT'){armed=true;return {status:400,body:{error:'bad'}}}return api(C,m,...r)};
++  A.edit(d=>{d.ratings.c2=3});const T2=SYNC28().LHB_SYNC(D2);assert.equal((await T2.run('x')).fail,'put-400');
++  A.edit(d=>{d.ratings.c2=undefined;delete d.ratings.c2});
++  const T3=SYNC28().LHB_SYNC(A.D);A.D.wait=async()=>{};
++  const st=await T3.settled({});assert.equal(st.ok,true);assert.equal(await T3.forget(st.mark),true);
++  const sin={...DOC28,favs:{...DOC28.favs,artesanos:[]}};
++  assert.equal((await api(C0,'PUT','/api/mihoja',{schema:1,doc:sin},'user_a',{'If-Match':'1','X-Op':OP})).status,409,'la subida de la otra pestaña ya no puede llegar');
++  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r1): otra pestaña anota y manda su subida después de que esta revisó la cuenta: salir no borra',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let open=null,paused=false,late=null;
++  A.D.api=async(C,m,path,...r)=>{
++   if(m==='GET'&&!paused){paused=true;const g=await api(C,m,path,...r);await new Promise(res=>{open=res});return g}
++   if(m==='PUT'&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}
++   return api(C,m,path,...r)};
++  /* la pasada de la pestaña 1 ya leyó la copia sin a1 y espera la cuenta; la persona vuelve a poner a1 */
++  A.edit(d=>{d.favs.artesanos=[]});const p1=A.eng.run('guardado');
++  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la pasada espera');
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  const T2=SYNC28().LHB_SYNC(A.D);A.D.wait=async()=>{};
++  const st=await T2.settled({});assert.equal(st.ok,true,'todavía no hay nada anotado');
++  open();await p1;assert.ok(late,'la quita salió y su respuesta no llegó');
++  assert.equal(await T2.forget(st.mark),false,'una subida de otra pestaña todavía puede llegar: no se borra nada');
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'la copia sigue');
++ }finally{a.done()}});
++test('LHB-104 (Codex r1): otra pestaña sabe que la quita llegó, la persona volvió a poner a1 y el almacenamiento falla antes de subir: al recargar, a1 sigue',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let once=true;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  /* en cuanto la pestaña 2 quita la anotación, el almacenamiento deja de leerse */
++  let armed=false;const boom=()=>{if(armed)throw new Error('SecurityError')};const mut=k=>{if(isP104(k)){boom();armed=true}};
++  const D2=mk104(A,{get:k=>{if(isP104(k))boom()},keys:boom,set:mut,remove:mut});
++  const T2=SYNC28().LHB_SYNC(D2);assert.equal((await T2.run('x')).fail,'storage');
++  const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r1): treinta subidas sin respuesta con el mismo If-Match no llenan el almacenamiento: cuando vuelve la red, sube',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  /* lo anotado de las subidas cabe en 900 caracteres, entre todas sus llaves */
++  const D2=mk104(A,{set:(k,v)=>{if(!isP104(k))return;let n=String(v).length;for(const [x,w] of A.ls)if(isP104(x)&&x!==k)n+=String(w).length;if(n>900)throw new Error('QuotaExceededError')}});
++  const api=A.D.api;let off=true;D2.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
++  const T=SYNC28().LHB_SYNC(D2);A.edit(d=>{d.favs.artesanos=[]});
++  for(let i=0;i<30;i++)await T.run('x');
++  off=false;assert.equal((await T.run('x')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
++  assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
++ }finally{a.done()}});
++test('LHB-104 (Codex r1): la valla de salir se pone justo mientras esta pestaña anota su subida: no se manda y no queda anotada',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  let once=true,puts=0;const D2=mk104(A,{set:k=>{if(once&&isP104(k)){once=false;A.ls.set('lhb_mihoja_v1_saliendo',String(A.st.clock))}}});
++  const api=A.D.api;D2.api=async(C,m,...r)=>{if(m==='PUT')puts++;return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});const T2=SYNC28().LHB_SYNC(D2);const r=await T2.run('x');
++  assert.ok(r.fail,'la pasada no terminó');assert.equal(puts,0,'no se mandó');assert.equal([...A.ls.keys()].filter(isP104).length,0,'no quedó anotada');
++  assert.equal(srv28(a,'user_a').rev,1);
++ }finally{a.done()}});
++test('LHB-104 (Codex r1): hoja.js le da al motor la lista de llaves del almacenamiento (ahí están las subidas de las otras pestañas)',()=>{
++ const vm=require('vm');const src=read('hoja.js').replace(/\r\n/g,'\n');
++ const i=src.indexOf('SYNC=window.LHB_SYNC({ls:'),j=src.indexOf(',getDoc:',i);assert.ok(i>=0&&j>i);
++ const m=new Map([['lhb_mihoja_v1','{}'],['lhb_mihoja_v1_pend.abcdefgh','{"v":1}'],['vb_cuenta2','{}']]);
++ /* Codex r10: como el localStorage del navegador, las llaves guardadas son sus propiedades (Object.keys) y los métodos no */
++ const api={getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>{m.set(k,String(v))},removeItem:k=>{m.delete(k)},key:n=>[...m.keys()][n]??null};
++ const localStorage=new Proxy(api,{ownKeys:()=>[...m.keys()],getOwnPropertyDescriptor:(t,k)=>m.has(k)?{value:m.get(k),enumerable:true,configurable:true,writable:true}:undefined,get:(t,k)=>k==='length'?m.size:(k in t?t[k]:m.get(k))});
++ const ls=vm.runInNewContext('('+src.slice(i+'SYNC=window.LHB_SYNC({ls:'.length,j)+')',{localStorage});
++ assert.equal(typeof ls.keys,'function','hay keys');assert.deepEqual([...ls.keys()].sort(),[...m.keys()].sort());
++});
++/* LHB-104 (Codex r2): la quita de la pestaña 1 llegó sin respuesta (rev 2) y la persona volvió a poner a1 */
++test('LHB-104 (Codex r2): la pestaña 2 leyó su base y espera la cuenta; la 1 sabe que su quita llegó, quita la anotación y repone a1: la 2 no usa su base vieja y a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let n=0,late=null;
++  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  let open=null,paused=false;
++  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)},wait:async()=>{}};
++  const T2=SYNC28().LHB_SYNC(D2);const pB=T2.settled({});
++  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la pestaña 2 espera la cuenta');
++  await A.sync();assert.ok(late,'la subida que repone a1 quedó sin respuesta');
++  open();await pB;
++  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y en el teléfono');
++  assert.equal((await late()).status,409,'la de la pestaña 1 ya no llega');
++ }finally{a.done()}});
++test('LHB-104 (Codex r2): otra pestaña quita la anotación justo después de que esta leyó su base: esta igual no se fía de esa base y a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let once=true;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  let gets=0;const D2=mk104(A,{get:k=>{if(k==='lhb_mihoja_v1_sync'&&++gets===1)for(const x of [...A.ls.keys()])if(isP104(x))A.ls.delete(x)}});
++  const T2=SYNC28().LHB_SYNC(D2);assert.equal((await T2.run('x')).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r2): la pestaña sabe que su quita llegó pero no puede anotar la base nueva: no quita la anotación, y al recargar a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let n=0;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,...r);throw new TypeError('sin respuesta')}throw new TypeError('sin red')}return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  A.st.failKey='lhb_mihoja_v1_sync';const r=await A.sync();A.st.failKey=null;assert.ok(!r.ok,'la pasada no terminó');
++  A.D.api=api;const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r2): la valla se pone mientras esta pestaña anota su subida y no se puede leer al mirarla otra vez: no se manda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  let armed=false,done=false,puts=0;
++  const D2=mk104(A,{set:k=>{if(isP104(k)&&!done){done=armed=true;A.ls.set('lhb_mihoja_v1_saliendo',String(A.st.clock))}},get:k=>{if(armed&&k==='lhb_mihoja_v1_saliendo'){armed=false;throw new Error('SecurityError')}}});
++  const api=A.D.api;D2.api=async(C,m,...r)=>{if(m==='PUT')puts++;return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});const T2=SYNC28().LHB_SYNC(D2);const r=await T2.run('x');
++  assert.ok(r.fail,'la pasada no terminó');assert.equal(puts,0,'no se mandó');assert.equal([...A.ls.keys()].filter(isP104).length,0,'no quedó anotada');
++  assert.equal(srv28(a,'user_a').rev,1);
++ }finally{a.done()}});
++test('LHB-104 (Codex r2): treinta recargas, cada una con una subida sin respuesta en el mismo If-Match, no llenan el almacenamiento: cuando vuelve la red, sube',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const D2=mk104(A,{set:(k,v)=>{if(!isP104(k))return;let n=String(v).length;for(const [x,w] of A.ls)if(isP104(x)&&x!==k)n+=String(w).length;if(n>900)throw new Error('QuotaExceededError')}});
++  const api=A.D.api;let off=true;D2.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});
++  for(let i=0;i<30;i++)await SYNC28().LHB_SYNC(D2).run('recarga');
++  assert.ok([...A.ls.keys()].filter(isP104).length<=8+4+1,'pocas llaves');
++  off=false;assert.equal((await SYNC28().LHB_SYNC(D2).run('red')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
++  assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
++ }finally{a.done()}});
++test('LHB-104 (Codex r3): la pestaña 2 empieza a salir y su GET tarda; mientras, la 1 quita a1, sabe que llegó, anota su base, quita la anotación y repone a1: la 2 usa la base nueva y a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let n=0,late=null;
++  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
++  let open=null,paused=false;
++  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;await new Promise(x=>{open=x})}return api(C,m,...r)},wait:async()=>{}};
++  const T2=SYNC28().LHB_SYNC(D2);const pB=T2.settled({});
++  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'el GET de la pestaña 2 espera');
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.ok(late,'la subida que repone a1 quedó sin respuesta');
++  open();await pB;
++  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y en el teléfono');
++  assert.equal((await late()).status,409,'la de la pestaña 1 ya no llega');
++ }finally{a.done()}});
++test('LHB-104 (Codex r3): la subida llega (200) mientras la persona vuelve a poner a1 y la base nueva no se puede anotar: la anotación se queda, y al recargar a1 sigue',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  A.net.afterPut=async()=>{A.edit(d=>{d.favs.artesanos=['a1']});A.st.failKey='lhb_mihoja_v1_sync'};
++  A.edit(d=>{d.favs.artesanos=[]});const r=await A.eng.run('guardado');A.st.failKey=null;
++  assert.ok(!r.ok,'la pasada no terminó');assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r3): con muchas recargas en el mismo If-Match, lo anotado no pasa de OPS_ASK ids y una llave de sobra: cabe en 600 caracteres y, cuando vuelve la red, sube',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const D2=mk104(A,{set:(k,v)=>{if(!isP104(k))return;let n=String(v).length;for(const [x,w] of A.ls)if(isP104(x)&&x!==k)n+=String(w).length;if(n>600)throw new Error('QuotaExceededError')}});
++  const api=A.D.api;let off=true;D2.api=async(C,m,...r)=>{if(m==='PUT'&&off)throw new TypeError('sin red');return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});
++  for(let i=0;i<30;i++)await SYNC28().LHB_SYNC(D2).run('recarga');
++  assert.ok([...A.ls.keys()].filter(isP104).length<=9,'pocas llaves');
++  off=false;assert.equal((await SYNC28().LHB_SYNC(D2).run('red')).ok,true,'sube');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
++  assert.equal([...A.ls.keys()].filter(isP104).length,0,'y no queda nada anotado');
++ }finally{a.done()}});
++test('LHB-104 (Codex r3): sin la columna ops (0008 sin aplicar) nadie puede decir si la quita de otra pestaña llegó: la otra pestaña no se fía de su base y a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let once=true;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  const T2=SYNC28().LHB_SYNC(A.D);assert.equal((await T2.run('x')).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r4): la respuesta del GET de la pestaña 2 (rev 1, con a1) llega tarde, después de que la 1 anotó la base del rev 2: la 2 no la usa ni la anota, y a1 se queda tras salir',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let n=0,late=null;
++  A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
++  let open=null,paused=false;
++  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)},wait:async()=>{}};
++  const T2=SYNC28().LHB_SYNC(D2);const pB=T2.settled({});
++  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la respuesta del rev 1 espera');
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.ok(late,'la subida que repone a1 quedó sin respuesta');
++  open();await pB;await T2.settled({});const st=await T2.settled({});
++  assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 en la cuenta');assert.ok(A.doc().favs.artesanos.includes('a1'),'y en el teléfono');
++  if(st.ok)assert.equal(await T2.forget(st.mark),true);
++  assert.equal((await late()).status,409,'la de la pestaña 1 ya no llega');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'a1 sigue');
++ }finally{a.done()}});
++test('LHB-104 (Codex r4): otra pestaña anota una base más nueva justo antes de que esta escriba la suya: esta no la pisa',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.cigarros=['k1']});await P.sync();assert.equal(srv28(a,'user_a').rev,2);
++  /* esta pestaña trae k1 (rev 2); al aplicarlo, otra pestaña ya anotó la base del rev 3 */
++  const T=SYNC28().LHB_SYNC(A.D);
++  A.st.beforeApply=()=>{const m=JSON.parse(A.ls.get('lhb_mihoja_v1_sync'));A.ls.set('lhb_mihoja_v1_sync',JSON.stringify({...m,rev:3,dirty:false}))};
++  const r=await T.run('x');assert.ok(!r.ok,'esta pasada se reintenta');
++  assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,3,'la base más nueva se queda');
++ }finally{a.done()}});
++test('LHB-104 (Codex r5): la pestaña 1 se entera tarde de que su subida llegó (rev 2), cuando la 2 ya anotó la base del rev 3: no la reemplaza, y a1 que la persona volvió a poner se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let once=true;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
++  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la subida de la 1 llegó');
++  let late=null,hold=false;
++  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'&&hold&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)}};
++  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
++  A.edit(d=>{d.favs.artesanos=[]});assert.equal((await B.run('quita')).ok,true);assert.equal(srv28(a,'user_a').rev,3);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[]);
++  A.edit(d=>{d.favs.artesanos=['a1']});hold=true;await B.run('repone');assert.ok(late,'la que repone a1 quedó sin respuesta');
++  A.D.wait=async()=>{};await A.eng.settled({});
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r5): si la última lectura de la meta antes de anotarla falla, no se anota',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.cigarros=['k1']});await P.sync();assert.equal(srv28(a,'user_a').rev,2);
++  /* las lecturas de la meta en la pasada: al empezar, después del GET y antes de anotar; falla la tercera */
++  let n=0;const D2=mk104(A,{get:k=>{if(k==='lhb_mihoja_v1_sync'&&++n===3)throw new Error('SecurityError')}});
++  const T=SYNC28().LHB_SYNC(D2);const r=await T.run('x');
++  assert.equal(n>=3,true);assert.ok(!r.ok,'la pasada no terminó');assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,1,'no se anotó sin mirar');
++ }finally{a.done()}});
++test('LHB-104 (Codex r6): la base del rev 3 no se puede anotar y queda tachada: la tachada guarda el rev 3, y la subida vieja de la pestaña 1 (rev 2) no vuelve a valer',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  /* la pestaña 1 (A) sube una nota; llega (rev 2) y su respuesta se pierde */
++  const api=A.D.api;let once=true;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
++  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la subida de la 1 llegó');
++  /* la pestaña 2 quita a1 (llega, rev 3, sin respuesta); al saberlo no puede anotar la meta del rev 3 y la tacha */
++  let failed=false,n=0,late=null;
++  const D2=mk104(A,{set:(k,v)=>{if(k==='lhb_mihoja_v1_sync'&&!failed){let x=null;try{x=JSON.parse(v)}catch(e){}if(x&&x.rev===3){failed=true;throw new Error('QuotaExceededError')}}}});
++  D2.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
++  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
++  A.edit(d=>{d.favs.artesanos=[]});await B.run('quita');assert.equal(srv28(a,'user_a').rev,3,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});await B.run('aprende');assert.ok(failed,'la meta del rev 3 no se pudo anotar');assert.ok(late,'la que repone a1 quedó sin respuesta');
++  A.D.wait=async()=>{};await A.eng.settled({});
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r6): una edición cuando la meta no se puede leer no la reemplaza por una nueva: la subida vieja de la pestaña 1 no vuelve a valer',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  /* la pestaña 1 (A) sube una nota; llega (rev 2) y su respuesta se pierde */
++  const api=A.D.api;let once=true;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
++  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la subida de la 1 llegó');
++  let late=null,hold=false;
++  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'&&hold&&!late){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}return api(C,m,path,...r)}};
++  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
++  A.edit(d=>{d.favs.artesanos=[]});assert.equal((await B.run('quita')).ok,true);assert.equal(srv28(a,'user_a').rev,3);
++  A.edit(d=>{d.favs.artesanos=['a1']});hold=true;await B.run('repone');assert.ok(late);
++  /* otra edición, y la lectura de la meta dentro de changed() falla una vez */
++  const g=A.D.ls.get;let bad=true;A.D.ls.get=k=>{if(bad&&k==='lhb_mihoja_v1_sync'){bad=false;throw new Error('SecurityError')}return g(k)};
++  A.edit(d=>{d.ratings.c3=4});A.D.ls.get=g;assert.equal(bad,false,'la lectura falló');
++  assert.equal(JSON.parse(A.ls.get('lhb_mihoja_v1_sync')).rev,3,'la meta del rev 3 sigue');
++  A.D.wait=async()=>{};await A.eng.settled({});
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r6): ensureOwner con la dueña y la meta sin poder leerse no reemplaza la meta',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();const before=A.ls.get('lhb_mihoja_v1_sync');assert.equal(JSON.parse(before).rev,1);
++  const g=A.D.ls.get;let left={'lhb_mihoja_v1_owner':1,'lhb_mihoja_v1_sync':2};
++  A.D.ls.get=k=>{if(left[k]>0){left[k]--;throw new Error('SecurityError')}return g(k)};
++  const ok=A.eng.ensureOwner();A.D.ls.get=g;
++  assert.equal(ok,false,'no se pudo saber');assert.equal(A.ls.get('lhb_mihoja_v1_sync'),before,'la meta no cambió');
++ }finally{a.done()}});
++test('LHB-104 (Codex r6): si otra pestaña anotó una base más nueva mientras esta pasada subía, la meta que esta tacha guarda ese rev más nuevo',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const P=DEV28(a,'user_a');await P.sync();P.edit(d=>{d.favs.cigarros=['k1']});await P.sync();
++  const T=SYNC28().LHB_SYNC(A.D);
++  /* la subida llega (rev 3); al aplicar, otra pestaña ya anotó el rev 5, y la copia no se puede escribir */
++  A.st.beforeApply=()=>{const m=JSON.parse(A.ls.get('lhb_mihoja_v1_sync'));A.ls.set('lhb_mihoja_v1_sync',JSON.stringify({...m,rev:5}));A.st.failSet=true};
++  A.edit(d=>{d.ratings.c2=3});A.edit(d=>{d.favs.artesanos=[]});const r=await T.run('x');A.st.failSet=false;
++  assert.ok(!r.ok,'la pasada no terminó');assert.equal(srv28(a,'user_a').rev,3,'la subida llegó');
++  const m=JSON.parse(A.ls.get('lhb_mihoja_v1_sync'));assert.equal(m.base,null,'tachada');assert.equal(m.rev,5,'con el rev más nuevo');
++ }finally{a.done()}});
++test('LHB-104 (Codex r7): la pestaña 1 guarda en memoria la base del rev 2 (no pudo anotarla); la 2 deja la meta tachada en el rev 3: la de memoria no vuelve a valer y a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  /* la primera escritura de la meta con rev 2 y la primera con rev 3 fallan */
++  const s0=A.D.ls.set,failed={};A.D.ls.set=(k,v)=>{if(k==='lhb_mihoja_v1_sync'){let x=null;try{x=JSON.parse(v)}catch(e){}if(x&&(x.rev===2||x.rev===3)&&!failed[x.rev]){failed[x.rev]=true;throw new Error('QuotaExceededError')}}return s0(k,v)};
++  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2);assert.ok(failed[2],'la 1 no pudo anotar el rev 2');
++  const api=A.D.api;let n=0,late=null;
++  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)}};
++  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
++  A.edit(d=>{d.favs.artesanos=[]});await B.run('quita');assert.equal(srv28(a,'user_a').rev,3,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});await B.run('aprende');assert.ok(failed[3],'la 2 no pudo anotar el rev 3');assert.ok(late,'la que repone a1 quedó sin respuesta');
++  A.D.wait=async()=>{};await A.eng.settled({});
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r7): otra pestaña anota la base del rev 2 justo entre que esta mira la meta y la escribe (rev 1): la meta vieja que queda no se toma como base y a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;
++  /* la pestaña T trae el rev 1 y espera antes de seguir */
++  let open=null,paused=false,S1=null,applied=false;
++  const D2=mk104(A,{set:k=>{if(k==='lhb_mihoja_v1_sync'&&S1&&!applied){applied=true;A.ls.clear();for(const [x,v] of S1)A.ls.set(x,v)}}});
++  D2.api=async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)};
++  const T=SYNC28().LHB_SYNC(D2);const pT=T.run('x');
++  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'T espera');
++  const S0=new Map(A.ls);
++  /* mientras, la pestaña 1 quita a1 (llega, rev 2, sin respuesta), lo sabe, anota el rev 2, quita su anotación y repone a1 (sin respuesta) */
++  let n=0,late=null;A.D.api=async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2);
++  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.ok(late);
++  /* lo que la pestaña 1 escribió aparece justo antes de que T escriba su meta */
++  S1=new Map(A.ls);A.ls.clear();for(const [x,v] of S0)A.ls.set(x,v);
++  open();await pT;assert.ok(applied,'lo de la pestaña 1 apareció entre que T miró y escribió');
++  A.D.api=api;A.D.wait=async()=>{};const T2=SYNC28().LHB_SYNC(A.D);await T2.settled({});await T2.settled({});
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++  assert.equal((await late()).status,409,'la que repone ya no hace falta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r7): la marca de agua queda en una sola llave tras varias subidas, y salir la borra',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  for(const c of ['c2','c3','c4']){A.edit(d=>{d.ratings[c]=3});await A.sync()}
++  const hw=()=>[...A.ls.keys()].filter(k=>k.startsWith('lhb_mihoja_v1_hw.'));
++  assert.deepEqual(hw(),['lhb_mihoja_v1_hw.user_a.'+srv28(a,'user_a').rev],'una sola, la del rev de ahora');
++  A.D.wait=async()=>{};const st=await A.eng.settled({});assert.equal(st.ok,true);assert.equal(await A.eng.forget(st.mark),true);
++  assert.deepEqual(hw(),[],'salir la borra');
++ }finally{a.done()}});
++test('LHB-104 (Codex r7): ni la base nueva ni su marca de agua se pueden anotar: la pestaña no quita su anotación, y al recargar a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let n=0;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,...r);throw new TypeError('sin respuesta')}throw new TypeError('sin red')}return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  A.edit(d=>{d.favs.artesanos=['a1']});
++  A.st.failKey='lhb_mihoja_v1_sync';A.st.failPre='lhb_mihoja_v1_hw.';const r=await A.sync();A.st.failKey=null;A.st.failPre=null;assert.ok(!r.ok,'la pasada no terminó');
++  A.D.api=api;const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r7): la subida llega (200) mientras la persona vuelve a poner a1, y ni la base nueva ni su marca de agua se pueden anotar: la anotación se queda, y al recargar a1 sigue',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  A.net.afterPut=async()=>{A.edit(d=>{d.favs.artesanos=['a1']});A.st.failKey='lhb_mihoja_v1_sync';A.st.failPre='lhb_mihoja_v1_hw.'};
++  A.edit(d=>{d.favs.artesanos=[]});const r=await A.eng.run('guardado');A.st.failKey=null;A.st.failPre=null;
++  assert.ok(!r.ok,'la pasada no terminó');assert.equal(srv28(a,'user_a').rev,2,'la quita llegó');
++  const T3=SYNC28().LHB_SYNC(A.D);assert.equal((await T3.run('recarga')).ok,true);
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r7): la persona quitó a1 y la pestaña 1 ya lo subió (rev 2) mientras la respuesta del GET de la 2 (rev 1, con a1) estaba en camino: la 2 no lo trae de vuelta',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let open=null,paused=false;
++  const D2={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!paused){paused=true;const g=await api(C,m,...r);await new Promise(x=>{open=x});return g}return api(C,m,...r)}};
++  A.edit(d=>{d.favs.artesanos=[]});
++  const T2=SYNC28().LHB_SYNC(D2);const p2=T2.run('x');
++  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la respuesta del rev 1 espera');
++  assert.equal((await A.sync()).ok,true);assert.equal(srv28(a,'user_a').rev,2);assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'la quita llegó');
++  open();await p2;await T2.run('y');
++  assert.deepEqual(A.doc().favs.artesanos,[],'a1 no vuelve al teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'ni a la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r8): la marca de agua de la meta tachada no se puede escribir: la anotación se queda, y una meta vieja escrita tarde no hace perder a1',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;let once=true;
++  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
++  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la nota de la 1 llegó sin respuesta');
++  let n=0,late=null;
++  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)}};
++  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
++  /* la 1 quita a1; su changed() escribe la meta del rev 2 tarde (se guarda y se escribe al final) */
++  const s0=A.D.ls.set;let hold=true,held=null,hw3=0;
++  A.D.ls.set=(k,v)=>{if(hold&&k==='lhb_mihoja_v1_sync'){held=v;hold=false;return}if(k==='lhb_mihoja_v1_hw.user_a.3'){hw3++;throw new Error('QuotaExceededError')}return s0(k,v)};
++  A.edit(d=>{d.favs.artesanos=[]});assert.ok(held,'la escritura de la 1 quedó para después');
++  await B.run('quita');assert.equal(srv28(a,'user_a').rev,3,'la quita llegó');
++  {const prev=A.ls.get(A.KEY);const d=A.doc();d.favs.artesanos=['a1'];A.ls.set(A.KEY,JSON.stringify(d));B.changed(prev)}
++  await B.run('aprende');assert.ok(hw3>0,'la marca del rev 3 no se pudo escribir');assert.ok(late,'la que repone a1 quedó sin respuesta');
++  s0('lhb_mihoja_v1_sync',held);A.D.ls.set=s0;
++  A.D.wait=async()=>{};await A.eng.settled({});
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r8): las subidas que llegaron se olvidan de la memoria de la pestaña',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  for(let i=0;i<12;i++){A.edit(d=>{d.ratings['c'+(i+2)]=3});assert.equal((await A.sync()).ok,true)}
++  assert.equal(srv28(a,'user_a').rev,13);assert.equal([...A.ls.keys()].filter(isP104).length,0,'nada anotado');assert.equal(A.eng._myOps(),0,'y nada en memoria');
++ }finally{a.done()}});
++test('LHB-104 (Codex r9): una escritura tardía deja la meta con el mismo texto que la pestaña leyó, mientras otra pestaña sube la marca de agua: la pestaña no usa la base vieja y a1 se queda',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();assert.equal(srv28(a,'user_a').rev,1);
++  const R0=A.ls.get('lhb_mihoja_v1_sync');assert.ok(R0,'la meta del rev 1');
++  const api=A.D.api;let open=null,gated=false;
++  const DT={...A.D,api:async(C,m,...r)=>{if(m==='GET'&&!gated){gated=true;await new Promise(x=>{open=x})}return api(C,m,...r)}};
++  const T=SYNC28().LHB_SYNC(DT);const pT=T.run('t');
++  for(let i=0;i<400&&!open;i++)await new Promise(x=>setTimeout(x,5));assert.ok(open,'la pestaña T espera su GET');
++  let n=0;A.D.api=async(C,m,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,...r);throw new TypeError('sin respuesta')}throw new TypeError('sin red')}return api(C,m,...r)};
++  A.edit(d=>{d.favs.artesanos=[]});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la quita llegó sin respuesta');
++  A.edit(d=>{d.favs.artesanos=['a1']});await A.sync();assert.equal(A.ls.get('lhb_mihoja_v1_hw.user_a.2'),'1','la marca del rev 2');
++  A.ls.set('lhb_mihoja_v1_sync',R0);
++  open();await pT;
++  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
++ }finally{a.done()}});
++test('LHB-104 (Codex r9): las subidas que otra pestaña supo que llegaron, y las que el servidor rechazó, se olvidan de la memoria',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api,B=SYNC28().LHB_SYNC({...A.D,api});
++  for(let i=0;i<3;i++){let once=true;A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
++   A.edit(d=>{d.ratings['c'+(i+2)]=3});await A.sync();await B.run('aprende');A.D.api=api;assert.equal((await A.sync()).ok,true)}
++  assert.equal([...A.ls.keys()].filter(isP104).length,0,'nada anotado');assert.equal(A.eng._myOps(),0,'y nada en memoria (supo otra pestaña)');
++  A.D.api=async(C,m,...r)=>m==='PUT'?{status:400,body:{error:'bad'}}:api(C,m,...r);
++  for(let i=0;i<3;i++){A.edit(d=>{d.ratings['r'+i]=2});const r=await A.sync();assert.ok(!r.ok,'rechazada')}
++  assert.equal([...A.ls.keys()].filter(isP104).length,0,'nada anotado');assert.equal(A.eng._myOps(),0,'y nada en memoria (rechazadas)');
++ }finally{a.done()}});
++test('LHB-104 (Codex r9): la cuenta está por debajo de la marca de agua de este teléfono (la borraron y se creó otra vez): la pasada termina igual, sin base',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();assert.equal(srv28(a,'user_a').rev,1);
++  A.ls.set('lhb_mihoja_v1_hw.user_a.5','1');
++  A.edit(d=>{d.ratings.c9=4});const r=await A.sync();assert.equal(r.ok,true,'la pasada termina');
++  assert.equal(srv28(a,'user_a').doc.ratings.c9,4,'y la cuenta tiene la nota');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'sin dar nada por borrado');
++ }finally{a.done()}});
++test('LHB-104 (Codex r8, con la limpieza de r9): si el teléfono no deja quitar las anotaciones que ya pasaron su If-Match, la anotación se queda para la próxima pasada, pero la memoria de la pestaña la suelta',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const api=A.D.api;A.D.api=async(C,m,...r)=>{if(m==='PUT')throw new TypeError('sin red');return api(C,m,...r)};
++  A.edit(d=>{d.ratings.c2=3});assert.ok(!(await A.sync()).ok,'sin red: no llegó');A.D.api=api;
++  assert.ok([...A.ls.keys()].filter(isP104).length>0,'la subida que no salió queda anotada');assert.ok(A.eng._myOps()>0,'y en la memoria');
++  const rm=A.D.ls.remove;A.D.ls.remove=k=>{if(isP104(k))throw new Error('no se puede');return rm(k)};
++  A.edit(d=>{d.ratings.c3=4});assert.equal((await A.sync()).ok,true,'la pasada termina');assert.equal(srv28(a,'user_a').doc.ratings.c3,4,'la nota está en la cuenta');
++  assert.ok([...A.ls.keys()].filter(isP104).length>0,'la anotación se queda');assert.equal(A.eng._myOps(),0,'la memoria la suelta');
++  A.D.ls.remove=rm;assert.equal((await A.sync()).ok,true);assert.equal([...A.ls.keys()].filter(isP104).length,0,'la próxima pasada la quita');
++ }finally{a.done()}});
++test('LHB-104 (Codex r10): las claves del teléfono se leen de una vez: si otra pestaña borra una marca de agua vieja mientras se leen, la nueva no se pierde',()=>{
++ const hj=read('hoja.js');const m=hj.match(/remove:k=>localStorage\.removeItem\(k\),keys:(\(\)=>(?:\{const o=\[\];[\s\S]*?return o\}|Object\.keys\(localStorage\)))\}/);assert.ok(m,'keys en hoja.js');
++ /* un localStorage de mentira: las claves son propiedades, como en el navegador; en la segunda lectura por índice otra pestaña borra la marca vieja */
++ const L={};let n=0;Object.defineProperties(L,{length:{get:()=>Object.keys(L).length},key:{value:i=>{if(n++===1)delete L['lhb_mihoja_v1_hw.user_a.2'];const k=Object.keys(L)[i];return k===undefined?null:k}}});
++ for(const k of ['lhb_mihoja_v1_hw.user_a.2','lhb_mihoja_v1_hw.user_a.3','otra'])L[k]='1';
++ const got=new Function('localStorage','return '+m[1])(L)();assert.ok(got.includes('lhb_mihoja_v1_hw.user_a.3'),'la marca nueva se lee: '+JSON.stringify(got));
++});
++test('LHB-104 (Codex r11): una subida de otra pestaña todavía puede llegar y la persona acaba de descargar el respaldo: salir sí borra, y la anotación se queda para la próxima entrada',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();A.D.wait=async()=>{};
++  const P='lhb_mihoja_v1_pend.otra_pestana';/* Codex r11: anotada en un If-Match más alto que el rev de la cuenta (la cuenta se borró y se volvió a crear): sigue pudiendo llegar */
++  A.ls.set(P,JSON.stringify({v:1,s:'user_a',r:srv28(a,'user_a').rev+4,o:'otra_pestana'}));
++  assert.equal((await A.eng.settled({})).ok,false,'sin respaldo, no está a salvo');
++  const st=await A.eng.settled({backup:A.X.canon(A.D.getDoc())});assert.equal(st.ok,true);assert.equal(st.via,'backup');
++  assert.equal(await A.eng.forget(st.mark),true,'con el respaldo, salir borra');assert.equal(A.ls.get(A.KEY),null,'la copia se borró');
++  assert.ok(A.ls.get(P)!=null,'la anotación se queda');
++  /* y el respaldo no abre la puerta si la copia cambió desde que se revisó */
++  const B=DEV28(a,'user_a');B.seed(DOC28);await B.sync();B.D.wait=async()=>{};
++  const s2=await B.eng.settled({backup:B.X.canon(B.D.getDoc())});assert.equal(s2.ok,true);B.edit(d=>{d.ratings.c9=4});
++  assert.equal(await B.eng.forget(s2.mark),false,'la copia cambió: no se borra');assert.ok(B.ls.get(B.KEY)!=null);
++ }finally{a.done()}});
++test('LHB-104 (Codex r11): borrar la cuenta en este teléfono quita también sus subidas anotadas (las de otra cuenta se quedan)',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  A.ls.set('lhb_mihoja_v1_pend.op1',JSON.stringify({v:1,s:'user_a',r:1,o:'op1'}));A.ls.set('lhb_mihoja_v1_pend.x.1.user_a',JSON.stringify({v:1,s:'user_a',r:1,x:true}));
++  A.ls.set('lhb_mihoja_v1_pend.op2',JSON.stringify({v:1,s:'user_b',r:1,o:'op2'}));
++  assert.equal(await A.eng.forget(),true);
++  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith('lhb_mihoja_v1_pend.')),['lhb_mihoja_v1_pend.op2'],'solo queda la de otra cuenta');
++ }finally{a.done()}});
+ test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
+  for(const lose of [false,true]){const a=await ENG28();
+   try{
+
+2026-10-30T05:14:34.269267Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-30T05:14:34.979608Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The backup exception creates a new deletion gate, so its safety depends on the exact mark and fence checks. I’ll review those paths, the other META writers, and the repository tests without loading skills or editing files.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\LHB\lhb-104-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-30T05:14:40.044581Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The Node fallback works; the shell failed to start. The source matches the requested round-12 diff, and the full suite is running. I’m checking writes that can occur between the backup comparison and deletion, including reads that throw.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All 132 focused LHB-28, LHB-31, LHB-80, and LHB-104 tests pass. The backup bypass is conditional on `mark.via === 'backup'`; both copy checks and fence writes remain in place. I’m probing failures around those checks and account-specific cleanup.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The probes preserve the copy when it changes before deletion or during the fence wait, when either fence write fails, and when a copy-check read fails. A normal sync mark still rejects a newly recorded upload. Account-deletion probes preserve the other account’s ID and overflow entries. I’m finishing a storage-failure sweep of the original reproduction.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The original reproduction survived all 129 single storage-failure injections, covering both a queued upload and one that had already landed. All 32 existing sign-out and Web Locks integration tests also pass. [Likely] I have no remaining release-blocking finding; exhaustive browser interleavings remain NOT VERIFIED.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Exhaustive browser interleavings remain NOT VERIFIED, but I found no defect requiring another release block.
+
+- [Certain] **R11-1: CONCUR.** [settled(), line 391](/C:/LHB/lhb-104-wt/site/sync.js:391) sets `mark.via='backup'` only after the backup comparison. [forget(), line 421](/C:/LHB/lhb-104-wt/site/sync.js:421) exempts only that marked sign-out from the shared-entry check. Both copy checks and fence writes remain. Probes rejected changed copies, another tab’s write during the wait, failed fence writes, and failed copy-check reads.
+- [Certain] **R11-2: CONCUR.** [forget(), line 426](/C:/LHB/lhb-104-wt/site/sync.js:426) filters deletion cleanup through `subs.includes(x.s)`. Probes preserved the other account’s ID and overflow entries, including failure-and-retry cases.
+- [Likely] No additional stale-base regression found in `poison()`, `changed()`, `setOwner()`, or `isolate()`. No additional bound or healthy-network recovery defect was reproduced beyond the declared account-recreation limits.
+
+[Certain] Validation passed: **132 synchronization tests, 32 sign-out/Web Locks integration tests, and 129 single storage-failure injections** across the queued and already-landed reproduction paths.
+
+[Certain] The full-suite run exited unsuccessfully without a complete summary. Its observed LHB-44 failure reproduced as missing Python subprocess output. Shell startup failed; review used Node. No files were edited or skills loaded.
+
+VERDICT: PASS
+tokens used
+134,377
+[Certain] Exhaustive browser interleavings remain NOT VERIFIED, but I found no defect requiring another release block.
+
+- [Certain] **R11-1: CONCUR.** [settled(), line 391](/C:/LHB/lhb-104-wt/site/sync.js:391) sets `mark.via='backup'` only after the backup comparison. [forget(), line 421](/C:/LHB/lhb-104-wt/site/sync.js:421) exempts only that marked sign-out from the shared-entry check. Both copy checks and fence writes remain. Probes rejected changed copies, another tab’s write during the wait, failed fence writes, and failed copy-check reads.
+- [Certain] **R11-2: CONCUR.** [forget(), line 426](/C:/LHB/lhb-104-wt/site/sync.js:426) filters deletion cleanup through `subs.includes(x.s)`. Probes preserved the other account’s ID and overflow entries, including failure-and-retry cases.
+- [Likely] No additional stale-base regression found in `poison()`, `changed()`, `setOwner()`, or `isolate()`. No additional bound or healthy-network recovery defect was reproduced beyond the declared account-recreation limits.
+
+[Certain] Validation passed: **132 synchronization tests, 32 sign-out/Web Locks integration tests, and 129 single storage-failure injections** across the queued and already-landed reproduction paths.
+
+[Certain] The full-suite run exited unsuccessfully without a complete summary. Its observed LHB-44 failure reproduced as missing Python subprocess output. Shell startup failed; review used Node. No files were edited or skills loaded.
+
+VERDICT: PASS
