@@ -135,8 +135,9 @@ h2{font-size:var(--fs-4)}
 .lbtn.web{color:var(--info-ink)}
 .lbtn.buy{color:var(--accent-ink)}
 .lbtn.go-map{background:var(--accent);border:0;color:var(--on-accent)}
-/* LHB-110 (Codex r4): en el evento ancla la llena es Confirmar (RSVP); Cómo llegar va con borde */
-.anchor .lbtn.go-map{background:var(--card);border:1px solid var(--line);color:var(--accent-ink)}
+/* LHB-110 (Codex r4 y r6): Cómo llegar es la llena solo donde es la única acción (la burbuja del mapa); en el evento ancla la llena es Confirmar,
+   y en las tarjetas y filas que se repiten (los eventos, la lista de lugares) va con borde, para que la vista no tenga una llena por fila */
+.anchor .lbtn.go-map,.ev .lbtn.go-map,.list .lbtn.go-map{background:var(--card);border:1px solid var(--line);color:var(--accent-ink)}
 .lbtn[aria-disabled="true"]{opacity:.45}
 .lbtn svg{width:17px;height:17px;fill:currentColor}
 .form{display:flex;flex-direction:column;gap:14px}
@@ -599,6 +600,8 @@ body.sheet-on{overflow:hidden}
 .pf-counts a{display:block;color:inherit;text-decoration:none}
 .fw-b{min-width:112px}.fw-b.on{background:transparent;color:var(--accent-ink);border:1px solid var(--accent-ink)}
 .fw-row:empty{display:none}.fw-row .fw-b{min-width:96px;padding:8px 12px;font-size:var(--fs-2)}
+/* LHB-110 (Codex r6): en las listas, Seguir va con borde en cada fila; Siguiendo, más quieto */
+.fw-row .fw-b{background:transparent;color:var(--accent-ink);border:1px solid var(--accent-ink)}.fw-row .fw-b.on{border-color:var(--line);color:var(--on-surface-2)}
 /* LHB-61: Siguiendo, las catas de quienes sigues: el autor arriba (como en Personas) y la cata debajo */
 .feed{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:12px}
 .feed-c{display:flex;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:12px}

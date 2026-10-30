@@ -21,6 +21,9 @@ MUTS = [
     ('site/styles.css', 'Codex r1: a bitmap through CSS', '.lart{', '.hero::after{background:url(img/hero/banner.webp)}.lart{'),
     ('site/styles.css', 'Codex r1: the accent not painted', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{}'),
     ('site/styles.css', 'Codex r1: the empty state without its accent', 'background:radial-gradient(7px 4.9px at 50.4px 22.4px,var(--warm) 100%,var(--on-surface) 100%);', 'background:var(--on-surface);'),
+    ('site/404.html', 'Codex r2: a coloured SVG with an icon viewBox on a static page', '</body>', '<svg style="width:200px;height:200px" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="red"/><circle cx="12" cy="12" r="5" fill="blue"/></svg></body>'),
+    ('site/u.css', 'Codex r2: an SVG background through u.css', ':root{', 'body{background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22%3E%3Ccircle r=%2250%22 fill=%22red%22/%3E%3C/svg%3E")}:root{'),
+    ('site/hoja.js', 'Codex r2: a coloured SVG with an icon viewBox in a template', 'const CAL_ICO=', 'const CAL_X=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#e33"/></svg>`;const CAL_ICO='),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
