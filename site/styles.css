@@ -699,5 +699,5 @@ body.sheet-on{overflow:hidden}
    y la litografía de la caja. Sigue al tema; la silueta del cigarro y el aquí del mapa van sobre fondos claros fijos (el marco de la foto, el mapa), así que su tinta es fija */
 .lart{--art-ink:var(--on-surface);--art-ac:var(--warm);fill:none;stroke:var(--art-ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .lart .ac{fill:var(--art-ac)}.lart .acs{stroke:var(--art-ac)}.lart .bg{fill:var(--surface)}.lart .th{stroke-width:5}.lart .fn{stroke-width:1.4}
-.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}.lart.aqui .bg{fill:var(--photo)}.lart.sil{stroke-width:4}.lart.sil .fn{stroke-width:2.4}
+.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}.lart.aqui .bg{fill:var(--photo)}.lart.sil{stroke-width:7}.lart.sil .fn{stroke-width:4}
 .card .ph .sil,.detail-ph .sil{width:100%;height:auto;aspect-ratio:2/1}

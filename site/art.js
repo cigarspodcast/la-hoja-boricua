@@ -45,11 +45,11 @@ const CAJA=`<path d="M32 50L40 14H112L104 50"/><path class="fn" d="M45 20H105L10
 const caja=(cls='')=>LA('caja',cls,'0 0 120 100',CAJA);
 /* LHB-111: el cigarro sin foto, una silueta de línea neutra en el mismo marco 2:1 que las fotos de producto. lit (los colores ya resueltos) es para la imagen
    para compartir, que la dibuja como imagen suelta y no lee la hoja de estilos */
-function silueta(label,lit){const st=lit?` fill="none" stroke="${lit.ink}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"`:'',ac=lit?` fill="${lit.ac}"`:'',fn=lit?` stroke-width="2.4"`:'';
+function silueta(label,lit){const st=lit?` fill="none" stroke="${lit.ink}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"`:'',ac=lit?` fill="${lit.ac}"`:'',fn=lit?` stroke-width="4"`:'';
  return `<svg class="lart sil" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300"${label?` role="img" aria-label="${label}"`:' aria-hidden="true" focusable="false"'}${st}>
- <path d="M100 128H466C492 128 506 139 506 150C506 161 492 172 466 172H100"/><ellipse cx="100" cy="150" rx="8" ry="22"/>
- <path class="fn"${fn} d="M150 137q60 7 120-2M196 163q70-6 150 2M298 140q40 4 80-1M486 131c-9 7-9 31 0 38"/>
- <rect class="ac"${ac} x="404" y="125" width="34" height="50" rx="4"/></svg>`}
+ <path d="M96 122H462C494 122 510 136 510 150C510 164 494 178 462 178H96"/><ellipse cx="96" cy="150" rx="10" ry="28"/>
+ <path class="fn"${fn} d="M150 136q60 8 120-2M196 165q70-7 150 2M298 140q40 5 80-1M486 126c-11 9-11 39 0 48"/>
+ <rect class="ac"${ac} x="402" y="118" width="38" height="64" rx="5"/></svg>`}
 /* el mapa: aquí estás */
 const aqui=(cls='')=>LA('aqui',cls,'0 0 30 30',`<circle class="bg" cx="15" cy="15" r="11"/><circle cx="15" cy="15" r="11"/><circle class="ac" cx="15" cy="15" r="4.5"/>`);
 /* la hoja de tabaco en los íconos y los pines: no es ilustración, es un ícono con su color (lounge o tienda, la hoja ganada) */
