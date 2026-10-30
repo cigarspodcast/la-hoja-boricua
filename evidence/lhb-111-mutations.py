@@ -66,6 +66,8 @@ MUTS = [
     ('site/404.html', 'Codex r13: an HTML character reference that spells url in a style attribute of a static page', '<body', '<body style="background:u&#114;l(/img/hero/banner.webp)"'),
     ('site/app.js', 'Codex r13: a decorative bitmap reached by climbing out of an allowed folder', "${cigarSVG(c)}</div>`)(fotoOf(c))}", "${cigarSVG(c)}<img src=\"img/hero/../guagua/guagua_recorte.webp\" alt=\"\"></div>`)(fotoOf(c))}"),
     ('site/404.html', 'Codex r13: a stylesheet in a data URI with an encoded url', '</head>', '<link rel="stylesheet" href="data:text/css,body%7Bbackground:u%72l(/img/hero/banner.webp)%7D"></head>'),
+    ('site/404.html', 'Codex r14: character references in a stylesheet link', '</head>', '<link rel="style&#115;heet" href="data&#58;text/css,body%7Bbackground:u%72l(/img/hero/banner.webp)%7D"></head>'),
+    ('site/hoja.js', 'Codex r14: a stylesheet link made by a script with an escaped name', 'const CAL_ICO=', "const CAL_X=()=>{const l=document.createElement('link');l.rel='stylesheet';l.href='deco\\x2ecss';document.head.append(l)};const CAL_ICO="),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

@@ -56,6 +56,8 @@ Codex r13: an HTML character reference that spells url in a style attribute of t
 Codex r13: an HTML character reference that spells url in a style attribute of a static page RED (caught) (fail 1)
 Codex r13: a decorative bitmap reached by climbing out of an allowed folder RED (caught) (fail 1)
 Codex r13: a stylesheet in a data URI with an encoded url                RED (caught) (fail 1)
+Codex r14: character references in a stylesheet link                     RED (caught) (fail 1)
+Codex r14: a stylesheet link made by a script with an escaped name       RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 59 of 59 red
+RESULT 61 of 61 red

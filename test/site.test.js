@@ -4043,7 +4043,7 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   /* Codex r5: SCRIPT111 sobre muestras: lo de afuera falla, lo del sitio pasa */
   for(const bad of ['`<span style="background:u&#114;l(/img/hero/banner.webp)"></span>`','`<img src="img/hero/../guagua/guagua_recorte.webp" alt="">`','e.src="img/hero/%2e%2e/guagua/guagua_recorte.webp"','`<span style=background:u\\\\72l(/img/hero/banner.webp)></span>`','e.style.background="u\\\\72 l(img/hero/banner.webp)"','e.style.background="\\u0075rl(img/hero/banner.webp)"','e.style.background="Image-\\x53et(a.webp 1x)"','"<a style=\\"background:element(#hero)\\">"','`<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style>`','e.style.backgroundImage="URL(img/hero/banner.webp)"','`<b style="background:image-set(${x} 1x)">`','<canvas id="d"></canvas><script>document.getElementById("d").getContext("2d")</script>','<script>document.createElementNS("http://www.w3.org/2000/svg","svg")</script>','<script>new OffscreenCanvas(9,9)</script>','<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|lienzo|DOM|x:/,bad);
   SCRIPT111('"x":"<a href=\\"#/subir\\" style=\\"color:var(--accent-ink)\\">y</a>",const r=/\\s+\\d\\b/g;','x',0);
-  for(const bad of ['<link rel="stylesheet" href="data:text/css,b%7Bc:d%7D">','<link href=x.css rel=Stylesheet>','<link rel="preload" as="style" href="/otra.css">'])assert.throws(()=>CSSNAME111(bad,'x'),bad);
+  for(const bad of ['<link rel="style&#115;heet" href="otra&#46;css">',"l.href='otra\\x2ecss'","new Blob([c],{type:'text/css'})",'<link rel="stylesheet" href="data:text/css,b%7Bc:d%7D">','<link href=x.css rel=Stylesheet>','<link rel="preload" as="style" href="/otra.css">'])assert.throws(()=>CSSNAME111(bad,'x'),bad);
   CSSNAME111('<link rel="stylesheet" href="styles.css?v=1"><link rel="preconnect" href="https://x.y">','x');
   SCRIPT111('const u=new URL(location.href);`<span style="width:${size}px;background:${bg.replace(/\\s/g,\'\')}">`','x',0);
   SCRIPT111('{"image":"https://lahojaboricua.com/img/cigarros/a.webp","logo":"../icons/icon-512.png"};i.src=\'icons/icon.svg\'','x',0);
@@ -5584,7 +5584,7 @@ const SCRIPT111=(x,where,du,canvas=0)=>{
  assert.equal([...x.matchAll(/data:image\//gi)].length,du,where+': un data URI de imagen');
  /* Codex r12: los escapes se leen como el navegador antes de buscar url( o una función de imagen: los de JavaScript (\u0075, \u{75}, \x75) y los de CSS
     (u\72 l, \l); y el atributo style se lee en toda forma: comillas dobles o simples, comillas escapadas dentro de una cadena (style=\"...\") y sin comillas */
- const D=v=>v.replace(/\\u\{([0-9a-f]+)\}|\\u([0-9a-f]{4})|\\x([0-9a-f]{2})/gi,(_,a,b,c)=>CP111(parseInt(a??b??c,16))).replace(/\\+([0-9a-f]{1,6})\s?|\\+([\s\S])/gi,(_,h,c)=>h?CP111(parseInt(h,16)):c);
+ const D=D111;
  /* Codex r11: el CSS que un script o una página escribe pasa por CSS111: sus bloques <style> y sus atributos style (cada expresión ${...} se aparta antes:
     es un valor de los datos), y todo url( de CSS que escribe (no el new URL( de JavaScript; sin los comentarios de bloque) trae solo una fuente */
  {const t=x.replace(/\/\* [\s\S]*?\*\//g,'');const T=v=>v.replace(new RegExp(TPL111,'g'),'T');
@@ -5603,8 +5603,12 @@ const SITEJS111=()=>{const root=path.join(__dirname,'..','site');const walk=d=>f
 const CSSFILES111=()=>{const root=path.join(__dirname,'..','site');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.css')?[path.relative(root,path.join(d,x.name)).replace(/\\/g,'/')]:[]);return walk(root).filter(f=>f!=='vendor-leaflet.css')};
 const CSSNAME111=(x,where)=>{const known=[...CSSFILES111(),'vendor-leaflet.css'];assert.ok(!/@import\b/i.test(x),where+': un @import');
  /* Codex r13: un <link> de hoja de estilo (o un preload as=style) nombra una hoja que la prueba revisa, en cualquier forma; ninguna hoja en data URI */
- assert.ok(!/data:text\/css/i.test(x),where+': una hoja de estilo en data URI');
- for(const m of x.matchAll(/<link\b[^>]*>/gi)){const a=new Map(ATTR111(m[0]));const rel=(a.get('rel')||'').toLowerCase();
+ /* Codex r14: un <link> no lleva referencias de carácter de HTML (style&#115;heet, otra&#46;css): hoy ninguno lleva un &; los nombres se leen también con
+    los escapes de JavaScript vueltos caracteres (otra\x2ecss); y ninguna hoja hecha de texto: nada de text/css (ni data URI ni Blob) */
+ assert.ok(!/text\/css/i.test(D111(x)),where+': una hoja de estilo hecha de texto (data URI o Blob)');
+ for(const m of D111(x).matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*\/?[\w./-]+\.css)(?![\w])/gi)){const n=m[1].replace(/^https:\/\/lahojaboricua\.com\//,'').replace(/^(\.\.\/)+|^\//g,'');
+  assert.ok(known.includes(n)||(n==='l.css'&&/^lugares\//.test(where.replace(/\\/g,'/'))),where+': nombra (con escapes) una hoja de estilo que la prueba no revisa: '+m[1])}
+ for(const m of x.matchAll(/<link\b[^>]*>/gi)){assert.ok(!m[0].includes('&'),where+': una referencia de carácter de HTML en un <link>: '+m[0].slice(0,90));const a=new Map(ATTR111(m[0]));const rel=(a.get('rel')||'').toLowerCase();
   if(/\bstylesheet\b/.test(rel)||(/\bpreload\b/.test(rel)&&(a.get('as')||'').toLowerCase()==='style')){const n=(a.get('href')||'').replace(/^https:\/\/lahojaboricua\.com\//,'').replace(/^(\.\.\/)+|^\//g,'').replace(/\?.*$/,'');
    assert.ok(known.includes(n)||(n==='l.css'&&/^lugares\//.test(where.replace(/\\/g,'/'))),where+': un <link> a una hoja que la prueba no revisa: '+m[0].slice(0,90))}}
  for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*\/?[\w./-]+\.css)(?![\w])/gi)){const n=m[1].replace(/^https:\/\/lahojaboricua\.com\//,'').replace(/^(\.\.\/)+|^\//g,'');
@@ -5618,6 +5622,8 @@ const FUNCJS111=()=>{const root=path.join(__dirname,'..','functions');const walk
 /* LHB-111 (Codex r13): un atributo style no lleva referencias de carácter de HTML (u&#114;l es url para el navegador): hoy ninguno lleva un & */
 const STYLE111=(v,where)=>{assert.ok(!v.includes('&'),where+': una referencia de carácter de HTML en un atributo style');CSS111(v,where,false)};
 const CP111=n=>n>0&&n<=0x10ffff?String.fromCodePoint(n):'\ufffd';
+/* LHB-111 (Codex r12, r14): el texto leído como lo leen JavaScript y CSS: sus escapes (\u0075, \u{75}, \x75; u\72 l, \l) vueltos sus caracteres */
+const D111=v=>v.replace(/\\u\{([0-9a-f]+)\}|\\u([0-9a-f]{4})|\\x([0-9a-f]{2})/gi,(_,a,b,c)=>CP111(parseInt(a??b??c,16))).replace(/\\+([0-9a-f]{1,6})\s?|\\+([\s\S])/gi,(_,h,c)=>h?CP111(parseInt(h,16)):c);
 const CSS111=(c,where,svgOK)=>{c=c.replace(/\/\*[\s\S]*?\*\//g,'');assert.ok(!c.includes('\\'),where+': un escape de CSS');
  assert.ok(!/@import\b|\b(image-set|paint|element|cross-fade|src|-webkit-canvas|-moz-element)\s*\(/i.test(c),where+': @import o una imagen pintada por CSS');
  for(const m of c.matchAll(/\burl\(\s*['"]?([^'")]*)/gi))assert.ok(/^\/?fonts\/[a-z0-9-]+\.woff2$/.test(m[1])||(svgOK&&m[1].startsWith('data:image/svg+xml')),where+': url('+m[1].slice(0,60))};
