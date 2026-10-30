@@ -63,14 +63,14 @@ str: Costó prender
 str: Necesitó retoque
 str: La Hoja Boricua ·
 str: PRODID:-//La Hoja Boricua//ES
-str: 64px Shrikhand
+str: 600 64px Fraunces
 str: 600 36px Figtree
 str: 700 30px Figtree
-str: 64px Shrikhand
+str: 600 64px Fraunces
 str: 600 24px Figtree
 str: 600 20px Figtree
-str: 68px Shrikhand
-str: 56px Shrikhand
+str: 600 68px Fraunces
+str: 600 56px Fraunces
 str: 600 34px Figtree
 str: 700 20px Figtree
 str: 700 30px Figtree
