@@ -1,0 +1,38 @@
+✔ LHB-110: el tema oscuro: los dos bloques con los mismos valores, solo tokens, cada token de papel con su valor de noche, y cada par pasa el contraste (9.7608ms)
+ℹ de noche: 79 pares declarados, 0 no pasan
+ℹ de noche: 73 pares pintados, 0 no pasan
+✖ LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra (13.9463ms)
+✔ LHB-110 (Codex r2): la burbuja del mapa, las insignias del pasaporte y la palabra resaltada del pasaporte, de día y de noche (2.2174ms)
+✔ LHB-110 (Codex r3): la equis de la burbuja del mapa se lee de día y de noche, también al pasar o con el foco, y le gana a la de Leaflet (0.6754ms)
+✔ LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar (10.9292ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 126.3315
+
+✖ failing tests:
+
+test at test\site.test.js:3904:1
+✖ LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra (13.9463ms)
+  AssertionError [ERR_ASSERTION]: en el evento ancla, una sola llena: .btn .lbtn.go-map
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red4\test\site.test.js:3935:38)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ '.btn', '.lbtn.go-map' ],
+    expected: [ '.btn' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+ℹ pass 0
+ℹ fail 1
+  AssertionError [ERR_ASSERTION]: la fuente del evento: color:var(--on-surface-2)

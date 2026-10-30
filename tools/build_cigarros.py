@@ -31,7 +31,7 @@ HEAD = """<!doctype html>
 <link rel="stylesheet" href="../lugares/l.css">
 {ld}</head>
 <body>
-<header><a class="brand" href="../">La Hoja <em>Boricua</em></a><a class="app" href="{app}">Abrir en la app</a></header>
+<header><a class="brand" href="../"><img src="../icons/icon.svg" alt="" width="30" height="30"><span class="brand-text"><span class="brand-name">La Hoja <em>Boricua</em></span><span class="brand-sub" lang="es">Hecho en Borinquen</span></span></a><a class="app" href="{app}">Abrir en la app</a></header>
 <main>
 """
 FOOT = """</main>

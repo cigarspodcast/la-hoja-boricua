@@ -1,0 +1,114 @@
+✖ LHB-110: el tema oscuro: los dos bloques con los mismos valores, solo tokens, cada token de papel con su valor de noche, y cada par pasa el contraste (3.0862ms)
+✖ LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra (1.7276ms)
+✖ LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar (0.363ms)
+✖ LHB-68: l.css y u.css usan los tokens de la app con los mismos valores, sin un color suelto fuera de :root, y Fraunces con Figtree (1.1023ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 98.5565
+
+✖ failing tests:
+
+test at test\site.test.js:3881:1
+✖ LHB-110: el tema oscuro: los dos bloques con los mismos valores, solo tokens, cada token de papel con su valor de noche, y cada par pasa el contraste (3.0862ms)
+  AssertionError [ERR_ASSERTION]: al teléfono y elegido en el menú
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red110\test\site.test.js:3882:91)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3898:1
+✖ LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra (1.7276ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:
+  
+  [
+    '.badges .badge.on:nth-child(4n+3)',
+    '.badges .badge.on:nth-child(4n+3) span',
+    '.btn',
+    '.card .fav-dot',
+    '.fav-btn[aria-pressed="true"]',
+    '.flag-band',
+    '.heart[aria-pressed="true"]',
+    '.hint.hs-bad',
+    '.lbtn.go-map',
+    '.legend .lounge',
+    '.pill.f-fuerte',
+    '.pin-group span',
+    '.pin.lounge',
+    '.pop .pl-act .heart[aria-pressed="true"]',
+    '.stamps .stamp:nth-child(4n+3)',
+    '.stamps .stamp:nth-child(4n+3)[aria-pressed="true"]',
+    '.stamps .stamp:nth-child(4n+3)[aria-pressed="true"] s...
+  
+  should loosely deep-equal
+  
+  [
+    '.btn.danger',
+    '.flag-band',
+    '.hint.hs-bad',
+    '.tab-plus .plus'
+  ]
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red110\test\site.test.js:3903:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '.badges .badge.on:nth-child(4n+3)', '.badges .badge.on:nth-child(4n+3) span', '.btn', '.card .fav-dot', '.fav-btn[aria-pressed="true"]', '.flag-band', '.heart[aria-pressed="true"]', '.hint.hs-bad', '.lbtn.go-map', '.legend .lounge', '.pill.f-fuerte', '.pin-group span', '.pin.lounge', '.pop .pl-act .heart[aria-pressed="true"]', '.stamps .stamp:nth-child(4n+3)', '.stamps .stamp:nth-child(4n+3)[aria-pressed="true"]', '.stamps .stamp:nth-child(4n+3)[aria-pressed="true"] span', '.stamps .stamp:nth-child(4n+3)[aria-pressed="true"]::after', '.tab-plus .plus', '.zs.ok' ],
+    expected: [ '.btn.danger', '.flag-band', '.hint.hs-bad', '.tab-plus .plus' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3921:1
+✖ LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar (0.363ms)
+  AssertionError [ERR_ASSERTION]: la barra del teléfono en los dos temas
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red110\test\site.test.js:3922:37)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:5548:1
+✖ LHB-68: l.css y u.css usan los tokens de la app con los mismos valores, sin un color suelto fuera de :root, y Fraunces con Figtree (1.1023ms)
+  AssertionError [ERR_ASSERTION]: lugares/l.css: su tema oscuro
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red110\test\site.test.js:5556:36)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at node:internal/test_runner/test:1305:31
+      at node:internal/process/task_queues:151:7
+      at AsyncResource.runInAsyncScope (node:async_hooks:227:14)
+      at AsyncResource.runMicrotask (node:internal/process/task_queues:148:8) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

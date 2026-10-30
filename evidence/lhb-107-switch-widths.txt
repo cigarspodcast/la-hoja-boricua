@@ -1,0 +1,11 @@
+LHB-107 (Codex r1 P2): widths of the language switch labels at the new 14 px step (--fs-2), measured about 2026-10-30T03:28Z
+in the browser pane on the marca branch preview (cache lhb-v150, Figtree loaded, document.fonts.ready), one hidden
+button.lang-switch per label with min-width 0, border-box, padding as in styles.css (12 px long, 10 px short).
+Counting basis: getBoundingClientRect().width in CSS px, rounded to 0.01.
+
+Espanol (long, es)   77.38
+English (long, en)   73.30
+ES (short, es)       38.96
+EN (short, en)       41.26
+
+Reserved: min-width 78px (long), 42px under 400 px (short). Previous reservations 74px and 40px (LHB-93, measured at 13 px).

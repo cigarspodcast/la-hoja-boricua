@@ -1,0 +1,17 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-marca-wt (branch marca, cut from origin/main b8b2b89). TIER 2, round 1.
+
+Ticket LHB-107 (M8-1): Fraunces as the only display face, a six-step type scale and three radii.
+Pinned decisions:
+- Shrikhand is retired everywhere: the font file, its @font-face, the service worker's cache list and the share image drawn on a canvas in hoja.js. Fraunces 600 (the file already in the repo) is the only display face; Figtree stays for interface and body.
+- Six type steps as tokens on :root: --fs-1 12px, --fs-2 14px, --fs-3 16px, --fs-4 19px, --fs-5 23px, --fs-6 28px. Three radii: --r-s 8px, --r-m 14px, --r-pill 999px (50% stays for circles). Rules read only tokens, in styles.css, u.css and lugares/l.css.
+- Mapping from the old literals: up to 12.5 px to step 1, up to 14.5 to 2, up to 17 to 3, up to 20 to 4, up to 24 to 5, above to 6. Radii up to 10 px to --r-s, below 100 to --r-m, else --r-pill. The old --r (16px) token is replaced by --r-m in rules.
+- Rules that use var(--display) and asked for weight 400 (Shrikhand has one weight) now ask for 600, the Fraunces file's weight.
+- The service worker cache version is lhb-v150 on this branch (the branch is staged on a preview, not merged; LHB-104 will take lhb-v117 on main first).
+Contract impact: none to data or APIs.
+
+Tests added (end of test/site.test.js): (1) no file under site/ names Shrikhand and --display is Fraunces only; (2) every rule outside :root and @font-face in the three stylesheets has no literal font-size, no literal size in a font shorthand, no px radius, and no var(--r). Both fail on origin/main (evidence/lhb-107-red.txt). Each of the three literal kinds was injected into a copy and turned test (2) red.
+Full suite: evidence/lhb-107-tests.txt (411 of 412 pass, 1 skipped).
+
+What to look for: a rule the rewrite broke (a font shorthand whose size became var() in a position the browser rejects, a radius list rewritten wrongly), a visual regression from the mapping that matters (text that now overflows: tab labels at 12 px, the stamp label that was 9 px, the 28 px icon glyphs), any other place that still loads or names Shrikhand (JS, HTML, manifest, tests), canvas fonts in hoja.js that the share image waits on (document.fonts.load must name a face that exists), and anything in the tests that could pass while the rule is broken.
+
+Answer with findings ranked P1 (blocking) to P3, each with file and symbol, then VERDICT: PASS or VERDICT: BLOCK as the last line.

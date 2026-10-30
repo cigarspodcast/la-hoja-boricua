@@ -1,0 +1,576 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\lhb-marca112-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18c68-f9f9-7a82-a47c-15e84621ea2d
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-marca112-wt (branch marca-112, cut from marca-111, which carries LHB-107 (type), LHB-108 (one lockup), LHB-109 (one navigation), LHB-110 (colour roles and the dark theme) and LHB-111 (one illustration language)). TIER 2, round 3.
+
+Ticket LHB-112 (M8-6): a computer layout: top navigation and a wider grid from 900 px.
+Pinned decision:
+- From 900 px the tab destinations move into the top bar, the tab bar is hidden, and the catalogue grid uses three or four columns within a 1200 px measure. Below 900 px nothing changes.
+Proof asked: a browser check at 390 and 1366 px recorded in evidence/ (no horizontal scroll, tab bar hidden only at 1366), and a test that fails if the wide breakpoint is missing; seen red on main.
+
+What changed:
+- site/index.html: a nav.topnav inside the header (between the lockup and the top actions) with the same five destinations as the bottom tab bar (same href, data-tab and data-i18n keys, same order) and the same add button (data-sheet="plus", data-tab="subir", class tab-plus, aria-label ix.plus); named like the tab bar (aria-label ix.tabs).
+- site/app.js: route() marks the current tab in both bars ($$('.tabbar [data-tab],.topnav [data-tab]')); SIZES_GRID gains the computer widths, fitted to what Chrome draws: (min-width:1200px) 260px, (min-width:1100px) calc(25vw - 41px), (min-width:900px) calc(33.33vw - 42px); the entries below 900 px are unchanged.
+- site/styles.css: .topnav{display:none} outside the breakpoint (the only new rule a phone sees); @media (min-width:900px): --tab-h 0 (the bottom bar no longer reserves its height), .tabbar hidden, .topnav shown as a row of pill links (current one in the tobacco soft ground with accent ink), the add button without its lift, the view opened to max-width 1200px with 16 px side padding, detail pages (.view:has(> .back)) kept at 820px, running text at 70ch, the grid at three columns; @media (min-width:1100px): four columns.
+- sw.js: cache lhb-v163 (above marca-111's v162).
+- tools/widths.mjs (the LHB-95 Chrome check): GRID_W gains 899, 900, 1099, 1100, 1199, 1200 and 1366 (every card photo against its sizes at each, never under, at most 3 px over); a new LHB-112 block at 390, 899, 900 and 1366 px checks no sideways scroll, the bottom tab bar drawn below 900 and hidden from 900, the top navigation the reverse with its five destinations and the plus drawn inside it unclipped and Cigarros current, the view at most 1200 px and the grid at three columns from 900 and four from 1100.
+
+Tests: a new LHB-112 test checks that the top navigation mirrors the tab bar (destinations, order, keys, the add button, its name), that it sits in the header, that the router marks both bars, the 900 px block's rules and the 1100 px four columns, that outside those blocks a .topnav rule only hides it, and the Chrome check's evidence read to its last line (RESULT PASS) with its 390 and 1366 lines. It is red on main bfdfeae (no top navigation) and red with the 900 px block removed (evidence/lhb-112-red-main.txt). Older tests updated on purpose: LHB-85 (the drawn widths at 899 to 1440, measured in Chrome), LHB-95 (GRID_W is LHB-85's 14 widths plus the seven new ones), TABS109 and BAR109 (the tab bar is read from its own nav; the header's own links leave out the top navigation copy). Chrome: evidence/lhb-112-widths.txt, RESULT PASS (see below). Full suite with the Chrome check (LHB_BROWSER=1): evidence/lhb-112-tests.txt.
+
+Round 1 (evidence/lhb-112-review-r1.txt) blocked on one; fixed in round 2:
+- R1-1 (P2): an artisan's page (vArtesano, the only view with a back button that renders a cigar grid) sits in the 820 px detail measure, but its cards declared the catalogue's widths. From 900 px that grid now stays at three columns in its measure (.view:has(> .back) .grid{grid-template-columns:repeat(3,minmax(0,1fr))}, inside the 900 px block, more specific than the 1100 px four columns), and its cards are rendered with detail:true and declare SIZES_DETAIL = (min-width:900px) 231px, then the phone entries. The phone entries are one constant, SIZES_PHONE, shared by SIZES_GRID and SIZES_DETAIL. tools/widths.mjs now also measures every card photo on #/a/jfc-hoja-boricua at all 21 widths (drawn 229.8 to 229.9 px from 900 px, declared 231; below 900 px the same as the catalogue). Chrome: evidence/lhb-112-widths.txt, RESULT PASS 122 of 122 checks. The LHB-85 test evaluates the sizes lines in a VM and checks SIZES_DETAIL against those widths; the LHB-112 test requires the detail grid rule (and not in the 1100 px block) and Chrome's artisan lines at 900 and 1366. Red on 1afb77f, the round 1 code (evidence/lhb-112-r1-red.txt). test/i18n-scan.js (the LHB-27 scanner) now reads a sizes media condition as code, which changes only that one string in app.js (checked on app.js, hoja.js, art.js and cuenta.js). marca-111 (LHB-111 through its round 6 fix) is merged in. Full suite with the Chrome check: 426 tests, 426 pass (evidence/lhb-112-tests.txt).
+
+Round 2 (evidence/lhb-112-review-r2.txt) passed. Round 3 reviews the merge of the finished LHB-111 (marca-111 through its round 40 PASS, ab4da0f) into marca-112, which changes no site code of LHB-112:
+- The merge had no conflicts. The cache version stays lhb-v163.
+- LHB-111 now pins the whole paint cascade of the site's stylesheets (PAINT111 against PAINT_PIN111). LHB-112's three new paint declarations, all inside its (min-width:900px) block, were not in that pin: .topnav a:hover{background:var(--card-2)}, .topnav a.active{background:var(--accent-soft)} and .topnav .tab-plus{background:none}. The merged suite failed on exactly that (evidence/lhb-112-merge111-red.txt, 426 tests, 424 pass, 1 fail, the LHB-111 test at the pin). The three entries are inserted in the pin at the position PAINT111 lists them, after the entry before them; nothing else in the pin changes, and the rest of the LHB-111 test (selectors, DOM traversal, VBArt calls, head()) passes on LHB-112's app.js and index.html as they are.
+- Full suite with the Chrome check (LHB_BROWSER=1): evidence/lhb-112-tests.txt.
+
+What to look for: anything that changes below 900 px (layout, the tab bar, its reserved height, the sheets and the toast that sit above it, the photo sizes); at 900 to 1366 px, a destination or control that does not fit or overlaps the lockup or the top actions, a view whose content still pads for the hidden tab bar, a sheet, toast, map or fixed element placed for the bottom bar; the current tab not marked, or marked twice for a screen reader (two navs with aria-current), keyboard order and focus in the header; the photo sizes declaring less than drawn or far more; the dark theme on the top navigation; anything in the tests that could pass while the rule is broken.
+
+Answer with findings ranked P1 (blocking) to P3, each with file and symbol, then VERDICT: PASS or VERDICT: BLOCK as the last line.
+
+TOOLS: if your shell fails to start, use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff marca-111 b6ef85b4e298cac11c04608bf2fb963ba9cf814b -- site test/site.test.js test/i18n-scan.js tools =====
+diff --git a/site/app.js b/site/app.js
+index 28ba6a0..5b9e075 100644
+--- a/site/app.js
++++ b/site/app.js
+@@ -6,7 +6,10 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
+ /* LHB-85: the 320 x 160 twin of a 600 x 300 thumbnail (tools/build_thumbs.py) */
+ const thumbS=t=>String(t).replace(/_thumb\.webp$/,'_thumb-s.webp');
+ // ancho dibujado de la imagen de la tarjeta, medido (evidence/lhb-85-slot-widths.txt); la fila mini (Mi Hoja) es de 140 px fijos
+-const SIZES_GRID='(min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)',SIZES_MINI='116px';
++const SIZES_PHONE='(min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)';
++// LHB-112: desde 900 px la grilla del catálogo se abre (tres columnas, cuatro desde 1100, en 1200 px); la de la página de un artesano queda en la medida de
++// lectura de 820 px, a tres columnas (SIZES_DETAIL). Medidos en Chrome (evidence/lhb-112-widths.txt)
++const SIZES_GRID='(min-width:1200px) 260px, (min-width:1100px) calc(25vw - 41px), (min-width:900px) calc(33.33vw - 42px), '+SIZES_PHONE,SIZES_DETAIL='(min-width:900px) 231px, '+SIZES_PHONE,SIZES_MINI='116px';
+ const view=$('#view');const REDUCED_ALL=matchMedia('(prefers-reduced-motion: reduce)').matches;const VBArt=window.VBArt;const tt=window.LHB_I18N.t;
+ const LS={get(k,d){try{const v=localStorage.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){localStorage.setItem('vb_'+k,JSON.stringify(v))}};
+ /* ---------- IndexedDB for photos ---------- */
+@@ -63,7 +66,7 @@ const emptyBox=msg=>`<div class="empty"><div>${msg}</div></div>`;
+ /* ---------- cards ---------- */
+ const fotoOf=c=>(!c||c.yours||!window.LHB_FOTOS)?null:(window.LHB_FOTOS[c.id]||null);
+ async function hydratePhotos(root=view){for(const el of $$('[data-photo]',root)){const u=await photoURL(el.dataset.photo);if(u){el.innerHTML=`<img src="${u}" alt="">`}}}
+-function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
++function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:c.detail?SIZES_DETAIL:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+  ${favs.includes(c.id)?'<span class="fav-dot" aria-label="'+tt('card.fav')+'">♥</span>':''}
+  <div class="body"><div class="name">${esc(c.nombre)}</div><div class="meta">${esc(artisanName(c))}${c.pueblo?' · '+esc(c.pueblo):''}</div>
+  <div class="pills">${c.capa?`<span class="pill">${esc(fx(c,'capa'))}</span>`:''}${c.fortaleza?`<span class="pill f-${c.fortaleza}">${fortLabel(c.fortaleza)}</span>`:''}${c.yours?'<span class="pill yours">'+tt('card.yours')+'</span>':''}</div></div></a>`}
+@@ -154,7 +157,7 @@ function vArtesano(id){const a=artisanById(id);if(!a){view.innerHTML='<div class
+  ${a.historia?`<p class="story">${esc(fx(a,'historia'))}</p>`:''}
+  <div class="links">${linkBtn('ig',a.instagram,ig||'Instagram')}${linkBtn('wa',a.whatsapp,'WhatsApp')}${linkBtn('web',a.web,tt('link.web'))}${linkBtn('fb',a.facebook,'Facebook')}${linkBtn('yt',a.youtube,'YouTube')}${EXT.firstURL(a.donde_comprar)?linkBtn('buy',EXT.firstURL(a.donde_comprar),tt('link.buy')):''}</div>
+  ${a.donde_comprar?`<p class="notes"><b>${tt('link.buyLbl')}</b> ${esc(EXT.scrub(fx(a,'donde_comprar')))}</p>`:''}
+- ${cs.length?`<div class="section-title"><h2>${tt('art.vitolas')}</h2></div><div class="grid">${cs.map(cigarCard).join('')}</div>`:''}
++ ${cs.length?`<div class="section-title"><h2>${tt('art.vitolas')}</h2></div><div class="grid">${cs.map(c=>cigarCard({...c,detail:true})).join('')}</div>`:''}
+  ${(a.fuentes&&a.fuentes.length)?`<div class="sources">${tt('sources')} ${a.fuentes.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\/(www\.)?/,'').slice(0,48))}</a>`).join(' · ')}</div>`:''}${PROTO_NOTE}`;
+  $('[data-back]').onclick=()=>history.length>1?history.back():(location.hash='#/artesanos');hydratePhotos()}
+ /* ---------- subir ---------- */
+@@ -366,7 +369,7 @@ function menuHTML(hash){const [r0,a0]=String(hash==null?location.hash:hash).repl
+   ...(other?[`<button type="button" class="menu-dest" data-lang="${other[0]}"><span class="menu-ico">${brandIcon('lang')}</span><span class="menu-copy"><b lang="${other[0]}">${other[1]}</b><small>${tt('menu.idiomaSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`]:[]),go('privacidad.html','lock','menu.privacidad','menu.privacidadSub')]};
+  return `<header class="menu-welcome"><div class="eyebrow">${tt('menu.welcome')}</div><h2 class="sheet-h">${tt('menu.title')}</h2></header><nav class="menu-groups" aria-label="${tt('h.menu')}">${MENU_GROUPS.map(([g,label])=>`<section aria-labelledby="mg-${g}"><h3 id="mg-${g}">${label()}</h3>${rows(g).join('')}${(extra[g]||[]).join('')}</section>`).join('')}</nav>`}
+ function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');let id='';if(arg){try{id=decodeURIComponent(arg)}catch(e){id=arg}}
+- const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',u:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});
++ const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',u:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab],.topnav [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});
+  if(leafletMap&&r!=='lugares'){leafletMap.remove();leafletMap=null}
+  (ROUTE_OF[r]||ROUTE_OF.catalogo).go(id);
+  if(r!==route._last){window.scrollTo(0,0)}route._last=h;
+diff --git a/site/index.html b/site/index.html
+index 7902de6..45c2785 100644
+--- a/site/index.html
++++ b/site/index.html
+@@ -37,6 +37,15 @@
+       <img src="icons/icon.svg" alt="" width="34" height="34">
+       <span class="brand-text"><span class="brand-name">La Hoja <em>Boricua</em></span><span class="brand-sub" lang="es">Hecho en Borinquen</span></span>
+     </a>
++    <!-- LHB-112: en la computadora (900 px o más) los destinos de la barra de abajo van aquí arriba y la barra de abajo se esconde; en el teléfono esta no se ve -->
++    <nav class="topnav" aria-label="Secciones" data-i18n-attr="aria-label:ix.tabs">
++      <a href="#/catalogo" data-tab="catalogo"><span data-i18n="menu.cigarros">Cigarros</span></a>
++      <a href="#/artesanos" data-tab="artesanos"><span data-i18n="menu.artesanos">Artesanos</span></a>
++      <a href="#/lugares" data-tab="lugares"><span data-i18n="menu.lugares">Lugares</span></a>
++      <a href="#/eventos" data-tab="eventos"><span data-i18n="menu.eventos">Eventos</span></a>
++      <a href="#/mihoja" data-tab="mihoja"><span data-i18n="menu.mihoja">Mi Hoja</span></a>
++      <button type="button" data-sheet="plus" data-tab="subir" class="tab-plus" aria-label="Nueva cata, añadir al humidor o subir cigarro" data-i18n-attr="aria-label:ix.plus"><span class="plus" aria-hidden="true">+</span></button>
++    </nav>
+     <div class="top-actions">
+       <a class="icon-btn" href="#/buscar" aria-label="Buscar en toda la app" data-i18n-attr="aria-label:ix.searchAll"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></a>
+       <button class="icon-btn" type="button" data-sheet="menu" aria-label="Menú" data-i18n-attr="aria-label:h.menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+diff --git a/site/styles.css b/site/styles.css
+index 035181b..a5cb364 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -710,3 +710,25 @@ body.sheet-on{overflow:hidden}
+ .lart .ac{fill:var(--art-ac)}.lart .acs{stroke:var(--art-ac)}.lart .bg{fill:var(--surface)}.lart .th{stroke-width:5}.lart .fn{stroke-width:1.4}
+ .lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}.lart.aqui .bg{fill:var(--photo)}.lart.sil{stroke-width:7}.lart.sil .fn{stroke-width:4}
+ .card .ph .sil,.detail-ph .sil{width:100%;height:auto;aspect-ratio:2/1}
++/* LHB-112: la computadora. Desde 900 px los destinos van en la barra de arriba (.topnav) y la de abajo se esconde (ya no reserva su alto: --tab-h 0);
++   la vista se abre a 1200 px y el catálogo pasa a tres columnas, y a cuatro desde 1100 px. Las páginas de detalle (las que traen Volver) y el texto
++   corrido guardan su medida de lectura. Por debajo de 900 px nada cambia */
++.topnav{display:none}
++@media (min-width:900px){
++ :root{--tab-h:0px}
++ .tabbar{display:none}
++ .topbar{padding-left:calc(var(--sal) + 24px);padding-right:calc(var(--sar) + 24px)}
++ .topnav{display:flex;align-items:center;justify-content:center;gap:4px;flex:1;min-width:0}
++ .topnav a{display:flex;align-items:center;min-height:40px;padding:0 14px;border-radius:var(--r-pill);text-decoration:none;color:var(--on-surface-2);font-weight:600;font-size:var(--fs-2);white-space:nowrap}
++ .topnav a:hover{background:var(--card-2);color:var(--on-surface)}
++ .topnav a.active{background:var(--accent-soft);color:var(--accent-ink)}
++ .topnav .tab-plus{background:none;border:0;padding:0 0 0 8px;cursor:pointer}
++ .topnav .tab-plus .plus{width:40px;height:40px;margin:0;font-size:var(--fs-5);box-shadow:none}
++ .view{max-width:1200px;padding-left:calc(var(--sal) + 16px);padding-right:calc(var(--sar) + 16px)}
++ .view:has(> .back){max-width:820px}
++ .view p,.view .lead{max-width:70ch}
++ .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
++ /* Codex r1: la grilla de una página de detalle (la de un artesano) queda a tres columnas en su medida de 820 px, también desde 1100 px */
++ .view:has(> .back) .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
++}
++@media (min-width:1100px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+diff --git a/site/sw.js b/site/sw.js
+index f1961fd..4c00e4b 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,5 +1,5 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v162';
++const VERSION='lhb-v163';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+  'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-16.png','icons/favicon-32.png',
+diff --git a/test/i18n-scan.js b/test/i18n-scan.js
+index 026eba4..b191b04 100644
+--- a/test/i18n-scan.js
++++ b/test/i18n-scan.js
+@@ -8,7 +8,8 @@ const ALLOW = new Set(['Cigars Podcast', 'Instagram', 'WhatsApp', 'Facebook', 'Y
+   'Claro', 'Connecticut', 'Natural', 'Colorado', 'Habano', 'Corojo', 'Criollo', 'Maduro', 'Oscuro', 'La Hoja', 'Boricua', 'Puerto Rico']);
+ const stripExpr = s => { let p; do { p = s; s = s.replace(/\$\{[^{}]*\}/g, ''); } while (s !== p); return s; };
+ // LHB-29 (Codex ronda 1): un ";" seguido de espacio y minúscula es prosa ("del pie; debe sentirse"), no código
+-const code = s => /=>|;(?! [a-zà-ÿ])|[{}=|]|&&|\?\?|\(['"]|\bconst\b|\breturn\b|\.(map|join|filter)\(|^[',+]|'$|^\(.*\)$|^use strict$|\w\(/.test(s);
++// LHB-112: una condición de medios de sizes ("(min-width:900px) 231px,") es código
++const code = s => /=>|;(?! [a-zà-ÿ])|[{}=|]|&&|\?\?|\(['"]|\bconst\b|\breturn\b|\.(map|join|filter)\(|^[',+]|'$|^\(.*\)$|^use strict$|\w\(|^\((?:min|max)-width:\d+px\)/.test(s);
+ function scan(src) {
+   src = src.replace(/\/\* [\s\S]*?\*\//g, ''); // comentarios "/* ... */" (no "image/*")
+   const out = [];
+diff --git a/test/site.test.js b/test/site.test.js
+index d29bc9e..f831e9e 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -42,7 +42,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v162'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v163'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -62,24 +62,24 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
+- assert.match(sw,/const VERSION='lhb-v162'/);
++ assert.match(sw,/const VERSION='lhb-v163'/);
+  /* LHB-111: la guagua ya no es ilustración de la app: ni se precachea, ni la nombra art.js, ni queda el archivo */
+  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(!a.includes(g),g);assert.ok(!fs.existsSync(path.join(__dirname,'..','site',g)),g)}
+  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
+  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
+ test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v162'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v163'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
+  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v162'/);
++ assert.match(sw,/const VERSION='lhb-v163'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v162'/);
++ assert.match(sw,/const VERSION='lhb-v163'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
+  /* LHB-111: el estado vacío lleva la caja de cigarros de línea (abajo), ya no la bandera en su asta */
+@@ -102,12 +102,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v162'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v163'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v162'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v163'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes('VBArt.aqui()')&&!js.includes('VBArt.carro'),'LHB-111: el aquí del mapa es de línea');});
+ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -115,7 +115,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
+-test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v162'/)});
++test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v163'/)});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -132,7 +132,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v162/);});
++ assert.match(read('sw.js'),/lhb-v163/);});
+ 
+ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+@@ -145,19 +145,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v162'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v163'/);});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v162'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v163'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v162'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v163'/);});
+ 
+ test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
+  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
+- for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v162'/);});
++ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v163'/);});
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
+@@ -1219,7 +1219,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1466,7 +1466,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v162'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v163'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1644,7 +1644,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1891,7 +1891,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2193,7 +2193,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2476,7 +2476,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v162'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v163'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3445,7 +3445,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v162'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v163'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -3751,13 +3751,21 @@ test('LHB-85: cada miniatura tiene su gemela de 320 x 160, más liviana, y las d
+ });
+ test('LHB-85: la tarjeta escoge con srcset y sizes; la galería usa la gemela',()=>{const app=read('app.js');
+  assert.ok(app.includes("const thumbS=t=>String(t).replace(/_thumb\\.webp$/,'_thumb-s.webp');"),'thumbS');
+- assert.ok(app.includes('<img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}"'),'tarjeta con srcset');
++ assert.ok(app.includes('<img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:c.detail?SIZES_DETAIL:SIZES_GRID}"'),'tarjeta con srcset');
+  // el ancho dibujado, medido en el preview (evidence/lhb-85-slot-widths.txt): sizes nunca por debajo (borroso) ni más de 3 px por encima (descarga de más)
+- const S1=app.match(/const SIZES_GRID='([^']+)',SIZES_MINI='([^']+)';/);assert.ok(S1,'SIZES_GRID y SIZES_MINI');
++ /* LHB-112: los sizes se arman de piezas (SIZES_PHONE va en los dos); se leen corriendo esas líneas */
++ const S0=app.slice(app.indexOf('const SIZES_PHONE='),app.indexOf("SIZES_MINI='116px';")+"SIZES_MINI='116px';".length);assert.ok(S0.length>100&&S0.length<900,'las líneas de sizes');
++ const SZ=require('vm').runInNewContext(S0+';({SIZES_GRID,SIZES_DETAIL,SIZES_MINI})');const S1=[null,SZ.SIZES_GRID,SZ.SIZES_MINI];
+  const at=(sz,vw)=>{for(const part of sz.split(',').map(s=>s.trim())){const m=part.match(/^(?:\(min-width:(\d+)px\)\s+)?(.+)$/);if(m[1]&&vw<+m[1])continue;const v=m[2];let r;
+    if((r=v.match(/^(\d+(?:\.\d+)?)px$/)))return +r[1];if((r=v.match(/^calc\((\d+(?:\.\d+)?)vw - (\d+(?:\.\d+)?)px\)$/)))return vw*r[1]/100-r[2];throw new Error('sizes: '+v)}throw new Error('sin valor a '+vw)};
+- const grid={320:113.4,360:133.5,375:141.1,390:148.8,412:159.6,430:168.9,500:203.9,619:263.8,620:163.6,700:190.4,759:210.3,760:210.5,1024:210.5,1440:210.5};
++ const grid={320:113.4,360:133.5,375:141.1,390:148.8,412:159.6,430:168.9,500:203.9,619:263.8,620:163.6,700:190.4,759:210.3,760:210.5,
++  /* LHB-112: desde 900 px la computadora abre la grilla (tres columnas, cuatro desde 1100, en 1200 px); medido en Chrome (evidence/lhb-112-widths.txt) */
++  899:209.8,900:256.7,1024:298.2,1099:323.3,1100:233.2,1199:258.1,1200:258.3,1366:258.3,1440:258.3};
+  for(const [vw,img] of Object.entries(grid)){const d=at(S1[1],+vw);assert.ok(d>=img&&d-img<=3,'tarjeta a '+vw+' px: sizes '+d+', dibujada '+img)}
++ /* LHB-112 (Codex r1): la página de un artesano: como la grilla por debajo de 900 px, y desde 900 px en la medida de detalle (820 px, tres columnas) */
++ const detail=Object.fromEntries(Object.entries(grid).map(([vw,img])=>[vw,+vw>=900?229.9:img]));
++ for(const [vw,img] of Object.entries(detail)){const d=at(SZ.SIZES_DETAIL,+vw);assert.ok(d>=img&&d-img<=3,'artesano a '+vw+' px: sizes '+d+', dibujada '+img)}
++ assert.ok(app.includes("<div class=\"grid\">${cs.map(c=>cigarCard({...c,detail:true})).join('')}</div>"),'las tarjetas del artesano declaran SIZES_DETAIL');
+  for(const vw of [320,412,760,1440]){const d=at(S1[2],vw);assert.ok(d>=115.4&&d-115.4<=3,'mini-row a '+vw+' px: sizes '+d)}
+  assert.ok(/class="mini-row">\$\{ups\.map\(c=>cigarCard\(\{\.\.\.c,yours:true,mini:true\}\)\)/.test(app)&&/class="mini-row">\$\{d\.favs\.map\(c=>A\.cigarCard\(\{\.\.\.c,mini:true\}\)\)/.test(read('hoja.js')),'las dos filas mini usan SIZES_MINI (LHB-58: la de favoritos vive en la pestaña Favoritos de hoja.js)');
+  assert.ok(app.includes('<img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy">'),'galería con la gemela');
+@@ -4809,7 +4817,8 @@ test('LHB-95: la herramienta mide en los anchos de la evidencia de LHB-85 y LHB-
+  const t=fs.readFileSync(path.join(__dirname,'..','tools','widths.mjs'),'utf8');
+  const ev=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-85-slot-widths.txt'),'utf8');
+  const vps=[...ev.matchAll(/^ {1,2}(\d{3,4}) {3,}\d+\.\d/gm)].map(m=>+m[1]);assert.equal(vps.length,14,'los 14 anchos de LHB-85');
+- assert.deepEqual(JSON.parse(t.match(/const GRID_W = (\[[^\]]*\])/)[1]),vps);
++ /* LHB-112: y los siete anchos de la computadora (a cada lado de 900, 1100 y 1200, y 1366) */
++ assert.deepEqual(JSON.parse(t.match(/const GRID_W = (\[[^\]]*\])/)[1]),[...vps,899,900,1099,1100,1199,1200,1366].sort((a,b)=>a-b));
+  assert.deepEqual(JSON.parse(t.match(/const HEADER_W = (\[[^\]]*\])/)[1]),[320,360,412,1024]);
+  assert.match(t,/over >= 0 && over <= 3/);assert.match(t,/dt < 1 && same && mv\.every\(x => x\.d < 1\) && dbox < 1/);
+  /* Codex r1: cada foto de la grilla y la fila mini en todos los anchos; cada control de top-actions en cada borde; el cambio de idioma se mide con el botón dibujado; cada orden al navegador tiene plazo */
+@@ -5521,7 +5530,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v162'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v163'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -6268,6 +6277,9 @@ const PAINT_PIN111=[
+  "styles.css .lart.aqui .bg{fill:var(--photo)}",
+  "styles.css .lart.sil{stroke-width:7}",
+  "styles.css .lart.sil .fn{stroke-width:4}",
++"styles.css [@media (min-width:900px)] .topnav a:hover{background:var(--card-2)}",
++"styles.css [@media (min-width:900px)] .topnav a.active{background:var(--accent-soft)}",
++"styles.css [@media (min-width:900px)] .topnav .tab-plus{background:none}",
+  "u.css :root{--surface:#F4F1EA}",
+  "u.css :root{--on-surface:#263723}",
+  "u.css [@media (prefers-color-scheme:dark)] :root:not([data-theme=\"light\"]){--surface:#141A13}",
+@@ -6552,8 +6564,12 @@ function MISSING71(c){const out=[];const html=c.menuHTML('#/catalogo');
+  for(const x of c.ROUTES)if(x.tab&&!TABS109().some(t=>t.r===x.r&&t.k===x.tab))out.push(x.r+': su pestaña '+x.tab+' no está en la barra');
+  return out}
+ /* LHB-109: las pestañas de index.html: la ruta y la clave de su nombre */
+-function BAR109(){const ix=read('index.html');const h=ix.slice(ix.indexOf('<header class="topbar">'),ix.indexOf('</header>'));return [...h.matchAll(/href="(#\/[a-z]+)"/g)].map(m=>m[1])}
+-function TABS109(){return [...read('index.html').matchAll(/<a href="#\/([a-z]+)" data-tab="([a-z]+)">[\s\S]*?<span data-i18n="([\w.]+)">/g)].map(m=>({r:m[1],t:m[2],k:m[3]}))}
++/* LHB-112: lo que la barra de arriba lleva por su cuenta (la marca, la lupa); la copia de las pestañas (.topnav) no cuenta */
++function BAR109(){const ix=read('index.html');const h=ix.slice(ix.indexOf('<header class="topbar">'),ix.indexOf('</header>')).replace(TOPNAV112(),'');return [...h.matchAll(/href="(#\/[a-z]+)"/g)].map(m=>m[1])}
++/* LHB-112: la barra de abajo, del <nav class="tabbar"> a su </nav>; la de arriba (.topnav) la copia */
++function TABBAR112(){const ix=read('index.html'),i=ix.indexOf('<nav class="tabbar"');assert.ok(i>0,'la barra de abajo');return ix.slice(i,ix.indexOf('</nav>',i))}
++function TOPNAV112(){const ix=read('index.html'),i=ix.indexOf('<nav class="topnav"');assert.ok(i>0,'la barra de arriba');return ix.slice(i,ix.indexOf('</nav>',i))}
++function TABS109(){return [...TABBAR112().matchAll(/<a href="#\/([a-z]+)" data-tab="([a-z]+)">[\s\S]*?<span data-i18n="([\w.]+)">/g)].map(m=>({r:m[1],t:m[2],k:m[3]}))}
+ test('LHB-71: el menú sale de la tabla de rutas: cada ruta sale en él o es detalle de una que sale, y el enrutador usa la misma tabla',t=>{
+  const c=ROUTES71();const n=c.ROUTES.length,dest=c.ROUTES.reduce((a,x)=>a+(x.menu?x.menu.length:0),0);t.diagnostic('rutas en la tabla: '+n+'; destinos en el menú: '+dest+' (y Cómo instalar)');
+  assert.deepEqual(MISSING71(c),[]);assert.ok(n>=15&&dest>=8,'la tabla tiene las rutas de la app (15 rutas; 12 destinos al escribir LHB-71, 8 desde LHB-109: las pestañas no se repiten en el menú)');
+@@ -8329,3 +8345,26 @@ test('LHB-108: el lema no se traduce, y la intro usa la misma firma',()=>{
+  assert.ok(cb.includes("mk.src='icons/icon.svg'")&&cb.includes('x.drawImage(mk,')&&cb.includes("tt('brand.tagline')"),'la imagen para compartir');assert.ok(!/drawLeaf|hechoEnPuertoRico/.test(hj+read('i18n.js'))&&!/madePR|Puerto Rico/i.test(cb),'ni otra hoja ni otro lema en la imagen');
+  assert.match(read('intro.js'),/<div class="intro-mark"><img src="icons\/icon\.svg" alt="" width="40" height="40"><b>\$\{tt\('intro\.name'\)\}<\/b><span lang="es">\$\{tt\('brand\.tagline'\)\}<\/span><\/div>/);
+ });
++/* LHB-112: la computadora. Desde 900 px los destinos de la barra de abajo van arriba (nav.topnav, dentro del encabezado), la de abajo se esconde y
++   deja de reservar su alto, la vista se abre a 1200 px y la grilla pasa a tres columnas, a cuatro desde 1100. Por debajo de 900 px nada cambia */
++test('LHB-112: desde 900 px la navegación va arriba y la grilla se abre; el teléfono no cambia',()=>{const css=read('styles.css'),ix=read('index.html'),app=read('app.js');
++ const items=h=>[...h.matchAll(/<a href="#\/([a-z]+)" data-tab="([a-z]+)"[^>]*>[\s\S]*?<span data-i18n="([\w.]+)">/g)].map(m=>m[1]+'|'+m[2]+'|'+m[3]);
++ const tb=TABBAR112(),tn=TOPNAV112();assert.equal(items(tb).length,5);assert.deepEqual(items(tn),items(tb),'arriba, los mismos cinco destinos en el mismo orden');
++ for(const h of [tb,tn])assert.ok(/<button type="button" data-sheet="plus" data-tab="subir" class="tab-plus"[^>]*data-i18n-attr="aria-label:ix.plus"/.test(h),'y el mismo botón de añadir');
++ assert.ok(tn.includes('aria-label="Secciones" data-i18n-attr="aria-label:ix.tabs"'),'nombrada como la de abajo');
++ const hd=ix.slice(ix.indexOf('<header'),ix.indexOf('</header>'));assert.ok(hd.includes('<nav class="topnav"'),'la de arriba va en el encabezado');
++ assert.ok(app.includes("$$('.tabbar [data-tab],.topnav [data-tab]')"),'la ruta marca la pestaña en las dos barras');
++ /* la regla del ancho: un bloque @media (min-width:900px) con todo lo de la computadora, y uno de 1100 px para la cuarta columna */
++ const block=q=>{const i=css.indexOf('@media (min-width:'+q+'px){');assert.ok(i>0,'falta @media (min-width:'+q+'px)');let d=0,j=css.indexOf('{',i);for(;j<css.length;j++){if(css[j]==='{')d++;else if(css[j]==='}'&&!--d)break}return css.slice(i,j+1)};
++ const w9=block(900).replace(/\s+/g,' ');
++ for(const x of [':root{--tab-h:0px}','.tabbar{display:none}','.topnav{display:flex;','.view{max-width:1200px;','.view:has(> .back){max-width:820px}','.grid{grid-template-columns:repeat(3,minmax(0,1fr))}'])assert.ok(w9.includes(x),'900 px: '+x);
++ assert.ok(block(1100).includes('.grid{grid-template-columns:repeat(4,minmax(0,1fr))}'),'1100 px: cuatro columnas');
++ /* Codex r1: la grilla de una página de detalle se queda en tres columnas en su medida, y vale sobre la de cuatro (más específica) */
++ assert.ok(w9.includes('.view:has(> .back) .grid{grid-template-columns:repeat(3,minmax(0,1fr))}'),'la grilla de detalle a tres columnas');assert.ok(!block(1100).includes('.view:has(> .back) .grid'));
++ /* fuera de esos bloques lo único nuevo es esconder la barra de arriba: el teléfono queda como estaba */
++ const outside=css.replace(block(900),'').replace(block(1100),'');assert.ok(outside.includes('.topnav{display:none}'));assert.ok(!/\.topnav[^{]*\{(?![^}]*display:none)/.test(outside.replace(/\/\*[\s\S]*?\*\//g,'')),'fuera de 900 px la barra de arriba solo se esconde');
++ /* lo que midió Chrome (tools/widths.mjs), leído hasta la última línea: a 390 px la barra de abajo se ve y la de arriba no; a 1366 px al revés; nada se corre de lado */
++ const ev=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-112-widths.txt'),'utf8').trim().split(/\r?\n/);assert.match(ev[ev.length-1],/^RESULT PASS (\d+) of \1 checks$/);
++ for(const w of [900,1366])assert.ok(ev.some(l=>l.startsWith('PASS artisan '+w+': all ')),'Codex r1: Chrome midió la página del artesano a '+w);
++ for(const l of ['PASS layout 390: no sideways scroll (scrollWidth 390)','PASS layout 390: the bottom tab bar is drawn (drawn)','PASS layout 390: the top navigation is hidden (hidden)','PASS layout 1366: no sideways scroll (scrollWidth 1366)','PASS layout 1366: the bottom tab bar is hidden (hidden)','PASS layout 1366: the top navigation is drawn (drawn)'])assert.ok(ev.includes(l),l);
++});
+diff --git a/tools/widths.mjs b/tools/widths.mjs
+index 8213db1..e6f3c87 100644
+--- a/tools/widths.mjs
++++ b/tools/widths.mjs
+@@ -3,6 +3,12 @@
+    - the drawn width of EVERY catalog card photo (.grid .card .ph.has-foto img) at the LHB-85 viewports, and of a card in a
+      .mini-row at the same viewports, against the width SIZES_GRID / SIZES_MINI (site/app.js) declare there: never below it,
+      at most 3 px over;
++   - LHB-112 (Codex r1): the same for every card photo on an artisan's page (#/a/jfc-hoja-boricua), whose grid sits in the 820 px detail
++     measure from 900 px and declares SIZES_DETAIL;
++   - LHB-112, the computer layout: at 390, 899, 900 and 1366 px the page never scrolls sideways, the bottom tab bar is drawn below
++     900 px and hidden from 900 px, the top navigation (nav.topnav) is the reverse and draws its five destinations and its plus
++     button without clipping, the view keeps a 1200 px measure and the catalogue grid has three columns from 900 px and four
++     from 1100 px; the LHB-112 widths (899 to 1366) are added to the photo widths above;
+    - the header for a Spanish and an English reader at 320, 360, 412 and 1024 px (LHB-109: the language left the header for the
+      menu): div.top-actions holds exactly its three controls (search, menu, account), each drawn (displayed, visible, with a
+      size); the swap the English reader gets after load moves div.top-actions and each control by under 1 px on every edge; the
+@@ -21,7 +27,8 @@ import { join, resolve, extname, normalize } from 'node:path';
+ 
+ const SITE = resolve(process.argv[2] || join(import.meta.dirname, '..', 'site'));
+ const CHROME = process.env.CHROME || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+-const GRID_W = [320, 360, 375, 390, 412, 430, 500, 619, 620, 700, 759, 760, 1024, 1440];
++const GRID_W = [320, 360, 375, 390, 412, 430, 500, 619, 620, 700, 759, 760, 899, 900, 1024, 1099, 1100, 1199, 1200, 1366, 1440];
++const LAYOUT_W = [390, 899, 900, 1366];
+ const HEADER_W = [320, 360, 412, 1024];
+ const CMD_MS = 15000, WATCHDOG_MS = 90000; // one DevTools command; the whole run (the test gives the tool 120 s)
+ // what a mini-row card declares (the grid card's sizes is read from each rendered image)
+@@ -129,6 +136,22 @@ try {
+     // every photo: the declared width at or above the drawn width, by at most 3 px
+     check(m.a.length >= 2 && off.length === 0 && overs.every(over => over >= 0 && over <= 3), `grid ${w}: all ${m.a.length} photos declare at or above their drawn width by at most 3 px` + (off.length ? ` (off: ${off.map(i => 'photo ' + (i.k + 1) + ' drawn ' + r1(i.drawn) + ' declared ' + r1(i.decl)).join('; ')})` : ''));
+   }
++  // LHB-112 (Codex r1): an artisan's page, whose grid is in the detail measure; then back to the catalogue for the mini row
++  out.push('');
++  out.push('card photos on an artisan page (#/a/jfc-hoja-boricua: .grid .card .ph.has-foto img), against the sizes each declares');
++  out.push('viewport  photos  drawn min-max   least over  most over');
++  await open(GRID_W[0], 'es-PR', '#/a/jfc-hoja-boricua');
++  await until(`document.querySelectorAll('.grid .card .ph.has-foto img').length>=2`, 'an artisan page with two card photos');
++  for (const w of GRID_W) {
++    await size(w);
++    const m = await js(`(()=>{const a=[...document.querySelectorAll('.grid .card .ph.has-foto img')].map((i,k)=>({k,drawn:i.getBoundingClientRect().width,decl:${DECL}(i.getAttribute('sizes'))}));return {a,cw:document.documentElement.clientWidth}})()`);
++    const overs = m.a.map(i => i.decl - i.drawn), drawn = m.a.map(i => i.drawn);
++    const off = m.a.filter((i, k) => !(overs[k] >= 0 && overs[k] <= 3));
++    out.push(String(w).padStart(8) + String(m.a.length).padStart(8) + ('  ' + r1(Math.min(...drawn)) + '-' + r1(Math.max(...drawn))).padEnd(16) + String(r1(Math.min(...overs))).padStart(11) + String(r1(Math.max(...overs))).padStart(11));
++    check(m.a.length >= 2 && off.length === 0 && overs.every(over => over >= 0 && over <= 3), `artisan ${w}: all ${m.a.length} photos declare at or above their drawn width by at most 3 px` + (off.length ? ` (off: ${off.map(i => 'photo ' + (i.k + 1) + ' drawn ' + r1(i.drawn) + ' declared ' + r1(i.decl)).join('; ')})` : ''));
++  }
++  await open(GRID_W[0], 'es-PR', '#/catalogo');
++  await until(`!!document.querySelector('.grid .card .ph.has-foto img')`, 'a catalog card with a photo');
+   // the mini row (Mi Hoja: my uploads, my favorites): a catalog card cloned into a .mini-row at the top of #view, as LHB-85 measured it
+   await js(`(()=>{const c=document.querySelector('.grid .card').cloneNode(true);c.querySelector('.ph.has-foto img').id='lhb95mini';const r=document.createElement('div');r.className='mini-row';r.appendChild(c);document.getElementById('view').prepend(r);return true})()`);
+   out.push('');
+@@ -142,11 +165,31 @@ try {
+     check(over >= 0 && over <= 3, `mini row ${w}: SIZES_MINI ${r1(m.decl)} is at or above drawn ${r1(m.drawn)} by at most 3 px (over ${r1(over)})`);
+   }
+   out.push('');
++  // drawn: displayed, visible, with a size; the attribute hidden alone says nothing about CSS
++  const SHOWN = `(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility==='visible'&&r.width>0&&r.height>0})`;
++  out.push('LHB-112 layout: the tab bar below 900 px, the top navigation from 900 px, the view measure and the grid columns');
++  out.push('viewport  scrollWidth  tabbar  topnav  links  view.width  columns');
++  await open(LAYOUT_W[0], 'es-PR', '#/catalogo');
++  await until(`!!document.querySelector('.grid .card')&&!!document.querySelector('nav.topnav')`, 'the catalogue and the top navigation');
++  for (const w of LAYOUT_W) {
++    await size(w);
++    const m = await js(`(()=>{const tb=document.querySelector('nav.tabbar'),tn=document.querySelector('nav.topnav'),v=document.getElementById('view'),g=document.querySelector('.grid');
++      const items=[...tn.querySelectorAll('a[data-tab],button.tab-plus')];const r=tn.getBoundingClientRect();
++      return {sw:document.documentElement.scrollWidth,tab:${SHOWN}(tb),top:${SHOWN}(tn),n:items.length,drawn:items.filter(${SHOWN}).length,
++        inside:items.every(i=>{const b=i.getBoundingClientRect();return b.left>=r.left-0.5&&b.right<=r.right+0.5}),clip:tn.scrollWidth>tn.clientWidth+0.5,
++        active:(tn.querySelector('a.active')||{}).dataset?.tab||null,vw:v.getBoundingClientRect().width,cols:getComputedStyle(g).gridTemplateColumns.split(' ').length}})()`);
++    out.push(String(w).padStart(8) + String(m.sw).padStart(13) + String(m.tab ? 'drawn' : 'hidden').padStart(8) + String(m.top ? 'drawn' : 'hidden').padStart(8) + String(m.drawn + '/' + m.n).padStart(7) + String(r1(m.vw)).padStart(12) + String(m.cols).padStart(9));
++    const wide = w >= 900;
++    check(m.sw === w, `layout ${w}: no sideways scroll (scrollWidth ${m.sw})`);
++    check(m.tab === !wide, `layout ${w}: the bottom tab bar is ${wide ? 'hidden' : 'drawn'} (${m.tab ? 'drawn' : 'hidden'})`);
++    check(m.top === wide, `layout ${w}: the top navigation is ${wide ? 'drawn' : 'hidden'} (${m.top ? 'drawn' : 'hidden'})`);
++    if (wide) check(m.n === 6 && m.drawn === 6 && m.inside && !m.clip && m.active === 'catalogo', `layout ${w}: the top navigation draws its 5 destinations and the plus, unclipped, with Cigarros current (${m.drawn}/${m.n}, active ${m.active})`);
++    if (wide) check(m.vw <= 1200 && m.cols === (w >= 1100 ? 4 : 3), `layout ${w}: the view is at most 1200 px (${r1(m.vw)}) and the grid has ${w >= 1100 ? 4 : 3} columns (${m.cols})`);
++  }
++  out.push('');
+   out.push('header controls (div.top-actions: search, menu, account) and the menu language row, Spanish reader (as shipped) and English reader (swapped after load)');
+   out.push('viewport  reader   controls  top-actions.left  scrollWidth');
+   const got = {}, rows = {};
+-  // drawn: displayed, visible, with a size; the attribute hidden alone says nothing about CSS
+-  const SHOWN = `(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility==='visible'&&r.width>0&&r.height>0})`;
+   for (const [lang, name, html] of [['es-PR', 'Spanish', 'es-PR'], ['en-US', 'English', 'en']]) {
+     await open(HEADER_W[0], lang, '');
+     await until(`(()=>{const t=document.querySelector('.top-actions');return !!t&&document.documentElement.lang===${JSON.stringify(html)}&&[...t.children].every(${SHOWN})})()`, 'the header drawn for ' + name);
+
+2026-10-30T10:44:16.290836Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-30T10:44:17.898593Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Likely] The merge risk is in the expanded paint pin and the combined cascade. I’ll check both against the ticket’s layout contract, without editing files or loading skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Location; git status --short; git log -5 --oneline; Get-Content package.json' in C:\LHB\lhb-marca112-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-30T10:44:22.285132Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] Node provides repository access despite the shell failure. The saved proof reports 122 browser checks and 426 tests passing; I’ll rerun the suite and check fixed elements, focus, and navigation visibility.
+
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The Chrome rerun is blocked by sandbox `EPERM` when creating its temporary profile, so live rendering remains NOT VERIFIED. The merge adjustment adds exactly the three declared paint entries. Static inspection also confirms that view padding, toast placement, and sticky tasting controls use `--tab-h`.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All 25 affected tests pass, and the LHB-112 test fails in memory both without the 900 px block and with main’s markup. The full-suite attempt stopped progressing in an unrelated LHB-31 test and could not be terminated because access was denied; its result remains incomplete.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] No new P1-P3 findings. R1-1: CONCUR, remains resolved.
+
+[Certain] `test/site.test.js` / `PAINT_PIN111` adds exactly the three scoped paint entries. The merge changes no `site/` code or width harness.
+
+[Certain] All 25 affected tests pass. In-memory mutations fail with the 900 px block removed and with main’s markup.
+
+[Certain] Live browser behavior remains NOT VERIFIED: sandbox `EPERM` blocked Chrome’s temporary profile. The full suite stalled in LHB-31; termination was denied. Saved evidence reports 122/122 browser checks and 426/426 tests. No files were edited.
+
+VERDICT: PASS
+tokens used
+107,768
+[Certain] No new P1-P3 findings. R1-1: CONCUR, remains resolved.
+
+[Certain] `test/site.test.js` / `PAINT_PIN111` adds exactly the three scoped paint entries. The merge changes no `site/` code or width harness.
+
+[Certain] All 25 affected tests pass. In-memory mutations fail with the 900 px block removed and with main’s markup.
+
+[Certain] Live browser behavior remains NOT VERIFIED: sandbox `EPERM` blocked Chrome’s temporary profile. The full suite stalled in LHB-31; termination was denied. Saved evidence reports 122/122 browser checks and 426/426 tests. No files were edited.
+
+VERDICT: PASS

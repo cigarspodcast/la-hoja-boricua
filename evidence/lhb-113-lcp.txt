@@ -1,0 +1,24 @@
+home1: LCP 2805 ms (simulated), observed LCP 2697 ms (unthrottled)
+  phase Time to first byte               203 ms (observed)
+  phase Resource load delay              275 ms (observed)
+  phase Resource load duration           112 ms (observed)
+  phase Element render delay            2107 ms (observed)
+  LCP element: div#app > main#view > section.hero > img.hero-bg | div#app > main#view > section.hero > img.hero-bg
+  unused JS: hoja.js                                              37.6 of   50.2 KiB
+  scripts: 10, last script ends 457 ms; images requested before observed LCP: 37, first at 218 ms
+home2: LCP 2837 ms (simulated), observed LCP 651 ms (unthrottled)
+  phase Time to first byte               224 ms (observed)
+  phase Resource load delay              188 ms (observed)
+  phase Resource load duration           116 ms (observed)
+  phase Element render delay             123 ms (observed)
+  LCP element: body > section.intro > video | body > section.intro > video
+  unused JS: hoja.js                                              37.6 of   50.2 KiB
+  scripts: 10, last script ends 413 ms; images requested before observed LCP: 37, first at 239 ms
+home3: LCP 2790 ms (simulated), observed LCP 2626 ms (unthrottled)
+  phase Time to first byte               154 ms (observed)
+  phase Resource load delay              180 ms (observed)
+  phase Resource load duration           122 ms (observed)
+  phase Element render delay            2170 ms (observed)
+  LCP element: div#app > main#view > section.hero > img.hero-bg | div#app > main#view > section.hero > img.hero-bg
+  unused JS: hoja.js                                              37.1 of   49.5 KiB
+  scripts: 10, last script ends 300 ms; images requested before observed LCP: 37, first at 171 ms

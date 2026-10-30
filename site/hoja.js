@@ -96,7 +96,8 @@ function wheel(sel,key){const N=WHEEL.length,R=150,r0=48,cx=160,cy=160;const pt=
  return `<div class="wheel-wrap"><svg class="wheel" viewBox="0 0 320 320" role="group" aria-label="${tt('h.ruedaDeSaboresToca')}">${segs}<circle cx="160" cy="160" r="42" class="whub"/><text x="160" y="157" text-anchor="middle" class="whub-n">${sel.length}</text><text x="160" y="176" text-anchor="middle" class="whub-t">${sel.length===1?tt('h.sabor'):tt('h.sabores')}</text></svg></div>`}
 function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{const k=g.dataset.wk,id=g.dataset.w;const cur=get(k);set(k,cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);rerender(k,id)};g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})})}
 /* inl: dentro de un botón (LHB-61) va en span, que un botón no puede llevar un div */
-const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'var(--card-2)'}">${esc(WN(t))}</span>`).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
+/* Codex r5 (LHB-110): una etiqueta fuera de la rueda no tiene color de sabor: va en la ficha neutra del tema (.tchip.other), no con la tinta fija */
+const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>{const w=WHEEL.find(w=>w.id===t);return w?`<span class="tchip" style="--wc:${w.c}">${esc(WN(t))}</span>`:`<span class="tchip other">${esc(WN(t))}</span>`}).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
 /* ---------- hoja de acciones (sheet) ---------- */
 let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
 let owed=false; /* LHB-64: se abrió una hoja y el foco todavía no ha vuelto */
@@ -274,7 +275,7 @@ function accountPanel(){const a=acct.get();if(!a||!a.handle)return '';
  <p class="hint" id="acMsg" role="status" aria-live="polite" hidden></p>
  <details class="edit"><summary>${tt('ac.del.s')}</summary><p>${tt('ac.del.p')}</p>
  <div class="field"><label for="acDelI">${tt('ac.del.l',{a:'@'+esc(a.handle)})}</label><input id="acDelI" autocapitalize="none" autocomplete="off" spellcheck="false"></div>
- <button class="btn" type="button" id="acDel" disabled>${tt('ac.del.b')}</button></details>
+ <button class="btn danger" type="button" id="acDel" disabled>${tt('ac.del.b')}</button></details>
  <p class="hint">${tt('h.leeQueGuardamosY')} <a href="/privacidad">${tt('h.privacidadYCuenta')}</a>.</p></section>`}
 function bindAccount(){const a=acct.get();const out=$('#acOut'),del=$('#acDel'),inp=$('#acDelI');if(!a||!out)return;
  out.onclick=salir;$$('#acctP [data-exp]').forEach(b=>b.onclick=exportar);
@@ -525,7 +526,7 @@ const pfIni=p=>{const w=String(p.display_name||'').split(/\s+/).filter(Boolean);
    LHB-60: seguidores y siguiendo llevan a sus listas */
 const pfCounts=(c,own,h)=>{const n=k=>c&&c[k]!=null?pfNum(c[k]):'·';const to=s=>'#/u/'+encodeURIComponent(h)+'/'+s;
  return `<ul class="pf-counts" id="pfCounts"><li><b>${n('resenas')}</b><span>${tt('h.pfResenas')}</span></li><li><a href="${to('seguidores')}"><b id="pfNFollowers">${n('followers')}</b><span>${tt('h.pfSeguidores')}</span></a></li><li><a href="${to('siguiendo')}"><b>${n('following')}</b><span>${tt('h.pfSiguiendo')}</span></a></li></ul>
- <div class="pf-act">${own?`<a class="btn" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div><div class="pf-more" id="pfMore"></div>`}</div>`};
+ <div class="pf-act">${own?`<a class="btn secondary" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div><div class="pf-more" id="pfMore"></div>`}</div>`};
 const pfAbout=p=>`${p.bio?`<p class="pf-bio">${esc(p.bio)}</p>`:''}${p.favorite_brand?`<p class="pf-fav">${tt('h.pfMarcaFav')}: <b>${esc(p.favorite_brand)}</b></p>`:''}`;
 /* el encabezado de otra persona: su foto de Clerk o sus iniciales */
 function pfHead(p,c){const pic=typeof p.avatar_key==='string'&&p.avatar_key.startsWith(PF_IMG)?`<img src="${esc(p.avatar_key)}" alt="${tt('h.pfFotoDe',{a:'@'+esc(p.handle)})}" width="88" height="88">`:`<span aria-hidden="true">${esc(pfIni(p))}</span>`;
@@ -682,7 +683,7 @@ const blkErr=e=>e==='blocks-off'?tt('h.blkOff'):e==='block-cap'?tt('h.blkCap'):e
 function blkMount(id,h,live){const box=$('#'+id);if(!box)return;const a=meAcct();
  box.innerHTML=`<a class="lbtn" id="pfReport" href="${esc(reportHref(h))}">${tt('h.blkReportar')}</a>${a&&a.handle!==h?`<button class="lbtn" type="button" id="pfBlock">${tt('h.blkBloquear')}</button>`:''}`;
  const b=$('#pfBlock');if(!b)return;
- b.onclick=()=>{sheet(`<h2 class="sheet-h">${tt('h.blkPregunta',{a:'@'+esc(h)})}</h2><p>${tt('h.blkExplica')}</p><p><button class="btn" type="button" id="blkGo">${tt('h.blkBloquear')}</button> <button class="lbtn" type="button" data-close>${tt('h.cancelar')}</button></p>`,tt('h.blkPregunta',{a:'@'+h}));
+ b.onclick=()=>{sheet(`<h2 class="sheet-h">${tt('h.blkPregunta',{a:'@'+esc(h)})}</h2><p>${tt('h.blkExplica')}</p><p><button class="btn danger" type="button" id="blkGo">${tt('h.blkBloquear')}</button> <button class="lbtn" type="button" data-close>${tt('h.cancelar')}</button></p>`,tt('h.blkPregunta',{a:'@'+h}));
   const go=$('#blkGo');go.onclick=async()=>{go.disabled=true;const ok=()=>fwSame(a.sub);let r;
    try{const C=await clerk();r=await api(C,'POST','/api/block',{handle:h},a.sub,undefined,ok)}catch(e){r={status:0,body:{}}}
    /* Codex r1: la hoja se cierra solo si sigue siendo esta (no otra que se abrió después); el aviso es para la cuenta que bloqueó, y volver a tu Perfil, solo desde esta página */
@@ -709,7 +710,7 @@ function vHumidor(){const s=S();const tot=s.humidor.reduce((t,x)=>t+(+x.cantidad
  view.innerHTML=`${subnav('humidor')}
  <div class="hum-sum"><div class="stat"><b>${tot}</b><span>${tt('h.cigarros')}</span></div><div class="stat"><b>${s.humidor.length}</b><span>${tt('h.vitolas')}</span></div><button class="btn" type="button" data-sheet="humidor">${tt('h.anadir')}</button></div>
  ${s.humidor.length?`<div class="list">${s.humidor.map(h=>{const c=h.cigarId&&A.cigarById(h.cigarId);return `<div class="row hum">
-  ${c?`<a class="hum-ph" href="#/c/${encodeURIComponent(c.id)}" aria-label="${tt('h.ver',{a:esc(c.nombre)})}">${A.cigarSVG(c)}</a>`:`<span class="hum-ph custom" aria-hidden="true">${VBArt.leaf('#a9c487')}</span>`}
+  ${c?`<a class="hum-ph" href="#/c/${encodeURIComponent(c.id)}" aria-label="${tt('h.ver',{a:esc(c.nombre)})}">${A.cigarSVG(c)}</a>`:`<span class="hum-ph custom" aria-hidden="true">${VBArt.silueta('')}</span>`}
   <div class="hum-b"><div class="t">${esc(h.nombre)}</div><div class="s">${tt('h.desde',{a:h.artesano?esc(h.artesano)+' · ':'',b:c?'':tt('h.tuyo'),c:fmtF(h.fecha)})}</div>${h.nota?`<div class="s">${esc(h.nota)}</div>`:''}
   <div class="hum-act"><div class="qty sm"><button type="button" data-hq="${h.id}:-1" aria-label="${tt('h.unoMenosDe',{a:esc(h.nombre)})}">−</button><span aria-live="polite">${h.cantidad}</span><button type="button" data-hq="${h.id}:1" aria-label="${tt('h.unoMasDe',{a:esc(h.nombre)})}">+</button></div>
   <button class="mini" type="button" data-hcata="${h.id}">${tt('h.catar')}</button><button class="mini" type="button" data-hedit="${h.id}">${tt('h.editar')}</button><button class="mini x" type="button" data-hdel="${h.id}" aria-label="${tt('h.quitarDelHumidor',{a:esc(h.nombre)})}">✕</button></div></div></div>`}).join('')}</div>`
@@ -788,14 +789,14 @@ function vDiario(){const s=S(),q=dq(),all=s.diario.filter(isEntry),list=diaryFil
   if(foc){const x=$('#'+foc);if(x&&x.focus){x.focus({preventScroll:true});if(foc==='dqQ'&&x.setSelectionRange){const k=String(x.value||'').length;x.setSelectionRange(k,k)}}}}
  A.hydrate(view)}
 /* pasaporte */
-const BADGES=[{id:'primer',n:tt('h.primerSello'),d:tt('h.tuPrimerSello'),k:'total',m:1,c:'#8fd162'},
- {id:'catador',n:tt('h.catador'),d:tt('h.5CigarrosCatados'),k:'cigarros',m:5,c:'#ffd27a'},
- {id:'artesanos5',n:tt('h.amigoArtesano'),d:tt('h.5ArtesanosProbados'),k:'artesanos',m:5,c:'#ff9a9a'},
- {id:'lugares5',n:tt('h.deJangueo'),d:tt('h.5LugaresVisitados'),k:'lugares',m:5,c:'#7fb0ff'},
- {id:'catador15',n:tt('h.paladarBoricua'),d:tt('h.15CigarrosCatados'),k:'cigarros',m:15,c:'#ff8a80'},
- {id:'lugares15',n:tt('h.islaRecorrida'),d:tt('h.15LugaresVisitados'),k:'lugares',m:15,c:'#8fb8ff'},
- {id:'mitad',n:tt('h.medioPasaporte'),d:tt('h.laMitadDeTodos'),k:'total',m:'half',c:'#c5cdf5'},
- {id:'artesanosAll',n:tt('h.todosLosArtesanos'),d:tt('h.probasteATodosLos'),k:'artesanos',m:'all',c:'#a9c487'}];
+const BADGES=[{id:'primer',n:tt('h.primerSello'),d:tt('h.tuPrimerSello'),k:'total',m:1},
+ {id:'catador',n:tt('h.catador'),d:tt('h.5CigarrosCatados'),k:'cigarros',m:5},
+ {id:'artesanos5',n:tt('h.amigoArtesano'),d:tt('h.5ArtesanosProbados'),k:'artesanos',m:5},
+ {id:'lugares5',n:tt('h.deJangueo'),d:tt('h.5LugaresVisitados'),k:'lugares',m:5},
+ {id:'catador15',n:tt('h.paladarBoricua'),d:tt('h.15CigarrosCatados'),k:'cigarros',m:15},
+ {id:'lugares15',n:tt('h.islaRecorrida'),d:tt('h.15LugaresVisitados'),k:'lugares',m:15},
+ {id:'mitad',n:tt('h.medioPasaporte'),d:tt('h.laMitadDeTodos'),k:'total',m:'half'},
+ {id:'artesanosAll',n:tt('h.todosLosArtesanos'),d:tt('h.probasteATodosLos'),k:'artesanos',m:'all'}];
 function passCounts(){const s=S(),d=D();const valid={artesanos:new Set(d.artesanos.map(x=>x.id)),cigarros:new Set(d.cigarros.map(x=>x.id)),lugares:new Set(d.places.map(x=>x.id))};
  const c={};for(const k of ['artesanos','cigarros','lugares'])c[k]=Object.keys(s.pasaporte[k]).filter(id=>valid[k].has(id)).length;c.total=c.artesanos+c.cigarros+c.lugares;
  const all={artesanos:valid.artesanos.size,cigarros:valid.cigarros.size,lugares:valid.lugares.size};all.total=all.artesanos+all.cigarros+all.lugares;return{c,all}}
@@ -846,16 +847,16 @@ function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got
  <section class="pass-hero"><div class="pass-ring" style="--p:${pct}" role="img" aria-label="${tt('h.delPasaporte',{a:pct})}"><b>${pct}%</b><span>${tt('h.de2',{a:c.total,b:all.total})}</span></div><div><h2>${tt('h.pasaporteBoricuaH')}</h2><p>${tt('h.marcaLosArtesanosQue')}</p></div></section>
  ${rutaCard()}
  <div class="section-title"><h2>${tt('h.insignias')}</h2><span class="count">${tt('h.de2',{a:got.length+ru.ok.length,b:BADGES.length+6})}</span></div>
- <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" data-badge="${b.id}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:var(--flag-red)"><div class="bico">${VBArt.leaf(on?'var(--flag-red)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
- ${sec('artesanos',tt('arts.eyebrow'),d.artesanos,x=>x.nombre,x=>x.pueblo)}
+ <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" data-badge="${b.id}"><div class="bico">${VBArt.leaf(on?'var(--bc)':'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}"><div class="bico">${VBArt.leaf(on?'var(--bc)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
+ ${sec('artesanos',tt('menu.artesanos'),d.artesanos,x=>x.nombre,x=>x.pueblo)}
  ${sec('cigarros',tt('h.cigarros2'),d.cigarros,x=>x.nombre,x=>A.artisanName(x))}
- ${sec('lugares',tt('lug.eyebrow'),d.places,x=>x.nombre,x=>x.pueblo)}
+ ${sec('lugares',tt('menu.lugares'),d.places,x=>x.nombre,x=>x.pueblo)}
  ${backupPanel()}`}
 function vFavoritos(){const s=S(),d=D();const cs=s.favs.cigarros.map(A.cigarById).filter(Boolean),as=s.favs.artesanos.map(A.artisanById).filter(Boolean),ps=s.favs.lugares.map(id=>d.places.find(p=>p.id===id)).filter(Boolean);
  view.innerHTML=`${subnav('favoritos')}
  <div class="section-title"><h2>${tt('h.cigarros2')}</h2><span class="count">${cs.length}</span></div>${cs.length?`<div class="grid">${cs.map(A.cigarCard).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnUnCigarro')+'</div>'}
- <div class="section-title"><h2>${tt('arts.eyebrow')}</h2><span class="count">${as.length}</span></div>${as.length?`<div class="list">${as.map(artRow).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnElPerfil')+'</div>'}
- <div class="section-title"><h2>${tt('lug.eyebrow')}</h2><span class="count">${ps.length}</span></div>${ps.length?`<div class="list">${ps.map(placeRow).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnUnLugar')+'</div>'}
+ <div class="section-title"><h2>${tt('menu.artesanos')}</h2><span class="count">${as.length}</span></div>${as.length?`<div class="list">${as.map(artRow).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnElPerfil')+'</div>'}
+ <div class="section-title"><h2>${tt('menu.lugares')}</h2><span class="count">${ps.length}</span></div>${ps.length?`<div class="list">${ps.map(placeRow).join('')}</div>`:'<div class="empty">'+tt('h.tocaEnUnLugar')+'</div>'}
  ${backupPanel()}`;A.hydrate()}
 const artRow=a=>`<div class="row"><a href="#/a/${encodeURIComponent(a.id)}" class="rowlink">${A.mono(a.nombre,42)}<div><div class="t">${esc(a.nombre)}</div><div class="s">${esc(a.pueblo||'')}${municipio(a.pueblo)?' · '+lab(region(municipio(a.pueblo))):''}</div></div></a>${favBtn('artesanos',a.id,'icon')}</div>`;
 const placeRow=p=>`<div class="row"><a class="rowlink" href="${esc(A.goLink(p))}" target="_blank" rel="noopener"><span class="list-leaf">${VBArt.leaf(p.categoria==='venta'?'#ffd27a':'#8fd162')}</span><div><div class="t">${esc(p.nombre)}</div><div class="s">${tt('h.comoLlegar',{a:esc(A.fx(p,'tipo')||''),b:esc(p.pueblo||'')})}</div></div></a>${favBtn('lugares',p.id,'icon')}</div>`;
@@ -887,7 +888,7 @@ function persistDraft(){const s=S();s.draft=CD;return write(s)}
 let fotoSeq=0;
 function startCata(cid,nombre){fotoSeq++;const old=S().draft;CD=NEWDRAFT(cid,nombre);if(cid||nombre)CD.paso=1;dropFoto(old,persistDraft());if(location.hash!=='#/cata')location.hash='#/cata';else renderCata()}
 function vCata(cid){const dr=S().draft;
- if(cid&&dr&&dr.paso>0&&dr.cigarId!==cid){const c=A.cigarById(cid);view.innerHTML=`<div class="cata"><div class="eyebrow">${tt('tile.cata')}</div><h1>${tt('h.cataAMediasH')}</h1><p class="lead">${tt('h.vaPorElPaso',{a:esc(dr.nombre||tt('h.sinNombre')),b:dr.paso,c:PASOS.length-1})}</p><div class="stack"><button class="btn" id="cCont" type="button">${tt('h.seguirCon',{a:esc(dr.nombre||tt('h.esaCata'))})}</button><button class="btn secondary" id="cNew" type="button">${tt('h.empezarCigarro',{a:esc(c?c.nombre:tt('h.otra'))})}</button></div></div>`;
+ if(cid&&dr&&dr.paso>0&&dr.cigarId!==cid){const c=A.cigarById(cid);view.innerHTML=`<div class="cata"><div class="eyebrow">${tt('menu.cata')}</div><h1>${tt('h.cataAMediasH')}</h1><p class="lead">${tt('h.vaPorElPaso',{a:esc(dr.nombre||tt('h.sinNombre')),b:dr.paso,c:PASOS.length-1})}</p><div class="stack"><button class="btn" id="cCont" type="button">${tt('h.seguirCon',{a:esc(dr.nombre||tt('h.esaCata'))})}</button><button class="btn secondary" id="cNew" type="button">${tt('h.empezarCigarro',{a:esc(c?c.nombre:tt('h.otra'))})}</button></div></div>`;
   $('#cCont').onclick=()=>{CD=dr;location.hash='#/cata'};$('#cNew').onclick=()=>{startCata(cid,c?c.nombre:'')};return}
  if(cid&&(!dr||dr.cigarId!==cid)){fotoSeq++;const c=A.cigarById(cid);CD=NEWDRAFT(cid,c?c.nombre:'');CD.paso=1;dropFoto(dr,persistDraft())}else CD=dr?normDraft(dr):NEWDRAFT();renderCata()}
 const normDraft=d=>{const n=NEWDRAFT();return {...n,...d,tags:{...n.tags,...(d.tags||{})},notas:d.notas||{}}};
@@ -971,7 +972,7 @@ function pairing(c){const f=c.fortaleza||'media',t=cigarTags(c);return{ron:pick(
 const mstate={f:'media',t:[]};
 function vMaridajes(){const r=pick(RON,mstate.f,mstate.t),k=pick(CAFE,mstate.f,mstate.t);
  const card=x=>`<article class="pcard"><h3>${x.n}</h3><p class="pp">${x.p}</p><p>${x.m}</p><div class="pills"><span class="pill">${tt('h.fortalezaRango',{a:x.f.map((f,i)=>i?A.fortLabel(f).toLowerCase():A.fortLabel(f)).join(tt('h.rangoA'))})}</span>${x.t.map(t=>`<span class="pill">${WN(t)}</span>`).join('')}</div></article>`;
- view.innerHTML=`${A.head(tt('tile.mar'),tt('h.ronCafeYHumo'),tt('h.guiaGeneralParaAcompanar'),VBArt.leaf('#8fd162','sec-leaf'))}
+ view.innerHTML=`${A.head(tt('menu.maridajes'),tt('h.ronCafeYHumo'),tt('h.guiaGeneralParaAcompanar'),VBArt.maridaje())}
  <section class="pair-tool"><h2>${tt('h.queVasAFumar')}</h2>
  <div class="field"><label>${tt('f.fortaleza')}</label><div class="seg" role="group" aria-label="${tt('f.fortaleza')}">${A.FORT.map(f=>`<button type="button" data-mf="${f}" aria-pressed="${mstate.f===f}">${A.fortLabel(f)}</button>`).join('')}</div></div>
  <div class="field"><label>${tt('h.perfilDeSaborToca')}</label><div class="chips wrapc" role="group" aria-label="${tt('h.perfilDeSabor')}">${WHEEL.map(w=>`<button type="button" class="chip" data-mt="${w.id}" aria-pressed="${mstate.t.includes(w.id)}">${w.n}</button>`).join('')}</div></div>
@@ -1001,7 +1002,7 @@ const DOC='<svg class="mic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3
 function podBlock(kind,id){const list=ARTS.filter(x=>((kind==='a'?x.a:x.cg)||[]).includes(id));
  if(!list.length&&kind==='c')return '';
  return `<section class="pod">${MIC}<div><div class="eyebrow">${tt('h.escuchaEnCigarsPodcast')}</div>${list.length?list.map(x=>`<a class="pod-a" href="${x.u}" target="_blank" rel="noopener"><b>${esc(x.t)}</b><small>${x.c} · ${fmtF(x.f)}</small></a>`).join(''):`<p class="pod-s">${tt('h.lanzamientosResenasYCultura2')}</p>`}<a class="pod-more" href="${list.length?'#/podcast':POD}" ${list.length?'':'target="_blank" rel="noopener"'}>${list.length?tt('h.masDeCigarsPodcast'):tt('h.visitarCigarsPodcast')}</a></div></section>`}
-function vPodcast(){view.innerHTML=`${A.head(tt('h.podcast'),tt('h.escuchaEnCigarsPodcast2'),tt('h.lanzamientosResenasYCultura3'),VBArt.coqui())}
+function vPodcast(){view.innerHTML=`${A.head(tt('h.podcast'),tt('h.escuchaEnCigarsPodcast2'),tt('h.lanzamientosResenasYCultura3'),VBArt.micro())}
  <div class="links"><a class="lbtn spotify" href="${SPOTIFY}" target="_blank" rel="noopener">${tt('h.escuchaloEnSpotify',{a:SPOT_SVG})}</a><a class="lbtn web" href="${POD}" target="_blank" rel="noopener">${A.ICON.web}Cigars Podcast</a><a class="lbtn ig" href="https://www.instagram.com/cigarspodcast/" target="_blank" rel="noopener">${A.ICON.ig}@cigarspodcast</a></div>
  <div class="section-title"><h2>${tt('h.articulos')}</h2></div><div class="list">${ARTS.map(x=>`<a class="row" href="${x.u}" target="_blank" rel="noopener">${DOC}<div><div class="t">${esc(x.t)}</div><div class="s">${x.c} · ${fmtF(x.f)}</div></div><span class="go">›</span></a>`).join('')}</div>
  <p class="note">${tt('h.seAbrenEnEl')}</p>`}
@@ -1009,7 +1010,7 @@ function vPodcast(){view.innerHTML=`${A.head(tt('h.podcast'),tt('h.escuchaEnCiga
 const qs={q:'',reg:'',mun:'',fort:''};
 const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function vBuscar(){const d=D();const munis=[...new Set([...d.artesanos.map(a=>a.pueblo),...d.places.map(p=>p.pueblo),...d.cigarros.map(c=>c.pueblo),...(d.events.actividades||[]).map(e=>e.pueblo)].map(municipio).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
- view.innerHTML=`${A.head(tt('cat.search'),tt('h.buscaEnTodo'),tt('h.cigarrosArtesanosLugaresY'),VBArt.flor())}
+ view.innerHTML=`${A.head(tt('cat.search'),tt('h.buscaEnTodo'),tt('h.cigarrosArtesanosLugaresY'),VBArt.lupa())}
  <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr">${tt('cat.search')}</span><input id="gq" type="search" placeholder="${tt('h.buscarEnTodaLa')}" value="${esc(qs.q)}" autocomplete="off"></label>
  <div class="filter-row"><select id="gReg" aria-label="${tt('h.region')}"><option value="">${tt('h.regionTodas')}</option>${Object.keys(REG).map(r=>`<option value="${r}" ${qs.reg===r?'selected':''}>${lab(r)}</option>`).join('')}</select>
  <select id="gMun" aria-label="${tt('h.municipio')}"><option value="">${tt('h.municipioTodos')}</option>${munis.filter(m=>!qs.reg||region(m)===qs.reg).map(m=>`<option ${qs.mun===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
@@ -1023,9 +1024,9 @@ function vBuscar(){const d=D();const munis=[...new Set([...d.artesanos.map(a=>a.
   const n=cs.length+as.length+ps.length+es.length;
   $('#gres').innerHTML=`<p class="count-line">${n===1?tt('h.nResultado',{n}):tt('h.nResultados',{n})}${qs.fort?tt('h.fortalezaFiltra'):''}</p>
   ${cs.length?`<div class="section-title"><h2>${tt('h.cigarros2')}</h2><span class="count">${cs.length}</span></div><div class="grid">${cs.map(A.cigarCard).join('')}</div>`:''}
-  ${as.length?`<div class="section-title"><h2>${tt('arts.eyebrow')}</h2><span class="count">${as.length}</span></div><div class="list">${as.map(artRow).join('')}</div>`:''}
-  ${ps.length?`<div class="section-title"><h2>${tt('lug.eyebrow')}</h2><span class="count">${ps.length}</span></div><div class="list">${ps.map(placeRow).join('')}</div>`:''}
-  ${es.length?`<div class="section-title"><h2>${tt('tile.ev')}</h2><span class="count">${es.length}</span></div><div class="list">${es.map(e=>`<a class="row" href="#/eventos/${encodeURIComponent(e.id)}"><div><div class="t">${esc(e.titulo)}</div><div class="s">${[fmtF(e.fecha),esc(okv(e.pueblo)||okv(e.lugar))].filter(Boolean).join(' · ')}</div></div><span class="go">›</span></a>`).join('')}</div>`:''}
+  ${as.length?`<div class="section-title"><h2>${tt('menu.artesanos')}</h2><span class="count">${as.length}</span></div><div class="list">${as.map(artRow).join('')}</div>`:''}
+  ${ps.length?`<div class="section-title"><h2>${tt('menu.lugares')}</h2><span class="count">${ps.length}</span></div><div class="list">${ps.map(placeRow).join('')}</div>`:''}
+  ${es.length?`<div class="section-title"><h2>${tt('menu.eventos')}</h2><span class="count">${es.length}</span></div><div class="list">${es.map(e=>`<a class="row" href="#/eventos/${encodeURIComponent(e.id)}"><div><div class="t">${esc(e.titulo)}</div><div class="s">${[fmtF(e.fecha),esc(okv(e.pueblo)||okv(e.lugar))].filter(Boolean).join(' · ')}</div></div><span class="go">›</span></a>`).join('')}</div>`:''}
   ${n?'':'<div class="empty">'+tt('h.nadaConEsaBusqueda')+'</div>'}`;A.hydrate($('#gres'))};
  $('#gq').addEventListener('input',e=>{qs.q=e.target.value;run()});
  $('#gReg').onchange=e=>{qs.reg=e.target.value;if(qs.mun&&region(qs.mun)!==qs.reg)qs.mun='';vBuscar()};$('#gMun').onchange=e=>{qs.mun=e.target.value;run()};
@@ -1079,10 +1080,10 @@ function calGrid(evs){if(!evs.length)return '<div class="empty">'+tt('h.noHayEve
   html+=`<div class="cal"><div class="cal-h">${MESL[mo]} ${y}</div><div class="cal-g">${DIAS.map(x=>`<span class="dw">${x[0].toUpperCase()}</span>`).join('')}${cells}</div></div>`;
   if(mo===11){mo=0;y++}else mo++}
  const sel=evst.day?by[evst.day]||[]:[];
- return html+`<div class="cal-legend"><span><i class="lg-anc"></i>${tt('tile.evSub')}</span><span><i class="lg-ev"></i>${tt('h.otrosEventos')}</span></div><div id="calSel">${sel.length?sel.map(e=>isAnchor(e)?anchorCard(e):evCard(e)).join(''):'<p class="hint">'+tt('h.tocaUnDiaMarcado')+'</p>'}</div>`}
+ return html+`<div class="cal-legend"><span><i class="lg-anc"></i>${tt('ev.anclas')}</span><span><i class="lg-ev"></i>${tt('h.otrosEventos')}</span></div><div id="calSel">${sel.length?sel.map(e=>isAnchor(e)?anchorCard(e):evCard(e)).join(''):'<p class="hint">'+tt('h.tocaUnDiaMarcado')+'</p>'}</div>`}
 function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0,0,0);const evs=(D().events.actividades||[]).filter(e=>{const d=A.evDate(e.fecha);return d&&d>=today}).sort((a,b)=>a.fecha.localeCompare(b.fecha));const mine=LS.get('sugeridas',[]);
  const anc=evs.find(isAnchor);const rest=evs.filter(e=>e!==anc);const upd=D().events.actualizado?new Date(D().events.actualizado):null;
- view.innerHTML=`${A.head(tt('h.actividades'),tt('h.eventosYCatas'),tt('h.loQueVieneEn'),VBArt.coqui())}
+ view.innerHTML=`${A.head(tt('menu.eventos'),tt('h.eventosYCatas'),tt('h.loQueVieneEn'),VBArt.banda())}
  ${upd&&!isNaN(upd)?`<p class="updated">${tt('h.listaActualizadaEl',{a:upd.getDate(),b:MES[upd.getMonth()],c:upd.getFullYear(),d:navigator.onLine?'':tt('h.sinConexion')})}</p>`:''}
  <div class="toggle" role="group" aria-label="${tt('lug.view')}"><button type="button" data-evm="lista" aria-pressed="${evst.mode==='lista'}">${tt('lug.list')}</button><button type="button" data-evm="cal" aria-pressed="${evst.mode==='cal'}">${tt('h.calendario')}</button></div>
  ${evst.mode==='cal'?calGrid(evs):`${anc?anchorCard(anc):''}${rest.length?`<div class="section-title"><h2>${tt('h.proximos')}</h2><span class="count">${rest.length}</span></div>`:''}${rest.map(e=>evCard(e)).join('')}${evs.length?'':'<div class="empty">'+tt('h.noHayActividadesProximas')+'</div>'}`}
@@ -1090,7 +1091,7 @@ function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0
  <details class="edit"><summary>${tt('h.sugerirActividad')}</summary><form class="form" id="sugForm"><div class="field"><label for="sT">${tt('h.actividad')}</label><input id="sT" required maxlength="80" placeholder="${tt('h.ejNocheDeCata')}"></div>
  <div class="field"><label for="sF">${tt('h.fecha')}</label><input id="sF" type="date" required></div><div class="field"><label for="sH">${tt('h.hora2')}</label><input id="sH" maxlength="20" placeholder="${tt('h.ej700Pm')}"></div>
  <div class="field"><label for="sL">${tt('h.lugar')}</label><input id="sL" maxlength="60"></div><div class="field"><label for="sP">${tt('f.pueblo')}</label><input id="sP" maxlength="40"></div>
- <div class="field"><label for="sE">${tt('h.enlaceIgOWeb')}</label><input id="sE" type="url" maxlength="200" placeholder="https://"></div><button class="btn" type="submit">${tt('h.guardarSugerencia')}</button></form></details>
+ <div class="field"><label for="sE">${tt('h.enlaceIgOWeb')}</label><input id="sE" type="url" maxlength="200" placeholder="https://"></div><button class="btn secondary" type="submit">${tt('h.guardarSugerencia')}</button></form></details>
  <div class="section-title"><h2>${tt('h.fuentes')}</h2></div><p class="lead" style="margin-top:-4px">${tt('h.lasCuentasQueEsta')}</p>
  <div class="list">${(D().events.fuentes||[]).map(f=>`<a class="row" href="${esc(f.url)}" target="_blank" rel="noopener">${A.mono(f.handle.replace('@',''),38)}<div><div class="t">${esc(f.handle)}</div>${f.nombre?`<div class="s">${esc(f.nombre)}</div>`:''}</div><span class="go">›</span></a>`).join('')}</div>${A.PROTO_NOTE}`;
  $$('[data-evm]').forEach(b=>b.onclick=()=>{evst.mode=b.dataset.evm;vEventos()});
@@ -1100,32 +1101,28 @@ function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0
  if(focus){const el=document.getElementById('ev-'+focus);if(el){setTimeout(()=>{el.scrollIntoView({block:'start'});scrollBy(0,-80);el.classList.add('flash')},60)}}}
 /* ---------- compartir ficha (PNG en canvas) ---------- */
 const LEAF_P='M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408 C34 370 18 320 14 250 C10 160 24 70 60 22Z',LEAF_H='M60 22 C96 70 110 160 106 250 C102 320 86 370 60 408Z';
-function drawLeaf(x,cx,cy,sc,rot,op){x.save();x.translate(cx,cy);x.rotate(rot);x.scale(sc,sc);x.translate(-60,-220);x.globalAlpha=op;
- x.strokeStyle='#a7d46f';x.lineWidth=5;x.beginPath();x.moveTo(60,436);x.lineTo(60,30);x.stroke();
- x.fillStyle='#3f9150';x.fill(new Path2D(LEAF_P));x.fillStyle='#2c7a3e';x.fill(new Path2D(LEAF_H));
- x.strokeStyle='#1e5a2d';x.lineWidth=2.4;x.beginPath();for(let y=70;y<=378;y+=22){const w=34+Math.min(8,(y-70)/30);x.moveTo(60,y);x.lineTo(60-w,y-14);x.moveTo(60,y);x.lineTo(60+w,y-14)}x.stroke();x.restore()}
 function rr(x,X,Y,W,H,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+H,r);x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath()}
 function wrap(x,t,maxW){const w=String(t).split(/\s+/);const lines=[];let cur='';for(const s of w){const n=cur?cur+' '+s:s;if(x.measureText(n).width>maxW&&cur){lines.push(cur);cur=s}else cur=n}if(cur)lines.push(cur);return lines}
 /* LHB-67: la imagen se pinta con los tokens de la app, leídos al pintarla */
 const tk=n=>{let v='';try{v=getComputedStyle(document.documentElement).getPropertyValue('--'+n).trim()}catch(e){}return v||'#263723'};
 async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
- try{await Promise.all(['64px Shrikhand','600 36px Figtree','700 30px Figtree'].map(f=>document.fonts.load(f)))}catch(e){}
+ try{await Promise.all(['600 64px Fraunces','600 36px Figtree','700 30px Figtree'].map(f=>document.fonts.load(f)))}catch(e){}
  const g=x.createLinearGradient(0,0,W*.4,H);g.addColorStop(0,tk('surface-2'));g.addColorStop(.55,tk('surface'));g.addColorStop(1,tk('card-2'));x.fillStyle=g;x.fillRect(0,0,W,H);
- drawLeaf(x,70,250,1.25,.5,.4);drawLeaf(x,1010,1120,1.35,-2.6,.33);
- const fb=[[tk('flag-blue'),.18],[tk('flag-red'),.27],[tk('flag-white'),.1],[tk('flag-red'),.27],[tk('flag-white'),.04],[tk('flag-red'),.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});
- x.textBaseline='alphabetic';x.font='64px Shrikhand';x.fillStyle=tk('on-surface');const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,120);x.fillStyle=tk('accent-ink');x.fillText('Boricua',sx+w1,120);
- x.font='600 24px Figtree';x.fillStyle=tk('info-ink');x.textAlign='center';x.fillText(tt('h.hechoEnPuertoRico'),W/2,162);x.textAlign='left';
+ const mk=new Image();mk.src='icons/icon.svg';await new Promise(r=>{mk.onload=r;mk.onerror=r});
+ const fb=[[tk('flag-blue'),.18],[tk('flag-red'),.27],[tk('flag-white'),.1],[tk('flag-red'),.27],[tk('flag-white'),.04],[tk('flag-red'),.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});try{const mb=tk('mark-bg');if(mb&&mb!=='transparent'){x.fillStyle=mb;rr(x,W/2-36,28,72,72,12);x.fill()}x.drawImage(mk,W/2-32,32,64,64)}catch(e){}
+ x.textBaseline='alphabetic';x.font='600 64px Fraunces';x.fillStyle=tk('on-surface');const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,158);x.fillStyle=tk('accent-ink');x.fillText('Boricua',sx+w1,158);
+ x.font='600 22px Figtree';x.fillStyle=tk('warm-ink');x.textAlign='center';x.letterSpacing='4px';x.fillText(tt('brand.tagline').toUpperCase(),W/2,198);x.letterSpacing='0px';x.textAlign='left';
  const foto=(!c.yours&&window.LHB_FOTOS)?window.LHB_FOTOS[c.id]:null;let fimg=null;
  if(foto){fimg=new Image();fimg.src=foto.img;await new Promise(r=>{fimg.onload=r;fimg.onerror=()=>{fimg=null;r()}})}
- const img=new Image();if(!fimg){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(A.cigarSVG(c));await new Promise(r=>{img.onload=r;img.onerror=r})}
+ const img=new Image();if(!fimg){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(VBArt.silueta('',{ink:tk('fixed-text'),ac:tk('warm')}));await new Promise(r=>{img.onload=r;img.onerror=r})}
  x.save();x.translate(W/2,520);x.rotate(-.025);x.shadowColor=tk('shadow-strong');x.shadowBlur=30;x.shadowOffsetY=12;x.fillStyle=tk('photo');x.fillRect(-410,-300,820,640);x.shadowColor='transparent';
- if(fimg){x.fillStyle=tk('photo');x.fillRect(-380,-270,760,570);try{x.drawImage(fimg,-380,-205,760,380)}catch(e){}x.fillStyle=tk('muted');x.font='600 20px Figtree';x.textAlign='center';x.fillText(foto.credito+(foto.match==='linea'?tt('h.fotoDeLaLinea'):''),0,282);x.textAlign='left'}
- else{try{x.drawImage(img,-380,-270,760,570)}catch(e){x.fillStyle=tk('card-2');x.fillRect(-380,-270,760,570)}}x.restore();
- x.fillStyle=tk('on-surface');x.font='68px Shrikhand';x.textAlign='center';let y=960;const nl=wrap(x,c.nombre,W-140).slice(0,2);if(nl.length>1){x.font='56px Shrikhand';y=930}nl.forEach((l,i)=>x.fillText(l,W/2,y+i*68));y+= (nl.length-1)*68;
+ if(fimg){x.fillStyle=tk('photo');x.fillRect(-380,-270,760,570);try{x.drawImage(fimg,-380,-205,760,380)}catch(e){}x.fillStyle=tk('fixed-text');x.font='600 20px Figtree';x.textAlign='center';x.fillText(foto.credito+(foto.match==='linea'?tt('h.fotoDeLaLinea'):''),0,282);x.textAlign='left'}
+ else{x.fillStyle=tk('photo');x.fillRect(-380,-270,760,570);try{x.drawImage(img,-380,-205,760,380)}catch(e){}}x.restore();
+ x.fillStyle=tk('on-surface');x.font='600 68px Fraunces';x.textAlign='center';let y=960;const nl=wrap(x,c.nombre,W-140).slice(0,2);if(nl.length>1){x.font='600 56px Fraunces';y=930}nl.forEach((l,i)=>x.fillText(l,W/2,y+i*68));y+= (nl.length-1)*68;
  x.font='600 34px Figtree';x.fillStyle=tk('on-surface-2');x.fillText([A.artisanName(c),c.pueblo].filter(Boolean).join(' · '),W/2,y+56);x.textAlign='left';
  const vs=c.vitolas||[];const specs=[[tt('h.cardCapa'),(A.fx(c,'capa')||tt('notPub')).replace(/\s*\(.*?\)/g,'')],[tt('h.cardFortaleza'),c.fortaleza?A.fortLabel(c.fortaleza):tt('notPub')],[tt('h.cardVitola'),vs.length?vs[0]+(vs.length>1?' +'+(vs.length-1):''):tt('h.enVerificacion')]];
  const bw=300,gap=24,bx=(W-bw*3-gap*2)/2,by=y+96;specs.forEach(([k,v],i)=>{const X=bx+i*(bw+gap);x.fillStyle=tk('card');rr(x,X,by,bw,110,18);x.fill();x.strokeStyle=tk('line');x.lineWidth=2;x.stroke();
-  x.fillStyle=tk('info-ink');x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle=tk('on-surface');x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
+  x.fillStyle=tk('warm-ink');x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle=tk('on-surface');x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
  x.textAlign='center';x.fillStyle=tk('accent-ink');x.font='700 30px Figtree';x.fillText('lahojaboricua.com',W/2,H-62);x.fillStyle=tk('muted');x.font='600 20px Figtree';x.fillText(tt('h.prototipoInformacionPublicaSujeta'),W/2,H-28);
  return new Promise(r=>cv.toBlob(b=>r(b),'image/png'))}
 async function shareCard(id){const c=A.cigarById(id);if(!c)return;

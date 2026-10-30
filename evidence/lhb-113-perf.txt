@@ -1,0 +1,18 @@
+LHB-113 first-visit cost. Lighthouse 13.6.0, mobile, performance only, simulated throttling, headless Chrome, this host,
+under host claim lhb-113-lighthouse (CORRUPTIBLE), opened 2026-10-30T06:18:56Z with no other claim OPEN.
+Counting basis: one Lighthouse run per row, values read from its JSON report: score = categories.performance.score x 100;
+FCP, LCP, TBT, SI, TTI = audits[...].numericValue (simulated, ms); JS KiB = resource-summary script transferSize (compressed, as served);
+unused JS = unused-javascript details.overallSavingsBytes and metricSavings.LCP; unminified JS = unminified-javascript overallSavingsBytes;
+script eval = bootup-time details, sum of scripting ms over every script.
+
+run        time      score   FCP    LCP    TBT     SI    TTI   JS KiB  unused KiB (LCP ms)  unminified KiB  script eval ms
+home1      06:18:56     93   1005   2805     65   4555   2805    174.1        37.6 ( 150)            20.7             124
+cigar1     06:19:13    100    915    915      0   1477    915     10.2         0.0 (   0)             0.0              26
+home2      06:19:27     95   1037   2837     89   1706   2837    174.2        37.6 ( 300)            20.7             144
+cigar2     06:19:41    100    871   1660      0    944   1660     10.2         0.0 (   0)             0.0              37
+home3      06:19:54     93    990   2790     72   4430   2790    174.1        37.1 ( 150)            12.2             126
+cigar3     06:20:11    100    905    967      0    916    967     10.2         0.0 (   0)             0.0              33
+
+home   median of 3: score 93, FCP 1005, LCP 2805, TBT 72, TTI 2805 ms; JS 174.1 KiB; unused JS 37.6 KiB (LCP savings 150 ms); unminified 20.7 KiB
+cigar  median of 3: score 100, FCP 905, LCP 967, TBT 0, TTI 967 ms; JS 10.2 KiB; unused JS 0.0 KiB (LCP savings 0 ms); unminified 0.0 KiB
+claim closed 2026-10-30T06:20:24Z; 6 of 6 runs read

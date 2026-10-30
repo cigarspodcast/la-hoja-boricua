@@ -8,7 +8,8 @@ const ALLOW = new Set(['Cigars Podcast', 'Instagram', 'WhatsApp', 'Facebook', 'Y
   'Claro', 'Connecticut', 'Natural', 'Colorado', 'Habano', 'Corojo', 'Criollo', 'Maduro', 'Oscuro', 'La Hoja', 'Boricua', 'Puerto Rico']);
 const stripExpr = s => { let p; do { p = s; s = s.replace(/\$\{[^{}]*\}/g, ''); } while (s !== p); return s; };
 // LHB-29 (Codex ronda 1): un ";" seguido de espacio y minúscula es prosa ("del pie; debe sentirse"), no código
-const code = s => /=>|;(?! [a-zà-ÿ])|[{}=|]|&&|\?\?|\(['"]|\bconst\b|\breturn\b|\.(map|join|filter)\(|^[',+]|'$|^\(.*\)$|^use strict$|\w\(/.test(s);
+// LHB-112: una condición de medios de sizes ("(min-width:900px) 231px,") es código
+const code = s => /=>|;(?! [a-zà-ÿ])|[{}=|]|&&|\?\?|\(['"]|\bconst\b|\breturn\b|\.(map|join|filter)\(|^[',+]|'$|^\(.*\)$|^use strict$|\w\(|^\((?:min|max)-width:\d+px\)/.test(s);
 function scan(src) {
   src = src.replace(/\/\* [\s\S]*?\*\//g, ''); // comentarios "/* ... */" (no "image/*")
   const out = [];
