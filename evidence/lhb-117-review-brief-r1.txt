@@ -1,0 +1,18 @@
+Code review, LHB-117, TIER 1, round 1. Repository cigarspodcast/la-hoja-boricua, branch lhb-117-sin-prototipo. You are reviewing; do not edit files.
+
+The change (LHB-117, the owner's LHB-16 decision on 2026-10-30): the site is no longer labelled a prototype. Remove the "Prototipo" label everywhere it shows:
+- site/app.js: PROTO_NOTE is now empty, and the profile page no longer prints the pf.note paragraph.
+- site/hoja.js: the share card image keeps only the lahojaboricua.com footer line; the line that drew h.prototipoInformacionPublicaSujeta is gone.
+- site/i18n.js: the keys proto.note, pf.note and h.prototipoInformacionPublicaSujeta are removed from both languages.
+- README.md: the "Prototipo" line is removed.
+- test/lhb-29-hoja-exceptions.txt: the LHB-29 scan of hoja.js listed the removed line's canvas font ('600 20px Figtree') as an expected exception; it goes with the line.
+- site/sw.js: cache version lhb-v167 (main is lhb-v166 after LHB-105).
+
+Tests: a new LHB-117 test checks that no site file, i18n key, share card or README carries the label. It was red before the change (evidence/lhb-117-red.txt: 1 test, 0 pass, 1 fail). It also pins the privacy page line on Cloudflare's cookieless visit statistics, because Web Analytics (LHB-19) is being turned on. The old assertion that required the label is replaced. Full suite: 486 tests, 485 pass, 0 fail, 1 skipped (evidence/lhb-117-tests.txt).
+
+What to look for:
+- Any place the label or the removed keys are still used or shown: a tt() call on a removed key would print the raw key.
+- The share card layout after the line is removed: an empty band, or the footer drawn at a wrong height.
+- Anything else in the diff that changes behaviour beyond removing the label.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing case.
