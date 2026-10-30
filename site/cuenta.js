@@ -19,22 +19,24 @@ const cache=v=>{try{D.store.set(v)}catch(e){}};
 const snap=(uid,p)=>({sub:uid,handle:p.handle,name:typeof p.display_name==='string'?p.display_name:'',avatar:typeof p.avatar_key==='string'&&p.avatar_key.startsWith(CLERK_IMG)?p.avatar_key:''});
 /* toda salida que da por buena la cuenta con perfil retira el formulario de perfil que siga abierto: quedó viejo y su respuesta tardía ya no corre su acción además de esta */
 const retire=()=>{if(ob){ob=false;D.reroute()}};
-/* LHB-115: el idioma de la cuenta. Al entrar, uno guardado en la cuenta gana al del teléfono: se guarda aquí y, si no es el de esta página, se recarga en ese
-   idioma (sin mandarlo de vuelta). Si la cuenta no tiene ninguno y el teléfono sí, se le manda el del teléfono. Un envío que falla no cambia nada */
-function syncLang(C,uid,p){const I=window.LHB_I18N;if(!I||!I.ENABLED||typeof I.saved!=='function')return;
- const acc=p&&(p.lang==='es'||p.lang==='en')?p.lang:null,dev=I.saved(),pend=typeof I.pending==='function'?I.pending():null;
- /* Codex r1-2: un cambio del menú que la cuenta todavía no guardó gana a la cuenta y se vuelve a mandar; uno que ya no es el del teléfono se olvida */
- if(pend&&pend===dev){putLang(C,uid,dev);return}
- if(pend)I.settle();
- if(acc){if(acc!==I.lang)I.set(acc,{local:true});else if(acc!==dev)I.remember(acc);return}
- if(dev)putLang(C,uid,dev)}
-/* manda el idioma a la cuenta; un 200 lo da por guardado (borra lo anotado). Nunca rompe la entrada */
-function putLang(C,uid,l){return Promise.resolve().then(()=>D.api(C,'PUT','/api/profile',{lang:l},uid)).then(r=>{if(r&&r.status===200){const I=window.LHB_I18N;if(I&&typeof I.settle==='function')I.settle()}return r}).catch(()=>null)}
+/* LHB-115: el idioma de la cuenta. fresh: se entra en este teléfono (no había perfil guardado de esta cuenta). Entonces uno guardado en la cuenta gana al
+   del teléfono: se guarda aquí y, si no es el de esta página, se recarga en ese idioma (sin mandarlo de vuelta). Con la misma cuenta ya abierta aquí, el
+   teléfono gana (un cambio del menú que la cuenta no llegó a guardar no se deshace) y se le manda a la cuenta, hasta que lo guarde (Codex r1-2, r2-1 a r2-3).
+   Si el teléfono no tiene ninguno, el de la cuenta. Un envío que falla no cambia nada */
+function syncLang(C,uid,p,fresh){const I=window.LHB_I18N;if(!I||!I.ENABLED||typeof I.saved!=='function')return;
+ const acc=p&&(p.lang==='es'||p.lang==='en')?p.lang:null,dev=I.saved();
+ if(acc&&(fresh||!dev)){if(acc!==I.lang)I.set(acc,{local:true});else if(acc!==dev)I.remember(acc);return}
+ if(dev&&dev!==acc)putLang(C,uid,dev)}
+const fresh=uid=>{let c=null;try{c=D.store.get()}catch(e){}return !(c&&c.sub===uid)};
+/* manda el idioma a la cuenta. Nunca rompe la entrada */
+function putLang(C,uid,l){return Promise.resolve().then(()=>D.api(C,'PUT','/api/profile',{lang:l},uid)).catch(()=>null)}
 /* Codex r1-5: la hoja de entrar espera a que se escoja el idioma (intro.js), que va antes que nada */
 function openSignIn(C){const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(()=>D.openSignIn(C));else D.openSignIn(C)}
-/* el menú cambia el idioma con LHB_I18N.set, que llama a esto y espera antes de recargar: con la sesión de la cuenta guardada (la misma que dice Clerk), se manda a la cuenta */
-if(window.LHB_I18N)window.LHB_I18N.onSet=l=>{const c=D.store.get();if(!c||!c.sub)return null;
- return Promise.resolve().then(()=>D.clerk()).then(C=>C&&C.user&&C.user.id===c.sub?putLang(C,c.sub,l):null).catch(()=>null)};
+/* el menú (y la pantalla del idioma) cambia el idioma con LHB_I18N.set, que llama a esto y espera antes de recargar. Si parece haber sesión (el perfil
+   guardado, o, con localStorage bloqueado, la cookie __client_uat de Clerk, que vale 0 sin sesión: Codex r2-4), se manda a la cuenta de la sesión de ahora */
+const signedHint=()=>{let c=null;try{c=D.store.get()}catch(e){}if(c&&c.sub)return true;
+ try{const m=/(?:^|;\s*)__client_uat=(\d+)/.exec(String(window.document&&window.document.cookie||''));return !!m&&m[1]!=='0'}catch(e){return false}};
+if(window.LHB_I18N)window.LHB_I18N.onSet=l=>signedHint()?Promise.resolve().then(()=>D.clerk()).then(C=>C&&C.user?putLang(C,C.user.id,l):null).catch(()=>null):null;
 const onMiHoja=()=>{const r=D.here().replace(/^#\/?/,'').split('/')[0];return r==='mihoja'||r==='perfil'||r==='cata'||r==='subir'};
 /* LHB-51: al abrir la app con una cuenta guardada, Clerk dice quién es: si es otra (o nadie) lo guardado se descarta; sin conexión se queda */
 async function reconcile(){const c0=D.store.get();if(!c0)return;let C;try{C=await D.clerk()}catch(e){return}hook(C);
@@ -87,7 +89,7 @@ async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=
  if(r.status===200&&r.body.profile&&r.body.needsIdentity===true)return identify(C,done,o,lv,uid,r.body.profile);
  /* LHB-55: editar el perfil pasa por la misma puerta y abre el formulario con lo que hay guardado; done corre al guardar */
  if(r.status===200&&r.body.profile&&o.edit){cache(snap(uid,r.body.profile));D.intent.clear();return edit(C,done,o,lv,uid,r.body.profile)}
- if(r.status===200&&r.body.profile){cache(snap(uid,r.body.profile));syncLang(C,uid,r.body.profile);D.intent.clear();retire();return done()}
+ if(r.status===200&&r.body.profile){const fr=fresh(uid);cache(snap(uid,r.body.profile));syncLang(C,uid,r.body.profile,fr);D.intent.clear();retire();return done()}
  if(r.status===200&&r.body.needsProfile)return onboard(C,done,o,lv,uid);
  if(r.status===401||r.status===403){D.store.clear();fail(tt('cu.check.h'),tt('cu.check.relog'));return}
  const c=D.store.get();
@@ -147,7 +149,7 @@ function onboard(C,done,o,lv,uid){ob=true;
   const same=!!C.user&&C.user.id===uid;
   if(r.status===201){if(same)cache(snap(uid,r.body.profile));
    if(!live())return {stale:true};
-   if(same)syncLang(C,uid,null);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(same)syncLang(C,uid,null,true);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
   if(!live())return {stale:true};
   /* la respuesta se perdió pero el perfil sí se creó: se revisa de nuevo dentro de este mismo envío y, si sale bien, se termina igual que con un 201.
      Si la revisión falla, el formulario sigue vivo para reintentar; no se anuncia éxito antes de tiempo. */
@@ -156,7 +158,7 @@ function onboard(C,done,o,lv,uid){ob=true;
    if(!live())return {stale:true};
    /* LHB-52: el perfil que apareció tras el 409 sigue sin identidad: se completa antes de guardar nada o abrir Mi Hoja; este formulario ya no vale */
    if(m.status===200&&m.body.profile&&m.body.needsIdentity===true){identify(C,done,o,lv,uid,m.body.profile);return {stale:true}}
-   if(m.status===200&&m.body.profile){cache(snap(uid,m.body.profile));syncLang(C,uid,m.body.profile);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
+   if(m.status===200&&m.body.profile){const fr=fresh(uid);cache(snap(uid,m.body.profile));syncLang(C,uid,m.body.profile,fr);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.welcome'));if(o.inPlace)D.reroute();done();return {ok:true}}
    return {error:'recheck'}}
   return {error:r.body.error||'generic'}};
  /* un envío y una subida nunca corren a la vez: lo que se manda es la foto que se ve, y la que se sube no llega tarde a un perfil ya enviado */
@@ -196,7 +198,7 @@ function identify(C,done,o,lv,uid,prof){ob=true;
  /* el perfil guardado de antes ya no abre: la próxima vez, sin conexión o en una acción en sitio, se vuelve a revisar */
  D.store.clear();
  const {live,settle}=guard(C,o,lv,uid);let sending=false;
- const finish=()=>{cache(snap(uid,prof));syncLang(C,uid,prof);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.done'));if(o.inPlace)D.reroute();done();return {ok:true}};
+ const finish=()=>{cache(snap(uid,prof));syncLang(C,uid,prof,true);settle();ob=false;D.intent.clear();D.ui.toast(tt('cu.done'));if(o.inPlace)D.reroute();done();return {ok:true}};
  const send=async f=>{
   if(!live())return {stale:true};
   let r;try{r=await D.api(C,'PUT','/api/profile',{first_name:f.first_name,last_name:f.last_name,gender:f.gender,birth_date:f.birth_date},uid)}catch(e){r={status:0,body:{}}}

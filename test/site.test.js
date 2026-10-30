@@ -9229,7 +9229,7 @@ test('LHB-115: escoger escribe la cookie (un año, Path=/, SameSite=Lax, Secure 
  r=I18N115({cookieBlocked:true,lsBlocked:true});assert.equal(r.I.set('en'),false);assert.equal(r.reloads.length,0);
 });
 /* la pantalla de escoger el idioma, en intro.js de verdad, antes de la intro */
-const LANG115=(o={})=>{const calls=[];const r=INTRO72({now:T72,...o,i18n:{chosen:o.chosen,ENABLED:true,t:k=>'<'+k+'>',remember:l=>{calls.push(['remember',l]);return o.cannot?false:true},set:l=>{calls.push(['set',l]);return o.cannot?false:true}}});r.calls=calls;r.pick=()=>r.D.$('.lang-pick');return r};
+const LANG115=(o={})=>{const calls=[];const r=INTRO72({now:T72,...o,i18n:{chosen:o.chosen,ENABLED:true,t:k=>'<'+k+'>',remember:l=>{calls.push(['remember',l]);return o.cannot?false:true},set:l=>{calls.push(['set',l]);return o.cannot?false:true},onSet:o.onSet}});r.calls=calls;r.pick=()=>r.D.$('.lang-pick');return r};
 test('LHB-115: la primera vez, sin idioma escogido, antes que nada sale Español o English (cada uno en su idioma); con uno escogido no sale',()=>{
  let r=LANG115({chosen:false});assert.equal(r.api.last,'lang','primero el idioma');assert.ok(r.pick(),'sale la pantalla');assert.equal(r.ov(),null,'la intro espera');
  assert.equal(r.pick().getAttribute('role'),'dialog');assert.equal(r.pick().getAttribute('aria-modal'),'true');
@@ -9251,7 +9251,7 @@ test('LHB-115: Español se guarda y sigue la intro; English se guarda y recarga 
 /* al entrar: la cuenta manda */
 const ACC115=(prof,dev,o={})=>{const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{if(m==='GET')return {status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'',...prof}}};sent.push([m,p,b,uid]);return {status:o.put||200,body:{ok:true}}}});
  const set=[],kept=[];let settled=0;const I=h.win.LHB_I18N;h.win.LHB_I18N={...I,ENABLED:true,lang:dev||'es',saved:()=>dev||null,set:(l,x)=>set.push([l,x]),remember:l=>{kept.push(l);return true},pending:()=>o.pending||null,settle:()=>{settled++}};
- h.C.user={id:'user_a'};return {h,sent,set,kept,settled:()=>settled}};
+ h.C.user={id:'user_a'};if(o.cached||o.cachedSub)h.cache({sub:o.cachedSub||'user_a',handle:'ana'});return {h,sent,set,kept,settled:()=>settled}};
 test('LHB-115: al entrar, el idioma guardado en la cuenta gana al del teléfono (se guarda y se recarga en ese idioma, sin volver a mandarlo); sin idioma en la cuenta se le manda el del teléfono',async()=>{
  let x=ACC115({lang:'en'},'es');await x.h.A.require(x.h.go);await tick();
  assert.deepEqual(x.set,[['en',{local:true}]],'la cuenta dice inglés');assert.deepEqual(x.sent,[],'no se manda de vuelta');assert.ok(x.h.log.includes('GO'),'y Mi Hoja abre');
@@ -9265,7 +9265,7 @@ test('LHB-115: cambiar el idioma desde el menú con la sesión abierta lo manda 
  assert.equal(typeof h.win.LHB_I18N.onSet,'function','cuenta.js se lo da a i18n.js');
  assert.equal(h.win.LHB_I18N.onSet('en'),null,'sin cuenta guardada: nada');assert.deepEqual(sent,[]);
  h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});await h.win.LHB_I18N.onSet('en');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'en'},'user_a']]);
- h.C.user={id:'user_b'};sent.length=0;await h.win.LHB_I18N.onSet('es');assert.deepEqual(sent,[],'la sesión es de otra cuenta: nada');
+ h.C.user={id:'user_b'};sent.length=0;await h.win.LHB_I18N.onSet('es');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'es'},'user_b']],'va a la cuenta de la sesión de ahora (Codex r2)');
  assert.match(read('app.js'),/closest\('\[data-lang\]'\);if\(!b\)return;const I=window\.LHB_I18N;if\(I&&I\.set\)I\.set\(b\.dataset\.lang\)/,'el menú cambia con set');
 });
 test('LHB-115: el servidor guarda y devuelve el idioma de la cuenta (PUT /api/profile con solo lang, GET /api/me), y sin la columna sigue funcionando',async()=>{
@@ -9282,18 +9282,30 @@ test('LHB-115: el servidor guarda y devuelve el idioma de la cuenta (PUT /api/pr
  const sql=fs.readFileSync(path.join(__dirname,'..','migrations','0009_profile_lang.sql'),'utf8');
  assert.match(sql,/ALTER TABLE profiles ADD COLUMN lang TEXT CHECK \(lang IS NULL OR lang IN \('es', 'en'\)\);/);
 });
-test('LHB-115 (Codex r1-2): un cambio del menú que la cuenta no guardó (503, o más de 3 s) queda anotado; al volver a entrar el teléfono gana y se vuelve a mandar',async()=>{
- let r=I18N115();r.I.onSet=()=>new Promise(()=>{});r.I.set('en');assert.equal(r.m.lhb_lang_pend,'en','queda anotado que falta guardarlo en la cuenta');assert.equal(r.I.pending(),'en');
- r.I.settle();assert.equal(r.m.lhb_lang_pend,undefined,'settle lo borra');assert.equal(r.I.pending(),null);
- r=I18N115();r.I.set('en');assert.equal(r.m.lhb_lang_pend,undefined,'sin cuenta (sin onSet) no se anota');
- r=I18N115({ls:{lhb_lang_pend:'en'}});r.I.set('es',{local:true});assert.equal(r.m.lhb_lang_pend,undefined,'lo que viene de la cuenta lo borra');
- for(const st of [200,503]){const x=ACC115({lang:'es'},'en',{pending:'en',put:st});await x.h.A.require(x.h.go);await tick();
-  assert.deepEqual(x.set,[],'la cuenta vieja no gana ('+st+')');assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'se vuelve a mandar');assert.equal(x.settled(),st===200?1:0,'solo un 200 lo da por guardado');assert.ok(x.h.log.includes('GO'))}
- /* lo anotado ya no es lo del teléfono (cambió después): se olvida y la cuenta manda como siempre */
- let x=ACC115({lang:'es'},'en',{pending:'es'});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['es',{local:true}]]);assert.equal(x.settled(),1);
- /* el menú con sesión: un 200 lo da por guardado, un 503 no */
- for(const st of [200,503]){const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:st,body:{}}}});let n=0;h.win.LHB_I18N.settle=()=>n++;
-  h.C.user={id:'user_a'};h.cache({sub:'user_a',handle:'ana'});await h.win.LHB_I18N.onSet('en');assert.equal(n,st===200?1:0,'onSet '+st)}
+test('LHB-115 (Codex r2-1, r2-3, r2-4): la cuenta gana solo al entrar en este teléfono; con la misma cuenta ya abierta aquí el teléfono gana y se le manda a la cuenta, sin ninguna marca aparte',async()=>{
+ let x=ACC115({lang:'es'},'en');await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['es',{local:true}]],'al entrar en este teléfono, la cuenta');assert.deepEqual(x.sent,[]);
+ for(const st of [200,503]){x=ACC115({lang:'es'},'en',{cached:true,put:st});await x.h.A.require(x.h.go);await tick();
+  assert.deepEqual(x.set,[],'con la misma cuenta ya abierta aquí, el idioma viejo de la cuenta no deshace el del menú ('+st+')');assert.deepEqual(x.sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'se le manda a la cuenta');assert.ok(x.h.log.includes('GO'))}
+ x=ACC115({lang:'en'},'en',{cached:true});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[]);assert.deepEqual(x.sent,[],'iguales: nada');
+ x=ACC115({lang:'en'},null,{cached:true});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['en',{local:true}]],'el teléfono no tiene ninguno: el de la cuenta');
+ /* lo guardado era de otra cuenta (salió A, entra B): es entrar en este teléfono, así que gana B, y nada de A llega a B */
+ x=ACC115({lang:'es'},'en',{cachedSub:'user_b'});await x.h.A.require(x.h.go);await tick();assert.deepEqual(x.set,[['es',{local:true}]]);assert.deepEqual(x.sent,[]);
+ assert.ok(!/lhb_lang_pend|I\.pending|I\.settle/.test(read('i18n.js')+read('cuenta.js')),'sin marca aparte que se pueda cruzar de cuenta o quedar vieja');
+ /* el menú: va a la cuenta de la sesión de ahora; sin perfil guardado (localStorage bloqueado) basta la cookie __client_uat de Clerk, que vale 0 sin sesión */
+ const sent=[];const h=CUENTA_HARNESS({api:async(C,m,p,b,uid)=>{sent.push([m,p,b,uid]);return {status:200,body:{}}}});h.C.user={id:'user_a'};
+ assert.equal(h.win.LHB_I18N.onSet('en'),null,'ni perfil guardado ni sesión en las cookies: nada');
+ h.win.document={cookie:'otra=1; __client_uat=1761830000'};await h.win.LHB_I18N.onSet('en');assert.deepEqual(sent,[['PUT','/api/profile',{lang:'en'},'user_a']],'la cookie de sesión de Clerk basta');
+ h.win.document={cookie:'__client_uat=0'};sent.length=0;assert.equal(h.win.LHB_I18N.onSet('en'),null,'__client_uat=0 es sin sesión');
+ h.win.document=undefined;h.C.user=null;h.cache({sub:'user_a',handle:'ana'});await h.win.LHB_I18N.onSet('es');assert.deepEqual(sent,[],'Clerk dice que no hay nadie: nada');
+});
+test('LHB-115 (Codex r2-2): dos cambios seguidos del menú recargan una sola vez, cuando contesta el último',async()=>{
+ const r=I18N115();const ok=[];r.I.onSet=()=>new Promise(res=>ok.push(res));r.I.set('en');r.I.set('es');
+ ok[0]();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,0,'la respuesta del primero no recarga');
+ ok[1]();await new Promise(res=>setImmediate(res));assert.equal(r.reloads.length,1);assert.match(r.jar.v,/(^|; )lhb_lang=es(;|$)/,'con el último');
+ for(const t of r.tm.filter(x=>x[1]===3000))t[0]();assert.equal(r.reloads.length,1,'y los límites de 3 s no recargan otra vez');
+});
+test('LHB-115 (Codex r2-5): escoger Español en la pantalla también lo manda a la cuenta (con sesión, cuenta.js pone onSet)',()=>{
+ const sent=[];const r=LANG115({chosen:false,onSet:l=>{sent.push(l);return Promise.resolve(null)}});r.pick().querySelector('[data-l="es"]').click();assert.deepEqual(sent,['es']);assert.deepEqual(r.calls,[['remember','es']]);
 });
 test('LHB-115 (Codex r1-3): sin localStorage la cookie todavía puede recordar el idioma: la pantalla sale igual, y Español sigue sin intro (la intro no tiene dónde anotarse)',()=>{
  const r=LANG115({chosen:false,blocked:true});assert.ok(r.pick(),'pregunta');r.pick().querySelector('[data-l="es"]').click();assert.equal(r.pick(),null);assert.equal(r.api.last,'storage');assert.equal(r.ov(),null);

@@ -73,7 +73,7 @@ function choose(next){
  ov.innerHTML=`<div class="lang-pick-in"><img src="icons/icon.svg" alt="" width="56" height="56"><h1 id="langPickH">${tt('intro.name')}</h1><p>${tt('lang.pick')}</p><div class="lang-pick-b">${NAMES.map(([l,n])=>`<button type="button" class="lbtn" lang="${l}" data-l="${l}">${n}</button>`).join('')}</div></div>`;
  const btns=[...ov.querySelectorAll('.lang-pick-b button')];let done=false;
  for(const b of btns){const l=b.getAttribute('data-l');
-  b.onclick=()=>{if(done)return;done=true;if(l==='en'&&I.set('en')!==false)return;if(l==='es')I.remember('es');if(app)app.inert=false;ov.remove();picking=false;next();for(const f of after.splice(0)){try{f()}catch(e){}}}}
+  b.onclick=()=>{if(done)return;done=true;if(l==='en'&&I.set('en')!==false)return;if(l==='es'){I.remember('es');/* Codex r2-5: con sesión, también a la cuenta */if(typeof I.onSet==='function'){try{const p=I.onSet('es');if(p&&p.catch)p.catch(()=>{})}catch(e){}}}if(app)app.inert=false;ov.remove();picking=false;next();for(const f of after.splice(0)){try{f()}catch(e){}}}}
  ov.onkeydown=e=>{if(e.key!=='Tab')return;const i=btns.indexOf(d.activeElement);e.preventDefault();btns[(i+(e.shiftKey?btns.length-1:1))%btns.length].focus()};
  d.body.appendChild(ov);if(app)app.inert=true;btns[0].focus({preventScroll:true})}
 /* ?intro=1 vale una vez: sale de la dirección antes de decidir; si no se puede quitar, no cuenta (Codex ronda 2), para que recargar no la repita */
