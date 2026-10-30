@@ -1,0 +1,11 @@
+Code review, LHB-119, TIER 1, round 1. Repository cigarspodcast/la-hoja-boricua, branch lhb-119-toast. You are reviewing; do not edit files.
+
+Origin: Codex round 8 on LHB-105, finding R8-1 (P3). While an account switch waits for the exclusive write lock, this tab has dropped its shared lock, so wlClosed() is true and SYNC.fenced() is true. write() in site/hoja.js checked fenced() first and toasted ac.fenced ("Se esta saliendo de la cuenta...") before it reached the SYNC.switching() branch.
+
+The change: in write(), the first fenced branch now toasts h.cambiandoCuenta while SYNC.switching() is true, and ac.fenced otherwise. The write stays refused. The second fenced check, after JSON.stringify, is unchanged. The LHB-28 test that pins write()'s source text is updated to the new form.
+
+Test: LHB-119, on the real write() and LHB-98 lock code (TAB98 through the SW105 helper, which gains an asleep option so the other tab keeps its shared lock and never hears the notice). It was red on main with the sign-out toast (evidence/lhb-119-red.txt). Full suite: 486 tests, 485 pass, 0 fail, 1 skipped (evidence/lhb-119-tests.txt). The cache version (site/sw.js) is bumped when this merges, after LHB-115; it is not part of this diff.
+
+Check that the message choice is right in every state where write() refuses: sign-out fence, pending switch, both at once. Check that nothing else changed.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing case.

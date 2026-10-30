@@ -1,0 +1,68 @@
+Code review, LHB-119, TIER 1, round 1. Repository cigarspodcast/la-hoja-boricua, branch lhb-119-toast. You are reviewing; do not edit files.
+
+Origin: Codex round 8 on LHB-105, finding R8-1 (P3). While an account switch waits for the exclusive write lock, this tab has dropped its shared lock, so wlClosed() is true and SYNC.fenced() is true. write() in site/hoja.js checked fenced() first and toasted ac.fenced ("Se esta saliendo de la cuenta...") before it reached the SYNC.switching() branch.
+
+The change: in write(), the first fenced branch now toasts h.cambiandoCuenta while SYNC.switching() is true, and ac.fenced otherwise. The write stays refused. The second fenced check, after JSON.stringify, is unchanged. The LHB-28 test that pins write()'s source text is updated to the new form.
+
+Test: LHB-119, on the real write() and LHB-98 lock code (TAB98 through the SW105 helper, which gains an asleep option so the other tab keeps its shared lock and never hears the notice). It was red on main with the sign-out toast (evidence/lhb-119-red.txt). Full suite: 486 tests, 485 pass, 0 fail, 1 skipped (evidence/lhb-119-tests.txt). The cache version (site/sw.js) is bumped when this merges, after LHB-115; it is not part of this diff.
+
+Check that the message choice is right in every state where write() refuses: sign-out fence, pending switch, both at once. Check that nothing else changed.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing case.
+
+===== git diff origin/main 4802e24da0cbec1e605a07433d027afc78ec448f -- site test =====
+diff --git a/site/hoja.js b/site/hoja.js
+index 31e5bfb..3417b0b 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -53,7 +53,7 @@ let SYNC=null;
+ let DFOC=null;window.addEventListener('hashchange',()=>{DFOC=null});
+ /* quiet: lo que la app escribe por sí sola (copia nueva o dañada) no cuenta como un cambio de la persona.
+    LHB-98 (Codex r1): sin el candado compartido en la mano (wlClosed) tampoco se guarda: se queda en memoria, y al llegar el candado (wlTake suelta ST) se lee y se escribe otra vez */
+-function write(s,quiet){if(quiet&&typeof wlClosed==='function'&&wlClosed())return true;if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(SYNC.switching&&SYNC.switching()?tt('h.cambiandoCuenta'):tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
++function write(s,quiet){if(quiet&&typeof wlClosed==='function'&&wlClosed())return true;if(SYNC&&SYNC.fenced()){ST=null;toast(SYNC.switching&&SYNC.switching()?tt('h.cambiandoCuenta'):tt('ac.fenced'));return false}if(SYNC&&!SYNC.isolate()){ST=null;toast(SYNC.switching&&SYNC.switching()?tt('h.cambiandoCuenta'):tt('h.noSePudoSeparar'));return false}if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast(tt('h.noHayEspacioPara'));return false}let prev=null;try{if(SYNC&&!quiet)prev=localStorage.getItem(KEY);const txt=JSON.stringify(s);if(SYNC&&SYNC.fenced()){ST=null;toast(tt('ac.fenced'));return false}localStorage.setItem(KEY,txt);STRAW=txt}catch(e){ST=null;toast(tt('h.noHayEspacioPara'));return false}if(SYNC&&!quiet)SYNC.changed(prev);for(const k of PEND.splice(0)){if(parkedRef(k))PEND.push(k);else if(!refd(k))FOTOS.del(k);else if(S().draft&&S().draft.foto===k&&!S().diario.some(e=>e&&e.foto===k))PEND.push(k)}return true}/* una foto que solo usa el borrador guardado sigue pendiente: el cambio de borrador que la soltaba no se anotó (o se soltó por rechazado) y se borra cuando se anote */
+ /* antes de leer Mi Hoja se aparta lo que era de otra cuenta; otra pestaña que escribe deja esta copia en memoria por vieja */
+ /* LHB-101: si el navegador bloquea leer el almacenamiento, Mi Hoja vacía; nunca un error dentro de una pintura (un catálogo en blanco) */
+ const S=()=>{try{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST}catch(e){ST=null;return DEF()}};
+diff --git a/test/site.test.js b/test/site.test.js
+index 749d0e0..2486e0e 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -3027,7 +3027,7 @@ test('LHB-28: importar un respaldo junta con lo que ya hay y nunca reemplaza; ho
+  assert.ok(/const m=LHB_MERGE\.merge\(null,s,inc,\{prefer:'local'\}\)/.test(h),'importar junta con prefer local');
+  assert.ok(!/s\.humidor=inc\.humidor|s\.diario=inc\.diario/.test(h),'importar ya no reemplaza las listas');
+  /* LHB-98: la valla mira también el candado de Mi Hoja, salvo en lo que la app escribe sola (quiet) */
+- assert.ok(/function write\(s,quiet\)\{if\(quiet&&typeof wlClosed==='function'&&wlClosed\(\)\)return true;if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
++ assert.ok(/function write\(s,quiet\)\{if\(quiet&&typeof wlClosed==='function'&&wlClosed\(\)\)return true;if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(SYNC\.switching&&SYNC\.switching\(\)\?tt\('h\.cambiandoCuenta'\):tt\('ac\.fenced'\)\);return false\}if\(SYNC&&!SYNC\.isolate\(\)\)\{[^}]*\}if\(SYNC&&!quiet&&!SYNC\.ensureOwner\(\)\)\{[^}]*\}let prev=null;try\{if\(SYNC&&!quiet\)prev=localStorage\.getItem\(KEY\);const txt=JSON\.stringify\(s\);if\(SYNC&&SYNC\.fenced\(\)\)\{ST=null;toast\(tt\('ac\.fenced'\)\);return false\}localStorage\.setItem\(KEY,txt\);STRAW=txt\}catch\(e\)\{[^}]*\}if\(SYNC&&!quiet\)SYNC\.changed\(prev\)/.test(h),'cada escritura de la persona avisa al motor y exige poder anotar la dueña');
+  assert.ok(h.includes('SYNC=window.LHB_SYNC({')&&h.includes('SYNC.start();'),'hoja.js arma y arranca el motor');
+  assert.ok(h.includes("SYNC.run('mi-hoja',{minAge:20e3})"),'abrir Mi Hoja sincroniza si pasaron 20 segundos');
+  assert.ok(h.includes("onApplied:()=>{if(/^#\\/mihoja(\\/(humidor|diario|pasaporte|favoritos))?$/.test(location.hash)&&!document.body.classList.contains('sheet-on')){dKeepFocus();A.route()}else pfOwnSync()}"),'lo que llega de otro teléfono se pinta solo en las listas de Mi Hoja y sin una hoja abierta (LHB-39: antes anota el foco de la búsqueda del diario)');
+@@ -7634,10 +7634,10 @@ test('LHB-105 (Codex r6): otra pestaña está a mitad de escribir cuando esta, c
+   assert.ok(!L.held.some(h=>h.mode==='exclusive'),'el exclusivo se soltó');
+  }finally{a.done()}});
+ /* Codex r7: dos pestañas con el cambio de cuenta (sw), los avisos del cambio pasan por set98 (o.sync: llegan en el acto, sin esperar una tarea;
+-   o.dedup: como el navegador, no hay aviso si el valor no cambió; o.fails: escribir el aviso falla) */
++   o.dedup: como el navegador, no hay aviso si el valor no cambió; o.fails: escribir el aviso falla; o.asleep: la otra pestaña está dormida y no oye el aviso, LHB-119) */
+ const SW105=async o=>{o=o||{};const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));const dev=DEV28(a,'user_a');
+  dev.seed(DOC28);await dev.sync();
+- const L=LOCKS98(),timers=[];const X=TAB98(dev,L,{sw:true,timers,clock:o.clock}),Y=TAB98(dev,L,{sw:true,clock:o.clock});
++ const L=LOCKS98(),timers=[];const X=TAB98(dev,L,{sw:true,timers,clock:o.clock}),Y=TAB98(dev,L,{sw:true,clock:o.clock,suspend:o.asleep});
+  const set0=dev.ls.set.bind(dev.ls);const s={fails:!!o.fails,notes:0};
+  dev.ls.set=(k,v)=>{if(k==='lhb_mihoja_v1_cambiando'){if(s.fails)throw new Error('QuotaExceededError');const old=dev.ls.has(k)?dev.ls.get(k):null;set0(k,v);
+    if(o.dedup&&old===String(v))return dev.ls;s.notes++;const e={key:k,newValue:String(v)};if(o.sync)Y.hear(e);else Y.tell(e);return dev.ls}
+@@ -7646,6 +7646,15 @@ const SW105=async o=>{o=o||{};const a=await ENG28();a.db.exec(a.mig('0008_mihoja
+  const owner=()=>dev.ls.has('lhb_mihoja_v1_owner')?dev.ls.get('lhb_mihoja_v1_owner'):null;
+  const to=async u=>{dev.st.acct=dev.st.user=u;X.eng.isolate();await until105(()=>!X.eng.switching());await tick98(20)};
+  return {a,dev,L,X,Y,timers,s,owner,to}};
++test('LHB-119 (LHB-105 Codex R8-1): una escritura mientras el cambio de cuenta espera el exclusivo no se hace, y dice que se está cambiando de cuenta, no que se está saliendo',async()=>{
++ const t=await SW105({asleep:true});try{
++  t.dev.st.acct=t.dev.st.user='user_b';assert.equal(t.X.eng.isolate(),false);await tick98(20);
++  assert.equal(t.X.eng.switching(),true,'el cambio espera: la otra pestaña no soltó su compartido');
++  const doc=JSON.parse(t.dev.ls.get('lhb_mihoja_v1'));doc.humidor.push({id:'durante',marca:'Durante el cambio',actualizado:'2026-10-30'});
++  assert.equal(t.X.X.write(doc),false,'la escritura no se hace');
++  assert.deepEqual(t.X.toasts,['Cambiando de cuenta en este tel\u00e9fono. Espera unos segundos e intenta otra vez.']);
++  assert.ok(!JSON.parse(t.dev.ls.get('lhb_mihoja_v1')).humidor.some(x=>x.id==='durante'),'y no quedó nada');
++ }finally{t.a.done()}});
+ test('LHB-105 (Codex r7-1): la otra pestaña oye el aviso del cambio antes de que este pida el exclusivo: suelta y vuelve a pedir su compartido detrás del exclusivo, y el cambio termina',async()=>{
+  const t=await SW105({sync:true});try{
+   assert.ok(t.L.held.some(h=>h.mode==='shared'),'la otra pestaña tiene su compartido');
