@@ -1,0 +1,25 @@
+files with mark imgs: 275, mark imgs: 552, pairs: 276, problems: 0
+--- CSS rules on mark imgs (styles.css, u.css, lugares/l.css)
+site/styles.css: /* LHB-118: el Medallón trae su marca de noche (icon-dark.svg), así que no hay teja: --mark-bg es transparente en los dos temas y --mark-light y --mark-dark escogen la marca */
+.brand img{border-radius:var(--r-s);backgro
+site/styles.css: .mark-l{display:var(--mark-light)!important}
+site/styles.css: .mark-d{display:var(--mark-dark)!important}
+site/styles.css: .mark-l[hidden],.mark-d[hidden]{display:none!important}
+site/styles.css: .brand img{width:28px;height:28px}
+site/styles.css: .intro-mark img{margin-bottom:6px;border-radius:var(--r-s);background:var(--mark-bg)}
+site/styles.css: .lang-pick-in img{border-radius:var(--r-m);background:var(--mark-bg)}
+site/u.css: .brand img{border-radius:var(--r-s);background:var(--mark-bg)}
+site/u.css: .mark-l{display:var(--mark-light)!important}
+site/u.css: .mark-d{display:var(--mark-dark)!important}
+site/u.css: .mark-l[hidden],.mark-d[hidden]{display:none!important}
+site/lugares/l.css: .brand img{border-radius:var(--r-s);background:var(--mark-bg)}
+site/lugares/l.css: .mark-l{display:var(--mark-light)!important}
+site/lugares/l.css: .mark-d{display:var(--mark-dark)!important}
+site/lugares/l.css: .mark-l[hidden],.mark-d[hidden]{display:none!important}
+site/styles.css | :root | bg=transparent light=block dark=none
+site/styles.css | media dark :root:not([data-theme="light"]) | bg=transparent light=none dark=block
+site/styles.css | :root[data-theme="dark"] | bg=transparent light=none dark=block
+site/u.css | :root | bg=transparent light=block dark=none
+site/u.css | media dark :root:not([data-theme="light"]) | bg=transparent light=none dark=block
+site/lugares/l.css | :root | bg=transparent light=block dark=none
+site/lugares/l.css | media dark :root:not([data-theme="light"]) | bg=transparent light=none dark=block
