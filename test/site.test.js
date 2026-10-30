@@ -195,7 +195,7 @@ test('LHB-121: un toque donde el navegador lo deja, la guía justa donde no, y e
   assert.equal(I.remindDue(st,T+g*D,2,false),true,'tras '+n+' «Ahora no», sí a los '+g+' días')}
  /* index.html: el aviso se guarda antes que cualquier script con src; Instalar arriba empieza escondido (app.js lo muestra) */
  const ix=read('index.html'),cap=ix.indexOf("addEventListener('beforeinstallprompt'"),firstSrc=ix.search(/<script[^>]*\ssrc=/);assert.ok(cap>0&&firstSrc>cap,'el aviso se guarda antes de los scripts');
- assert.match(ix,/<div class="top-actions">\s*<!--[^>]*-->\s*<button type="button" class="top-install" id="topInstall" data-install hidden>/);
+ assert.match(ix,/<!--[^>]*-->\s*<button type="button" class="top-install" id="topInstall" data-install hidden>.*?<\/button>\s*<div class="top-actions">/s);
  const ap=read('app.js'),hj=read('hoja.js');
  assert.ok(ap.includes('class="inst-bar-go" data-install>')&&ap.includes('data-inst-later>'),'el recordatorio instala con el mismo botón');
  assert.ok(!/data-sheet="instalar"/.test(ap+hj+ix),'ninguna entrada abre las instrucciones sin pasar por installHow');
@@ -6270,7 +6270,6 @@ const PAINT_PIN111=[
  "styles.css .top-install svg{stroke-width:2.2}",
  "styles.css .top-install svg{stroke-linecap:round}",
  "styles.css .top-install svg{stroke-linejoin:round}",
- "styles.css [@media (max-width:359px)] .top-install svg{display:none}",
  "styles.css .inst-bar{background:var(--surface-2)}",
  "styles.css .inst-bar-go{background:var(--accent)}",
  "styles.css .inst-bar-no{background:transparent}",

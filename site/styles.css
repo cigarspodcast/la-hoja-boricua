@@ -568,10 +568,9 @@ body.sheet-on{overflow:hidden}
 .top-install{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:0;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font:700 var(--fs-2)/1 var(--sans);white-space:nowrap;cursor:pointer}
 .top-install svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .top-install[hidden]{display:none}
-@media (max-width:359px){.top-install{padding:0 10px;gap:4px}.top-install svg{display:none}}
-/* LHB-121: en el teléfono no caben el nombre, Instalar y los tres botones (el nombre pisaba Instalar y se llevaba el toque): mientras se ofrece
-   Instalar, la barra deja la marca y el nombre sigue para el lector de pantalla, como .sr; entre 520 y 759 px solo sale el lema */
-@media (max-width:519px){.topbar:has(#topInstall:not([hidden])) .brand-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+/* LHB-121: en el teléfono no caben la firma, Instalar y los tres botones, y la firma no se esconde (LHB-108): Instalar baja a su propia fila, a todo lo ancho */
+@media (max-width:519px){.topbar{flex-wrap:wrap;row-gap:8px}.top-install{order:3;flex:1 1 100%;justify-content:center;min-height:42px}}
+/* entre 520 y 759 px, con Instalar en la misma fila, el lema no cabe */
 @media (min-width:520px) and (max-width:759px){.topbar:has(#topInstall:not([hidden])) .brand-sub{display:none}}
 .inst-bar{position:fixed;z-index:25;left:calc(var(--sal) + 10px);right:calc(var(--sar) + 10px);bottom:calc(var(--tab-h) + var(--sab) + 10px);max-width:560px;margin:0 auto;
  display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:12px 14px;background:var(--surface-2);color:var(--on-surface);border:1px solid var(--line);border-radius:var(--r-m);box-shadow:var(--shadow-strong)}
