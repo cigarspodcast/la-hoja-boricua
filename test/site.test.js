@@ -4012,7 +4012,15 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
      en sus dos colores, el grosor del juego (7 y el fino de 4) y la forma del trazo; nada de alfa, filtro ni style */
   const PA={fill:v=>['none','#263723','#C77943'].includes(v),stroke:v=>['none','#263723','#C77943'].includes(v),'stroke-width':v=>['7','4'].includes(v),'stroke-linecap':v=>v==='round','stroke-linejoin':v=>v==='round'};
   assert.ok(SVGEL111(h),'la silueta resuelta: un elemento con que la app no dibuja');
-  for(const [k,v] of ATTR111(h))assert.ok(DRAWATTR111.has(k)||(PA[k]&&PA[k](v)),'la silueta resuelta: un atributo que no es suyo: '+k+'='+v)}
+  for(const [k,v] of ATTR111(h))assert.ok(DRAWATTR111.has(k)||(PA[k]&&PA[k](v)),'la silueta resuelta: un atributo que no es suyo: '+k+'='+v);
+  /* Codex r31: y cada pintura en su papel, elemento por elemento: la raíz sin relleno, con el trazo en tinta, grueso 7 y redondo; el acento (.ac) relleno
+     de ámbar; el trazo fino (.fn) de 4; ningún otro elemento con pintura. Y la misma geometría, en el mismo orden, que la silueta de la página */
+  const ROLE={root:[['fill','none'],['stroke','#263723'],['stroke-linecap','round'],['stroke-linejoin','round'],['stroke-width','7']],ac:[['fill','#C77943']],fn:[['stroke-width','4']],'':[]};
+  const els=s=>[...s.matchAll(/<([a-zA-Z]+)\b[^>]*>/g)].map(m=>({n:m[1],a:ATTR111(m[0])}));
+  for(const [i,t] of els(h).entries()){const cls=(t.a.find(([k])=>k==='class')||[,''])[1].split(/\s+/);const role=i===0?'root':cls.includes('ac')?'ac':cls.includes('fn')?'fn':'';
+   assert.deepEqual(t.a.filter(([k])=>!DRAWATTR111.has(k)).sort(),ROLE[role],'la silueta resuelta: la pintura de un <'+t.n+'> no es la de su papel ('+(role||'sin papel')+')')}
+  const geo=s=>els(s).map(t=>t.n+' '+t.a.filter(([k])=>DRAWATTR111.has(k)&&!['xmlns','role','aria-label','aria-hidden','focusable'].includes(k)).map(x=>x.join('=')).join(' '));
+  assert.deepEqual(geo(h),geo(A.silueta('')),'la silueta resuelta dibuja lo mismo que la de la página')}
  const ex=Object.keys(A).filter(k=>!LINE.includes(k)).sort();assert.deepEqual(ex,['CAJA','leaf','star'],'fuera del juego solo la caja en texto, el ícono de hoja y la estrella');
  /* las cabeceras: cada head() lleva un dibujo del juego */
  const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');

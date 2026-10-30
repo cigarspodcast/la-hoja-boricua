@@ -111,6 +111,8 @@ MUTS = [
     ('site/styles.css', 'Codex r29: the accent registration hidden behind the CSS legacy delimiters at the end of the sheet', 'sil,.detail-ph .sil{width:100%;height:auto;aspect-ratio:2/1}', 'sil,.detail-ph .sil{width:100%;height:auto;aspect-ratio:2/1}\n<!--\n@property --art-ac{syntax:"<color>";inherits:false;initial-value:transparent}\n-->'),
     ('site/styles.css', 'Codex r29: an at-rule reached after a selector without a delimiter', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)} x @layer base{.y{color:inherit}}'),
     ('site/art.js', 'Codex r30: the share-image silhouette made nearly transparent', '${st}>', '${st}${lit?\' opacity=".01"\':\'\'}>'),
+    ('site/art.js', 'Codex r31: the share-image silhouette body filled solid with ink', 'const st=lit?` fill="none" stroke=', 'const st=lit?` fill="${lit.ink}" stroke='),
+    ('site/art.js', 'Codex r31: the share-image accent stroked instead of filled', 'ac=lit?` fill="${lit.ac}"`', 'ac=lit?` stroke="${lit.ac}"`'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
