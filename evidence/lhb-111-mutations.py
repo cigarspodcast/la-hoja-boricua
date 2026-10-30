@@ -84,6 +84,10 @@ MUTS = [
     ('site/hoja.js', 'Codex r19: a colour through a custom property the script makes', 'const CAL_ICO=', "const CAL_X=e=>{e.style.cssText='--deco:red;color:var(--deco)'};const CAL_ICO="),
     ('site/hoja.js', 'Codex r19: a colour set on a style held in a variable', 'const CAL_ICO=', "const CAL_X=e=>{const s=e.style;s.color='red'};const CAL_ICO="),
     ('site/app.js', 'Codex r19: a colour taken from data in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art" style="color:${tint}">${art}</div></header>`;'),
+    ('site/hoja.js', 'Codex r20: a filter written with brackets on a style held in a variable', 'const CAL_ICO=', "const CAL_X=e=>{const s=e.style;s['filter']='hue-rotate(90deg)'};const CAL_ICO="),
+    ('site/styles.css', 'Codex r20: a later rule that paints the outlines the colour of their ground', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.lart{stroke:var(--surface)}'),
+    ('site/styles.css', 'Codex r20: the amber behind the accent rewritten under the header', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.sec-art{--amber:#e33}'),
+    ('site/art.js', 'Codex r20: a drawing tinted by a filter attribute', '<circle class="ac" cx="98" cy="22" r="8"/>', '<circle class="ac" cx="98" cy="22" r="8" filter="hue-rotate(140deg)"/>'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

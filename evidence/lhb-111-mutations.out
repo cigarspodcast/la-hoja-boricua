@@ -74,6 +74,10 @@ Codex r19: a filter set with a space in the member access                RED (ca
 Codex r19: a colour through a custom property the script makes           RED (caught) (fail 1)
 Codex r19: a colour set on a style held in a variable                    RED (caught) (fail 1)
 Codex r19: a colour taken from data in the header helper                 RED (caught) (fail 1)
+Codex r20: a filter written with brackets on a style held in a variable  RED (caught) (fail 1)
+Codex r20: a later rule that paints the outlines the colour of their ground RED (caught) (fail 1)
+Codex r20: the amber behind the accent rewritten under the header        RED (caught) (fail 1)
+Codex r20: a drawing tinted by a filter attribute                        RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 77 of 77 red
+RESULT 81 of 81 red

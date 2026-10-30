@@ -4001,7 +4001,7 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  for(const k of LINE){assert.equal(typeof A[k],'function',k);const h=k==='silueta'?A.silueta('x'):A[k]();
   assert.match(h,new RegExp('^<svg class="lart '+(k==='silueta'?'sil':k)+'[ "]'),k);assert.ok(!/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|\b(fill|stroke)="|style="|<image|url\(/.test(h),k+': sin colores ni imágenes propias');
   /* Codex r8: leído con ATTR111 (comillas dobles, simples o ninguna): ningún atributo de pintura ni style, y ningún <style> dentro; lo pinta styles.css por clase */
-  assert.ok(!/<style\b/i.test(h)&&!ATTR111(h).some(([k])=>['style','fill','stroke','stop-color','color','flood-color','lighting-color'].includes(k)),k+': un atributo de pintura o style: '+ATTR111(h).filter(([k])=>/style|fill|stroke|color/.test(k)).map(x=>x.join('=')).join(' '));
+  assert.ok(!/<style\b/i.test(h)&&!ATTR111(h).some(([k])=>['style','fill','stroke','stop-color','color','flood-color','lighting-color','filter','mask','clip-path','mix-blend-mode','opacity'].includes(k)),k+': un atributo de pintura o style: '+ATTR111(h).filter(([k])=>/style|fill|stroke|color/.test(k)).map(x=>x.join('=')).join(' '));
   assert.ok(SVGEL111(h),k+': un elemento de SVG con que la app no dibuja (animación, filtro, use, degradado)');
   assert.ok(/class="(ac|acs[^"]*)"/.test(h),k+': su acento')}
  /* la silueta para la imagen para compartir, con los colores ya resueltos: solo esos dos */
@@ -4044,7 +4044,7 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   assert.deepEqual(MEDIA111('<input type="checkbox" ${on?\'checked\':\'\'}><img src="${esc(u)}" alt="" ${c.mini?`a`:{b:1}.b}decoding="async">','x').map(m=>m.u),['${esc(u)}'],'una expresión ${...} es una pieza de la etiqueta');
   assert.throws(()=>MEDIA111('<img src="a.webp" alt="x>','x'),/no sabe leer/);
   /* Codex r5: SCRIPT111 sobre muestras: lo de afuera falla, lo del sitio pasa */
-  for(const bad of ["e.style .filter='hue-rotate(90deg)'","e.style/* x */.color='red'","e.style //x\n.color='red'","const s=e.style;s.color='red'","e.style. setProperty ('color','red')","e.style.cssText='--deco:red;color:var(--deco)'","`<i style=\"color:${tint}\">`","`<i style=\"color:${on?'var(--deco)':'var(--muted)'}\">`",'document.getElementById("deco").style.setProperty("color","red")','e.style.filter="hue-rotate(90deg)"','e.style.color="red"','<p style="color:#e33">','`<i style="color:${on?\'red\':\'var(--muted)\'}">`','<b style="-webkit-filter:invert(1)">','e.style.setProperty("--art-ac","red")','<div style="--warm:red">','document.getElementById("deco").style.cssText="fill:red"',"e.style='stroke : red'","Object.assign(e.style,{fill:'red'})","e.style['fill']='red'",'<p style="filter:hue-rotate(90deg)">','<style>svg circle{fill:red}</style>',"e.insertAdjacentHTML('beforeend','<animate attributeName=fill values=red;blue dur=1s />')","e.animate([{fill:'red'}],900)","e.setAttribute('fill','red')","e.setAttributeNS(null,'stroke','red')","e.style.fill='red'","e.style.setProperty('fill','red')",'<iframe title="d" srcdoc="&lt;svg&gt;"></iframe>','f.srcdoc=s','f.srcd\\x6fc=s','<frame src="x.html">','const a="\\x3csvg viewBox=0>"','`<span style="background:u&#114;l(/img/hero/banner.webp)"></span>`','`<img src="img/hero/../guagua/guagua_recorte.webp" alt="">`','e.src="img/hero/%2e%2e/guagua/guagua_recorte.webp"','`<span style=background:u\\\\72l(/img/hero/banner.webp)></span>`','e.style.background="u\\\\72 l(img/hero/banner.webp)"','e.style.background="\\u0075rl(img/hero/banner.webp)"','e.style.background="Image-\\x53et(a.webp 1x)"','"<a style=\\"background:element(#hero)\\">"','`<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style>`','e.style.backgroundImage="URL(img/hero/banner.webp)"','`<b style="background:image-set(${x} 1x)">`','<canvas id="d"></canvas><script>document.getElementById("d").getContext("2d")</script>','<script>document.createElementNS("http://www.w3.org/2000/svg","svg")</script>','<script>new OffscreenCanvas(9,9)</script>','<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|lienzo|DOM|x:/,bad);
+  for(const bad of ["const s=e.style;s['filter']='hue-rotate(90deg)'","Reflect.set(s,'fill','red')","const k=\"mix-blend-mode\";","e.style .filter='hue-rotate(90deg)'","e.style/* x */.color='red'","e.style //x\n.color='red'","const s=e.style;s.color='red'","e.style. setProperty ('color','red')","e.style.cssText='--deco:red;color:var(--deco)'","`<i style=\"color:${tint}\">`","`<i style=\"color:${on?'var(--deco)':'var(--muted)'}\">`",'document.getElementById("deco").style.setProperty("color","red")','e.style.filter="hue-rotate(90deg)"','e.style.color="red"','<p style="color:#e33">','`<i style="color:${on?\'red\':\'var(--muted)\'}">`','<b style="-webkit-filter:invert(1)">','e.style.setProperty("--art-ac","red")','<div style="--warm:red">','document.getElementById("deco").style.cssText="fill:red"',"e.style='stroke : red'","Object.assign(e.style,{fill:'red'})","e.style['fill']='red'",'<p style="filter:hue-rotate(90deg)">','<style>svg circle{fill:red}</style>',"e.insertAdjacentHTML('beforeend','<animate attributeName=fill values=red;blue dur=1s />')","e.animate([{fill:'red'}],900)","e.setAttribute('fill','red')","e.setAttributeNS(null,'stroke','red')","e.style.fill='red'","e.style.setProperty('fill','red')",'<iframe title="d" srcdoc="&lt;svg&gt;"></iframe>','f.srcdoc=s','f.srcd\\x6fc=s','<frame src="x.html">','const a="\\x3csvg viewBox=0>"','`<span style="background:u&#114;l(/img/hero/banner.webp)"></span>`','`<img src="img/hero/../guagua/guagua_recorte.webp" alt="">`','e.src="img/hero/%2e%2e/guagua/guagua_recorte.webp"','`<span style=background:u\\\\72l(/img/hero/banner.webp)></span>`','e.style.background="u\\\\72 l(img/hero/banner.webp)"','e.style.background="\\u0075rl(img/hero/banner.webp)"','e.style.background="Image-\\x53et(a.webp 1x)"','"<a style=\\"background:element(#hero)\\">"','`<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style>`','e.style.backgroundImage="URL(img/hero/banner.webp)"','`<b style="background:image-set(${x} 1x)">`','<canvas id="d"></canvas><script>document.getElementById("d").getContext("2d")</script>','<script>document.createElementNS("http://www.w3.org/2000/svg","svg")</script>','<script>new OffscreenCanvas(9,9)</script>','<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|lienzo|DOM|x:/,bad);
   SCRIPT111('"x":"<a href=\\"#/subir\\" style=\\"color:var(--accent-ink)\\">y</a>",const r=/\\s+\\d\\b/g;','x',0);
   for(const bad of ['<link rel="style&#115;heet" href="otra&#46;css">',"l.href='otra\\x2ecss'","new Blob([c],{type:'text/css'})",'<link rel="stylesheet" href="data:text/css,b%7Bc:d%7D">','<link href=x.css rel=Stylesheet>','<link rel="preload" as="style" href="/otra.css">'])assert.throws(()=>CSSNAME111(bad,'x'),bad);
   CSSNAME111('<link rel="stylesheet" href="styles.css?v=1"><link rel="preconnect" href="https://x.y">','x');
@@ -4053,7 +4053,7 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   SCRIPT111("`<b style=\"color:${red?'var(--on-danger)':'var(--fixed-text)'};--wc:${w.c}\">`;'<a style=\"color:var(--accent-ink)\">';a?--i:b",'x',0);
   SCRIPT111('const u=new URL(location.href);`<span style="width:${size}px;background:${bg.replace(/\\s/g,\'\')}">`','x',0);
   SCRIPT111('{"image":"https://lahojaboricua.com/img/cigarros/a.webp","logo":"../icons/icon-512.png"};i.src=\'icons/icon.svg\'','x',0);
-  for(const bad of ['<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11"><set attributeName="fill" to="red"/></circle></svg>','<svg viewBox="0 0 24 24"><use href="#a"/></svg>','<svg viewBox="0 0 24 24"><linearGradient id="g"/><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
+  for(const bad of ['<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" filter="hue-rotate(90deg)"/></svg>','<svg viewBox="0 0 24 24" mask="url(#m)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11"><set attributeName="fill" to="red"/></circle></svg>','<svg viewBox="0 0 24 24"><use href="#a"/></svg>','<svg viewBox="0 0 24 24"><linearGradient id="g"/><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
   assert.ok(ICON111('<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" fill="none"/><path stroke=\'currentColor\' d="M4 4"/></svg>'),'un ícono de verdad pasa (un rect con su width y height dentro está bien)');
   /* Codex r6 y r7: ni un SVG hecho por el DOM ni un lienzo de más: lo revisa SCRIPT111, en cada script y en cada página */
   for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg\s*>/gi))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
@@ -4091,6 +4091,8 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  for(const x of ['.card .ph.has-foto,.card .ph.sin-foto{background:var(--photo);','.detail-ph.has-foto,.detail-ph.sin-foto{','.hum-ph:has(.sil){background:var(--photo)}'])assert.ok(css.includes(x),x);
  /* la tinta: la de tabaco sobre la página, y la fija sobre el marco de la foto y el mapa; se leen de día y de noche */
  assert.ok(css.includes('.lart{--art-ink:var(--on-surface);--art-ac:var(--warm);fill:none;stroke:var(--art-ink);')&&css.includes('.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}'));
+ /* Codex r20: y la cascada entera de pintura y de los tokens del juego, en cada hoja y en su orden, es la fijada */
+ assert.deepEqual(PAINT111(),PAINT_PIN111,'la pintura de las hojas cambió: una regla que repinta los dibujos o sus tokens');
  /* Codex r1: el acento se pinta (relleno y trazo) */
  assert.ok(css.includes('.lart .ac{fill:var(--art-ac)}')&&css.includes('.lart .acs{stroke:var(--art-ac)}'),'el acento se pinta');
  /* Codex r1: el estado vacío guarda el acento: debajo de la máscara, el medallón de CAJA en ámbar sobre la tinta, en su sitio (escala del dibujo) */
@@ -5616,6 +5618,9 @@ const SCRIPT111=(x,where,du,canvas=0)=>{
     setProperty de tinte o pintura */
  {const WS=String.raw`(?:\s|\/\*[\s\S]*?\*\/|\/\/[^\n]*\n)*`;
   assert.ok(!new RegExp(String.raw`\.${WS}(color|filter|webkitFilter|mixBlendMode|fill|stroke|stopColor|floodColor|lightingColor)${WS}(?:=(?!=)|\+=)|\.${WS}style${WS}\[|\.${WS}setProperty${WS}\(${WS}['"\x60](color|filter|-webkit-filter|mix-blend-mode|fill|stroke|stop-color|flood-color|lighting-color)['"\x60]`,'i').test(D(x)),where+': un tinte o una pintura puesta por propiedad')}
+ /* Codex r20: ningún nombre de propiedad de tinte o pintura escrito como texto ('filter', "fill", `mix-blend-mode`...), se use como se use: con corchetes
+    sobre un style guardado (s['filter']=), Reflect.set, una llave guardada en una constante; hoy ningún script ni página escribe uno */
+ assert.ok(!/['"`](color|filter|webkitFilter|-webkit-filter|mixBlendMode|mix-blend-mode|fill|stroke|stopColor|stop-color|floodColor|flood-color|lightingColor|lighting-color)['"`]/i.test(D(x)),where+': el nombre de una propiedad de tinte o pintura escrito como texto');
  /* Codex r19: un color es un token de styles.css (var(--x) con --x declarada allí; una variable hecha por el script no es un token), inherit, currentColor
     o transparent; y un color con ${...} es solo un ternario de dos de esos (cond?'var(--a)':'var(--b)'): un dato no da el color */
  {const y=D(x),tpl=new RegExp(TPL111,'y'),tok=TOKENS111();
@@ -5674,11 +5679,99 @@ const CSS111=(c,where,svgOK)=>{c=c.replace(/\/\*[\s\S]*?\*\//g,'');assert.ok(!c.
 /* LHB-111 (Codex r18): las variables que declara styles.css (los tokens del tema y del juego: --art-ink, --art-ac, --warm, ...): un script o una página
    que reescribe una cambia el color de los dibujos sin escribir un color */
 const TOKENS111=()=>new Set([...read('styles.css').replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/(?<![\w-])(--[\w-]+)\s*:/g)].map(m=>m[1]));
+/* LHB-111 (Codex r20): la pintura que de verdad llega a los dibujos es la de la cascada, no la de una regla que la prueba encuentra: cada declaración de
+   pintura (fill, stroke, filter, mix-blend-mode, mask, clip-path) y cada token de la cadena del juego (--art-ink, --art-ac y los tokens que nombran)
+   en cada hoja del sitio, en su orden, es exactamente la lista de abajo: una regla más (o movida) que repinte .lart, como una .lart{stroke:...} al final,
+   la cambia. Cambiar la pintura del sitio es cambiar esta lista a sabiendas */
+const PAINT111=()=>{const P=/^(fill|stroke|filter|-webkit-filter|mix-blend-mode|mask|-webkit-mask|clip-path|--art-[\w-]+|--on-surface|--warm|--amber|--surface|--paper|--fixed-text|--photo|--shadow-strong)\s*:/i,out=[];
+ for(const f of CSSFILES111()){const c=read(f).replace(/\/\*[\s\S]*?\*\//g,'');
+  for(const m of c.matchAll(/([^{}]+)\{([^{}]*)\}/g))for(const d of m[2].split(/;(?![^(]*\))/).map(d=>d.trim()).filter(d=>P.test(d)))out.push(f+' '+m[1].trim()+'{'+(d.length>140?d.slice(0,140)+'...':d)+'}')}return out};
+const PAINT_PIN111=[
+ "lugares/l.css :root{--surface:#F4F1EA}",
+ "lugares/l.css :root{--on-surface:#263723}",
+ "lugares/l.css :root:not([data-theme=\"light\"]){--surface:#141A13}",
+ "lugares/l.css :root:not([data-theme=\"light\"]){--on-surface:#EEE9DD}",
+ "styles.css :root{--paper:#F4F1EA}",
+ "styles.css :root{--amber:#C77943}",
+ "styles.css :root{--surface:var(--paper)}",
+ "styles.css :root{--photo:#FFFDFA}",
+ "styles.css :root{--on-surface:#263723}",
+ "styles.css :root{--warm:var(--amber)}",
+ "styles.css :root{--fixed-text:#263723}",
+ "styles.css :root{--shadow-strong:rgba(38,55,35,.28)}",
+ "styles.css :root:not([data-theme=\"light\"]){--surface:#141A13}",
+ "styles.css :root:not([data-theme=\"light\"]){--photo:#EFEBE2}",
+ "styles.css :root:not([data-theme=\"light\"]){--on-surface:#EEE9DD}",
+ "styles.css :root:not([data-theme=\"light\"]){--warm:var(--amber)}",
+ "styles.css :root:not([data-theme=\"light\"]){--fixed-text:#263723}",
+ "styles.css :root:not([data-theme=\"light\"]){--shadow-strong:rgba(0,0,0,.6)}",
+ "styles.css :root[data-theme=\"dark\"]{--surface:#141A13}",
+ "styles.css :root[data-theme=\"dark\"]{--photo:#EFEBE2}",
+ "styles.css :root[data-theme=\"dark\"]{--on-surface:#EEE9DD}",
+ "styles.css :root[data-theme=\"dark\"]{--warm:var(--amber)}",
+ "styles.css :root[data-theme=\"dark\"]{--fixed-text:#263723}",
+ "styles.css :root[data-theme=\"dark\"]{--shadow-strong:rgba(0,0,0,.6)}",
+ "styles.css .search svg{stroke:var(--muted)}",
+ "styles.css .search svg{fill:none}",
+ "styles.css .lbtn svg{fill:currentColor}",
+ "styles.css .leaflet-tile-pane{filter:sepia(.45) saturate(.8) hue-rotate(-8deg) brightness(.95) contrast(.95)}",
+ "styles.css .map-offline .isl{fill:var(--warm-soft)}",
+ "styles.css .map-offline .isl{stroke:var(--warm)}",
+ "styles.css .tabbar svg{fill:none}",
+ "styles.css .tabbar svg{stroke:currentColor}",
+ "styles.css .leaf-pin svg{filter:drop-shadow(0 2px 3px var(--shadow-strong))}",
+ "styles.css .aqui-pin .lart{filter:drop-shadow(0 2px 3px var(--shadow-strong))}",
+ "styles.css body::after{mix-blend-mode:overlay}",
+ "styles.css .card .ph{filter:sepia(.14) saturate(1.06) contrast(1.02)}",
+ "styles.css .empty::before{-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-widt...}",
+ "styles.css .empty::before{mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-width='2.4' ...}",
+ "styles.css .icon-btn svg{fill:none}",
+ "styles.css .icon-btn svg{stroke:currentColor}",
+ "styles.css .lbtn svg{fill:currentColor}",
+ "styles.css .lbtn svg path[fill=\"none\"]{fill:none}",
+ "styles.css .wseg path{fill:var(--card-2)}",
+ "styles.css .wseg path{stroke:var(--wc)}",
+ "styles.css .wseg text{fill:var(--on-surface)}",
+ "styles.css .wseg.on path{fill:var(--wc)}",
+ "styles.css .wseg.on path{stroke:var(--on-surface)}",
+ "styles.css .wseg.on text{fill:var(--fixed-text)}",
+ "styles.css .wseg:focus-visible path{stroke:var(--focus)}",
+ "styles.css .whub{fill:var(--surface)}",
+ "styles.css .whub{stroke:var(--line)}",
+ "styles.css .whub-n{fill:var(--accent-ink)}",
+ "styles.css .whub-t{fill:var(--on-surface-2)}",
+ "styles.css .card .ph.has-foto,.card .ph.sin-foto{filter:none}",
+ "styles.css .lbtn.spotify svg path{fill:none}",
+ "styles.css .zs svg path{fill:currentColor}",
+ "styles.css .rpin svg{filter:drop-shadow(0 1px 2px var(--shadow-strong))}",
+ "styles.css .rpt .dot{fill:var(--accent)}",
+ "styles.css .rpt .dot{stroke:var(--surface-2)}",
+ "styles.css .rpt .gl{fill:var(--warn)}",
+ "styles.css .rpt .gl{stroke:var(--on-surface)}",
+ "styles.css .brand-icon{fill:none}",
+ "styles.css .brand-icon{stroke:currentColor}",
+ "styles.css .about-replay .brand-icon{fill:currentColor}",
+ "styles.css .about-replay .brand-icon{stroke:none}",
+ "styles.css .avatar-link .person-glyph,.me .pic .person-glyph{fill:none}",
+ "styles.css .avatar-link .person-glyph,.me .pic .person-glyph{stroke:currentColor}",
+ "styles.css .lart{--art-ink:var(--on-surface)}",
+ "styles.css .lart{--art-ac:var(--warm)}",
+ "styles.css .lart{fill:none}",
+ "styles.css .lart{stroke:var(--art-ink)}",
+ "styles.css .lart .ac{fill:var(--art-ac)}",
+ "styles.css .lart .acs{stroke:var(--art-ac)}",
+ "styles.css .lart .bg{fill:var(--surface)}",
+ "styles.css .lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}",
+ "styles.css .lart.aqui .bg{fill:var(--photo)}",
+ "u.css :root{--surface:#F4F1EA}",
+ "u.css :root{--on-surface:#263723}",
+ "u.css :root:not([data-theme=\"light\"]){--surface:#141A13}",
+ "u.css :root:not([data-theme=\"light\"]){--on-surface:#EEE9DD}"];
 const SVGEL_OK111=new Set(['svg','g','path','circle','ellipse','rect','line','polyline','polygon','text','tspan','title','desc']);
 const SVGEL111=svg=>[...svg.matchAll(/<([a-zA-Z][\w:.-]*)/g)].every(m=>SVGEL_OK111.has(m[1].toLowerCase()));
 const ICON111=svg=>{const root=(svg.match(/^<svg\b[^>]*>/i)||[''])[0],paint=['fill','stroke','stop-color','color','flood-color','lighting-color'];
  return SVGEL111(svg)&&!/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|<(image|foreignObject|style)\b/i.test(svg)
-  &&ATTR111(svg).every(([k,v])=>k!=='style'&&(!paint.includes(k)||v==='none'||v==='currentColor'))
+  &&ATTR111(svg).every(([k,v])=>k!=='style'&&!['filter','mask','clip-path','mix-blend-mode'].includes(k)&&(!paint.includes(k)||v==='none'||v==='currentColor'))
   &&!ATTR111(root).some(([k])=>k==='width'||k==='height'||k==='transform')};
 /* LHB-111: art.js de mentira para las vistas que se corren en una VM: cada dibujo del juego de línea devuelve una marca con su nombre */
 function VB111(){const o={leaf:()=>''};for(const k of ['ranchon','banda','chaveta','micro','lupa','hoja','maridaje','caja','aqui'])o[k]=()=>'<i data-art="'+k+'"></i>';o.silueta=()=>'<i data-art="silueta"></i>';return o}
