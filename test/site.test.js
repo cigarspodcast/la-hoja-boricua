@@ -3908,7 +3908,7 @@ test('LHB-109: cada destino tiene un solo nombre: la etiqueta de su página y lo
  const ap=read('app.js');assert.ok(ap.includes("<div class=\"eyebrow\">${tt('menu.cigarros')}</div>"),'la portada');assert.ok(ap.includes("head(tt('menu.artesanos'),")&&ap.includes("head(tt('menu.lugares'),"),'Artesanos y Lugares');
  const hj=read('hoja.js');assert.ok(!/tt\('(arts|lug)\.eyebrow'\)/.test(hj)&&hj.includes("tt('menu.eventos')")&&hj.includes("tt('menu.maridajes')")&&hj.includes("tt('menu.cata')"),'Mi Hoja, Eventos, Maridajes y la cata');
  /* en inglés, los artesanos son Artisans en todas partes (antes eran Makers en el menú y en la pestaña, y Artisans en las páginas) */
- for(const k of Object.keys(T.en))assert.ok(!/\bMakers?\b/.test(T.en[k]),'una sola palabra: '+k+' = '+T.en[k]);assert.equal(T.en['art.back'],'\u2039 '+T.en['menu.artesanos']);
+ for(const k of Object.keys(T.en))assert.ok(!/\bmakers?\b/i.test(T.en[k]),'una sola palabra: '+k+' = '+T.en[k]);assert.equal(T.en['art.back'],'\u2039 '+T.en['menu.artesanos']);
 });
 test('LHB-109: sin cuenta, el círculo de arriba y el de Mi perfil son la silueta de una persona, la misma desde el primer pintado',()=>{
  const ap=read('app.js');const m=ap.match(/const PERSON='(<svg class="person-glyph"[^']*<\/svg>)';/);assert.ok(m,'la silueta en app.js');
