@@ -564,6 +564,29 @@ body.sheet-on{overflow:hidden}
 .btn-add[hidden]{display:none}
 .inst-p{font-size:var(--fs-3);line-height:1.5;color:var(--on-surface);margin:0 0 18px}
 .inst-ok{width:100%;font-size:var(--fs-3)}
+/* LHB-121: Instalar arriba, en todas las páginas mientras la app no está instalada; el recordatorio de abajo (no tapa la pantalla: es una barra) y las guías */
+.top-install{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:0;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font:700 var(--fs-2)/1 var(--sans);white-space:nowrap;cursor:pointer}
+.top-install svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.top-install[hidden]{display:none}
+@media (max-width:359px){.top-install{padding:0 10px;gap:4px}.top-install svg{display:none}}
+.inst-bar{position:fixed;z-index:25;left:calc(var(--sal) + 10px);right:calc(var(--sar) + 10px);bottom:calc(var(--tab-h) + var(--sab) + 10px);max-width:560px;margin:0 auto;
+ display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:12px 14px;background:var(--surface-2);color:var(--on-surface);border:1px solid var(--line);border-radius:var(--r-m);box-shadow:var(--shadow-strong)}
+.inst-bar img{width:44px;height:44px;flex:none}
+.inst-bar-t{flex:1 1 180px;min-width:0;margin:0;display:flex;flex-direction:column;gap:2px;font-size:var(--fs-2);line-height:1.35}
+.inst-bar-t b{font-size:var(--fs-3)}
+.inst-bar-b{display:flex;gap:8px;flex:1 1 100%}
+.inst-bar-go{flex:1;min-height:46px;border:0;border-radius:var(--r-m);background:var(--accent);color:var(--on-accent);font:700 var(--fs-3)/1.2 var(--sans);cursor:pointer}
+.inst-bar-no{min-height:46px;padding:0 16px;border:1px solid var(--line);border-radius:var(--r-m);background:transparent;color:var(--on-surface);font:600 var(--fs-2)/1.2 var(--sans);cursor:pointer}
+.inst-steps{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:14px}
+.inst-steps li{display:flex;align-items:center;gap:12px;font-size:var(--fs-3);line-height:1.45;color:var(--on-surface)}
+.inst-ico{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:var(--r-s);background:var(--accent-soft);color:var(--accent-ink)}
+.inst-ico svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.inst-done{width:100%;margin-top:10px;font-size:var(--fs-3)}
+.inst-arrow{display:flex;justify-content:center;margin-top:12px;color:var(--accent-ink)}
+.inst-arrow svg{width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;animation:instBob 1.2s ease-in-out infinite}
+@keyframes instBob{50%{transform:translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.inst-arrow svg{animation:none}}
+.inst-qr{display:block;width:220px;max-width:100%;height:auto;margin:0 auto 14px;border-radius:var(--r-s)}
 .seo-foot{text-align:center;font-size:var(--fs-2);margin-top:calc(-1 * (var(--tab-h) + var(--sab) + 18px));padding:0 16px calc(var(--tab-h) + var(--sab) + 18px)}
 /* LHB-90: until the app has drawn the first view, the footer would paint high on an empty page and be pushed down (CLS 0.12 to 0.21);
    it stays invisible while the view is empty, so it appears already in place. Hidden, not removed: its links stay in the page for crawlers */
