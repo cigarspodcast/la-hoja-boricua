@@ -22,7 +22,7 @@ Answer with findings ranked P1 (blocking) to P3, each with file and symbol, then
 
 TOOLS: if your shell fails to start, use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
 
-===== git diff marca-108 9ef4ff259d78e47e1d8c370abe9d526ee6267abd -- :(glob)site/*.js :(glob)site/*.html :(glob)site/*.css test/site.test.js =====
+===== git diff marca-108 ea2dd3e120d7bedf2337e63525928cd05af3ba1a -- :(glob)site/*.js :(glob)site/*.html :(glob)site/*.css test/site.test.js =====
 diff --git a/site/app.js b/site/app.js
 index e399160..f10c9cc 100644
 --- a/site/app.js
@@ -213,7 +213,7 @@ index c8f4178..ef70735 100644
   <div class="toggle" role="group" aria-label="${tt('lug.view')}"><button type="button" data-evm="lista" aria-pressed="${evst.mode==='lista'}">${tt('lug.list')}</button><button type="button" data-evm="cal" aria-pressed="${evst.mode==='cal'}">${tt('h.calendario')}</button></div>
   ${evst.mode==='cal'?calGrid(evs):`${anc?anchorCard(anc):''}${rest.length?`<div class="section-title"><h2>${tt('h.proximos')}</h2><span class="count">${rest.length}</span></div>`:''}${rest.map(e=>evCard(e)).join('')}${evs.length?'':'<div class="empty">'+tt('h.noHayActividadesProximas')+'</div>'}`}
 diff --git a/site/i18n.js b/site/i18n.js
-index d06a531..a67fb5b 100644
+index d06a531..c716bbb 100644
 --- a/site/i18n.js
 +++ b/site/i18n.js
 @@ -1,6 +1,6 @@
@@ -319,6 +319,15 @@ index d06a531..a67fb5b 100644
   "menu.welcome": "At your pace, around the island",
   "intro.label": "Introduction to La Hoja Boricua",
   "intro.name": "La Hoja Boricua",
+@@ -881,7 +869,7 @@ en:{
+  "menu.acercaSub": "The app, the intro and its credits",
+  "about.eyebrow": "The app",
+  "about.title": "About La Hoja Boricua",
+- "about.lead": "A guide to the cigars, the makers and the places of Puerto Rico's tobacco.",
++ "about.lead": "A guide to the cigars, the artisans and the places of Puerto Rico's tobacco.",
+  "about.introH": "The intro",
+  "about.replay": "Watch intro",
+  "about.replayNote": "See the six-second intro again now, even if you have already seen it.",
 @@ -908,19 +896,23 @@ en:{
   "cred.breeze": "The breeze is a filtered-noise layer made for the intro.",
   "cred.endorse": "Naming these authors does not mean they endorse La Hoja Boricua. They did not make the intro's animation or landscape.",
@@ -326,7 +335,7 @@ index d06a531..a67fb5b 100644
 + "menu.ruta": "The Tobacco Route",
 + "menu.rutaSub": "Tobacco towns on the map",
 + "menu.guias": "Guides",
-+ "menu.guiasSub": "Lounges, makers and cigars by town (in Spanish)",
++ "menu.guiasSub": "Lounges, artisans and cigars by town (in Spanish)",
 + "menu.idiomaSub": "Change the app's language",
 + "menu.privacidad": "Privacy",
 + "menu.privacidadSub": "What we keep and why",
@@ -374,14 +383,17 @@ index d06a531..a67fb5b 100644
   "cat.search": "Search",
   "cat.searchPh": "Search vitola, artisan, town…",
   "cat.count": "Vitolas in the catalog: {a}.",
-@@ -975,7 +958,6 @@ en:{
+@@ -975,9 +958,8 @@ en:{
   "fav.off": "Removed from favorites",
   "cig.confirmDel": "Delete this vitola?",
   "cig.deleted": "Deleted",
 - "arts.eyebrow": "Artisans",
   "arts.title": "<em>Boricua</em> hands",
-  "arts.lead": "Tobacco makers and rollers from the island, with their story and where to find them.",
+- "arts.lead": "Tobacco makers and rollers from the island, with their story and where to find them.",
++ "arts.lead": "Tobacco artisans and rollers from the island, with their story and where to find them.",
   "arts.nVitola": "{n} vitola",
+  "arts.nVitolas": "{n} vitolas",
+  "art.notFound": "We could not find that artisan.",
 @@ -1004,7 +986,6 @@ en:{
   "up.fotoAlt": "Selected photo",
   "up.needName": "Give the vitola a name",
@@ -511,7 +523,7 @@ index 6fa2c23..668ee4c 100644
   'data/bundle.js',
   'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-16.png','icons/favicon-32.png',
 diff --git a/test/site.test.js b/test/site.test.js
-index 02ca95c..ddb85d7 100644
+index 02ca95c..63a1681 100644
 --- a/test/site.test.js
 +++ b/test/site.test.js
 @@ -27,7 +27,7 @@ test('service worker precaches files that exist',()=>{const sw=read('sw.js');con
@@ -797,7 +809,7 @@ index 02ca95c..ddb85d7 100644
 + const ap=read('app.js');assert.ok(ap.includes("<div class=\"eyebrow\">${tt('menu.cigarros')}</div>"),'la portada');assert.ok(ap.includes("head(tt('menu.artesanos'),")&&ap.includes("head(tt('menu.lugares'),"),'Artesanos y Lugares');
 + const hj=read('hoja.js');assert.ok(!/tt\('(arts|lug)\.eyebrow'\)/.test(hj)&&hj.includes("tt('menu.eventos')")&&hj.includes("tt('menu.maridajes')")&&hj.includes("tt('menu.cata')"),'Mi Hoja, Eventos, Maridajes y la cata');
 + /* en inglés, los artesanos son Artisans en todas partes (antes eran Makers en el menú y en la pestaña, y Artisans en las páginas) */
-+ for(const k of Object.keys(T.en))assert.ok(!/\bMakers?\b/.test(T.en[k]),'una sola palabra: '+k+' = '+T.en[k]);assert.equal(T.en['art.back'],'\u2039 '+T.en['menu.artesanos']);
++ for(const k of Object.keys(T.en))assert.ok(!/\bmakers?\b/i.test(T.en[k]),'una sola palabra: '+k+' = '+T.en[k]);assert.equal(T.en['art.back'],'\u2039 '+T.en['menu.artesanos']);
 +});
 +test('LHB-109: sin cuenta, el círculo de arriba y el de Mi perfil son la silueta de una persona, la misma desde el primer pintado',()=>{
 + const ap=read('app.js');const m=ap.match(/const PERSON='(<svg class="person-glyph"[^']*<\/svg>)';/);assert.ok(m,'la silueta en app.js');
