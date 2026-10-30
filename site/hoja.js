@@ -1110,7 +1110,7 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
  if(foto){fimg=new Image();fimg.src=foto.img;await new Promise(r=>{fimg.onload=r;fimg.onerror=()=>{fimg=null;r()}})}
  const img=new Image();if(!fimg){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(A.cigarSVG(c));await new Promise(r=>{img.onload=r;img.onerror=r})}
  x.save();x.translate(W/2,520);x.rotate(-.025);x.shadowColor=tk('shadow-strong');x.shadowBlur=30;x.shadowOffsetY=12;x.fillStyle=tk('photo');x.fillRect(-410,-300,820,640);x.shadowColor='transparent';
- if(fimg){x.fillStyle=tk('photo');x.fillRect(-380,-270,760,570);try{x.drawImage(fimg,-380,-205,760,380)}catch(e){}x.fillStyle=tk('muted');x.font='600 20px Figtree';x.textAlign='center';x.fillText(foto.credito+(foto.match==='linea'?tt('h.fotoDeLaLinea'):''),0,282);x.textAlign='left'}
+ if(fimg){x.fillStyle=tk('photo');x.fillRect(-380,-270,760,570);try{x.drawImage(fimg,-380,-205,760,380)}catch(e){}x.fillStyle=tk('fixed-text');x.font='600 20px Figtree';x.textAlign='center';x.fillText(foto.credito+(foto.match==='linea'?tt('h.fotoDeLaLinea'):''),0,282);x.textAlign='left'}
  else{try{x.drawImage(img,-380,-270,760,570)}catch(e){x.fillStyle=tk('card-2');x.fillRect(-380,-270,760,570)}}x.restore();
  x.fillStyle=tk('on-surface');x.font='600 68px Fraunces';x.textAlign='center';let y=960;const nl=wrap(x,c.nombre,W-140).slice(0,2);if(nl.length>1){x.font='600 56px Fraunces';y=930}nl.forEach((l,i)=>x.fillText(l,W/2,y+i*68));y+= (nl.length-1)*68;
  x.font='600 34px Figtree';x.fillStyle=tk('on-surface-2');x.fillText([A.artisanName(c),c.pueblo].filter(Boolean).join(' · '),W/2,y+56);x.textAlign='left';
