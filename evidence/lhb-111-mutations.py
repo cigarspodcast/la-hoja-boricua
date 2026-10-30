@@ -68,6 +68,9 @@ MUTS = [
     ('site/404.html', 'Codex r13: a stylesheet in a data URI with an encoded url', '</head>', '<link rel="stylesheet" href="data:text/css,body%7Bbackground:u%72l(/img/hero/banner.webp)%7D"></head>'),
     ('site/404.html', 'Codex r14: character references in a stylesheet link', '</head>', '<link rel="style&#115;heet" href="data&#58;text/css,body%7Bbackground:u%72l(/img/hero/banner.webp)%7D"></head>'),
     ('site/hoja.js', 'Codex r14: a stylesheet link made by a script with an escaped name', 'const CAL_ICO=', "const CAL_X=()=>{const l=document.createElement('link');l.rel='stylesheet';l.href='deco\\x2ecss';document.head.append(l)};const CAL_ICO="),
+    ('site/404.html', 'Codex r15: a coloured drawing in a frame document (srcdoc) on a static page', '</body>', '<iframe title="Decoration" srcdoc="&lt;svg width=\'200\' height=\'200\' viewBox=\'0 0 100 100\'&gt;&lt;circle cx=\'50\' cy=\'50\' r=\'45\' fill=\'red\'/&gt;&lt;/svg&gt;"></iframe></body>'),
+    ('site/hoja.js', 'Codex r15: a coloured drawing whose tag is written through a JavaScript escape', 'const CAL_ICO=', 'const CAL_X=`\\x3csvg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#e33"/></svg>`;const CAL_ICO='),
+    ('site/hoja.js', 'Codex r15: a frame document set by a script', 'const CAL_ICO=', "const CAL_X=f=>{f.srcdoc='<svg viewBox=\"0 0 50 50\"></svg>'};const CAL_ICO="),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
