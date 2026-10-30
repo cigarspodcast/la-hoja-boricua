@@ -103,6 +103,7 @@ Codex r29: an at-rule reached after a selector without a delimiter       RED (ca
 Codex r30: the share-image silhouette made nearly transparent            RED (caught) (fail 1)
 Codex r31: the share-image silhouette body filled solid with ink         RED (caught) (fail 1)
 Codex r31: the share-image accent stroked instead of filled              RED (caught) (fail 1)
+Codex r32: the share-image silhouette without its SVG namespace          RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 106 of 106 red
+RESULT 107 of 107 red

@@ -4020,7 +4020,14 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   for(const [i,t] of els(h).entries()){const cls=(t.a.find(([k])=>k==='class')||[,''])[1].split(/\s+/);const role=i===0?'root':cls.includes('ac')?'ac':cls.includes('fn')?'fn':'';
    assert.deepEqual(t.a.filter(([k])=>!DRAWATTR111.has(k)).sort(),ROLE[role],'la silueta resuelta: la pintura de un <'+t.n+'> no es la de su papel ('+(role||'sin papel')+')')}
   const geo=s=>els(s).map(t=>t.n+' '+t.a.filter(([k])=>DRAWATTR111.has(k)&&!['xmlns','role','aria-label','aria-hidden','focusable'].includes(k)).map(x=>x.join('=')).join(' '));
-  assert.deepEqual(geo(h),geo(A.silueta('')),'la silueta resuelta dibuja lo mismo que la de la página')}
+  assert.deepEqual(geo(h),geo(A.silueta('')),'la silueta resuelta dibuja lo mismo que la de la página');
+  /* Codex r32: la silueta resuelta se carga sola como imagen (cardBlob), así que tiene que ser un SVG que se decodifique: la raíz con su espacio de nombres
+     exacto, cada atributo entre comillas dobles, cada etiqueta cerrada y ningún & suelto */
+  assert.match(h,/^<svg\b[^>]*\sxmlns="http:\/\/www\.w3\.org\/2000\/svg"[\s>]/,'la silueta resuelta: la raíz sin su espacio de nombres');
+  for(const m of h.matchAll(/<[a-zA-Z][^>]*>/g))assert.ok(/^<[a-zA-Z]+(\s+[\w:-]+="[^"<&]*")*\s*\/?>$/.test(m[0]),'la silueta resuelta: una etiqueta que no es XML: '+m[0].slice(0,90));
+  {const open={};for(const m of h.matchAll(/<(\/?)([a-zA-Z]+)\b[^>]*?(\/?)>/g))if(!m[3])open[m[2]]=(open[m[2]]||0)+(m[1]?-1:1);
+   assert.ok(Object.values(open).every(v=>v===0),'la silueta resuelta: una etiqueta sin cerrar: '+JSON.stringify(open))}
+  assert.ok(!/&(?!(amp|lt|gt|quot|apos);)/.test(h),'la silueta resuelta: un & suelto')}
  const ex=Object.keys(A).filter(k=>!LINE.includes(k)).sort();assert.deepEqual(ex,['CAJA','leaf','star'],'fuera del juego solo la caja en texto, el ícono de hoja y la estrella');
  /* las cabeceras: cada head() lleva un dibujo del juego */
  const ap=read('app.js'),hj=read('hoja.js'),css=read('styles.css');

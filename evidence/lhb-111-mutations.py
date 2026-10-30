@@ -113,6 +113,7 @@ MUTS = [
     ('site/art.js', 'Codex r30: the share-image silhouette made nearly transparent', '${st}>', '${st}${lit?\' opacity=".01"\':\'\'}>'),
     ('site/art.js', 'Codex r31: the share-image silhouette body filled solid with ink', 'const st=lit?` fill="none" stroke=', 'const st=lit?` fill="${lit.ink}" stroke='),
     ('site/art.js', 'Codex r31: the share-image accent stroked instead of filled', 'ac=lit?` fill="${lit.ac}"`', 'ac=lit?` stroke="${lit.ac}"`'),
+    ('site/art.js', 'Codex r32: the share-image silhouette without its SVG namespace', ' xmlns="http://www.w3.org/2000/svg"', ''),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
