@@ -1,11 +1,15 @@
 /* LHB-72: la intro, la guagua que pasa por la montaña (seis segundos, sin bucle). Se ve la primera vez y luego a lo sumo una vez cada 14 días,
    nunca dos veces en la misma sesión. No sale con menos movimiento, con ahorro de datos, con la página escondida, en un enlace directo, ni
    al abrir la app instalada si ya se vio. Empieza sin sonido (botón para oírla), se salta con el botón o con Escape y tiene límites de tiempo.
-   Lo esencial de la app no depende de ella. La vuelve a mostrar ?intro=1 (el enlace "Ver intro" de Acerca de), una vez: sale de la dirección. */
+   Lo esencial de la app no depende de ella. La vuelve a mostrar ?intro=1 (el enlace "Ver intro" de Acerca de), una vez: sale de la dirección.
+   LHB-115: sin un idioma escogido, antes que nada (también antes de la intro) sale la pantalla que lo escoge: Español o English, cada uno en su idioma.
+   Español se guarda y sigue aquí (la intro decide como siempre); English se guarda y recarga en inglés. Se pregunta aunque localStorage no deje: la cookie
+   puede recordarlo (Codex r1-3). Mientras la pantalla está abierta, lo que la app quiera abrir encima (la hoja de entrar) espera con afterPick (Codex r1-5). */
 (()=>{'use strict';
 const KEY='vb_introAt',SKEY='vb_intro',DAY=864e5,EVERY=14;
 /* la decisión, sin tocar el navegador: devuelve 'play' o la razón para no mostrarla */
 function decide(o){
+ if(o.lang)return 'lang';
  if(o.hidden)return 'hidden';
  if(o.reduced)return 'reduced';
  if(o.saveData)return 'saveData';
@@ -27,7 +31,8 @@ function inputs(now){
  /* lo que la intro necesita del resto de la app: sus estilos (styles.css marca --intro-ready) y sus textos (i18n.js); un shell viejo en caché no los trae */
  let css='';try{css=w.getComputedStyle(w.document.documentElement).getPropertyValue('--intro-ready').trim()}catch(e){}
  const assets=css==='1'&&!!w.LHB_I18N&&w.LHB_I18N.t('intro.skip')!=='intro.skip';
- return {now,last,session,storage,assets,replay,hidden:!!w.document.hidden,reduced:mm('(prefers-reduced-motion: reduce)'),
+ const I=w.LHB_I18N,lang=!!(I&&I.ENABLED&&I.chosen===false);
+ return {now,last,session,storage,assets,replay,lang,hidden:!!w.document.hidden,reduced:mm('(prefers-reduced-motion: reduce)'),
   saveData:!!(w.navigator.connection&&w.navigator.connection.saveData),deep:!!h&&!/^#\/?(catalogo\/?)?$/.test(h),
   standalone:mm('(display-mode: standalone)')||w.navigator.standalone===true}
 }
@@ -58,11 +63,26 @@ function play(now){
  try{const p=v.play();if(p&&p.catch)p.catch(finish)}catch(e){finish()}
  api.finish=finish;
 }
+/* LHB-115: la pantalla del idioma; next sigue con la intro cuando se escoge Español (o cuando no se pudo guardar el inglés) */
+/* cada idioma con su nombre en ese idioma, como en el menú (app.js) */
+const NAMES=[['es','Espa\u00f1ol'],['en','English']];
+let picking=false;const after=[];
+function choose(next){
+ const w=window,d=w.document,I=w.LHB_I18N,app=d.getElementById('app'),tt=k=>I.t(k);picking=true;
+ const ov=d.createElement('section');ov.className='lang-pick';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','langPickH');
+ ov.innerHTML=`<div class="lang-pick-in"><img class="mark-l" src="icons/icon.svg" alt="" width="56" height="56"><img class="mark-d" src="icons/icon-dark.svg" alt="" width="56" height="56"><h1 id="langPickH">${tt('intro.name')}</h1><p>${tt('lang.pick')}</p><div class="lang-pick-b">${NAMES.map(([l,n])=>`<button type="button" class="lbtn" lang="${l}" data-l="${l}">${n}</button>`).join('')}</div></div>`;
+ const btns=[...ov.querySelectorAll('.lang-pick-b button')];let done=false;
+ for(const b of btns){const l=b.getAttribute('data-l');
+  b.onclick=()=>{if(done)return;done=true;if(l==='en'&&I.set('en')!==false)return;if(l==='es'){I.remember('es');/* Codex r2-5: con sesión, también a la cuenta */if(typeof I.onSet==='function'){try{const p=I.onSet('es');if(p&&p.catch)p.catch(()=>{})}catch(e){}}}if(app)app.inert=false;ov.remove();picking=false;next();for(const f of after.splice(0)){try{f()}catch(e){}}}}
+ ov.onkeydown=e=>{if(e.key!=='Tab')return;const i=btns.indexOf(d.activeElement);e.preventDefault();btns[(i+(e.shiftKey?btns.length-1:1))%btns.length].focus()};
+ d.body.appendChild(ov);if(app)app.inert=true;btns[0].focus({preventScroll:true})}
 /* ?intro=1 vale una vez: sale de la dirección antes de decidir; si no se puede quitar, no cuenta (Codex ronda 2), para que recargar no la repita */
 function boot(now){const i=inputs(now);
  if(i.replay){let gone=false;try{const w=window,u=new URL(w.location.href);u.searchParams.delete('intro');w.history.replaceState(w.history.state,'',u.pathname+u.search+u.hash);gone=true}catch(e){}if(!gone)i.replay=false}
- const why=decide(i);if(why==='play')api.play(now);return why}
-const api={decide,inputs,play,boot,KEY,SKEY,EVERY,finish:()=>{}};
+ const why=decide(i);if(why==='play')api.play(now);
+ else if(why==='lang')api.choose(()=>{const t=Date.now(),j=inputs(t);j.lang=false;j.replay=i.replay;api.last=decide(j);if(api.last==='play')api.play(t)});
+ return why}
+const api={decide,inputs,play,boot,choose,picking:()=>picking,afterPick:f=>{if(picking)after.push(f);else f()},KEY,SKEY,EVERY,finish:()=>{}};
 window.LHB_INTRO=api;
 api.last=boot(Date.now());
 })();

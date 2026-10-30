@@ -1,0 +1,27 @@
+✖ LHB-118: el Medallón en los íconos, la barra de día y de noche, la intro, las páginas fijas y la imagen para compartir (68.46ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 168.3409
+
+✖ failing tests:
+
+test at test\site.test.js:9159:1
+✖ LHB-118: el Medallón en los íconos, la barra de día y de noche, la intro, las páginas fijas y la imagen para compartir (68.46ms)
+  AssertionError [ERR_ASSERTION]: intro.js: <img src="icons/icon.svg" alt="" width="56" height="56">
+      at TestContext.<anonymous> (C:\LHB\lhb-118-wt\test\site.test.js:9206:87)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
