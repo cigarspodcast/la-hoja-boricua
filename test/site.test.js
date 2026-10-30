@@ -3694,7 +3694,7 @@ test('LHB-87: el mapa pinta grupos con su número, que acercan; la lista sigue t
  assert.ok(app.includes("const mk=L.marker([p.lat,p.lng],{icon,title:p.nombre,keyboard:true});")&&!/const mk=L\.marker\([^;]*\.addTo\(map\)/.test(app),'los pines no van directo al mapa: los pone layout');
  assert.ok(app.includes("if(g.ms.length===1){pins.addLayer(g.ms[0].mk);continue}"),'un pin solo es el pin de siempre');
  assert.ok(app.includes("icon:L.divIcon({className:'pin-group',html:`<span>${n}</span>`,iconSize:[36,36],iconAnchor:[18,18]}),title:tt('map.group',{n}),keyboard:true"),'el grupo dice cuántos y se alcanza con el teclado');
- assert.ok(app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})")&&app.includes("setContent(g.ms.map(m=>placeCard(m.p)).join(''))"),'tocar el grupo acerca, o muestra la lista si ya no se separan');
+ assert.ok(app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})")&&app.includes("setContent('<div class=\"pops\">'+g.ms.map(m=>placeCard(m.p)).join('')+'</div>')"),'tocar el grupo acerca, o muestra la lista si ya no se separan');
  const {T}=I18N();assert.equal(T.es['map.group'],'{n} lugares aquí: acercar');assert.equal(T.en['map.group'],'{n} places here: zoom in');
  assert.ok(app.includes('<div class="list" style="margin-top:12px">${ps.map(p=>')&&app.includes("if(state.lugMode==='mapa')drawMap(ps)}"),'la lista y el mapa salen del mismo ps: todo lugar del mapa está en la lista');
  const css=read('styles.css');assert.ok(/\.pin-group span\{width:36px;height:36px;/.test(css),'el grupo mide 36 px (más de 24)');
@@ -3907,7 +3907,7 @@ test('LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en
  const uses=re=>{const out=new Set();for(const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g))if(re.test(m[2]))for(const x of m[1].split(','))out.add(x.trim());return [...out].sort()};
  const RED=/var\(--(on-danger|danger(-ink|-soft)?|red|flag-red)\)/,CEL=/var\(--(on-info(-strong)?|info(-ink|-strong|-soft)?|celeste|flag-blue)\)/;
  /* rojo: el botón de añadir, la franja de la bandera, lo que no se deshace (borrar la cuenta, bloquear) y los errores */
- assert.deepEqual(uses(RED),['.btn.danger','.flag-band','.hint.hs-bad','.tab-plus .plus']);
+ assert.deepEqual(uses(RED),['.btn.danger','.flag-band','.hint.hs-bad','.tab-plus .plus','.tab-plus.active .plus']); /* Codex r8: el + marcado conserva su rojo (un contorno) */
  /* celeste: los enlaces y la bandera */
  assert.deepEqual(uses(CEL),['.ev .src a','.flag-band','.lbtn.web','.pod-more','.pop .lbtn.web','.sources a']);
  const js=f=>read(f).replace(/\/\*[\s\S]*?\*\//g,'');for(const f of ['cuenta.js','intro.js'])assert.ok(!RED.test(js(f))&&!CEL.test(js(f))&&!/tk\('(danger|info)/.test(js(f)),f+' no pinta rojo ni celeste');
@@ -3938,7 +3938,18 @@ test('LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en
   /* Codex r6: lo que se repite por tarjeta o por fila no es la llena: Cómo llegar en los eventos y en la lista de lugares, Seguir en las listas de personas.
      Cada uno va dentro de su contenedor que se repite, y la última regla de fondo de ese contexto no es el tabaco */
   const bgOf=sel=>{const r=rules.filter(x=>x.sel===sel&&/background:/.test(x.body)).pop();return r&&r.body.match(/background:([^;]+)/)[1]};
-  for(const sel of ['.ev .lbtn.go-map','.list .lbtn.go-map','.fw-row .fw-b'])assert.ok(bgOf(sel)&&bgOf(sel)!=='var(--accent)','con borde en lo que se repite: '+sel+' '+bgOf(sel));
+  /* Codex r7: la burbuja de un grupo (varios placeCard en .pops) es otro contexto que se repite; la de un solo lugar sigue con su llena */
+  assert.ok(/setContent\('<div class="pops">'\+g\.ms\.map\(m=>placeCard\(m\.p\)\)\.join\(''\)\+'<\/div>'\)/.test(ap),'la burbuja del grupo envuelve sus lugares en .pops');
+  assert.ok(!/setContent\((?!'<div class="pops">')[^)]*\.map\([^)]*placeCard/.test(ap),'ninguna burbuja junta varios placeCard sin .pops');
+  /* Codex r8: el botón de añadir marcado (en #/subir) no es otra llena de tabaco; y el sello ganado de la ficha (class="stampbtn act" aria-pressed="true")
+     gana el tabaco frente a cada regla compuesta que le aplica, por especificidad y luego por orden */
+  for(const r of rules.filter(x=>/\.tab-plus\.active/.test(x.sel)))assert.ok(!/background:var\(--accent\)/.test(r.body),'el + marcado no se rellena de tabaco: '+r.sel+'{'+r.body+'}');
+  {const win=(el,prop)=>{let best=null;rules.forEach((r,i)=>{if(!/^(?:\.[\w-]+|\[[^\]]+\])+$/.test(r.sel))return;const cl=[...r.sel.matchAll(/\.([\w-]+)/g)].map(m=>m[1]),at=[...r.sel.matchAll(/\[([^\]]+)\]/g)].map(m=>m[1]);
+     if(!cl.every(c=>el.cls.includes(c))||!at.every(a=>el.attrs.includes(a)))return;const m=new RegExp('(?:^|;)(?:'+prop+(prop==='border-color'?'|border':'')+'):([^;]+)').exec(r.body);if(!m)return;const sp=cl.length+at.length;
+     if(!best||sp>best.sp||(sp===best.sp&&i>best.i))best={sp,i,v:m[1],sel:r.sel}});return best};
+   const el={cls:['stampbtn','act'],attrs:['aria-pressed="true"']};assert.ok(hj.includes('class="stampbtn ${cls}" data-stamp="${k}:${esc(id)}" aria-pressed="${on}"')&&hj.includes("stampBtn('cigarros',c.id,'act')"),'el sello de la ficha es stampbtn act, con aria-pressed');
+   for(const [p,v] of [['background','var(--accent)'],['border-color','var(--accent)'],['color','var(--on-accent)']]){const b=win(el,p);assert.ok(b&&(b.v===v||b.v.endsWith(' '+v)),'sello ganado '+p+': '+(b&&b.sel+' '+b.v))}}
+  for(const sel of ['.ev .lbtn.go-map','.list .lbtn.go-map','.pops .lbtn.go-map','.fw-row .fw-b'])assert.ok(bgOf(sel)&&bgOf(sel)!=='var(--accent)','con borde en lo que se repite: '+sel+' '+bgOf(sel));
   for(const sel of ['.fw-row .fw-b'])assert.ok(rules.some(x=>x.sel===sel&&/color:var\(--accent-ink\)/.test(x.body)&&/border:1px solid var\(--accent-ink\)/.test(x.body)),sel);
   {const ev=hj.slice(hj.indexOf('function evCard('),hj.indexOf('\nfunction ',hj.indexOf('function evCard(')+10));assert.ok(ev.includes('return `<article class="ev ')&&ev.includes('<a class="lbtn go-map"'),'Cómo llegar va dentro de la tarjeta .ev');
    const vl=ap.slice(ap.indexOf('function vLugares('),ap.indexOf('\nfunction ',ap.indexOf('function vLugares(')+10));const li=vl.indexOf('<div class="list" style="margin-top:12px">');assert.ok(li>0&&vl.indexOf('<a class="lbtn go-map"',li)>li,'Cómo llegar va dentro de la lista de lugares');
@@ -4000,9 +4011,16 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  const heads=[...(ap+hj).matchAll(/\bhead\((?:[^()]|\([^()]*(?:\([^()]*\))*[^()]*\))*\)/g)].map(m=>m[0]).filter(x=>!x.startsWith('head=(')&&/VBArt\./.test(x));
  assert.ok(heads.length>=9,'cabeceras con arte: '+heads.length);for(const h of heads){const m=h.match(/VBArt\.([a-zA-Z]+)\(\)\)$/);assert.ok(m&&LINE.includes(m[1])&&m[1]!=='silueta','la cabecera lleva un dibujo del juego: '+h.slice(-60))}
  /* ningún arte de fuera del juego: ni los dibujos viejos, ni la guagua, ni otra imagen que no sea foto */
- for(const [f,x] of [['app.js',ap],['hoja.js',hj],['cuenta.js',read('cuenta.js')]]){for(const m of x.matchAll(/VBArt\.([a-zA-Z]+)/g))assert.ok(LINE.includes(m[1])||['leaf','star'].includes(m[1]),f+': VBArt.'+m[1]);
-  for(const m of x.matchAll(/<img[^>]*src="([^"$]+)"/g))assert.ok(/^(img\/(hero|logos|cigarros|eventos)\/|icons\/)/.test(m[1]),f+': una imagen que no es foto ni marca: '+m[1]);
-  assert.ok(!/img\/guagua|\.coqui|class="(volky|flor|flamboyan|coqui)/.test(x),f)}
+ for(const [f,x] of [['app.js',ap],['hoja.js',hj],['cuenta.js',read('cuenta.js')],['intro.js',read('intro.js')],['i18n.js',read('i18n.js')]]){for(const m of x.matchAll(/VBArt\.([a-zA-Z]+)/g))assert.ok(LINE.includes(m[1])||['leaf','star'].includes(m[1]),f+': VBArt.'+m[1]);
+  /* Codex r4: cada fuente de imagen en cualquier forma de comillas; la que empieza con ${ es una foto de los datos o del lector */
+  for(const m of MEDIA111(x,f))assert.ok(m.u.startsWith('${')||/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m.u),f+': una imagen que no es foto ni marca: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
+  assert.ok(!/img\/guagua|\.coqui|class="(volky|flor|flamboyan|coqui)/.test(x),f);
+  /* Codex r4: todo archivo de imagen que el script nombra, donde sea (también dentro de un atributo que va o no va), es foto, marca, ícono o la intro
+     (los sufijos de las miniaturas de LHB-85, _thumb.webp y _thumb-s.webp, son el nombre de una foto; perfil.jpg, el nombre con que sube la foto del propio lector) */
+  for(const m of x.matchAll(/(?<![\w./-])((?:\.\.\/)*[\w./-]+\.(?:webp|png|jpe?g|gif|avif|svg|bmp|ico))(?![\w])/gi))assert.ok(/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m[1])||['_thumb.webp','_thumb-s.webp','perfil.jpg'].includes(m[1]),f+': nombra una imagen de fuera: '+m[1]);
+  {const du=[...x.matchAll(/data:image\//g)].length;assert.equal(du,f==='hoja.js'?1:0,f+': un data URI de imagen')}
+  /* Codex r4: y la fuente puesta desde el script (img.src=...): una literal es foto, marca, ícono o la intro; un data URI solo el de la silueta (la imagen para compartir) */
+  for(const m of x.matchAll(/\.(src|srcset|poster)\s*=\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g))assert.ok(/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m[3])||(m[3]==='data:image/svg+xml;charset=utf-8,'&&x.startsWith('+encodeURIComponent(VBArt.silueta(',m.index+m[0].length)),f+': '+m[0].slice(0,90))}
  for(const f of ['index.html','sw.js','styles.css'])assert.ok(!/img\/guagua|\.coqui\b|\.volky|\.flamboyan|\.garita/.test(read(f)),f);
  /* Codex r1: todo SVG escrito en los scripts es un ícono (24 x 24) o uno de los gráficos que dicen algo (no adornan): la hoja de agua de las iniciales,
     el mapa sin conexión, la rueda de sabores y el sello de zona. Uno nuevo no pasa sin ponerlo aquí */
@@ -4010,11 +4028,19 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   for(const f of ['app.js','hoja.js','cuenta.js','intro.js','i18n.js'])for(const m of read(f).matchAll(/<svg\b[^>]*>/g)){const t=m[0];assert.ok(/viewBox="0 0 24 24"/.test(t)||FUNC.some(x=>t.includes(x)),f+': un SVG que no es ícono ni gráfico conocido: '+t.slice(0,90))}
   /* Codex r2: un ícono se juzga por lo que lleva, no por su viewBox: sin colores propios (solo none y currentColor) y sin tamaño propio (style). La única
      excepción es la marca de Spotify, un logo de marca (LHB-67 la lista) */
+  /* Codex r3: el lector de atributos ve las tres formas de comillas, y el <svg> de un ícono no trae medida propia */
+  assert.deepEqual(ATTR111('<circle fill="red" stroke=\'blue\' color=green />'),[['fill','red'],['stroke','blue'],['color','green']]);
+  /* Codex r4: MEDIA111 lee src en las tres formas, cada candidato de srcset, poster, y un > dentro de un valor entre comillas; lo que no sabe leer, falla */
+  assert.deepEqual(MEDIA111('<p><img alt="" src=\'a.webp\'><img src=b.webp><picture><source srcset="c.webp 1x, d.webp 2x"></picture><video poster=\'e.webp\'></video><img alt="a>b" src="f.webp"></p>','x').map(m=>m.u),['a.webp','b.webp','c.webp','d.webp','e.webp','f.webp']);
+  assert.deepEqual(MEDIA111('<input type="checkbox" ${on?\'checked\':\'\'}><img src="${esc(u)}" alt="" ${c.mini?`a`:{b:1}.b}decoding="async">','x').map(m=>m.u),['${esc(u)}'],'una expresión ${...} es una pieza de la etiqueta');
+  assert.throws(()=>MEDIA111('<img src="a.webp" alt="x>','x'),/no sabe leer/);
+  for(const bad of ['<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
+  assert.ok(ICON111('<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" fill="none"/><path stroke=\'currentColor\' d="M4 4"/></svg>'),'un ícono de verdad pasa (un rect con su width y height dentro está bien)');
   for(const f of ['app.js','hoja.js','cuenta.js','intro.js','i18n.js'])for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg>/g))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
  /* Codex r1: las páginas estáticas: sus imágenes son íconos, fotos de cigarros y marcas; sus SVG, íconos */
  {const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.html')?[path.join(d,x.name)]:[]);const pages=walk(path.join(__dirname,'..','site'));assert.ok(pages.length>100,'páginas: '+pages.length);
   for(const p of pages){const h=fs.readFileSync(p,'utf8'),rel=path.relative(path.join(__dirname,'..','site'),p);
-   for(const m of h.matchAll(/<img\b[^>]*src="([^"]+)"/g))assert.ok(/^(\.\.\/)*\/?(icons\/|img\/(cigarros|logos|hero|eventos)\/)/.test(m[1]),rel+': una imagen que no es foto, marca ni ícono: '+m[1]);
+   for(const m of MEDIA111(h,rel))assert.ok(/^(\.\.\/)*\/?(icons\/|img\/(cigarros|logos|hero|eventos)\/)/.test(m.u),rel+': una imagen que no es foto, marca ni ícono: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
    for(const m of h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg>/g))assert.ok(/^<svg\b[^>]*viewBox="0 0 24 24"/.test(m[0])&&ICON111(m[0]),rel+': un SVG que no es ícono: '+m[0].slice(0,120));
    assert.ok(!/url\((?!['"]?(\/?fonts\/))/.test(h.replace(/<script[\s\S]*?<\/script>/g,'')),rel+': una imagen por CSS')}}
  /* Codex r1: en las hojas de estilo, url() solo trae las fuentes y los dos SVG en data URI de arriba (la de Leaflet, sus propias imágenes del mapa) */
@@ -4054,7 +4080,7 @@ test('LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noc
  const body=(src,n)=>{const m=new RegExp('\\n(?:async )?function '+n+'\\(|\\n(?:const|let) '+n+'=').exec(src);assert.ok(m,n);const j=src.slice(m.index+1).search(/\n(?:async )?function |\n(?:const|let) [A-Za-z0-9_]+=(?:async )?\(?[A-Za-z0-9_,]*\)?=>/);return src.slice(m.index,j<0?undefined:m.index+1+j)};
  /* Codex r6: Cómo llegar cuenta como llena salvo en su contexto que se repite (arriba) */
  const FILLED=/class="(btn|btn cta|btn fw-b|lbtn spotify|lbtn go-map|pidelo)"/g;
- const views=[['perfil',[[ap,'vPerfil'],[hj,'pfCounts']]],['eventos',[[hj,'vEventos']]],['diario',[[hj,'vDiario']]],['humidor',[[hj,'vHumidor']]],['cata',[[hj,'vCata']]],['personas',[[hj,'vPersonas']]]];
+ const views=[['perfil',[[ap,'vPerfil'],[hj,'pfCounts']]],['eventos',[[hj,'vEventos']]],['diario',[[hj,'vDiario']]],['humidor',[[hj,'vHumidor']]],['cata',[[hj,'vCata']]],['personas',[[hj,'vPersonas']]],['subir',[[ap,'vSubir']]]];
  for(const [v,parts] of views){const n=parts.map(([src,f])=>[...body(src,f).matchAll(FILLED)].length).reduce((a,b)=>a+b,0);assert.ok(n<=1,v+': '+n+' acciones llenas')}
  assert.ok(hj.includes('${own?`<a class="btn secondary" href="#/mihoja/editar" id="pfEdit"'),'Editar perfil con borde');assert.ok(hj.includes('<button class="btn secondary" type="submit">${tt(\'h.guardarSugerencia\')}'),'la sugerencia con borde');
 });
@@ -5505,8 +5531,23 @@ test('LHB-64 (Codex ronda 2): el aviso (toast) queda fuera de la app inerte, enc
 });
 /* LHB-110: el tema oscuro. styles.css lo define dos veces con los mismos valores (al teléfono si no se eligió claro, y elegido en el menú);
    l.css y u.css una vez (al teléfono). css() devuelve la hoja con el :root claro cambiado por el de noche, para medirla con las mismas pruebas */
-/* LHB-111 (Codex r2): un ícono no lleva colores propios (solo none y currentColor) ni tamaño propio (style); su color y su tamaño los pone la página */
-const ICON111=svg=>!/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|\b(fill|stroke|stop-color|color)="(?!none"|currentColor")[^"]*"|\bstyle=|<(image|foreignObject)\b/.test(svg);
+/* LHB-111 (Codex r2 y r3): un ícono no lleva colores propios (solo none y currentColor) ni tamaño propio (style, ni width, height o transform en su
+   <svg>); su color y su tamaño los pone la página. Los atributos se leen con comillas dobles, simples o sin comillas */
+const ATTR111=tag=>[...tag.matchAll(/\s([a-zA-Z][\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)].map(m=>[m[1].toLowerCase(),(m[2]??m[3]??m[4]).trim()]);
+/* LHB-111 (Codex r4): toda fuente de imagen, leída como la lee el navegador. TAG111 lee una etiqueta de apertura respetando sus comillas; MEDIA111 da cada
+   fuente de cada etiqueta que pinta una imagen (img y source: src y srcset; image: href; input: src; video: poster y src; object: data; embed e iframe: src).
+   Cada <img, <source, <image, <input, <video, <object, <embed o <iframe tiene que leerse entero, o la prueba falla: ninguna se salta por no entenderla.
+   En un script, una expresión ${...} dentro de la etiqueta es una pieza de ella (un atributo que va o no va, o un valor) */
+const TPL111=String.raw`\$\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}`;
+const TAG111=new RegExp(String.raw`<([a-zA-Z][\w:-]*)((?:\s*`+TPL111+String.raw`|(?:\s+|(?<=\}))[^\s=>"'\/$]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|`+TPL111+String.raw`|[^\s"'>]+))?)*)\s*\/?>`,'y');
+const MEDIA_TAGS111={img:['src','srcset'],source:['src','srcset'],image:['href','xlink:href'],input:['src'],video:['poster','src'],object:['data'],embed:['src'],iframe:['src']};
+const MEDIA111=(h,where)=>{const out=[];for(const s of h.matchAll(/<(img|source|image|input|video|object|embed|iframe)\b/gi)){TAG111.lastIndex=s.index;const m=TAG111.exec(h);
+  assert.ok(m,where+': una etiqueta que la prueba no sabe leer: '+h.slice(s.index,s.index+90));const want=MEDIA_TAGS111[m[1].toLowerCase()];
+  for(const [k,v] of ATTR111(m[2]))if(want.includes(k))for(const u of k==='srcset'?v.split(',').map(x=>x.trim().split(/\s+/)[0]).filter(Boolean):[v])out.push({tag:m[1].toLowerCase(),k,u})}return out};
+const ICON111=svg=>{const root=(svg.match(/^<svg\b[^>]*>/)||[''])[0],paint=['fill','stroke','stop-color','color','flood-color','lighting-color'];
+ return !/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|<(image|foreignObject|style)\b/i.test(svg)
+  &&ATTR111(svg).every(([k,v])=>k!=='style'&&(!paint.includes(k)||v==='none'||v==='currentColor'))
+  &&!ATTR111(root).some(([k])=>k==='width'||k==='height'||k==='transform')};
 /* LHB-111: art.js de mentira para las vistas que se corren en una VM: cada dibujo del juego de línea devuelve una marca con su nombre */
 function VB111(){const o={leaf:()=>''};for(const k of ['ranchon','banda','chaveta','micro','lupa','hoja','maridaje','caja','aqui'])o[k]=()=>'<i data-art="'+k+'"></i>';o.silueta=()=>'<i data-art="silueta"></i>';return o}
 const DARK110={MEDIA:/@media \(prefers-color-scheme:dark\)\{:root:not\(\[data-theme="light"\]\)\{([^}]*)\}\}/,ATTR:/:root\[data-theme="dark"\]\{([^}]*)\}/,
