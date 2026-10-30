@@ -4006,6 +4006,10 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   /* Codex r22: y solo atributos de geometría y accesibilidad (sin alfa, sin trazo propio): lo demás lo pone styles.css */
   assert.ok(ATTR111(h).every(([a])=>DRAWATTR111.has(a)),k+': un atributo que no es de geometría: '+ATTR111(h).filter(([a])=>!DRAWATTR111.has(a)).map(x=>x.join('=')).join(' '));
   assert.ok(/class="(ac|acs[^"]*)"/.test(h),k+': su acento')}
+ /* Codex r36: la geometría del juego queda fijada: el texto de art.js desde el principio hasta el dibujo de "aquí" (LA, la estrella, cada dibujo y la
+    silueta), por su sha256. Un acento con r="0", un trazo sin largo o un dibujo cambiado solo con un argumento ya no pasan sin revisar el dibujo y este número */
+ {const s=read('art.js').replace(/\r\n/g,'\n'),i=s.indexOf('\nconst aqui=');assert.ok(i>0,'art.js: el dibujo de aquí');
+  assert.equal(require('crypto').createHash('sha256').update(s.slice(0,s.indexOf('\n',i+1))).digest('hex'),'af24a6d552db144b7506df43069209674271cf204d65636c5618c5de158d888a','art.js: la geometría del juego cambió')}
  /* la silueta para la imagen para compartir, con los colores ya resueltos: solo esos dos */
  {const h=A.silueta('',{ink:'#263723',ac:'#C77943'});assert.deepEqual([...new Set(h.match(/#[0-9A-Fa-f]{6}/g))].sort(),['#263723','#C77943']);assert.match(h,/viewBox="0 0 600 300"/,'el marco 2:1 de las fotos');
   /* Codex r30: la silueta resuelta lleva los mismos elementos y la misma geometría que la del juego, y de pintura solo la suya: fill y stroke en none o

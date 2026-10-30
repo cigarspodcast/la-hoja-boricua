@@ -118,6 +118,7 @@ MUTS = [
     ('site/art.js', 'Codex r34: the share-image silhouette shapes taken out of the SVG namespace', '<ellipse cx=', '<ellipse${lit?\' xmlns=""\':\'\'} cx='),
     ('site/art.js', 'Codex r35: the share-image silhouette shapes with uppercase tag names', '<ellipse cx=', '<ELLIPSE cx='),
     ('site/art.js', 'Codex r35b: the share-image silhouette with an uppercase attribute name', '<path d="M96 122', '<path D="M0 0" d="M96 122'),
+    ('site/art.js', 'Codex r36: the ranchon accent shrunk to nothing', '<circle class="ac" cx="98" cy="22" r="8"/>', '<circle class="ac" cx="98" cy="22" r="0"/>'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
