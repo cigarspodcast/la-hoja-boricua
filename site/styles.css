@@ -288,11 +288,11 @@ h1 em,h2 em,.brand-name em{font-style:normal;font-weight:400;color:var(--accent-
 /* LHB-36: el selector de idioma, del alto de los botones redondos; sin display, el atributo hidden lo esconde */
 /* LHB-93: it ships visible with the Spanish-default label, so it is in the first paint; min-width holds the wider name
    (Español 73.7 px, EN 39.9 px, measured) so wire() swapping the label for an English reader moves nothing */
-.lang-switch{height:36px;min-width:74px;padding:0 12px;border-radius:var(--r-m);background:var(--card);border:1px solid var(--line);color:var(--on-surface);font:inherit;font-size:var(--fs-2);font-weight:600;letter-spacing:.02em;cursor:pointer}
+.lang-switch{height:36px;min-width:78px;padding:0 12px;border-radius:var(--r-m);background:var(--card);border:1px solid var(--line);color:var(--on-surface);font:inherit;font-size:var(--fs-2);font-weight:600;letter-spacing:.02em;cursor:pointer}
 /* below 400px the full name does not fit beside the brand: the switch shows the two-letter code (its aria-label keeps the name);
    below 360px the wordmark is hidden from sight but kept as the brand link's accessible name (LHB-88) */
 .lang-switch .ls-short{display:none}
-@media (max-width:399px){.lang-switch{min-width:40px;padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}
+@media (max-width:399px){.lang-switch{min-width:42px;padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}
 @media (max-width:359px){.brand-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
 .top-actions{gap:8px}
 button.row{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}

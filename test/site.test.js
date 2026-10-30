@@ -3663,7 +3663,7 @@ test('LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la a
  assert.ok(!/\.lang-switch\{[^}]*display:/.test(css),'sin display: el atributo hidden la esconde');
  /* Codex r1: a 320 y 375 px el selector con el nombre entero empujaba la barra fuera de la pantalla (medido en el navegador, evidence/lhb-36-topbar-widths.txt) */
  assert.ok(css.includes('.lang-switch .ls-short{display:none}'),'la sigla escondida donde cabe el nombre');
- assert.ok(css.includes('@media (max-width:399px){.lang-switch{min-width:40px;padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}'),'bajo 400 px, la sigla (LHB-93: con su ancho reservado)');
+ assert.ok(css.includes('@media (max-width:399px){.lang-switch{min-width:42px;padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}'),'bajo 400 px, la sigla (LHB-93: con su ancho reservado)');
  const nar=css.match(/@media \(max-width:359px\)\{\.brand-text\{([^}]*)\}\}/);assert.ok(nar,'bajo 360 px, la marca sin el texto');
  assert.ok(nar[1].includes('position:absolute')&&nar[1].includes('clip:rect(0 0 0 0)')&&!nar[1].includes('display:none'),'escondido a la vista, no al lector de pantalla: el enlace sigue con nombre (LHB-88)');
  const ix=read('index.html');const {T}=I18N();
@@ -3885,8 +3885,8 @@ test('LHB-93: el selector sale en el primer pintado con el texto en español; wi
  const es=run36('es-PR',null);assert.equal(m[1],es.btn.innerHTML,'el HTML ya trae lo que wire() pone en español');assert.ok(m[0].includes('lang="'+es.btn.lang+'"')&&m[0].includes('aria-label="'+es.btn.a['aria-label']+'"'),'el mismo lang y nombre');
  const btn={hidden:false,innerHTML:'x',a:{},setAttribute(n,v){this.a[n]=v}};const w={navigator:{language:'en-US'},localStorage:{getItem:()=>null},document:{documentElement:{},readyState:'complete',getElementById:id=>id==='langSwitch'?btn:null,querySelectorAll:()=>[]}};
  require('vm').runInNewContext(read('i18n.js').replace('const ENABLED=true;','const ENABLED=false;'),{window:w});assert.equal(btn.hidden,true,'con el selector apagado, wire() lo esconde');
- // el ancho reservado cubre el nombre más ancho, medido (evidence/lhb-93-switch-widths.txt)
- const css=read('styles.css');const L=Math.max(69.9,73.7),Sh=Math.max(39.9,37.7);
+ // el ancho reservado cubre el nombre más ancho, medido (LHB-107: con la letra en 14 px, evidence/lhb-107-switch-widths.txt; antes evidence/lhb-93-switch-widths.txt)
+ const css=read('styles.css');const L=Math.max(73.3,77.38),Sh=Math.max(41.26,38.96);
  const a=css.match(/\.lang-switch\{height:36px;min-width:(\d+(?:\.\d+)?)px;/),b=css.match(/@media \(max-width:399px\)\{\.lang-switch\{min-width:(\d+(?:\.\d+)?)px;padding:0 10px\}/);assert.ok(a&&b,'min-width en las dos medidas');
  assert.ok(+a[1]>=L&&+a[1]-L<2,'ancho largo '+a[1]);assert.ok(+b[1]>=Sh&&+b[1]-Sh<2,'ancho corto '+b[1]);
  assert.ok(css.includes('*{box-sizing:border-box}'),'min-width cuenta borde y relleno, como la medida');
