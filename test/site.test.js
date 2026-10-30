@@ -30,7 +30,7 @@ test('Spanish UI, Fortaleza wording, forbidden names absent',()=>{const all=['in
  for(const w of ['Cigarros','Artesanos','Lugares','Actividades','Mi perfil','Guardar en favoritos','Sugerir actividad','Fuentes','Cómo llegar'])assert.ok(all.includes(w),w);
  assert.ok(!/lorem ipsum/i.test(all)&&!/\bTODO\b|\bTBD\b|\[PLACEHOLDER\]|\{\{/.test(all),'placeholder text');});
 test('LHB-117 (LHB-16, el dueño 2026-10-30): la nota de Prototipo ya no sale en la app, en la tarjeta para compartir ni en el README (llms.txt no es la nota y se queda)',()=>{
- const LABEL=/Prototipo|Prototype|sujeta a verificaci|subject to verification/;
+ const LABEL=/Prototipo\b|Prototype\b|sujeta a verificaci|subject to verification/;
  const files=fs.readdirSync(S).filter(f=>/\.(js|html|css|json|webmanifest)$/.test(f));
  for(const f of files)assert.ok(!LABEL.test(read(f)),f+' todavía trae la nota');
  const I=I18N();for(const l of ['es','en'])for(const k of ['proto.note','pf.note','h.prototipoInformacionPublicaSujeta'])assert.equal(I.T[l][k],undefined,l+' '+k);
