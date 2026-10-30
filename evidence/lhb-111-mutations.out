@@ -106,6 +106,8 @@ Codex r31: the share-image accent stroked instead of filled              RED (ca
 Codex r32: the share-image silhouette without its SVG namespace          RED (caught) (fail 1)
 Codex r33: the share-image silhouette root with a duplicate namespace attribute RED (caught) (fail 1)
 Codex r34: the share-image silhouette shapes taken out of the SVG namespace RED (caught) (fail 1)
+Codex r35: the share-image silhouette shapes with uppercase tag names    RED (caught) (fail 1)
+Codex r35b: the share-image silhouette with an uppercase attribute name  RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 109 of 109 red
+RESULT 111 of 111 red

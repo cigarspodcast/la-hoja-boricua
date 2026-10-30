@@ -4035,6 +4035,11 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   {const t=[...h.matchAll(/<([a-zA-Z][\w:.-]*)((?:\s+[a-zA-Z_][\w:.-]*="[^"]*")*)\s*\/?>/g)];
    assert.deepEqual(t.map((m,i)=>[...m[2].matchAll(/([a-zA-Z_][\w:.-]*)=/g)].map(x=>x[1]).filter(a=>a==='xmlns'||a.startsWith('xmlns:')).length),t.map((m,i)=>i===0?1:0),'la silueta resuelta: xmlns fuera de la raíz o un prefijo');
    assert.ok(t.every(m=>!m[1].includes(':')&&![...m[2].matchAll(/([a-zA-Z_][\w:.-]*)=/g)].some(x=>x[1].includes(':'))),'la silueta resuelta: un nombre con prefijo de espacio de nombres')}
+  /* Codex r35: XML distingue mayúsculas: cada nombre de elemento (de apertura y de cierre) es exactamente uno de SVG, y cada nombre de atributo se escribe
+     exactamente como lo define SVG (viewBox, y los demás en minúsculas). Un <PATH> o un VIEWBOX no dibujan nada en la imagen sola */
+  {const EXACT=new Set([...DRAWATTR111,...Object.keys(PA)].map(k=>k==='viewbox'?'viewBox':k));
+   for(const m of h.matchAll(/<\/?([a-zA-Z][\w:.-]*)/g))assert.ok(SVGEL_OK111.has(m[1]),'la silueta resuelta: un elemento que no se escribe como en SVG: '+m[1]);
+   for(const m of h.matchAll(/<[a-zA-Z][^>]*>/g))for(const x of m[0].matchAll(/\s([a-zA-Z_][\w:.-]*)=/g))assert.ok(EXACT.has(x[1]),'la silueta resuelta: un atributo que no se escribe como en SVG: '+x[1])}
   for(const bad of ['<svg xmlns="a" xmlns="a"></svg>','<svg><g></svg></g>','<svg></svg><svg></svg>','<svg a=\'1\'></svg>','<svg>x</svg>','<svg><path/>'])assert.ok(!XML111(bad),'XML111 deja pasar: '+bad);
   assert.ok(XML111('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1">\n <path d="M0 0"/><g><rect x="1"/></g></svg>'),'un SVG bien formado pasa')}
  const ex=Object.keys(A).filter(k=>!LINE.includes(k)).sort();assert.deepEqual(ex,['CAJA','leaf','star'],'fuera del juego solo la caja en texto, el ícono de hoja y la estrella');

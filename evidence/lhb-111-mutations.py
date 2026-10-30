@@ -116,6 +116,8 @@ MUTS = [
     ('site/art.js', 'Codex r32: the share-image silhouette without its SVG namespace', ' xmlns="http://www.w3.org/2000/svg"', ''),
     ('site/art.js', 'Codex r33: the share-image silhouette root with a duplicate namespace attribute', 'const st=lit?` fill="none"', 'const st=lit?` xmlns="http://www.w3.org/2000/svg" fill="none"'),
     ('site/art.js', 'Codex r34: the share-image silhouette shapes taken out of the SVG namespace', '<ellipse cx=', '<ellipse${lit?\' xmlns=""\':\'\'} cx='),
+    ('site/art.js', 'Codex r35: the share-image silhouette shapes with uppercase tag names', '<ellipse cx=', '<ELLIPSE cx='),
+    ('site/art.js', 'Codex r35b: the share-image silhouette with an uppercase attribute name', '<path d="M96 122', '<path D="M0 0" d="M96 122'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
