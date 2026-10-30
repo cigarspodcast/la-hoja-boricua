@@ -77,6 +77,9 @@ MUTS = [
     ('site/styles.css', 'Codex r16: an animation inside the empty-state SVG data URI', "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'", "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Canimate attributeName='opacity' values='0;1' dur='1s'/%3E%3Cg"),
     ('site/404.html', 'Codex r17: a drawing painted through cssText by a script on a static page', '</body>', '<svg viewBox="0 0 24 24"><circle id="deco" cx="12" cy="12" r="11"/></svg><script>document.getElementById("deco").style.cssText="fill:red";</script></body>'),
     ('site/hoja.js', 'Codex r17: a drawing painted through Object.assign on its style', 'const CAL_ICO=', "const CAL_X=e=>{Object.assign(e.style,{fill:'#e33'})};const CAL_ICO="),
+    ('site/404.html', 'Codex r18: an icon tinted red through its color by a script on a static page', '</body>', '<svg viewBox="0 0 24 24"><circle id="deco" cx="12" cy="12" r="11" fill="currentColor"/></svg><script>document.getElementById("deco").style.setProperty("color","red");</script></body>'),
+    ('site/hoja.js', 'Codex r18: a drawing tinted by a filter set by a script', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.filter="hue-rotate(140deg) saturate(4)"};const CAL_ICO='),
+    ('site/app.js', 'Codex r18: the accent of the set rewritten in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art" style="--art-ac:#e33">${art}</div></header>`;'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
