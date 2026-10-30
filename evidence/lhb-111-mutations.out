@@ -78,6 +78,9 @@ Codex r20: a filter written with brackets on a style held in a variable  RED (ca
 Codex r20: a later rule that paints the outlines the colour of their ground RED (caught) (fail 1)
 Codex r20: the amber behind the accent rewritten under the header        RED (caught) (fail 1)
 Codex r20: a drawing tinted by a filter attribute                        RED (caught) (fail 1)
+Codex r21: nearly transparent outlines through stroke-opacity            RED (caught) (fail 1)
+Codex r21: the accent rule moved under @media print                      RED (caught) (fail 1)
+Codex r21: an animation on the header that fades its drawing             RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 81 of 81 red
+RESULT 84 of 84 red

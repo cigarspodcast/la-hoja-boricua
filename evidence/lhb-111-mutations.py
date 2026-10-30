@@ -88,6 +88,9 @@ MUTS = [
     ('site/styles.css', 'Codex r20: a later rule that paints the outlines the colour of their ground', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.lart{stroke:var(--surface)}'),
     ('site/styles.css', 'Codex r20: the amber behind the accent rewritten under the header', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.sec-art{--amber:#e33}'),
     ('site/art.js', 'Codex r20: a drawing tinted by a filter attribute', '<circle class="ac" cx="98" cy="22" r="8"/>', '<circle class="ac" cx="98" cy="22" r="8" filter="hue-rotate(140deg)"/>'),
+    ('site/styles.css', 'Codex r21: nearly transparent outlines through stroke-opacity', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.lart{stroke-opacity:.01}'),
+    ('site/styles.css', 'Codex r21: the accent rule moved under @media print', '.lart .ac{fill:var(--art-ac)}', '@media print{.lart .ac{fill:var(--art-ac)}}'),
+    ('site/styles.css', 'Codex r21: an animation on the header that fades its drawing', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.sec-head{animation:glo 1s infinite}'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
