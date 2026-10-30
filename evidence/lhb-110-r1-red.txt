@@ -1,0 +1,169 @@
+✖ LHB-110: el tema oscuro: los dos bloques con los mismos valores, solo tokens, cada token de papel con su valor de noche, y cada par pasa el contraste (9.6184ms)
+ℹ de noche: 79 pares declarados, 0 no pasan
+ℹ de noche: 73 pares pintados, 0 no pasan
+✖ LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra (4.3224ms)
+✖ LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar (0.457ms)
+✖ LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera (2.3683ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 122.2598
+
+✖ failing tests:
+
+test at test\site.test.js:3881:1
+✖ LHB-110: el tema oscuro: los dos bloques con los mismos valores, solo tokens, cada token de papel con su valor de noche, y cada par pasa el contraste (9.6184ms)
+  AssertionError [ERR_ASSERTION]: Codex r1: el crédito sobre el marco de la foto
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red110r1\test\site.test.js:3899:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3904:1
+✖ LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra (4.3224ms)
+  AssertionError [ERR_ASSERTION]: las iniciales sobre el rojo de la bandera
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red110r1\test\site.test.js:3914:183)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3933:1
+✖ LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar (0.457ms)
+  AssertionError [ERR_ASSERTION]: Codex r1: la barra elegida también desde el primer pintado, con el mismo id que applyTheme
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red110r1\test\site.test.js:3936:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:5543:1
+✖ LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera (2.3683ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\.tchip\{background:var\(--wc\);color:var\(--fixed-text\)/. Input:
+  
+  "@font-face{font-family:'Figtree';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/figtree.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}\r\n" +
+    "@font-face{font-family:'Fraunces';font-style:italic;font-weight:500;font-display:swap;src:url(fonts/fraunces-italic-500.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}\r\n" +
+    "@font-face{font-family:'Fraunces';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/fraunces-normal-600.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}\r\n" +
+    '/* LHB-64: el atributo hidden siempre esconde, aunque la clase le dé display (.links, .lbtn: Codex ronda 2) */\r\n' +
+    '[hidden]{display:none!important}\r\n' +
+    ':root{--fs-1:12px;--fs-2:14px;--fs-3:16px;--fs-4:19px;--fs-5:23px;--fs-6:28px;--r-s:8px;--r-m:14px;--r-pill:999px;\r\n' +
+    ' /* LHB-65: la paleta del tablero (decisión del dueño 2026-10-25). Solo la leen los tokens de abajo; ninguna regla la lee directo */\r\n' +
+    ' --paper:#F4F1EA; --tobacco:#344C31; --amber:#C77943; --celeste:#1EA8D7; --red:#D12A1B; --sun:#EAB91B;\r\n' +
+    ' /* tokens por su papel, nunca por un color que no tienen. Los pares que la prueba de contraste mide salen de los nombres:\r\n' +
+    '    --on-X es texto sobre --X (4.5; --on-X-lg, texto grande y grueso, 3.0); --muted, --on-surface* y --X-ink son texto sobre las\r\n' +
+    '    superficies (--surface*, --card*), 4.5. Ámbar, celeste y sol son rellenos: su texto sobre papel es su tinta oscura (-ink) */\r\n' +
+    ' --surface:var(--paper); --surface-2:#FFFDFA; --card:#FFFDFA; --card-2:#ECEEE4; --line:#D7D8CC; --photo:#FFFDFA;\r\n' +
+    ' --on-surface:#263723; --on-surface-2:#43513D; --muted:#59614F;\r\n' +
+    ' --accent:var(--tobacco); --on-accent:var(--paper); --accent-ink:var(--tobacco);\r\n' +
+    ' --inverse:#263723; --on-inverse:var(--paper);\r\n' +
+    ' --danger:var(--red); --on-danger:#FFFFFF; --danger-ink:#A52218;\r\n' +
+    ' --info:var(--celeste); --on-info:#263723; --info-ink:#146780; --info-strong:#146780; --on-info-strong:#FFFFFF;\r\n' +
+    ' --warn:var(--sun); --on-warn:#263723; --warn-ink:#7A5C00;\r\n' +
+    ' --warm:var(--amber); --on-warm-lg:#263723; --warm-ink:#8F4A1C;\r\n' +
+    ' --focus:#146780;\r\n' +
+    ' /* LHB-67: fondos suaves de cada papel (superficies: la prueba de contraste les mide el texto), la barra y el velo translúcidos, sombras y el fondo de una hoja */\r\n' +
+    ' --accent-soft:#E4E9DB; --info-soft:#DCEEF5; --warn-soft:#FBF0CF; --danger-soft:#F6DEDA; --warm-soft:#F3E3D6;\r\n' +
+    ' --bar:rgba(244,241,234,.96); --veil:rgba(244,241,234,.94); --veil-soft:rgba(244,241,234,.55);\r\n' +
+    ' --mark-bg:transparent; --shadow:rgba(38,55,35,.16); --shadow-strong:rgba(38,55,35,.28); --scrim:rgba(38,55,35,.55);\r\n' +
+    ' /* la bandera: toda imagen de la bandera usa el azul celeste de la guagua */\r\n' +
+    ' --flag-blue:var(--celeste); --flag-red:#ED0000; --flag-white:#FFFFFF;\r\n' +
+    ' color-scheme:light;\r\n' +
+    ' --r:16px; --tab-h:64px;\r\n' +
+    ' --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);\r\n' +
+    " --serif:'Fraunces',Georgia,serif; --display:'Fraunces',Georgia,serif; --sans:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;\r\n" +
+    '}\r\n' +
+    '/* LHB-110: el tema oscuro (la tabaquería de noche): los mismos papeles, otros valores. Sigue al teléfono; el menú lo fija (data-theme en <html>, guardado en lhb_theme). Los dos bloques llevan los mismos valores */\r\n' +
+    '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--photo:#EFEBE2;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--inverse:#EEE9DD;--on-inverse:#1A2218;--danger:var(--red);--on-danger:#FFFFFF;--danger-ink:#FF9585;--info:var(--celeste);--on-info:#0C1A1F;--info-ink:#7CD0EC;--info-strong:#7CD0EC;--on-info-strong:#0C1A1F;--warn:var(--sun);--on-warn:#1A1606;--warn-ink:#F0CC5A;--warm:var(--amber);--on-warm-lg:#141A13;--warm-ink:#E8A877;--focus:#7CD0EC;--accent-soft:#24331F;--info-soft:#123039;--warn-soft:#352D12;--danger-soft:#3B1C17;--warm-soft:#382518;--mark-bg:#EFEBE2;--bar:rgba(20,26,19,.94);--veil:rgba(20,26,19,.9);--veil-soft:rgba(20,26,19,.5);--shadow:rgba(0,0,0,.4);--shadow-strong:rgba(0,0,0,.6);--scrim:rgba(0,0,0,.6);color-scheme:dark}}\r\n' +
+    ':root[data-theme="dark"]{--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--photo:#EFEBE2;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--inverse:#EEE9DD;--on-inverse:#1A2218;--danger:var(--red);--on-danger:#FFFFFF;--danger-ink:#FF9585;--info:var(--celeste);--on-info:#0C1A1F;--info-ink:#7CD0EC;--info-strong:#7CD0EC;--on-info-strong:#0C1A1F;--warn:var(--sun);--on-warn:#1A1606;--warn-ink:#F0CC5A;--warm:var(--amber);--on-warm-lg:#141A13;--warm-ink:#E8A877;--focus:#7CD0EC;--accent-soft:#24331F;--info-soft:#123039;--warn-soft:#352D12;--danger-soft:#3B1C17;--warm-soft:#382518;--mark-bg:#EFEBE2;--bar:rgba(20,26,19,.94);--veil:rgba(20,26,19,.9);--veil-soft:rgba(20,26,19,.5);--shadow:rgba(0,0,0,.4);--shadow-strong:rgba(0,0,0,.6);--scrim:rgba(0,0,0,.6);color-scheme:dark}\r\n' +
+    '*{box-sizing:border-box}\r\n' +
+    'html,body{margin:0;height:100%;background:var(--surface);color:var(--on-surface);font-family:var(--sans);-webkit-text-size-adjust:100%;}\r\n' +
+    'body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}\r\n' +
+    'img{max-width:100%;display:block}\r\n' +
+    'a{color:inherit}\r\n' +
+    'button,input,select,textarea{font:inherit;color:inherit}\r\n' +
+    ':focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:var(--r-s)}\r\n' +
+    '.app{min-height:100%;display:flex;flex-direction:column;\r\n' +
+    ' background:var(--surface);}\r\n' +
+    '.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;\r\n' +
+    ' padding:calc(var(--sat) + 10px) calc(var(--sar) + 16px) 10px calc(var(--sal) + 16px);\r\n' +
+    ' background:var(--bar);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}\r\n' +
+    '.brand{display:flex;align-items:center;gap:10px;text-decoration:none}\r\n' +
+    '/* LHB-110: la hoja está pintada en tabaco oscuro; de noche va sobre su teja de papel */\r\n' +
+    '.brand img{border-radius:var(--r-s);background:var(--mark-bg)}\r\n' +
+    '.brand-text{display:flex;flex-direction:column;line-height:1.05}\r\n' +
+    '.brand-name{font-family:var(--serif);font-weight:600;font-size:var(--fs-4);letter-spacing:.2px}\r\n' +
+    '.brand-name em{font-style:italic;font-weight:500;color:var(--accent-ink)}\r\n' +
+    '.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}\r\n' +
+    '.top-actions{display:flex;align-items:center;gap:10px}\r\n' +
+    '.avatar-link{width:36px;height:36px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--card-2);border:1.5px solid var(--accent-ink);text-decoration:none;font-weight:700;font-size:var(--fs-2);letter-spacing:.02em;color:var(--accent-ink)}\r\n' +
+    '.avatar-link img{width:100%;height:100%;object-fit:cover}\r\n' +
+    '.flag-band{height:3px;background:linear-gradient(90deg,var(--flag-blue) 0 18%,var(--flag-red) 18% 45%,var(--flag-white) 45% 55%,var(--flag-red) 55% 82%,var(--flag-white) 82% 86%,var(--flag-red) 86%);opacity:.85}\r\n' +
+    '.view{flex:1;padding:14px calc(var(--sar) + 16px) calc(var(--tab-h) + var(--sab) + 28px) calc(var(--sal) + 16px);outline:none;max-width:760px;width:100%;margin:0 auto}\r\n' +
+    'h1,h2,h3{font-family:var(--serif);font-weight:600;margin:0}\r\n' +
+    'h1{font-size:var(--fs-6);line-height:1.1;letter-spacing:-.2px}\r\n' +
+    'h1 em,h2 em{font-style:italic;font-weight:500;color:var(--accent-ink)}\r\n' +
+    'h2{font-size:var(--fs-4)}\r\n' +
+    '.lead{color:var(--on-surface-2);margin:6px 0 14px;font-size:var(--fs-3);line-height:1.45}\r\n' +
+    '.eyebrow{font-size:var(--fs-1);letter-spacing:2.2px;text-transform:uppercase;color:var(--warm-ink)}\r\n' +
+    '.hero{position:relative;border-radius:var(--r-m);overflow:hidden;padding:18px 18px 16px;margin-bottom:16px;\r\n' +
+    ' background:var(--card-2);border:1px solid var(--line)}\r\n' +
+    '.hero h1{max-width:72%}\r\n' +
+    '.hero p{max-width:64%;color:var(--on-surface-2);font-size:var(--fs-2);margin:8px 0 0;line-height:1.4}\r\n' +
+    '.facades{display:flex;height:6px;margin:-18px -18px 14px}\r\n' +
+    '.facades i{flex:1}\r\n' +
+    '.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:0 12px;margin-bottom:10px}\r\n' +
+    '.search svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2}\r\n' +
+    '.search input{flex:1;background:none;border:0;padding:12px 0;outline:none;font-size:var(--fs-3)}\r\n' +
+    '.search input::placeholder{color:var(--muted)}\r\n' +
+    '.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;margin:0 -16px;padding-left:16px;padding-right:16px}\r\n' +
+    '.chips::-webkit-scrollbar{display:none}\r\n' +
+    '.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:var(--r-pill);padding:7px 13px;font-size:var(--fs-2);color:var(--on-surface-2);white-space:nowrap}\r\n' +
+    '.chip[aria-pressed="true"]{background:var(--inverse);color:var(--on-inverse);border-color:var(--inverse);font-weight:600}\r\n' +
+    '.filter-row{display:flex;gap:8px;margin-bottom:12px}\r\n' +
+    '.filter-row select{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:10px;font-size:var(--fs-2);appearance:none;-webkit-appearance:none;\r\n' +
+    ' background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 16px) 52%,calc(100% - 11px) 52%;background-size:5px 5px;background-repeat:no-repeat}\r\n' +
+    '.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}\r\n' +
+    '@media(min-width:620px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}\r\n' +
+    '.card{background:var(--card);'... 63080 more characters
+  
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red110r1\test\site.test.js:5550:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `@font-face{font-family:'Figtree';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/figtree.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}\r\n@font-face{font-family:'Fraunces';font-style:italic;font-weight:500;font-display:swap;src:url(fonts/fraunces-italic-500.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}\r\n@font-face{font-family:'Fraunces';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/fraunces-normal-600.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}\r\n/* LHB-64: el atributo hidden siempre esconde, aunque la clase le dé display (.links, .lbtn: Codex ronda 2) */\r\n[hidden]{display:none!important}\r\n:root{--fs-1:12px;--fs-2:14px;--fs-3:16px;--fs-4:19px;--fs-5:23px;--fs-6:28px;--r-s:8px;--r-m:14px;--r-pill:999px;\r\n /* LHB-65: la paleta del tablero (decisión del dueño 2026-10-25). Solo la leen los tokens de abajo; ninguna regla la lee directo */\r\n --paper:#F4F1EA; --tobacco:#344C31; --amber:#C77943; --celeste:#1EA8D7; --red:#D12A1B; --sun:#EAB91B;\r\n /* tokens por su papel, nunca por un color que no tienen. Los pares que la prueba de contraste mide salen de los nombres:\r\n    --on-X es texto sobre --X (4.5; --on-X-lg, texto grande y grueso, 3.0); --muted, --on-surface* y --X-ink son texto sobre las\r\n    superficies (--surface*, --card*), 4.5. Ámbar, celeste y sol son rellenos: su texto sobre papel es su tinta oscura (-ink) */\r\n --surface:var(--paper); --surface-2:#FFFDFA; --card:#FFFDFA; --card-2:#ECEEE4; --line:#D7D8CC; --photo:#FFFDFA;\r\n --on-surface:#263723; --on-surface-2:#43513D; --muted:#59614F;\r\n --accent:var(--tobacco); --on-accent:var(--paper); --accent-ink:var(--tobacco);\r\n --inverse:#263723; --on-inverse:var(--paper);\r\n --danger:var(--red); --on-danger:#FFFFFF; --danger-ink:#A52218;\r\n --info:var(--celeste); --on-info:#263723; --info-ink:#146780; --info-strong:#146780; --on-info-strong:#FFFFFF;\r\n --warn:var(--sun); --on-warn:#263723; --warn-ink:#7A5C00;\r\n --warm:var(--amber); --on-warm-lg:#263723; --warm-ink:#8F4A1C;\r\n --focus:#146780;\r\n /* LHB-67: fondos suaves de cada papel (superficies: la prueba de contraste les mide el texto), la barra y el velo translúcidos, sombras y el fondo de una hoja */\r\n --accent-soft:#E4E9DB; --info-soft:#DCEEF5; --warn-soft:#FBF0CF; --danger-soft:#F6DEDA; --warm-soft:#F3E3D6;\r\n --bar:rgba(244,241,234,.96); --veil:rgba(244,241,234,.94); --veil-soft:rgba(244,241,234,.55);\r\n --mark-bg:transparent; --shadow:rgba(38,55,35,.16); --shadow-strong:rgba(38,55,35,.28); --scrim:rgba(38,55,35,.55);\r\n /* la bandera: toda imagen de la bandera usa el azul celeste de la guagua */\r\n --flag-blue:var(--celeste); --flag-red:#ED0000; --flag-white:#FFFFFF;\r\n color-scheme:light;\r\n --r:16px; --tab-h:64px;\r\n --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);\r\n --serif:'Fraunces',Georgia,serif; --display:'Fraunces',Georgia,serif; --sans:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;\r\n}\r\n/* LHB-110: el tema oscuro (la tabaquería de noche): los mismos papeles, otros valores. Sigue al teléfono; el menú lo fija (data-theme en <html>, guardado en lhb_theme). Los dos bloques llevan los mismos valores */\r\n@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--photo:#EFEBE2;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--inverse:#EEE9DD;--on-inverse:#1A2218;--danger:var(--red);--on-danger:#FFFFFF;--danger-ink:#FF9585;--info:var(--celeste);--on-info:#0C1A1F;--info-ink:#7CD0EC;--info-strong:#7CD0EC;--on-info-strong:#0C1A1F;--warn:var(--sun);--on-warn:#1A1606;--warn-ink:#F0CC5A;--warm:var(--amber);--on-warm-lg:#141A13;--warm-ink:#E8A877;--focus:#7CD0EC;--accent-soft:#24331F;--info-soft:#123039;--warn-soft:#352D12;--danger-soft:#3B1C17;--warm-soft:#382518;--mark-bg:#EFEBE2;--bar:rgba(20,26,19,.94);--veil:rgba(20,26,19,.9);--veil-soft:rgba(20,26,19,.5);--shadow:rgba(0,0,0,.4);--shadow-strong:rgba(0,0,0,.6);--scrim:rgba(0,0,0,.6);color-scheme:dark}}\r\n:root[data-theme="dark"]{--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--photo:#EFEBE2;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--inverse:#EEE9DD;--on-inverse:#1A2218;--danger:var(--red);--on-danger:#FFFFFF;--danger-ink:#FF9585;--info:var(--celeste);--on-info:#0C1A1F;--info-ink:#7CD0EC;--info-strong:#7CD0EC;--on-info-strong:#0C1A1F;--warn:var(--sun);--on-warn:#1A1606;--warn-ink:#F0CC5A;--warm:var(--amber);--on-warm-lg:#141A13;--warm-ink:#E8A877;--focus:#7CD0EC;--accent-soft:#24331F;--info-soft:#123039;--warn-soft:#352D12;--danger-soft:#3B1C17;--warm-soft:#382518;--mark-bg:#EFEBE2;--bar:rgba(20,26,19,.94);--veil:rgba(20,26,19,.9);--veil-soft:rgba(20,26,19,.5);--shadow:rgba(0,0,0,.4);--shadow-strong:rgba(0,0,0,.6);--scrim:rgba(0,0,0,.6);color-scheme:dark}\r\n*{box-sizing:border-box}\r\nhtml,body{margin:0;height:100%;background:var(--surface);color:var(--on-surface);font-family:var(--sans);-webkit-text-size-adjust:100%;}\r\nbody{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}\r\nimg{max-width:100%;display:block}\r\na{color:inherit}\r\nbutton,input,select,textarea{font:inherit;color:inherit}\r\n:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:var(--r-s)}\r\n.app{min-height:100%;display:flex;flex-direction:column;\r\n background:var(--surface);}\r\n.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;\r\n padding:calc(var(--sat) + 10px) calc(var(--sar) + 16px) 10px calc(var(--sal) + 16px);\r\n background:var(--bar);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}\r\n.brand{display:flex;align-items:center;gap:10px;text-decoration:none}\r\n/* LHB-110: la hoja está pintada en tabaco oscuro; de noche va sobre su teja de papel */\r\n.brand img{border-radius:var(--r-s);background:var(--mark-bg)}\r\n.brand-text{display:flex;flex-direction:column;line-height:1.05}\r\n.brand-name{font-family:var(--serif);font-weight:600;font-size:var(--fs-4);letter-spacing:.2px}\r\n.brand-name em{font-style:italic;font-weight:500;color:var(--accent-ink)}\r\n.brand-sub{font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:3px}\r\n.top-actions{display:flex;align-items:center;gap:10px}\r\n.avatar-link{width:36px;height:36px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--card-2);border:1.5px solid var(--accent-ink);text-decoration:none;font-weight:700;font-size:var(--fs-2);letter-spacing:.02em;color:var(--accent-ink)}\r\n.avatar-link img{width:100%;height:100%;object-fit:cover}\r\n.flag-band{height:3px;background:linear-gradient(90deg,var(--flag-blue) 0 18%,var(--flag-red) 18% 45%,var(--flag-white) 45% 55%,var(--flag-red) 55% 82%,var(--flag-white) 82% 86%,var(--flag-red) 86%);opacity:.85}\r\n.view{flex:1;padding:14px calc(var(--sar) + 16px) calc(var(--tab-h) + var(--sab) + 28px) calc(var(--sal) + 16px);outline:none;max-width:760px;width:100%;margin:0 auto}\r\nh1,h2,h3{font-family:var(--serif);font-weight:600;margin:0}\r\nh1{font-size:var(--fs-6);line-height:1.1;letter-spacing:-.2px}\r\nh1 em,h2 em{font-style:italic;font-weight:500;color:var(--accent-ink)}\r\nh2{font-size:var(--fs-4)}\r\n.lead{color:var(--on-surface-2);margin:6px 0 14px;font-size:var(--fs-3);line-height:1.45}\r\n.eyebrow{font-size:var(--fs-1);letter-spacing:2.2px;text-transform:uppercase;color:var(--warm-ink)}\r\n.hero{position:relative;border-radius:var(--r-m);overflow:hidden;padding:18px 18px 16px;margin-bottom:16px;\r\n background:var(--card-2);border:1px solid var(--line)}\r\n.hero h1{max-width:72%}\r\n.hero p{max-width:64%;color:var(--on-surface-2);font-size:var(--fs-2);margin:8px 0 0;line-height:1.4}\r\n.facades{display:flex;height:6px;margin:-18px -18px 14px}\r\n.facades i{flex:1}\r\n.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:0 12px;margin-bottom:10px}\r\n.search svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2}\r\n.search input{flex:1;background:none;border:0;padding:12px 0;outline:none;font-size:var(--fs-3)}\r\n.search input::placeholder{color:var(--muted)}\r\n.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;margin:0 -16px;padding-left:16px;padding-right:16px}\r\n.chips::-webkit-scrollbar{display:none}\r\n.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:var(--r-pill);padding:7px 13px;font-size:var(--fs-2);color:var(--on-surface-2);white-space:nowrap}\r\n.chip[aria-pressed="true"]{background:var(--inverse);color:var(--on-inverse);border-color:var(--inverse);font-weight:600}\r\n.filter-row{display:flex;gap:8px;margin-bottom:12px}\r\n.filter-row select{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:10px;font-size:var(--fs-2);appearance:none;-webkit-appearance:none;\r\n background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 16px) 52%,calc(100% - 11px) 52%;background-size:5px 5px;background-repeat:no-repeat}\r\n.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}\r\n@media(min-width:620px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}\r\n.card{background:var(--card);`... 63080 more characters,
+    expected: /\.tchip\{background:var\(--wc\);color:var\(--fixed-text\)/,
+    operator: 'match',
+    diff: 'simple'
+  }

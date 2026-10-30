@@ -41,7 +41,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v152'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v161'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -61,23 +61,23 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
- assert.match(sw,/const VERSION='lhb-v152'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
+ assert.match(sw,/const VERSION='lhb-v161'/);const f='img/guagua/guagua_recorte.webp';assert.ok(sw.includes("'"+f+"'"),f);assert.ok(fs.statSync(path.join(__dirname,'..','site',f)).size<62000,f);
  assert.ok(a.includes(f)&&a.includes("VEHICULO='guagua'"));
  for(const g of ['img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
 test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v152'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v161'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v152'/);
+ assert.match(sw,/const VERSION='lhb-v161'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v152'/);
+ assert.match(sw,/const VERSION='lhb-v161'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
  const em=css.slice(css.indexOf('.empty::before'),css.indexOf('}',css.indexOf('.empty::before')));assert.ok(em.includes('%239a6a3c'),'asta de madera en vacíos');assert.ok(em.includes('%231EA8D7')&&em.includes('%23ED0000'),'bandera de los vacíos con el celeste y el rojo de la bandera (LHB-67: el celeste de la guagua)');
@@ -99,12 +99,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v152'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v161'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v152'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v161'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes("VBArt.carro('mini')"));});
 test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -112,7 +112,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
-test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v152'/);});
+test('v17: flor de tabaco reemplaza la garita, flamboyán nuevo',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(a.includes('function flor'));assert.ok(!ap.includes('VBArt.garita(')&&!hj.includes('VBArt.garita('));assert.ok(ap.includes('VBArt.flor()')&&hj.includes('VBArt.flor()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v161'/);});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -129,7 +129,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v152/);});
+ assert.match(read('sw.js'),/lhb-v161/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -142,19 +142,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v152'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v161'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v152'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v161'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v152'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v161'/);});
 
 test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
- for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v152'/);});
+ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v161'/);});
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
@@ -1216,7 +1216,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v152'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1463,7 +1463,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v152'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v161'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1641,7 +1641,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v152'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1888,7 +1888,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
- assert.match(read('sw.js'),/const VERSION='lhb-v152'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
@@ -2190,7 +2190,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v152'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -2473,7 +2473,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
 });
 test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
- assert.match(read('sw.js'),/const VERSION='lhb-v152'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v161'/,'el shell nuevo se publica con otra versión del caché');
  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
@@ -3442,7 +3442,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
 });
 test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v152'/);
+ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v161'/);
  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
@@ -3691,7 +3691,7 @@ test('LHB-87: el mapa pinta grupos con su número, que acercan; la lista sigue t
  assert.ok(app.includes("const mk=L.marker([p.lat,p.lng],{icon,title:p.nombre,keyboard:true});")&&!/const mk=L\.marker\([^;]*\.addTo\(map\)/.test(app),'los pines no van directo al mapa: los pone layout');
  assert.ok(app.includes("if(g.ms.length===1){pins.addLayer(g.ms[0].mk);continue}"),'un pin solo es el pin de siempre');
  assert.ok(app.includes("icon:L.divIcon({className:'pin-group',html:`<span>${n}</span>`,iconSize:[36,36],iconAnchor:[18,18]}),title:tt('map.group',{n}),keyboard:true"),'el grupo dice cuántos y se alcanza con el teclado');
- assert.ok(app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})")&&app.includes("setContent(g.ms.map(m=>placeCard(m.p)).join(''))"),'tocar el grupo acerca, o muestra la lista si ya no se separan');
+ assert.ok(app.includes("map.fitBounds(b,{padding:[48,48],maxZoom:17})")&&app.includes("setContent('<div class=\"pops\">'+g.ms.map(m=>placeCard(m.p)).join('')+'</div>')"),'tocar el grupo acerca, o muestra la lista si ya no se separan');
  const {T}=I18N();assert.equal(T.es['map.group'],'{n} lugares aquí: acercar');assert.equal(T.en['map.group'],'{n} places here: zoom in');
  assert.ok(app.includes('<div class="list" style="margin-top:12px">${ps.map(p=>')&&app.includes("if(state.lugMode==='mapa')drawMap(ps)}"),'la lista y el mapa salen del mismo ps: todo lugar del mapa está en la lista');
  const css=read('styles.css');assert.ok(/\.pin-group span\{width:36px;height:36px;/.test(css),'el grupo mide 36 px (más de 24)');
@@ -3872,6 +3872,166 @@ test('LHB-39 (Codex ronda 1): con el filtro de pública o privada, cambiar la ca
  seen.length=0;g.API.vDiario();assert.deepEqual(seen,[],'lo anotado vale una sola vez');
  g.els.dList.focus=()=>seen.push('lista');g.ctx.document.activeElement={id:'dList'};g.ctx.X.dKeepFocus();g.ctx.document.activeElement=null;g.API.vDiario();assert.deepEqual(seen,[],'si el foco estaba en otra parte (aunque esa parte vuelva a estar en la página), no se pone');
  const hj=read('hoja.js');assert.ok(hj.includes("contains('sheet-on')){dKeepFocus();A.route()}else pfOwnSync()"),'la sincronización anota el foco antes de pasar por la puerta');
+});
+/* LHB-110: color con sentido y el tema oscuro */
+test('LHB-110: el tema oscuro: los dos bloques con los mismos valores, solo tokens, cada token de papel con su valor de noche, y cada par pasa el contraste',t=>{
+ const css=read('styles.css'),m=css.match(DARK110.MEDIA),a=css.match(DARK110.ATTR);assert.ok(m&&a,'al teléfono y elegido en el menú');assert.equal(m[1],a[1],'los mismos valores');
+ const L=TOKENS65(css),decl=m[1].split(';').map(d=>d.trim()).filter(Boolean);for(const d of decl)assert.ok(/^--[a-z0-9-]+:/.test(d)||d==='color-scheme:dark','solo tokens: '+d);assert.ok(decl.includes('color-scheme:dark'));
+ const dk=Object.fromEntries(decl.filter(d=>d.startsWith('--')).map(d=>{const i=d.indexOf(':');return [d.slice(2,i),d.slice(i+1)]}));
+ for(const k of Object.keys(dk))assert.ok(L.t[k]!=null,'de noche solo cambian tokens que existen: '+k);
+ const roles=Object.keys(L.t).filter(k=>!/^(fs-\d|r-[a-z]+|r|tab-h|sa[tblr]|serif|display|sans|paper|tobacco|amber|celeste|red|sun|flag-[a-z]+)$/.test(k));
+ assert.deepEqual(roles.filter(k=>dk[k]==null),[],'cada token de papel tiene su valor de noche');assert.ok(roles.length>=40,'tokens de papel: '+roles.length);
+ for(const k of ['paper','tobacco','amber','celeste','red','sun','flag-blue','flag-red','flag-white'])assert.equal(dk[k],undefined,'la paleta y la bandera no cambian: '+k);
+ const D=DARK110.css(css),ps=pairs65(D),bad=ps.filter(p=>!p.fv||!p.bv||p.r<p.min).map(p=>p.f+' sobre '+p.b+' '+(p.r?p.r.toFixed(2):'sin color'));
+ t.diagnostic('de noche: '+ps.length+' pares declarados, '+bad.length+' no pasan');assert.deepEqual(bad,[]);assert.equal(ps.length,79);
+ const eps=effPairs65(D),ebad=eps.filter(p=>p.r<4.5).map(p=>p.sel+': '+p.color+' sobre '+p.bg+' '+p.r.toFixed(2));t.diagnostic('de noche: '+eps.length+' pares pintados, '+ebad.length+' no pasan');assert.deepEqual(ebad,[]);assert.ok(eps.length>=50);
+ const {val}=TOKENS65(D),lum=h=>contrast65(h,'#000000');assert.ok(lum(val('surface'))<lum(val('on-surface')),'de noche: superficie oscura, texto claro');assert.ok(lum(val('accent'))>lum(val('on-accent')),'el tabaco de noche es claro, su texto oscuro');
+ /* el pasaporte de noche: cada tinta con su fondo */
+ for(const [ink,soft] of [['accent-ink','accent-soft'],['warm-ink','warm-soft'],['on-surface-2','card-2'],['warn-ink','warn-soft']])for(const [f,b] of [[ink,soft],['card',ink],['on-surface',soft]])assert.ok(contrast65(val(f),val(b))>=4.5,'de noche '+f+' sobre '+b);
+ /* la hoja (tabaco oscuro, en icons/icon.svg) se lee de noche: va sobre su teja, en la barra, la intro, l.css, u.css y la imagen para compartir */
+ const leaf=(read('icons/icon.svg').match(/fill="(#[0-9A-Fa-f]{6})"/)||[])[1];assert.ok(leaf);assert.equal(val('mark-bg').toUpperCase(),'#EFEBE2');assert.ok(contrast65(leaf,val('mark-bg'))>=3,'la hoja sobre su teja');assert.ok(contrast65(leaf,val('surface'))<3,'sin la teja no se vería');
+ assert.match(css,/\.brand img\{border-radius:var\(--r-s\);background:var\(--mark-bg\)\}/);assert.match(css,/\.intro-mark img\{[^}]*background:var\(--mark-bg\)\}/);
+ for(const f of STATIC68){assert.ok(read(f).includes('.brand img{border-radius:var(--r-s);background:var(--mark-bg)}'),f);assert.equal(TOKENS65(DARK110.css(read(f))).val('mark-bg'),val('mark-bg'),f)}
+ assert.ok(read('hoja.js').includes("x.fillStyle=tk('fixed-text');x.font='600 20px Figtree';x.textAlign='center';x.fillText(foto.credito"),'Codex r1: el crédito sobre el marco de la foto');assert.ok(contrast65(val('fixed-text'),val('photo'))>=4.5&&contrast65(TOKENS65(css).val('fixed-text'),TOKENS65(css).val('photo'))>=4.5);
+ assert.ok(read('hoja.js').includes("const mb=tk('mark-bg');if(mb&&mb!=='transparent'){x.fillStyle=mb;rr(x,W/2-36,28,72,72,12);x.fill()}x.drawImage(mk,"),'la imagen para compartir');
+ /* la prueba ve un par de noche que no pasa */
+ assert.ok(pairs65(DARK110.css(css.replace(DARK110.MEDIA,x=>x.replace('--muted:#ADA997','--muted:#3A4636')))).some(p=>p.f==='muted'&&p.r<4.5),'la prueba ve un gris que no se lee');
+});
+test('LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra',()=>{
+ const raw=read('styles.css'),css=DARK110.strip(raw.replace(/\/\*[\s\S]*?\*\//g,'').replace(/:root\{[^}]*\}/,''),()=>'');
+ const uses=re=>{const out=new Set();for(const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g))if(re.test(m[2]))for(const x of m[1].split(','))out.add(x.trim());return [...out].sort()};
+ const RED=/var\(--(on-danger|danger(-ink|-soft)?|red|flag-red)\)/,CEL=/var\(--(on-info(-strong)?|info(-ink|-strong|-soft)?|celeste|flag-blue)\)/;
+ /* rojo: el botón de añadir, la franja de la bandera, lo que no se deshace (borrar la cuenta, bloquear) y los errores */
+ assert.deepEqual(uses(RED),['.btn.danger','.flag-band','.hint.hs-bad','.tab-plus .plus','.tab-plus.active .plus']); /* Codex r8: el + marcado conserva su rojo (un contorno) */
+ /* celeste: los enlaces y la bandera */
+ assert.deepEqual(uses(CEL),['.ev .src a','.flag-band','.lbtn.web','.pod-more','.pop .lbtn.web','.sources a']);
+ const js=f=>read(f).replace(/\/\*[\s\S]*?\*\//g,'');for(const f of ['cuenta.js','intro.js'])assert.ok(!RED.test(js(f))&&!CEL.test(js(f))&&!/tk\('(danger|info)/.test(js(f)),f+' no pinta rojo ni celeste');
+ /* app.js: solo la tinta de las iniciales sobre la fachada roja de la bandera */
+ const ap=js('app.js');assert.deepEqual([...ap.matchAll(/var\(--(on-danger|danger|red|flag-red|on-info|info|celeste|flag-blue)[a-z-]*\)/g)].map(m=>m[0]),['var(--on-danger)']);assert.ok(ap.includes("color:${red?'var(--on-danger)':'var(--fixed-text)'}"),'las iniciales sobre el rojo de la bandera');
+ const hj=js('hoja.js');assert.deepEqual([...hj.matchAll(/var\(--(danger|info|red|celeste|flag-red|flag-blue)[a-z-]*\)/g)].map(m=>m[0]),['var(--danger)','var(--danger-soft)'],'hoja.js: solo la caja de error (Codex r2: las variables de la bandera también)');assert.ok(!/tk\('(danger|info)/.test(hj));
+ /* Codex r2: los tokens de la bandera en hoja.js, solo en la franja de la bandera de la imagen para compartir */
+ {const fl=[...hj.matchAll(/tk\('flag-(red|blue)'\)/g)].length,fb=(hj.match(/const fb=\[[^;]*\];/)||[''])[0];assert.ok(fl>0&&[...fb.matchAll(/tk\('flag-(red|blue)'\)/g)].length===fl,'la bandera solo en su franja')}
+ assert.ok(/e\.style\.cssText=m\?'border:2px solid var\(--danger\);background:var\(--danger-soft\)/.test(hj),'la caja de error');
+ for(const id of ['acDel'])assert.ok(hj.includes('<button class="btn danger" type="button" id="'+id+'"'),'borrar la cuenta es rojo');assert.ok(hj.includes("tt('h.blkExplica')}</p><p><button class=\"btn danger\""),'bloquear es rojo');
+ assert.match(read('app.js'),/const LEAFC=\{lounge:'var\(--accent\)',venta:'var\(--warm\)'\};/);assert.match(raw,/\.pin\.lounge,\.legend \.lounge\{background:var\(--accent\)\}/);assert.match(raw,/\.pin\.venta,\.legend \.venta\{background:var\(--warm\)\}/);
+ /* la principal llena en tabaco; la secundaria con borde y sin relleno */
+ assert.match(raw,/\.btn\{[^}]*background:var\(--accent\);color:var\(--on-accent\)/);assert.match(raw,/\.btn\.secondary\{background:transparent;color:var\(--accent-ink\);border:1\.5px solid var\(--accent-ink\)\}/);
+ for(const s of ['.lbtn.go-map','.lbtn.spotify','.pidelo'])assert.match(raw,new RegExp(s.replace(/\./g,'\\.')+'\\{[^}]*background:var\\(--accent\\)'),s);
+ /* Codex r1: la página de un artesano con tienda tenía dos llenas (Pídelo directo y la tienda); la tienda es secundaria */
+ assert.ok(raw.includes('.lbtn.buy{color:var(--accent-ink)}')&&!/\.lbtn\.buy\{[^}]*background/.test(raw),'la tienda con borde');
+ {const fill=new Set([...raw.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/([^{}]+)\{[^{}]*background:var\(--accent\)[^{}]*\}/g)].flatMap(m=>m[1].split(',').map(x=>x.trim())));
+  const hj=read('hoja.js'),ap=read('app.js');const ex=hj.slice(hj.indexOf('function artisanExtras'),hj.indexOf('\nfunction ',hj.indexOf('function artisanExtras')+10));const lk=ap.slice(ap.indexOf('<div class="links">${linkBtn(\'ig\',a.instagram'),ap.indexOf('</div>',ap.indexOf('<div class="links">${linkBtn(\'ig\',a.instagram')));
+  const cls=[...(ex+lk).matchAll(/class="([a-z -]+)"/g)].map(m=>'.'+m[1].trim().split(/\s+/).join('.'));const kinds=[...lk.matchAll(/linkBtn\('([a-z]+)'/g)].map(m=>'.lbtn.'+m[1]);
+  const filled=[...cls,...kinds].filter(c=>fill.has(c));assert.deepEqual(filled,['.pidelo'],'en la página de un artesano, una sola llena: '+filled.join(' '));
+  /* Codex r4: el evento ancla: Confirmar es la llena; una regla de contexto (.anchor ...) que pone otro fondo la deja con borde */
+  const rules=[...raw.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap(m=>m[1].split(',').map(x=>({sel:x.trim(),body:m[2]})));
+  const ac=hj.slice(hj.indexOf('function anchorCard('),hj.indexOf('\nfunction ',hj.indexOf('function anchorCard(')+10));assert.ok(ac.length>200,'anchorCard');
+  /* las acciones (enlaces y botones), no las etiquetas */const acls=[...[...ac.matchAll(/<(?:a|button)\b[^>]*class="([a-z -]+)"/g)].map(m=>'.'+m[1].trim().split(/\s+/).join('.')),...[...ac.matchAll(/linkBtn\('([a-z]+)'/g)].map(m=>'.lbtn.'+m[1])];
+  const inCtx=c=>{const r=rules.filter(x=>x.sel==='.anchor '+c&&/background:/.test(x.body)).pop();return r?/background:var\(--accent\)/.test(r.body):fill.has(c)};
+  const af=acls.filter(inCtx);assert.deepEqual(af,['.btn'],'en el evento ancla, una sola llena: '+af.join(' '));
+  const go=rules.filter(x=>x.sel==='.anchor .lbtn.go-map').pop();assert.ok(go&&/color:var\(--accent-ink\)/.test(go.body)&&/background:var\(--card\)/.test(go.body));
+  /* Codex r6: lo que se repite por tarjeta o por fila no es la llena: Cómo llegar en los eventos y en la lista de lugares, Seguir en las listas de personas.
+     Cada uno va dentro de su contenedor que se repite, y la última regla de fondo de ese contexto no es el tabaco */
+  const bgOf=sel=>{const r=rules.filter(x=>x.sel===sel&&/background:/.test(x.body)).pop();return r&&r.body.match(/background:([^;]+)/)[1]};
+  /* Codex r7: la burbuja de un grupo (varios placeCard en .pops) es otro contexto que se repite; la de un solo lugar sigue con su llena */
+  assert.ok(/setContent\('<div class="pops">'\+g\.ms\.map\(m=>placeCard\(m\.p\)\)\.join\(''\)\+'<\/div>'\)/.test(ap),'la burbuja del grupo envuelve sus lugares en .pops');
+  assert.ok(!/setContent\((?!'<div class="pops">')[^)]*\.map\([^)]*placeCard/.test(ap),'ninguna burbuja junta varios placeCard sin .pops');
+  /* Codex r8: el botón de añadir marcado (en #/subir) no es otra llena de tabaco; y el sello ganado de la ficha (class="stampbtn act" aria-pressed="true")
+     gana el tabaco frente a cada regla compuesta que le aplica, por especificidad y luego por orden */
+  for(const r of rules.filter(x=>/\.tab-plus\.active/.test(x.sel)))assert.ok(!/background:var\(--accent\)/.test(r.body),'el + marcado no se rellena de tabaco: '+r.sel+'{'+r.body+'}');
+  {const win=(el,prop)=>{let best=null;rules.forEach((r,i)=>{if(!/^(?:\.[\w-]+|\[[^\]]+\])+$/.test(r.sel))return;const cl=[...r.sel.matchAll(/\.([\w-]+)/g)].map(m=>m[1]),at=[...r.sel.matchAll(/\[([^\]]+)\]/g)].map(m=>m[1]);
+     if(!cl.every(c=>el.cls.includes(c))||!at.every(a=>el.attrs.includes(a)))return;const m=new RegExp('(?:^|;)(?:'+prop+(prop==='border-color'?'|border':'')+'):([^;]+)').exec(r.body);if(!m)return;const sp=cl.length+at.length;
+     if(!best||sp>best.sp||(sp===best.sp&&i>best.i))best={sp,i,v:m[1],sel:r.sel}});return best};
+   const el={cls:['stampbtn','act'],attrs:['aria-pressed="true"']};assert.ok(hj.includes('class="stampbtn ${cls}" data-stamp="${k}:${esc(id)}" aria-pressed="${on}"')&&hj.includes("stampBtn('cigarros',c.id,'act')"),'el sello de la ficha es stampbtn act, con aria-pressed');
+   for(const [p,v] of [['background','var(--accent)'],['border-color','var(--accent)'],['color','var(--on-accent)']]){const b=win(el,p);assert.ok(b&&(b.v===v||b.v.endsWith(' '+v)),'sello ganado '+p+': '+(b&&b.sel+' '+b.v))}}
+  for(const sel of ['.ev .lbtn.go-map','.list .lbtn.go-map','.pops .lbtn.go-map','.fw-row .fw-b'])assert.ok(bgOf(sel)&&bgOf(sel)!=='var(--accent)','con borde en lo que se repite: '+sel+' '+bgOf(sel));
+  for(const sel of ['.fw-row .fw-b'])assert.ok(rules.some(x=>x.sel===sel&&/color:var\(--accent-ink\)/.test(x.body)&&/border:1px solid var\(--accent-ink\)/.test(x.body)),sel);
+  {const ev=hj.slice(hj.indexOf('function evCard('),hj.indexOf('\nfunction ',hj.indexOf('function evCard(')+10));assert.ok(ev.includes('return `<article class="ev ')&&ev.includes('<a class="lbtn go-map"'),'Cómo llegar va dentro de la tarjeta .ev');
+   const vl=ap.slice(ap.indexOf('function vLugares('),ap.indexOf('\nfunction ',ap.indexOf('function vLugares(')+10));const li=vl.indexOf('<div class="list" style="margin-top:12px">');assert.ok(li>0&&vl.indexOf('<a class="lbtn go-map"',li)>li,'Cómo llegar va dentro de la lista de lugares');
+   assert.ok(/<span class="fw-row" id="fwR-/.test(hj)&&hj.includes("fwMount('fwR-'+p.handle,p.handle,live)"),'Seguir de cada fila se monta en su .fw-row')}
+  for(const T of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])assert.ok(contrast65(T.val('accent-ink'),T.val('card'))>=4.5,'Cómo llegar con borde se lee');
+  /* Codex r4: la regla que gana para el enlace de la fuente de un evento es la celeste (la última del mismo selector) */
+  const src=rules.filter(x=>x.sel==='.ev .src a'&&/color:/.test(x.body)).pop();assert.ok(src&&/color:var\(--info-ink\)/.test(src.body),'la fuente del evento: '+(src&&src.body))}
+ /* la fuerza: suave, media y fuerte se separan cada vez más del fondo, con grises, de día y de noche */
+ assert.ok(raw.includes('.pill.f-suave{color:var(--on-surface-2)}.pill.f-media{background:var(--line);color:var(--on-surface)}.pill.f-fuerte{background:var(--inverse);color:var(--on-inverse);border-color:var(--inverse)}'));
+ for(const c of [raw,DARK110.css(raw)]){const {val}=TOKENS65(c);const d=['card-2','line','inverse'].map(k=>contrast65(val(k),val('surface')));assert.ok(d[0]<d[1]&&d[1]<d[2],'rampa: '+d.map(x=>x.toFixed(2)).join(' < '));
+  for(const [f,b] of [['on-surface-2','card-2'],['on-surface','line'],['on-inverse','inverse']])assert.ok(contrast65(val(f),val(b))>=4.5,f+' sobre '+b)}
+});
+test('LHB-110 (Codex r2): la burbuja del mapa, las insignias del pasaporte y la palabra resaltada del pasaporte, de día y de noche',()=>{
+ const raw=read('styles.css'),c0=raw.replace(/\/\*[\s\S]*?\*\//g,''),ap=read('app.js'),hj=read('hoja.js');
+ /* la burbuja: Leaflet pinta todo enlace de #0078A8 (.leaflet-container a, 0,1,1); cada botón de enlace de la burbuja tiene su regla de color (0,2,0 o más) */
+ assert.match(read('vendor-leaflet.css'),/\.leaflet-container a\s*\{[^}]*color:\s*#0078A8/i,'la regla de Leaflet que se gana');
+ const pc=ap.slice(ap.indexOf('function placeCard('),ap.indexOf('\n',ap.indexOf('function placeCard(')+300));
+ const kinds=[...[...pc.matchAll(/linkBtn\('([a-z]+)'/g)].map(m=>m[1]),...[...pc.matchAll(/class="lbtn ([a-z-]+)"/g)].map(m=>m[1])];assert.deepEqual(kinds.sort(),['go-map','ig','web']);
+ for(const A of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])for(const k of kinds){const m=c0.match(new RegExp('(?:^|[}\\s])(?:\\.pop )?\\.lbtn\\.'+k+'\\{[^}]*color:var\\(--([a-z0-9-]+)\\)'));assert.ok(m,'la tinta de .lbtn.'+k+' en la burbuja');
+  const bg=k==='go-map'?'accent':'card';assert.ok(contrast65(A.val(m[1]),A.val(bg))>=4.5,k+': '+m[1]+' sobre '+bg)}
+ /* las insignias: ni rojo ni colores sueltos; la hoja y el aro toman el color del ciclo, y la zona completa es ámbar */
+ const vp=hj.slice(hj.indexOf('const BADGES=['),hj.indexOf('function vPasaporte')>0?hj.indexOf('\n',hj.indexOf('<div class="badges">')):0);
+ assert.ok(!/#[0-9a-fA-F]{6}/.test(hj.slice(hj.indexOf('const BADGES=['),hj.indexOf('];',hj.indexOf('const BADGES=[')))),'las insignias sin colores sueltos');
+ assert.ok(!/--bc:/.test(vp)&&!/flag-/.test(vp),'el color de la insignia lo pone el CSS');assert.equal([...vp.matchAll(/VBArt\.leaf\(on\?'var\(--bc\)':'var\(--line\)'\)/g)].length,2);
+ const bc=sel=>(c0.match(new RegExp(sel.replace(/[.()+]/g,'\\$&')+'\\{--bc:var\\(--([a-z0-9-]+)\\)'))||[])[1];
+ assert.deepEqual(['.badges .badge.on','.badges .badge.on:nth-child(4n+2)','.badges .badge.on:nth-child(4n+3)','.badges .badge.on:nth-child(4n)','.badges .badge.zb.on'].map(bc),['accent-ink','warm-ink','on-surface-2','warn-ink','warm-ink']);
+ assert.ok(c0.indexOf('.badges .badge.zb.on{')>c0.indexOf('.badges .badge.on:nth-child(4n){'),'la zona gana al ciclo (va después)');
+ for(const A of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])for(const k of ['accent-ink','warm-ink','on-surface-2','warn-ink'])assert.ok(contrast65(A.val(k),A.val('card'))>=3,'la hoja '+k+' sobre la tarjeta');
+ /* la palabra resaltada: la tinta clara queda sobre el tabaco, el ámbar es una raya debajo */
+ const em=(c0.match(/\.pass-hero h2 em\{([^}]*)\}/g)||[]).pop();assert.ok(em&&!/background/.test(em)&&/text-decoration-color:var\(--warm\)/.test(em),em);
+ for(const A of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])assert.ok(contrast65(A.val('on-accent'),A.val('accent'))>=4.5);
+ /* la medida de los pares pintados ve un degradado que no pasa */
+ assert.ok(effPairs65(':root{--a:#000000;--b:#ffffff;--c:#111111;}.x{color:var(--b);background:linear-gradient(var(--a),var(--c) 50%,var(--b))}').some(p=>p.sel==='.x'&&p.r<1.5),'un degradado con una parada clara bajo tinta clara');
+});
+test('LHB-110 (Codex r3): la equis de la burbuja del mapa se lee de día y de noche, también al pasar o con el foco, y le gana a la de Leaflet',()=>{
+ const raw=read('styles.css'),v=read('vendor-leaflet.css');
+ /* lo que Leaflet pone (especificidad 0,2,1 y 0,3,1) */
+ assert.match(v,/\.leaflet-container a\.leaflet-popup-close-button\{[^}]*color: #757575/);assert.match(v,/\.leaflet-container a\.leaflet-popup-close-button:hover,\.leaflet-container a\.leaflet-popup-close-button:focus\{color: #585858\}/);
+ /* lo nuestro, con una clase más (0,3,1 y 0,4,1): gana aunque la hoja de Leaflet llegue después */
+ assert.ok(raw.includes('.leaflet-container .leaflet-popup a.leaflet-popup-close-button{color:var(--muted)}'));
+ assert.ok(raw.includes('.leaflet-container .leaflet-popup a.leaflet-popup-close-button:hover,.leaflet-container .leaflet-popup a.leaflet-popup-close-button:focus{color:var(--on-surface)}'));
+ assert.ok(raw.includes('.leaflet-popup-content-wrapper{background:var(--card);'));
+ for(const A of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])for(const k of ['muted','on-surface'])assert.ok(contrast65(A.val(k),A.val('card'))>=4.5,k+' sobre la burbuja');
+ /* y los grises de Leaflet no pasarían de noche: la prueba ve el problema */
+ assert.ok(contrast65('#585858',TOKENS65(DARK110.css(raw)).val('card'))<3);
+});
+test('LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noche; y cada vista, con lo que trae dentro, tiene una sola acción llena',()=>{
+ const raw=read('styles.css'),hj=read('hoja.js'),ap=read('app.js');
+ /* la etiqueta: tagChips de verdad en una VM, con una de la rueda y una que no está */
+ {const i=hj.indexOf('const tagChips=');const code=hj.slice(i,hj.indexOf('\n',hj.indexOf('.join(\'\')',i)+1)+200).split(/\r?\n/).slice(0,3).join('\n');
+  const ctx={WHEEL:[{id:'cacao',c:'#ABCDEF'}],esc:x=>String(x),WN:x=>x};require('vm').createContext(ctx);require('vm').runInContext(code.slice(0,code.indexOf('};')+2)+';this.tagChips=tagChips',ctx);
+  const h=ctx.tagChips(['cacao','sabor-viejo']);assert.ok(h.includes('<span class="tchip" style="--wc:#ABCDEF">cacao</span>'),h);assert.ok(h.includes('<span class="tchip other">sabor-viejo</span>'),h)}
+ assert.ok(raw.includes('.tchip.other{background:var(--card-2);color:var(--on-surface)}'));
+ for(const T of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])assert.ok(contrast65(T.val('on-surface'),T.val('card-2'))>=4.5);
+ assert.ok(contrast65(TOKENS65(raw).val('fixed-text'),TOKENS65(DARK110.css(raw)).val('card-2'))<3,'la prueba ve la tinta fija sobre la ficha de noche');
+ /* las vistas: cada una con las piezas que pinta dentro, contadas juntas (aunque una esté plegada) */
+ const body=(src,n)=>{const m=new RegExp('\\n(?:async )?function '+n+'\\(|\\n(?:const|let) '+n+'=').exec(src);assert.ok(m,n);const j=src.slice(m.index+1).search(/\n(?:async )?function |\n(?:const|let) [A-Za-z0-9_]+=(?:async )?\(?[A-Za-z0-9_,]*\)?=>/);return src.slice(m.index,j<0?undefined:m.index+1+j)};
+ /* Codex r6: Cómo llegar cuenta como llena salvo en su contexto que se repite (arriba) */
+ const FILLED=/class="(btn|btn cta|btn fw-b|lbtn spotify|lbtn go-map|pidelo)"/g;
+ const views=[['perfil',[[ap,'vPerfil'],[hj,'pfCounts']]],['eventos',[[hj,'vEventos']]],['diario',[[hj,'vDiario']]],['humidor',[[hj,'vHumidor']]],['cata',[[hj,'vCata']]],['personas',[[hj,'vPersonas']]],['subir',[[ap,'vSubir']]]];
+ for(const [v,parts] of views){const n=parts.map(([src,f])=>[...body(src,f).matchAll(FILLED)].length).reduce((a,b)=>a+b,0);assert.ok(n<=1,v+': '+n+' acciones llenas')}
+ assert.ok(hj.includes('${own?`<a class="btn secondary" href="#/mihoja/editar" id="pfEdit"'),'Editar perfil con borde');assert.ok(hj.includes('<button class="btn secondary" type="submit">${tt(\'h.guardarSugerencia\')}'),'la sugerencia con borde');
+});
+test('LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar',()=>{
+ const ix=read('index.html');assert.ok(ix.includes('<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F1EA">')&&ix.includes('<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141A13">'),'la barra del teléfono en los dos temas');
+ assert.ok(ix.includes('<meta name="color-scheme" content="light dark">'));const boot=ix.indexOf("localStorage.getItem('lhb_theme')");assert.ok(boot>0&&boot<ix.indexOf('<link rel="stylesheet" href="styles.css">'),'el tema elegido se pone antes de la hoja de estilos');
+ assert.ok(ix.includes("m.name='theme-color';m.id='themeBar';m.content=t==='dark'?'#141A13':'#F4F1EA';document.head.prepend(m)"),'Codex r1: la barra elegida también desde el primer pintado, con el mismo id que applyTheme');
+ const run=init=>{const vm=require('vm');const st=Object.assign({},init),attrs={},metas=[];let h=null;
+  const doc={documentElement:{setAttribute:(k,v)=>{attrs[k]=v},removeAttribute:k=>{delete attrs[k]}},head:{prepend:m=>{metas.unshift(m)}},getElementById:id=>metas.find(m=>m.id===id)||null,
+   createElement:()=>({remove(){metas.splice(metas.indexOf(this),1)}}),addEventListener:(n,f)=>{h=f}};
+  const ls=init.__broken?{getItem:k=>k in st?st[k]:null,setItem:()=>{throw new Error('lleno')},removeItem:()=>{throw new Error('lleno')}}:{getItem:k=>k in st?st[k]:null,setItem:(k,v)=>{st[k]=String(v)},removeItem:k=>{delete st[k]}};delete st.__broken;
+  const ap=read('app.js').replace(/\r\n/g,'\n');const code=ap.slice(ap.indexOf('/* LHB-110: el tema.'),ap.indexOf('\n/* LHB-71: la portada se decide'));assert.ok(code.length>200,'el bloque del tema');
+  const ctx={document:doc,localStorage:ls,tt:k=>'<'+k+'>'};vm.createContext(ctx);vm.runInContext(code,ctx);
+  const sm={textContent:''},btn={querySelector:()=>sm};const click=()=>h({target:{closest:q=>q==='[data-theme-next]'?btn:null}});return {st,attrs,metas,click,sm,now:()=>ctx.themeNow()}};
+ {const {val}=TOKENS65(read('styles.css')),D=TOKENS65(DARK110.css(read('styles.css')));assert.match(read('app.js'),new RegExp("THEME_BAR=\\{light:'"+val('surface')+"',dark:'"+D.val('surface')+"'\\}"),'la barra elegida es la superficie de cada tema');
+  assert.ok(ix.includes('content="'+val('surface')+'">')&&ix.includes('content="'+D.val('surface')+'">'),'y la de index.html también')}
+ const r=run({});assert.equal(r.attrs['data-theme'],undefined,'sin elegir: el del teléfono');assert.equal(r.metas.length,0);
+ r.click();assert.equal(r.st.lhb_theme,'dark');assert.equal(r.attrs['data-theme'],'dark');assert.equal(r.metas[0].content,'#141A13');assert.equal(r.sm.textContent,'<menu.tema.dark>');
+ r.click();assert.equal(r.st.lhb_theme,'light');assert.equal(r.attrs['data-theme'],'light');assert.equal(r.metas[0].content,'#F4F1EA');assert.equal(r.metas.length,1,'una sola barra elegida');
+ r.click();assert.equal(r.st.lhb_theme,undefined,'de vuelta al teléfono: nada guardado');assert.equal(r.attrs['data-theme'],undefined);assert.equal(r.metas.length,0);assert.equal(r.sm.textContent,'<menu.tema.auto>');
+ assert.equal(run({lhb_theme:'dark'}).attrs['data-theme'],'dark','al abrir, lo que se eligió');assert.equal(run({lhb_theme:'raro'}).attrs['data-theme'],undefined,'un valor raro no cuenta');
+ /* Codex r3: el teléfono no deja guardar: el ciclo sigue (oscuro, claro, el del teléfono) y el menú dice el de ahora */
+ {const b=run({__broken:true});const seen=[];for(let i=0;i<3;i++){b.click();seen.push([b.attrs['data-theme']||'auto',b.now(),b.sm.textContent])}
+  assert.deepEqual(seen,[['dark','dark','<menu.tema.dark>'],['light','light','<menu.tema.light>'],['auto','auto','<menu.tema.auto>']])}
+ /* la fila en el menú, en La app, con el tema de ahora */
+ const c=ROUTES71(),html=c.menuHTML('#/catalogo');const i=html.indexOf('data-theme-next');assert.ok(i>html.indexOf('id="mg-app"'),'en La app');assert.ok(html.slice(i,i+400).includes('<b><menu.tema></b><small><menu.tema.auto></small>'));
+ const {T}=I18N();for(const k of ['menu.tema','menu.tema.auto','menu.tema.dark','menu.tema.light'])assert.ok(T.es[k]&&T.en[k],k);
 });
 /* LHB-109 (antes LHB-93, el selector de la barra): el idioma está en el menú, en La app, con el nombre del otro idioma en ese idioma */
 test('LHB-109: el idioma sale en el menú con el nombre del otro idioma en ese idioma, y no en la barra; tocarlo lo cambia',()=>{
@@ -4761,7 +4921,7 @@ test('LHB-58: tu Perfil: bio, marca y conteos de /api/u/<tu @>, Editar perfil y 
  const p=H.X.profileOwn({sub:'u_a',handle:'ana',name:'Ana S.',avatar:''});
  assert.ok(H.all().includes('<b id="pfNFollowers">·</b><span>Seguidores</span></a></li>'),'mientras llegan, los conteos esperan');await p;const h=H.all();
  assert.deepEqual(H.fetches,['/api/u/ana']);
- for(const s of ['<p class="pf-bio">Mi bio</p>','Marca favorita: <b>Mi marca</b>','<li><b>1</b><span>Reseñas</span></li>','<b id="pfNFollowers">2</b><span>Seguidores</span></a></li>','<b>5</b><span>Siguiendo</span></a></li>','<a class="btn" href="#/mihoja/editar" id="pfEdit">Editar perfil</a>'])assert.ok(h.includes(s),'trae '+s);
+ for(const s of ['<p class="pf-bio">Mi bio</p>','Marca favorita: <b>Mi marca</b>','<li><b>1</b><span>Reseñas</span></li>','<b id="pfNFollowers">2</b><span>Seguidores</span></a></li>','<b>5</b><span>Siguiendo</span></a></li>','<a class="btn secondary" href="#/mihoja/editar" id="pfEdit">Editar perfil</a>'])assert.ok(h.includes(s),'trae '+s);
  assert.deepEqual([...h.matchAll(/data-pftab="([a-z]+)"/g)].map(m=>m[1]),['resenas','pasaporte','favoritos','humidor'],'las cuatro pestañas en tu vista');assert.ok(!h.includes('pfFollow'),'sin botón de seguir en tu vista');
  /* Reseñas: solo la pública; ni la privada ni las que solo parecen públicas */
  assert.ok(h.includes('<b>Pública Mía</b>'));for(const s of ['Privada Mía','secreto mío','Casi Pública','Sin Marca De Pública','foto_mia'])assert.ok(!h.includes(s),'nunca sale '+s);
@@ -5148,7 +5308,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
- assert.match(read('sw.js'),/const VERSION='lhb-v152'/);
+ assert.match(read('sw.js'),/const VERSION='lhb-v161'/);
 });
 /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
 function DOM64(){
@@ -5292,6 +5452,12 @@ test('LHB-64 (Codex ronda 2): el aviso (toast) queda fuera de la app inerte, enc
  const hj=read('hoja.js');for(const id of ['shBtns','psMore','fwMore'])assert.ok(new RegExp('class="(links|lbtn)" (type="button" )?id="'+id+'" hidden').test(hj),id);
  assert.ok(/\.links\{display:grid/.test(css)&&/\.lbtn\{display:flex/.test(css),'las clases que antes le ganaban a hidden');
 });
+/* LHB-110: el tema oscuro. styles.css lo define dos veces con los mismos valores (al teléfono si no se eligió claro, y elegido en el menú);
+   l.css y u.css una vez (al teléfono). css() devuelve la hoja con el :root claro cambiado por el de noche, para medirla con las mismas pruebas */
+const DARK110={MEDIA:/@media \(prefers-color-scheme:dark\)\{:root:not\(\[data-theme="light"\]\)\{([^}]*)\}\}/,ATTR:/:root\[data-theme="dark"\]\{([^}]*)\}/,
+ strip(s,f){return s.replace(this.MEDIA,m=>f(m)).replace(this.ATTR,m=>f(m))},
+ css(css){const m=css.match(this.MEDIA);if(!m)return null;const light=css.match(/:root\{([^}]*)\}/)[1].replace(/\/\*[\s\S]*?\*\//g,'').replace(/;?\s*color-scheme:light/,'');
+  return css.replace(/:root\{[^}]*\}/,()=>':root{'+light+';'+m[1]+'}')}};
 /* LHB-65: los tokens de color por su papel y la prueba de contraste. Los pares salen de los nombres (el comentario del :root de styles.css):
    --on-X sobre --X (4.5; --on-X-lg, texto grande, 3.0); --muted, --on-surface* y --X-ink sobre cada superficie (--surface*, --card*) */
 function TOKENS65(css){const root=css.match(/:root\{([^}]*)\}/)[1].replace(/\/\*[\s\S]*?\*\//g,'');const t={};
@@ -5317,7 +5483,7 @@ test('LHB-65: ningún token se llama por lo contrario de lo que es: los nombres 
  const css=read('styles.css'),{t,val}=TOKENS65(css);
  const OLD=['bg','bg2','card2','cream','cream2','gold','flam','flam2','ado','ado-d','rosa','amarillo','turq','verde','lila','pr-red','pr-blue'];
  for(const f of fs.readdirSync(S).filter(f=>/\.(css|js|html)$/.test(f))){const x=read(f);for(const o of OLD){assert.ok(!x.includes('var(--'+o+')'),f+' lee --'+o);assert.ok(!new RegExp('--'+o+'\\s*:').test(x),f+' define --'+o)}}
- const rules=css.replace(/:root\{[^}]*\}/,'');for(const p of ['paper','tobacco','amber','celeste','red','sun'])assert.ok(!rules.includes('var(--'+p+')'),'una regla lee la paleta --'+p+' directo');
+ const rules=DARK110.strip(css.replace(/:root\{[^}]*\}/,''),()=>'');for(const p of ['paper','tobacco','amber','celeste','red','sun'])assert.ok(!rules.includes('var(--'+p+')'),'una regla lee la paleta --'+p+' directo');
  /* un tema claro: superficies claras, texto oscuro; los rellenos de acento y peligro son oscuros con texto claro */
  const lum=h=>contrast65(h,'#000000');assert.ok(lum(val('surface'))>lum(val('on-surface')),'superficie clara, texto oscuro');assert.ok(lum(val('on-accent'))>lum(val('accent')));
  assert.match(css.match(/:root\{([^}]*)\}/)[1],/color-scheme:light/);
@@ -5333,7 +5499,9 @@ function effPairs65(css){const {val}=TOKENS65(css);const c0=css.replace(/\/\*[\s
  const hex=v=>{v=v.replace('!important','').trim();const r=/^var\(--([a-z0-9-]+)\)$/.exec(v);if(r)return val(r[1]);if(/^#[0-9a-fA-F]{6}$/.test(v))return v;if(/^#[0-9a-fA-F]{3}$/.test(v))return '#'+[...v.slice(1)].map(c=>c+c).join('');return null};
  const base=s=>{const m=/^(.*?)(\.[a-zA-Z0-9_-]+|\[[^\]]*\]|::?[a-zA-Z-]+(\([^)]*\))?)$/.exec(s);return m&&m[1]&&!m[1].endsWith(' ')?m[1]:null};
  const out=[];for(const [sel,e] of Object.entries(eff)){if(!e.color)continue;let b=e.bg,s=sel;while(b==null&&s){s=base(s);if(s&&eff[s]&&eff[s].bg)b=eff[s].bg}
-  if(b==null||!b.includes('var(--'))continue;const bv=hex(b),fv=hex(e.color);if(!bv||!fv)continue;out.push({sel,color:e.color,bg:b,r:contrast65(fv,bv)})}
+  if(b==null||!b.includes('var(--'))continue;const fv=hex(e.color);if(!fv)continue;
+  /* LHB-110 (Codex r2): un fondo en degradado se mide en cada una de sus paradas de token (la peor cuenta) */
+  const bs=/gradient\(/.test(b)?[...b.matchAll(/var\(--[a-z0-9-]+\)/g)].map(m=>hex(m[0])):[hex(b)];if(!bs.length||bs.some(x=>!x))continue;out.push({sel,color:e.color,bg:b,r:Math.min(...bs.map(x=>contrast65(fv,x)))})}
  return out}
 test('LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de token pasa 4.5, aunque otra regla del mismo selector lo cambie después o el fondo venga de la regla base',t=>{
  const ps=effPairs65(read('styles.css')),bad=ps.filter(p=>p.r<4.5).map(p=>p.sel+': '+p.color+' sobre '+p.bg+' '+p.r.toFixed(2));
@@ -5394,9 +5562,7 @@ function extra99(f,s){const at=[];
   const {d,map}=dec99(s.slice(a,b)),sub=[];for(const h of d.matchAll(LIT67))sub.push(h.index);js99(d,sub);for(const i of sub)at.push(a+map[i])}
  return at}
 const ALLOW67=[
- ['styles.css',/\.lbtn\.ig\{[^}]*\}/,1,'marca de Instagram: su degradado (el texto blanco pasa 4.5 en cada parada, abajo)'],
- ['styles.css',/\.lbtn\.wa\{[^}]*\}/,1,'marca de WhatsApp: su verde (el texto blanco pasa 4.5, abajo)'],
- ['styles.css',/\.lbtn\.spotify\{[^}]*\}/,1,'marca de Spotify: su verde con su tinta (pasa 4.5, abajo)'],
+ ['app.js',/THEME_BAR=\{light:'#F4F1EA',dark:'#141A13'\}/,1,'LHB-110: la barra del teléfono por tema; la meta theme-color no lee variables (los mismos valores que index.html y que --surface de día y de noche, abajo)'],
  ['app.js',/const CAPA_COLORS=\{[^;]*\};/,1,'arte: el color de cada capa de tabaco en el dibujo del cigarro'],
  ['app.js',/const BG=\[[^\]]*\];/,1,'arte: el fondo del dibujo del cigarro'],
  ['app.js',/function cigarSVG[\s\S]*?<\/svg>`\}/,1,'arte: el dibujo del cigarro (su anilla en rojo de la bandera y la estrella en el celeste)'],
@@ -5410,14 +5576,13 @@ const ALLOW67=[
  ['hoja.js',/VBArt\.leaf\('#[0-9a-fA-F]{6}'/,9,'la paleta de los íconos de hoja (art.js les pone un borde oscuro)'],
  ['hoja.js',/VBArt\.leaf\(p\.categoria==='venta'\?'#ffd27a':'#8fd162'\)/,1,'la paleta de los íconos de hoja'],
  ['hoja.js',/VBArt\.leaf\(lit\.length\?'#8fd162'/,1,'la paleta de los íconos de hoja: la hoja ganada'],
- ['hoja.js',/const BADGES=\[[\s\S]*?\];/,1,'la paleta de las hojas de cada insignia (la hoja lleva borde oscuro; el nombre va en texto)'],
  ['hoja.js',/return v\|\|'#263723'/,1,'respaldo de tk() si un token faltara al pintar la imagen para compartir: espejo de --on-surface',['on-surface']],
  ['styles.css',/\.empty::before\{[^}]*\}/,1,'arte: la bandera en su asta del estado vacío, un SVG en data URI que no lee las variables de la página (su azul y su rojo se miden abajo)'],
  ['hoja.js',/<circle cx="12" cy="12" r="11" fill="#0e2417"\/>[\s\S]*?<\/svg>/,1,'marca de Spotify: su ícono, sobre el botón verde de la marca'],
 ];
 function scan67(over={}){const app=TOKENS65(read('styles.css')),bad=[],stale=[],mirror=[];
  for(const f of ['styles.css','app.js','hoja.js','cuenta.js','intro.js']){let s=over[f]!=null?over[f]:read(f);const blank=m=>' '.repeat(m.length);
-  if(f==='styles.css')s=s.replace(/:root\{[^}]*\}/,blank);s=s.replace(/\/\*[\s\S]*?\*\//g,blank);
+  if(f==='styles.css')s=DARK110.strip(s.replace(/:root\{[^}]*\}/,blank),blank);s=s.replace(/\/\*[\s\S]*?\*\//g,blank);
   const at=[...new Set([...[...s.matchAll(LIT67)].map(m=>m.index),...extra99(f,s)])].sort((a,b)=>a-b),cov=new Set();
   for(const [,re,n,why,mir] of ALLOW67.filter(a=>a[0]===f)){assert.ok(why&&why.length>10,f+': cada color que queda lleva su razón');
    const ms=[...s.matchAll(new RegExp(re.source,'g'))];if(ms.length!==n)stale.push(f+' '+re.source+': '+ms.length+' veces, la lista dice '+n);
@@ -5460,18 +5625,20 @@ test('LHB-67: ningún color suelto en las pantallas de la app; lo que queda est�
 test('LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera',()=>{
  const app=TOKENS65(read('styles.css')),css=read('styles.css'),a=read('app.js'),h=read('hoja.js'),ink=app.val('on-surface');
  const stops=sel=>(css.match(new RegExp(sel.replace(/\./g,'\\.')+'\\{[^}]*\\}'))||[''])[0];
- const ig=stops('.lbtn.ig'),wa=stops('.lbtn.wa'),sp=stops('.lbtn.spotify');
- for(const [r,fg] of [[ig,'#FFFFFF'],[wa,'#FFFFFF'],[sp,'#0e2417']]){const bg=(r.match(/background:[^;]*/)||[''])[0].match(/#[0-9a-fA-F]{6}/g)||[];assert.ok(bg.length&&new RegExp('color:'+(fg==='#FFFFFF'?'#fff\\b':fg)).test(r),'marca: '+r.slice(0,40));
-  for(const b of bg)assert.ok(contrast65(fg,b)>=4.5,r.slice(0,14)+' '+fg+' sobre '+b+': '+contrast65(fg,b).toFixed(2))}
+ /* LHB-110: Instagram y WhatsApp son secundarias (con borde, sin relleno de marca) y Spotify es la acción principal del podcast, en tabaco */
+ /* LHB-110 (Codex r2): .pop .lbtn.ig pone solo la tinta, contra la de Leaflet */
+ for(const k of ['ig','wa'])assert.ok(!new RegExp('\\.lbtn\\.'+k+'\\{[^}]*background').test(css),k+' sin relleno de marca');assert.equal(stops('.lbtn.wa'),'');assert.match(stops('.lbtn.spotify'),/background:var\(--accent\);border:0;color:var\(--on-accent\)/);
  const W=h.match(/WHEEL=\[[\s\S]*?\];/)[0].match(/c:'(#[0-9a-fA-F]{6})'/g).map(x=>x.slice(3,10));assert.ok(W.length>=9,'rueda: '+W.length);
- assert.match(css,/\.tchip\{background:var\(--wc\);color:var\(--on-surface\)/);for(const c of W)assert.ok(contrast65(ink,c)>=4.5,'sabor '+c+': '+contrast65(ink,c).toFixed(2));
+ /* LHB-110 (Codex r1): los colores de sabor no cambian de noche, así que su tinta tampoco (--fixed-text, de día y de noche) */
+ assert.match(css,/\.tchip\{background:var\(--wc\);color:var\(--fixed-text\)/);assert.match(css,/\.wseg\.on text\{fill:var\(--fixed-text\)\}/);
+ for(const A of [app,TOKENS65(DARK110.css(css))])for(const c of W)assert.ok(contrast65(A.val('fixed-text'),c)>=4.5,'sabor '+c+': '+contrast65(A.val('fixed-text'),c).toFixed(2));
  const em=decodeURIComponent((css.match(/\.empty::before\{[^}]*\}/)||[''])[0]),flag=new Set((em.match(/#[0-9a-fA-F]{6}/g)||[]).map(x=>x.toUpperCase()));
  for(const tkn of ['flag-blue','flag-red'])assert.ok(flag.has(app.val(tkn).toUpperCase()),'la bandera del estado vacío lleva --'+tkn+' '+app.val(tkn)+': '+[...flag].join(' '));
  for(const old of ['#5FB4E5','#0050F0','#E92A2F'])assert.ok(!flag.has(old),'la bandera del estado vacío sin el color viejo '+old);
  const F=a.match(/const FACADE=\[([^\]]*)\]/)[1].match(/#[0-9a-fA-F]{6}/g),m=a.match(/red=\/\^#ed0000\$\/i\.test\(bg\);return `<span class="mono" style="[^"]*color:\$\{red\?'var\(--([a-z-]+)\)':'var\(--([a-z-]+)\)'\}[\s\S]*?fill="\$\{red\?'(#[0-9a-f]{3})':'(#[0-9a-f]{3})'\}" opacity="\$\{red\?'([.\d]+)':'([.\d]+)'\}"/);
  assert.ok(m,'las iniciales eligen tinta y hoja de agua según el fondo');const x3=c=>'#'+c.slice(1).split('').map(d=>d+d).join('');
  const mix=(b,o,al)=>'#'+[1,3,5].map(i=>Math.round(parseInt(b.slice(i,i+2),16)*(1-al)+parseInt(o.slice(i,i+2),16)*al).toString(16).padStart(2,'0')).join('');
- for(const b of F){const red=/^#ed0000$/i.test(b),fg=app.val(red?m[1]:m[2]),wm=mix(b,x3(red?m[3]:m[4]),+(red?m[5]:m[6]));
+ for(const A of [app,TOKENS65(DARK110.css(css))])for(const b of F){const red=/^#ed0000$/i.test(b),fg=A.val(red?m[1]:m[2]),wm=mix(b,x3(red?m[3]:m[4]),+(red?m[5]:m[6]));
   for(const g of [b,wm])assert.ok(contrast65(fg,g)>=4.5,'iniciales sobre '+b+' (con la hoja de agua '+wm+'): '+contrast65(fg,g).toFixed(2))}
 });
 /* LHB-68: las páginas estáticas (l.css: lugares, artesanos, cigarros, guías, privacidad, 404) y el pasaporte público (u.css) con la marca de la app */
@@ -5482,7 +5649,9 @@ test('LHB-68: l.css y u.css usan los tokens de la app con los mismos valores, si
   const names=Object.keys(t).filter(n=>app.t[n]!=null);assert.ok(names.length>=10,f+': al menos 10 tokens de la app: '+names.length);
   for(const n of names)assert.equal(val(n),app.val(n),f+' --'+n+' tiene el mismo valor que en styles.css');
   for(const n of Object.keys(t).filter(n=>app.t[n]==null))assert.ok(['scrim'].includes(n),f+': token que la app no tiene: --'+n);
-  const rules=css.replace(/\/\*[\s\S]*?\*\//g,'').replace(/:root\{[^}]*\}/,'').replace(/@font-face\{[^}]*\}/g,'');
+  const rules=DARK110.strip(css.replace(/\/\*[\s\S]*?\*\//g,'').replace(/:root\{[^}]*\}/,'').replace(/@font-face\{[^}]*\}/g,''),()=>'');
+  /* LHB-110: de noche, los mismos valores que la app de noche */
+  const dk=DARK110.css(css);assert.ok(dk,f+': su tema oscuro');const A=TOKENS65(DARK110.css(read('styles.css'))),B=TOKENS65(dk);for(const n of names)assert.equal(B.val(n),A.val(n),f+' --'+n+' de noche igual que en styles.css');
   assert.deepEqual(rules.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(/g)||[],[],f+': ningún color suelto fuera de :root');
   assert.match(css,/:root\{[^}]*color-scheme:light/,f+': tema claro');
   for(const m of css.matchAll(/url\(\/fonts\/([a-z0-9-]+\.woff2)\)/g))assert.ok(fs.existsSync(path.join(S,'fonts',m[1])),f+': '+m[1]);
@@ -5490,7 +5659,7 @@ test('LHB-68: l.css y u.css usan los tokens de la app con los mismos valores, si
  }
 });
 test('LHB-68: los pares de texto y fondo de l.css y u.css pasan el contraste (los declarados y los que se pintan)',t=>{
- for(const f of STATIC68){const css=read(f),ps=pairs65(css),eps=effPairs65(css);
+ for(const f0 of STATIC68)for(const night of [false,true]){const f=f0+(night?' (de noche)':''),css=night?DARK110.css(read(f0)):read(f0),ps=pairs65(css),eps=effPairs65(css);
   const bad=[...ps.filter(p=>!p.fv||!p.bv||p.r<p.min).map(p=>p.f+' sobre '+p.b),...eps.filter(p=>p.r<4.5).map(p=>p.sel+' '+p.r.toFixed(2))];
   t.diagnostic(f+': '+ps.length+' pares declarados y '+eps.length+' pintados, '+bad.length+' no pasan');
   assert.deepEqual(bad,[],f);assert.ok(ps.length>=4&&eps.length>=2,f+': se mide algo');}
@@ -5527,7 +5696,7 @@ test('LHB-68 (Codex ronda 1): la política del pasaporte /u/ deja cargar lo que 
 function ROUTES71(extra){const vm=require('vm');const src=read('app.js').replace(/\r\n/g,'\n');
  const ic=src.slice(src.indexOf('/* LHB-71: los íconos del menú'),src.indexOf('/* LHB-109: la portada sin atajos'));
  let code=src.slice(src.indexOf('/* LHB-71: la tabla de rutas.'),src.indexOf('\nfunction route(){'));if(extra)code=code.replace('\n];\nconst ROUTE_OF',extra+'\n];\nconst ROUTE_OF');
- const ctx={tt:k=>'<'+k+'>',location:{hash:''},navigator:{userAgent:'x',platform:'x',maxTouchPoints:0}};vm.createContext(ctx);
+ const ctx={tt:k=>'<'+k+'>',location:{hash:''},navigator:{userAgent:'x',platform:'x',maxTouchPoints:0},themeNow:()=>'auto',THEME_KEY:{auto:'menu.tema.auto',dark:'menu.tema.dark',light:'menu.tema.light'}};vm.createContext(ctx);
  vm.runInContext(ic+code+';this.ROUTES=ROUTES;this.ROUTE_OF=ROUTE_OF;this.menuHTML=menuHTML;this.MENU_GROUPS=MENU_GROUPS',ctx);return ctx}
 /* cada ruta de la tabla sale en el menú, o es detalle o alias de una que sale; devuelve lo que falta */
 function MISSING71(c){const out=[];const html=c.menuHTML('#/catalogo');
@@ -5548,7 +5717,7 @@ test('LHB-71: el menú sale de la tabla de rutas: cada ruta sale en él o es det
  const html=c.menuHTML('#/catalogo');for(const h of ['#/mihoja/personas','#/mihoja/editar'])assert.ok(html.includes('href="'+h+'"'),'el menú trae lo que main tiene y el paquete no: '+h);
  assert.ok(html.includes('data-sheet="instalar"'),'Cómo instalar');assert.deepEqual(c.MENU_GROUPS.map(g=>g[0]),['descubre','experiencia','comunidad','app']);
  assert.deepEqual([...html.matchAll(/<h3 id="mg-[a-z]+">(.*?)<\/h3>/g)].map(m=>m[1]),['<menu.g.descubre>','<menu.g.experiencia>','<menu.g.comunidad>','<menu.g.app>'],'los cuatro grupos en su orden');
- assert.equal((html.match(/class="brand-icon /g)||[]).length,2*(dest+3),'cada destino con su ícono y su flecha (y Guías, Cómo instalar y Privacidad); el catálogo es una pestaña, así que nada lleva Aquí');
+ assert.equal((html.match(/class="brand-icon /g)||[]).length,2*(dest+4),'cada destino con su ícono y su flecha (y Guías, Cómo instalar, Tema y Privacidad); el catálogo es una pestaña, así que nada lleva Aquí');
  /* una ruta nueva sin lugar en el menú no pasa */
  assert.deepEqual(MISSING71(ROUTES71("\n {r:'nueva',go:()=>0},")),['nueva: no sale en el menú ni dice de qué ruta es detalle']);
  assert.deepEqual(MISSING71(ROUTES71("\n {r:'nueva',go:()=>0,of:'perfil'},")),['nueva: su ruta madre perfil no sale en el menú']);
@@ -5890,18 +6059,18 @@ test('LHB-74: el sello recién puesto y la insignia que gana se celebran una vez
 });
 test('LHB-74: el pasaporte a color: cuatro colores de la paleta en ciclo, cada texto con su fondo pasa 4.5, y el color no es lo único que dice que está sellado',t=>{
  const css=read('styles.css'),{val}=TOKENS65(css);
- const quad=[['info-ink','info-soft'],['warm-ink','warm-soft'],['danger-ink','danger-soft'],['warn-ink','warn-soft']];
+ const quad=[['accent-ink','accent-soft'],['warm-ink','warm-soft'],['on-surface-2','card-2'],['warn-ink','warn-soft']];/* LHB-110: el rojo y el celeste quedan para sus papeles */
  const rows=[];for(const [ink,soft] of quad){rows.push([ink,soft]);rows.push(['card',ink]);rows.push(['on-surface',soft]);rows.push(['muted',soft]);rows.push(['on-surface-2',soft])}
- rows.push(['on-info','info']);rows.push(['on-warn','warn']);
+ rows.push(['on-accent','accent']);rows.push(['on-warn','warn']);
  const bad=rows.map(([f,b])=>[f,b,contrast65(val(f),val(b))]).filter(r=>r[2]<4.5).map(r=>r[0]+' sobre '+r[1]+' '+r[2].toFixed(2));
  t.diagnostic('pares medidos: '+rows.length+', no pasan: '+bad.length);assert.deepEqual(bad,[]);
  /* el ciclo: sellos e insignias ganadas, en las cuatro posiciones, cada una con su tinta y su fondo */
  const nth=['',':nth-child(4n+2)',':nth-child(4n+3)',':nth-child(4n)'];
  quad.forEach(([ink,soft],i)=>{assert.ok(css.includes('.stamps .stamp'+nth[i]+'[aria-pressed="true"]{'+(i?'border-color:':'border:2px solid ')+'var(--'+ink+');background:var(--'+soft+')}'),'sello '+i);
   assert.ok(css.includes('.stamps .stamp'+nth[i]+'[aria-pressed="true"] span{color:var(--'+ink+')}'));assert.ok(css.includes('.stamps .stamp'+nth[i]+'[aria-pressed="true"]::after{background:var(--'+ink+');color:var(--card)}'));
-  assert.ok(css.includes('.badges .badge.on'+nth[i]+'{background:var(--'+soft+');border-color:var(--'+ink+')}'),'insignia '+i);assert.ok(css.includes('.badges .badge.on'+nth[i]+' span{color:var(--'+ink+')}'))});
+  assert.ok(css.includes('.badges .badge.on'+nth[i]+'{--bc:var(--'+ink+');background:var(--'+soft+');border-color:var(--'+ink+')}'),'insignia '+i);assert.ok(css.includes('.badges .badge.on'+nth[i]+' span{color:var(--'+ink+')}'))});
  assert.equal(new Set(quad.map(q=>val(q[0]))).size,4,'cuatro tintas distintas');
- assert.ok(css.includes('.pass-hero{background:var(--info);border-color:var(--info-ink)}')&&css.includes('.pass-hero h2,.pass-hero p{color:var(--on-info)}'),'la portada en celeste con su texto');
+ assert.ok(css.includes('.pass-hero{background:var(--accent);border-color:var(--accent)}')&&css.includes('.pass-hero h2,.pass-hero p{color:var(--on-accent)}'),'la portada en tabaco con su texto (LHB-110: el celeste es de los enlaces)');
  /* el color no es lo único: sellado dice Sellado el... y lleva la marca; la insignia dice Lograda */
  const ES=I18N().T.es,H=PASS74({stamped:['cigarros:c0']});H.P.vPasaporte();const h=H.html();
  const sb=(h.match(/<button type="button" class="stamp" data-stamp="cigarros:c0" aria-pressed="true">[^]*?<\/button>/)||[''])[0];
