@@ -3,9 +3,11 @@
    - the drawn width of EVERY catalog card photo (.grid .card .ph.has-foto img) at the LHB-85 viewports, and of a card in a
      .mini-row at the same viewports, against the width SIZES_GRID / SIZES_MINI (site/app.js) declare there: never below it,
      at most 3 px over;
-   - #langSwitch for a Spanish and an English reader at 320, 360, 412 and 1024 px: the switch is drawn (displayed, visible, with
-     a size), the swap the English reader gets after load moves div.top-actions and each control in it (the switch, search,
-     menu, avatar) by under 1 px on every edge, and the page never scrolls sideways.
+   - the header for a Spanish and an English reader at 320, 360, 412 and 1024 px (LHB-109: the language left the header for the
+     menu): div.top-actions holds exactly its three controls (search, menu, account), each drawn (displayed, visible, with a
+     size); the swap the English reader gets after load moves div.top-actions and each control by under 1 px on every edge; the
+     page never scrolls sideways; no #langSwitch is left; and the menu's language row is drawn with the other language's name,
+     in that language.
    Every DevTools command has a deadline, a closed socket fails what is pending, and a watchdog ends the run before the test's
    own timeout, so the browser and its temporary profile are always removed.
    Prints a table and one PASS or FAIL line per check, and exits 1 on any FAIL (2 when the browser cannot run).
@@ -20,7 +22,7 @@ import { join, resolve, extname, normalize } from 'node:path';
 const SITE = resolve(process.argv[2] || join(import.meta.dirname, '..', 'site'));
 const CHROME = process.env.CHROME || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const GRID_W = [320, 360, 375, 390, 412, 430, 500, 619, 620, 700, 759, 760, 1024, 1440];
-const SWITCH_W = [320, 360, 412, 1024];
+const HEADER_W = [320, 360, 412, 1024];
 const CMD_MS = 15000, WATCHDOG_MS = 90000; // one DevTools command; the whole run (the test gives the tool 120 s)
 // what a mini-row card declares (the grid card's sizes is read from each rendered image)
 const MINI = (readFileSync(join(SITE, 'app.js'), 'utf8').match(/SIZES_MINI='([^']*)'/) || [])[1];
@@ -140,33 +142,38 @@ try {
     check(over >= 0 && over <= 3, `mini row ${w}: SIZES_MINI ${r1(m.decl)} is at or above drawn ${r1(m.drawn)} by at most 3 px (over ${r1(over)})`);
   }
   out.push('');
-  out.push('language switch (#langSwitch) and its neighbours (div.top-actions and every control in it), Spanish reader (as shipped) and English reader (swapped after load)');
-  out.push('viewport  reader   text      width  height  switch.left  top-actions.left  controls  scrollWidth');
-  const got = {};
+  out.push('header controls (div.top-actions: search, menu, account) and the menu language row, Spanish reader (as shipped) and English reader (swapped after load)');
+  out.push('viewport  reader   controls  top-actions.left  scrollWidth');
+  const got = {}, rows = {};
   // drawn: displayed, visible, with a size; the attribute hidden alone says nothing about CSS
   const SHOWN = `(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility==='visible'&&r.width>0&&r.height>0})`;
-  for (const [lang, name] of [['es-PR', 'Spanish'], ['en-US', 'English']]) {
-    await open(SWITCH_W[0], lang, '');
-    await until(`(()=>{const b=document.getElementById('langSwitch');return !!b&&!b.hidden&&${SHOWN}(b)})()`, 'the switch drawn for ' + name);
-    for (const w of SWITCH_W) {
+  for (const [lang, name, html] of [['es-PR', 'Spanish', 'es-PR'], ['en-US', 'English', 'en']]) {
+    await open(HEADER_W[0], lang, '');
+    await until(`(()=>{const t=document.querySelector('.top-actions');return !!t&&document.documentElement.lang===${JSON.stringify(html)}&&[...t.children].every(${SHOWN})})()`, 'the header drawn for ' + name);
+    for (const w of HEADER_W) {
       await size(w);
-      const m = await js(`(()=>{const b=document.getElementById('langSwitch'),t=document.querySelector('.top-actions');const rb=b.getBoundingClientRect(),rt=t.getBoundingClientRect();const vis=[...b.children].filter(e=>getComputedStyle(e).display!=='none').map(e=>e.textContent).join('');const box=r=>({l:r.left,t:r.top,r:r.right,b:r.bottom});const kids=[...t.children].map(e=>({id:e.id||e.className,box:box(e.getBoundingClientRect()),shown:${SHOWN}(e)}));return {text:vis,width:rb.width,height:rb.height,shown:${SHOWN}(b),left:rb.left,tl:rt.left,tbox:box(rt),kids,sw:document.documentElement.scrollWidth}})()`);
+      const m = await js(`(()=>{const t=document.querySelector('.top-actions'),rt=t.getBoundingClientRect();const box=r=>({l:r.left,t:r.top,r:r.right,b:r.bottom});const kids=[...t.children].map(e=>({id:e.id||e.className,box:box(e.getBoundingClientRect()),shown:${SHOWN}(e)}));return {tl:rt.left,tbox:box(rt),kids,sw:document.documentElement.scrollWidth,old:!!document.getElementById('langSwitch')}})()`);
       (got[w] = got[w] || {})[name] = m;
-      out.push(String(w).padStart(8) + '  ' + name.padEnd(8) + ' ' + m.text.padEnd(9) + String(r1(m.width)).padStart(6) + String(r1(m.height)).padStart(8) + String(r1(m.left)).padStart(13) + String(r1(m.tl)).padStart(18) + String(m.kids.length).padStart(10) + String(m.sw).padStart(13));
-      check(m.sw === w, `switch ${w} ${name}: no sideways scroll (scrollWidth ${m.sw})`);
-      check(m.shown && m.kids.length >= 4 && m.kids.every(k => k.shown), `switch ${w} ${name}: the switch and all ${m.kids.length} controls in top-actions are drawn (switch ${r1(m.width)} x ${r1(m.height)} px)`);
+      out.push(String(w).padStart(8) + '  ' + name.padEnd(8) + String(m.kids.length).padStart(10) + String(r1(m.tl)).padStart(18) + String(m.sw).padStart(13));
+      check(m.sw === w, `header ${w} ${name}: no sideways scroll (scrollWidth ${m.sw})`);
+      check(!m.old && m.kids.length === 3 && m.kids.every(k => k.shown), `header ${w} ${name}: top-actions holds its 3 controls, all drawn, and no #langSwitch (${m.kids.map(k => k.id).join(', ')})`);
     }
+    // the menu: its language row names the other language, in that language
+    await js(`document.querySelector('[data-sheet="menu"]').click()`);
+    await until(`(()=>{const b=document.querySelector('.menu-dest[data-lang]');return !!b&&${SHOWN}(b)})()`, 'the language row drawn for ' + name);
+    rows[name] = await js(`(()=>{const b=document.querySelector('.menu-dest[data-lang]'),n=b.querySelector('b');return {to:b.dataset.lang,text:n.textContent,lang:n.getAttribute('lang')}})()`);
+    out.push('  menu row for ' + name + ': ' + rows[name].text + ' (lang ' + rows[name].lang + ', switches to ' + rows[name].to + ')');
   }
+  check(rows.Spanish.to === 'en' && rows.Spanish.text === 'English' && rows.Spanish.lang === 'en', `menu row, Spanish reader: English, marked lang="en" (${rows.Spanish.text})`);
+  check(rows.English.to === 'es' && rows.English.text === 'Espa\u00f1ol' && rows.English.lang === 'es', `menu row, English reader: Espa\u00f1ol, marked lang="es" (${rows.English.text})`);
   const moved = (a, b) => Math.max(Math.abs(a.l - b.l), Math.abs(a.t - b.t), Math.abs(a.r - b.r), Math.abs(a.b - b.b));
-  for (const w of SWITCH_W) {
-    const g = got[w], ds = Math.abs(g.Spanish.left - g.English.left), dt = Math.abs(g.Spanish.tl - g.English.tl);
-    check(ds < 1 && dt < 1, `switch ${w}: the English swap moves the switch by ${r1(ds)} px and top-actions by ${r1(dt)} px (under 1 px)`);
-    // each neighbour on every edge, and the container's own box: a control can move without the switch or the container moving
+  for (const w of HEADER_W) {
+    const g = got[w], dt = Math.abs(g.Spanish.tl - g.English.tl);
+    // each control on every edge, and the container's own box: a control can move without the container moving
     const same = g.Spanish.kids.length === g.English.kids.length;
     const mv = same ? g.Spanish.kids.map((k, i) => ({ id: k.id, d: moved(k.box, g.English.kids[i].box) })) : [];
     const worst = mv.reduce((a, b) => (b.d > a.d ? b : a), { id: '-', d: 0 }), dbox = moved(g.Spanish.tbox, g.English.tbox);
-    check(same && mv.every(x => x.d < 1) && dbox < 1, `switch ${w}: every control in top-actions moves under 1 px on every edge (most: ${worst.id} ${r1(worst.d)} px; container ${r1(dbox)} px)`);
-    check(g.Spanish.text !== g.English.text, `switch ${w}: the label differs by reader (${g.Spanish.text} / ${g.English.text})`);
+    check(dt < 1 && same && mv.every(x => x.d < 1) && dbox < 1, `header ${w}: the English swap moves every control in top-actions under 1 px on every edge (most: ${worst.id} ${r1(worst.d)} px; container ${r1(dbox)} px)`);
   }
 } catch (e) {
   if (e !== null) { out.push('FAIL the run itself: ' + (e && e.message)); bad.push('run'); }
