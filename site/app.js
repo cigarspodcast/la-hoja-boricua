@@ -106,11 +106,13 @@ const brandIcon=(n,cls='')=>`<svg class="brand-icon ${cls}" viewBox="0 0 24 24" 
 document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-lang]');if(!b)return;const I=window.LHB_I18N;if(I&&I.set)I.set(b.dataset.lang)});
 /* LHB-110: el tema. Sin elegir, sigue al teléfono; el menú lo fija (oscuro, claro) o lo devuelve al teléfono. Se guarda en este teléfono (lhb_theme), no en la cuenta */
 const THEMES=['auto','dark','light'],THEME_BAR={light:'#F4F1EA',dark:'#141A13'},THEME_KEY={auto:'menu.tema.auto',dark:'menu.tema.dark',light:'menu.tema.light'};
-function themeNow(){try{const t=localStorage.getItem('lhb_theme');return t==='dark'||t==='light'?t:'auto'}catch(e){return 'auto'}}
+/* Codex r3: lo elegido en esta visita también queda en memoria (themeMem): si el teléfono no lo puede guardar, el ciclo sigue y el menú dice el de ahora */
+let themeMem=null;
+function themeNow(){if(themeMem)return themeMem;try{const t=localStorage.getItem('lhb_theme');return t==='dark'||t==='light'?t:'auto'}catch(e){return 'auto'}}
 function applyTheme(t){const r=document.documentElement;if(!r||!document.head)return;if(t==='dark'||t==='light')r.setAttribute('data-theme',t);else r.removeAttribute('data-theme');
  let m=document.getElementById('themeBar');if(t==='dark'||t==='light'){if(!m){m=document.createElement('meta');m.name='theme-color';m.id='themeBar';document.head.prepend(m)}m.content=THEME_BAR[t]}else if(m)m.remove()}
 applyTheme(themeNow());
-document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-theme-next]');if(!b)return;const t=THEMES[(THEMES.indexOf(themeNow())+1)%THEMES.length];
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-theme-next]');if(!b)return;const t=THEMES[(THEMES.indexOf(themeNow())+1)%THEMES.length];themeMem=t;
  try{if(t==='auto')localStorage.removeItem('lhb_theme');else localStorage.setItem('lhb_theme',t)}catch(x){}applyTheme(t);const sm=b.querySelector('small');if(sm)sm.textContent=tt(THEME_KEY[t])});
 /* LHB-71: la portada se decide una vez por carga: escribir en el buscador o tocar un filtro repinta, y no puede cambiar la portada a mitad de la visita */
 let homeCompact=null;

@@ -176,6 +176,9 @@ h2{font-size:var(--fs-4)}
 .pin.venta,.legend .venta{background:var(--warm)}
 .leaflet-popup-content-wrapper{background:var(--card);color:var(--on-surface);border-radius:var(--r-m)}
 .leaflet-popup-tip{background:var(--card)}
+/* LHB-110 (Codex r3): la equis de la burbuja; Leaflet la pinta gris fijo (#757575, #585858 al pasar) y su hoja llega después, así que se gana por especificidad */
+.leaflet-container .leaflet-popup a.leaflet-popup-close-button{color:var(--muted)}
+.leaflet-container .leaflet-popup a.leaflet-popup-close-button:hover,.leaflet-container .leaflet-popup a.leaflet-popup-close-button:focus{color:var(--on-surface)}
 .leaflet-popup-content{margin:12px 14px}
 .pop .t{font-family:var(--serif);font-weight:600;font-size:var(--fs-3)}
 .pop .s{color:var(--muted);font-size:var(--fs-1);margin:2px 0 8px}
