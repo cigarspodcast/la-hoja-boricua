@@ -1,0 +1,47 @@
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-104-wt (branch lhb-104-shared-pend). TIER 2, round 3.
+
+Ticket LHB-104: sign-out in one tab could not see another tab's upload with a lost answer. The upload fence and settled() read only this engine's in-memory pending records (pend, evict). Reproduction (measured 2026-10-29, identical on main before and after LHB-80):
+1. Tab 1 syncs DOC28 (rev 1), removes favorite a1, and the PUT's answer is lost while the request stays queued at If-Match 1.
+2. Tab 1 re-adds a1.
+3. Tab 2 runs settled({}): GET only, ok. Then forget(mark): true.
+4. The queued PUT lands: 200, rev 2, and a1 is gone from the account.
+Done-when: sign-out in any tab reports pending while any tab's upload can still land, and a fenced sign-out leaves the account whole in the reproduction.
+
+Round 1 (evidence/lhb-104-review-r1.txt) blocked on four findings (one shared list overwritten by concurrent tabs; an upload registered after settled() escaped forget(); evidence removed before the base invalidation was durable; unbounded growth). Round 2 (evidence/lhb-104-review-r2.txt) concurred with the fixes for 1 to 3 and blocked on three: (R2-1) a tab that read its base and then waited on its GET missed evidence another tab removed meanwhile, and used its stale base; (R2-2) the second look at the fence after recording an upload treated an unreadable fence as down; (R2-3) one overflow key per page load let reloads grow the record until quota blocked recovery. The diff below is against origin/main b8b2b89 and covers all rounds. Round 3 changes: commits f6b2a7f and 79f61cb on top of 899cb90.
+
+Round 3 changes:
+- R2-1: once0() keeps `seen`, every entry of the account it has read, starting with a read BEFORE it reads META (its base), and again before each GET. The ask uses `seen`. After the GET, every entry in `seen` with r < rev is judged (void unless this tab's, or answered not landed and covered by opsFrom), whether or not it is still in storage; only entries still present are removed; shLive counts only entries still present. Ordering argument: a tab removes an entry only after it wrote the base that makes the entry unnecessary, so a reader either sees the entry or reads the newer base. And a tab now removes entries only when the base of this pass is recorded: when voided or staleBase (its new base could not be written), it writes the poisoned meta first, and if that fails it returns fail 'storage' and keeps the entries.
+- R2-2: shAdd's two fence checks use fenceOn(): a fence read that throws counts as up (the upload is not sent, and what was just written is removed).
+- R2-3: after OPS_ASK id keys for one account and rev, a tab uses its own overflow key PEND+'x.'+tab+'.'+rev+'.'+account only while fewer than OPS_ASK+XTABS (4) entries exist there (or it already has one); after that every upload goes under one shared key PEND+'y.'+rev+'.'+account, written once, which no tab counts as its own (it always voids once the account passes that rev). Bound: OPS_ASK + XTABS + 1 keys per account and rev, regardless of reloads.
+
+Contract impact: localStorage keys with the prefix lhb_mihoja_v1_pend. (one key per upload), replacing round 1's single lhb_mihoja_v1_pend list (never released, so nothing to migrate).
+- PEND+<upload id> = {v:1,s:account,r:If-Match rev,o:id}. Overflow: PEND+'x.'+<tab>+'.'+<rev>+'.'+<account> (per tab, at most XTABS) and PEND+'y.'+<rev>+'.'+<account> (shared) = {v:1,s,r,x:true}, no id. A key whose value does not parse as either shape is ignored. A read or write that throws propagates (inside a pass, once()'s wrapper turns it into fail 'storage'; settled() treats it as pending; forget() backs out).
+- shAdd (before each PUT): if this account already has OPS_ASK or more entries at this rev, the upload goes under this tab's overflow key (written once); otherwise under its own key. After the write it reads the fence again: if the fence is up, it removes what it just wrote and throws, so the PUT is not sent. forget() raises the fence, waits FENCE_MS, raises it again, checks the mark, and now reads the record again: an entry for the signed-in account or the copy's owner backs out (finding 2). The protocol is two flags: either sign-out sees the entry, or the upload sees the fence. Its cross-process visibility rests on the same assumption as the existing fence (FENCE_MS for a write to reach other tabs).
+- Each key is written only by the tab that created it. Any tab removes a key by name: a 409/4xx removes that upload's own key (not an overflow key); a 200 at If-Match rev removes every entry of the account with r <= rev; after a GET, entries with r < rev are removed (finding 1). A tab that rewrites its overflow key after another tab removed it leaves a stale entry, which the next pass judges and removes.
+- After a GET: for each entry of the account with r < rev that is not this tab's (myOps for ids, myX for this tab's overflow keys) and that the server does not answer as not landed (null and covered by opsFrom), the pass merges with no base (voided); an overflow key cannot be asked about, so it always voids. Before removing those entries, if voided is set, the pass writes the poisoned meta (rev 0, base null, dirty); if that write fails, the pass returns fail 'storage' and keeps the entries (finding 3).
+- Bound: per account and rev, at most OPS_ASK id keys, XTABS per-tab overflow keys and one shared overflow key.
+- hoja.js gives the engine ls.keys() (localStorage.key(i) over length).
+- Cache version lhb-v117.
+
+Tests: the eight LHB-104 tests from round 1, plus six LHB-104 (Codex r1) tests, each failing on 8c817c3's sync.js and hoja.js in a scratch copy (evidence/lhb-104-r1-red.txt, 6 fail of 6):
+1. A tab removes its rejected upload while another tab records one (storage hooks between read and write): the other entry stays, sign-out fences, and the other tab's PUT answers 409.
+2. Another tab's pass, paused after it read the copy, records and sends its upload after this tab's settled(): forget(mark) returns false.
+3. Another tab learns the removal landed, the person re-added a1, and storage stops reading right after the entry is removed: after a reload a1 stays, locally and in the account.
+4. Thirty unanswered retries at one If-Match under a 900-character quota across the record's keys: when the network returns, the pass uploads and nothing is left recorded.
+5. The sign-out fence goes up while this tab records its upload: no PUT is sent and nothing stays recorded.
+6. hoja.js's storage wrapper lists every key.
+Plus five LHB-104 (Codex r2) tests, each failing on 899cb90's sync.js and hoja.js in a scratch copy (evidence/lhb-104-r2-red.txt, 5 fail of 5):
+7. Tab 2 reads its base and waits on its GET; tab 1 learns its removal landed, removes its entry and sends a restorative upload that loses its answer: a1 stays in the account and locally, and tab 1's late PUT answers 409.
+8. Another tab removes the entry right after this tab read its base (storage hook on that read): a1 stays.
+9. A tab learns its removal landed but cannot write the new base: it keeps the entry, and after a reload a1 stays.
+10. The fence goes up while a tab records its upload and the second fence read throws: no PUT, nothing left recorded.
+11. Thirty fresh engines (reloads), each with one unanswered upload at one If-Match, under a 900-character quota: at most 13 keys, and when the network returns the pass uploads and nothing is left recorded.
+Evidence: evidence/lhb-104-mutations.out (21 mutants), evidence/lhb-104-tests.txt (full suite).
+
+Known limits, stated: the shared overflow key and another tab's keys after a reload always void once passed (conservative: one pass with no base). myOps and myX live in memory, so after a reload this tab's own earlier entries read as another tab's (conservative: one pass with no base). The two-flag protocol inherits the fence's visibility assumption. Web Locks (hoja.js D.lock) serialize passes across tabs where the browser has them; this design does not rely on them.
+
+Check that the Done-when holds in every interleaving of two tabs (uploads, lost answers, late landings, sign-out, account switches) with and without Web Locks, and with storage failures at each new read, write and removal. Check whether a shared entry can make a tab apply a stale base, discard a valid base forever, or keep settled() pending forever when the network and storage are healthy. Check the record's bound and that LHB-80's in-tab guarantees still hold. Cross-tab account-switch races belong to LHB-105.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK (BLOCK only for a defect that should be fixed before release).
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.

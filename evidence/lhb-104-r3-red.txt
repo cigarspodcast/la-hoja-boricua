@@ -1,0 +1,55 @@
+✖ LHB-104 (Codex r3): la pestaña 2 empieza a salir y su GET tarda; mientras, la 1 quita a1, sabe que llegó, anota su base, quita la anotación y repone a1: la 2 usa la base nueva y a1 se queda (233.2541ms)
+✖ LHB-104 (Codex r3): la subida llega (200) mientras la persona vuelve a poner a1 y la base nueva no se puede anotar: la anotación se queda, y al recargar a1 sigue (115.6576ms)
+✖ LHB-104 (Codex r3): con muchas recargas en el mismo If-Match, lo anotado no pasa de OPS_ASK ids y una llave de sobra: cabe en 600 caracteres y, cuando vuelve la red, sube (325.6778ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 944.5448
+
+✖ failing tests:
+
+test at test\site.test.js:6817:1
+✖ LHB-104 (Codex r3): la pestaña 2 empieza a salir y su GET tarda; mientras, la 1 quita a1, sabe que llegó, anota su base, quita la anotación y repone a1: la 2 usa la base nueva y a1 se queda (233.2541ms)
+  AssertionError [ERR_ASSERTION]: a1 en la cuenta
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r3\test\site.test.js:6831:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6834:1
+✖ LHB-104 (Codex r3): la subida llega (200) mientras la persona vuelve a poner a1 y la base nueva no se puede anotar: la anotación se queda, y al recargar a1 sigue (115.6576ms)
+  AssertionError [ERR_ASSERTION]: en el teléfono
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r3\test\site.test.js:6843:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6845:1
+✖ LHB-104 (Codex r3): con muchas recargas en el mismo If-Match, lo anotado no pasa de OPS_ASK ids y una llave de sobra: cabe en 600 caracteres y, cuando vuelve la red, sube (325.6778ms)
+  AssertionError [ERR_ASSERTION]: sube
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r3\test\site.test.js:6855:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

@@ -1,0 +1,55 @@
+✖ LHB-104 (Codex r7): la pestaña 1 guarda en memoria la base del rev 2 (no pudo anotarla); la 2 deja la meta tachada en el rev 3: la de memoria no vuelve a valer y a1 se queda (379.9238ms)
+✖ LHB-104 (Codex r7): otra pestaña anota la base del rev 2 justo entre que esta mira la meta y la escribe (rev 1): la meta vieja que queda no se toma como base y a1 se queda (140.4138ms)
+✖ LHB-104 (Codex r7): la marca de agua queda en una sola llave tras varias subidas, y salir la borra (133.6925ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 972.2174
+
+✖ failing tests:
+
+test at test\site.test.js:6989:1
+✖ LHB-104 (Codex r7): la pestaña 1 guarda en memoria la base del rev 2 (no pudo anotarla); la 2 deja la meta tachada en el rev 3: la de memoria no vuelve a valer y a1 se queda (379.9238ms)
+  AssertionError [ERR_ASSERTION]: en el teléfono
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r7\test\site.test.js:7003:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7005:1
+✖ LHB-104 (Codex r7): otra pestaña anota la base del rev 2 justo entre que esta mira la meta y la escribe (rev 1): la meta vieja que queda no se toma como base y a1 se queda (140.4138ms)
+  AssertionError [ERR_ASSERTION]: en el teléfono
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r7\test\site.test.js:7026:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7029:1
+✖ LHB-104 (Codex r7): la marca de agua queda en una sola llave tras varias subidas, y salir la borra (133.6925ms)
+  AssertionError [ERR_ASSERTION]: una sola, la del rev de ahora
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red104r7\test\site.test.js:7036:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'lhb_mihoja_v1_hw.user_a.4' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }

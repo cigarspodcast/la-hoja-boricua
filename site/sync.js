@@ -82,11 +82,27 @@ const FENCE='lhb_mihoja_v1_saliendo',FENCE_MS=1000,FENCE_TTL=10e3;
 const DEBOUNCE=2500,RETRY=[20e3,40e3,80e3,160e3,300e3],TRIES=4;
 /* LHB-80 (Codex r1): cuántas subidas sin respuesta se recuerdan y se preguntan en un GET (OPS_ASK en functions/_lib/mihoja.js) */
 const OPS_ASK=8;
+/* LHB-104: las subidas sin respuesta de todas las pestañas, cada una en su propia llave chica que todas leen: PEND+id = {v:1,s:cuenta,r:If-Match,o:id}.
+   La pestaña que sube la anota antes de mandar; cualquier pestaña la quita cuando sabe que ya no puede llegar. Así otra pestaña pone la valla, y no sale mientras una pueda llegar.
+   Codex r1: una llave por subida, para que nadie lea y reescriba una lista que otra pestaña está cambiando (sin Web Locks se pisaban).
+   Con OPS_ASK anotadas para la misma cuenta y el mismo If-Match, las demás (de cualquier pestaña) van en una sola llave compartida sin id (PEND+'x.'+rev+'.'+cuenta,
+   {v:1,s,r,x:true}), que se escribe una vez y nadie cuenta como suya (Codex r3): la lista no crece sin límite, ni con recargas ni con pestañas a la vez.
+   Codex r3: quien quita una anotación ya anotó la base que la hace innecesaria; quien lee, lee primero las anotaciones y luego la base */
+const PEND=KEY+'_pend.';
+/* LHB-104 (Codex r7): la marca de agua de las bases anotadas, HW+cuenta+'.'+rev = '1'. Se escribe antes de anotar una base y nunca se reescribe: es el rev más
+   alto con base anotada. Sin Web Locks, otra pestaña puede anotar entre que esta mira la meta y la escribe; si esta deja una meta más vieja que la marca, quien
+   la lea la toma como tachada (sin base) */
+const HW=KEY+'_hw.';
 window.LHB_SYNC=function(D){
  let busy=null,again=false,timer=0,retryT=0,fails=0,applying=false,edits=0,dirty=false,staleBase=false,voided=false,pend=[],evict=new Map(),mem=null,held=false,state={state:'idle',err:null};
  /* LHB-80: el id de cada subida (cabecera X-Op): con él, GET ?op= dice si una subida sin respuesta llegó y en qué rev */
  const newOp=()=>{if(D.opId)return D.opId();try{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'op'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)};
  const readMeta=()=>{try{const m=JSON.parse(D.ls.get(META));return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
+ /* Codex r6: para quien la va a reemplazar, una meta que no se puede leer no es una meta que no hay: la lectura que falla sube */
+ const hwKeys=uid=>{const pre=HW+uid+'.',out=[];for(const k of D.ls.keys()){if(typeof k!=='string'||k.slice(0,pre.length)!==pre)continue;const t=k.slice(pre.length);if(/^[0-9]+$/.test(t))out.push({k,r:parseInt(t,10)})}return out};
+ const hwMax=uid=>hwKeys(uid).reduce((a,x)=>Math.max(a,x.r),0);
+ const hwPut=(uid,rev)=>{if(fenced())return false;try{D.ls.set(HW+uid+'.'+rev,'1');return true}catch(e){return false}};
+ const readMetaHard=()=>{const raw=D.ls.get(META);if(raw==null)return null;try{const m=JSON.parse(raw);return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}};
  /* Codex r4: un reloj que se atrasa no hace eterna la valla; uno que se adelanta en medio de la espera lo cubre forget, que la vuelve a poner antes de revisar */
  /* LHB-98: con Web Locks, D.closed() dice si esta pestaña no tiene en la mano el candado compartido de Mi Hoja (hoja.js wlClosed): entonces tampoco se escribe.
     (Codex r1: lo que la app escribe por sí sola, write quiet, tampoco: hoja.js lo deja en memoria hasta tener el candado) */
@@ -116,7 +132,7 @@ window.LHB_SYNC=function(D){
  /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
     que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
  const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
- const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMeta();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false,ep:epochOf()}));return true}catch(e){return false}};
+ const setOwner=uid=>{if(fenced())return false;try{D.ls.set(OWNER,uid);const m=readMetaHard();if(!m||m.sub!==uid)D.ls.set(META,JSON.stringify({sub:uid,rev:0,base:null,at:null,dirty:false,ep:epochOf()}));return true}catch(e){return false}};
  /* antes de guardar lo que escribe la persona hay que poder anotar de quién es; si no se puede, no se guarda */
  const ensureOwner=()=>{const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;if(ownerOf()!==null)return true;return setOwner(acc.sub)};
  const freeKey=old=>{const b=parkKey(old);for(let i=0;i<10;i++){const k=i?b+'_'+(i+1):b;let v=null;try{v=D.ls.get(k)}catch(e){return null}if(v===null)return k}return null};
@@ -146,10 +162,32 @@ window.LHB_SYNC=function(D){
     en ese tramo por cualquier camino (una lectura que lanza, la cuenta o la época que cambian, una lectura de la época que falla), ninguna base de antes vale:
     se olvida la de memoria, se junta sin dar nada por borrado hasta una pasada completa y se tacha la guardada. Una subida que el servidor rechazó (409) no cuenta.
     Cualquier otra excepción del almacenamiento a mitad de la pasada la para sin más (se reintenta) */
+ const shOk=v=>isObj(v)&&v.v===1&&typeof v.s==='string'&&Number.isInteger(v.r)&&v.r>=0&&(v.x===true||typeof v.o==='string');
+ /* LHB-104: una llave que no se puede leer como anotación (otra versión, rota) no cuenta; una lectura que lanza sube */
+ const shRead=()=>{const out=[];for(const k of D.ls.keys()){if(typeof k!=='string'||k.slice(0,PEND.length)!==PEND)continue;const raw=D.ls.get(k);if(raw==null)continue;
+   let v;try{v=JSON.parse(raw)}catch(e){continue}if(shOk(v))out.push({k,s:v.s,r:v.r,o:v.x===true?null:v.o})}return out};
+ const shDel=e=>{if(fenced())throw new Error('fenced');D.ls.remove(e.k)};
+ /* se anota antes de mandar. Codex r1: después de anotarla se mira la valla otra vez (salir pone la valla y luego mira las anotadas): o salir ve esta, o esta ve la valla y no se manda */
+ /* Codex r2: la valla que no se puede leer cuenta como puesta (aquí no se sabe si salir ya miró las anotadas) */
+ const fencedHard=()=>{if(D.closed&&D.closed())return true;const t=parseInt(D.ls.get(FENCE),10);const d=D.nowMs()-t;return t>0&&d<FENCE_TTL&&d>-FENCE_TTL};
+ const fenceOn=()=>{try{return fencedHard()}catch(e){return true}};
+ /* la llave compartida de sobra no se quita aquí aunque haya valla: otra pestaña pudo anotarse en ella a la vez y ya estar mandando (salir la ve y espera) */
+ const shAdd=(uid,rev,op)=>{if(fenceOn())throw new Error('fenced');
+  const full=shRead().filter(e=>e.s===uid&&e.r===rev).length>=OPS_ASK;
+  const k=full?PEND+'x.'+rev+'.'+uid:PEND+op,had=full&&D.ls.get(k)!=null;
+  if(!had)D.ls.set(k,JSON.stringify(full?{v:1,s:uid,r:rev,x:true}:{v:1,s:uid,r:rev,o:op}));
+  if(fenceOn()){if(!full){try{D.ls.remove(k)}catch(e){}}throw new Error('fenced')}
+  return k};
+ /* las que mandó esta pestaña (aunque ya no las pregunte): de esas se encarga la memoria de esta pestaña (pend, evict); las demás de la lista son de otra */
+ /* Codex r8: con su cuenta y su If-Match, para soltarlas cuando una subida de esa cuenta llega */
+ const myOps=new Map();
  let unrecorded=false,poisonNow=null;
  async function once(){unrecorded=false;poisonNow=null;let r;
   try{r=await once0()}catch(e){r={fail:'storage'}}
   if(unrecorded){unrecorded=false;mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}
+  /* Codex r9: una subida de esta pestaña que ya no está anotada (otra pestaña supo que llegó y la quitó, o el servidor la rechazó) ni se sigue preguntando, ya no se puede
+     confundir con la de otra: se olvida también de la memoria */
+  try{const live=new Set(shRead().map(e=>e.o).filter(Boolean));for(const [o] of myOps)if(!live.has(o)&&!pend.some(x=>x.op===o))myOps.delete(o)}catch(e){}
   return r}
  async function once0(){
   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};
@@ -165,71 +203,120 @@ window.LHB_SYNC=function(D){
   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid&&epochOf()===ep0};
   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
   /* Codex r11: una meta que no se puede leer no es una meta que no hay: no se sincroniza (se reintenta) */
+  /* Codex r2: las anotaciones de esta cuenta que esta pasada vio, desde antes de leer su base. Si otra pestaña quita una (porque supo que llegó) entre que esta lee
+     su base y que pregunta, esta igual la juzga: la base que leyó puede ser de antes de esa subida */
+  const seen=new Map(),see=l=>{for(const e of l)if(e.s===uid)seen.set(e.k,e)};see(shRead());
   let metaRaw;try{metaRaw=D.ls.get(META)}catch(e){return {fail:'storage'}}
-  const meta0=(()=>{if(metaRaw==null)return null;try{const m=JSON.parse(metaRaw);return isObj(m)&&typeof m.sub==='string'?m:null}catch(e){return null}})();let meta=meta0&&meta0.sub===uid&&epOf(meta0)===ep0?meta0:null;
+  const pm=raw=>{if(raw==null)return null;let m;try{m=JSON.parse(raw)}catch(e){return null}return isObj(m)&&typeof m.sub==='string'&&m.sub===uid&&epOf(m)===ep0?m:null};
+  /* Codex r7: una meta más vieja que la marca de agua se pisó sobre una más nueva: vale como tachada en el rev de la marca */
+  const lift=m=>{if(!m)return m;const h=hwMax(uid);return (Number.isInteger(m.rev)?m.rev:0)<h?{...m,rev:h,base:null,seed:null,was:m.base}:m};let meta=lift(pm(metaRaw));
   /* LHB-80 (Codex r1): el servidor contestó por las subidas que se le preguntaron (tiene la columna ops) */
   let opsSeen=false;
   const first=!meta||!meta.at;
   /* si lo subido no se pudo anotar o aplicar aquí, se tacha la base guardada con una meta mínima (cabe aunque el almacenamiento esté lleno): tras recargar la página se junta sin dar nada por borrado */
-  const poison=()=>writeMeta({sub:uid,rev:0,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});poisonNow=poison;
+  /* Codex r6: la meta tachada guarda el rev más alto que se conoce (el de la cuenta, el de la meta leída o la guardada): sin base, pero una subida o una respuesta
+     más vieja no vuelve a valer contra ella */
+  let topRev=0;const top=n=>{if(Number.isInteger(n)&&n>topRev)topRev=n};
+  const poison=()=>{top(meta&&meta.rev);try{top(hwMax(uid))}catch(e){}try{const x=pm(D.ls.get(META));top(x&&x.rev)}catch(e){}/* Codex r8: la tachada también pone su marca de agua; si la marca no queda, la meta tachada se escribe igual pero no cuenta como anotada (las anotaciones se quedan) */
+   const h=hwPut(uid,topRev),w=writeMeta({sub:uid,rev:topRev,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});return h&&w};poisonNow=poison;
   for(let i=0;i<TRIES;i++){
    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
    /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
    const ask=pend.filter(x=>x.sub===uid);
-   let g;try{g=await D.api(C,'GET','/api/mihoja'+(ask.length?'?'+ask.map(x=>'op='+encodeURIComponent(x.op)).join('&'):''),null,uid)}catch(e){return {skip:'offline'}}
+   /* LHB-104: y por las que otra pestaña anotó y esta no conoce (de esta cuenta) */
+   const mineOps=new Set(ask.map(x=>x.op));
+   see(shRead());
+   const room=Math.max(0,OPS_ASK-ask.length),oth=[...seen.values()].filter(e=>e.o&&!mineOps.has(e.o)&&!myOps.has(e.o)),other=room?oth.slice(-room).map(e=>e.o):[];
+   const q=ask.map(x=>x.op).concat(other);
+   let g;try{g=await D.api(C,'GET','/api/mihoja'+(q.length?'?'+q.map(o=>'op='+encodeURIComponent(o)).join('&'):''),null,uid)}catch(e){return {skip:'offline'}}
    if(!alive())return {skip:'other-account'};
    if(g.status!==200||!isObj(g.body)||!Number.isInteger(g.body.rev))return {fail:'get-'+g.status};
    if(g.body.rev>0&&(!isObj(g.body.doc)||!(g.body.schema<=1)))return {fail:'schema'};
-   const rev=g.body.rev,remote=rev>0?g.body.doc:null;
+   const rev=g.body.rev,remote=rev>0?g.body.doc:null;top(rev);
+   /* Codex r3: después de la respuesta, primero las anotaciones y luego la base otra vez: si otra pestaña quitó una anotación mientras esta esperaba, antes anotó
+      la base nueva, y esa es la que se lee aquí */
+   const now=shRead();see(now);
+   /* Codex r4: si la base que otra pestaña anotó mientras tanto es más nueva que esta respuesta, la respuesta es vieja: se pregunta otra vez */
+   /* Codex r9: la meta puede volver a ser el mismo texto que esta pasada leyó (otra escritura tardía) y la marca de agua haber subido mientras tanto: la marca se aplica
+      igual a la meta que esta pasada tiene en la mano (sin leerla otra vez si no cambió: puede ser la base que esta pasada adoptó y no pudo escribir). Se vuelve a preguntar
+      solo si la meta cambió o la marca subió (si la cuenta de verdad está por debajo de la marca, la pasada sigue sin base, como antes) */
+   {let mr;try{mr=D.ls.get(META)}catch(e){return {fail:'storage'}}const r0=meta&&Number.isInteger(meta.rev)?meta.rev:0,ch=mr!==metaRaw;if(ch){metaRaw=mr;meta=lift(pm(mr))}else meta=lift(meta);
+    if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev&&(ch||meta.rev>r0))continue}
    /* LHB-80: el servidor dice de cada una si llegó. Llegó en el rev n: lo que se mandó es lo que la cuenta tenía en n, y esa es la base (se anota ya, así vale también
       si esta pasada repite tras un 409). No está y la cuenta ya pasó del rev que pedía (If-Match): ya no puede llegar. Que no llegó se sabe solo si la lista cubre ese rev
       (opsFrom; Codex r1: lo que llegó antes de 0008, o ya olvidado, no está); si no, no se sabe y se junta sin dar nada por borrado.
       Si la cuenta sigue en el rev que pedía, todavía puede llegar (Codex r1: una escritura que el servidor no terminó): se sigue preguntando */
-   const oks=ask.length&&Array.isArray(g.body.ops)?g.body.ops:null;
+   const oks=q.length&&Array.isArray(g.body.ops)?g.body.ops:null;
    let won=0;
+   /* Codex r3: los If-Match en que se sabe que llegó una subida (con un mismo If-Match llega una sola: las demás de ese rev no llegaron) */
+   const wonAt=new Set();
    if(oks){opsSeen=true;let best=null;
     for(const x of ask){const o=oks.find(y=>isObj(y)&&y.id===x.op);if(!o)continue;
-     if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(o.rev===x.rev+1)won=Math.max(won,o.rev);if(x.ep!==ep0)voided=true;else if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
+     if(Number.isInteger(o.rev)&&o.rev>0){pend=pend.filter(y=>y!==x);if(o.rev===x.rev+1){won=Math.max(won,o.rev);wonAt.add(x.rev)}if(x.ep!==ep0)voided=true;else if(!best||o.rev>best.rev)best={rev:o.rev,sent:x.sent}}
      else if(o.rev===null&&rev>x.rev){pend=pend.filter(y=>y!==x);if(!(Number.isInteger(g.body.opsFrom)&&x.rev+1>=g.body.opsFrom))voided=true}}
-    if(best){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!writeMeta(meta)}}
+    /* Codex r5: si otra pestaña ya anotó una base más nueva que la de esa subida, vale la nueva (saber que llegó no la reemplaza) */
+    if(best&&!(meta&&Number.isInteger(meta.rev)&&meta.rev>best.rev)){meta={sub:uid,rev:best.rev,base:best.sent,at:(meta&&meta.at)||null,dirty:true,ep:ep0};mem={sub:uid,base:best.sent,rev:best.rev,ep:ep0};staleBase=!(hwPut(uid,best.rev)&&writeMeta(meta))}}
    /* un PUT sin respuesta pudo o no llegar: si desde entonces la cuenta subió dos o más veces, no se sabe si la primera fue la nuestra y la base guardada no sirve (se junta sin dar nada por borrado hasta terminar una pasada completa).
       LHB-80: solo cuando el servidor no lo puede decir (sin la columna ops, 0008 sin aplicar) */
    if(!oks&&ask.some(x=>rev>=x.rev+2))voided=true;
+   /* LHB-104: la lista de todas las pestañas. Las de un rev que la cuenta ya pasó no pueden llegar y se quitan; si eran de otra pestaña y no se sabe que no llegaron,
+      pudieron llegar sobre esta misma copia (la comparten las pestañas): se junta sin dar nada por borrado. Las del rev de ahora todavía pueden llegar: valla */
+   let shLive=false;
+   /* la que no tiene id (la de sobra) no se puede preguntar: vale solo si se sabe que otra con ese If-Match llegó */
+   /* Codex r1: si la base ya no vale, eso se anota (poison) antes de quitar las anotaciones que lo dicen: si la pasada se corta, la próxima tampoco se fía de ella */
+   {const gone=[],live=new Set(now.map(e=>e.k)),ans=e=>e.o&&oks?oks.find(y=>isObj(y)&&y.id===e.o):null;
+    for(const e of seen.values())if(e.r<rev){const o=ans(e);if(o&&o.rev===e.r+1)wonAt.add(e.r)}
+    for(const e of [...seen.values()]){if(e.r>=rev){if(e.r===rev&&live.has(e.k))shLive=true;continue}seen.delete(e.k);
+     gone.push(e);if(e.o&&(myOps.has(e.o)||mineOps.has(e.o)))continue;
+     const o=ans(e);
+     /* llegó la de otra pestaña: no se sabe sobre qué base */
+     if(o&&Number.isInteger(o.rev)&&o.rev>0){voided=true;continue}
+     /* no llegó: el servidor lo dice (y su lista cubre ese rev), o llegó otra con su mismo If-Match */
+     if(o&&o.rev===null&&Number.isInteger(g.body.opsFrom)&&e.r+1>=g.body.opsFrom)continue;
+     if(wonAt.has(e.r))continue;
+     voided=true}
+    /* Codex r2: tampoco se quitan si la base buena de esta pasada no quedó anotada (staleBase): otra pestaña leería la vieja sin la anotación que la invalida */
+    /* si ni la meta mínima cabe, se quedan (quedarse siempre es seguro) y la pasada sigue; las suyas siguen contando como suyas */
+    if(gone.length&&(!(voided||staleBase)||poison())){for(const e of gone)if(live.has(e.k))shDel(e);for(const e of gone)if(e.o)myOps.delete(e.o)}}
    /* Codex r2: una subida olvidada por exceso (más de OPS_ASK sin respuesta) puede llegar mientras la cuenta siga en su If-Match. Cuando la cuenta pasa de ese rev:
       si una de las preguntadas llegó justo ahí, la olvidada perdió (con un mismo If-Match llega una sola); si no, no se sabe si fue ella y se junta sin dar nada por borrado */
    /* Codex r3: una por cuenta (evict es un Map de sub a If-Match): otra cuenta en este teléfono no borra la de esta */
    if(evict.has(uid)&&rev>evict.get(uid)){if(!(oks&&won===evict.get(uid)+1))voided=true;evict.delete(uid)}
    /* si este teléfono se quedó sin nada, lo último sincronizado tenía algo y nadie escribió desde entonces, lo vacío no es un borrado de la persona sino una pérdida (copia dañada o quitada): no se borra la cuenta, se trae.
       Si la persona sí escribió (borró la última entrada), changed() lo marcó y el borrado se sincroniza */
-   const wipe=meta&&meta.base&&hasData(meta.base)&&!hasData(L)&&!dirty&&!meta.dirty;
+   /* Codex r7: con la meta tachada por la marca, la base de antes (was) sirve solo para reconocer la copia perdida */
+   const wb=meta&&(meta.base||meta.was),wipe=!!wb&&hasData(wb)&&!hasData(L)&&!dirty&&!meta.dirty;
    /* si la meta no se pudo anotar la vez pasada, vale lo que esta pestaña recuerda de esa pasada (si ya no lo recuerda, se junta sin dar nada por borrado) */
    /* ...salvo que otra pestaña ya anotó una meta más nueva que la de esa pasada: esa base es la buena */
-   const memOk=staleBase&&!!mem&&mem.sub===uid&&mem.ep===ep0&&!(meta&&meta.base&&meta.rev>mem.rev);
+   /* Codex r7: también si esa meta más nueva está tachada (sin base): lo de memoria es más viejo */
+   const memOk=staleBase&&!!mem&&mem.sub===uid&&mem.ep===ep0&&!(meta&&Number.isInteger(meta.rev)&&meta.rev>mem.rev);
    /* si lo subido no se pudo aplicar aquí, ninguna base recordada ni guardada vale hasta que una pasada termine completa (voided): se junta sin dar nada por borrado */
    /* sin base guardada, la semilla (cómo estaba este teléfono antes de la primera edición de la persona) da una: lo que quitó de lo que estaba también en la cuenta es borrado suyo */
    const base0=meta&&meta.base&&!wipe&&(!staleBase||!memOk)?meta.base:memOk&&!wipe?mem.base:null;
    const base=voided?null:base0||(remote&&meta&&isObj(meta.seed)&&!wipe?meet(meta.seed,remote):null);
    const merged=remote?merge(base,L,remote):L;
-   let newRev=rev,pushed=false;
+   let newRev=rev,pushed=false,clean=-1;
    /* Codex r2: si alguna subida sin respuesta (o la olvidada) todavía puede llegar porque la cuenta sigue en su If-Match, esta pasada sube aunque no haya nada nuevo:
       con el mismo If-Match, si esta llega ninguna de aquellas puede llegar despues (la valla); si una de aquellas llega antes, esta da 409 y se pregunta otra vez */
-   const fence=pend.some(x=>x.sub===uid&&x.rev===rev)||evict.get(uid)===rev;
+   const fence=pend.some(x=>x.sub===uid&&x.rev===rev)||evict.get(uid)===rev||shLive;
    if(!remote||canon(merged)!==canon(remote)||fence){
     /* se anota antes de mandar: si la respuesta no llega, no se puede leer, o la cuenta cambia mientras tanto, el PUT pudo haber llegado. Solo una respuesta clara (409, otro error 4xx o un 200 con revisión) lo borra */
     /* LHB-80: con su id y lo que se manda, para saber después si llegó */
     /* Codex r1: se suma a las que siguen sin saberse (no las reemplaza); si son demasiadas, la más vieja deja de preguntarse.
        Codex r2: pero queda anotado su If-Match (evict) hasta que la cuenta pase de él, y mientras tanto cada pasada pone la valla */
     /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
-    const op=newOp();pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
+    const op=newOp(),sk=shAdd(uid,rev,op);myOps.set(op,{s:uid,r:rev});pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
     if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
     let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
-    if(p.status===409||(p.status<500&&p.status!==200))pend=pend.filter(x=>x.op!==op);
+    if(p.status===409||(p.status<500&&p.status!==200)){pend=pend.filter(x=>x.op!==op);if(sk===PEND+op)shDel({k:sk})}
     if(!alive())return {skip:'other-account'};
     if(p.status===409)continue;
     if(p.status!==200||!isObj(p.body)||!Number.isInteger(p.body.rev))return {fail:'put-'+p.status};
     /* llegó con If-Match rev: las que siguen sin saberse pedían ese mismo rev, así que ya no pueden llegar */
-    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;pushed=true;unrecorded=true}
+    pend=pend.filter(x=>x.sub!==uid);if(evict.has(uid)&&evict.get(uid)<=rev)evict.delete(uid);newRev=p.body.rev;top(newRev);pushed=true;unrecorded=true;
+    /* LHB-104: tampoco las de otras pestañas con ese If-Match o uno más viejo; se quitan cuando la base nueva ya está anotada (Codex r3) */
+    clean=rev}
    /* lo que cambió aquí mientras tanto se junta con el resultado, en vez de pisarse. Si otra pestaña guarda entre la lectura y la escritura (setDoc lo rechaza con 'stale'), se vuelve a leer y a juntar con lo mismo, sin repetir la pasada */
    let now0,Ln,quiet,final,wrote=true;
    for(let k=0;k<4;k++){
@@ -245,10 +332,17 @@ window.LHB_SYNC=function(D){
    /* lo que se editó mientras tanto, en esta pestaña o en otra, deja la marca de pendiente */
    /* ...y lo que cambió en la copia mientras tanto (aunque el contador compartido no se haya podido escribir) */
    const edited=edits!==e0||readSeq()!==s0||!quiet;
+   /* Codex r4: y al final tampoco se pisa una base más nueva que otra pestaña anotó mientras tanto (esta pasada se reintenta) */
+   /* Codex r5: si no se puede mirar, no se anota */
+   {let mr;try{mr=D.ls.get(META)}catch(e){return {fail:'storage'}}if(mr!==metaRaw){const m2=pm(mr);if(m2&&Number.isInteger(m2.rev)&&m2.rev>newRev)return {fail:'conflict'}}}
    mem={sub:uid,base:merged,rev:newRev,ep:ep0};unrecorded=false;
-   if(!writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0})){staleBase=true;poison();return {fail:'storage'}}
+   if(!(hwPut(uid,newRev)&&writeMeta({sub:uid,rev:newRev,base:merged,at:D.now(),dirty:edited,ep:ep0}))){staleBase=true;poison();return {fail:'storage'}}
    /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */
    staleBase=false;voided=false;if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);if(!edited)dirty=false;
+   /* si no se pueden quitar, se quedan: la próxima pasada las quita (ya pasaron su If-Match) */
+   if(clean>=0){try{for(const e of shRead())if(e.s===uid&&e.r<=clean)shDel(e)}catch(e){}for(const [o,x] of myOps)if(x.s===uid&&x.r<=clean)myOps.delete(o)}
+   /* las marcas de más abajo ya no hacen falta (la más alta sigue) */
+   try{for(const x of hwKeys(uid))if(x.r<newRev)D.ls.remove(x.k)}catch(e){}
    if(!quiet&&canon(final)!==canon(merged))again=true;
    const pulled=!!remote&&canon(merged)!==canon(L);
    if(first&&hasData(L))D.toast('Tu Mi Hoja de este teléfono ya está en tu cuenta ✓');
@@ -277,8 +371,9 @@ window.LHB_SYNC=function(D){
   /* lo escrito pertenece a quien lo escribió, aunque la cuenta cambie antes de la primera pasada */
   ensureOwner();
   /* sin base guardada, lo que había en este teléfono antes de esta primera edición queda como semilla (meta.seed) para la primera pasada */
-  {const acc=D.acct(),sub=acc&&typeof acc.sub==='string'?acc.sub:'';let m=readMeta(),ch=false;
-   if(sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false,ep:epochOf()};ch=true}
+  /* Codex r6: si la meta no se puede leer, no se toca (no se reemplaza por una nueva) */
+  {const acc=D.acct(),sub=acc&&typeof acc.sub==='string'?acc.sub:'';let m=null,ch=false,bad=false;try{m=readMetaHard()}catch(e){bad=true}
+   if(!bad&&sub&&ownerOf()===sub&&(!m||m.sub!==sub)){m={sub,rev:0,base:null,at:null,dirty:false,ep:epochOf()};ch=true}
    if(m){if(!m.dirty){m.dirty=true;ch=true}
     if(sub&&m.sub===sub&&!m.base&&!m.seed&&prev!=null){try{const p=JSON.parse(prev);if(isObj(p)){m.seed=std(p);ch=true}}catch(e){}}
     if(ch)writeMeta(m)}}
@@ -293,12 +388,14 @@ window.LHB_SYNC=function(D){
   /* Codex r2: la marca se lee ANTES que la copia que se revisa (el contador y el texto guardado, luego la copia): si otra pestaña escribe en medio, la marca ya no es la de ahora y forget no borra nada */
   const seq=readSeq(),raw=markNow().raw,d=D.getDoc(),mark={raw,seq};
   if(isObj(d)&&isObj(d.draft)&&Object.keys(d.draft).length)return {ok:false,why:'draft'};
-  if(typeof o.backup==='string'&&canon(d)===o.backup)return {ok:true,via:'backup',mark};
+  if(typeof o.backup==='string'&&canon(d)===o.backup){mark.via='backup';return {ok:true,via:'backup',mark}}
   if(!r||!r.ok)return {ok:false,why:(r&&(r.fail||r.skip))||'fail'};
   const m=readMeta(),acc=D.acct();
   if(dirty||!m||!acc||m.sub!==acc.sub||m.dirty||!m.base||canon(d)!==canon(m.base))return {ok:false,why:'pending'};
   /* Codex r2: una subida sin respuesta que todavía puede llegar cambiaría la cuenta despues de salir, con la copia de aqui ya borrada: no está a salvo (la pasada de salir pone la valla; si su respuesta tampoco llega, queda el respaldo) */
   if(pend.some(x=>x.sub===acc.sub)||evict.has(acc.sub))return {ok:false,why:'pending'};
+  /* LHB-104: ni una de otra pestaña (si la lista no se puede leer, tampoco se sabe) */
+  try{if(shRead().some(e=>e.s===acc.sub))return {ok:false,why:'pending'}}catch(e){return {ok:false,why:'pending'}}
   return {ok:true,via:'sync',mark}}
  const markNow=()=>{let raw=null;try{raw=D.ls.get(KEY)}catch(e){raw={}}return {raw,seq:readSeq()}};
  /* LHB-34: mientras se sale o se borra la cuenta no corre ninguna pasada (una a destiempo volvería a llevar Mi Hoja a la cuenta). hold(true) espera la que esté corriendo */
@@ -317,13 +414,21 @@ window.LHB_SYNC=function(D){
    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
    await D.wait(FENCE_MS);
    try{D.ls.set(FENCE,String(D.nowMs()))}catch(e){return back()}
-   if(!same(mark))return back()}
+   if(!same(mark))return back();
+   /* LHB-104 (Codex r1): con la valla puesta, otra vez las subidas anotadas: una que otra pestaña anotó después de settled() todavía puede llegar.
+      Codex r11: salvo si la copia está en el respaldo que la persona acaba de descargar (settled la halló igual, y same() dice que sigue igual): ahí está a salvo
+      aunque una subida llegue después, como settled ya lo decía. Las anotaciones se quedan, para cuando vuelva a entrar en este teléfono */
+   if(mark.via!=='backup'){const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);let sh;try{sh=shRead()}catch(e){return back()}if(sh.some(e=>subs.includes(e.s)))return back()}}
   hold(true);mem=null;pend=[];evict=new Map();dirty=false;let ok=true;
+  /* Codex r7: y las marcas de agua de esta cuenta (si vuelve a entrar con la cuenta nueva, no quedan bases tachadas de antes) */
+  {const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);for(const u of subs){try{for(const x of hwKeys(u))D.ls.remove(x.k)}catch(e){ok=false}}}
+  /* Codex r11: al borrar la cuenta (sin mark), también sus subidas anotadas: la cuenta a la que iban ya no existe */
+  if(!mark){const a=D.acct(),subs=[a&&a.sub,ownerOf()].filter(x=>typeof x==='string'&&x);try{for(const x of shRead())if(subs.includes(x.s))D.ls.remove(x.k)}catch(e){ok=false}}
   for(const k of [KEY,META,OWNER,SEQ]){try{D.ls.remove(k)}catch(e){ok=false}}
   set('off');return ok}
  function start(){
   D.listen('online',()=>run('en-linea'));
   D.listen('visible',()=>run('visible',{minAge:30e3}));
   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
- return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
+ return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy,_myOps:()=>myOps.size}};
 })();
