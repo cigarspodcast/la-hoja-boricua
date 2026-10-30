@@ -6381,6 +6381,7 @@ const PAINT_PIN111=[
 "styles.css [@media (min-width:900px)] .topnav a:hover{background:var(--card-2)}",
 "styles.css [@media (min-width:900px)] .topnav a.active{background:var(--accent-soft)}",
 "styles.css [@media (min-width:900px)] .topnav .tab-plus{background:none}",
+ "styles.css [@media (min-width:900px) / @media (max-width:1099px)] .top-install svg{display:none}",
  "u.css :root{--surface:#F4F1EA}",
  "u.css :root{--on-surface:#263723}",
  "u.css [@media (prefers-color-scheme:dark)] :root:not([data-theme=\"light\"]){--surface:#141A13}",
