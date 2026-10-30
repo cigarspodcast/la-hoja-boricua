@@ -22,13 +22,13 @@ Plain HTML, CSS and JavaScript in `site/`, with no framework, no npm dependencie
 | `site/app.js` | Router and public views (catalog, makers, places, events, profile). |
 | `site/hoja.js` | Mi Hoja (tasting, humidor, diary, passport, favourites), the account panel, the share image, and the wiring for Clerk and the API. |
 | `site/cuenta.js` | The account gate: who can open Mi Hoja, onboarding, profile and identity forms. It takes no DOM or network directly (everything comes in through a `D` object), so tests drive it with a fake Clerk. |
-| `site/sync.js` | Mi Hoja sync between the phone and the account (merge, operations, fences). Pure logic, tested against SQLite. |
+| `site/sync.js` | Mi Hoja sync between the phone and the account: pure merge helpers (`LHB_MERGE`) and the sync engine (operations, fences), which receives its API calls from outside, so the tests drive it against SQLite. |
 | `site/i18n.js` | Every UI string, in two tables (`es` and `en`), plus the language choice (cookie `lhb_lang`). |
 | `site/intro.js` | The first-visit language screen and the intro video. |
 | `site/sw.js` | Service worker: the offline cache. Its `VERSION` constant must change on every release (see below). |
 | `site/styles.css` | App styles, with light and dark themes from design tokens on `:root`. |
 | `site/u.css`, `site/lugares/l.css` | Styles for the public profile pages and the static pages; they share the app's tokens. |
-| `site/lugares/`, `site/artesanos/`, `site/cigarros/`, `site/guias/`, `site/en/` | Generated static pages (one per place, maker, cigar and guide, Spanish and English). Do not edit by hand. |
+| `site/lugares/`, `site/artesanos/`, `site/cigarros/`, `site/guias/`, `site/en/` | Generated static pages: one per place, maker and cigar, in Spanish and in English (under `site/en/`), and the Q&A guides, in Spanish only (`site/guias/`). Events have no pages of their own; they live in the app. Do not edit by hand. |
 | `site/data/bundle.js` | Generated data bundle the app loads. |
 | `site/privacidad.html` | Privacy page. Update it whenever the app stores something new about people. |
 | `site/_routes.json` | Sends only `/api/*` and `/u/*` to the Functions; everything else is static. |
@@ -76,7 +76,7 @@ CI (`.github/workflows/test.yml`) runs the tests and the generators on every pus
 2. **Add every new file the app needs offline to `SHELL` in `site/sw.js`.**
 3. **Every visible string goes through the translation tables.** Add the key to both the `es` and the `en` table in `site/i18n.js` and use `tt('key')` (or `I.t`). The tests scan for untranslated text.
 4. **Never edit generated pages.** Change `data/` or the generator in `tools/`, then rerun the generators.
-5. **Database changes are additive and tolerant.** Add a new numbered file in `migrations/`. Code must keep working before the migration is applied (see `functions/api/me.js`, which falls back when the `lang` column is missing). Apply it to the preview database first, then production.
+5. **Database changes are additive and tolerant.** Add a new numbered file in `migrations/`. Code must keep working before the migration is applied (see `functions/api/me.js`, which falls back when the `lang` column is missing). Apply it to the preview database first, then production. A new table that holds anything about a person must also be listed in `USER_TABLES` in `functions/_lib/account.js`, or account deletion refuses with 503 `unknown-table` (a test covers this).
 6. **Secrets never go in the repository.** The repository is public. Server secrets live only in the Cloudflare Pages project settings. Clerk's publishable keys in `site/hoja.js` are public by design; the secret key is not.
 7. **Mi Hoja is local first.** It is saved on the phone (localStorage) and synced to the account by `site/sync.js`. Changes there must survive offline use, two open tabs, and a sign-out while a sync is in flight. The existing tests cover many of these cases; run the whole suite.
 8. **Keep it dependency free.** No frameworks, bundlers or npm packages in `site/`. Leaflet is vendored as `site/vendor-leaflet.*`.
@@ -100,7 +100,7 @@ Names only; the values are in the Cloudflare dashboard.
 |---|---|---|
 | `DB` | D1 binding | Every API endpoint. Production is bound to `lhb-prod`, previews to `lhb-preview`. |
 | `CLERK_ISSUERS` | Variable | `functions/_lib/auth.js`: the allowed Clerk token issuers, comma separated (production and development instances). |
-| `CLERK_SECRET_KEY` | Secret, production only | `functions/_lib/account.js`: deletes the Clerk user when someone deletes their account. |
+| `CLERK_SECRET_KEY` | Secret | `functions/_lib/account.js`: deletes the Clerk user when someone deletes their account. Production needs the production instance's key (`sk_live_`). A preview needs the development instance's key (`sk_test_`) for account deletion to work there; without it, deletion on a preview answers 503 `no-clerk-key`. |
 
 ## Database
 

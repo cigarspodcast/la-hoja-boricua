@@ -1,0 +1,18 @@
+You are reviewing one change in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ on D1, and Clerk sign-in). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/la-hoja-boricua, branch lhb-120-handoff. This is a TIER 1 review: one round.
+
+Ticket LHB-120: the project is handed to its owner, Sergio, who will keep working on it with an AI assistant of his choice (ChatGPT/Codex, Gemini, Claude, Cursor, Copilot) or a developer. The change is documentation only:
+- AGENTS.md: a single guide for any AI coding assistant or developer.
+- CLAUDE.md, GEMINI.md and .github/copilot-instructions.md: short pointers to AGENTS.md.
+- docs/HANDOFF.md: status, accounts and owners, the owner's first steps, open work.
+- docs/reviews/: two earlier design assessments, added as they were.
+- The previous team's AI-routes rules move from CLAUDE.md to docs/ai-routes.md; tools/ai_routes.py's docstring points there.
+- README.md: a pointer.
+- After LHB-121 merged (one-tap install, PR 56), docs/HANDOFF.md names cache version lhb-v171 and describes the Install button and reminder; AGENTS.md says how install is wired (site/index.html head script, installHow and doInstall in site/app.js, the instalar sheet in site/hoja.js). Check those against the code on this branch.
+
+What to look for. The docs will be followed literally, by people and by AI tools, so a wrong statement costs more than a missing one:
+1. Every factual claim about the repository checked against the code: file roles, endpoint list, commands and their effects, which generators exist and what each writes, test requirements (Node version for node:sqlite, Python on PATH as "python"), the service worker VERSION rule and its test pins, the SHELL list, i18n rules, migration numbering and the missing-column fallback in functions/api/me.js, server settings (DB, CLERK_ISSUERS, CLERK_SECRET_KEY) and where each is used, the Clerk keys in site/hoja.js, _routes.json and _headers.
+2. Anything an AI assistant following AGENTS.md would get wrong or break (a missing rule that the tests enforce, a command that fails, a path that does not exist).
+3. Secrets, private data, or a specific preview deployment address in any added file (the repository is public). The generic pattern https://<branch>.la-hoja-boricua.pages.dev is intended.
+4. Contradictions between AGENTS.md, docs/HANDOFF.md and README.md.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and the concrete wrong statement with what the code actually shows.

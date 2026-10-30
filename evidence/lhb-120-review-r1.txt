@@ -1,0 +1,664 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\la-hoja-boricua
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18dd3-f57d-7070-8878-3d006956449e
+--------
+user
+You are reviewing one change in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, with Pages Functions in functions/ on D1, and Clerk sign-in). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/la-hoja-boricua, branch lhb-120-handoff. This is a TIER 1 review: one round.
+
+Ticket LHB-120: the project is handed to its owner, Sergio, who will keep working on it with an AI assistant of his choice (ChatGPT/Codex, Gemini, Claude, Cursor, Copilot) or a developer. The change is documentation only:
+- AGENTS.md: a single guide for any AI coding assistant or developer.
+- CLAUDE.md, GEMINI.md and .github/copilot-instructions.md: short pointers to AGENTS.md.
+- docs/HANDOFF.md: status, accounts and owners, the owner's first steps, open work.
+- docs/reviews/: two earlier design assessments, added as they were.
+- The previous team's AI-routes rules move from CLAUDE.md to docs/ai-routes.md; tools/ai_routes.py's docstring points there.
+- README.md: a pointer.
+- After LHB-121 merged (one-tap install, PR 56), docs/HANDOFF.md names cache version lhb-v171 and describes the Install button and reminder; AGENTS.md says how install is wired (site/index.html head script, installHow and doInstall in site/app.js, the instalar sheet in site/hoja.js). Check those against the code on this branch.
+
+What to look for. The docs will be followed literally, by people and by AI tools, so a wrong statement costs more than a missing one:
+1. Every factual claim about the repository checked against the code: file roles, endpoint list, commands and their effects, which generators exist and what each writes, test requirements (Node version for node:sqlite, Python on PATH as "python"), the service worker VERSION rule and its test pins, the SHELL list, i18n rules, migration numbering and the missing-column fallback in functions/api/me.js, server settings (DB, CLERK_ISSUERS, CLERK_SECRET_KEY) and where each is used, the Clerk keys in site/hoja.js, _routes.json and _headers.
+2. Anything an AI assistant following AGENTS.md would get wrong or break (a missing rule that the tests enforce, a command that fails, a path that does not exist).
+3. Secrets, private data, or a specific preview deployment address in any added file (the repository is public). The generic pattern https://<branch>.la-hoja-boricua.pages.dev is intended.
+4. Contradictions between AGENTS.md, docs/HANDOFF.md and README.md.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and the concrete wrong statement with what the code actually shows.
+
+===== git diff origin/main 907a48e6e77b8cfcb468ef0eee706e7d8a7d707e -- AGENTS.md CLAUDE.md GEMINI.md .github README.md docs tools =====
+diff --git a/.github/copilot-instructions.md b/.github/copilot-instructions.md
+new file mode 100644
+index 0000000..2c14549
+--- /dev/null
++++ b/.github/copilot-instructions.md
+@@ -0,0 +1,3 @@
++# La Hoja Boricua
++
++Read `AGENTS.md` at the repository root before suggesting changes: it holds every instruction for this repository, for any AI assistant or developer. The project's state, accounts and open work are in `docs/HANDOFF.md`.
+diff --git a/AGENTS.md b/AGENTS.md
+new file mode 100644
+index 0000000..38600c6
+--- /dev/null
++++ b/AGENTS.md
+@@ -0,0 +1,119 @@
++# La Hoja Boricua: guide for developers and AI coding assistants
++
++This file is the single source of instructions for anyone working on this repository, human or AI. Codex, Cursor, Aider, Gemini CLI, GitHub Copilot, Claude Code and similar tools read it (some through the short pointer files `CLAUDE.md`, `GEMINI.md` and `.github/copilot-instructions.md`). Paste it into any other chat-based assistant before asking it to change code.
++
++For the state of the project, the accounts it uses and the open work, read `docs/HANDOFF.md`.
++
++## What this is
++
++La Hoja Boricua (https://lahojaboricua.com) is an installable web app (PWA) about Puerto Rican handmade cigars: makers, cigars, lounges and shops, events, guides, and a personal section, "Mi Hoja" (humidor, tasting diary, passport, favourites), that syncs to a user account. Spanish is the primary language; every screen also has English. It works offline once loaded.
++
++## Stack, in one paragraph
++
++Plain HTML, CSS and JavaScript in `site/`, with no framework, no npm dependencies and no build step for the app itself. Python scripts in `tools/` generate the static pages and the data bundle from JSON in `data/`. Hosting is Cloudflare Pages (project `la-hoja-boricua`), which publishes `site/` from `main`. A small API runs as Cloudflare Pages Functions in `functions/` on a Cloudflare D1 (SQLite) database. Sign-in is Clerk. Tests use Node's built-in test runner.
++
++## Repository map
++
++| Path | What it is |
++|---|---|
++| `data/` | Source data in JSON (`artesanos.json`, `cigarros.json`, `places.json`, `events.json`). Edit data here, never in the generated pages. |
++| `site/` | Everything that is published. |
++| `site/index.html` | The app shell and a small boot guard. |
++| `site/app.js` | Router and public views (catalog, makers, places, events, profile). |
++| `site/hoja.js` | Mi Hoja (tasting, humidor, diary, passport, favourites), the account panel, the share image, and the wiring for Clerk and the API. |
++| `site/cuenta.js` | The account gate: who can open Mi Hoja, onboarding, profile and identity forms. It takes no DOM or network directly (everything comes in through a `D` object), so tests drive it with a fake Clerk. |
++| `site/sync.js` | Mi Hoja sync between the phone and the account (merge, operations, fences). Pure logic, tested against SQLite. |
++| `site/i18n.js` | Every UI string, in two tables (`es` and `en`), plus the language choice (cookie `lhb_lang`). |
++| `site/intro.js` | The first-visit language screen and the intro video. |
++| `site/sw.js` | Service worker: the offline cache. Its `VERSION` constant must change on every release (see below). |
++| `site/styles.css` | App styles, with light and dark themes from design tokens on `:root`. |
++| `site/u.css`, `site/lugares/l.css` | Styles for the public profile pages and the static pages; they share the app's tokens. |
++| `site/lugares/`, `site/artesanos/`, `site/cigarros/`, `site/guias/`, `site/en/` | Generated static pages (one per place, maker, cigar and guide, Spanish and English). Do not edit by hand. |
++| `site/data/bundle.js` | Generated data bundle the app loads. |
++| `site/privacidad.html` | Privacy page. Update it whenever the app stores something new about people. |
++| `site/_routes.json` | Sends only `/api/*` and `/u/*` to the Functions; everything else is static. |
++| `site/_headers` | Keeps branch previews out of search engines. |
++| `functions/api/` | API endpoints: `me`, `profile`, `handle`, `mihoja`, `account` (delete), `follow`, `followers`, `following`, `feed`, `people`, `block`, `u/[handle]`. |
++| `functions/u/[handle].js` | Server-rendered public profile page. |
++| `functions/_lib/` | Shared server code (auth, profile, Mi Hoja storage, follows, feed, account deletion). |
++| `migrations/` | D1 schema, numbered SQL files applied in order (see Database below). |
++| `tools/` | Generators and helpers (see Commands). `tools/archive/` holds retired scripts. `tools/ai_*.py` belong to the previous team's tooling and are not needed to run or change the site (see `docs/ai-routes.md`). |
++| `test/site.test.js` | The whole test suite (about 500 tests). |
++| `evidence/` | Verification records from past changes (review transcripts, test runs). Safe to ignore; never needed at runtime. |
++| `docs/` | Handoff notes and design reviews. |
++
++## Commands
++
++Run from the repository root.
++
++```bash
++# tests (needs Node 22.5 or newer for node:sqlite; CI uses Node 24; Python 3 must be on PATH as "python")
++node --test test/site.test.js
++
++# after editing anything in data/: regenerate pages, sitemap, robots and the bundle
++python3 tools/build_lugares.py
++python3 tools/build_artesanos.py      # also runs build_cigarros.py
++python3 tools/build_guias.py
++python3 tools/rebuild_bundle.py
++
++# look at the static site locally (the API does not run this way)
++cd site && python3 -m http.server 8080
++```
++
++Other tools: `tools/build_icons.py` renders the PNG icons and `og.jpg` from the SVG masters in `site/icons/`; `tools/build_thumbs.py` makes photo thumbnails; `tools/build_llms.py` writes `site/llms.txt`; `tools/build_data.py` creates the JSON in `data/` from a new research file.
++
++CI (`.github/workflows/test.yml`) runs the tests and the generators on every push and pull request, and fails if the generated files committed in git differ from what the generators produce. So always commit generator output together with the data change.
++
++## Deploying
++
++- Push a branch: Cloudflare Pages builds a preview at `https://<branch>.la-hoja-boricua.pages.dev`. Previews use the preview database and Clerk's development instance.
++- Merge to `main`: Cloudflare Pages deploys production at https://lahojaboricua.com within a couple of minutes. Cloudflare runs the generators on every deploy.
++- Rollback: in the Cloudflare dashboard, Workers & Pages, la-hoja-boricua, Deployments, choose the previous production deployment and "Rollback to this deployment". Or revert the merge commit on `main`.
++
++## Rules that keep the site working
++
++1. **Bump the service worker version on every release.** In `site/sw.js`, change `const VERSION='lhb-vNNN'` to the next number. The tests pin the version in many places, so update every pin as well: search `test/site.test.js` for the old `lhb-vNNN` and replace them all. Without the bump, returning visitors keep the old files.
++2. **Add every new file the app needs offline to `SHELL` in `site/sw.js`.**
++3. **Every visible string goes through the translation tables.** Add the key to both the `es` and the `en` table in `site/i18n.js` and use `tt('key')` (or `I.t`). The tests scan for untranslated text.
++4. **Never edit generated pages.** Change `data/` or the generator in `tools/`, then rerun the generators.
++5. **Database changes are additive and tolerant.** Add a new numbered file in `migrations/`. Code must keep working before the migration is applied (see `functions/api/me.js`, which falls back when the `lang` column is missing). Apply it to the preview database first, then production.
++6. **Secrets never go in the repository.** The repository is public. Server secrets live only in the Cloudflare Pages project settings. Clerk's publishable keys in `site/hoja.js` are public by design; the secret key is not.
++7. **Mi Hoja is local first.** It is saved on the phone (localStorage) and synced to the account by `site/sync.js`. Changes there must survive offline use, two open tabs, and a sign-out while a sync is in flight. The existing tests cover many of these cases; run the whole suite.
++8. **Keep it dependency free.** No frameworks, bundlers or npm packages in `site/`. Leaflet is vendored as `site/vendor-leaflet.*`.
++9. **Accessibility and contrast are tested.** Some CSS changes need the pinned contrast or paint tables in the tests updated on purpose. Check that the new colours really pass, instead of just changing the numbers.
++10. **Comments in the code are in Spanish.** Match the surrounding style when adding code.
++
++## How to make a change safely (any assistant)
++
++1. Read the relevant file and its tests before editing (search `test/site.test.js` for the function or file name).
++2. Write or adjust a test that fails before the change, then make it pass.
++3. Run the full suite: `node --test test/site.test.js`. Expect 0 failures (one test is skipped on purpose).
++4. If you touched `data/` or a generator, run the generators and commit their output.
++5. If the release changes anything the app caches, bump `VERSION` in `site/sw.js` and its test pins.
++6. Push a branch, check the preview in a phone-sized browser window in both Spanish and English, and in light and dark themes, then merge.
++
++## Server configuration (Cloudflare Pages project settings)
++
++Names only; the values are in the Cloudflare dashboard.
++
++| Name | Kind | Used by |
++|---|---|---|
++| `DB` | D1 binding | Every API endpoint. Production is bound to `lhb-prod`, previews to `lhb-preview`. |
++| `CLERK_ISSUERS` | Variable | `functions/_lib/auth.js`: the allowed Clerk token issuers, comma separated (production and development instances). |
++| `CLERK_SECRET_KEY` | Secret, production only | `functions/_lib/account.js`: deletes the Clerk user when someone deletes their account. |
++
++## Database
++
++D1 databases: `lhb-prod` (production) and `lhb-preview` (previews), in the same Cloudflare account as the Pages project. The schema is the migrations in order, `0001` to `0009` at the time of writing. To apply a new one, either:
++
++- Cloudflare dashboard, Storage & databases, D1, choose the database, Console, paste the file's SQL and run it (preview first, then production); or
++- `npx wrangler d1 execute lhb-preview --remote --file migrations/00NN_name.sql` (then `lhb-prod`), with a Cloudflare API token that has D1 edit rights on that account.
++
++Read-only checks can use the same console with `SELECT`.
++
++## Known behaviour worth knowing
++
++- The live JavaScript files are served with `Cache-Control: max-age=14400`. A browser that has no service worker yet can keep last release's files for up to four hours. Visitors with the service worker get new files when the new `VERSION` installs.
++- On a first visit the app asks for the language before anything else; the choice is kept in the `lhb_lang` cookie and, when signed in, on the account. The device's choice wins over the account's.
++- Branch previews are not indexed (`site/_headers`).
++- Installing the app (LHB-121): an inline script in the head of `site/index.html` keeps the browser's `beforeinstallprompt` event in `window.__lhbBIP`, before any deferred script runs. In `site/app.js`, `installHow()` decides how this browser installs, and every Install button (top bar, home page, menu, reminder bar) goes through `doInstall()`; the guides it opens are the `instalar` sheet in `site/hoja.js`. Change that logic there, not in a second handler. A real install can only be tested on a phone or a desktop Chrome/Edge: the test suite checks the decisions, not the browser's own prompt.
+diff --git a/CLAUDE.md b/CLAUDE.md
+index cb665c8..cc01be4 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -1,25 +1,3 @@
+-# La Hoja Boricua: rules for sessions working in this repo
++# La Hoja Boricua
+ 
+-## AI routes (LHB-79)
+-
+-LHB calls three AI services directly, through its own client `tools/ai_routes.py`, with keys held in the Windows user environment. It never uses the estate gateway or the C10 routing pack.
+-
+-| Route | Variable | Call |
+-|---|---|---|
+-| TypeSafe Jev | `TYPESAFE_API_KEY` | `jev_choice(...)`: POST `https://api.typesafe.ai/v1/systemone`, model `jev-latest` |
+-| OpenCode Go | `OPENCODE_GO_API_KEY` | `opencode_chat(...)`: POST `https://opencode.ai/zen/go/v1/chat/completions`, Go-plan models only |
+-| Together (fallback) | `TOGETHER_API_KEY` | `together_chat(..., case=...)`: POST `https://api.together.ai/v1/chat/completions` |
+-
+-Rules that travel with the access:
+-
+-- **Keys.** A key is read from the environment at the moment of the call. It is never printed, logged, written to a file, committed, quoted in a comment, or stored in any tool's credential store, opencode's own login included. Verify a key by presence and by use only.
+-- **Jev data class.** Jev takes data class none only: synthetic text or public site content. Ticket text, code, review notes, database contents, Clerk data and anyone's personal data never go to Jev.
+-- **OpenCode Go endpoint.** OpenCode Go is called under `https://opencode.ai/zen/go/v1` only, never anything under `https://opencode.ai/inference`, which is metered.
+-- **OpenCode Go session header.** Every Go call carries `x-opencode-session` (the client sends one id per process, or the caller's `session=`); without it Go answers 400 MissingSessionID. Go is meant for coding-agent traffic and is monitored for abuse, so keep calls few and purposeful.
+-- **Together serverless models only.** Together answers 400 for a model that needs a dedicated endpoint (for example `meta-llama/Llama-3.3-70B-Instruct-Turbo`); pick from its serverless list.
+-- **Together is a fallback only.** Call it when the model is not on the Go plan (`case='not-on-go'`) or when an OpenCode call is refused because the subscription is used up (`case='go-exhausted'`). The client refuses any other case.
+-- **Spend.** Jev and Together are paid. Before the first Jev call on a ticket, post a reason comment on that ticket. At most 10 Jev calls per ticket go without the owner's yes.
+-- **Call log.** Every call appends one line to `evidence/ai-calls.log`, tab-separated: UTC time with Z, route, model, ticket, reason, HTTP status. It holds no key and no request or response text.
+-- **A refusal is a result.** A refused call (401, 403, 429) is recorded, never retried in a loop.
+-
+-Tests: `python -m unittest tools/test_ai_routes.py` (no network). Proof: `python tools/ai_proof.py <base commit>` (one paid call per route, then the leak check). Leak check alone, no call: `python tools/ai_leakcheck.py <base commit>`.
++Read `AGENTS.md` in this folder before working here: it holds every instruction for this repository, for any AI assistant or developer. The project's state, accounts and open work are in `docs/HANDOFF.md`.
+diff --git a/GEMINI.md b/GEMINI.md
+new file mode 100644
+index 0000000..cc01be4
+--- /dev/null
++++ b/GEMINI.md
+@@ -0,0 +1,3 @@
++# La Hoja Boricua
++
++Read `AGENTS.md` in this folder before working here: it holds every instruction for this repository, for any AI assistant or developer. The project's state, accounts and open work are in `docs/HANDOFF.md`.
+diff --git a/README.md b/README.md
+index 532739b..874a8f1 100644
+--- a/README.md
++++ b/README.md
+@@ -4,6 +4,8 @@ App web (PWA) sobre el tabaco artesanal puertorriqueño: artesanos, cigarros hec
+ 
+ **En vivo:** https://lahojaboricua.com
+ 
++**Para trabajar en el código** (a mano o con cualquier asistente de IA): lee primero `AGENTS.md`, que explica la arquitectura, los comandos, cómo publicar y las reglas que mantienen el sitio funcionando. El estado del proyecto, las cuentas y lo que falta están en `docs/HANDOFF.md`.
++
+ ## Estructura
+ 
+ - `data/`: los datos fuente en JSON (`artesanos.json`, `cigarros.json`, `places.json`, `events.json`). No se publican; aquí es donde se editan.
+@@ -13,6 +15,8 @@ App web (PWA) sobre el tabaco artesanal puertorriqueño: artesanos, cigarros hec
+   - `site/sw.js`: service worker (caché y modo offline).
+   - `site/404.html`: página de "no encontrada".
+   - `site/img/`, `site/icons/`, `site/fonts/`: imágenes, íconos y tipografías.
++- `functions/` y `migrations/`: la API (Cloudflare Pages Functions sobre la base D1) y el esquema de la base.
++- `docs/`: la entrega del proyecto (`HANDOFF.md`) y las revisiones de diseño.
+ - `tools/`: los generadores (ver abajo). `tools/archive/` guarda scripts viejos de verificación que ya no se usan.
+ - `test/site.test.js`: pruebas (`node --test test/site.test.js`).
+ - `evidence/`: constancias de verificación de los cambios.
+diff --git a/docs/HANDOFF.md b/docs/HANDOFF.md
+new file mode 100644
+index 0000000..ccec7c7
+--- /dev/null
++++ b/docs/HANDOFF.md
+@@ -0,0 +1,117 @@
++# La Hoja Boricua: handoff
++
++Status as of October 30, 2026. Prepared by Alfredo Medina for Sergio, who takes over the site. For how to work on the code, with any AI assistant or by hand, read `AGENTS.md` at the repository root first.
++
++## Where things stand
++
++- Production: https://lahojaboricua.com, deployed from `main`. Service worker cache version `lhb-v171`.
++- Test suite: about 500 tests, all passing on `main` (one is skipped on purpose).
++- No pull request is open, and every branch's work is either merged or kept on GitHub.
++
++What the site does today:
++
++- **Catalog and pages.** Cigars, makers, lounges and shops, events and Q&A guides. Every one has its own crawlable page in Spanish and English, plus a sitemap, structured data and `llms.txt` for AI answer engines.
++- **The app.** Installable, offline after the first load, five tabs on the phone, a first-visit language choice (Español or English), light and dark themes, and an intro video.
++- **Installing it [LHB-121].** An Install button at the top of every page until the app is installed. Where the browser allows it (Chrome, Edge and Samsung Internet, on Android and on computers) it installs in one tap. iPhone and iPad Safari allow no one-tap install, so they get a three-step guide pointing at the Share button. Facebook and Instagram's built-in browsers cannot install apps, so the button sends the visitor to Chrome (Android, one tap) or tells them how to open Safari (iPhone). A computer without the option shows a QR code for the phone. A small reminder bar appears on the second page of a visit, at most once per visit, then 3, 7, 14 and 30 days after each "Ahora no".
++- **Accounts (Clerk).** Email sign-in, a profile with a public handle, 21+ onboarding, follow, feed, block and report, a public profile page at `/u/<handle>`, and account deletion that also removes the Clerk user.
++- **Mi Hoja.** Humidor, guided tasting and diary, passport, favourites. Saved on the phone first, then synced to the account, across tabs and phones.
++- **The logo.** The Medallón, with its own dark version.
++
++## Accounts and services
++
++| Service | What it holds | Owner today | Notes |
++|---|---|---|---|
++| GitHub `cigarspodcast/la-hoja-boricua` | The code. Public repository. | cigarspodcast | CI runs the tests on every push. |
++| Cloudflare (account "Sergio@cigarspodcast.com's Account") | Pages project `la-hoja-boricua`, D1 databases `lhb-prod` and `lhb-preview`, Web Analytics, the `lahojaboricua.com` DNS zone | Sergio | Server settings (`DB`, `CLERK_ISSUERS`, `CLERK_SECRET_KEY`) are in the Pages project settings. |
++| Clerk app "La Hoja Boricua" | Sign-in: production instance on `clerk.lahojaboricua.com`, plus a development instance for previews | Freddy's Clerk workspace, moving to Sergio's | See step 0 below. A transfer keeps the keys, so no code changes. |
++| Google Cloud (OAuth client) | Google sign-in credentials for Clerk | Not created yet | See step 1. Until then, production sign-in is email only. |
++| Cloudflare R2 | Photo storage | Not enabled yet | See step 2. Profile photos are hosted by Clerk for now. |
++| Tab (`tab.bot`) | The old copy of the site | Sergio | See step 3. |
++
++## Sergio's first steps
++
++These belong in your own accounts. Each takes about 10 minutes. (The ticket numbers in brackets refer to the previous team's tracker and also appear in the git history.)
++
++### 0. Take over the Clerk app (do this first)
++
++1. **Sergio:** create a Clerk account at https://dashboard.clerk.com with your own email.
++2. **Freddy:** in Clerk, use the workspace dropdown (top left) to pick the workspace that holds La Hoja Boricua. Open the app's **Settings** and click **Transfer ownership** in the **Danger zone**, then pick Sergio's workspace (invite Sergio first if it is not listed).
++3. The app is on the free Hobby plan. If it were on a paid plan, the receiving workspace would need billing details first.
++4. **Sergio:** confirm the app shows in your workspace, then do step 1 there.
++
++### 1. Google sign-in [LHB-22, LHB-81, then LHB-26]
++
++1. Open https://console.cloud.google.com/projectcreate and create a project named **La Hoja Boricua**.
++2. **APIs & Services → OAuth consent screen**:
++   - User type External.
++   - App name La Hoja Boricua, with your support email.
++   - Scopes `openid`, `email` and `profile`.
++   - Then **Publish app** (In production).
++3. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
++   - Type **Web application**, named "Clerk production".
++   - Authorized redirect URI `https://clerk.lahojaboricua.com/v1/oauth_callback`.
++   - Click **Create**.
++4. In Clerk, go to **La Hoja Boricua → Production → Configure → SSO connections → Google**:
++   - Turn on **Use custom credentials**.
++   - Paste the Client ID and Client Secret.
++   - **Enable connection**, then **Save**.
++5. Leave Apple off unless you have an Apple Developer account.
++6. Then try a real Google sign-in on production. It should land on onboarding or Mi Hoja (LHB-26).
++
++### 2. Photo storage, R2 [LHB-35]
++
++1. In the Cloudflare dashboard, open **Storage & databases → R2 Object Storage**.
++2. Enable R2 on the free tier (10 GB). It asks for a payment method on file and acceptance of the terms.
++3. Then create a private bucket `lhb-fotos` and bind it to the Pages project.
++4. The app work that follows: move diary-entry photos and avatars to R2, and include them in account deletion.
++
++### 3. Redirect tab.bot [LHB-8]
++
++In Tab, redirect every `tab.bot` page to the same path on https://lahojaboricua.com. If Tab cannot redirect, replace the copy with a short "Nos mudamos a lahojaboricua.com" page that links there.
++
++### 4. Six listings to rule on [LHB-15]
++
++- Scryer: confirmed.
++- Timber & Blues: the website is dead; use its Instagram.
++- VC Lounge: probably should be the hotel's Avo Lounge.
++- Don Paco 1932, La Factoría, The Cave: could not be confirmed.
++
++Decide each one, then edit `data/places.json` and rerun the generators (see `AGENTS.md`).
++
++### 5. Review the Q&A guides [LHB-46]
++
++Read the guide pages (`/guias/`) and correct anything that is wrong. Guide content is generated by `tools/build_guias.py`.
++
++## Other open work
++
++| Item | What it needs |
++|---|---|
++| Google Search Console [LHB-6] | Add a Domain property for `lahojaboricua.com`, verify it with a DNS TXT record in the Cloudflare zone, and submit `https://lahojaboricua.com/sitemap.xml`. Decide which Google account owns it. Leave the existing `google-site-verification` meta tag in `site/index.html` alone (it belongs to the tab.bot property). |
++| Bing Webmaster Tools and IndexNow [LHB-43] | Import the site from Search Console, or verify it by DNS. Then turn on Cloudflare Crawler Hints, or add an IndexNow key file. Bing's index feeds ChatGPT search and Copilot. |
++| AI visibility re-check [LHB-91] | Any day from November 24 to 30, 2026: ask the 20 fixed questions in `evidence/lhb-47-ai-visibility-2026-10.txt`, in the same order, and record whether lahojaboricua.com appears. The October baseline was 0 of 20. Save the result as `evidence/lhb-47-ai-visibility-2026-11.txt`. |
++| Points and levels [LHB-78] | Later, once learning content exists. The findings are in `docs/reviews/FACELIFT-REVIEW-AND-PLAN.md`, section "Points and levels". Whether points or levels are public is your call. |
++| Install reminder timing [LHB-121] | Optional. The waits after each "Ahora no" are `REMIND_GAP=[3,7,14,30]` (days) in `site/app.js`. Change the numbers there, bump the service worker version (see `AGENTS.md`), and update the LHB-121 test in `test/site.test.js`, which pins them. |
++| Browser cache of scripts | Production serves the JavaScript with `Cache-Control: max-age=14400`, so a visitor without the service worker can run the previous release for up to four hours after a deploy. Optional fix: a shorter cache rule for `/*.js` and `/*.css` in `site/_headers`. |
++
++## Design reviews
++
++`docs/reviews/` holds two assessments written during the project, each as Markdown and Word:
++
++- **Brand and architecture assessment (October 29).** What to keep and what to change. Most of its recommendations have since shipped: the dark theme, the static pages restyled to match the app, and the new logo.
++- **Facelift review and plan (October 27).** What was adopted from the design package and what was not, including the points-and-levels analysis.
++
++## History and records
++
++- Every commit names the ticket it belongs to (for example `LHB-115: ...`), so `git log --grep LHB-115` finds a change and its reasons.
++- `evidence/` keeps the proof for past changes: test runs, review transcripts, production checks. You never need it to run the site, but it explains why things are the way they are.
++- The tickets themselves lived in the previous team's Linear workspace. This file and the git history carry everything needed to continue without it.
++
++## Working with your own AI assistant
++
++Any capable coding assistant (ChatGPT or Codex, Gemini, Claude, Cursor, Copilot) can work on this repository:
++
++1. Give it access to the repository (clone it, or connect GitHub in the tool).
++2. Tools that read repository instructions pick up `AGENTS.md` by themselves. With a chat-only assistant, paste `AGENTS.md` first.
++3. A good first request: "Read AGENTS.md and docs/HANDOFF.md, run the tests, and tell me what you would need to change to [your goal]. Do not edit anything yet."
++4. Ask it to work on a branch, run `node --test test/site.test.js` before every push, and check the branch preview before merging.
++5. Never paste keys or secrets into a chat. Server secrets go only into the Cloudflare Pages settings.
+diff --git a/docs/ai-routes.md b/docs/ai-routes.md
+new file mode 100644
+index 0000000..9ea368d
+--- /dev/null
++++ b/docs/ai-routes.md
+@@ -0,0 +1,27 @@
++# La Hoja Boricua: AI routes of the previous team (LHB-79)
++
++These are the rules for `tools/ai_routes.py`, the previous team's client for three paid AI services, with keys kept in their own Windows user environment. Nothing in the site or its tests needs these services, and a new team does not need these keys. The rules are kept here for anyone who chooses to use that client. Guidance for working on the site is in `AGENTS.md`.
++
++## AI routes
++
++LHB calls three AI services directly, through its own client `tools/ai_routes.py`, with keys held in the Windows user environment. It never uses the estate gateway or the C10 routing pack.
++
++| Route | Variable | Call |
++|---|---|---|
++| TypeSafe Jev | `TYPESAFE_API_KEY` | `jev_choice(...)`: POST `https://api.typesafe.ai/v1/systemone`, model `jev-latest` |
++| OpenCode Go | `OPENCODE_GO_API_KEY` | `opencode_chat(...)`: POST `https://opencode.ai/zen/go/v1/chat/completions`, Go-plan models only |
++| Together (fallback) | `TOGETHER_API_KEY` | `together_chat(..., case=...)`: POST `https://api.together.ai/v1/chat/completions` |
++
++Rules that travel with the access:
++
++- **Keys.** A key is read from the environment at the moment of the call. It is never printed, logged, written to a file, committed, quoted in a comment, or stored in any tool's credential store, opencode's own login included. Verify a key by presence and by use only.
++- **Jev data class.** Jev takes data class none only: synthetic text or public site content. Ticket text, code, review notes, database contents, Clerk data and anyone's personal data never go to Jev.
++- **OpenCode Go endpoint.** OpenCode Go is called under `https://opencode.ai/zen/go/v1` only, never anything under `https://opencode.ai/inference`, which is metered.
++- **OpenCode Go session header.** Every Go call carries `x-opencode-session` (the client sends one id per process, or the caller's `session=`); without it Go answers 400 MissingSessionID. Go is meant for coding-agent traffic and is monitored for abuse, so keep calls few and purposeful.
++- **Together serverless models only.** Together answers 400 for a model that needs a dedicated endpoint (for example `meta-llama/Llama-3.3-70B-Instruct-Turbo`); pick from its serverless list.
++- **Together is a fallback only.** Call it when the model is not on the Go plan (`case='not-on-go'`) or when an OpenCode call is refused because the subscription is used up (`case='go-exhausted'`). The client refuses any other case.
++- **Spend.** Jev and Together are paid. Before the first Jev call on a ticket, post a reason comment on that ticket. At most 10 Jev calls per ticket go without the owner's yes.
++- **Call log.** Every call appends one line to `evidence/ai-calls.log`, tab-separated: UTC time with Z, route, model, ticket, reason, HTTP status. It holds no key and no request or response text.
++- **A refusal is a result.** A refused call (401, 403, 429) is recorded, never retried in a loop.
++
++Tests: `python -m unittest tools/test_ai_routes.py` (no network). Proof: `python tools/ai_proof.py <base commit>` (one paid call per route, then the leak check). Leak check alone, no call: `python tools/ai_leakcheck.py <base commit>`.
+diff --git a/docs/reviews/BRAND-AND-ARCHITECTURE-ASSESSMENT.docx b/docs/reviews/BRAND-AND-ARCHITECTURE-ASSESSMENT.docx
+new file mode 100644
+index 0000000..39b2f45
+--- /dev/null
++++ b/docs/reviews/BRAND-AND-ARCHITECTURE-ASSESSMENT.docx
+@@ -0,0 +1 @@
++La Hoja Boricua: independent brand and architecture assessmentAlfredo Medina. October 29, 2026 (UTC-4). Read against production (lahojaboricua.com, main b8b2b89) at phone width (390 by 844) and desktop width (1366 by 860), and against the code on main. Earlier proposals (the facelift package) were not used as a reference.VerdictThe foundations are right: a crawlable site of real pages with an installable app on top, a local-first Mi Hoja that syncs to the account, a palette rooted in the place, and a sound body typeface. What is wrong is coherence. The app speaks with three display voices, three wordmarks, five illustration styles and three navigation systems, and on a computer it is a phone column with a phone tab bar stretched across the screen. Fix coherence first; most of it is subtraction.Bless (keep, and build on)Architecture: static pages plus app. Every cigar, maker, lounge and guide has its own crawlable page (49 cigar, 33 maker, 43 place, 22 guide pages, plus 124 English pages), with sitemap, canonical links, structured data and llms.txt. That is the right answer to a hash-routed app (#/catalogo), and it is how the site gets found.Local-first Mi Hoja with account sync. A lounge has poor signal. Saving on the phone first and settling with the account later is the correct model, and the recent sync work makes it safe across tabs.The palette. Paper #F4F1EA, tobacco green #344C31, and the flag's celeste and red as accents. It belongs to Puerto Rico and to tobacco, and it is already built as role tokens with a contrast test. Keep it.Figtree for the interface and body text. Clear at small sizes, warm, self-hosted, preloaded, font-display swap.Fraunces for content headings. A soft, literate serif that suits names of cigars, makers and places.The mark. A tobacco leaf whose rib is a road. It is specific to this product and reads at icon size.Five tabs on the phone, Spanish and English, the intro video (owner ruling: the intro stays).Challenge (change)1. One display typeface: retire ShrikhandShrikhand is a 1970s fat italic. It reads as diner signage or surf merchandise, not as the craft and heritage of a tobacco farm, and it competes with Fraunces: the home page shows a Shrikhand hero, a Fraunces section title and Figtree labels in one screen. Fraunces already carries character. Do: use Fraunces as the only display face, in its variable form (weight and optical size axes, Latin subset, self-hosted), heavier and at a large optical size for page titles. Body and controls stay Figtree.2. One lockup, everywhereToday there are three wordmarks: the app header (Shrikhand, stacked, with MADE IN BORINQUEN), the static pages (plain Fraunces, no mark) and the intro (Shrikhand, one line). Do: one lockup, the leaf mark plus a Fraunces wordmark, in a horizontal and a stacked form, used in the app, every static page, the 404 and privacy pages and the share image. The tagline is Hecho en Borinquen in both languages: a tagline is part of the brand, not text to translate.3. One navigation system and one vocabularySix destinations are reached through the tab bar, three shortcut chips on the home page, a menu sheet that lists them again, and four round header buttons (language, search, menu, account). The names drift: Catalog and Cigars, Artisans and Makers. Do: the tabs are the navigation (Cigarros, Artesanos, Lugares, Eventos, Mi Hoja and their English pairs, used identically in tabs, titles and links). The header keeps search, menu and account. The language switch moves into the menu. The menu holds only what the tabs do not: guides, the Tobacco Route, about, credits, privacy. The home shortcut chips go. The decorative hero card on the catalog (The Tobacco Route in Puerto Rico) becomes a real entry to the Route.4. Colour has meaningOn an event card three buttons use three colours (celeste, outlined, red). Red is also the add button, sign-in, map clusters and the Full strength tag. Do: one primary action per view, filled tobacco green; secondary actions outlined; red is the brand accent for the single most important action (the add button) and for the flag stripe, never decoration; celeste is for links and the flag only. Strength tags use a neutral ramp, not alarm red.5. One illustration languageFive styles coexist: the rendered 3D intro, a flat botanical flower on Places, a cartoon frog on Events, patterned placeholder cards for cigars without a photo, and real product photos on white. Do: the subject's own vernacular, the cigar band and the cigar-box lithograph: single-colour line art in tobacco ink with one accent. The frog and the flower are replaced by line-art headers in that style; cigars without a photo get a neutral line silhouette in the same frame as the photos, so the grid reads as one catalogue. The intro video stays (owner ruling) as the one cinematic moment.6. A real system: type scale, radii, spacingstyles.css uses 23 distinct font sizes (9 to 30 px, including half pixels) and 16 border-radius values. Do: a six-step type scale and three radii as tokens, and rules read only tokens.7. A computer layoutAt 1366 px the app is a phone column and its tab bar spans the full width, Catalog at the far left and Mi Hoja at the far right. Do: from 900 px the navigation moves to the top bar, the catalogue grid widens to three or four columns, and the tab bar is hidden.8. A dark lounge themeLounges are dim and the app is used at night. Do: a dark theme from the same role tokens, following the phone's setting, with a manual choice in the menu. The token work already done makes this cheap.9. Static pages share the app's chromeThe static pages are functional but look like a different product. Do: the generators emit the same lockup, header, tokens and type as the app, so a visitor from search lands on the brand, not on a bare list.10. Avatar placeholderA star in a circle does not say account. Do: a person glyph when signed out, the picture or initials when signed in.Architecture: measure before changingAbout 400 KB of unminified JavaScript loads on every first visit (hoja.js 165 KB, data bundle 97 KB, app.js 67 KB, sync.js 33 KB), with no build step; the service worker caches it after that. Mi Hoja and sync (about 200 KB) only matter to people who sign in. Do: measure first-visit cost with Lighthouse on a claimed host; if it matters, add a minimal build (minify, and load Mi Hoja and sync on demand). This waits until the sync work (LHB-104) merges, because it touches the same files. Not verified here: the actual first-visit timings.ReleaseAll of this ships to a branch preview for the owner's review. Nothing merges to production until the owner says so (owner ruling, October 28, 2026).Not verifiedBehaviour when signed in (the review was done signed out); in that state, tapping the add button showed no visible change.First-visit performance numbers; the reading above is file sizes, not timings.Trademark clearance of the mark.
+\ No newline at end of file
+diff --git a/docs/reviews/BRAND-AND-ARCHITECTURE-ASSESSMENT.md b/docs/reviews/BRAND-AND-ARCHITECTURE-ASSESSMENT.md
+new file mode 100644
+index 0000000..745e0e1
+--- /dev/null
++++ b/docs/reviews/BRAND-AND-ARCHITECTURE-ASSESSMENT.md
+@@ -0,0 +1,63 @@
++# La Hoja Boricua: independent brand and architecture assessment
++
++Alfredo Medina. October 29, 2026 (UTC-4). Read against production (lahojaboricua.com, main b8b2b89) at phone width (390 by 844) and desktop width (1366 by 860), and against the code on main. Earlier proposals (the facelift package) were not used as a reference.
++
++## Verdict
++
++The foundations are right: a crawlable site of real pages with an installable app on top, a local-first Mi Hoja that syncs to the account, a palette rooted in the place, and a sound body typeface. What is wrong is coherence. The app speaks with three display voices, three wordmarks, five illustration styles and three navigation systems, and on a computer it is a phone column with a phone tab bar stretched across the screen. Fix coherence first; most of it is subtraction.
++
++## Bless (keep, and build on)
++
++- **Architecture: static pages plus app.** Every cigar, maker, lounge and guide has its own crawlable page (49 cigar, 33 maker, 43 place, 22 guide pages, plus 124 English pages), with sitemap, canonical links, structured data and llms.txt. That is the right answer to a hash-routed app (#/catalogo), and it is how the site gets found.
++- **Local-first Mi Hoja with account sync.** A lounge has poor signal. Saving on the phone first and settling with the account later is the correct model, and the recent sync work makes it safe across tabs.
++- **The palette.** Paper #F4F1EA, tobacco green #344C31, and the flag's celeste and red as accents. It belongs to Puerto Rico and to tobacco, and it is already built as role tokens with a contrast test. Keep it.
++- **Figtree for the interface and body text.** Clear at small sizes, warm, self-hosted, preloaded, font-display swap.
++- **Fraunces for content headings.** A soft, literate serif that suits names of cigars, makers and places.
++- **The mark.** A tobacco leaf whose rib is a road. It is specific to this product and reads at icon size.
++- **Five tabs on the phone, Spanish and English, the intro video** (owner ruling: the intro stays).
++
++## Challenge (change)
++
++### 1. One display typeface: retire Shrikhand
++Shrikhand is a 1970s fat italic. It reads as diner signage or surf merchandise, not as the craft and heritage of a tobacco farm, and it competes with Fraunces: the home page shows a Shrikhand hero, a Fraunces section title and Figtree labels in one screen. Fraunces already carries character. **Do:** use Fraunces as the only display face, in its variable form (weight and optical size axes, Latin subset, self-hosted), heavier and at a large optical size for page titles. Body and controls stay Figtree.
++
++### 2. One lockup, everywhere
++Today there are three wordmarks: the app header (Shrikhand, stacked, with MADE IN BORINQUEN), the static pages (plain Fraunces, no mark) and the intro (Shrikhand, one line). **Do:** one lockup, the leaf mark plus a Fraunces wordmark, in a horizontal and a stacked form, used in the app, every static page, the 404 and privacy pages and the share image. The tagline is **Hecho en Borinquen** in both languages: a tagline is part of the brand, not text to translate.
++
++### 3. One navigation system and one vocabulary
++Six destinations are reached through the tab bar, three shortcut chips on the home page, a menu sheet that lists them again, and four round header buttons (language, search, menu, account). The names drift: Catalog and Cigars, Artisans and Makers. **Do:** the tabs are the navigation (Cigarros, Artesanos, Lugares, Eventos, Mi Hoja and their English pairs, used identically in tabs, titles and links). The header keeps search, menu and account. The language switch moves into the menu. The menu holds only what the tabs do not: guides, the Tobacco Route, about, credits, privacy. The home shortcut chips go. The decorative hero card on the catalog (The Tobacco Route in Puerto Rico) becomes a real entry to the Route.
++
++### 4. Colour has meaning
++On an event card three buttons use three colours (celeste, outlined, red). Red is also the add button, sign-in, map clusters and the Full strength tag. **Do:** one primary action per view, filled tobacco green; secondary actions outlined; red is the brand accent for the single most important action (the add button) and for the flag stripe, never decoration; celeste is for links and the flag only. Strength tags use a neutral ramp, not alarm red.
++
++### 5. One illustration language
++Five styles coexist: the rendered 3D intro, a flat botanical flower on Places, a cartoon frog on Events, patterned placeholder cards for cigars without a photo, and real product photos on white. **Do:** the subject's own vernacular, the cigar band and the cigar-box lithograph: single-colour line art in tobacco ink with one accent. The frog and the flower are replaced by line-art headers in that style; cigars without a photo get a neutral line silhouette in the same frame as the photos, so the grid reads as one catalogue. The intro video stays (owner ruling) as the one cinematic moment.
++
++### 6. A real system: type scale, radii, spacing
++styles.css uses 23 distinct font sizes (9 to 30 px, including half pixels) and 16 border-radius values. **Do:** a six-step type scale and three radii as tokens, and rules read only tokens.
++
++### 7. A computer layout
++At 1366 px the app is a phone column and its tab bar spans the full width, Catalog at the far left and Mi Hoja at the far right. **Do:** from 900 px the navigation moves to the top bar, the catalogue grid widens to three or four columns, and the tab bar is hidden.
++
++### 8. A dark lounge theme
++Lounges are dim and the app is used at night. **Do:** a dark theme from the same role tokens, following the phone's setting, with a manual choice in the menu. The token work already done makes this cheap.
++
++### 9. Static pages share the app's chrome
++The static pages are functional but look like a different product. **Do:** the generators emit the same lockup, header, tokens and type as the app, so a visitor from search lands on the brand, not on a bare list.
++
++### 10. Avatar placeholder
++A star in a circle does not say account. **Do:** a person glyph when signed out, the picture or initials when signed in.
++
++## Architecture: measure before changing
++
++About 400 KB of unminified JavaScript loads on every first visit (hoja.js 165 KB, data bundle 97 KB, app.js 67 KB, sync.js 33 KB), with no build step; the service worker caches it after that. Mi Hoja and sync (about 200 KB) only matter to people who sign in. **Do:** measure first-visit cost with Lighthouse on a claimed host; if it matters, add a minimal build (minify, and load Mi Hoja and sync on demand). This waits until the sync work (LHB-104) merges, because it touches the same files. Not verified here: the actual first-visit timings.
++
++## Release
++
++All of this ships to a branch preview for the owner's review. Nothing merges to production until the owner says so (owner ruling, October 28, 2026).
++
++## Not verified
++
++- Behaviour when signed in (the review was done signed out); in that state, tapping the add button showed no visible change.
++- First-visit performance numbers; the reading above is file sizes, not timings.
++- Trademark clearance of the mark.
+diff --git a/docs/reviews/FACELIFT-REVIEW-AND-PLAN.docx b/docs/reviews/FACELIFT-REVIEW-AND-PLAN.docx
+new file mode 100644
+index 0000000..3006850
+--- /dev/null
++++ b/docs/reviews/FACELIFT-REVIEW-AND-PLAN.docx
+@@ -0,0 +1 @@
++La Hoja Boricua: facelift review and staged integration planAlfredo Medina. Reviewed October 27, 2026 (UTC-4). Source: the Codex handoff package and the 3D source package, read against the current main branch of the app.VerdictAdopt the palette, the video, the menu grouping, the accessibility fixes and the voice. Rebuild the logo. Do not adopt the points system as proposed. Do not copy the package's web folder or apply its patch as it stands: it was cut against an older production snapshot, and it gets its light theme by redefining the old dark-theme color names. Stage the whole facelift on a preview address for Sergio. Nothing goes to production until Sergio and the owner sign off.What I checked myselfThe package is older than main. Its account file is 7.9 KB and main's is 17.6 KB. Its index, app and profile files also differ from main. It has none of the static search pages (43 lounge pages plus the maker and cigar pages), the privacy page, the share image or the generators in tools. Port the changes as a diff on current main.The patch itself is small. Ten files. About 100 changed lines across index.html, app.js and hoja.js, plus 191 lines of new CSS, a 26-line icon and menu file, and a 27-line intro player. The facelift is smaller than it sounds.The light theme is a hack. Main is a dark app (cream text on dark green). The package flips it to light by redefining --cream as dark ink and --gold as tobacco green. Main uses var(--cream) on 34 lines and var(--gold) on 40, and has about 140 hex and 60 rgba literals in styles.css, 62 hex in app.js and 64 in hoja.js. The package's own reviewer found four contrast failures that come from this (an event date at 1.29 to 1 is the worst). Every screen I built for the profile work (avatar header, profile editor, People search, follow buttons) was drawn for the dark theme and needs the same audit.The palette has limits as text colors. I computed contrast. On paper #F4F1EA: tobacco 8.37, red 4.59, amber 2.98, celeste 2.44, sun 1.63. Dark ink on celeste is 4.62 (fine), dark ink on sun 6.93 (fine), dark ink on amber 3.78 (large bold text only), white on celeste 2.75 (fails). So celeste, amber and sun are fills, never text on paper, and amber needs a darker companion for small text.The 3D source zip is intact. 108 files, no bad entries, SHA-256 cad5ceda348ac1a7df514300060ab78c11e530db3cd17e1acb54e4d22fb802cd. The scene file alone is 339 MB, so it stays out of the repository (see the plan).Adversarial reviewLogo: needs improvementThe mark reads as a stick laid across a leaf, or a quill. The idea (the vein is also a path, two gaps are discoveries) does not read, and the knots on the stem make it look like a twig.It is a generic ovate leaf. Any wellness or organic brand could use it. Tobacco has a clear signature: a broad leaf with a pointed tip, a strong central rib and curved side veins. The package's own video poster already shows that leaf in the roadside plants.At 32 px it reads as "a leaf". At 16 px the knots and the short side branches will merge.Keep the wordmark: Fraunces for La Hoja and widely spaced Figtree for BORICUA works and matches the type system.Direction: a tobacco-leaf silhouette whose rib curves like a road and ends in a small round dot (a stop on the route). Make three variants, test each at 16, 32 and 180 px, in one color, and inside the maskable safe zone. Trademark clearance is not done and is not the app's job to claim.Palette: adopt, but build it properlyReal semantic tokens (surface, on-surface, accent, accent-ink) instead of inverted aliases. No token whose name says the opposite of its value.A contrast test in the suite that computes each text and background pair we use and fails below 4.5 (3 for large text).Audit every color literal in styles.css, app.js, hoja.js, the static pages and their stylesheet l.css, and the privacy and 404 pages. Otherwise the site ends up as two brands.Update manifest theme_color and background_color (both are still the dark green) and the share image.Navigation and home: adopt the structure, fix three thingsThe grouping (Descubre, Tu experiencia, En comunidad, La app), the destination-specific icons and the current-page marker are better than what we have.The menu in the package is a second hard-coded list. Generate it from the route table so a new destination cannot be left out. It must include what we built after the snapshot: Personas search, profile editing.The Cigarros card steals focus into the search box and raises the keyboard. Scroll to a heading instead.The home page puts an introduction and three cards above the first result. Compact them for returning visitors and verify that results are reachable at 320 by 568.Keep the five tabs and the plus button.Intro video: adopt the clip, change the policyIt plays once per session. On an installed app every cold launch is a new session, so people would see it every time. Play it on first run and then at most once every 14 days, with Ver intro in About.The video element has no poster, so there is a blank paper flash until it plays. Add a small webp poster (the package posters are 540 to 600 KB, too heavy).Good as built: muted start with a sound button, skip, Escape, reduced motion, data saver, deep links, hard time limits, no loop.Credit wording must be written as what is true. The package's own reviewer found the credit claiming the plate is retained before the frame was inspected. Inspect a full-size frame, then say it.Owner gates: the bus is another artist's illustration (Calle Pomarrosas). The package says not to imply endorsement but nothing in it shows permission. Written permission should be on file before this is public. Also confirm the 3D generator's terms allow commercial use, and ship an in-app audio credits page (CC BY 4.0 requires it).Accessibility fixes in the patch: adopt now, separatelyModal focus containment, the persistent results status region, catalog filter focus, and the camera and gallery focus ring are real defects on main today, not branding. One finding is still open: the backup import label has tabindex 0 and a hidden file input. Also remove the portrait-only orientation lock in the manifest. These can land before the visual work.LanguageAll new copy in the package is Spanish text inside scripts. Main has the i18n system with a scan test, and Sergio is reviewing the English draft. Every new string must be a key with Spanish and English values or the scan test fails.Points and levels: do not adopt as designedThe design is careful (no purchases, no streaks, no rankings, the top level reachable without travel or smoking). Keep those rules.The machinery is the problem. Event ids, daily caps, idempotent awards and undo are built for rewards that have outside value. These points have none and stay private. Points that are a pure function of the saved passport and diary data cannot be double-counted and undo by themselves.Several rules depend on things that do not exist: six learning modules and a "what I learned" prompt on five maker stories. Without that content, the top level cannot be reached at all.Some rules depend on history ("first refinement of an entry"). State-based versions are needed (for example, an entry that has observations in two or more groups).165 points in total, with level 5 at 110, is a very short game. Calibrate it with real use before showing numbers.Our passport already syncs between phones. Any new learning record belongs inside that same document (the sync branch already carries unknown fields through its merge), not in a second store.Rulings where the package overlaps what is builtAreaRulingAccount control in the headerBuilt wins: the picture or initials circle (replaces the old star). The package still shows the star.Sign-in door, account fileBuilt wins entirely. The package has the old version.Mi Hoja sync, backup, importBuilt wins. The package must not touch the document format.Passport and profile pagesBuilt structure wins. The package supplies the color treatment and the stamp celebration.MenuPackage wins, extended with Personas and profile, generated from routes.SplashReplaced by the intro. Tests that pin the old splash are rewritten on purpose.Intro clipPackage clip, our play policy.Palette and fontsPackage palette (owner decision), implemented as real tokens. Fraunces and Figtree stay.LogoRebuild, owner approves.Points and levelsDerived from saved data, later, after content exists.Static pages and generatorsOurs, restyled to the same tokens.Staging plan (nothing reaches production)Branch: facelift, cut from main after the pending profile pull requests merge (they touch the same files, so doing it earlier only creates conflicts). Deploy it as a Cloudflare Pages preview for Sergio. Production stays on its current build. I have not verified that previews are hidden from search engines; add a noindex guard to the preview regardless.Filed in Linear on October 27, 2026 as milestone M7 Facelift (staged for review), tickets LHB-64 to LHB-78, all in Backlog.F0 Accessibility fixes (LHB-64, can go live): modal containment, status region, filter focus, import label, manifest orientation. Own pull request.F1 Tokens and light theme: F1a semantic tokens and the contrast test (LHB-65), F1b audit of every literal in the app including the profile-era screens (LHB-67), F1c static pages, generators, privacy and 404 pages (LHB-68).F2 Logo: F2a three variants (LHB-66), F2b the owner picks (LHB-69), F2c app icons, favicons, share image, static pages and generators (LHB-70).F3 Menu and home (LHB-71): routes-driven menu, icons, home cards, all strings as es and en keys.F4 Intro: F4a player with the new policy, poster, legacy splash removed (LHB-72), F4b audio credits page, replay in About, truthful credit wording (LHB-73).F5 Passport color and stamp celebration (LHB-74): on top of the existing eight badges, static and reduced-motion safe.F6 Staging and review pack (LHB-75): preview deployment, noindex guard, screenshots at 320, 390 and 768, a checklist for Sergio, then the device matrix (install on iOS and Android, VoiceOver, TalkBack, offline).F7 Sergio reviews (LHB-76), then F9 release to production (LHB-77, owner only).F8 Points and levels (LHB-78, later): derived from saved data, only after the learning content exists and the owner decides whether points or levels are public.Where files live: the Codex folder (C:\Users\Owner\Documents\Codex\2026-10-25\go-to-https-la-hoja-boricua-3\outputs) is taken over in place; no second copy is made. The two intro videos and one small poster move into the repository when F4a is built (about 1.1 MB). The 339 MB scene file and the source models stay in the Codex folder with the SHA-256 above, and are not put in GitHub. The folder holds an audio variant and newer history folders than the zip I reviewed, so F4a re-checks which video file is current.Owner decisions of October 27, 2026: the animated bus is cleared (the owner holds permission; the written record still has to be filed before production release); badges appear on the public profile.Still gated: the logo pick (LHB-69), Sergio's review of the preview (LHB-76), and the production release (LHB-77).
+\ No newline at end of file
+diff --git a/docs/reviews/FACELIFT-REVIEW-AND-PLAN.md b/docs/reviews/FACELIFT-REVIEW-AND-PLAN.md
+new file mode 100644
+index 0000000..91d6ecc
+--- /dev/null
++++ b/docs/reviews/FACELIFT-REVIEW-AND-PLAN.md
+@@ -0,0 +1,96 @@
++# La Hoja Boricua: facelift review and staged integration plan
++
++Alfredo Medina. Reviewed October 27, 2026 (UTC-4). Source: the Codex handoff package and the 3D source package, read against the current main branch of the app.
++
++## Verdict
++
++Adopt the palette, the video, the menu grouping, the accessibility fixes and the voice. Rebuild the logo. Do not adopt the points system as proposed. Do not copy the package's web folder or apply its patch as it stands: it was cut against an older production snapshot, and it gets its light theme by redefining the old dark-theme color names. Stage the whole facelift on a preview address for Sergio. Nothing goes to production until Sergio and the owner sign off.
++
++## What I checked myself
++
++- **The package is older than main.** Its account file is 7.9 KB and main's is 17.6 KB. Its index, app and profile files also differ from main. It has none of the static search pages (43 lounge pages plus the maker and cigar pages), the privacy page, the share image or the generators in tools. Port the changes as a diff on current main.
++- **The patch itself is small.** Ten files. About 100 changed lines across index.html, app.js and hoja.js, plus 191 lines of new CSS, a 26-line icon and menu file, and a 27-line intro player. The facelift is smaller than it sounds.
++- **The light theme is a hack.** Main is a dark app (cream text on dark green). The package flips it to light by redefining --cream as dark ink and --gold as tobacco green. Main uses var(--cream) on 34 lines and var(--gold) on 40, and has about 140 hex and 60 rgba literals in styles.css, 62 hex in app.js and 64 in hoja.js. The package's own reviewer found four contrast failures that come from this (an event date at 1.29 to 1 is the worst). Every screen I built for the profile work (avatar header, profile editor, People search, follow buttons) was drawn for the dark theme and needs the same audit.
++- **The palette has limits as text colors.** I computed contrast. On paper #F4F1EA: tobacco 8.37, red 4.59, amber 2.98, celeste 2.44, sun 1.63. Dark ink on celeste is 4.62 (fine), dark ink on sun 6.93 (fine), dark ink on amber 3.78 (large bold text only), white on celeste 2.75 (fails). So celeste, amber and sun are fills, never text on paper, and amber needs a darker companion for small text.
++- **The 3D source zip is intact.** 108 files, no bad entries, SHA-256 cad5ceda348ac1a7df514300060ab78c11e530db3cd17e1acb54e4d22fb802cd. The scene file alone is 339 MB, so it stays out of the repository (see the plan).
++
++## Adversarial review
++
++### Logo: needs improvement
++- The mark reads as a stick laid across a leaf, or a quill. The idea (the vein is also a path, two gaps are discoveries) does not read, and the knots on the stem make it look like a twig.
++- It is a generic ovate leaf. Any wellness or organic brand could use it. Tobacco has a clear signature: a broad leaf with a pointed tip, a strong central rib and curved side veins. The package's own video poster already shows that leaf in the roadside plants.
++- At 32 px it reads as "a leaf". At 16 px the knots and the short side branches will merge.
++- Keep the wordmark: Fraunces for La Hoja and widely spaced Figtree for BORICUA works and matches the type system.
++- Direction: a tobacco-leaf silhouette whose rib curves like a road and ends in a small round dot (a stop on the route). Make three variants, test each at 16, 32 and 180 px, in one color, and inside the maskable safe zone. Trademark clearance is not done and is not the app's job to claim.
++
++### Palette: adopt, but build it properly
++- Real semantic tokens (surface, on-surface, accent, accent-ink) instead of inverted aliases. No token whose name says the opposite of its value.
++- A contrast test in the suite that computes each text and background pair we use and fails below 4.5 (3 for large text).
++- Audit every color literal in styles.css, app.js, hoja.js, the static pages and their stylesheet l.css, and the privacy and 404 pages. Otherwise the site ends up as two brands.
++- Update manifest theme_color and background_color (both are still the dark green) and the share image.
++
++### Navigation and home: adopt the structure, fix three things
++- The grouping (Descubre, Tu experiencia, En comunidad, La app), the destination-specific icons and the current-page marker are better than what we have.
++- The menu in the package is a second hard-coded list. Generate it from the route table so a new destination cannot be left out. It must include what we built after the snapshot: Personas search, profile editing.
++- The Cigarros card steals focus into the search box and raises the keyboard. Scroll to a heading instead.
++- The home page puts an introduction and three cards above the first result. Compact them for returning visitors and verify that results are reachable at 320 by 568.
++- Keep the five tabs and the plus button.
++
++### Intro video: adopt the clip, change the policy
++- It plays once per session. On an installed app every cold launch is a new session, so people would see it every time. Play it on first run and then at most once every 14 days, with Ver intro in About.
++- The video element has no poster, so there is a blank paper flash until it plays. Add a small webp poster (the package posters are 540 to 600 KB, too heavy).
++- Good as built: muted start with a sound button, skip, Escape, reduced motion, data saver, deep links, hard time limits, no loop.
++- Credit wording must be written as what is true. The package's own reviewer found the credit claiming the plate is retained before the frame was inspected. Inspect a full-size frame, then say it.
++- Owner gates: the bus is another artist's illustration (Calle Pomarrosas). The package says not to imply endorsement but nothing in it shows permission. Written permission should be on file before this is public. Also confirm the 3D generator's terms allow commercial use, and ship an in-app audio credits page (CC BY 4.0 requires it).
++
++### Accessibility fixes in the patch: adopt now, separately
++Modal focus containment, the persistent results status region, catalog filter focus, and the camera and gallery focus ring are real defects on main today, not branding. One finding is still open: the backup import label has tabindex 0 and a hidden file input. Also remove the portrait-only orientation lock in the manifest. These can land before the visual work.
++
++### Language
++All new copy in the package is Spanish text inside scripts. Main has the i18n system with a scan test, and Sergio is reviewing the English draft. Every new string must be a key with Spanish and English values or the scan test fails.
++
++### Points and levels: do not adopt as designed
++- The design is careful (no purchases, no streaks, no rankings, the top level reachable without travel or smoking). Keep those rules.
++- The machinery is the problem. Event ids, daily caps, idempotent awards and undo are built for rewards that have outside value. These points have none and stay private. Points that are a pure function of the saved passport and diary data cannot be double-counted and undo by themselves.
++- Several rules depend on things that do not exist: six learning modules and a "what I learned" prompt on five maker stories. Without that content, the top level cannot be reached at all.
++- Some rules depend on history ("first refinement of an entry"). State-based versions are needed (for example, an entry that has observations in two or more groups).
++- 165 points in total, with level 5 at 110, is a very short game. Calibrate it with real use before showing numbers.
++- Our passport already syncs between phones. Any new learning record belongs inside that same document (the sync branch already carries unknown fields through its merge), not in a second store.
++
++## Rulings where the package overlaps what is built
++
++| Area | Ruling |
++|---|---|
++| Account control in the header | Built wins: the picture or initials circle (replaces the old star). The package still shows the star. |
++| Sign-in door, account file | Built wins entirely. The package has the old version. |
++| Mi Hoja sync, backup, import | Built wins. The package must not touch the document format. |
++| Passport and profile pages | Built structure wins. The package supplies the color treatment and the stamp celebration. |
++| Menu | Package wins, extended with Personas and profile, generated from routes. |
++| Splash | Replaced by the intro. Tests that pin the old splash are rewritten on purpose. |
++| Intro clip | Package clip, our play policy. |
++| Palette and fonts | Package palette (owner decision), implemented as real tokens. Fraunces and Figtree stay. |
++| Logo | Rebuild, owner approves. |
++| Points and levels | Derived from saved data, later, after content exists. |
++| Static pages and generators | Ours, restyled to the same tokens. |
++
++## Staging plan (nothing reaches production)
++
++Branch: facelift, cut from main after the pending profile pull requests merge (they touch the same files, so doing it earlier only creates conflicts). Deploy it as a Cloudflare Pages preview for Sergio. Production stays on its current build. I have not verified that previews are hidden from search engines; add a noindex guard to the preview regardless.
++
++Filed in Linear on October 27, 2026 as milestone M7 Facelift (staged for review), tickets LHB-64 to LHB-78, all in Backlog.
++
++1. **F0 Accessibility fixes** (LHB-64, can go live): modal containment, status region, filter focus, import label, manifest orientation. Own pull request.
++2. **F1 Tokens and light theme**: F1a semantic tokens and the contrast test (LHB-65), F1b audit of every literal in the app including the profile-era screens (LHB-67), F1c static pages, generators, privacy and 404 pages (LHB-68).
++3. **F2 Logo**: F2a three variants (LHB-66), F2b the owner picks (LHB-69), F2c app icons, favicons, share image, static pages and generators (LHB-70).
++4. **F3 Menu and home** (LHB-71): routes-driven menu, icons, home cards, all strings as es and en keys.
++5. **F4 Intro**: F4a player with the new policy, poster, legacy splash removed (LHB-72), F4b audio credits page, replay in About, truthful credit wording (LHB-73).
++6. **F5 Passport color and stamp celebration** (LHB-74): on top of the existing eight badges, static and reduced-motion safe.
++7. **F6 Staging and review pack** (LHB-75): preview deployment, noindex guard, screenshots at 320, 390 and 768, a checklist for Sergio, then the device matrix (install on iOS and Android, VoiceOver, TalkBack, offline).
++8. **F7 Sergio reviews** (LHB-76), then **F9 release to production** (LHB-77, owner only).
++9. **F8 Points and levels** (LHB-78, later): derived from saved data, only after the learning content exists and the owner decides whether points or levels are public.
++
++Where files live: the Codex folder (C:\Users\Owner\Documents\Codex\2026-10-25\go-to-https-la-hoja-boricua-3\outputs) is taken over in place; no second copy is made. The two intro videos and one small poster move into the repository when F4a is built (about 1.1 MB). The 339 MB scene file and the source models stay in the Codex folder with the SHA-256 above, and are not put in GitHub. The folder holds an audio variant and newer history folders than the zip I reviewed, so F4a re-checks which video file is current.
++
++Owner decisions of October 27, 2026: the animated bus is cleared (the owner holds permission; the written record still has to be filed before production release); badges appear on the public profile.
++
++Still gated: the logo pick (LHB-69), Sergio's review of the preview (LHB-76), and the production release (LHB-77).
+diff --git a/tools/ai_routes.py b/tools/ai_routes.py
+index bb4b42c..f5e66af 100644
+--- a/tools/ai_routes.py
++++ b/tools/ai_routes.py
+@@ -1,5 +1,5 @@
+ """LHB-79: LHB's own client for three AI routes, called directly with keys the Windows user environment holds, never through
+-the estate gateway. The rules travel with the code (CLAUDE.md, "AI routes"):
++the estate gateway. The rules travel with the code (docs/ai-routes.md):
+ - A key is read from the environment at the moment of the call (process environment, then HKCU\\Environment) and is never
+   printed, logged, written to a file, returned, or put in an exception message.
+ - Jev takes data class none only: synthetic text or public site content, never ticket text, code, review notes or anyone's data.
+
+2026-10-30T17:20:45.370860Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-30T17:20:47.517534Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Certain] The handoff includes claims that code alone cannot establish, such as live account ownership and deployment settings. I’ll check the repository claims against this branch and mark unsupported operational claims NOT VERIFIED. This review will remain read-only, with no skills loaded or run.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Location; git status --short; git branch --show-current; git rev-parse HEAD; git diff --stat origin/main 907a48e6e77b8cfcb468ef0eee706e7d8a7d707e -- AGENTS.md CLAUDE.md GEMINI.md .github README.md docs tools; Get-Content docs/HANDOFF.md; Get-Content .github/workflows/test.yml' in C:\LHB\la-hoja-boricua
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-30T17:20:52.676914Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The branch and commit match the review target, and `site/sw.js` declares `lhb-v171`. The shell startup failed; read-only repository access works through the available Node runtime. I’m checking generators, test requirements, install wiring and the added files for private data.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+codex
+[Certain] The docs overstate bilingual coverage: `tools/schema.py` labels guides “solo en español,” and the English tree contains only places, makers and cigars. The install wiring matches AGENTS.md, but HANDOFF.md omits the 30-second reminder path on the first page. I’m finishing the privacy scan and checking whether the documented commands can run in this sandbox.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The added files contain no detected secret values or specific preview URLs, including the Word XML metadata. Two safety rules need closer attention: account deletion requires a Clerk key matching the environment, and a new database table can block deletion unless the deletion whitelist is updated. The sandbox test run did not complete successfully; I’m checking its output before assigning any result to the branch.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+1. [Certain] **P2 | [AGENTS.md:103](C:/LHB/la-hoja-boricua/AGENTS.md:103): “CLERK_SECRET_KEY … production only” omits a preview requirement.** `functions/api/account.js:20–21` returns `503 no-clerk-key` without a matching key. `_lib/account.js` explicitly supports development keys. Document the matching development secret for preview deletion, or identify deletion there as intentionally unavailable.
+
+2. [Certain] **P2 | [AGENTS.md:79](C:/LHB/la-hoja-boricua/AGENTS.md:79): the database-change rule omits the deletion whitelist.** “Add a new numbered file” is insufficient when adding a table. Account deletion returns `503 unknown-table` for unregistered tables. `test/site.test.js:4501` reproduces this with a `reports` table. Require reviewing `USER_TABLES` in `functions/_lib/account.js` alongside new tables.
+
+3. [Certain] **P2 | [HANDOFF.md:13](C:/LHB/la-hoja-boricua/docs/HANDOFF.md:13), [AGENTS.md:31](C:/LHB/la-hoja-boricua/AGENTS.md:31): bilingual static-page coverage is overstated.** HANDOFF says events and guides each have crawlable Spanish and English pages. Guides are Spanish-only: `tools/schema.py:9` explicitly says “solo en español,” and `build_guias.py` writes only `site/guias/`. Events have no generated individual pages. Restrict the bilingual claim to places, makers and cigars.
+
+4. [Certain] **P3 | [HANDOFF.md:15](C:/LHB/la-hoja-boricua/docs/HANDOFF.md:15): reminder timing omits the first-page timer.** “Appears on the second page” is incomplete. `site/app.js:429` calls `maybeRemind(Math.max(views,2))` after 30 seconds, allowing the reminder on the first page, subject to its other gates.
+
+5. [Certain] **P3 | [AGENTS.md:25](C:/LHB/la-hoja-boricua/AGENTS.md:25): `sync.js` is not entirely “Pure logic.”** It contains pure merge helpers plus the stateful sync engine, including injected API calls at lines 245 and 324. Distinguish those responsibilities.
+
+[Certain] `lhb-v171` and the documented install wiring match this branch. No secrets or specific preview URLs were detected in the added text or Word XML. The moved AI-route rules are preserved.
+
+[Certain] Test execution produced **501 passes, 5 environment-blocked failures and 1 skip**: four failures involved unavailable Python subprocesses; one required temporary-file writes. Full-suite success, the Node 22.5 minimum, live account ownership and deployment settings remain **NOT VERIFIED**. Tracked files are unchanged.
+
+VERDICT: BLOCK
+tokens used
+145,227
+1. [Certain] **P2 | [AGENTS.md:103](C:/LHB/la-hoja-boricua/AGENTS.md:103): “CLERK_SECRET_KEY … production only” omits a preview requirement.** `functions/api/account.js:20–21` returns `503 no-clerk-key` without a matching key. `_lib/account.js` explicitly supports development keys. Document the matching development secret for preview deletion, or identify deletion there as intentionally unavailable.
+
+2. [Certain] **P2 | [AGENTS.md:79](C:/LHB/la-hoja-boricua/AGENTS.md:79): the database-change rule omits the deletion whitelist.** “Add a new numbered file” is insufficient when adding a table. Account deletion returns `503 unknown-table` for unregistered tables. `test/site.test.js:4501` reproduces this with a `reports` table. Require reviewing `USER_TABLES` in `functions/_lib/account.js` alongside new tables.
+
+3. [Certain] **P2 | [HANDOFF.md:13](C:/LHB/la-hoja-boricua/docs/HANDOFF.md:13), [AGENTS.md:31](C:/LHB/la-hoja-boricua/AGENTS.md:31): bilingual static-page coverage is overstated.** HANDOFF says events and guides each have crawlable Spanish and English pages. Guides are Spanish-only: `tools/schema.py:9` explicitly says “solo en español,” and `build_guias.py` writes only `site/guias/`. Events have no generated individual pages. Restrict the bilingual claim to places, makers and cigars.
+
+4. [Certain] **P3 | [HANDOFF.md:15](C:/LHB/la-hoja-boricua/docs/HANDOFF.md:15): reminder timing omits the first-page timer.** “Appears on the second page” is incomplete. `site/app.js:429` calls `maybeRemind(Math.max(views,2))` after 30 seconds, allowing the reminder on the first page, subject to its other gates.
+
+5. [Certain] **P3 | [AGENTS.md:25](C:/LHB/la-hoja-boricua/AGENTS.md:25): `sync.js` is not entirely “Pure logic.”** It contains pure merge helpers plus the stateful sync engine, including injected API calls at lines 245 and 324. Distinguish those responsibilities.
+
+[Certain] `lhb-v171` and the documented install wiring match this branch. No secrets or specific preview URLs were detected in the added text or Word XML. The moved AI-route rules are preserved.
+
+[Certain] Test execution produced **501 passes, 5 environment-blocked failures and 1 skip**: four failures involved unavailable Python subprocesses; one required temporary-file writes. Full-suite success, the Node 22.5 minimum, live account ownership and deployment settings remain **NOT VERIFIED**. Tracked files are unchanged.
+
+VERDICT: BLOCK
