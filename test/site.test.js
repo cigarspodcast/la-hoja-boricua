@@ -24,11 +24,20 @@ test('manifest: standalone, icons 192/512/maskable exist',()=>{const m=JSON.pars
  for(const i of m.icons)assert.ok(fs.existsSync(path.join(S,i.src)),i.src);});
 test('service worker precaches files that exist',()=>{const sw=read('sw.js');const list=JSON.parse(sw.match(/const SHELL=(\[[\s\S]*?\]);/)[1].replace(/'/g,'"'));
  for(const f of list){if(f==='./')continue;assert.ok(fs.existsSync(path.join(S,f)),'sw precache missing '+f)}});
-test('Spanish UI, Fortaleza wording, prototype note, forbidden names absent',()=>{const all=['index.html','app.js','i18n.js','art.js','hoja.js','fotos.js','data/bundle.js'].map(read).join('\n');
+test('Spanish UI, Fortaleza wording, forbidden names absent',()=>{const all=['index.html','app.js','i18n.js','art.js','hoja.js','fotos.js','data/bundle.js'].map(read).join('\n');
  assert.ok(all.includes('Fortaleza'));assert.ok(!/fuerza/i.test(all),'uses "fuerza"');assert.ok(!/Lector de la Hoja/i.test(all));
- assert.ok(I18N().T.es['proto.note'].includes('información pública, sujeta a verificación')&&read('app.js').includes("${tt('proto.note')}"));
+ /* LHB-117 (LHB-16): sin la nota de Prototipo */
  for(const w of ['Cigarros','Artesanos','Lugares','Actividades','Mi perfil','Guardar en favoritos','Sugerir actividad','Fuentes','Cómo llegar'])assert.ok(all.includes(w),w);
  assert.ok(!/lorem ipsum/i.test(all)&&!/\bTODO\b|\bTBD\b|\[PLACEHOLDER\]|\{\{/.test(all),'placeholder text');});
+test('LHB-117 (LHB-16, el dueño 2026-10-30): la nota de Prototipo ya no sale en la app, en la tarjeta para compartir ni en el README (llms.txt no es la nota y se queda)',()=>{
+ const LABEL=/Prototipo\b|Prototype\b|sujeta a verificaci|subject to verification/;
+ const files=fs.readdirSync(S).filter(f=>/\.(js|html|css|json|webmanifest)$/.test(f));
+ for(const f of files)assert.ok(!LABEL.test(read(f)),f+' todavía trae la nota');
+ const I=I18N();for(const l of ['es','en'])for(const k of ['proto.note','pf.note','h.prototipoInformacionPublicaSujeta'])assert.equal(I.T[l][k],undefined,l+' '+k);
+ assert.ok(!read('hoja.js').includes('h.prototipoInformacionPublicaSujeta'),'la tarjeta para compartir no la pinta');
+ assert.ok(!LABEL.test(fs.readFileSync(path.join(__dirname,'..','README.md'),'utf8')),'README');
+ assert.ok(/estadísticas de visitas que no usan cookies ni identifican a nadie/.test(read('privacidad.html')),'LHB-19: privacidad dice que las visitas se cuentan sin cookies');
+});
 test('data layer: separate JSON files with real entries and sources',()=>{const a=JSON.parse(readD('artesanos.json')),c=JSON.parse(readD('cigarros.json')),p=JSON.parse(readD('places.json')),e=JSON.parse(readD('events.json'));
  assert.ok(a.length>=4&&c.length>=4&&p.length>=6);assert.ok(Array.isArray(e.actividades)&&Array.isArray(e.fuentes));
  assert.ok(e.actividades.some(x=>/Humo y Tambor/.test(x.titulo)));
@@ -42,7 +51,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
 
 test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
- assert.match(sw,/const VERSION='lhb-v166'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+ assert.match(sw,/const VERSION='lhb-v168'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
@@ -62,24 +71,24 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
 test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
- assert.match(sw,/const VERSION='lhb-v166'/);
+ assert.match(sw,/const VERSION='lhb-v168'/);
  /* LHB-111: la guagua ya no es ilustración de la app: ni se precachea, ni la nombra art.js, ni queda el archivo */
  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(!a.includes(g),g);assert.ok(!fs.existsSync(path.join(__dirname,'..','site',g)),g)}
  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
 test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v166'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+ assert.match(sw,/const VERSION='lhb-v168'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
 test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
- assert.match(sw,/const VERSION='lhb-v166'/);
+ assert.match(sw,/const VERSION='lhb-v168'/);
  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
  assert.equal(F['monte-mistica-maduro'].match,'linea');
  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
 
 test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
- assert.match(sw,/const VERSION='lhb-v166'/);
+ assert.match(sw,/const VERSION='lhb-v168'/);
  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
  /* LHB-111: el estado vacío lleva la caja de cigarros de línea (abajo), ya no la bandera en su asta */
@@ -102,12 +111,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in 
  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
  assert.ok(read('app.js').includes('p.horario'));});
 
-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v166'/);});
+test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v168'/);});
 
 test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
- assert.match(sw,/const VERSION='lhb-v166'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+ assert.match(sw,/const VERSION='lhb-v168'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
  assert.ok(js.includes('VBArt.aqui()')&&!js.includes('VBArt.carro'),'LHB-111: el aquí del mapa es de línea');});
 test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
@@ -115,7 +124,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
-test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v166'/)});
+test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v168'/)});
 
 test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
@@ -132,7 +141,7 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
 test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
- assert.match(read('sw.js'),/lhb-v166/);});
+ assert.match(read('sw.js'),/lhb-v168/);});
 
 test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
@@ -145,19 +154,19 @@ test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone'
  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
- assert.match(read('sw.js'),/const VERSION='lhb-v166'/);});
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
 test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v166'/);});
+ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
 
 test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v166'/);});
+ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
 
 test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
- for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v166'/);});
+ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v168'/);});
 test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
@@ -1219,7 +1228,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
- assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
 });
 /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
 const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
@@ -1466,7 +1475,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
 });
 test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v166'/);
+ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v168'/);
  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
@@ -1644,7 +1653,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
- assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
@@ -1891,7 +1900,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
- assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
@@ -2193,7 +2202,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
- assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
 });
 test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
@@ -2476,7 +2485,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
 });
 test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
- assert.match(read('sw.js'),/const VERSION='lhb-v166'/,'el shell nuevo se publica con otra versión del caché');
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/,'el shell nuevo se publica con otra versión del caché');
  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
@@ -3435,7 +3444,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
  assert.ok(h.includes("getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST}"),'la sincronización lee del almacenamiento y no de la copia en memoria');
  assert.ok(h.includes("window.addEventListener('storage',e=>{if(e.key===null||e.key===KEY)ST=null})"),'otra pestaña que escribe invalida la copia en memoria');
  assert.ok(h.includes("const S=()=>{try{if(SYNC&&!SYNC.isolate())return DEF();if(ST&&localStorage.getItem(KEY)===STRAW)return ST;ST=load();STRAW=localStorage.getItem(KEY);return ST}catch(e){ST=null;return DEF()}};"),/* LHB-101: dentro de un try */'S aparta lo de otra cuenta antes de leer, no muestra lo de la otra si no pudo y solo confía en la copia en memoria si el texto guardado no cambió');
- assert.ok(h.includes("if(SYNC&&!SYNC.isolate()){ST=null;toast('No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}"),'write no escribe si no se pudo apartar lo de la otra cuenta y suelta la copia en memoria');
+ assert.ok(h.includes("if(SYNC&&!SYNC.isolate()){ST=null;toast(SYNC.switching&&SYNC.switching()?'Cambiando de cuenta en este teléfono. Espera unos segundos e intenta otra vez.':'No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.');return false}"),/* LHB-105: mientras el cambio de cuenta espera el candado, el aviso lo dice */'write no escribe si no se pudo apartar lo de la otra cuenta y suelta la copia en memoria');
  assert.ok(h.includes("if(SYNC&&!quiet&&!SYNC.ensureOwner()){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}")&&h.includes("STRAW=txt}catch(e){ST=null;toast('No hay espacio para guardar. Exporta un respaldo.');return false}"),'una escritura rechazada suelta la copia en memoria, que ya traía el cambio rechazado');
  assert.ok(read('sync.js').includes('if(inIso)return true;'),'aislar dentro de aislar se corta (write llama a isolate y isolate escribe por setDoc)');
  assert.ok(h.includes("s.migrado=(f||r)?'v5':'nuevo';write(s,true);return s}"),'la copia nueva o dañada que la app crea sola no cuenta como un cambio de la persona');
@@ -3445,7 +3454,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja 
 });
 test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v166'/);
+ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v168'/);
  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
@@ -5532,7 +5541,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
- assert.match(read('sw.js'),/const VERSION='lhb-v166'/);
+ assert.match(read('sw.js'),/const VERSION='lhb-v168'/);
 });
 /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
 function DOM64(){
@@ -7498,6 +7507,172 @@ test('LHB-80 (Codex r7): otra pestaña cambió la época mientras este cambio de
   A.st.acct=A.st.user='user_a';await A.eng.settled({});
   const s=srv28(a,'user_a').doc;assert.equal(s.humidor.length,1);assert.equal(s.diario.length,1);assert.ok(s.favs.artesanos.includes('a1'),'la cuenta sigue entera');
  }finally{a.done()}});
+/* LHB-105: el cambio de cuenta corre con el candado de las pasadas (D.lock). LOCK105 es un candado exclusivo de mentira, en fila como Web Locks;
+   dos motores sobre el mismo D son dos pestañas con la misma sesión. until espera a que algo se cumpla (las promesas del candado van solas) */
+const LOCK105=()=>{let tail=Promise.resolve();return f=>{const p=tail.then(()=>f());tail=p.then(()=>{},()=>{});return p}};
+const until105=async f=>{for(let i=0;i<500&&!f();i++)await new Promise(r=>setTimeout(r,2))};
+const TABS105=async()=>{const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));
+ const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();A.D.lock=LOCK105();A.D.locks=true;
+ const Y=SYNC28().LHB_SYNC(A.D);
+ return {a,A,Y,owner:()=>A.ls.get('lhb_mihoja_v1_owner'),parked:()=>[...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_de_'))}};
+test('LHB-105: el cambio de cuenta espera el candado: la pasada de otra pestaña termina con la copia de A, y luego el cambio la aparta y deja la de B vacía',async()=>{
+ const {a,A,Y,owner,parked}=await TABS105();
+ try{
+  assert.equal(srv28(a,'user_a').rev,1);
+  A.edit(d=>{d.humidor.push({id:'h2',nombre:'Nuevo',cantidad:1})});
+  /* la pasada de A se queda a mitad de su subida, con el candado en la mano */
+  let go;const paused=new Promise(r=>{A.net.beforePut=()=>new Promise(res=>{go=res;r()})});
+  const p=A.eng.run('prueba');await paused;
+  /* la cuenta de la app pasa a B y la otra pestaña abre Mi Hoja */
+  A.st.acct='user_b';
+  const raw=A.ls.get(A.KEY),ep=A.ls.get(A.KEY+'_epoca');
+  assert.equal(Y.isolate(),false,'no cambia mientras una pasada tiene el candado');assert.equal(Y.switching(),true,'el cambio espera su turno');
+  await new Promise(r=>setTimeout(r,10));
+  assert.equal(A.ls.get(A.KEY),raw,'la copia no se tocó');assert.equal(owner(),'user_a','la dueña tampoco');assert.equal(A.ls.get(A.KEY+'_epoca'),ep,'ni la época');
+  go();await p;A.st.user='user_b';await until105(()=>!Y.switching());
+  assert.equal(owner(),'user_b','el cambio terminó después de la pasada');
+  assert.deepEqual(A.X.strip(A.doc()).humidor,[],'la copia de B está vacía');
+  assert.equal(parked().length,1,'lo de A quedó apartado una vez');
+  assert.ok(JSON.parse(A.ls.get(parked()[0])).humidor.some(x=>x.id==='h2'),'con lo último que escribió A');
+  assert.ok(A.st.applied>0,'la pantalla se vuelve a pintar');
+  assert.equal((await A.sync()).ok,true,'B sincroniza');
+  const b=srv28(a,'user_b');assert.ok(!b||!(b.doc.humidor||[]).length&&!(b.doc.favs&&b.doc.favs.artesanos||[]).length,'nada de A en la cuenta de B');
+ }finally{a.done()}});
+test('LHB-105: una pasada que pide el candado después del cambio ya ve la copia de B: no sube nada de A a ninguna cuenta',async()=>{
+ const {a,A,Y,owner,parked}=await TABS105();
+ try{
+  /* otra cosa tiene el candado; mientras, la cuenta pasa a B, esta pestaña pide el cambio y la otra pide una pasada, en ese orden */
+  let free;const hold=A.D.lock(()=>new Promise(r=>{free=r}));
+  A.st.acct=A.st.user='user_b';const p0=A.net.log.filter(m=>m==='PUT').length;
+  assert.equal(A.eng.isolate(),false);const run=Y.run('prueba');
+  await new Promise(r=>setTimeout(r,10));assert.equal(owner(),'user_a','nada cambia mientras el candado está tomado');
+  free();await hold;await run;await until105(()=>!A.eng.switching());
+  assert.equal(owner(),'user_b');assert.equal(parked().length,1);
+  assert.equal(srv28(a,'user_a').rev,1,'la cuenta de A no cambió');
+  const b=srv28(a,'user_b');assert.ok(!b||!(b.doc.humidor||[]).length&&!(b.doc.favs&&b.doc.favs.artesanos||[]).length,'nada de A en la cuenta de B');
+  assert.ok(A.net.log.filter(m=>m==='PUT').length>=p0);
+ }finally{a.done()}});
+test('LHB-105: dos pestañas piden el cambio a la vez: uno cambia y aparta, el otro ya encuentra la copia de B',async()=>{
+ const {a,A,Y,owner,parked}=await TABS105();
+ try{
+  A.st.acct=A.st.user='user_b';const ep=A.ls.get(A.KEY+'_epoca');
+  assert.equal(A.eng.isolate(),false);assert.equal(Y.isolate(),false);
+  await until105(()=>!A.eng.switching()&&!Y.switching());
+  assert.equal(owner(),'user_b');assert.equal(parked().length,1,'apartado una sola vez');assert.notEqual(A.ls.get(A.KEY+'_epoca'),ep);
+  assert.equal(A.eng.isolate(),true);assert.equal(Y.isolate(),true);
+ }finally{a.done()}});
+test('LHB-105: una pestaña que abre Mi Hoja varias veces mientras el cambio espera pide un solo cambio',async()=>{
+ const {a,A,owner}=await TABS105();
+ try{
+  let free;const hold=A.D.lock(()=>new Promise(r=>{free=r}));
+  A.st.acct=A.st.user='user_b';const n=A.st.applied;let calls=0;const L=A.D.lock;A.D.lock=f=>{calls++;return L(f)};
+  for(let i=0;i<3;i++)assert.equal(A.eng.isolate(),false);
+  await new Promise(r=>setTimeout(r,10));assert.equal(calls,1,'un solo pedido del candado');
+  free();await hold;await until105(()=>!A.eng.switching());
+  assert.equal(owner(),'user_b');assert.equal(A.st.applied,n+1,'pinta una vez');
+ }finally{a.done()}});
+test('LHB-105 (Codex r6): una pasada que encuentra la copia de otra cuenta no cambia en medio: termina, y el cambio corre después con los candados (sin esperarse a sí misma)',async()=>{
+ const {a,A,owner}=await TABS105();
+ try{
+  A.st.acct=A.st.user='user_b';
+  const r=await Promise.race([A.sync(),new Promise(r=>setTimeout(()=>r('colgada'),1500))]);
+  assert.notEqual(r,'colgada','la pasada no se queda esperando su propio candado');assert.notEqual(r.ok,true,'la pasada no sigue con la copia de A');
+  await until105(()=>!A.eng.switching());assert.equal(owner(),'user_b','el cambio corrió después');
+  assert.equal((await A.sync()).ok,true,'y la pasada siguiente es de B');
+ }finally{a.done()}});
+test('LHB-105: sin Web Locks el cambio es como antes, en el momento',async()=>{
+ const {a,A,owner}=await TABS105();
+ try{
+  A.D.locks=false;A.st.acct=A.st.user='user_b';
+  assert.equal(A.eng.isolate(),true);assert.equal(owner(),'user_b');assert.equal(A.eng.switching(),false);
+ }finally{a.done()}});
+test('LHB-105: si el cambio falla (sin espacio) no se vuelve a pintar la pantalla sola; la vez siguiente que se abre Mi Hoja se intenta otra vez',async()=>{
+ const {a,A,owner}=await TABS105();
+ try{
+  A.st.acct=A.st.user='user_b';A.st.failSet=true;const n=A.st.applied;
+  assert.equal(A.eng.isolate(),false);await until105(()=>!A.eng.switching());
+  assert.equal(owner(),'user_a','no cambió');assert.equal(A.st.applied,n,'no pinta otra vez (no pediría el cambio una y otra vez)');
+  A.st.failSet=false;assert.equal(A.eng.isolate(),false);await until105(()=>!A.eng.switching());
+  assert.equal(owner(),'user_b');assert.equal(A.st.applied,n+1);
+ }finally{a.done()}});
+test('LHB-105: hoja.js le dice a sync.js si hay Web Locks, y mientras el cambio espera, escribir avisa que se está cambiando de cuenta (en los dos idiomas)',()=>{
+ const h=read('hoja.js');
+ assert.ok(h.includes("locks:typeof navigator!=='undefined'&&!!navigator.locks&&typeof navigator.locks.request==='function',switchLock:f=>wlSwitch(f),"));
+ assert.ok(h.includes("e.key==='lhb_mihoja_v1_cambiando'&&e.newValue)wlYield();"),'otra pestaña suelta su compartido al ver un cambio de cuenta');
+ assert.ok(h.includes('function wlClosed(){const w=WLS;return !!(w&&w.lm)&&!w.have&&!w.sw}'),'con el exclusivo del cambio, esta pestaña escribe');
+ assert.ok(h.includes("toast(SYNC.switching&&SYNC.switching()?tt('h.cambiandoCuenta'):tt('h.noSePudoSeparar'))"));
+ const I=I18N();assert.ok(I.T.es['h.cambiandoCuenta']);assert.ok(I.T.en['h.cambiandoCuenta']);
+ assert.ok(!/tabLock|tabsHeld|_cambio\.|_pestana\./.test(h+read('sync.js')),'nada queda de las anotaciones de antes');
+});
+test('LHB-105 (Codex r6): otra pestaña está a mitad de escribir cuando esta, con una pasada en curso, pide el cambio de cuenta: la escritura termina con la copia de A, el cambio espera el exclusivo y la aparta, y nada de A llega a B',async()=>{
+ const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));const dev=DEV28(a,'user_a');try{
+  dev.seed(DOC28);await dev.sync();
+  const L=LOCKS98();
+  /* lo que tiene el candado de escribir en el momento en que el cambio vacía la copia */
+  const sd=dev.D.setDoc;let atClear=null;dev.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length&&atClear===null)atClear=L.held.map(h=>h.mode);return sd(d,...r)};
+  const X=TAB98(dev,L,{sw:true}),Y=TAB98(dev,L,{sw:true});
+  /* el aviso del cambio le llega a la otra pestaña como un aviso storage */
+  const set0=dev.ls.set.bind(dev.ls);dev.ls.set=(k,v)=>{set0(k,v);if(k==='lhb_mihoja_v1_cambiando')Y.tell({key:k,newValue:String(v)});return dev.ls};
+  await tick98();
+  /* X tiene una pasada con el candado de las pasadas, esperando el GET */
+  let go;const paused=new Promise(r=>{dev.net.beforeGet=()=>new Promise(res=>{go=res;r()})});
+  const pass=X.eng.run('prueba');await paused;
+  /* Y escribe; a mitad de su escritura la cuenta pasa a B y la pantalla de X pide el cambio */
+  const get=dev.ls.get.bind(dev.ls);let hooked=false,xr=null;
+  dev.ls.get=k=>{if(!hooked&&k==='lhb_mihoja_v1'){hooked=true;dev.st.acct=dev.st.user='user_b';xr=X.eng.isolate()}return get(k)};
+  const doc=JSON.parse(get('lhb_mihoja_v1'));doc.humidor.push({id:'old_A_edit',marca:'De A',actualizado:'2026-10-30'});
+  const ok=Y.X.write(doc);dev.ls.get=get;
+  assert.equal(hooked,true,'la escritura pasó por la lectura');
+  assert.equal(xr,false,'X no cambia en medio de la escritura de Y: pide el cambio y espera');
+  assert.equal(ok,true,'la escritura de Y termina');assert.equal(get('lhb_mihoja_v1_owner'),'user_a','con la copia todavía de A');
+  go();await pass;await tick98(80);await until105(()=>!X.eng.switching());await tick98(40);
+  assert.equal(get('lhb_mihoja_v1_owner'),'user_b','el cambio terminó');
+  assert.deepEqual(atClear,['exclusive'],'al vaciar, solo el cambio tiene el candado de escribir: ninguna pestaña puede estar a mitad de una escritura');
+  assert.deepEqual(hid28(dev.doc()),[],'la copia de B está vacía');
+  const parked=[...dev.ls.keys()].filter(k=>k.startsWith('lhb_mihoja_v1_de_'));assert.equal(parked.length,1);
+  assert.ok(JSON.parse(get(parked[0])).humidor.some(x=>x.id==='old_A_edit'),'lo de A, con la escritura de Y, quedó apartado');
+  await X.eng.run('b');await tick98(40);
+  const b=srv28(a,'user_b');assert.ok(!b||!(b.doc.humidor||[]).some(x=>x.id==='old_A_edit'||x.id==='h1'),'nada de A en la cuenta de B');
+  assert.ok(!L.held.some(h=>h.mode==='exclusive'),'el exclusivo se soltó');
+ }finally{a.done()}});
+/* Codex r7: dos pestañas con el cambio de cuenta (sw), los avisos del cambio pasan por set98 (o.sync: llegan en el acto, sin esperar una tarea;
+   o.dedup: como el navegador, no hay aviso si el valor no cambió; o.fails: escribir el aviso falla) */
+const SW105=async o=>{o=o||{};const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));const dev=DEV28(a,'user_a');
+ dev.seed(DOC28);await dev.sync();
+ const L=LOCKS98(),timers=[];const X=TAB98(dev,L,{sw:true,timers,clock:o.clock}),Y=TAB98(dev,L,{sw:true,clock:o.clock});
+ const set0=dev.ls.set.bind(dev.ls);const s={fails:!!o.fails,notes:0};
+ dev.ls.set=(k,v)=>{if(k==='lhb_mihoja_v1_cambiando'){if(s.fails)throw new Error('QuotaExceededError');const old=dev.ls.has(k)?dev.ls.get(k):null;set0(k,v);
+   if(o.dedup&&old===String(v))return dev.ls;s.notes++;const e={key:k,newValue:String(v)};if(o.sync)Y.hear(e);else Y.tell(e);return dev.ls}
+  set0(k,v);return dev.ls};
+ await tick98();
+ const owner=()=>dev.ls.has('lhb_mihoja_v1_owner')?dev.ls.get('lhb_mihoja_v1_owner'):null;
+ const to=async u=>{dev.st.acct=dev.st.user=u;X.eng.isolate();await until105(()=>!X.eng.switching());await tick98(20)};
+ return {a,dev,L,X,Y,timers,s,owner,to}};
+test('LHB-105 (Codex r7-1): la otra pestaña oye el aviso del cambio antes de que este pida el exclusivo: suelta y vuelve a pedir su compartido detrás del exclusivo, y el cambio termina',async()=>{
+ const t=await SW105({sync:true});try{
+  assert.ok(t.L.held.some(h=>h.mode==='shared'),'la otra pestaña tiene su compartido');
+  await t.to('user_b');
+  assert.equal(t.X.eng.switching(),false,'el cambio no se quedó esperando');assert.equal(t.owner(),'user_b','el cambio terminó');
+  assert.ok(!t.L.held.some(h=>h.mode==='exclusive')&&!t.L.queue.length,'el exclusivo se soltó y no queda nada en cola');
+ }finally{t.a.done()}});
+test('LHB-105 (Codex r7-2): si no se puede escribir el aviso del cambio y otra pestaña no suelta su compartido, el cambio se rinde a los WL_WAIT, no aparta nada, y se puede volver a intentar',async()=>{
+ const t=await SW105({fails:true});try{
+  t.dev.st.acct=t.dev.st.user='user_b';assert.equal(t.X.eng.isolate(),false);await tick98(20);
+  assert.equal(t.X.eng.switching(),true,'el cambio espera el exclusivo');
+  const fire=t.timers.filter(f=>f);assert.ok(fire.length>0,'el cambio puso su tiempo de espera');for(const f of fire)f();
+  await until105(()=>!t.X.eng.switching());await tick98(20);
+  assert.equal(t.X.eng.switching(),false,'el cambio no se queda colgado');assert.equal(t.owner(),'user_a','no cambió ni apartó nada');
+  assert.ok(!t.L.queue.some(r=>r.mode==='exclusive'),'el exclusivo dejó de pedirse');
+  t.s.fails=false;t.X.eng.isolate();await until105(()=>!t.X.eng.switching());await tick98(20);
+  assert.equal(t.owner(),'user_b','el segundo intento sí cambió');
+ }finally{t.a.done()}});
+test('LHB-105 (Codex r7-3): dos cambios en el mismo milisegundo: cada aviso lleva su propio valor, así la otra pestaña oye los dos y el segundo cambio no se queda esperando',async()=>{
+ const t=await SW105({dedup:true,clock:1761800000000});try{
+  await t.to('user_b');assert.equal(t.owner(),'user_b');
+  await t.to('user_c');
+  assert.equal(t.s.notes,2,'la otra pestaña oyó los dos avisos');
+  assert.equal(t.X.eng.switching(),false,'el segundo cambio no se quedó esperando');assert.equal(t.owner(),'user_c');
+ }finally{t.a.done()}});
 for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
                            ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
 test('LHB-80 (Codex r8): el cambio de cuenta falla antes de tocar la copia y volver a la época de antes también falla ('+como+'): se reintenta antes de sincronizar y el borrado sigue',async()=>{
@@ -8795,15 +8970,15 @@ function TAB98(dev,locks,o){o=o||{};const vm=require('vm');const src=read('hoja.
  const i=src.indexOf('var WLS=null'),j=src.indexOf('\nwlInit();',i);const gate=i>=0&&j>i?src.slice(i,j)+'\nwlInit();\n':'';
  const lst=(src.match(/^window\.addEventListener\('storage',e=>\{if\(e\.key==='lhb_mihoja_v1_saliendo'[\s\S]*?\}\}\);$/m)||[''])[0];
  const toasts=[],listeners=[];let eng=null;
- const ctx={...TT(),KEY:'lhb_mihoja_v1',PEND:[],toast:m=>toasts.push(m),navigator:{locks},AbortController,setTimeout:()=>0,clearTimeout:()=>{},location:{assign:()=>{}},
+ const ctx={...TT(),KEY:'lhb_mihoja_v1',PEND:[],toast:m=>toasts.push(m),navigator:{locks},AbortController,setTimeout:o.timers?(f=>o.timers.push(f)):()=>0,clearTimeout:o.timers?(i=>{if(i>0)o.timers[i-1]=null}):()=>{},...(o.clock?{Date:class extends Date{static now(){return o.clock}}}:{}),location:{assign:()=>{}},
   localStorage:{getItem:k=>dev.ls.has(k)?dev.ls.get(k):null,setItem:(k,v)=>dev.ls.set(k,String(v))},window:{addEventListener:(t,f)=>listeners.push([t,f])}};
- eng=SYNC28().LHB_SYNC({...dev.D,closed:()=>!!ctx.X.wlClosed&&ctx.X.wlClosed()});ctx.SYNC=eng;
- vm.createContext(ctx);vm.runInContext('let ST=null,STRAW=null;'+wline+';'+gate+lst+';this.X={write,wlClosed:typeof wlClosed==="function"?wlClosed:null}',ctx);
+ eng=SYNC28().LHB_SYNC({...dev.D,closed:()=>!!ctx.X.wlClosed&&ctx.X.wlClosed(),...(o.sw?{locks:true,lock:f=>locks.request('lhb_mihoja_sync',f),switchLock:f=>ctx.X.wlSwitch(f)}:{})});ctx.SYNC=eng;
+ vm.createContext(ctx);vm.runInContext('let ST=null,STRAW=null;'+wline+';'+gate+lst+';this.X={write,wlClosed:typeof wlClosed==="function"?wlClosed:null,wlSwitch:typeof wlSwitch==="function"?wlSwitch:null}',ctx);
  let asleep=!!o.suspend;const waiting=[];
  const deliver=e=>{for(const [t,f] of listeners)if(t==='storage')f(e)};
  /* la otra pestaña escribe la valla: el aviso le llega a esta como una tarea, o espera si está dormida */
  const tell=e=>{if(asleep)waiting.push(e);else setImmediate(()=>deliver(e))};
- return {X:ctx.X,toasts,eng,tell,resume:()=>{if(!asleep)return false;asleep=false;for(const e of waiting.splice(0))deliver(e);return true}}}
+ return {X:ctx.X,toasts,eng,tell,hear:deliver,resume:()=>{if(!asleep)return false;asleep=false;for(const e of waiting.splice(0))deliver(e);return true}}}
 /* la valla que pone la pestaña que sale le llega a la otra como un aviso storage */
 const FENCE98=(dev,tab)=>{const set=dev.D.ls.set;dev.D.ls.set=(k,v)=>{set(k,v);if(k==='lhb_mihoja_v1_saliendo')tab.tell({key:k,newValue:String(v)})}};
 const tick98=async(n)=>{for(let i=0;i<(n||30);i++)await new Promise(r=>setImmediate(r))};

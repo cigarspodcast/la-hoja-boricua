@@ -60,7 +60,8 @@ function goLink(p){const m=mapsLinks(p);return isIOS?m.apple:m.google}
 const toast=(m)=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2200)};
 const FORT=['suave','media','fuerte'];
 const fortLabel=f=>f?tt('fort.'+f,null,f[0].toUpperCase()+f.slice(1)):'\u2014';
-const PROTO_NOTE=`<p class="note">${tt('proto.note')}</p>`;
+/* LHB-117 (LHB-16, el dueño 2026-10-30): la nota que decía que era un prototipo se quitó; PROTO_NOTE queda vacía donde se pintaba */
+const PROTO_NOTE='';
 const head=(eyebrow,title,lead,art)=>`<header class="sec-head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${lead?`<p class="lead">${lead}</p>`:''}</div><div class="sec-art">${art}</div></header>`;
 const emptyBox=msg=>`<div class="empty"><div>${msg}</div></div>`;
 /* ---------- cards ---------- */
@@ -294,7 +295,7 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
  <button class="btn" type="submit">${tt('pf.save')}</button></form></details>
  <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyBox(tt('pf.noUploads'))}
  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--accent-ink);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
- ${EXT.accountPanel()}<p class="note">${tt('pf.note')}</p>`;
+ ${EXT.accountPanel()}`;
  if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));EXT.bindAccount();
  /* LHB-58: el perfil pasaporte primero (bio, marca, conteos, Editar perfil y las pestañas) lo pone hoja.js en #pfOwn */
  if(ac)EXT.profileOwn(ac);

@@ -4,8 +4,6 @@
 (function(w){'use strict';
 const ENABLED=true;
 const T={es:{
- "proto.note": "<b>Prototipo</b> \u2014 información pública, sujeta a verificación.",
- "pf.note": "<b>Prototipo</b> \u2014 información pública, sujeta a verificación. Tus datos se guardan solo en este teléfono.",
  "sil.alt": "{n}, sin foto todavía",
  "card.photoAlt": "Foto del cigarro {n}",
  "card.fav": "Favorito",
@@ -226,6 +224,7 @@ const T={es:{
  "h.noPudeCrearLa": "No pude crear la imagen.",
  "h.costoPreguntaAlOrganizador": "Costo: pregunta al organizador",
  "h.noSePudoSeparar": "No se pudo separar lo de la otra cuenta. Libera espacio y vuelve a entrar.",
+ "h.cambiandoCuenta": "Cambiando de cuenta en este teléfono. Espera unos segundos e intenta otra vez.",
  "h.noHayEspacioPara": "No hay espacio para guardar. Exporta un respaldo.",
  "h.sellado": "Sellado",
  "h.sellarPasaporte": "Sellar pasaporte",
@@ -670,7 +669,6 @@ const T={es:{
  "h.sugerenciaGuardada": "Sugerencia guardada",
  "h.fotoDeLaLinea": " · Foto de la línea",
  "h.enVerificacion": "En verificación",
- "h.prototipoInformacionPublicaSujeta": "Prototipo \u2014 información pública, sujeta a verificación",
  "h.compartirFicha": "Compartir ficha",
  "h.preparandoLaImagen": "Preparando la imagen…",
  "h.descargarPng": "Descargar PNG",
@@ -829,8 +827,6 @@ const T={es:{
  "ix.plus": "Nueva cata, añadir al humidor o subir cigarro"
  },
 en:{
- "proto.note": "<b>Prototype</b> \u2014 public information, subject to verification.",
- "pf.note": "<b>Prototype</b> \u2014 public information, subject to verification. Your data is stored only on this phone.",
  "sil.alt": "{n}, no photo yet",
  "card.photoAlt": "Photo of the cigar {n}",
  "card.fav": "Favorite",
@@ -1051,6 +1047,7 @@ en:{
  "h.noPudeCrearLa": "I could not create the image.",
  "h.costoPreguntaAlOrganizador": "Cost: ask the organizer",
  "h.noSePudoSeparar": "Could not set aside the other account's data. Free up space and sign in again.",
+ "h.cambiandoCuenta": "Switching accounts on this phone. Wait a few seconds and try again.",
  "h.noHayEspacioPara": "No space left to save. Export a backup.",
  "h.sellado": "Stamped",
  "h.sellarPasaporte": "Stamp passport",
@@ -1495,7 +1492,6 @@ en:{
  "h.sugerenciaGuardada": "Suggestion saved",
  "h.fotoDeLaLinea": " · Photo of the line",
  "h.enVerificacion": "Being verified",
- "h.prototipoInformacionPublicaSujeta": "Prototype: public information, subject to verification",
  "h.compartirFicha": "Share card",
  "h.preparandoLaImagen": "Preparing the image…",
  "h.descargarPng": "Download PNG",

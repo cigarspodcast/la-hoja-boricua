@@ -4,8 +4,6 @@ App web (PWA) sobre el tabaco artesanal puertorriqueño: artesanos, cigarros hec
 
 **En vivo:** https://lahojaboricua.com
 
-> Prototipo: información pública, sujeta a verificación.
-
 ## Estructura
 
 - `data/`: los datos fuente en JSON (`artesanos.json`, `cigarros.json`, `places.json`, `events.json`). No se publican; aquí es donde se editan.

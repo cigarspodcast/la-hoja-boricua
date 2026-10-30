@@ -1,0 +1,27 @@
+✖ LHB-117 (LHB-16, el dueño 2026-10-30): la nota de Prototipo ya no sale en la app, en la tarjeta para compartir ni en el README (llms.txt no es la nota y se queda) (16.2478ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 433.9748
+
+✖ failing tests:
+
+test at test\site.test.js:32:1
+✖ LHB-117 (LHB-16, el dueño 2026-10-30): la nota de Prototipo ya no sale en la app, en la tarjeta para compartir ni en el README (llms.txt no es la nota y se queda) (16.2478ms)
+  AssertionError [ERR_ASSERTION]: i18n.js todavía trae la nota
+      at TestContext.<anonymous> (C:\LHB\lhb-117-wt\test\site.test.js:35:30)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

@@ -1,0 +1,560 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\lhb-105-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18c97-f969-7141-a7f2-f3f87557ff9e
+--------
+user
+You are reviewing one ticket in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages, D1 behind Pages Functions). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-105-wt (branch lhb-105-switch, cut from main bfdfeae, which carries LHB-80, LHB-98 and LHB-104). TIER 2, round 3.
+
+Ticket LHB-105: a pass started in another tab during an account switch survives the copy change. Found by you on LHB-80 round 6 (evidence/lhb-80-review-r6.txt, finding 1): isolate() writes the copy's new epoch, then parks and clears the copy and sets the new owner, all outside the sync lock. A pass that starts in another tab after the epoch write and before the clear captures the new epoch, stays alive() across the clear, reads the clear as deletions and uploads empty collections.
+Done-when: no pass that starts during a switch writes the copy or uploads, in a two-engine test, and the switch still completes. Proof: that test seen red before the fix; the full node suite with 0 fail.
+
+Reproduced on main, before the fix (evidence/lhb-105-red-main.txt): two engines share one storage, as two tabs. The other tab (Y) starts isolating to B and stops halfway: in the test the clear throws, after everything isolate writes before the clear. The shared account returns to A and this tab's pass starts; while its GET is held, the other tab clears the copy and stops before setOwner. Measured on main: the pass returns ok with pushed true at rev 2, and the server copy of A is empty (humidor []), which is your measured wipe.
+
+The fix (site/sync.js only):
+- isolate() writes a switch mark before it touches the epoch: one key per tab, lhb_mihoja_v1_cambio.<tab>, value {v:1,t:<nowMs>}, where <tab> is 10 random characters fixed per engine. The body that was isolate() is now iso1(), unchanged. After iso1 returns (true or false), isolate removes its own key. If the mark cannot be written, isolate returns false and nothing else is touched. If iso1 throws, the key stays and lapses after SWITCH_TTL (30 s), which models a tab that closed mid-switch.
+- switching() scans the keys with that prefix and is true while any well-formed mark is within SWITCH_TTL of now (either direction). A read that throws propagates, and once() turns it into fail 'storage', as the other storage reads there do.
+- once0() checks switching() right after it reads ep0, and returns fail 'switching' (retried by run()'s backoff) while a mark is fresh.
+- alive() is unchanged. Reasoning: the mark is written before the new epoch, and the pass checks the mark after it reads ep0. So a pass either read the new epoch (the mark was already there, so it does not start, unless the switch already ended, when the copy and owner are consistent) or read the old one (the new epoch kills it at its next alive()). A pass alive before the switch began is already stopped by the epoch, as on main.
+- Contract impact: a new localStorage key family, lhb_mihoja_v1_cambio.<tab>, with a version field v:1. Nothing else reads keys under that prefix (hoja.js reads only lhb_mihoja_v1_de_*, the owner and the exit fence).
+
+Tests (three added, named LHB-105):
+1. Your interleaving as above. With the fix: the pass does not succeed, and neither do its retries while the other tab is halfway. No PUT, the copy is not written by this tab (setDocs unchanged), and A's account stays at rev 1, whole. Then the other tab completes its switch to B: the owner is B, no switch mark is left, B syncs ok, and nothing of A reaches B's account.
+2. A switch whose mark cannot be written (storage refuses the prefix): isolate returns false, and the owner, copy and epoch are unchanged, with nothing parked.
+3. A tab that closed mid-switch: past SWITCH_TTL, the next pass runs and A's account stays whole.
+Evidence: evidence/lhb-105-mutations.out, evidence/lhb-105-tests.txt (tallies in the commit message; your sandbox's LHB-44, LHB-45 and LHB-73 failures are Python and temporary-directory denials).
+
+Round 1 (evidence/lhb-105-review-r1.txt) blocked on three; all fixed in round 2 (site/sync.js and two lines of site/hoja.js):
+- R1-1 (P1): a tab asleep mid-switch past the 30 s lapse could resume and clear under an epoch a new pass had captured. A mark now counts while it is recent OR while its tab is alive: every engine takes a Web Lock named lhb_mihoja_v1_pestana.<tab> for its life (hoja.js: D.tabLock requests it with a promise that never settles; D.tabsHeld returns the names navigator.locks.query() reports held, or is null without Web Locks). switching() is now async: with tabsHeld, a mark whose tab lock is held counts at any age; a mark that is neither recent nor held is a closed tab's, and it is removed. Without Web Locks, only recent marks count (the round 1 behaviour). And a switch that wakes after another tab switched does not go on: iso1() checks right before the clear, and again before setOwner, that the epoch is still the one it wrote; if not, it returns false and leaves the copy alone.
+- R1-2 (P2): once0() now removes its own leftover mark, then awaits switching() BEFORE it calls isolate(), so a pass never switches the copy while another tab is mid-switch; it checks again after reading ep0, as before. isolate() itself (which hoja.js calls before reading or writing Mi Hoja) refuses while another tab has a recent mark, so opening Mi Hoja does not switch the copy either.
+- R1-3 (P3): a mark that could not be removed is kept as unmark and removed before this tab's next switch or next pass. A tab ignores its own mark (marks() skips its own key), so its own passes are not held back; other tabs wait until it is gone.
+Six tests added (named LHB-105 (Codex r1)); on the round 1 code (evidence/lhb-105-r1-red-before.txt) 9 tests, 4 pass, 5 fail, the five new behaviours below; the sixth (a switch that begins exactly when the pass reads its epoch, injected at that read) guards the check after the epoch read, which round 1 already had: your R1-1 sequence with a live tab past the lapse (no PUT, no copy write, A whole; then the tab closes, the mark is removed and the pass runs); your R1-2 sequence (the pass and a direct isolate() both leave the copy and owner as they were; the other tab then completes and the pass runs); your R1-3 removal failure (the other tab waits; the switching tab's next pass removes its mark; the other tab then runs); a switch asleep after parking while, past the lapse, a third tab switches to C and C writes, after which the first switch wakes and returns false with C's copy intact; a pass of another account while a live tab sleeps mid-switch past the lapse (the copy and owner stay); and the epoch-read injection. Six mutants added for these (evidence/lhb-105-mutations.py, 11 in all).
+
+Round 2 (evidence/lhb-105-review-r2.txt) blocked on three; all fixed in round 3 (site/sync.js only):
+- R2-1 (P1): without Web Locks, an expired mark was dropped while its tab might still be alive, and nothing stopped that tab from resuming its clear. Now the pass that removes a mark whose liveness is unknown (no tabsHeld) first writes a new epoch (once per pass, newEpoch()); if that write fails, the mark counts as live and the pass waits. A tab that wakes after that point finds a different epoch at still() and does not clear. This is the sequence you measured (pause after parking, 31 s, pass, resume during GET): the test acts out what is left of the sleeping switch (its still() check and its clear) at the GET, because one thread cannot resume a call that threw; it expects that check to see another epoch, no PUT, and A whole.
+- R2-2 (P1): isolate() now refuses while any mark is live by the same rule the pass uses, not only a recent one (liveNow): recent, or, with Web Locks, a tab whose lock the last lock query reported held, or ANY mark while no query has answered yet (isolate is synchronous and cannot ask; every engine starts a query at load, and every pass that finds a mark refreshes it). So with locks, Z cannot switch to C while Y sleeps mid-switch past the lapse, so Y cannot later clear C's copy; after Y's tab closes and a pass has queried the locks, Z switches. Tested: Z refuses with Y alive; a fresh Z2 whose lock query never answers refuses; after the lock is released and a pass runs, Z3 succeeds.
+- R2-3 (P2): the mark is removed in a finally block, so a switch that throws removes it too (or sets unmark if removal fails, as before). Tested with an exception at the clear: no mark is left and the other tab syncs.
+Residual, stated rather than fixed: without Web Locks, a tab whose switch passed still() and then stopped for more than 30 s before its setDoc({}) (the next statement) could clear a copy another tab switched in meanwhile. iso1() is synchronous, and browsers freeze or discard tabs between tasks, not inside one, so this needs the OS to stop the renderer mid-task for 30 s. LHB-98's D.lock is also a no-op without Web Locks, so the same browsers already have weaker sync exclusion. With Web Locks the case is closed by R2-2.
+Test model note: in these tests a throw stands for a tab asleep mid-switch. Since the mark is now removed in finally, the helper captures the mark inside the throwing hook and puts it back after the throw, as it was when the tab stopped.
+Three tests added (named LHB-105 (Codex r2)); on the round 2 code (evidence/lhb-105-r2-red-before.txt) 12 tests, 9 pass, 3 fail: exactly the three new ones. Four mutants added (evidence/lhb-105-mutations.py, 15 in all, 15 of 15 red in evidence/lhb-105-mutations.out): the epoch takeover removed; isolate by recent marks only; an unanswered lock query read as no live tab; removal outside finally. Full suite (evidence/lhb-105-tests.txt): tests 468, pass 467, fail 0, skipped 1.
+
+What to look for: an interleaving in which a pass that starts during a switch still writes the copy or uploads; a way the mark blocks sync longer than a switch takes (other than a tab that dies mid-switch, which lapses at 30 s); a failure path of isolate that leaves the mark or loses the LHB-80 guarantees (the epoch put back only while it is still the one written there, the parked copy, the owner); the per-tab key colliding or being removed by another tab; anything in the tests that could pass while the rule is broken. Web Locks across tabs are an option the ticket leaves open, not a requirement. Block only on a defect this branch introduces, or on one within LHB-105's scope that should be fixed before release.
+
+Report each finding with file, symbol, a concrete failing scenario, and whether it blocks. End with exactly one line: VERDICT: PASS or VERDICT: BLOCK.
+
+TOOLS: if your shell fails to start (helper_unknown_error has happened here), use your Node tool (node_repl) with require("fs") and require("child_process") to read files and run commands in the worktree. If no tool works at all, review from the diff embedded below and say which claims you could not run.
+
+===== git diff origin/main 2cd1e599ba806f54c5e1a47e87ba86fd8cf8d23a -- site test functions =====
+diff --git a/site/hoja.js b/site/hoja.js
+index a771317..3d545f3 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -210,6 +210,9 @@ async function api(C,method,path,body,uid,extra,go){const t=await C.session.getT
+    corre la nueva a un índice ya leído, y esta pestaña no la ve */
+ SYNC=window.LHB_SYNC({ls:{get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v),remove:k=>localStorage.removeItem(k),keys:()=>Object.keys(localStorage)},getDoc:()=>{ST=load();STRAW=localStorage.getItem(KEY);return ST},setDoc:(d,exp)=>{if(exp!==undefined&&LHB_MERGE.stable(load())!==exp)return 'stale';ST=normalize(d);return write(ST)},clerk,api,acct:()=>acct.get(),
+  lock:f=>navigator.locks&&navigator.locks.request?navigator.locks.request('lhb_mihoja_sync',f):f(),closed:()=>wlClosed(),
++ /* LHB-105: el candado de esta pestaña mientras vive, y cuáles están tomados (sync.js sabe así si un cambio de cuenta a mitad es de una pestaña viva) */
++ tabLock:n=>{if(typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.request==='function')navigator.locks.request(n,()=>new Promise(()=>{})).catch(()=>{})},
++ tabsHeld:typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.query==='function'?async()=>{const q=await navigator.locks.query();return new Set((q.held||[]).map(l=>l.name))}:null,
+  now:()=>new Date().toISOString(),nowMs:()=>Date.now(),setTimer:(f,ms)=>setTimeout(f,ms),clearTimer:id=>clearTimeout(id),wait:ms=>new Promise(r=>setTimeout(r,ms)),toast,
+  listen:(ev,f)=>{if(ev==='online')window.addEventListener('online',f);else document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')f()})},
+  /* lo que llegó de otro teléfono se ve al momento si la persona está mirando una lista de Mi Hoja y no tiene una hoja abierta */
+diff --git a/site/sync.js b/site/sync.js
+index 78b51a2..2507b40 100644
+--- a/site/sync.js
++++ b/site/sync.js
+@@ -129,6 +129,36 @@ window.LHB_SYNC=function(D){
+  let undo=null;
+  /* Codex r9: la época se lee aquí mismo: si la lectura falla, no se sabe si otra pestaña puso otra, y queda pendiente */
+  const tryUndo=()=>{if(!undo)return true;try{if(D.ls.get(EPOCH)===undo.from){if(typeof undo.to==='string')D.ls.set(EPOCH,undo.to);else D.ls.remove(EPOCH)}undo=null;return true}catch(e){return false}};
++ /* LHB-105: el cambio de cuenta a mitad. isolate() anota que esta pestaña está pasando la copia a otra dueña antes de tocar la época, y lo quita al terminar,
++    salga bien o mal: una llave por pestaña (lhb_mihoja_v1_cambio.<pestaña>, {v:1,t}), que solo quita la pestaña que la puso (si no pudo, lo reintenta antes de su
++    próximo cambio o su próxima pasada). Mientras otra pestaña tenga uno a mitad, ninguna pasada empieza ni cambia la copia de dueña. Una pasada que ya había
++    empezado no hace falta pararla aquí: se anota antes de la época nueva, así que o la pasada vio la anotación, o leyó la época de antes y la época nueva la deja
++    sin vida. Vale la anotación reciente (SWITCH_TTL) y, con Web Locks, la de una pestaña viva aunque lleve rato dormida: cada pestaña tiene su candado
++    (lhb_mihoja_v1_pestana.<pestaña>) mientras vive. La de una pestaña que se cerró a mitad deja de valer al pasar el plazo, y se quita.
++    Codex r2: sin Web Locks no se sabe si la pestaña de una anotación vieja vive; la pasada que la quita pone además una época nueva, así que si esa pestaña
++    vuelve, su cambio ve otra época y no vacía la copia */
++ const SWITCH=KEY+'_cambio.',TABLOCK=KEY+'_pestana.',SWITCH_TTL=30e3,TAB=(Math.random().toString(36).slice(2)+'0000000000').slice(0,10);
++ try{if(D.tabLock)D.tabLock(TABLOCK+TAB)}catch(e){}
++ const swOk=v=>isObj(v)&&v.v===1&&Number.isFinite(v.t);
++ /* las anotaciones de las otras pestañas. Una lectura que lanza sube */
++ const marks=()=>{const out=[];for(const k of D.ls.keys()){if(typeof k!=='string'||k.slice(0,SWITCH.length)!==SWITCH||k===SWITCH+TAB)continue;const raw=D.ls.get(k);if(raw==null)continue;
++   let v;try{v=JSON.parse(raw)}catch(e){continue}if(swOk(v))out.push({k,tab:k.slice(SWITCH.length),t:v.t})}return out};
++ const fresh=m=>Math.abs(D.nowMs()-m.t)<SWITCH_TTL;
++ let unmark=false;const tryUnmark=()=>{if(!unmark)return true;try{D.ls.remove(SWITCH+TAB);unmark=false;return true}catch(e){return false}};
++ /* Codex r2: los candados tomados que vio la última consulta (null: no se sabe todavía). isolate() es síncrona y no puede preguntar: con Web Locks, toma por
++    viva la anotación de una pestaña que estaba viva en la última consulta, o cualquiera si todavía no se sabe */
++ let heldKnown=null;
++ const askHeld=async()=>{let h=null;try{h=await D.tabsHeld()}catch(e){h=null}heldKnown=h;return h};
++ if(D.tabsHeld)askHeld().catch(()=>{});
++ const liveNow=m=>fresh(m)||(!!D.tabsHeld&&(heldKnown===null||heldKnown.has(TABLOCK+m.tab)));
++ /* Codex r1 (LHB-105): una pestaña dormida a mitad del cambio puede volver pasado el plazo; mientras su candado siga tomado, su anotación vale */
++ const switching=async()=>{const ms=marks();if(!ms.length)return false;
++  const held=D.tabsHeld?await askHeld():null;
++  let live=false,gone=false;for(const m of ms){if(fresh(m)||(held&&held.has(TABLOCK+m.tab))){live=true;continue}
++   /* Codex r2: la de una pestaña que no se sabe si vive (sin Web Locks) se quita poniendo antes una época nueva; si no se puede, cuenta como viva */
++   if(!held&&!gone){if(!newEpoch()){live=true;continue}gone=true}
++   try{D.ls.remove(m.k)}catch(e){}}
++  return live};
+  /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
+     que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
+  const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
+@@ -143,7 +173,14 @@ window.LHB_SYNC=function(D){
+  function isolate(){if(inIso)return true;const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
+   const old=ownerOf();if(old===null||old===acc.sub)return true;
+   if(!tryUndo())return false;
+-  inIso=true;try{
++  /* LHB-105: la anotación propia que quedó se quita primero. Codex r1: con el cambio de otra pestaña a mitad (reciente), este no empieza. Luego se anota el
++     propio; si no se puede, la copia queda como está */
++  if(!tryUnmark())return false;
++  let ms;try{ms=marks()}catch(e){return false}if(ms.some(liveNow))return false;
++  const mine=SWITCH+TAB;try{D.ls.set(mine,JSON.stringify({v:1,t:D.nowMs()}))}catch(e){return false}
++  /* Codex r2: la anotación se quita también si el cambio lanza (ya no está a mitad: terminó, mal); si no se puede quitar, se reintenta */
++  inIso=true;try{return iso1(acc,old)}finally{inIso=false;try{D.ls.remove(mine)}catch(e){unmark=true}}}
++ function iso1(acc,old){
+    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
+    /* Codex r10: la época de antes se lee aquí mismo; si la lectura falla, no se sabe a cuál volver y no se toca nada */
+    let e1;try{e1=D.ls.get(EPOCH)}catch(e){return false}
+@@ -154,9 +191,13 @@ window.LHB_SYNC=function(D){
+    const back=()=>{undo={from:e2,to:e1};tryUndo();return false};
+    let raw=null;try{raw=D.ls.get(KEY)}catch(e){}
+    if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return back();try{D.ls.set(k,raw)}catch(e){return back()}}
++   /* LHB-105 (Codex r1): un cambio que se quedó dormido a mitad y vuelve no sigue si otra pestaña ya cambió la época: la copia ya no es la que iba a vaciar */
++   const still=()=>{try{return D.ls.get(EPOCH)===e2}catch(e){return false}};
++   if(!still())return false;
+    applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
+    if(!ok)return back();
+-   return setOwner(acc.sub)}finally{inIso=false}}
++   if(!still())return false;
++   return setOwner(acc.sub)}
+  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
+  /* Codex r11 y r12: una subida que llegó (200) deja de estar anotada en pend; hasta que la base nueva queda en memoria, unrecorded lo dice. Si la pasada termina
+     en ese tramo por cualquier camino (una lectura que lanza, la cuenta o la época que cambian, una lectura de la época que falla), ninguna base de antes vale:
+@@ -194,12 +235,17 @@ window.LHB_SYNC=function(D){
+   let C;try{C=await D.clerk()}catch(e){return {skip:'offline'}}
+   if(!C||!C.user||C.user.id!==acc.sub)return {skip:'other-account'};
+   const uid=acc.sub;
++  /* LHB-105: la anotación propia que quedó se quita. Codex r1: con un cambio de cuenta a mitad en otra pestaña, la pasada no cambia la copia de dueña (se reintenta) */
++  if(!tryUnmark())return {fail:'storage'};
++  if(await switching())return {fail:'switching',at:'start'};
+   if(!isolate())return {fail:'park'};
+   if(!tryUndo())return {fail:'storage'};
+   /* de quién es lo guardado se anota antes de tocar la red: si esta primera pasada falla y luego entra otra cuenta, lo de esta no se sube a la otra */
+   if(ownerOf()===null&&!setOwner(uid))return {fail:'storage'};
+   /* Codex r10: si la época no se puede leer, no se sabe de qué copia es la base guardada: no se sincroniza (se reintenta) */
+   let ep0;try{ep0=D.ls.get(EPOCH)}catch(e){return {fail:'storage'}}
++  /* LHB-105: y después de leer la época, con un cambio de cuenta a mitad en otra pestaña, la pasada no empieza (se reintenta) */
++  if(await switching())return {fail:'switching'};
+   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid&&epochOf()===ep0};
+   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
+   /* Codex r11: una meta que no se puede leer no es una meta que no hay: no se sincroniza (se reintenta) */
+diff --git a/test/site.test.js b/test/site.test.js
+index 89331ac..87cc7b9 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -6432,6 +6432,163 @@ test('LHB-80 (Codex r7): otra pestaña cambió la época mientras este cambio de
+   A.st.acct=A.st.user='user_a';await A.eng.settled({});
+   const s=srv28(a,'user_a').doc;assert.equal(s.humidor.length,1);assert.equal(s.diario.length,1);assert.ok(s.favs.artesanos.includes('a1'),'la cuenta sigue entera');
+  }finally{a.done()}});
++/* LHB-105: dos motores sobre el mismo almacenamiento, como dos pestañas. La otra pestaña (Y) empieza a pasar la copia a otra cuenta y se queda quieta a mitad
++   (aquí, el vaciado lanza: ya escribió lo que escribe antes de vaciar). Una pasada que empieza en ese tramo no vale: ni escribe la copia ni sube nada */
++const SWITCH105=async(o)=>{const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));
++ const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++ /* con o.locks, los candados de Web Locks: cada motor nuevo toma el suyo; held.clear() es la otra pestaña que se cerró */
++ const held=new Set();if(o&&o.locks){A.D.tabLock=n=>held.add(n);A.D.tabsHeld=async()=>new Set(held)}
++ const Y=SYNC28().LHB_SYNC(A.D),sd=A.D.setDoc,PAUSE=new Error('pausa');
++ /* la pestaña dormida no llega al final de isolate: aquí el vaciado lanza, y su anotación se vuelve a poner como estaba en ese momento */
++ let mk=null;A.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length){mk=[...A.ls.entries()].find(([k])=>k.startsWith(A.KEY+'_cambio.'));throw PAUSE}return sd(d,...r)};
++ A.st.acct=A.st.user='user_b';assert.throws(()=>Y.isolate(),e=>e===PAUSE,'la otra pestaña se queda a mitad del cambio');A.D.setDoc=sd;
++ assert.ok(mk,'su anotación estaba');A.ls.set(mk[0],mk[1]);const ep=A.ls.get(A.KEY+'_epoca');
++ A.st.acct=A.st.user='user_a';if(o&&o.advance)A.advance(o.advance);
++ return {a,A,Y,held,ep,puts:()=>A.net.log.filter(m=>m==='PUT').length,marks:()=>[...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_cambio.'))}};
++test('LHB-105: una pasada que empieza en otra pestaña mientras esta cambia de cuenta no escribe la copia ni sube nada, y el cambio termina',async()=>{
++ const {a,A,Y,puts}=await SWITCH105();
++ try{
++  assert.equal(srv28(a,'user_a').rev,1);
++  /* la cuenta compartida volvió a A y esta pestaña empieza su pasada; mientras espera el GET, la otra vacía la copia y se queda antes de anotar la dueña */
++  const p0=puts(),d0=A.st.setDocs;let cleared=false;const clear=()=>{if(!cleared){cleared=true;A.ls.set(A.KEY,'{}')}};
++  A.net.beforeGet=async()=>{clear()};
++  const r=await A.sync();A.net.beforeGet=null;clear();
++  assert.notEqual(r.ok,true,'la pasada no se da por buena');
++  /* y sus reintentos tampoco, mientras la otra pestaña sigue a mitad */
++  await A.fire();
++  assert.equal(puts(),p0,'no subió nada');assert.equal(A.st.setDocs,d0,'no escribió la copia');assert.deepEqual(A.doc(),{},'la copia sigue vacía');
++  const s=srv28(a,'user_a');assert.equal(s.rev,1);assert.equal(s.doc.humidor.length,1);assert.ok(s.doc.favs.artesanos.includes('a1'),'la cuenta de A sigue entera');
++  /* la otra pestaña termina su cambio a B: la copia es de B, sin nada de A, y ya no queda ningún cambio a mitad */
++  A.st.acct=A.st.user='user_b';assert.equal(Y.isolate(),true);
++  assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_b');
++  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_cambio')),[],'ningún cambio de cuenta anotado');
++  assert.equal((await A.sync()).ok,true,'B sincroniza');
++  const b=srv28(a,'user_b');assert.ok(!b||!(b.doc.humidor||[]).length&&!(b.doc.favs&&b.doc.favs.artesanos||[]).length,'nada de A en la cuenta de B');
++  assert.equal(srv28(a,'user_a').rev,1,'ni en la de A cambió nada');
++ }finally{a.done()}});
++test('LHB-105: si no se puede anotar el cambio de cuenta, no se cambia: la copia, la dueña y la época quedan como estaban',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const E=A.KEY+'_epoca',ep=A.ls.get(E),copy=A.ls.get(A.KEY);
++  A.st.acct=A.st.user='user_b';A.st.failPre=A.KEY+'_cambio.';assert.equal(A.eng.isolate(),false);A.st.failPre=null;
++  assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_a');assert.equal(A.ls.get(A.KEY),copy);assert.equal(A.ls.get(E),ep);
++  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_de_')),[],'nada apartado');
++ }finally{a.done()}});
++test('LHB-105: un cambio de cuenta que quedó a mitad porque la pestaña se cerró no detiene la sincronización para siempre',async()=>{
++ const {a,A}=await SWITCH105({advance:31e3});
++ try{
++  assert.equal((await A.sync()).ok,true,'pasado el plazo, la pasada sigue');
++  const s=srv28(a,'user_a');assert.equal(s.doc.humidor.length,1,'y la cuenta sigue entera');
++ }finally{a.done()}});
++test('LHB-105 (Codex r1): una pestaña dormida a mitad del cambio que vuelve pasado el plazo: mientras siga viva (su candado), ninguna pasada empieza; si se cerró, sí',async()=>{
++ const {a,A,held,puts,marks}=await SWITCH105({locks:true,advance:31e3});
++ try{
++  const p0=puts(),d0=A.st.setDocs;
++  A.net.beforeGet=async()=>{A.ls.set(A.KEY,'{}')};
++  const r=await A.sync();A.net.beforeGet=null;
++  assert.notEqual(r.ok,true,'la pestaña sigue viva: no se sincroniza');assert.equal(puts(),p0,'no subió nada');assert.equal(A.st.setDocs,d0,'no escribió la copia');
++  assert.equal(srv28(a,'user_a').doc.humidor.length,1,'la cuenta de A sigue entera');assert.equal(marks().length,1,'su anotación sigue');
++  /* la otra pestaña se cerró: su anotación ya no vale y se quita; la pasada sigue y la cuenta queda entera */
++  held.clear();assert.equal((await A.sync()).ok,true);
++  assert.deepEqual(marks(),[],'la anotación de la pestaña cerrada se quitó');assert.equal(srv28(a,'user_a').doc.humidor.length,1);
++ }finally{a.done()}});
++test('LHB-105 (Codex r1): con el cambio de otra pestaña a mitad, esta no cambia la copia de dueña, ni en una pasada ni al abrir Mi Hoja',async()=>{
++ const {a,A,Y}=await SWITCH105();
++ try{
++  A.st.acct=A.st.user='user_b';const d0=A.st.setDocs,copy=A.ls.get(A.KEY);
++  const r=await A.sync();assert.notEqual(r.ok,true);
++  assert.equal(A.eng.isolate(),false,'abrir Mi Hoja tampoco la cambia');
++  assert.equal(A.st.setDocs,d0,'no escribió la copia');assert.equal(A.ls.get(A.KEY),copy);assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_a','la dueña sigue');
++  assert.equal(Y.isolate(),true,'la otra pestaña termina');assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_b');
++  assert.equal((await A.sync()).ok,true,'y entonces se sincroniza');
++ }finally{a.done()}});
++test('LHB-105 (Codex r1): si la pestaña que cambió de cuenta no pudo quitar su anotación, la quita en su próxima pasada y las demás siguen',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const Y=SYNC28().LHB_SYNC(A.D),rm=A.D.ls.remove;let n=0;
++  A.D.ls.remove=k=>{if(k.startsWith(A.KEY+'_cambio.')&&!n++)throw new Error('SecurityError');return rm(k)};
++  A.st.acct=A.st.user='user_b';assert.equal(Y.isolate(),true);A.D.ls.remove=rm;
++  assert.notEqual((await A.sync()).ok,true,'su anotación sigue: esta espera');
++  assert.equal((await Y.run('prueba')).ok,true,'la suya no la detiene');
++  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_cambio.')),[],'y la quitó');
++  assert.equal((await A.sync()).ok,true,'y esta sigue');
++ }finally{a.done()}});
++test('LHB-105 (Codex r1): un cambio que se quedó dormido a mitad y vuelve después de que otra pestaña cambió de cuenta no vacía la copia nueva',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const Y=SYNC28().LHB_SYNC(A.D),Z=SYNC28().LHB_SYNC(A.D),set=A.D.ls.set;let once=true;
++  const C={...DOC28,humidor:[{id:'hc',marca:'Cata',actualizado:'2026-10-05'}],favs:{artesanos:[],cigarros:[],lugares:[]},ratings:{}};
++  /* Y aparta la copia de A y se duerme; pasado el plazo, Z cambia a C y C escribe lo suyo; luego Y vuelve */
++  A.D.ls.set=(k,v)=>{set(k,v);if(once&&k.startsWith(A.KEY+'_de_')){once=false;A.advance(31e3);A.st.acct=A.st.user='user_c';assert.equal(Z.isolate(),true,'Z cambia a C');A.ls.set(A.KEY,JSON.stringify(C))}};
++  A.st.acct=A.st.user='user_b';assert.equal(Y.isolate(),false,'Y no sigue');A.D.ls.set=set;
++  assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_c');assert.deepEqual(A.doc().humidor.map(x=>x.id),['hc'],'lo de C sigue en la copia');
++ }finally{a.done()}});
++test('LHB-105 (Codex r1): el cambio de otra pestaña empieza justo cuando esta pasada lee la época: la pasada no empieza',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const Y=SYNC28().LHB_SYNC(A.D),sd=A.D.setDoc,get=A.D.ls.get,E=A.KEY+'_epoca',PAUSE=new Error('pausa');let armed=true;
++  /* la pasada ya miró que no hubiera cambios a mitad; al leer su época, la otra pestaña empieza el suyo a B y se queda antes de vaciar */
++  A.D.ls.get=k=>{if(armed&&k===E){armed=false;
++    let mk=null;A.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length){mk=[...A.ls.entries()].find(([x])=>x.startsWith(A.KEY+'_cambio.'));throw PAUSE}return sd(d,...r)};
++    A.st.acct=A.st.user='user_b';assert.throws(()=>Y.isolate(),e=>e===PAUSE);A.D.setDoc=sd;A.ls.set(mk[0],mk[1]);A.st.acct=A.st.user='user_a'}return get(k)};
++  const p0=A.net.log.filter(m=>m==='PUT').length,d0=A.st.setDocs;
++  A.net.beforeGet=async()=>{A.ls.set(A.KEY,'{}')};
++  const r=await A.eng.run('prueba');A.D.ls.get=get;A.net.beforeGet=null;
++  assert.equal(armed,false,'la otra pestaña empezó dentro de la pasada');assert.notEqual(r.ok,true);
++  assert.equal(A.net.log.filter(m=>m==='PUT').length,p0,'no subió nada');assert.equal(A.st.setDocs,d0,'no escribió la copia');
++  assert.equal(srv28(a,'user_a').doc.humidor.length,1,'la cuenta de A sigue entera');
++ }finally{a.done()}});
++test('LHB-105 (Codex r1): con una pestaña viva dormida a mitad del cambio pasado el plazo, una pasada de otra cuenta no cambia la copia de dueña',async()=>{
++ const {a,A}=await SWITCH105({locks:true,advance:31e3});
++ try{
++  A.st.acct=A.st.user='user_b';const d0=A.st.setDocs,copy=A.ls.get(A.KEY);
++  assert.notEqual((await A.sync()).ok,true);
++  assert.equal(A.st.setDocs,d0,'no escribió la copia');assert.equal(A.ls.get(A.KEY),copy);assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_a','la dueña sigue');
++ }finally{a.done()}});
++test('LHB-105 (Codex r2): sin Web Locks, una pestaña dormida a mitad del cambio que vuelve pasado el plazo no vacía la copia: la pasada que quitó su anotación cambió la época',async()=>{
++ const {a,A,ep,puts,marks}=await SWITCH105({advance:31e3});
++ try{
++  const p0=puts();let woke=null;
++  /* la pasada empieza pasado el plazo; mientras espera su GET, la otra pestaña vuelve. Lo que le queda de su cambio es mirar que la época sigue siendo la suya
++     y vaciar la copia (iso1); en un solo hilo no se puede reanudar su llamada, así que aquí se hace lo mismo que haría */
++  A.net.beforeGet=async()=>{woke=A.ls.get(A.KEY+'_epoca')===ep;if(woke)A.ls.set(A.KEY,'{}')};
++  const r=await A.sync();A.net.beforeGet=null;
++  assert.equal(woke,false,'al volver ve otra época y no vacía');assert.equal(puts(),p0,'nada que subir');assert.equal(r.ok,true);
++  const s=srv28(a,'user_a');assert.equal(s.rev,1);assert.equal(s.doc.humidor.length,1,'la cuenta de A sigue entera');assert.equal(A.doc().humidor.length,1,'y la copia también');
++  assert.deepEqual(marks(),[],'ninguna anotación queda');
++ }finally{a.done()}});
++test('LHB-105 (Codex r2): con Web Locks, abrir Mi Hoja en otra cuenta no cambia la copia mientras una pestaña viva duerme a mitad de su cambio, aunque pasó el plazo',async()=>{
++ const {a,A,held}=await SWITCH105({locks:true,advance:31e3});
++ try{
++  const Z=SYNC28().LHB_SYNC(A.D);await new Promise(r=>setTimeout(r,5));
++  A.st.acct=A.st.user='user_c';const copy=A.ls.get(A.KEY);
++  assert.equal(Z.isolate(),false,'la otra pestaña sigue viva');assert.equal(A.ls.get(A.KEY),copy);assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_a');
++  /* recién abierta, antes de saber qué candados hay, tampoco */
++  const Z2=SYNC28().LHB_SYNC({...A.D,tabsHeld:()=>new Promise(()=>{})});assert.equal(Z2.isolate(),false,'sin saber si vive, no se cambia');
++  /* la pestaña dormida se cerró: después de una consulta, sí */
++  held.clear();A.st.acct=A.st.user='user_a';await A.sync();A.st.acct=A.st.user='user_c';
++  const Z3=SYNC28().LHB_SYNC(A.D);await new Promise(r=>setTimeout(r,5));assert.equal(Z3.isolate(),true);assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_c');
++ }finally{a.done()}});
++test('LHB-105 (Codex r2): un cambio de cuenta que lanza a mitad quita su anotación, y las demás pestañas siguen',async()=>{
++ const a=await ENG28();
++ try{
++  a.db.exec(a.mig('0008_mihoja_ops.sql'));
++  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
++  const held=new Set();A.D.tabLock=n=>held.add(n);A.D.tabsHeld=async()=>new Set(held);
++  const Y=SYNC28().LHB_SYNC(A.D),sd=A.D.setDoc,BOOM=new Error('SecurityError');
++  A.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length)throw BOOM;return sd(d,...r)};
++  A.st.acct=A.st.user='user_b';assert.throws(()=>Y.isolate(),e=>e===BOOM);A.D.setDoc=sd;
++  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_cambio.')),[],'la anotación se quitó');
++  A.st.acct=A.st.user='user_a';A.advance(31e3);assert.equal((await A.sync()).ok,true,'la otra pestaña sigue viva y esta igual sincroniza');
++ }finally{a.done()}});
+ for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
+                            ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
+ test('LHB-80 (Codex r8): el cambio de cuenta falla antes de tocar la copia y volver a la época de antes también falla ('+como+'): se reintenta antes de sincronizar y el borrado sigue',async()=>{
+
+2026-10-30T11:35:40.725498Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:35:40.833741Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-30T11:35:41.610437Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:35:42.978673Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:35:43.262497Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:35:43.940002Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:35:45.336962Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+codex
+[Likely] The remaining risk is in the gap between the asynchronous lock query and the storage decisions that follow it. I’ll check those interleavings, the corrected diff, and the available test evidence without editing files or loading skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command Get-Location in C:\LHB\lhb-105-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-30T11:35:49.274517Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+2026-10-30T11:35:49.721352Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:35:52.915020Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+2026-10-30T11:36:01.920827Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js (failed)
+2026-10-30T11:36:12.795678Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:36:13.406803Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:36:14.915329Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+2026-10-30T11:36:21.737617Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:36:22.445911Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:36:23.771003Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The checkout matches the supplied code diff. I recovered repository access through Node after the shell failed. I’m checking the three prior rejections against the corrected source and testing whether cached lock information can become stale before a switch starts.
+
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+2026-10-30T11:36:39.481138Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:36:40.048151Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:36:41.382710Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (failed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+2026-10-30T11:37:01.606949Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:37:02.204952Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:37:03.647903Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+2026-10-30T11:37:49.632875Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:37:50.161219Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:37:51.434265Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] All 12 submitted LHB-105 tests pass. The full run has 462 passed, 5 failed, and 1 skipped; the failures involve the Python-backed LHB-44/LHB-45 checks and LHB-73’s denied temporary-directory creation. The lock cache still needs a separate check: the new test creates Z after Y already holds its lock, leaving an older Z untested.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+2026-10-30T11:38:50.672364Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:38:51.207579Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:38:52.496221Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+2026-10-30T11:39:24.799121Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:39:25.323308Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:39:26.566754Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+codex
+[Certain] The older-Z reproduction still loses C’s copy with both tab locks held: Z switches successfully, then Y resumes its clear and returns false, leaving C as owner with `{}` as the copy. I’m also checking whether expired-marker cleanup can remove a newer switch mark under the same per-tab key.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+2026-10-30T11:40:27.801202Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:40:28.367343Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:40:29.695223Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+2026-10-30T11:42:23.541006Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:42:24.068450Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:42:25.397591Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+2026-10-30T11:43:03.774093Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:43:04.328044Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:43:05.621051Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+[Certain] The cleanup race also reproduces with two engines running the unchanged source on separate worker threads against shared storage and the real D1 test server. X removes Y’s renewed mark, captures Y’s epoch, writes the copy once, and uploads empty collections at rev 2. Y then completes its switch successfully. This case does not require the new switch to exceed 30 seconds.
+
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+2026-10-30T11:44:06.469811Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:44:06.969882Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:44:08.413911Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+2026-10-30T11:45:06.874395Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:45:07.379247Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+2026-10-30T11:45:08.652366Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("error decoding response body")))
+codex
+[Certain] The renewal race needs only one marker-removal failure after a successful switch. The second switch stays within the TTL, yet X deletes its fresh mark and wipes B’s server copy. The takeover fixes the prior R2-1 sequence and `finally` fixes R2-3; R2-2 remains open because an older tab’s cached lock set can miss a newer live tab.
+
+codex
+1. [Certain] **P1, blocking: expired-marker cleanup can delete a renewed mark and reproduce the server wipe.**
+
+   File: [site/sync.js:155](/C:/LHB/lhb-105-wt/site/sync.js:155), symbols: `switching()`, `isolate()`. Artifact: `marks()` captures a snapshot; cleanup later executes `D.ls.remove(m.k)` without distinguishing a replacement under that same per-tab key.
+
+   Reproduced with two worker threads executing the unchanged engine against shared storage and the real D1 test server:
+
+   - Y completes a switch to B, but removing its mark fails once. B’s local and server copies contain data.
+   - After 31 seconds, X scans that expired mark, writes the takeover epoch, and pauses before removing the key.
+   - Y begins another switch to C. It removes its leftover mark, writes a fresh mark under the same key, writes its new epoch, and pauses before clearing.
+   - X removes **Y’s fresh mark**, captures Y’s epoch, and starts GET.
+   - Y clears the copy and pauses before assigning the owner. X remains alive and synchronizes the empty copy.
+
+   [Certain] Measured: X returns `{ok:true,pushed:true,rev:2}`, performs **one copy write and one PUT**, and B’s server collections become empty. Y subsequently completes successfully with owner C. The second switch stays within the TTL; this does not require the stated long mid-task suspension residual.
+
+   [Certain] The submitted expiry and removal-failure tests do not exercise replacement of a marker between snapshot and cleanup.
+
+2. [Certain] **P1, blocking. R2-2: MAINTAIN. An older lock snapshot still lets direct isolation bypass a live switch.**
+
+   File: [site/sync.js:153](/C:/LHB/lhb-105-wt/site/sync.js:153), symbols: `heldKnown`, `liveNow()`, `isolate()`. Artifact: `heldKnown.has(TABLOCK+m.tab)` treats absence from an arbitrarily old snapshot as evidence that the tab is dead.
+
+   [Certain] Reproduction: create Z and let its initial query finish **before creating Y**. Y then takes its lifetime lock and starts switching. Pause Y after its successful pre-clear `still()` check, advance 31 seconds, and call `Z.isolate()` for C. Z’s cached set omits Y, so it switches successfully. Write C’s data, then resume Y’s clear.
+
+   [Certain] Executed with separate engine threads and both lifetime locks held: **Z returns true; Y returns false; owner remains C; C’s copy becomes `{}`**. The post-clear epoch check detects the conflict after the data loss. The new test creates Z after Y, so its initial query already includes Y.
+
+   [Certain] A minimal failing check using the existing test harness is:
+
+   ```js
+   test('LHB-105: older lock snapshot', async () => {
+     const a = await ENG28();
+     try {
+       const A = DEV28(a, 'user_a');
+       A.seed(DOC28);
+       A.ls.set(A.KEY + '_owner', 'user_a');
+       const held = new Set();
+       A.D.tabLock = n => held.add(n);
+       A.D.tabsHeld = async () => new Set(held);
+       const Z = SYNC28().LHB_SYNC(A.D);
+       await new Promise(r => setTimeout(r, 5));
+       const Y = SYNC28().LHB_SYNC(A.D), sd = A.D.setDoc;
+       let first = true;
+       A.D.setDoc = (d, ...r) => {
+         if (first && !Object.keys(d).length) {
+           first = false;
+           A.advance(31e3);
+           A.st.acct = A.st.user = 'user_c';
+           assert.equal(Z.isolate(), false); // actual: true
+         }
+         return sd(d, ...r);
+       };
+       A.st.acct = A.st.user = 'user_b';
+       Y.isolate();
+     } finally { a.done(); }
+   });
+   ```
+
+[Certain] **R2-1: CONCUR** for the previously reported expiry/takeover sequence. **R2-3: CONCUR** for exception cleanup in `finally`.
+
+[Certain] All 12 submitted LHB-105 tests pass. The full run produced **462 passed, 5 failed, 1 skipped**. Python execution returns `EPERM`; LHB-73’s temporary-directory creation is also denied. The supplied zero-failure log was inspected; an independent zero-failure run is **NOT VERIFIED**. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK
+tokens used
+106,050
+1. [Certain] **P1, blocking: expired-marker cleanup can delete a renewed mark and reproduce the server wipe.**
+
+   File: [site/sync.js:155](/C:/LHB/lhb-105-wt/site/sync.js:155), symbols: `switching()`, `isolate()`. Artifact: `marks()` captures a snapshot; cleanup later executes `D.ls.remove(m.k)` without distinguishing a replacement under that same per-tab key.
+
+   Reproduced with two worker threads executing the unchanged engine against shared storage and the real D1 test server:
+
+   - Y completes a switch to B, but removing its mark fails once. B’s local and server copies contain data.
+   - After 31 seconds, X scans that expired mark, writes the takeover epoch, and pauses before removing the key.
+   - Y begins another switch to C. It removes its leftover mark, writes a fresh mark under the same key, writes its new epoch, and pauses before clearing.
+   - X removes **Y’s fresh mark**, captures Y’s epoch, and starts GET.
+   - Y clears the copy and pauses before assigning the owner. X remains alive and synchronizes the empty copy.
+
+   [Certain] Measured: X returns `{ok:true,pushed:true,rev:2}`, performs **one copy write and one PUT**, and B’s server collections become empty. Y subsequently completes successfully with owner C. The second switch stays within the TTL; this does not require the stated long mid-task suspension residual.
+
+   [Certain] The submitted expiry and removal-failure tests do not exercise replacement of a marker between snapshot and cleanup.
+
+2. [Certain] **P1, blocking. R2-2: MAINTAIN. An older lock snapshot still lets direct isolation bypass a live switch.**
+
+   File: [site/sync.js:153](/C:/LHB/lhb-105-wt/site/sync.js:153), symbols: `heldKnown`, `liveNow()`, `isolate()`. Artifact: `heldKnown.has(TABLOCK+m.tab)` treats absence from an arbitrarily old snapshot as evidence that the tab is dead.
+
+   [Certain] Reproduction: create Z and let its initial query finish **before creating Y**. Y then takes its lifetime lock and starts switching. Pause Y after its successful pre-clear `still()` check, advance 31 seconds, and call `Z.isolate()` for C. Z’s cached set omits Y, so it switches successfully. Write C’s data, then resume Y’s clear.
+
+   [Certain] Executed with separate engine threads and both lifetime locks held: **Z returns true; Y returns false; owner remains C; C’s copy becomes `{}`**. The post-clear epoch check detects the conflict after the data loss. The new test creates Z after Y, so its initial query already includes Y.
+
+   [Certain] A minimal failing check using the existing test harness is:
+
+   ```js
+   test('LHB-105: older lock snapshot', async () => {
+     const a = await ENG28();
+     try {
+       const A = DEV28(a, 'user_a');
+       A.seed(DOC28);
+       A.ls.set(A.KEY + '_owner', 'user_a');
+       const held = new Set();
+       A.D.tabLock = n => held.add(n);
+       A.D.tabsHeld = async () => new Set(held);
+       const Z = SYNC28().LHB_SYNC(A.D);
+       await new Promise(r => setTimeout(r, 5));
+       const Y = SYNC28().LHB_SYNC(A.D), sd = A.D.setDoc;
+       let first = true;
+       A.D.setDoc = (d, ...r) => {
+         if (first && !Object.keys(d).length) {
+           first = false;
+           A.advance(31e3);
+           A.st.acct = A.st.user = 'user_c';
+           assert.equal(Z.isolate(), false); // actual: true
+         }
+         return sd(d, ...r);
+       };
+       A.st.acct = A.st.user = 'user_b';
+       Y.isolate();
+     } finally { a.done(); }
+   });
+   ```
+
+[Certain] **R2-1: CONCUR** for the previously reported expiry/takeover sequence. **R2-3: CONCUR** for exception cleanup in `finally`.
+
+[Certain] All 12 submitted LHB-105 tests pass. The full run produced **462 passed, 5 failed, 1 skipped**. Python execution returns `EPERM`; LHB-73’s temporary-directory creation is also denied. The supplied zero-failure log was inspected; an independent zero-failure run is **NOT VERIFIED**. No files were edited and no skills were loaded.
+
+VERDICT: BLOCK

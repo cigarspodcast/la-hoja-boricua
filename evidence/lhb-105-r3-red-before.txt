@@ -1,0 +1,52 @@
+✔ LHB-105: una pasada que empieza en otra pestaña mientras esta cambia de cuenta no escribe la copia ni sube nada, y el cambio termina (150.2337ms)
+✔ LHB-105: si no se puede anotar el cambio de cuenta, no se cambia: la copia, la dueña y la época quedan como estaban (84.0126ms)
+✔ LHB-105: un cambio de cuenta que quedó a mitad porque la pestaña se cerró no detiene la sincronización para siempre (62.163ms)
+✔ LHB-105 (Codex r1): una pestaña dormida a mitad del cambio que vuelve pasado el plazo: mientras siga viva (su candado), ninguna pasada empieza; si se cerró, sí (100.8592ms)
+✔ LHB-105 (Codex r1): con el cambio de otra pestaña a mitad, esta no cambia la copia de dueña, ni en una pasada ni al abrir Mi Hoja (85.2414ms)
+✔ LHB-105 (Codex r1): si la pestaña que cambió de cuenta no pudo quitar su anotación, la quita en su próxima pasada y las demás siguen (69.0142ms)
+✔ LHB-105 (Codex r1): un cambio que se quedó dormido a mitad y vuelve después de que otra pestaña cambió de cuenta no vacía la copia nueva (51.9622ms)
+✔ LHB-105 (Codex r1): el cambio de otra pestaña empieza justo cuando esta pasada lee la época: la pasada no empieza (75.0163ms)
+✔ LHB-105 (Codex r1): con una pestaña viva dormida a mitad del cambio pasado el plazo, una pasada de otra cuenta no cambia la copia de dueña (120.4191ms)
+✔ LHB-105 (Codex r2): sin Web Locks, una pestaña dormida a mitad del cambio que vuelve pasado el plazo no vacía la copia: la pasada que quitó su anotación cambió la época (64.7345ms)
+✔ LHB-105 (Codex r2): con Web Locks, abrir Mi Hoja en otra cuenta no cambia la copia mientras una pestaña viva duerme a mitad de su cambio, aunque pasó el plazo (84.0918ms)
+✔ LHB-105 (Codex r2): un cambio de cuenta que lanza a mitad quita su anotación, y las demás pestañas siguen (151.5564ms)
+✖ LHB-105 (Codex r3): la pasada que quita una anotación vieja no quita la de un cambio que la misma pestaña empezó entretanto, y no empieza (99.1708ms)
+✖ LHB-105 (Codex r3): una consulta de candados de antes de que se abriera otra pestaña no la da por cerrada: abrir Mi Hoja no cambia la copia mientras esa pestaña está a mitad (100.5866ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 12
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1431.6623
+
+✖ failing tests:
+
+test at test\site.test.js:6597:1
+✖ LHB-105 (Codex r3): la pasada que quita una anotación vieja no quita la de un cambio que la misma pestaña empezó entretanto, y no empieza (99.1708ms)
+  AssertionError [ERR_ASSERTION]: la pasada no empieza
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--LHB\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\before105r3\test\site.test.js:6617:67)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: true,
+    operator: '!=',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6621:1
+✖ LHB-105 (Codex r3): una consulta de candados de antes de que se abriera otra pestaña no la da por cerrada: abrir Mi Hoja no cambia la copia mientras esa pestaña está a mitad (100.5866ms)
+  AssertionError [ERR_ASSERTION]: Z no cambia la copia: Y sigue viva y su consulta es de antes de Y
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--LHB\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\before105r3\test\site.test.js:6633:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }

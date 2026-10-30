@@ -1,0 +1,89 @@
+✔ LHB-105: una pasada que empieza en otra pestaña mientras esta cambia de cuenta no escribe la copia ni sube nada, y el cambio termina (252.7323ms)
+✔ LHB-105: si no se puede anotar el cambio de cuenta, no se cambia: la copia, la dueña y la época quedan como estaban (93.3635ms)
+✔ LHB-105: un cambio de cuenta que quedó a mitad porque la pestaña se cerró no detiene la sincronización para siempre (114.7378ms)
+✖ LHB-105 (Codex r1): una pestaña dormida a mitad del cambio que vuelve pasado el plazo: mientras siga viva (su candado), ninguna pasada empieza; si se cerró, sí (102.0323ms)
+✖ LHB-105 (Codex r1): con el cambio de otra pestaña a mitad, esta no cambia la copia de dueña, ni en una pasada ni al abrir Mi Hoja (246.7763ms)
+✖ LHB-105 (Codex r1): si la pestaña que cambió de cuenta no pudo quitar su anotación, la quita en su próxima pasada y las demás siguen (135.7849ms)
+✖ LHB-105 (Codex r1): un cambio que se quedó dormido a mitad y vuelve después de que otra pestaña cambió de cuenta no vacía la copia nueva (66.4986ms)
+✔ LHB-105 (Codex r1): el cambio de otra pestaña empieza justo cuando esta pasada lee la época: la pasada no empieza (167.5692ms)
+✖ LHB-105 (Codex r1): con una pestaña viva dormida a mitad del cambio pasado el plazo, una pasada de otra cuenta no cambia la copia de dueña (182.6451ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 4
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1571.0343
+
+✖ failing tests:
+
+test at test\site.test.js:6487:1
+✖ LHB-105 (Codex r1): una pestaña dormida a mitad del cambio que vuelve pasado el plazo: mientras siga viva (su candado), ninguna pasada empieza; si se cerró, sí (102.0323ms)
+  AssertionError [ERR_ASSERTION]: la pestaña sigue viva: no se sincroniza
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\before105r1\test\site.test.js:6493:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: true,
+    operator: '!=',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6499:1
+✖ LHB-105 (Codex r1): con el cambio de otra pestaña a mitad, esta no cambia la copia de dueña, ni en una pasada ni al abrir Mi Hoja (246.7763ms)
+  AssertionError [ERR_ASSERTION]: abrir Mi Hoja tampoco la cambia
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\before105r1\test\site.test.js:6504:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6509:1
+✖ LHB-105 (Codex r1): si la pestaña que cambió de cuenta no pudo quitar su anotación, la quita en su próxima pasada y las demás siguen (135.7849ms)
+  AssertionError [ERR_ASSERTION]: la suya no la detiene
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\before105r1\test\site.test.js:6518:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6522:1
+✖ LHB-105 (Codex r1): un cambio que se quedó dormido a mitad y vuelve después de que otra pestaña cambió de cuenta no vacía la copia nueva (66.4986ms)
+  AssertionError [ERR_ASSERTION]: Y no sigue
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\before105r1\test\site.test.js:6531:39)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:6550:1
+✖ LHB-105 (Codex r1): con una pestaña viva dormida a mitad del cambio pasado el plazo, una pasada de otra cuenta no cambia la copia de dueña (182.6451ms)
+  AssertionError [ERR_ASSERTION]: true != true
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\before105r1\test\site.test.js:6554:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: true,
+    operator: '!=',
+    diff: 'simple'
+  }
