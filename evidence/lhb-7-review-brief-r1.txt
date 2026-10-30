@@ -1,0 +1,19 @@
+Code review, LHB-7, TIER 1 (one round). Repository cigarspodcast/la-hoja-boricua, branch lhb-7-retire, which will be pushed to gh-pages (the branch GitHub Pages serves at https://cigarspodcast.github.io/la-hoja-boricua/). You are reviewing; do not edit files.
+
+Goal: retire that old duplicate copy of the app. The ticket asked to unpublish GitHub Pages, which needs the Admin role we do not have; with Write access the same result comes from the branch. The commit removes every old app file (index.html, app.js, hoja.js, data, lugares, artesanos and so on; the deletions are not shown below), keeps .nojekyll, and adds:
+- 404.html: GitHub Pages serves it for every missing path of the project site, with status 404. With no index.html the root is also a 404. Its script maps the old address to the same path on https://lahojaboricua.com (dropping the /la-hoja-boricua prefix, keeping query and hash) and redirects with location.replace, UNLESS this browser still holds Mi Hoja data in localStorage from the old app (key lhb_mihoja_v1, or the older vb_favs, vb_ratings, vb_perfil, vb_sugeridas, vb_uploads). Then it does not redirect: it shows a backup button that downloads a JSON file in the old app's own export format, which the new app's importer accepts (j.app === 'La Hoja Boricua' and j.mihoja), plus a link to the new address.
+- sw.js: replaces the old service worker (cache name lhb-v44, network-first navigations, cache-first static files). install skipWaiting; activate deletes every cache, unregisters, and navigates open window clients to their own URL. It never touches localStorage.
+- evidence/: node tests (6 of 6 pass), the red run before the old files were removed, and 10 mutants, all red.
+
+For reference, the old app's export (hoja.js, as served by the old copy):
+function exportar(){const s=S();const data={app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:SCHEMA,exportado:new Date().toISOString(),url:APP_URL, mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacy('uploads')||[]}};
+and its load() for a browser with no lhb_mihoja_v1 builds the default and copies vb_favs (strings) into favs.cigarros and vb_ratings into ratings.
+
+What to look for:
+- Can a person with Mi Hoja data on the old copy be redirected away before they can save it (including through the old service worker still controlling the page, or the new worker reloading the tab)?
+- Does the backup lose or change data compared with the old export? Is it importable by the new app?
+- Does the redirect target ever go somewhere other than lahojaboricua.com (open redirect through the path, a protocol-relative path such as //evil.example, encoded characters)?
+- Does the kill-switch worker actually take over from the old one and leave the browser clean? Any way it loops reloading?
+- Anything that breaks the Proof: curl of https://cigarspodcast.github.io/la-hoja-boricua/ returns 404.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing sequence.

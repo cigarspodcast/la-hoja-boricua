@@ -1,9 +1,9 @@
-✔ LHB-7: cada dirección vieja lleva a la misma en lahojaboricua.com (9.0017ms)
-✔ LHB-7: sin Mi Hoja guardada, redirige enseguida (4.1358ms)
-✔ LHB-7: con Mi Hoja guardada, no redirige y ofrece el respaldo (11.697ms)
-✔ LHB-7: el respaldo tiene el formato que importa la app nueva (8.322ms)
-✔ LHB-7: no hay index.html, así la raíz contesta 404 con el aviso (0.8172ms)
-✔ LHB-7: el service worker borra los cachés, se da de baja y no toca localStorage (2.111ms)
+✔ LHB-7: cada dirección vieja lleva a la misma en lahojaboricua.com (3.4291ms)
+✔ LHB-7: sin Mi Hoja guardada, redirige enseguida (2.4146ms)
+✔ LHB-7: con Mi Hoja guardada, no redirige y ofrece el respaldo (24.6483ms)
+✔ LHB-7: el respaldo tiene el formato que importa la app nueva (16.9505ms)
+✔ LHB-7: no hay index.html, así la raíz contesta 404 con el aviso (1.878ms)
+✔ LHB-7: el service worker borra los cachés, se da de baja y no toca localStorage (3.7853ms)
 ℹ tests 6
 ℹ suites 0
 ℹ pass 6
@@ -11,4 +11,4 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 216.6449
+ℹ duration_ms 245.7309

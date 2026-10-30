@@ -3,9 +3,10 @@ RED   redirects even with Mi Hoja data
 RED   never redirects
 RED   backup keeps the draft
 RED   backup drops the legacy favourites
+RED   a damaged Mi Hoja hides the legacy favourites (Codex r1)
 RED   legacy uploads alone do not count as data
 RED   backup in a format the new app does not import
 RED   worker stays registered
 RED   caches kept
 RED   worker waits behind the old one
-10 of 10 mutants red
+11 of 11 mutants red

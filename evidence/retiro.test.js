@@ -47,6 +47,9 @@ test('LHB-7: el respaldo tiene el formato que importa la app nueva',()=>{
  // sin Mi Hoja: trae favoritos y estrellas viejos, como load() en la app vieja
  const k=JSON.parse(JSON.stringify(page({store:{vb_favs:['c2',3],vb_ratings:{c2:5}}}).R.respaldo()));
  assert.deepEqual(k.mihoja.favs.cigarros,['c2']);assert.deepEqual(k.mihoja.ratings,{c2:5});
+ // Codex r1: con la Mi Hoja dañada (no es un objeto), también
+ for(const bad of ['true','[]','7']){const q=JSON.parse(JSON.stringify(page({store:{lhb_mihoja_v1:bad,vb_favs:['c1'],vb_ratings:{c1:5}}}).R.respaldo()));
+  assert.deepEqual(q.mihoja.favs.cigarros,['c1'],bad);assert.deepEqual(q.mihoja.ratings,{c1:5},bad)}
 });
 test('LHB-7: no hay index.html, así la raíz contesta 404 con el aviso',()=>{
  assert.equal(fs.existsSync(path.join(ROOT,'index.html')),false);

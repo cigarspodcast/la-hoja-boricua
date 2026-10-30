@@ -1,0 +1,227 @@
+Code review, LHB-7, TIER 1 (one round). Repository cigarspodcast/la-hoja-boricua, branch lhb-7-retire, which will be pushed to gh-pages (the branch GitHub Pages serves at https://cigarspodcast.github.io/la-hoja-boricua/). You are reviewing; do not edit files.
+
+Goal: retire that old duplicate copy of the app. The ticket asked to unpublish GitHub Pages, which needs the Admin role we do not have; with Write access the same result comes from the branch. The commit removes every old app file (index.html, app.js, hoja.js, data, lugares, artesanos and so on; the deletions are not shown below), keeps .nojekyll, and adds:
+- 404.html: GitHub Pages serves it for every missing path of the project site, with status 404. With no index.html the root is also a 404. Its script maps the old address to the same path on https://lahojaboricua.com (dropping the /la-hoja-boricua prefix, keeping query and hash) and redirects with location.replace, UNLESS this browser still holds Mi Hoja data in localStorage from the old app (key lhb_mihoja_v1, or the older vb_favs, vb_ratings, vb_perfil, vb_sugeridas, vb_uploads). Then it does not redirect: it shows a backup button that downloads a JSON file in the old app's own export format, which the new app's importer accepts (j.app === 'La Hoja Boricua' and j.mihoja), plus a link to the new address.
+- sw.js: replaces the old service worker (cache name lhb-v44, network-first navigations, cache-first static files). install skipWaiting; activate deletes every cache, unregisters, and navigates open window clients to their own URL. It never touches localStorage.
+- evidence/: node tests (6 of 6 pass), the red run before the old files were removed, and 10 mutants, all red.
+
+For reference, the old app's export (hoja.js, as served by the old copy):
+function exportar(){const s=S();const data={app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:SCHEMA,exportado:new Date().toISOString(),url:APP_URL, mihoja:{...s,draft:null},extra:{perfil:legacy('perfil'),sugeridas:legacy('sugeridas')||[],subidas:legacy('uploads')||[]}};
+and its load() for a browser with no lhb_mihoja_v1 builds the default and copies vb_favs (strings) into favs.cigarros and vb_ratings into ratings.
+
+What to look for:
+- Can a person with Mi Hoja data on the old copy be redirected away before they can save it (including through the old service worker still controlling the page, or the new worker reloading the tab)?
+- Does the backup lose or change data compared with the old export? Is it importable by the new app?
+- Does the redirect target ever go somewhere other than lahojaboricua.com (open redirect through the path, a protocol-relative path such as //evil.example, encoded characters)?
+- Does the kill-switch worker actually take over from the old one and leave the browser clean? Any way it loops reloading?
+- Anything that breaks the Proof: curl of https://cigarspodcast.github.io/la-hoja-boricua/ returns 404.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing sequence.
+
+===== git diff 06625c3 f8b54721c0168c506eb5bab0bfb8ecc6cc8ff0b8 -- 404.html sw.js evidence/retiro.test.js evidence/mutants.py =====
+diff --git a/404.html b/404.html
+new file mode 100644
+index 0000000..e05e9a0
+--- /dev/null
++++ b/404.html
+@@ -0,0 +1,58 @@
++<!doctype html>
++<html lang="es-PR">
++<head>
++<meta charset="utf-8">
++<meta name="viewport" content="width=device-width, initial-scale=1">
++<meta name="robots" content="noindex">
++<title>La Hoja Boricua se mudó</title>
++<style>
++:root{--bg:#f6f0e6;--fg:#2b1d12;--accent:#7a3b12;--muted:#6b5a4a}
++@media (prefers-color-scheme:dark){:root{--bg:#1c140e;--fg:#f3e9dc;--accent:#e0a36b;--muted:#bfae9b}}
++body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
++main{max-width:34rem;margin:0 auto;padding:48px 20px}
++h1{font-size:1.6rem;line-height:1.2;margin:0 0 12px}
++a,button{color:var(--accent)}
++.b{display:inline-block;margin:8px 8px 0 0;padding:10px 16px;border:2px solid var(--accent);border-radius:999px;background:none;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}
++.b.p{background:var(--accent);color:var(--bg)}
++.n{color:var(--muted);font-size:.9rem}
++[hidden]{display:none!important}
++</style>
++</head>
++<body>
++<main>
++<h1>La Hoja Boricua se mudó a lahojaboricua.com</h1>
++<p id="ir">Te llevamos allá ahora. Si no pasa nada, <a id="enlace" href="https://lahojaboricua.com/">sigue este enlace</a>.</p>
++<div id="datos" hidden>
++<p>Tu Mi Hoja (humidor, diario, pasaporte y favoritos) está guardada en este navegador, en la dirección vieja. Antes de irte, descarga tu respaldo. Luego, en lahojaboricua.com, abre Mi Hoja, ve a Respaldo y toca Importar: importar suma, no borra.</p>
++<p><button class="b p" id="bajar" type="button">Descargar mi respaldo</button><a class="b" id="ir2" href="https://lahojaboricua.com/">Ir a lahojaboricua.com</a></p>
++<p class="n" id="listo" hidden>Respaldo descargado. Ahora ve a lahojaboricua.com e impórtalo en Mi Hoja.</p>
++</div>
++</main>
++<script>
++/* LHB-7: la copia vieja en GitHub Pages se retira. Cada dirección vieja lleva a la misma en lahojaboricua.com.
++   Si este navegador tiene una Mi Hoja guardada aquí, no se redirige: primero se ofrece el respaldo, en el mismo formato que exportaba la app vieja (hoja.js, exportar). */
++(function(w){'use strict';
++var NUEVO='https://lahojaboricua.com',BASE='/la-hoja-boricua',KEY='lhb_mihoja_v1';
++function destino(loc){var p=String(loc.pathname||'/');if(p===BASE||p.indexOf(BASE+'/')===0)p=p.slice(BASE.length);if(p.charAt(0)!=='/')p='/'+p;return NUEVO+p+(loc.search||'')+(loc.hash||'')}
++function leer(k){try{var v=w.localStorage.getItem(k);return v==null?null:JSON.parse(v)}catch(e){return null}}
++function lleno(x){if(Array.isArray(x))return x.length>0;if(x&&typeof x==='object'){for(var k in x)if(Object.prototype.hasOwnProperty.call(x,k)&&lleno(x[k]))return true;return false}return x!=null&&x!==false&&x!==''}
++function tieneDatos(){var m=leer(KEY);if(m&&typeof m==='object'&&(lleno(m.humidor)||lleno(m.diario)||lleno(m.pasaporte)||lleno(m.favs)||lleno(m.ratings)))return true;
++ return lleno(leer('vb_favs'))||lleno(leer('vb_ratings'))||lleno(leer('vb_perfil'))||lleno(leer('vb_sugeridas'))||lleno(leer('vb_uploads'))}
++function hoy(){var d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
++function respaldo(){var m=leer(KEY);m=m&&typeof m==='object'?m:{schema:1,humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{cigarros:[],artesanos:[],lugares:[]},ratings:{}};
++ var mh={};for(var k in m)if(Object.prototype.hasOwnProperty.call(m,k))mh[k]=m[k];mh.draft=null;
++ /* sin Mi Hoja guardada: favoritos y estrellas de la versión anterior, como hacía load() en la app vieja */
++ if(!leer(KEY)){var f=leer('vb_favs'),r=leer('vb_ratings');if(Array.isArray(f))mh.favs={cigarros:f.filter(function(x){return typeof x==='string'}),artesanos:[],lugares:[]};if(r&&typeof r==='object'&&!Array.isArray(r))mh.ratings=r}
++ return {app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:1,exportado:new Date().toISOString(),url:'https://cigarspodcast.github.io/la-hoja-boricua/',
++  mihoja:mh,extra:{perfil:leer('vb_perfil'),sugeridas:leer('vb_sugeridas')||[],subidas:leer('vb_uploads')||[]}}}
++function bajar(){var d=w.document,blob=new Blob([JSON.stringify(respaldo(),null,1)],{type:'application/json'}),u=URL.createObjectURL(blob),a=d.createElement('a');
++ a.href=u;a.download='la-hoja-boricua-respaldo-'+hoy()+'.json';a.rel='noopener';d.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(u);a.remove()},4000);d.getElementById('listo').hidden=false}
++w.LHB_RETIRO={destino:destino,tieneDatos:tieneDatos,respaldo:respaldo};
++if(!w.document||!w.document.getElementById)return;
++var to=destino(w.location),d=w.document;d.getElementById('enlace').href=to;d.getElementById('ir2').href=to;
++if(tieneDatos()){d.getElementById('ir').hidden=true;d.getElementById('datos').hidden=false;d.getElementById('bajar').onclick=bajar}
++else w.location.replace(to);
++})(window);
++</script>
++</body>
++</html>
+diff --git a/evidence/mutants.py b/evidence/mutants.py
+new file mode 100644
+index 0000000..c56a055
+--- /dev/null
++++ b/evidence/mutants.py
+@@ -0,0 +1,30 @@
++# LHB-7: each mutant breaks one behaviour; the suite must fail on every one. Restores the files afterwards.
++import pathlib, subprocess, sys
++ROOT = pathlib.Path(__file__).resolve().parent.parent
++M = [
++    ('404.html', "if(p===BASE||p.indexOf(BASE+'/')===0)p=p.slice(BASE.length);", '', 'destino keeps the old prefix'),
++    ('404.html', 'if(tieneDatos()){', 'if(false){', 'redirects even with Mi Hoja data'),
++    ('404.html', "else w.location.replace(to);", '', 'never redirects'),
++    ('404.html', 'mh.draft=null;', '', 'backup keeps the draft'),
++    ('404.html', "if(!leer(KEY)){", 'if(false){', 'backup drops the legacy favourites'),
++    ('404.html', "lleno(leer('vb_uploads'))", 'false', 'legacy uploads alone do not count as data'),
++    ('404.html', 'mihoja:mh,', 'datos:mh,', 'backup in a format the new app does not import'),
++    ('sw.js', 'await self.registration.unregister()', '0', 'worker stays registered'),
++    ('sw.js', 'await Promise.all(ks.map(k=>caches.delete(k)))', '0', 'caches kept'),
++    ('sw.js', "self.addEventListener('install',()=>self.skipWaiting());", '', 'worker waits behind the old one'),
++]
++red = 0
++for f, a, b, why in M:
++    p = ROOT / f
++    s = p.read_text(encoding='utf-8')
++    assert s.count(a) == 1, (f, a)
++    p.write_text(s.replace(a, b), encoding='utf-8')
++    try:
++        r = subprocess.run(['node', '--test', str(ROOT / 'evidence' / 'retiro.test.js')], capture_output=True, text=True)
++    finally:
++        p.write_text(s, encoding='utf-8')
++    ok = r.returncode != 0
++    red += ok
++    print(('RED   ' if ok else 'ALIVE ') + why)
++print(f'{red} of {len(M)} mutants red')
++sys.exit(0 if red == len(M) else 1)
+diff --git a/evidence/retiro.test.js b/evidence/retiro.test.js
+new file mode 100644
+index 0000000..04f0fe4
+--- /dev/null
++++ b/evidence/retiro.test.js
+@@ -0,0 +1,67 @@
++// LHB-7: pruebas del aviso de mudanza (404.html) y del service worker que retira la copia vieja (sw.js).
++// node --test evidence/retiro.test.js
++const test=require('node:test'),assert=require('node:assert'),fs=require('fs'),path=require('path'),vm=require('vm');
++const ROOT=path.join(__dirname,'..');
++const html=()=>fs.readFileSync(path.join(ROOT,'404.html'),'utf8');
++const script=()=>{const m=html().match(/<script>([\s\S]*?)<\/script>/);assert.ok(m,'404.html tiene su script');return m[1]};
++function page(o){
++ const store=new Map(Object.entries(o.store||{}).map(([k,v])=>[k,typeof v==='string'?v:JSON.stringify(v)]));
++ const els={};const el=id=>els[id]||(els[id]={id,hidden:['datos','listo'].includes(id),href:'',onclick:null});
++ const replaced=[];
++ const w={location:{pathname:o.path||'/la-hoja-boricua/',search:o.search||'',hash:o.hash||'',replace:u=>replaced.push(u)},
++  localStorage:{getItem:k=>store.has(k)?store.get(k):null},
++  document:{getElementById:el}};
++ vm.runInNewContext(script(),{window:w,Blob,URL,setTimeout,JSON,Object,Array,String,Date});
++ return {w,el,replaced,R:w.LHB_RETIRO};
++}
++test('LHB-7: cada dirección vieja lleva a la misma en lahojaboricua.com',()=>{
++ const R=page({}).R;
++ assert.equal(R.destino({pathname:'/la-hoja-boricua/'}),'https://lahojaboricua.com/');
++ assert.equal(R.destino({pathname:'/la-hoja-boricua'}),'https://lahojaboricua.com/');
++ assert.equal(R.destino({pathname:'/la-hoja-boricua/lugares/vc-lounge',search:'?a=1',hash:'#/mihoja'}),'https://lahojaboricua.com/lugares/vc-lounge?a=1#/mihoja');
++ assert.equal(R.destino({pathname:'/la-hoja-boricua-otra/x'}),'https://lahojaboricua.com/la-hoja-boricua-otra/x');
++});
++test('LHB-7: sin Mi Hoja guardada, redirige enseguida',()=>{
++ const p=page({path:'/la-hoja-boricua/artesanos/x',store:{lhb_mihoja_v1:{schema:1,humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{cigarros:[],artesanos:[],lugares:[]},ratings:{}}}});
++ assert.deepEqual(p.replaced,['https://lahojaboricua.com/artesanos/x']);
++ assert.equal(p.el('datos').hidden,true);
++ assert.equal(p.el('enlace').href,'https://lahojaboricua.com/artesanos/x');
++});
++test('LHB-7: con Mi Hoja guardada, no redirige y ofrece el respaldo',()=>{
++ for(const store of [{lhb_mihoja_v1:{humidor:[{id:'h1'}]}},{lhb_mihoja_v1:{pasaporte:{lugares:{l1:'2026-01-01'}}}},{lhb_mihoja_v1:{ratings:{c1:4}}},{vb_favs:['c1']},{vb_uploads:[{id:'u1'}]}]){
++  const p=page({store});
++  assert.deepEqual(p.replaced,[],JSON.stringify(store));
++  assert.equal(p.el('datos').hidden,false);assert.equal(p.el('ir').hidden,true);
++  assert.equal(typeof p.el('bajar').onclick,'function');
++  assert.equal(p.el('ir2').href,'https://lahojaboricua.com/');
++ }
++});
++test('LHB-7: el respaldo tiene el formato que importa la app nueva',()=>{
++ const mh={schema:1,creado:'2026-01-01',humidor:[{id:'h1'}],diario:[{id:'d1'}],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{cigarros:['c1'],artesanos:[],lugares:[]},ratings:{},draft:{x:1}};
++ const j=JSON.parse(JSON.stringify(page({store:{lhb_mihoja_v1:mh,vb_perfil:{n:'A'},vb_uploads:[{id:'u1'}]}}).R.respaldo()));
++ assert.equal(j.app,'La Hoja Boricua');assert.equal(j.tipo,'respaldo-mi-hoja');assert.equal(j.schema,1);
++ assert.deepEqual(j.mihoja,{...mh,draft:null});
++ assert.deepEqual(j.extra,{perfil:{n:'A'},sugeridas:[],subidas:[{id:'u1'}]});
++ // la app nueva acepta j.mihoja (site/hoja.js, importar): app es 'La Hoja Boricua' y mihoja existe
++ assert.ok(j.mihoja&&j.app==='La Hoja Boricua');
++ // sin Mi Hoja: trae favoritos y estrellas viejos, como load() en la app vieja
++ const k=JSON.parse(JSON.stringify(page({store:{vb_favs:['c2',3],vb_ratings:{c2:5}}}).R.respaldo()));
++ assert.deepEqual(k.mihoja.favs.cigarros,['c2']);assert.deepEqual(k.mihoja.ratings,{c2:5});
++});
++test('LHB-7: no hay index.html, así la raíz contesta 404 con el aviso',()=>{
++ assert.equal(fs.existsSync(path.join(ROOT,'index.html')),false);
++ assert.ok(/name="robots" content="noindex"/.test(html()));
++});
++test('LHB-7: el service worker borra los cachés, se da de baja y no toca localStorage',async()=>{
++ const src=fs.readFileSync(path.join(ROOT,'sw.js'),'utf8');
++ assert.ok(!/localStorage/.test(src.replace(/\/\*[\s\S]*?\*\//g,'')));
++ const L={},deleted=[],nav=[];let unreg=false,skip=false;
++ const self={addEventListener:(t,f)=>L[t]=f,skipWaiting:()=>{skip=true},registration:{unregister:async()=>{unreg=true;return true}},
++  clients:{matchAll:async()=>[{url:'https://cigarspodcast.github.io/la-hoja-boricua/',navigate:async u=>{nav.push(u)}}]}};
++ const caches={keys:async()=>['lhb-v44','vb-tiles'],delete:async k=>{deleted.push(k);return true}};
++ vm.runInNewContext(src,{self,caches});
++ L.install({});assert.equal(skip,true);
++ let p;L.activate({waitUntil:x=>p=x});await p;
++ assert.deepEqual(deleted.sort(),['lhb-v44','vb-tiles']);assert.equal(unreg,true);
++ assert.deepEqual(nav,['https://cigarspodcast.github.io/la-hoja-boricua/']);
++});
+diff --git a/sw.js b/sw.js
+index 3bc9d8a..838a640 100644
+--- a/sw.js
++++ b/sw.js
+@@ -1,19 +1,9 @@
+-/* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas; fotos grandes se cachean al verlas */
+-const VERSION='lhb-v44';
+-const SHELL=['./','styles.css','app.js','art.js','hoja.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+- 'data/bundle.js',
+- 'icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png',
+- 'fonts/figtree.woff2','fonts/fraunces-normal-600.woff2','fonts/fraunces-italic-500.woff2','fonts/shrikhand.woff2',
+- 'img/hero/banner.webp','img/logos/jfc-hoja-boricua.webp','img/logos/don-rey-cigar.webp','img/logos/el-club-del-turro.webp','img/logos/don-collins.webp','img/logos/finca-neo-jibairo.webp','img/logos/willys-cigars.webp','img/logos/san-pedrito-cigars.webp','img/logos/yambo-cigars.webp','img/logos/el-chapu-pr.webp','img/logos/el-buho-ricamontes.webp','img/logos/cohoba-cigars.webp','img/logos/cigarros-caimito.webp','img/logos/tabacalera-la-trascendencia.webp','img/logos/pitirre-cigars.webp','img/logos/villareno-cigars.webp','img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp','img/cigarros/galiz-spirit_thumb.webp','img/cigarros/villareno-surtido_thumb.webp','img/cigarros/don-collins-corona-grande_thumb.webp','img/cigarros/don-collins-linea_thumb.webp','img/cigarros/hoja-boricua-gran-reserva_thumb.webp','img/cigarros/hoja-boricua_thumb.webp','img/cigarros/puerto-rico-965_thumb.webp','img/cigarros/turro-albizu-campos_thumb.webp','img/cigarros/turro-angel-david_thumb.webp','img/cigarros/turro-barber-pole_thumb.webp','img/cigarros/turro-cartucho_thumb.webp','img/cigarros/turro-deja-el-drama_thumb.webp','img/cigarros/turro-don-pepe_thumb.webp','img/cigarros/turro-el-turrito_thumb.webp','img/cigarros/turro-escopeta_thumb.webp','img/cigarros/turro-gallo-pinto_thumb.webp','img/cigarros/turro-hva-robusto_thumb.webp','img/cigarros/turro-lancero_thumb.webp','img/cigarros/turro-mamposteao_thumb.webp','img/cigarros/turro-naturola_thumb.webp','img/cigarros/turro-timber-blues_thumb.webp','img/cigarros/monte-mistica-connecticut_thumb.webp','img/cigarros/monte-mistica-corojo_thumb.webp','img/cigarros/monte-mistica-maduro_thumb.webp','img/cigarros/yambo-toro_thumb.webp','img/cigarros/yambo_a_oscuro_thumb.webp','img/cigarros/yambo_a_pareja_thumb.webp','img/cigarros/yambo_a_torpedo_thumb.webp'];
+-self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
+-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION&&k!=='vb-tiles').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+-self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const url=new URL(req.url);
+- // map tiles: cache what was seen, cap size
+- if(/(^|\.)tile\.openstreetmap\.org$/.test(url.hostname)){e.respondWith(caches.open('vb-tiles').then(async c=>{const hit=await c.match(req);if(hit)return hit;try{const r=await fetch(req);if(r.ok||r.type==='opaque'){c.put(req,r.clone());c.keys().then(ks=>{if(ks.length>300)c.delete(ks[0])})}return r}catch(err){return new Response('',{status:504})}}));return}
+- if(url.origin!==location.origin)return;
+- // data: network first (fresh events), fall back to cache
+- if(url.pathname.includes('/data/')){e.respondWith(fetch(req).then(r=>{if(r.ok){const cp=r.clone();caches.open(VERSION).then(c=>c.put(req,cp))}return r}).catch(()=>caches.match(req,{ignoreSearch:true})));return}
+- // navigations: app shell
+- if(req.mode==='navigate'){e.respondWith(fetch(req).then(r=>{const cp=r.clone();if(r.ok&&!r.redirected&&!url.pathname.includes('/lugares/')&&!url.pathname.includes('/artesanos/'))caches.open(VERSION).then(c=>c.put('./',cp));return r}).catch(async()=>{const c=await caches.open(VERSION);const hit=(await c.match('./'))||(await c.match('index.html'));if(!hit)return Response.error();return hit.redirected?new Response(await hit.blob(),{headers:hit.headers}):hit}));return}
+- // static: cache first
+- e.respondWith(caches.match(req,{ignoreSearch:true}).then(hit=>hit||fetch(req).then(r=>{if(r.ok){const cp=r.clone();caches.open(VERSION).then(c=>c.put(req,cp))}return r})))});
++/* LHB-7: la copia vieja en GitHub Pages se retira. Este service worker reemplaza al de la app vieja (lhb-v44):
++   borra sus cachés, se da de baja y recarga las pestañas abiertas, que entonces ven el aviso de mudanza (404.html).
++   No toca localStorage: la Mi Hoja guardada aquí sigue disponible para su respaldo. */
++self.addEventListener('install',()=>self.skipWaiting());
++self.addEventListener('activate',e=>{e.waitUntil((async()=>{
++ try{const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(err){}
++ try{await self.registration.unregister()}catch(err){}
++ try{const cs=await self.clients.matchAll({type:'window'});cs.forEach(c=>{try{c.navigate(c.url).catch(()=>{})}catch(err){}})}catch(err){}
++})())});

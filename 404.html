@@ -39,10 +39,10 @@ function lleno(x){if(Array.isArray(x))return x.length>0;if(x&&typeof x==='object
 function tieneDatos(){var m=leer(KEY);if(m&&typeof m==='object'&&(lleno(m.humidor)||lleno(m.diario)||lleno(m.pasaporte)||lleno(m.favs)||lleno(m.ratings)))return true;
  return lleno(leer('vb_favs'))||lleno(leer('vb_ratings'))||lleno(leer('vb_perfil'))||lleno(leer('vb_sugeridas'))||lleno(leer('vb_uploads'))}
 function hoy(){var d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
-function respaldo(){var m=leer(KEY);m=m&&typeof m==='object'?m:{schema:1,humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{cigarros:[],artesanos:[],lugares:[]},ratings:{}};
+function respaldo(){var m0=leer(KEY),ok=!!m0&&typeof m0==='object'&&!Array.isArray(m0),m=ok?m0:{schema:1,humidor:[],diario:[],pasaporte:{artesanos:{},cigarros:{},lugares:{}},favs:{cigarros:[],artesanos:[],lugares:[]},ratings:{}};
  var mh={};for(var k in m)if(Object.prototype.hasOwnProperty.call(m,k))mh[k]=m[k];mh.draft=null;
- /* sin Mi Hoja guardada: favoritos y estrellas de la versión anterior, como hacía load() en la app vieja */
- if(!leer(KEY)){var f=leer('vb_favs'),r=leer('vb_ratings');if(Array.isArray(f))mh.favs={cigarros:f.filter(function(x){return typeof x==='string'}),artesanos:[],lugares:[]};if(r&&typeof r==='object'&&!Array.isArray(r))mh.ratings=r}
+ /* sin una Mi Hoja que se pueda leer (falta, o está dañada): favoritos y estrellas de la versión anterior (Codex r1) */
+ if(!ok){var f=leer('vb_favs'),r=leer('vb_ratings');if(Array.isArray(f))mh.favs={cigarros:f.filter(function(x){return typeof x==='string'}),artesanos:[],lugares:[]};if(r&&typeof r==='object'&&!Array.isArray(r))mh.ratings=r}
  return {app:'La Hoja Boricua',tipo:'respaldo-mi-hoja',schema:1,exportado:new Date().toISOString(),url:'https://cigarspodcast.github.io/la-hoja-boricua/',
   mihoja:mh,extra:{perfil:leer('vb_perfil'),sugeridas:leer('vb_sugeridas')||[],subidas:leer('vb_uploads')||[]}}}
 function bajar(){var d=w.document,blob=new Blob([JSON.stringify(respaldo(),null,1)],{type:'application/json'}),u=URL.createObjectURL(blob),a=d.createElement('a');
