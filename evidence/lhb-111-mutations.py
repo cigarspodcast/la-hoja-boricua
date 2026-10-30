@@ -47,8 +47,15 @@ MUTS = [
     ('site/404.html', 'Codex r8: an uppercase SVG on a static page', '</body>', '<SVG width="200" height="200" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="20" fill="red"/></SVG></body>'),
     ('site/404.html', 'Codex r8: an SVG left unclosed on a static page', '</body>', '<svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="red"/></body>'),
     ('site/hoja.js', 'Codex r8: an uppercase SVG in a template', 'const CAL_ICO=', 'const CAL_X=`<SVG viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="red"/></SVG>`;const CAL_ICO='),
+    ('site/404.html', 'Codex r9: a new linked stylesheet (the file is added by the next control)', '</head>', '<link rel="stylesheet" href="/decoration.css"></head>'),
+    ('site/lugares/l.css', 'Codex r9: an @import of another stylesheet', ':root', '@import url("/decoration.css");:root'),
+    ('site/styles.css', 'Codex r9: an image drawn by image-set', '.lart{', '.hero::before{background:image-set("img/hero/banner.webp" 1x)}.lart{'),
+    ('functions/u/[handle].js', 'Codex r9: a coloured SVG on the passport page made in functions', '<main>', '<main><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="red"/></svg>'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
+
+
+NEWFILES = [('site/decoration.css', 'Codex r9: a new stylesheet with an SVG decoration, found by the walk', 'main::after{content:"";display:block;width:200px;height:200px;background:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 50 50\'%3E%3Ccircle cx=\'25\' cy=\'25\' r=\'20\' fill=\'red\'/%3E%3C/svg%3E")}\n')]
 
 
 def runp():
@@ -76,5 +83,13 @@ for rel, name, a, b in MUTS:
     red += ok
     print('%-72s %s (fail %d)' % (name, 'RED (caught)' if ok else 'GREEN (survived)', t['fail']))
     shutil.copy(os.path.join(WT, rel), os.path.join(D, rel))
-print('RESULT %d of %d red' % (red, len(MUTS)))
-sys.exit(0 if red == len(MUTS) else 1)
+for rel, name, body in NEWFILES:
+    p = os.path.join(D, rel)
+    open(p, 'w', encoding='utf-8').write(body)
+    t = runp()
+    ok = t['fail'] > 0
+    red += ok
+    print('%-72s %s (fail %d)' % (name, 'RED (caught)' if ok else 'GREEN (survived)', t['fail']))
+    os.remove(p)
+print('RESULT %d of %d red' % (red, len(MUTS) + len(NEWFILES)))
+sys.exit(0 if red == len(MUTS) + len(NEWFILES) else 1)

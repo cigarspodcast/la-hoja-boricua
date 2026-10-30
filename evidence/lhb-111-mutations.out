@@ -37,5 +37,10 @@ Codex r8: a drawing of the set with an inline single-quoted style        RED (ca
 Codex r8: an uppercase SVG on a static page                              RED (caught) (fail 1)
 Codex r8: an SVG left unclosed on a static page                          RED (caught) (fail 1)
 Codex r8: an uppercase SVG in a template                                 RED (caught) (fail 1)
+Codex r9: a new linked stylesheet (the file is added by the next control) RED (caught) (fail 1)
+Codex r9: an @import of another stylesheet                               RED (caught) (fail 1)
+Codex r9: an image drawn by image-set                                    RED (caught) (fail 1)
+Codex r9: a coloured SVG on the passport page made in functions          RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
-RESULT 39 of 39 red
+Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
+RESULT 44 of 44 red
