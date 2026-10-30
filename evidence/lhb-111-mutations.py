@@ -101,6 +101,8 @@ MUTS = [
     ('site/styles.css', 'Codex r24: a later pseudo-element background reached by another selector', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.view>div:last-child::before{background:var(--surface)}'),
     ('site/styles.css', 'Codex r25: the silhouette frame given the page ground, unreadable at night', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.card .ph.sin-foto,.detail-ph.sin-foto{background:var(--surface)}'),
     ('site/styles.css', 'Codex r25: the header ground behind the drawing changed', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.sec-head{background-color:var(--on-surface)}'),
+    ('site/app.js', 'Codex r26: the header given the photo ground inline, unreadable at night', '`<header class="sec-head">', '`<header class="sec-head" style="background:var(--photo)">'),
+    ('site/hoja.js', 'Codex r26: a ground set by a script', 'const CAL_ICO=', "const CAL_X=e=>{e.style.backgroundColor='#EFEBE2'};const CAL_ICO="),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

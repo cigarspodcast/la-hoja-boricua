@@ -91,6 +91,8 @@ Codex r24: a later background that hides the empty-state drawing         RED (ca
 Codex r24: a later pseudo-element background reached by another selector RED (caught) (fail 1)
 Codex r25: the silhouette frame given the page ground, unreadable at night RED (caught) (fail 1)
 Codex r25: the header ground behind the drawing changed                  RED (caught) (fail 1)
+Codex r26: the header given the photo ground inline, unreadable at night RED (caught) (fail 1)
+Codex r26: a ground set by a script                                      RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 94 of 94 red
+RESULT 96 of 96 red
