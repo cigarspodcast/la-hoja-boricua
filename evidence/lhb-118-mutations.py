@@ -26,6 +26,10 @@ MUTANTS = [
     ('an escaped important display', 'site/lugares/l.css', '.brand img{border-radius:var(--r-s);', '.brand img{d\\69splay:block!\\69mportant;border-radius:var(--r-s);'),
     ('an escaped important all', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand img{a\\6c l:initial!important;border-radius:var(--r-s);'),
     ('a hidden mark shows', 'site/styles.css', '.mark-l[hidden],.mark-d[hidden]{display:none!important}', ''),
+    # Codex r4: a second assignment in an allowed block
+    ('a second root sets the night token', 'site/u.css', '.brand img{border-radius:var(--r-s);', ':root{--mark-dark:block}.brand img{border-radius:var(--r-s);'),
+    ('a second root hides the day mark', 'site/styles.css', '.brand img{border-radius:var(--r-s);', ':root{--mark-light:none}.brand img{border-radius:var(--r-s);'),
+    ('a CRLF-terminated escaped important display', 'site/lugares/l.css', '.brand img{border-radius:var(--r-s);', '.brand img{d\\69\r\nsplay:block!important;border-radius:var(--r-s);'),
 ]
 
 

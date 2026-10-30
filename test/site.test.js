@@ -8996,15 +8996,20 @@ test('LHB-118: el Medallón en los íconos, la barra de día y de noche, la intr
     - cambiar los tokens que leen: --mark-light y --mark-dark solo se ponen en los tres bloques de tema (:root, el oscuro del teléfono y el
       oscuro escogido), nunca en otra regla, ni en un style de una página, ni desde un script;
     - un style en línea en la marca. */
- const unesc118=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\\([0-9a-fA-F]{1,6})[ \t\n\r\f]?/g,(x,h)=>{const c=parseInt(h,16);return c>0&&c<=0x10FFFF?String.fromCodePoint(c):'�'}).replace(/\\([^\n\r\f0-9a-fA-F])/g,'$1');
- assert.equal(unesc118('.b img{d\\69splay:block!\\69mportant}.c{a\\6c l:x}.d{\\64 isplay:y}'),'.b img{display:block!important}.c{all:x}.d{display:y}','el lector de escapes');
+ const unesc118=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\r\n?|\f/g,'\n').replace(/\\([0-9a-fA-F]{1,6})[ \t\n]?/g,(x,h)=>{const c=parseInt(h,16);return c>0&&c<=0x10FFFF&&!(c>=0xD800&&c<=0xDFFF)?String.fromCodePoint(c):'\uFFFD'}).replace(/\\([^\n\r\f0-9a-fA-F])/g,'$1');
+ assert.equal(unesc118('.b img{d\\69splay:block!\\69mportant}.c{a\\6c l:x}.d{\\64 isplay:y}.e{d\\69\r\nsplay:z}'),'.b img{display:block!important}.c{all:x}.d{display:y}.e{display:z}','el lector de escapes');
  const MK='.mark-l{display:var(--mark-light)!important}',MD='.mark-d{display:var(--mark-dark)!important}',MH='.mark-l[hidden],.mark-d[hidden]{display:none!important}';
  const IMP118={'styles.css':['[hidden]{display:none!important}',MK,MD,MH,'.btn-install{display:none!important}'],'lugares/l.css':[MK,MD,MH],'u.css':[MK,MD,MH]};
- const THEME118=[':root',':root:not([data-theme="light"])',':root[data-theme="dark"]'];
- for(const [f,want] of Object.entries(IMP118)){const css=unesc118(read(f)),got=[];
+ /* Codex r4: no basta con el selector; cada vez que se pone un token de la marca, en toda la hoja, es exactamente esta lista, en orden: un :root
+    de más (o una media con :root) que vuelva a poner --mark-dark o --mark-light rompe la lista */
+ const DAY118=[':root --mark-light:block',':root --mark-dark:none'],NIGHT118=s=>[s+' --mark-light:none',s+' --mark-dark:block'];
+ const TOK118={'styles.css':[...DAY118,...NIGHT118(':root:not([data-theme="light"])'),...NIGHT118(':root[data-theme="dark"]')],
+  'lugares/l.css':[...DAY118,...NIGHT118(':root:not([data-theme="light"])')],'u.css':[...DAY118,...NIGHT118(':root:not([data-theme="light"])')]};
+ for(const [f,want] of Object.entries(IMP118)){const css=unesc118(read(f)),got=[],tok=[];
   for(const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)){const sel=m[1].trim();
-   for(const d of m[2].split(';'))if(/!\s*important/i.test(d)&&/^\s*(display|all)\s*:/i.test(d))got.push(sel+'{'+d.trim().replace(/\s*!\s*important\s*$/i,'!important')+'}');
-   if(/--mark-(light|dark)\s*:/i.test(m[2]))assert.ok(THEME118.includes(sel),f+': '+sel+' cambia los tokens de la marca fuera de los bloques de tema')}
+   for(const d of m[2].split(';')){if(/!\s*important/i.test(d)&&/^\s*(display|all)\s*:/i.test(d))got.push(sel+'{'+d.trim().replace(/\s*!\s*important\s*$/i,'!important')+'}');
+    const t=/^\s*(--mark-(?:light|dark))\s*:\s*(.*?)\s*$/i.exec(d);if(t)tok.push(sel+' '+t[1]+':'+t[2])}}
+  assert.deepEqual(tok,TOK118[f],f+': cada vez que se ponen los tokens de la marca');
   assert.deepEqual(got,want,f+': las declaraciones display o all con !important');
   assert.ok(css.indexOf(MH)>css.indexOf(MD),f+': hidden gana sobre la marca')}
  for(const f of (function w(d){return fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?w(path.join(d,e.name)):[path.join(d,e.name)])})(S).concat([path.join(__dirname,'..','functions','u','[handle].js')]).filter(f=>/\.(html|js)$/.test(f)))
