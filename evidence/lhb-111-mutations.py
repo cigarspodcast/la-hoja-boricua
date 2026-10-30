@@ -91,6 +91,10 @@ MUTS = [
     ('site/styles.css', 'Codex r21: nearly transparent outlines through stroke-opacity', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.lart{stroke-opacity:.01}'),
     ('site/styles.css', 'Codex r21: the accent rule moved under @media print', '.lart .ac{fill:var(--art-ac)}', '@media print{.lart .ac{fill:var(--art-ac)}}'),
     ('site/styles.css', 'Codex r21: an animation on the header that fades its drawing', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.sec-head{animation:glo 1s infinite}'),
+    ('site/art.js', 'Codex r22: nearly transparent outlines through a stroke-opacity attribute on every drawing', 'aria-hidden="true" focusable="false">${body}</svg>`;', 'aria-hidden="true" focusable="false" stroke-opacity=".01">${body}</svg>`;'),
+    ('site/app.js', 'Codex r22: the header drawing made nearly transparent by an inline style', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art" style="opacity:.01">${art}</div></header>`;'),
+    ('site/hoja.js', 'Codex r22: a drawing faded by a script', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.opacity=.01};const CAL_ICO='),
+    ('site/404.html', 'Codex r22: an icon with a stroke too thin to see on a static page', '</body>', '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width=".01" d="M4 12h16"/></svg></body>'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
