@@ -130,27 +130,32 @@ window.LHB_SYNC=function(D){
  /* Codex r9: la época se lee aquí mismo: si la lectura falla, no se sabe si otra pestaña puso otra, y queda pendiente */
  const tryUndo=()=>{if(!undo)return true;try{if(D.ls.get(EPOCH)===undo.from){if(typeof undo.to==='string')D.ls.set(EPOCH,undo.to);else D.ls.remove(EPOCH)}undo=null;return true}catch(e){return false}};
  /* LHB-105: el cambio de cuenta a mitad. isolate() anota que esta pestaña está pasando la copia a otra dueña antes de tocar la época, y lo quita al terminar,
-    salga bien o mal: una llave por pestaña (lhb_mihoja_v1_cambio.<pestaña>, {v:1,t}), que solo quita la pestaña que la puso (si no pudo, lo reintenta antes de su
+    salga bien o mal: una llave por cambio (lhb_mihoja_v1_cambio.<pestaña>.<n>, {v:1,t}), que solo quita la pestaña que la puso (si no pudo, lo reintenta antes de su
     próximo cambio o su próxima pasada). Mientras otra pestaña tenga uno a mitad, ninguna pasada empieza ni cambia la copia de dueña. Una pasada que ya había
     empezado no hace falta pararla aquí: se anota antes de la época nueva, así que o la pasada vio la anotación, o leyó la época de antes y la época nueva la deja
     sin vida. Vale la anotación reciente (SWITCH_TTL) y, con Web Locks, la de una pestaña viva aunque lleve rato dormida: cada pestaña tiene su candado
     (lhb_mihoja_v1_pestana.<pestaña>) mientras vive. La de una pestaña que se cerró a mitad deja de valer al pasar el plazo, y se quita.
     Codex r2: sin Web Locks no se sabe si la pestaña de una anotación vieja vive; la pasada que la quita pone además una época nueva, así que si esa pestaña
-    vuelve, su cambio ve otra época y no vacía la copia */
+    vuelve, su cambio ve otra época y no vacía la copia.
+    Codex r3: cada cambio anota en una llave nueva (n crece en cada cambio de la pestaña), así que una llave no cambia de valor después de escrita: quien vio
+    una anotación vieja y la quita después no puede quitar la de un cambio que empezó entretanto */
  const SWITCH=KEY+'_cambio.',TABLOCK=KEY+'_pestana.',SWITCH_TTL=30e3,TAB=(Math.random().toString(36).slice(2)+'0000000000').slice(0,10);
  try{if(D.tabLock)D.tabLock(TABLOCK+TAB)}catch(e){}
  const swOk=v=>isObj(v)&&v.v===1&&Number.isFinite(v.t);
  /* las anotaciones de las otras pestañas. Una lectura que lanza sube */
- const marks=()=>{const out=[];for(const k of D.ls.keys()){if(typeof k!=='string'||k.slice(0,SWITCH.length)!==SWITCH||k===SWITCH+TAB)continue;const raw=D.ls.get(k);if(raw==null)continue;
-   let v;try{v=JSON.parse(raw)}catch(e){continue}if(swOk(v))out.push({k,tab:k.slice(SWITCH.length),t:v.t})}return out};
+ const marks=()=>{const out=[];for(const k of D.ls.keys()){if(typeof k!=='string'||k.slice(0,SWITCH.length)!==SWITCH)continue;
+   const rest=k.slice(SWITCH.length),dot=rest.indexOf('.');if(dot<1)continue;const tab=rest.slice(0,dot);if(tab===TAB)continue;const raw=D.ls.get(k);if(raw==null)continue;
+   let v;try{v=JSON.parse(raw)}catch(e){continue}if(swOk(v))out.push({k,tab,t:v.t})}return out};
  const fresh=m=>Math.abs(D.nowMs()-m.t)<SWITCH_TTL;
- let unmark=false;const tryUnmark=()=>{if(!unmark)return true;try{D.ls.remove(SWITCH+TAB);unmark=false;return true}catch(e){return false}};
+ let unmark=null,seq=0;const tryUnmark=()=>{if(!unmark)return true;try{D.ls.remove(unmark);unmark=null;return true}catch(e){return false}};
  /* Codex r2: los candados tomados que vio la última consulta (null: no se sabe todavía). isolate() es síncrona y no puede preguntar: con Web Locks, toma por
     viva la anotación de una pestaña que estaba viva en la última consulta, o cualquiera si todavía no se sabe */
- let heldKnown=null;
- const askHeld=async()=>{let h=null;try{h=await D.tabsHeld()}catch(e){h=null}heldKnown=h;return h};
+ /* Codex r3: y solo dice que una pestaña se cerró si la consulta empezó después de que su anotación dejó de ser reciente (heldAt): una consulta de antes
+    pudo no ver a una pestaña que se abrió después. La pestaña toma su candado al abrirse, antes de cualquier cambio, así que una consulta de ese momento la ve */
+ let heldKnown=null,heldAt=-Infinity;
+ const askHeld=async()=>{const at=D.nowMs();let h=null;try{h=await D.tabsHeld()}catch(e){h=null}if(at>=heldAt){heldKnown=h;heldAt=h?at:-Infinity}return h};
  if(D.tabsHeld)askHeld().catch(()=>{});
- const liveNow=m=>fresh(m)||(!!D.tabsHeld&&(heldKnown===null||heldKnown.has(TABLOCK+m.tab)));
+ const liveNow=m=>fresh(m)||(!!D.tabsHeld&&(heldKnown===null||heldAt<m.t+SWITCH_TTL||heldKnown.has(TABLOCK+m.tab)));
  /* Codex r1 (LHB-105): una pestaña dormida a mitad del cambio puede volver pasado el plazo; mientras su candado siga tomado, su anotación vale */
  const switching=async()=>{const ms=marks();if(!ms.length)return false;
   const held=D.tabsHeld?await askHeld():null;
@@ -177,9 +182,9 @@ window.LHB_SYNC=function(D){
      propio; si no se puede, la copia queda como está */
   if(!tryUnmark())return false;
   let ms;try{ms=marks()}catch(e){return false}if(ms.some(liveNow))return false;
-  const mine=SWITCH+TAB;try{D.ls.set(mine,JSON.stringify({v:1,t:D.nowMs()}))}catch(e){return false}
+  const mine=SWITCH+TAB+'.'+(++seq);try{D.ls.set(mine,JSON.stringify({v:1,t:D.nowMs()}))}catch(e){return false}
   /* Codex r2: la anotación se quita también si el cambio lanza (ya no está a mitad: terminó, mal); si no se puede quitar, se reintenta */
-  inIso=true;try{return iso1(acc,old)}finally{inIso=false;try{D.ls.remove(mine)}catch(e){unmark=true}}}
+  inIso=true;try{return iso1(acc,old)}finally{inIso=false;try{D.ls.remove(mine)}catch(e){unmark=mine}}}
  function iso1(acc,old){
    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
    /* Codex r10: la época de antes se lee aquí mismo; si la lectura falla, no se sabe a cuál volver y no se toca nada */
