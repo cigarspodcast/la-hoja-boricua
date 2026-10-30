@@ -63,13 +63,14 @@ function hook(C){if(hooked)return;hooked=true;lastId=C.user?C.user.id:null;
   if(id&&p&&p.from===D.here()){go(p.go,{...p.o,resume:true});return}
   if(onMiHoja()||ob){ob=false;D.reroute()}
   /* el aviso de error pedía salir y volver a entrar: al salir, la hoja se cierra con todo y su botón; se deja un botón nuevo para entrar y seguir con la acción */
-  if(!id&&fl&&fl.from===D.here())D.ui.notice(tt('cu.again.h'),tt('cu.again.p'),{label:tt('cu.again.b'),on:()=>go(fl.done,{...fl.o,resume:false})})})}
+  /* LHB-115 (Codex r5-1): con la pantalla del idioma abierta, espera a que se escoja, y sale solo si sigue en la misma página y la misma cuenta */
+  if(!id&&fl&&fl.from===D.here()){const g1=gen;whenPicked(()=>{if(gen===g1&&fl.from===D.here())D.ui.notice(tt('cu.again.h'),tt('cu.again.p'),{label:tt('cu.again.b'),on:()=>go(fl.done,{...fl.o,resume:false})})})}})}
 /* una acción en sitio (corazón, sello, estrella, humidor) cuenta aparte de la puerta de una página: tocar un corazón no cancela el dibujo de Mi Hoja ni al revés; un cambio de cuenta cancela las dos */
 async function go(done,o){o=o||{};const from=D.here(),inp=!!o.inPlace,g0=gen,v0=vis,op=inp?++sip:++seq;if(inp){failure=null;/* un toque nuevo sustituye al anterior: lo guardado del anterior para volver de Google ya no vale (el nuevo guarda el suyo si hace falta) */if(!o.resume)D.intent.clear()}else ob=false;
  const lv=(C,uid)=>op===(inp?sip:seq)&&vis===v0&&D.here()===from&&(uid===undefined||(!!C.user&&C.user.id===uid));
  const show=(h,p,b)=>{if(!inp&&op===seq)D.ui.card(h,p,b)};
  /* un error nunca se esconde: sobre la página (en sitio) o en la tarjeta de Mi Hoja, siempre con reintento que conserva la acción */
- const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:tt('cu.retry'),on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};D.ui.notice(h,p,b)}else D.ui.card(h,p,b)};
+ const fail=(h,p)=>{if(op!==(inp?sip:seq))return;const b={label:tt('cu.retry'),on:()=>go(done,{...o,resume:false})};if(o.inPlace){failure={done,o,from};/* LHB-115 (Codex r5-1) */whenPicked(()=>{if(lv())D.ui.notice(h,p,b)})}else D.ui.card(h,p,b)};
  show(tt('cu.wait.h'),tt('cu.wait.p'));
  let C;
  try{C=await D.clerk()}catch(e){

@@ -9351,6 +9351,19 @@ test('LHB-115 (Codex r4-2): con la pantalla del idioma abierta, completar la ide
  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{needsProfile:true}})});const waits=[];h.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};h.C.user={id:'user_a'};
  await h.A.require(h.go);await tick();h.nav('#/lugares');waits[0]();await tick();assert.ok(!h.log.includes('onboarding'),'la página cambió: no sale');
 });
+test('LHB-115 (Codex r5-1): con la pantalla del idioma abierta, los avisos de la cuenta (el error de una acción en sitio, y el de volver a entrar) esperan a que se escoja',async()=>{
+ const t=k=>h.win.LHB_I18N.t(k);let h;
+ const mk=()=>{h=CUENTA_HARNESS({api:async()=>({status:401,body:{}})});const waits=[];h.win.LHB_INTRO={picking:()=>true,afterPick:f=>waits.push(f)};h.nav('#/catalogo');h.C.user={id:'user_a'};return waits};
+ let waits=mk();await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();
+ assert.ok(!h.log.some(x=>x.startsWith('notice:')),'el aviso del error espera');assert.equal(waits.length,1);
+ waits[0]();await tick();assert.deepEqual(h.log.filter(x=>x.startsWith('notice:')),['notice:'+t('cu.check.h')],'sale al escoger');
+ /* si al escoger ya cambió la página, no sale */
+ waits=mk();await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();h.nav('#/lugares');waits.forEach(f=>f());await tick();assert.ok(!h.log.some(x=>x.startsWith('notice:')),'la página cambió: no sale');
+ /* sale de la cuenta con el error pendiente: el aviso de volver a entrar también espera, y el del error ya no vale */
+ waits=mk();await h.A.require(h.go,{inPlace:true,act:'humidor'});await tick();h.C.signIn(null);await tick();
+ assert.ok(!h.log.some(x=>x.startsWith('notice:')),'ninguno sale con la pantalla abierta');assert.equal(waits.length,2);
+ waits.forEach(f=>f());await tick();assert.deepEqual(h.log.filter(x=>x.startsWith('notice:')),['notice:'+t('cu.again.h')],'al escoger, solo el de volver a entrar');
+});
 test('LHB-115: la página de privacidad dice que una cookie recuerda el idioma; el respaldo del arranque lee la cookie',()=>{
  const pv=read('privacidad.html');assert.ok(pv.includes('Una cookie (lhb_lang) recuerda en este dispositivo el idioma que escogiste, por un año. No se usa para nada más.'));
  const ix=read('index.html');assert.ok(!/navigator\.language/.test(ix),'el respaldo no mira el idioma del navegador');assert.ok(/lhb_lang=\(es\|en\)/.test(ix),'lee la cookie');

@@ -1,0 +1,36 @@
+✔ LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noche; y cada vista, con lo que trae dentro, tiene una sola acción llena (6.9633ms)
+✔ LHB-34 (Codex r5): cerrar la sesión falla, la valla caduca y se vuelve a escribir Mi Hoja: el reintento revisa otra vez; sin red no se sale, con red lo nuevo llega a la cuenta y luego se sale (107.7509ms)
+✔ LHB-80 (Codex r5): si la época nueva no se puede escribir, isolate no toca la copia; la pasada que esperaba su GET sigue y la cuenta queda entera (144.1034ms)
+✔ LHB-80 (Codex r5): cuando isolate vacía la copia, la época ya cambió (otra pestaña que espera ya no vale mientras el cambio está a medias) (172.7226ms)
+✔ LHB-80 (Codex r5): la meta de A que no se pudo reponer al pasar a B no es base de la copia nueva de A al volver: nada se sube como borrado (79.7833ms)
+✔ LHB-80 (Codex r5): nueve quitas de A sin respuesta, la vuelta de a1, B sin poder reponer la meta y nueve subidas sin respuesta; de vuelta en A, la más vieja llega tarde: a1 se queda (384.0411ms)
+✔ LHB-104 (Codex r5): la pestaña 1 se entera tarde de que su subida llegó (rev 2), cuando la 2 ya anotó la base del rev 3: no la reemplaza, y a1 que la persona volvió a poner se queda (77.2064ms)
+✔ LHB-104 (Codex r5): si la última lectura de la meta antes de anotarla falla, no se anota (82.9546ms)
+✔ LHB-62 (Codex r5, r6): si el servidor contestó con otra sesión que la cookie del pedido (X-Lhb-Viewer), se le pregunta a Clerk: nadie entró y lo sin sesión vale; alguien, y se pide otra vez con su llave; si no se sabe, dice que no pudo cargar, sin vueltas; las listas también (40.6947ms)
+✔ LHB-62 (Codex r5): la sesión cambia dos veces seguidas mientras llegan las respuestas: ninguna de las dos se pinta (el perfil y las listas) (7.7053ms)
+✔ LHB-62 (Codex r5): /api/u/<handle> y las listas dicen con qué sesión contestaron (X-Lhb-Viewer): el user_id de quien mira, o - sin sesión (57.8042ms)
+✖ LHB-115 (Codex r5-1): con la pantalla del idioma abierta, los avisos de la cuenta (el error de una acción en sitio, y el de volver a entrar) esperan a que se escoja (4.1255ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1321.7257
+
+✖ failing tests:
+
+test at test\site.test.js:9358:1
+✖ LHB-115 (Codex r5-1): con la pantalla del idioma abierta, los avisos de la cuenta (el error de una acción en sitio, y el de volver a entrar) esperan a que se escoja (4.1255ms)
+  AssertionError [ERR_ASSERTION]: el aviso del error espera
+      at TestContext.<anonymous> (C:\LHB\lhb-115-wt\test\site.test.js:9362:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
