@@ -201,6 +201,7 @@ test('LHB-121: un toque donde el navegador lo deja, la guía justa donde no, y e
  assert.ok(!/data-sheet="instalar"/.test(ap+hj+ix),'ninguna entrada abre las instrucciones sin pasar por installHow');
  assert.ok(ap.includes("L.afterPick(go)")&&ap.includes("document.body.classList.contains('sheet-on')"),'no sale encima de la pantalla del idioma ni de una hoja');
  assert.ok(ap.includes("const instShown=()=>instShownMem||ss.get('lhb_instShown')==='1';")&&ap.includes('instShownMem=true;ss.set(')&&!/remindDue\([^)]*ss\.get\('lhb_instShown'\)/.test(ap),'Codex r1: una vez por visita aunque sessionStorage esté bloqueado');
+ {const sy=ap.slice(ap.indexOf('const syncInstall=()=>{'),ap.indexOf('if(off)closeBar()};'));assert.ok(sy.includes("$$('.menu-dest[data-install]').forEach(m=>{m.hidden=off});"),'Codex r2: syncInstall también esconde la entrada del menú abierto')}
  for(const k of ["arg==='ios'||arg==='ipad'","arg==='inapp-android'","package=com.android.chrome","arg==='inapp-ios'","data-inst-copy","arg==='qr'",'src="icons/qr-app.svg"','data-inst-done'])assert.ok(hj.includes(k),'hoja.js: '+k);
  /* el código lleva a la portada de producción; está en el shell; Android puede decir que ya está instalada */
  const qr=read('icons/qr-app.svg');assert.match(qr,/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 33 33"/);assert.ok(qr.includes('fill="#fff"'),'fondo blanco en los dos temas');

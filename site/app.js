@@ -397,6 +397,7 @@ const ss={get(k){try{return sessionStorage.getItem(k)}catch(x){return null}},set
 const closeBar=()=>{const b=$('#instBar');if(b)b.remove()};
 const syncInstall=()=>{const how=installHow(installEnv(window)),off=how==='none',b=$('#btnAdd');if(b)b.hidden=off;
  const t=$('#topInstall');if(t){t.hidden=off;const sp=t.querySelector('span'),k=how==='qr'?'ins.topQr':'ins.top';if(sp&&sp.dataset.i18n!==k){sp.dataset.i18n=k;sp.textContent=how==='qr'?tt('ins.topQr'):tt('ins.top')}}
+ $$('.menu-dest[data-install]').forEach(m=>{m.hidden=off});/* Codex r2: el menú abierto también, si se supo después que ya está instalada */
  if(off)closeBar()};
 function installedNow(say){window.__lhbInstalled=true;try{localStorage.setItem('lhb_installed',String(Date.now()))}catch(x){}closeBar();syncInstall();if(say)toast(tt('inst.ok'))}
 function remindLater(){const st=LS.get('instRemind',null)||{n:0};try{LS.set('instRemind',{n:(st.n||0)+1,at:Date.now()})}catch(x){}closeBar()}
