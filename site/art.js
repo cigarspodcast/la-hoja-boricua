@@ -1,5 +1,4 @@
 (()=>{
-const tt=window.LHB_I18N.t;/* LHB-29: i18n.js carga antes que art.js */
 function star(cx,cy,R){const r=R*.382;let p='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r:R;p+=(i?'L':'M')+(cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1)}return p+'Z'}
 
 /* LHB-111: una sola manera de ilustrar fuera de la intro, la del anillo del cigarro y la litografía de la caja de cigarros: dibujo de línea en un solo color,

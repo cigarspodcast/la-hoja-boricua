@@ -1,0 +1,10 @@
+baseline (no mutation): pass 3 fail 0
+a header with a drawing outside the set                                  RED (caught) (fail 1)
+a photo-less cigar card without the silhouette                           RED (caught) (fail 1)
+the humidor without the silhouette                                       RED (caught) (fail 1)
+a decorative bitmap back in a view                                       RED (caught) (fail 1)
+a drawing with its own colour                                            RED (caught) (fail 1)
+a drawing without its accent                                             RED (caught) (fail 1)
+the empty state with a different drawing                                 RED (caught) (fail 1)
+the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
+RESULT 8 of 8 red
