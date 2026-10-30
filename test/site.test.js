@@ -4009,7 +4009,16 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  /* Codex r36: la geometría del juego queda fijada: el texto de art.js desde el principio hasta el dibujo de "aquí" (LA, la estrella, cada dibujo y la
     silueta), por su sha256. Un acento con r="0", un trazo sin largo o un dibujo cambiado solo con un argumento ya no pasan sin revisar el dibujo y este número */
  {const s=read('art.js').replace(/\r\n/g,'\n'),i=s.indexOf('\nconst aqui=');assert.ok(i>0,'art.js: el dibujo de aquí');
-  assert.equal(require('crypto').createHash('sha256').update(s.slice(0,s.indexOf('\n',i+1))).digest('hex'),'af24a6d552db144b7506df43069209674271cf204d65636c5618c5de158d888a','art.js: la geometría del juego cambió')}
+  assert.equal(require('crypto').createHash('sha256').update(s.slice(0,s.indexOf('\n',i+1))).digest('hex'),'af24a6d552db144b7506df43069209674271cf204d65636c5618c5de158d888a','art.js: la geometría del juego cambió');
+  /* Codex r37: y art.js entero, porque lo que sigue a "aquí" (leaf, la exportación) también puede cambiar un dibujo después de hecho */
+  assert.equal(require('crypto').createHash('sha256').update(s).digest('hex'),'1f87ba802e629b4bd188fb9e3502b50a69764eb6ce3a019eeb06371ee4d9929e','art.js cambió: revisa el dibujo y este número')}
+ /* Codex r37: fuera de art.js nadie toca VBArt: cada mención es una llamada a uno de sus dibujos, o una de las tres maneras en que app.js y hoja.js lo
+    reciben; nada de asignarle, envolverlo ni leerlo con corchetes */
+ {const NAMES='ranchon|banda|chaveta|micro|lupa|hoja|maridaje|caja|silueta|aqui|leaf',ONCE={'app.js':['const VBArt=window.VBArt;',',VBArt,LS,D:'],'hoja.js':['const {$,$$,esc,toast,view,VBArt}=A;']};
+  const files=fs.readdirSync(path.join(__dirname,'..','site'),{recursive:true}).map(String).map(f=>f.replace(/\\/g,'/')).filter(f=>/\.(js|html|mjs)$/.test(f)&&!f.startsWith('vendor-')&&f!=='art.js');
+  assert.ok(files.includes('app.js')&&files.includes('hoja.js')&&files.some(f=>f.endsWith('.html')),'la lista de archivos del sitio');
+  for(const f of files){let t=read(f);for(const x of ONCE[f]||[]){assert.equal(t.split(x).length-1,1,f+': '+x);t=t.replace(x,'')}
+   t=t.replace(new RegExp('\\bVBArt\\.(?:'+NAMES+')\\(','g'),'');assert.ok(!/VBArt/i.test(t),f+': VBArt se usa de otra manera: '+(t.match(/.{0,40}VBArt.{0,40}/i)||[''])[0])}}
  /* la silueta para la imagen para compartir, con los colores ya resueltos: solo esos dos */
  {const h=A.silueta('',{ink:'#263723',ac:'#C77943'});assert.deepEqual([...new Set(h.match(/#[0-9A-Fa-f]{6}/g))].sort(),['#263723','#C77943']);assert.match(h,/viewBox="0 0 600 300"/,'el marco 2:1 de las fotos');
   /* Codex r30: la silueta resuelta lleva los mismos elementos y la misma geometría que la del juego, y de pintura solo la suya: fill y stroke en none o
