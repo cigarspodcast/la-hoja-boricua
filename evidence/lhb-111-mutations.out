@@ -117,6 +117,9 @@ Codex r38c: the cigar silhouette changed at its call                     RED (ca
 Codex r38d: a drawing changed on the page with setAttribute              RED (caught) (fail 1)
 Codex r38e: a drawing changed on the page by rewriting innerHTML         RED (caught) (fail 1)
 Codex r38f: a drawing changed on the page through baseVal                RED (caught) (fail 1)
+Codex r39: the header accent removed after render                        RED (caught) (fail 1)
+Codex r39b: the header drawing reached through its frame                 RED (caught) (fail 1)
+Codex r39c: a drawing removed through the clicked node                   RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 120 of 120 red
+RESULT 123 of 123 red

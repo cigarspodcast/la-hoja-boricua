@@ -4046,7 +4046,23 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
     assert.ok(/^'(aria-[a-z]+|role|tabindex|data-theme)',/.test(r)||(f==='i18n.js'&&t.slice(m.index-3).startsWith('el.setAttribute(p.slice(0,i),t(p.slice(i+1)))')),f+': un setAttribute que puede cambiar un dibujo: '+t.slice(m.index,m.index+60))}
    for(const m of t.matchAll(/\.(inner|outer)HTML\b/g))assert.ok(/^\s*=(?!=)/.test(t.slice(m.index+m[0].length)),f+': se lee '+m[0]+': '+t.slice(m.index-30,m.index+50));
    assert.ok(!/baseVal|animVal|setAttributeNode|\.attributes\b|i18nAttr/.test(t),f+': una manera de cambiar la geometría después de dibujada');
-   assert.equal(n(t,'.prototype'),n(t,'Object.prototype.hasOwnProperty.call(')+n(t,' in Object.prototype'),f+': un prototipo')}
+   assert.equal(n(t,'.prototype'),n(t,'Object.prototype.hasOwnProperty.call(')+n(t,' in Object.prototype'),f+': un prototipo');
+   /* Codex r39: y nadie alcanza un nodo de un dibujo para quitarlo o cambiarlo. Un selector literal ($, $$, querySelector, querySelectorAll, closest,
+      matches, y FOCUSABLE) no nombra un dibujo ni lo que lo enmarca (lart, sec-art, sec-head, sil, ac, fn, bg, hum-ph, leafsvg, un elemento de SVG, header,
+      [class ni *); un selector que no es literal es uno de los seis que hay; ningún recorrido del DOM (children, firstChild, parentNode, los hermanos,
+      replaceChildren, removeChild...) fuera de los ocho que hay, que no tocan dibujos; y un e.target solo se lee (closest, value, files, selection) */
+   const BADSEL=/\*|\[class|(^|[\s>+~,(])(svg|g|path|circle|ellipse|rect|line|polyline|polygon|text|tspan|title|desc|header)(?![\w-])|\.(lart|sec-art|sec-head|sil|ac|fn|bg|hum-ph|leafsvg)(?![\w-])/;
+   const NONLIT={'app.js':['s','s'],'hoja.js':['FOCUSABLE','id','c.sel','c.sel']},nonlit=[];
+   for(const m of t.matchAll(/(?:(?<![\w$.])(\$\$|\$)|\.(querySelectorAll|querySelector|closest|matches))\(\s*/g)){const i=m.index+m[0].length,q=t[i];
+    if(q==='\''||q==='"'||q==='`'){const j=t.indexOf(q,i+1),sel=t.slice(i+1,j);assert.ok(j>i&&!BADSEL.test(sel),f+': un selector que alcanza un dibujo: '+sel)}
+    else nonlit.push(t.slice(i,t.indexOf(')',i)))}
+   assert.deepEqual(nonlit,NONLIT[f]||[],f+': un selector que no es literal');
+   if(f==='hoja.js'){const m=/const FOCUSABLE='([^']*)'/.exec(t);assert.ok(m&&!BADSEL.test(m[1]),'FOCUSABLE');for(const x of t.matchAll(/\badd\(`([^`]*)`/g))assert.ok(!BADSEL.test(x[1].replace(/\$\{[^}]*\}/g,'x')),'hoja.js: add() con '+x[1])}
+   const TRAV=/\.(children|childNodes|firstChild|firstElementChild|lastChild|lastElementChild|nextSibling|previousSibling|nextElementSibling|previousElementSibling|parentNode|parentElement|offsetParent|getElementsByClassName|getElementsByTagName|getElementsByName|replaceChildren|replaceChild|replaceWith|removeChild|insertBefore|before|after|elementFromPoint|elementsFromPoint|composedPath|getRootNode|ownerDocument|srcElement)\b/g;
+   const TRAV_OK={'app.js':['document.head.insertBefore(e,','hr=el.parentNode.getBound','leafBurst(el.parentNode,','$(\'#map\').parentNode,','if(el.firstChild===im)','el.replaceChildren(im)}'],'hoja.js':['b.firstChild.textContent=','$(\'#psL\').children.length']};
+   const tr=[...t.matchAll(TRAV)].map(m=>(TRAV_OK[f]||[]).find(x=>{const k=x.indexOf(m[0]);return k>=0&&t.slice(m.index-k,m.index-k+x.length)===x})||t.slice(m.index-20,m.index+30));
+   assert.deepEqual(tr,TRAV_OK[f]||[],f+': un recorrido del DOM que puede llegar a un dibujo');
+   for(const m of t.matchAll(/\.(target|currentTarget)\b/g))assert.ok(/^(\.closest(\(|&&|\?)|\.value\b|\.files\b|\.selectionSt|&&)/.test(t.slice(m.index+m[0].length)),f+': un '+m[0]+' que no solo se lee: '+t.slice(m.index-20,m.index+30))}
   for(const f of fs.readdirSync(path.join(__dirname,'..','site'),{recursive:true}).map(String).map(f=>f.replace(/\\/g,'/')).filter(f=>/\.(m?js|html)$/.test(f)&&!f.startsWith('vendor-')))
    for(const m of read(f).matchAll(/data-i18n-attr=["']([^"']*)/g))for(const p of m[1].split(';'))assert.ok(['aria-label','href'].includes(p.split(':')[0]),f+': data-i18n-attr pone '+p)}
  /* la silueta para la imagen para compartir, con los colores ya resueltos: solo esos dos */

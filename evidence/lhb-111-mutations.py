@@ -127,6 +127,9 @@ MUTS = [
     ('site/app.js', 'Codex r38d: a drawing changed on the page with setAttribute', 'const VBArt=window.VBArt;', 'const VBArt=window.VBArt;addEventListener(\'hashchange\',()=>setTimeout(()=>document.querySelectorAll(\'.lart .ac\').forEach(e=>e.setAttribute(\'r\',\'0\'))));'),
     ('site/app.js', 'Codex r38e: a drawing changed on the page by rewriting innerHTML', 'const VBArt=window.VBArt;', 'const VBArt=window.VBArt;addEventListener(\'hashchange\',()=>setTimeout(()=>{const v=document.getElementById(\'view\');v.innerHTML=v.innerHTML.replace(/r="8"/g,\'r="0"\')}));'),
     ('site/app.js', 'Codex r38f: a drawing changed on the page through baseVal', 'const VBArt=window.VBArt;', 'const VBArt=window.VBArt;addEventListener(\'hashchange\',()=>setTimeout(()=>document.querySelectorAll(\'.lart .ac\').forEach(e=>{if(e.r)e.r.baseVal.value=0})));'),
+    ('site/app.js', 'Codex r39: the header accent removed after render', 'const VBArt=window.VBArt;', 'const VBArt=window.VBArt;addEventListener(\'hashchange\',()=>setTimeout(()=>document.querySelector(\'.sec-art .ac\')?.remove()));'),
+    ('site/app.js', 'Codex r39b: the header drawing reached through its frame', 'const VBArt=window.VBArt;', 'const VBArt=window.VBArt;addEventListener(\'hashchange\',()=>setTimeout(()=>{const h=document.getElementById(\'view\');const x=h&&h.firstElementChild;if(x)x.lastElementChild?.remove()}));'),
+    ('site/hoja.js', 'Codex r39c: a drawing removed through the clicked node', 'const {$,$$,esc,toast,view,VBArt}=A;', 'const {$,$$,esc,toast,view,VBArt}=A;document.addEventListener(\'click\',e=>{if(e.target&&e.target.tagName===\'circle\')e.target.remove()});'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
