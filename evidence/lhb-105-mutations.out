@@ -1,0 +1,7 @@
+baseline (no mutation): pass 3 fail 0
+a pass starts during a switch (no check at the start)                    RED (caught) (fail 1)
+the switch is not marked                                                 RED (caught) (fail 2)
+a switch that cannot be marked goes ahead unmarked                       RED (caught) (fail 1)
+the mark stays after the switch ends                                     RED (caught) (fail 1)
+the mark of a tab that closed mid-switch never lapses                    RED (caught) (fail 1)
+RESULT 5 of 5 red

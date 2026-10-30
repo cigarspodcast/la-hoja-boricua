@@ -1,0 +1,26 @@
+✖ LHB-105: una pasada que empieza en otra pestaña mientras esta cambia de cuenta no escribe la copia ni sube nada, y el cambio termina (7409.3965ms)
+✔ LHB-105: un cambio de cuenta que quedó a mitad porque la pestaña se cerró no detiene la sincronización para siempre (279.0389ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10395.53
+
+✖ failing tests:
+
+test at test\site.test.js:6448:1
+✖ LHB-105: una pasada que empieza en otra pestaña mientras esta cambia de cuenta no escribe la copia ni sube nada, y el cambio termina (7409.3965ms)
+  AssertionError [ERR_ASSERTION]: la pasada no se da por buena
+      at TestContext.<anonymous> (C:\LHB\lhb-105-wt\test\site.test.js:6456:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: true,
+    operator: '!=',
+    diff: 'simple'
+  }

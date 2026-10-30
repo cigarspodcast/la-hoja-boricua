@@ -6432,6 +6432,52 @@ test('LHB-80 (Codex r7): otra pestaña cambió la época mientras este cambio de
   A.st.acct=A.st.user='user_a';await A.eng.settled({});
   const s=srv28(a,'user_a').doc;assert.equal(s.humidor.length,1);assert.equal(s.diario.length,1);assert.ok(s.favs.artesanos.includes('a1'),'la cuenta sigue entera');
  }finally{a.done()}});
+/* LHB-105: dos motores sobre el mismo almacenamiento, como dos pestañas. La otra pestaña (Y) empieza a pasar la copia a otra cuenta y se queda quieta a mitad
+   (aquí, el vaciado lanza: ya escribió lo que escribe antes de vaciar). Una pasada que empieza en ese tramo no vale: ni escribe la copia ni sube nada */
+const SWITCH105=async(o)=>{const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));
+ const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+ const Y=SYNC28().LHB_SYNC(A.D),sd=A.D.setDoc,PAUSE=new Error('pausa');
+ A.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length)throw PAUSE;return sd(d,...r)};
+ A.st.acct=A.st.user='user_b';assert.throws(()=>Y.isolate(),e=>e===PAUSE,'la otra pestaña se queda a mitad del cambio');A.D.setDoc=sd;
+ A.st.acct=A.st.user='user_a';if(o&&o.advance)A.advance(o.advance);
+ return {a,A,Y,puts:()=>A.net.log.filter(m=>m==='PUT').length}};
+test('LHB-105: una pasada que empieza en otra pestaña mientras esta cambia de cuenta no escribe la copia ni sube nada, y el cambio termina',async()=>{
+ const {a,A,Y,puts}=await SWITCH105();
+ try{
+  assert.equal(srv28(a,'user_a').rev,1);
+  /* la cuenta compartida volvió a A y esta pestaña empieza su pasada; mientras espera el GET, la otra vacía la copia y se queda antes de anotar la dueña */
+  const p0=puts(),d0=A.st.setDocs;let cleared=false;const clear=()=>{if(!cleared){cleared=true;A.ls.set(A.KEY,'{}')}};
+  A.net.beforeGet=async()=>{clear()};
+  const r=await A.sync();A.net.beforeGet=null;clear();
+  assert.notEqual(r.ok,true,'la pasada no se da por buena');
+  /* y sus reintentos tampoco, mientras la otra pestaña sigue a mitad */
+  await A.fire();
+  assert.equal(puts(),p0,'no subió nada');assert.equal(A.st.setDocs,d0,'no escribió la copia');assert.deepEqual(A.doc(),{},'la copia sigue vacía');
+  const s=srv28(a,'user_a');assert.equal(s.rev,1);assert.equal(s.doc.humidor.length,1);assert.ok(s.doc.favs.artesanos.includes('a1'),'la cuenta de A sigue entera');
+  /* la otra pestaña termina su cambio a B: la copia es de B, sin nada de A, y ya no queda ningún cambio a mitad */
+  A.st.acct=A.st.user='user_b';assert.equal(Y.isolate(),true);
+  assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_b');
+  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_cambio')),[],'ningún cambio de cuenta anotado');
+  assert.equal((await A.sync()).ok,true,'B sincroniza');
+  const b=srv28(a,'user_b');assert.ok(!b||!(b.doc.humidor||[]).length&&!(b.doc.favs&&b.doc.favs.artesanos||[]).length,'nada de A en la cuenta de B');
+  assert.equal(srv28(a,'user_a').rev,1,'ni en la de A cambió nada');
+ }finally{a.done()}});
+test('LHB-105: si no se puede anotar el cambio de cuenta, no se cambia: la copia, la dueña y la época quedan como estaban',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const E=A.KEY+'_epoca',ep=A.ls.get(E),copy=A.ls.get(A.KEY);
+  A.st.acct=A.st.user='user_b';A.st.failPre=A.KEY+'_cambio.';assert.equal(A.eng.isolate(),false);A.st.failPre=null;
+  assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_a');assert.equal(A.ls.get(A.KEY),copy);assert.equal(A.ls.get(E),ep);
+  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_de_')),[],'nada apartado');
+ }finally{a.done()}});
+test('LHB-105: un cambio de cuenta que quedó a mitad porque la pestaña se cerró no detiene la sincronización para siempre',async()=>{
+ const {a,A}=await SWITCH105({advance:31e3});
+ try{
+  assert.equal((await A.sync()).ok,true,'pasado el plazo, la pasada sigue');
+  const s=srv28(a,'user_a');assert.equal(s.doc.humidor.length,1,'y la cuenta sigue entera');
+ }finally{a.done()}});
 for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
                            ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
 test('LHB-80 (Codex r8): el cambio de cuenta falla antes de tocar la copia y volver a la época de antes también falla ('+como+'): se reintenta antes de sincronizar y el borrado sigue',async()=>{

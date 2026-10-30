@@ -129,6 +129,15 @@ window.LHB_SYNC=function(D){
  let undo=null;
  /* Codex r9: la época se lee aquí mismo: si la lectura falla, no se sabe si otra pestaña puso otra, y queda pendiente */
  const tryUndo=()=>{if(!undo)return true;try{if(D.ls.get(EPOCH)===undo.from){if(typeof undo.to==='string')D.ls.set(EPOCH,undo.to);else D.ls.remove(EPOCH)}undo=null;return true}catch(e){return false}};
+ /* LHB-105: el cambio de cuenta a mitad. isolate() anota que esta pestaña está pasando la copia a otra dueña antes de tocar la época, y lo quita al terminar,
+    salga bien o mal: una llave por pestaña (lhb_mihoja_v1_cambio.<pestaña>, {v:1,t}), que solo quita la pestaña que la puso. Mientras haya una reciente, ninguna
+    pasada empieza, en esta pestaña ni en otra: lo que hay en la copia en ese tramo no es de nadie. Una pasada que ya había empezado no hace falta pararla aquí: se
+    anota antes de la época nueva, así que o la pasada vio la anotación, o leyó la época de antes y la época nueva la deja sin vida. Si la pestaña se cerró (o lanzó) a
+    mitad, la suya caduca a los SWITCH_TTL. Una lectura que lanza sube (la pasada falla y se reintenta) */
+ const SWITCH=KEY+'_cambio.',SWITCH_TTL=30e3,TAB=(Math.random().toString(36).slice(2)+'0000000000').slice(0,10);
+ const swOk=v=>isObj(v)&&v.v===1&&Number.isFinite(v.t);
+ const switching=()=>{const now=D.nowMs();for(const k of D.ls.keys()){if(typeof k!=='string'||k.slice(0,SWITCH.length)!==SWITCH)continue;const raw=D.ls.get(k);if(raw==null)continue;
+   let v;try{v=JSON.parse(raw)}catch(e){continue}if(swOk(v)&&Math.abs(now-v.t)<SWITCH_TTL)return true}return false};
  /* Codex r5: la meta guardada lleva la época de la copia para la que se anotó, y la pasada (la única que toma de ella una base) no la usa con otra época: una meta de antes
     que no se pudo reponer al cambiar de cuenta no es base de la copia nueva al volver. Una meta sin época, de antes de LHB-80, vale mientras no haya época */
  const epOf=m=>m&&typeof m.ep==='string'?m.ep:null;
@@ -143,7 +152,12 @@ window.LHB_SYNC=function(D){
  function isolate(){if(inIso)return true;const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return true;
   const old=ownerOf();if(old===null||old===acc.sub)return true;
   if(!tryUndo())return false;
-  inIso=true;try{
+  /* LHB-105: primero se anota el cambio a mitad; si no se puede, la copia queda como está */
+  const mine=SWITCH+TAB;try{D.ls.set(mine,JSON.stringify({v:1,t:D.nowMs()}))}catch(e){return false}
+  inIso=true;let out;try{out=iso1(acc,old)}finally{inIso=false}
+  try{D.ls.remove(mine)}catch(e){}
+  return out}
+ function iso1(acc,old){
    /* Codex r5: primero la época nueva (en esta pestaña o en otra, una pasada que espera ya no vale aunque lo que sigue falle o quede a medias); si no se puede, la copia queda como está */
    /* Codex r10: la época de antes se lee aquí mismo; si la lectura falla, no se sabe a cuál volver y no se toca nada */
    let e1;try{e1=D.ls.get(EPOCH)}catch(e){return false}
@@ -156,7 +170,7 @@ window.LHB_SYNC=function(D){
    if(raw!=null&&rawHasData(raw)){const k=freeKey(old);if(!k)return back();try{D.ls.set(k,raw)}catch(e){return back()}}
    applying=true;let ok;try{ok=D.setDoc({})}finally{applying=false}
    if(!ok)return back();
-   return setOwner(acc.sub)}finally{inIso=false}}
+   return setOwner(acc.sub)}
  /* una pasada: trae, junta, lleva y aplica. Devuelve { ok }, { skip } o { fail } */
  /* Codex r11 y r12: una subida que llegó (200) deja de estar anotada en pend; hasta que la base nueva queda en memoria, unrecorded lo dice. Si la pasada termina
     en ese tramo por cualquier camino (una lectura que lanza, la cuenta o la época que cambian, una lectura de la época que falla), ninguna base de antes vale:
@@ -200,6 +214,8 @@ window.LHB_SYNC=function(D){
   if(ownerOf()===null&&!setOwner(uid))return {fail:'storage'};
   /* Codex r10: si la época no se puede leer, no se sabe de qué copia es la base guardada: no se sincroniza (se reintenta) */
   let ep0;try{ep0=D.ls.get(EPOCH)}catch(e){return {fail:'storage'}}
+  /* LHB-105: con un cambio de cuenta a mitad, en esta pestaña o en otra, la pasada no empieza (se reintenta). Se mira después de leer la época */
+  if(switching())return {fail:'switching'};
   const alive=()=>{const a=D.acct();return !!a&&a.sub===uid&&ownerOf()===uid&&epochOf()===ep0};
   /* la meta de otra cuenta no sirve de base: si la dueña y la meta no coinciden, se junta sin dar nada por borrado */
   /* Codex r11: una meta que no se puede leer no es una meta que no hay: no se sincroniza (se reintenta) */
