@@ -1,0 +1,15 @@
+LHB-110 round 8 red check on d390ef6 (the round 8 code), the new test file, cache pin set to that commit's lhb-v160.
+Run 1: the test as committed (it stops at the first failed assertion: the red-role list, where the old + turned tobacco when active).
+ℹ pass 0
+ℹ fail 1
+  AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:
+Run 2: the same with the red-role list left as before, to reach the new round 8 assertions.
+ℹ pass 0
+ℹ fail 1
+  AssertionError [ERR_ASSERTION]: el + marcado no se rellena de tabaco: .tab-plus.active .plus{background:var(--accent);color:var(--on-accent)}
+<stdin>:3: SyntaxWarning: "\." is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\."? A raw string is also an option.
+<stdin>:5: SyntaxWarning: "\." is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\."? A raw string is also an option.
+Run 3: the same with the + check switched off, to reach the earned-stamp check.
+ℹ pass 0
+ℹ fail 1
+  AssertionError [ERR_ASSERTION]: sello ganado background: .stampbtn.act var(--card)
