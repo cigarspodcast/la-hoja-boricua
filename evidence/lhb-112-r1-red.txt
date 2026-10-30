@@ -1,0 +1,9 @@
+LHB-112 round 1 red check: the new tests on 1afb77f (the round 1 code), with this round's Chrome evidence.
+✖ LHB-85: la tarjeta escoge con srcset y sizes; la galería usa la gemela (0.8073ms)
+✖ LHB-112: desde 900 px la navegación va arriba y la grilla se abre; el teléfono no cambia (2.2019ms)
+ℹ pass 2
+ℹ fail 2
+✖ LHB-85: la tarjeta escoge con srcset y sizes; la galería usa la gemela (0.8073ms)
+  AssertionError [ERR_ASSERTION]: tarjeta con srcset
+✖ LHB-112: desde 900 px la navegación va arriba y la grilla se abre; el teléfono no cambia (2.2019ms)
+  AssertionError [ERR_ASSERTION]: la grilla de detalle a tres columnas

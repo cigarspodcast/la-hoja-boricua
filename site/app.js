@@ -6,7 +6,10 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 /* LHB-85: the 320 x 160 twin of a 600 x 300 thumbnail (tools/build_thumbs.py) */
 const thumbS=t=>String(t).replace(/_thumb\.webp$/,'_thumb-s.webp');
 // ancho dibujado de la imagen de la tarjeta, medido (evidence/lhb-85-slot-widths.txt); la fila mini (Mi Hoja) es de 140 px fijos
-const SIZES_GRID='(min-width:1200px) 260px, (min-width:1100px) calc(25vw - 41px), (min-width:900px) calc(33.33vw - 42px), (min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)',SIZES_MINI='116px';
+const SIZES_PHONE='(min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)';
+// LHB-112: desde 900 px la grilla del catálogo se abre (tres columnas, cuatro desde 1100, en 1200 px); la de la página de un artesano queda en la medida de
+// lectura de 820 px, a tres columnas (SIZES_DETAIL). Medidos en Chrome (evidence/lhb-112-widths.txt)
+const SIZES_GRID='(min-width:1200px) 260px, (min-width:1100px) calc(25vw - 41px), (min-width:900px) calc(33.33vw - 42px), '+SIZES_PHONE,SIZES_DETAIL='(min-width:900px) 231px, '+SIZES_PHONE,SIZES_MINI='116px';
 const view=$('#view');const REDUCED_ALL=matchMedia('(prefers-reduced-motion: reduce)').matches;const VBArt=window.VBArt;const tt=window.LHB_I18N.t;
 const LS={get(k,d){try{const v=localStorage.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){localStorage.setItem('vb_'+k,JSON.stringify(v))}};
 /* ---------- IndexedDB for photos ---------- */
@@ -63,7 +66,7 @@ const emptyBox=msg=>`<div class="empty"><div>${msg}</div></div>`;
 /* ---------- cards ---------- */
 const fotoOf=c=>(!c||c.yours||!window.LHB_FOTOS)?null:(window.LHB_FOTOS[c.id]||null);
 async function hydratePhotos(root=view){for(const el of $$('[data-photo]',root)){const u=await photoURL(el.dataset.photo);if(u){el.innerHTML=`<img src="${u}" alt="">`}}}
-function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:c.detail?SIZES_DETAIL:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
  ${favs.includes(c.id)?'<span class="fav-dot" aria-label="'+tt('card.fav')+'">♥</span>':''}
  <div class="body"><div class="name">${esc(c.nombre)}</div><div class="meta">${esc(artisanName(c))}${c.pueblo?' · '+esc(c.pueblo):''}</div>
  <div class="pills">${c.capa?`<span class="pill">${esc(fx(c,'capa'))}</span>`:''}${c.fortaleza?`<span class="pill f-${c.fortaleza}">${fortLabel(c.fortaleza)}</span>`:''}${c.yours?'<span class="pill yours">'+tt('card.yours')+'</span>':''}</div></div></a>`}
@@ -154,7 +157,7 @@ function vArtesano(id){const a=artisanById(id);if(!a){view.innerHTML='<div class
  ${a.historia?`<p class="story">${esc(fx(a,'historia'))}</p>`:''}
  <div class="links">${linkBtn('ig',a.instagram,ig||'Instagram')}${linkBtn('wa',a.whatsapp,'WhatsApp')}${linkBtn('web',a.web,tt('link.web'))}${linkBtn('fb',a.facebook,'Facebook')}${linkBtn('yt',a.youtube,'YouTube')}${EXT.firstURL(a.donde_comprar)?linkBtn('buy',EXT.firstURL(a.donde_comprar),tt('link.buy')):''}</div>
  ${a.donde_comprar?`<p class="notes"><b>${tt('link.buyLbl')}</b> ${esc(EXT.scrub(fx(a,'donde_comprar')))}</p>`:''}
- ${cs.length?`<div class="section-title"><h2>${tt('art.vitolas')}</h2></div><div class="grid">${cs.map(cigarCard).join('')}</div>`:''}
+ ${cs.length?`<div class="section-title"><h2>${tt('art.vitolas')}</h2></div><div class="grid">${cs.map(c=>cigarCard({...c,detail:true})).join('')}</div>`:''}
  ${(a.fuentes&&a.fuentes.length)?`<div class="sources">${tt('sources')} ${a.fuentes.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\/(www\.)?/,'').slice(0,48))}</a>`).join(' · ')}</div>`:''}${PROTO_NOTE}`;
  $('[data-back]').onclick=()=>history.length>1?history.back():(location.hash='#/artesanos');hydratePhotos()}
 /* ---------- subir ---------- */

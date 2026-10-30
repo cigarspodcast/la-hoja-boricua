@@ -3,6 +3,8 @@
    - the drawn width of EVERY catalog card photo (.grid .card .ph.has-foto img) at the LHB-85 viewports, and of a card in a
      .mini-row at the same viewports, against the width SIZES_GRID / SIZES_MINI (site/app.js) declare there: never below it,
      at most 3 px over;
+   - LHB-112 (Codex r1): the same for every card photo on an artisan's page (#/a/jfc-hoja-boricua), whose grid sits in the 820 px detail
+     measure from 900 px and declares SIZES_DETAIL;
    - LHB-112, the computer layout: at 390, 899, 900 and 1366 px the page never scrolls sideways, the bottom tab bar is drawn below
      900 px and hidden from 900 px, the top navigation (nav.topnav) is the reverse and draws its five destinations and its plus
      button without clipping, the view keeps a 1200 px measure and the catalogue grid has three columns from 900 px and four
@@ -134,6 +136,22 @@ try {
     // every photo: the declared width at or above the drawn width, by at most 3 px
     check(m.a.length >= 2 && off.length === 0 && overs.every(over => over >= 0 && over <= 3), `grid ${w}: all ${m.a.length} photos declare at or above their drawn width by at most 3 px` + (off.length ? ` (off: ${off.map(i => 'photo ' + (i.k + 1) + ' drawn ' + r1(i.drawn) + ' declared ' + r1(i.decl)).join('; ')})` : ''));
   }
+  // LHB-112 (Codex r1): an artisan's page, whose grid is in the detail measure; then back to the catalogue for the mini row
+  out.push('');
+  out.push('card photos on an artisan page (#/a/jfc-hoja-boricua: .grid .card .ph.has-foto img), against the sizes each declares');
+  out.push('viewport  photos  drawn min-max   least over  most over');
+  await open(GRID_W[0], 'es-PR', '#/a/jfc-hoja-boricua');
+  await until(`document.querySelectorAll('.grid .card .ph.has-foto img').length>=2`, 'an artisan page with two card photos');
+  for (const w of GRID_W) {
+    await size(w);
+    const m = await js(`(()=>{const a=[...document.querySelectorAll('.grid .card .ph.has-foto img')].map((i,k)=>({k,drawn:i.getBoundingClientRect().width,decl:${DECL}(i.getAttribute('sizes'))}));return {a,cw:document.documentElement.clientWidth}})()`);
+    const overs = m.a.map(i => i.decl - i.drawn), drawn = m.a.map(i => i.drawn);
+    const off = m.a.filter((i, k) => !(overs[k] >= 0 && overs[k] <= 3));
+    out.push(String(w).padStart(8) + String(m.a.length).padStart(8) + ('  ' + r1(Math.min(...drawn)) + '-' + r1(Math.max(...drawn))).padEnd(16) + String(r1(Math.min(...overs))).padStart(11) + String(r1(Math.max(...overs))).padStart(11));
+    check(m.a.length >= 2 && off.length === 0 && overs.every(over => over >= 0 && over <= 3), `artisan ${w}: all ${m.a.length} photos declare at or above their drawn width by at most 3 px` + (off.length ? ` (off: ${off.map(i => 'photo ' + (i.k + 1) + ' drawn ' + r1(i.drawn) + ' declared ' + r1(i.decl)).join('; ')})` : ''));
+  }
+  await open(GRID_W[0], 'es-PR', '#/catalogo');
+  await until(`!!document.querySelector('.grid .card .ph.has-foto img')`, 'a catalog card with a photo');
   // the mini row (Mi Hoja: my uploads, my favorites): a catalog card cloned into a .mini-row at the top of #view, as LHB-85 measured it
   await js(`(()=>{const c=document.querySelector('.grid .card').cloneNode(true);c.querySelector('.ph.has-foto img').id='lhb95mini';const r=document.createElement('div');r.className='mini-row';r.appendChild(c);document.getElementById('view').prepend(r);return true})()`);
   out.push('');

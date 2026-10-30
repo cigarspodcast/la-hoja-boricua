@@ -728,5 +728,7 @@ body.sheet-on{overflow:hidden}
  .view:has(> .back){max-width:820px}
  .view p,.view .lead{max-width:70ch}
  .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ /* Codex r1: la grilla de una página de detalle (la de un artesano) queda a tres columnas en su medida de 820 px, también desde 1100 px */
+ .view:has(> .back) .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media (min-width:1100px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}

@@ -3751,15 +3751,21 @@ test('LHB-85: cada miniatura tiene su gemela de 320 x 160, más liviana, y las d
 });
 test('LHB-85: la tarjeta escoge con srcset y sizes; la galería usa la gemela',()=>{const app=read('app.js');
  assert.ok(app.includes("const thumbS=t=>String(t).replace(/_thumb\\.webp$/,'_thumb-s.webp');"),'thumbS');
- assert.ok(app.includes('<img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}"'),'tarjeta con srcset');
+ assert.ok(app.includes('<img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:c.detail?SIZES_DETAIL:SIZES_GRID}"'),'tarjeta con srcset');
  // el ancho dibujado, medido en el preview (evidence/lhb-85-slot-widths.txt): sizes nunca por debajo (borroso) ni más de 3 px por encima (descarga de más)
- const S1=app.match(/const SIZES_GRID='([^']+)',SIZES_MINI='([^']+)';/);assert.ok(S1,'SIZES_GRID y SIZES_MINI');
+ /* LHB-112: los sizes se arman de piezas (SIZES_PHONE va en los dos); se leen corriendo esas líneas */
+ const S0=app.slice(app.indexOf('const SIZES_PHONE='),app.indexOf("SIZES_MINI='116px';")+"SIZES_MINI='116px';".length);assert.ok(S0.length>100&&S0.length<900,'las líneas de sizes');
+ const SZ=require('vm').runInNewContext(S0+';({SIZES_GRID,SIZES_DETAIL,SIZES_MINI})');const S1=[null,SZ.SIZES_GRID,SZ.SIZES_MINI];
  const at=(sz,vw)=>{for(const part of sz.split(',').map(s=>s.trim())){const m=part.match(/^(?:\(min-width:(\d+)px\)\s+)?(.+)$/);if(m[1]&&vw<+m[1])continue;const v=m[2];let r;
    if((r=v.match(/^(\d+(?:\.\d+)?)px$/)))return +r[1];if((r=v.match(/^calc\((\d+(?:\.\d+)?)vw - (\d+(?:\.\d+)?)px\)$/)))return vw*r[1]/100-r[2];throw new Error('sizes: '+v)}throw new Error('sin valor a '+vw)};
  const grid={320:113.4,360:133.5,375:141.1,390:148.8,412:159.6,430:168.9,500:203.9,619:263.8,620:163.6,700:190.4,759:210.3,760:210.5,
   /* LHB-112: desde 900 px la computadora abre la grilla (tres columnas, cuatro desde 1100, en 1200 px); medido en Chrome (evidence/lhb-112-widths.txt) */
   899:209.8,900:256.7,1024:298.2,1099:323.3,1100:233.2,1199:258.1,1200:258.3,1366:258.3,1440:258.3};
  for(const [vw,img] of Object.entries(grid)){const d=at(S1[1],+vw);assert.ok(d>=img&&d-img<=3,'tarjeta a '+vw+' px: sizes '+d+', dibujada '+img)}
+ /* LHB-112 (Codex r1): la página de un artesano: como la grilla por debajo de 900 px, y desde 900 px en la medida de detalle (820 px, tres columnas) */
+ const detail=Object.fromEntries(Object.entries(grid).map(([vw,img])=>[vw,+vw>=900?229.9:img]));
+ for(const [vw,img] of Object.entries(detail)){const d=at(SZ.SIZES_DETAIL,+vw);assert.ok(d>=img&&d-img<=3,'artesano a '+vw+' px: sizes '+d+', dibujada '+img)}
+ assert.ok(app.includes("<div class=\"grid\">${cs.map(c=>cigarCard({...c,detail:true})).join('')}</div>"),'las tarjetas del artesano declaran SIZES_DETAIL');
  for(const vw of [320,412,760,1440]){const d=at(S1[2],vw);assert.ok(d>=115.4&&d-115.4<=3,'mini-row a '+vw+' px: sizes '+d)}
  assert.ok(/class="mini-row">\$\{ups\.map\(c=>cigarCard\(\{\.\.\.c,yours:true,mini:true\}\)\)/.test(app)&&/class="mini-row">\$\{d\.favs\.map\(c=>A\.cigarCard\(\{\.\.\.c,mini:true\}\)\)/.test(read('hoja.js')),'las dos filas mini usan SIZES_MINI (LHB-58: la de favoritos vive en la pestaña Favoritos de hoja.js)');
  assert.ok(app.includes('<img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy">'),'galería con la gemela');
@@ -7595,9 +7601,12 @@ test('LHB-112: desde 900 px la navegación va arriba y la grilla se abre; el tel
  const w9=block(900).replace(/\s+/g,' ');
  for(const x of [':root{--tab-h:0px}','.tabbar{display:none}','.topnav{display:flex;','.view{max-width:1200px;','.view:has(> .back){max-width:820px}','.grid{grid-template-columns:repeat(3,minmax(0,1fr))}'])assert.ok(w9.includes(x),'900 px: '+x);
  assert.ok(block(1100).includes('.grid{grid-template-columns:repeat(4,minmax(0,1fr))}'),'1100 px: cuatro columnas');
+ /* Codex r1: la grilla de una página de detalle se queda en tres columnas en su medida, y vale sobre la de cuatro (más específica) */
+ assert.ok(w9.includes('.view:has(> .back) .grid{grid-template-columns:repeat(3,minmax(0,1fr))}'),'la grilla de detalle a tres columnas');assert.ok(!block(1100).includes('.view:has(> .back) .grid'));
  /* fuera de esos bloques lo único nuevo es esconder la barra de arriba: el teléfono queda como estaba */
  const outside=css.replace(block(900),'').replace(block(1100),'');assert.ok(outside.includes('.topnav{display:none}'));assert.ok(!/\.topnav[^{]*\{(?![^}]*display:none)/.test(outside.replace(/\/\*[\s\S]*?\*\//g,'')),'fuera de 900 px la barra de arriba solo se esconde');
  /* lo que midió Chrome (tools/widths.mjs), leído hasta la última línea: a 390 px la barra de abajo se ve y la de arriba no; a 1366 px al revés; nada se corre de lado */
  const ev=fs.readFileSync(path.join(__dirname,'..','evidence','lhb-112-widths.txt'),'utf8').trim().split(/\r?\n/);assert.match(ev[ev.length-1],/^RESULT PASS (\d+) of \1 checks$/);
+ for(const w of [900,1366])assert.ok(ev.some(l=>l.startsWith('PASS artisan '+w+': all ')),'Codex r1: Chrome midió la página del artesano a '+w);
  for(const l of ['PASS layout 390: no sideways scroll (scrollWidth 390)','PASS layout 390: the bottom tab bar is drawn (drawn)','PASS layout 390: the top navigation is hidden (hidden)','PASS layout 1366: no sideways scroll (scrollWidth 1366)','PASS layout 1366: the bottom tab bar is hidden (hidden)','PASS layout 1366: the top navigation is drawn (drawn)'])assert.ok(ev.includes(l),l);
 });

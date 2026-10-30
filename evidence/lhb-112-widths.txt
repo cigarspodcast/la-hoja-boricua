@@ -1,4 +1,4 @@
-LHB-95 rendered widths, site C:\LHB\lhb-marca112-wt\site, measured 2026-10-30T06:01Z in headless Chrome (Chrome/156.0.8078.74).
+LHB-95 rendered widths, site C:\LHB\lhb-marca112-wt\site, measured 2026-10-30T06:09Z in headless Chrome (Chrome/156.0.8078.74).
 Counting basis: getBoundingClientRect() in CSS px, device scale 1, classic scrollbars hidden (clientWidth = viewport).
 
 card photos (.grid .card .ph.has-foto img), every one on the catalog page, against the sizes each declares
@@ -66,6 +66,51 @@ PASS grid 1366: all 33 photos declare at or above their drawn width by at most 3
     1440      33  258.3-258.3           1.7        1.7
 PASS grid 1440: clientWidth 1440 equals the viewport
 PASS grid 1440: all 33 photos declare at or above their drawn width by at most 3 px
+
+card photos on an artisan page (#/a/jfc-hoja-boricua: .grid .card .ph.has-foto img), against the sizes each declares
+viewport  photos  drawn min-max   least over  most over
+     320       3  112.6-112.6           2.4        2.4
+PASS artisan 320: all 3 photos declare at or above their drawn width by at most 3 px
+     360       3  132.7-132.7           2.3        2.3
+PASS artisan 360: all 3 photos declare at or above their drawn width by at most 3 px
+     375       3  140.2-140.2           2.3        2.3
+PASS artisan 375: all 3 photos declare at or above their drawn width by at most 3 px
+     390       3  147.8-147.8           2.2        2.2
+PASS artisan 390: all 3 photos declare at or above their drawn width by at most 3 px
+     412       3  158.8-158.8           2.2        2.2
+PASS artisan 412: all 3 photos declare at or above their drawn width by at most 3 px
+     430       3  167.9-167.9           2.1        2.1
+PASS artisan 430: all 3 photos declare at or above their drawn width by at most 3 px
+     500       3  203-203                 2          2
+PASS artisan 500: all 3 photos declare at or above their drawn width by at most 3 px
+     619       3  262.9-262.9           1.6        1.6
+PASS artisan 619: all 3 photos declare at or above their drawn width by at most 3 px
+     620       3  162.8-162.8           1.8        1.8
+PASS artisan 620: all 3 photos declare at or above their drawn width by at most 3 px
+     700       3  189.6-189.6           1.4        1.4
+PASS artisan 700: all 3 photos declare at or above their drawn width by at most 3 px
+     759       3  209.4-209.4           1.1        1.1
+PASS artisan 759: all 3 photos declare at or above their drawn width by at most 3 px
+     760       3  209.7-209.8           1.2        1.3
+PASS artisan 760: all 3 photos declare at or above their drawn width by at most 3 px
+     899       3  209.7-209.8           1.2        1.3
+PASS artisan 899: all 3 photos declare at or above their drawn width by at most 3 px
+     900       3  229.8-229.9           1.1        1.2
+PASS artisan 900: all 3 photos declare at or above their drawn width by at most 3 px
+    1024       3  229.8-229.9           1.1        1.2
+PASS artisan 1024: all 3 photos declare at or above their drawn width by at most 3 px
+    1099       3  229.8-229.9           1.1        1.2
+PASS artisan 1099: all 3 photos declare at or above their drawn width by at most 3 px
+    1100       3  229.8-229.9           1.1        1.2
+PASS artisan 1100: all 3 photos declare at or above their drawn width by at most 3 px
+    1199       3  229.8-229.9           1.1        1.2
+PASS artisan 1199: all 3 photos declare at or above their drawn width by at most 3 px
+    1200       3  229.8-229.9           1.1        1.2
+PASS artisan 1200: all 3 photos declare at or above their drawn width by at most 3 px
+    1366       3  229.8-229.9           1.1        1.2
+PASS artisan 1366: all 3 photos declare at or above their drawn width by at most 3 px
+    1440       3  229.8-229.9           1.1        1.2
+PASS artisan 1440: all 3 photos declare at or above their drawn width by at most 3 px
 
 mini-row card photo against SIZES_MINI 116px
 viewport   drawn  declared  over
@@ -170,4 +215,4 @@ PASS header 360: the English swap moves every control in top-actions under 1 px 
 PASS header 412: the English swap moves every control in top-actions under 1 px on every edge (most: - 0 px; container 0 px)
 PASS header 1024: the English swap moves every control in top-actions under 1 px on every edge (most: - 0 px; container 0 px)
 
-RESULT PASS 101 of 101 checks
+RESULT PASS 122 of 122 checks
