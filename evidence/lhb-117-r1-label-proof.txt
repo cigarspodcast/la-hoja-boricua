@@ -1,0 +1,4 @@
+clean: pass 1 fail 0
+site/index.html + <p>Prototipo</p>: pass 0 fail 1 RED (caught)
+site/index.html + <p>Prototype</p>: pass 0 fail 1 RED (caught)
+README.md + Prototipo: pass 0 fail 1 RED (caught)
