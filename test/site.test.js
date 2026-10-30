@@ -3950,6 +3950,18 @@ test('LHB-110 (Codex r2): la burbuja del mapa, las insignias del pasaporte y la 
  /* la medida de los pares pintados ve un degradado que no pasa */
  assert.ok(effPairs65(':root{--a:#000000;--b:#ffffff;--c:#111111;}.x{color:var(--b);background:linear-gradient(var(--a),var(--c) 50%,var(--b))}').some(p=>p.sel==='.x'&&p.r<1.5),'un degradado con una parada clara bajo tinta clara');
 });
+test('LHB-110 (Codex r3): la equis de la burbuja del mapa se lee de día y de noche, también al pasar o con el foco, y le gana a la de Leaflet',()=>{
+ const raw=read('styles.css'),v=read('vendor-leaflet.css');
+ /* lo que Leaflet pone (especificidad 0,2,1 y 0,3,1) */
+ assert.match(v,/\.leaflet-container a\.leaflet-popup-close-button\{[^}]*color: #757575/);assert.match(v,/\.leaflet-container a\.leaflet-popup-close-button:hover,\.leaflet-container a\.leaflet-popup-close-button:focus\{color: #585858\}/);
+ /* lo nuestro, con una clase más (0,3,1 y 0,4,1): gana aunque la hoja de Leaflet llegue después */
+ assert.ok(raw.includes('.leaflet-container .leaflet-popup a.leaflet-popup-close-button{color:var(--muted)}'));
+ assert.ok(raw.includes('.leaflet-container .leaflet-popup a.leaflet-popup-close-button:hover,.leaflet-container .leaflet-popup a.leaflet-popup-close-button:focus{color:var(--on-surface)}'));
+ assert.ok(raw.includes('.leaflet-popup-content-wrapper{background:var(--card);'));
+ for(const A of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])for(const k of ['muted','on-surface'])assert.ok(contrast65(A.val(k),A.val('card'))>=4.5,k+' sobre la burbuja');
+ /* y los grises de Leaflet no pasarían de noche: la prueba ve el problema */
+ assert.ok(contrast65('#585858',TOKENS65(DARK110.css(raw)).val('card'))<3);
+});
 test('LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar',()=>{
  const ix=read('index.html');assert.ok(ix.includes('<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F1EA">')&&ix.includes('<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141A13">'),'la barra del teléfono en los dos temas');
  assert.ok(ix.includes('<meta name="color-scheme" content="light dark">'));const boot=ix.indexOf("localStorage.getItem('lhb_theme')");assert.ok(boot>0&&boot<ix.indexOf('<link rel="stylesheet" href="styles.css">'),'el tema elegido se pone antes de la hoja de estilos');
@@ -3957,10 +3969,10 @@ test('LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro),
  const run=init=>{const vm=require('vm');const st=Object.assign({},init),attrs={},metas=[];let h=null;
   const doc={documentElement:{setAttribute:(k,v)=>{attrs[k]=v},removeAttribute:k=>{delete attrs[k]}},head:{prepend:m=>{metas.unshift(m)}},getElementById:id=>metas.find(m=>m.id===id)||null,
    createElement:()=>({remove(){metas.splice(metas.indexOf(this),1)}}),addEventListener:(n,f)=>{h=f}};
-  const ls={getItem:k=>k in st?st[k]:null,setItem:(k,v)=>{st[k]=String(v)},removeItem:k=>{delete st[k]}};
+  const ls=init.__broken?{getItem:k=>k in st?st[k]:null,setItem:()=>{throw new Error('lleno')},removeItem:()=>{throw new Error('lleno')}}:{getItem:k=>k in st?st[k]:null,setItem:(k,v)=>{st[k]=String(v)},removeItem:k=>{delete st[k]}};delete st.__broken;
   const ap=read('app.js').replace(/\r\n/g,'\n');const code=ap.slice(ap.indexOf('/* LHB-110: el tema.'),ap.indexOf('\n/* LHB-71: la portada se decide'));assert.ok(code.length>200,'el bloque del tema');
   const ctx={document:doc,localStorage:ls,tt:k=>'<'+k+'>'};vm.createContext(ctx);vm.runInContext(code,ctx);
-  const sm={textContent:''},btn={querySelector:()=>sm};const click=()=>h({target:{closest:q=>q==='[data-theme-next]'?btn:null}});return {st,attrs,metas,click,sm}};
+  const sm={textContent:''},btn={querySelector:()=>sm};const click=()=>h({target:{closest:q=>q==='[data-theme-next]'?btn:null}});return {st,attrs,metas,click,sm,now:()=>ctx.themeNow()}};
  {const {val}=TOKENS65(read('styles.css')),D=TOKENS65(DARK110.css(read('styles.css')));assert.match(read('app.js'),new RegExp("THEME_BAR=\\{light:'"+val('surface')+"',dark:'"+D.val('surface')+"'\\}"),'la barra elegida es la superficie de cada tema');
   assert.ok(ix.includes('content="'+val('surface')+'">')&&ix.includes('content="'+D.val('surface')+'">'),'y la de index.html también')}
  const r=run({});assert.equal(r.attrs['data-theme'],undefined,'sin elegir: el del teléfono');assert.equal(r.metas.length,0);
@@ -3968,6 +3980,9 @@ test('LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro),
  r.click();assert.equal(r.st.lhb_theme,'light');assert.equal(r.attrs['data-theme'],'light');assert.equal(r.metas[0].content,'#F4F1EA');assert.equal(r.metas.length,1,'una sola barra elegida');
  r.click();assert.equal(r.st.lhb_theme,undefined,'de vuelta al teléfono: nada guardado');assert.equal(r.attrs['data-theme'],undefined);assert.equal(r.metas.length,0);assert.equal(r.sm.textContent,'<menu.tema.auto>');
  assert.equal(run({lhb_theme:'dark'}).attrs['data-theme'],'dark','al abrir, lo que se eligió');assert.equal(run({lhb_theme:'raro'}).attrs['data-theme'],undefined,'un valor raro no cuenta');
+ /* Codex r3: el teléfono no deja guardar: el ciclo sigue (oscuro, claro, el del teléfono) y el menú dice el de ahora */
+ {const b=run({__broken:true});const seen=[];for(let i=0;i<3;i++){b.click();seen.push([b.attrs['data-theme']||'auto',b.now(),b.sm.textContent])}
+  assert.deepEqual(seen,[['dark','dark','<menu.tema.dark>'],['light','light','<menu.tema.light>'],['auto','auto','<menu.tema.auto>']])}
  /* la fila en el menú, en La app, con el tema de ahora */
  const c=ROUTES71(),html=c.menuHTML('#/catalogo');const i=html.indexOf('data-theme-next');assert.ok(i>html.indexOf('id="mg-app"'),'en La app');assert.ok(html.slice(i,i+400).includes('<b><menu.tema></b><small><menu.tema.auto></small>'));
  const {T}=I18N();for(const k of ['menu.tema','menu.tema.auto','menu.tema.dark','menu.tema.light'])assert.ok(T.es[k]&&T.en[k],k);
