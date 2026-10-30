@@ -3899,7 +3899,9 @@ test('LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en
  assert.deepEqual(uses(RED),['.btn.danger','.flag-band','.hint.hs-bad','.tab-plus .plus']);
  /* celeste: los enlaces y la bandera */
  assert.deepEqual(uses(CEL),['.ev .src a','.flag-band','.lbtn.web','.pod-more','.pop .lbtn.web','.sources a']);
- const js=f=>read(f).replace(/\/\*[\s\S]*?\*\//g,'');for(const f of ['app.js','cuenta.js','intro.js'])assert.ok(!RED.test(js(f))&&!CEL.test(js(f))&&!/tk\('(danger|info)/.test(js(f)),f+' no pinta rojo ni celeste');
+ const js=f=>read(f).replace(/\/\*[\s\S]*?\*\//g,'');for(const f of ['cuenta.js','intro.js'])assert.ok(!RED.test(js(f))&&!CEL.test(js(f))&&!/tk\('(danger|info)/.test(js(f)),f+' no pinta rojo ni celeste');
+ /* app.js: solo la tinta de las iniciales sobre la fachada roja de la bandera */
+ const ap=js('app.js');assert.deepEqual([...ap.matchAll(/var\(--(on-danger|danger|red|flag-red|on-info|info|celeste|flag-blue)[a-z-]*\)/g)].map(m=>m[0]),['var(--on-danger)']);assert.ok(ap.includes("color:${red?'var(--on-danger)':'var(--on-surface)'}"),'las iniciales sobre el rojo de la bandera');
  const hj=js('hoja.js');assert.deepEqual([...hj.matchAll(/var\(--(danger|info)[a-z-]*\)/g)].map(m=>m[0]),['var(--danger)','var(--danger-soft)'],'hoja.js: solo la caja de error');assert.ok(!/tk\('(danger|info)/.test(hj));
  assert.ok(/e\.style\.cssText=m\?'border:2px solid var\(--danger\);background:var\(--danger-soft\)/.test(hj),'la caja de error');
  for(const id of ['acDel'])assert.ok(hj.includes('<button class="btn danger" type="button" id="'+id+'"'),'borrar la cuenta es rojo');assert.ok(hj.includes("tt('h.blkExplica')}</p><p><button class=\"btn danger\""),'bloquear es rojo');
@@ -3922,6 +3924,8 @@ test('LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro),
   const ap=read('app.js').replace(/\r\n/g,'\n');const code=ap.slice(ap.indexOf('/* LHB-110: el tema.'),ap.indexOf('\n/* LHB-71: la portada se decide'));assert.ok(code.length>200,'el bloque del tema');
   const ctx={document:doc,localStorage:ls,tt:k=>'<'+k+'>'};vm.createContext(ctx);vm.runInContext(code,ctx);
   const sm={textContent:''},btn={querySelector:()=>sm};const click=()=>h({target:{closest:q=>q==='[data-theme-next]'?btn:null}});return {st,attrs,metas,click,sm}};
+ {const {val}=TOKENS65(read('styles.css')),D=TOKENS65(DARK110.css(read('styles.css')));assert.match(read('app.js'),new RegExp("THEME_BAR=\\{light:'"+val('surface')+"',dark:'"+D.val('surface')+"'\\}"),'la barra elegida es la superficie de cada tema');
+  assert.ok(ix.includes('content="'+val('surface')+'">')&&ix.includes('content="'+D.val('surface')+'">'),'y la de index.html también')}
  const r=run({});assert.equal(r.attrs['data-theme'],undefined,'sin elegir: el del teléfono');assert.equal(r.metas.length,0);
  r.click();assert.equal(r.st.lhb_theme,'dark');assert.equal(r.attrs['data-theme'],'dark');assert.equal(r.metas[0].content,'#141A13');assert.equal(r.sm.textContent,'<menu.tema.dark>');
  r.click();assert.equal(r.st.lhb_theme,'light');assert.equal(r.attrs['data-theme'],'light');assert.equal(r.metas[0].content,'#F4F1EA');assert.equal(r.metas.length,1,'una sola barra elegida');
@@ -5458,9 +5462,7 @@ function extra99(f,s){const at=[];
   const {d,map}=dec99(s.slice(a,b)),sub=[];for(const h of d.matchAll(LIT67))sub.push(h.index);js99(d,sub);for(const i of sub)at.push(a+map[i])}
  return at}
 const ALLOW67=[
- ['styles.css',/\.lbtn\.ig\{[^}]*\}/,1,'marca de Instagram: su degradado (el texto blanco pasa 4.5 en cada parada, abajo)'],
- ['styles.css',/\.lbtn\.wa\{[^}]*\}/,1,'marca de WhatsApp: su verde (el texto blanco pasa 4.5, abajo)'],
- ['styles.css',/\.lbtn\.spotify\{[^}]*\}/,1,'marca de Spotify: su verde con su tinta (pasa 4.5, abajo)'],
+ ['app.js',/THEME_BAR=\{light:'#F4F1EA',dark:'#141A13'\}/,1,'LHB-110: la barra del teléfono por tema; la meta theme-color no lee variables (los mismos valores que index.html y que --surface de día y de noche, abajo)'],
  ['app.js',/const CAPA_COLORS=\{[^;]*\};/,1,'arte: el color de cada capa de tabaco en el dibujo del cigarro'],
  ['app.js',/const BG=\[[^\]]*\];/,1,'arte: el fondo del dibujo del cigarro'],
  ['app.js',/function cigarSVG[\s\S]*?<\/svg>`\}/,1,'arte: el dibujo del cigarro (su anilla en rojo de la bandera y la estrella en el celeste)'],
@@ -5966,7 +5968,7 @@ test('LHB-74: el pasaporte a color: cuatro colores de la paleta en ciclo, cada t
   assert.ok(css.includes('.stamps .stamp'+nth[i]+'[aria-pressed="true"] span{color:var(--'+ink+')}'));assert.ok(css.includes('.stamps .stamp'+nth[i]+'[aria-pressed="true"]::after{background:var(--'+ink+');color:var(--card)}'));
   assert.ok(css.includes('.badges .badge.on'+nth[i]+'{background:var(--'+soft+');border-color:var(--'+ink+')}'),'insignia '+i);assert.ok(css.includes('.badges .badge.on'+nth[i]+' span{color:var(--'+ink+')}'))});
  assert.equal(new Set(quad.map(q=>val(q[0]))).size,4,'cuatro tintas distintas');
- assert.ok(css.includes('.pass-hero{background:var(--info);border-color:var(--info-ink)}')&&css.includes('.pass-hero h2,.pass-hero p{color:var(--on-info)}'),'la portada en celeste con su texto');
+ assert.ok(css.includes('.pass-hero{background:var(--accent);border-color:var(--accent)}')&&css.includes('.pass-hero h2,.pass-hero p{color:var(--on-accent)}'),'la portada en tabaco con su texto (LHB-110: el celeste es de los enlaces)');
  /* el color no es lo único: sellado dice Sellado el... y lleva la marca; la insignia dice Lograda */
  const ES=I18N().T.es,H=PASS74({stamped:['cigarros:c0']});H.P.vPasaporte();const h=H.html();
  const sb=(h.match(/<button type="button" class="stamp" data-stamp="cigarros:c0" aria-pressed="true">[^]*?<\/button>/)||[''])[0];
