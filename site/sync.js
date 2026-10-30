@@ -185,6 +185,9 @@ window.LHB_SYNC=function(D){
  async function once(){unrecorded=false;poisonNow=null;let r;
   try{r=await once0()}catch(e){r={fail:'storage'}}
   if(unrecorded){unrecorded=false;mem=null;voided=true;try{if(poisonNow)poisonNow()}catch(x){}}
+  /* Codex r9: una subida de esta pestaña que ya no está anotada (otra pestaña supo que llegó y la quitó, o el servidor la rechazó) ni se sigue preguntando, ya no se puede
+     confundir con la de otra: se olvida también de la memoria */
+  try{const live=new Set(shRead().map(e=>e.o).filter(Boolean));for(const [o] of myOps)if(!live.has(o)&&!pend.some(x=>x.op===o))myOps.delete(o)}catch(e){}
   return r}
  async function once0(){
   const acc=D.acct();if(!acc||typeof acc.sub!=='string'||!acc.sub)return {skip:'signed-out'};
@@ -234,7 +237,11 @@ window.LHB_SYNC=function(D){
       la base nueva, y esa es la que se lee aquí */
    const now=shRead();see(now);
    /* Codex r4: si la base que otra pestaña anotó mientras tanto es más nueva que esta respuesta, la respuesta es vieja: se pregunta otra vez */
-   {let mr;try{mr=D.ls.get(META)}catch(e){return {fail:'storage'}}if(mr!==metaRaw){metaRaw=mr;meta=lift(pm(mr));if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev)continue}}
+   /* Codex r9: la meta puede volver a ser el mismo texto que esta pasada leyó (otra escritura tardía) y la marca de agua haber subido mientras tanto: la marca se aplica
+      igual a la meta que esta pasada tiene en la mano (sin leerla otra vez si no cambió: puede ser la base que esta pasada adoptó y no pudo escribir). Se vuelve a preguntar
+      solo si la meta cambió o la marca subió (si la cuenta de verdad está por debajo de la marca, la pasada sigue sin base, como antes) */
+   {let mr;try{mr=D.ls.get(META)}catch(e){return {fail:'storage'}}const r0=meta&&Number.isInteger(meta.rev)?meta.rev:0,ch=mr!==metaRaw;if(ch){metaRaw=mr;meta=lift(pm(mr))}else meta=lift(meta);
+    if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev&&(ch||meta.rev>r0))continue}
    /* LHB-80: el servidor dice de cada una si llegó. Llegó en el rev n: lo que se mandó es lo que la cuenta tenía en n, y esa es la base (se anota ya, así vale también
       si esta pasada repite tras un 409). No está y la cuenta ya pasó del rev que pedía (If-Match): ya no puede llegar. Que no llegó se sabe solo si la lista cubre ese rev
       (opsFrom; Codex r1: lo que llegó antes de 0008, o ya olvidado, no está); si no, no se sabe y se junta sin dar nada por borrado.

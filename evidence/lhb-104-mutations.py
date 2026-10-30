@@ -31,12 +31,12 @@ MUTS = [
     (SY, 'r2: the base is read before any entry is seen', 'const seen=new Map(),see=l=>{for(const e of l)if(e.s===uid)seen.set(e.k,e)};see(shRead());', 'const seen=new Map(),see=l=>{for(const e of l)if(e.s===uid)seen.set(e.k,e)};'),
     (SY, 'r2: entries are removed while the new base is not recorded', '(!(voided||staleBase)||poison())', '(!voided||poison())'),
     (SY, 'r2: an unreadable fence counts as down', 'const fenceOn=()=>{try{return fencedHard()}catch(e){return true}};', 'const fenceOn=()=>fenced();'),
-    (SY, 'r3: the base is not read again after the GET', 'if(mr!==metaRaw){metaRaw=mr;meta=lift(pm(mr));if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev)continue}', ''),
+    (SY, 'r3: the base is not read again after the GET', 'if(ch){metaRaw=mr;meta=lift(pm(mr))}else meta=lift(meta);', ''),
     (SY, 'r3: a 200 removes the entries before the base is recorded', '    clean=rev}', '    for(const e of shRead())if(e.s===uid&&e.r<=rev)shDel(e)}'),
     (SY, 'r3: an upload known to have landed at that If-Match does not clear the others', '     if(wonAt.has(e.r))continue;', ''),
     (SY, 'r3: one overflow key per upload, not shared', "const k=full?PEND+'x.'+rev+'.'+uid:PEND+op", "const k=full?PEND+'x.'+rev+'.'+uid+'.'+op:PEND+op"),
     (SY, 'r3: a pass whose minimal meta does not fit stops instead of keeping the entries', 'if(gone.length&&(!(voided||staleBase)||poison())){', 'if(gone.length&&(voided||staleBase)&&!poison())return {fail:\'storage\'};if(gone.length){'),
-    (SY, 'r4: a GET answer older than the recorded base is used', 'if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev)continue', ''),
+    (SY, 'r4: a GET answer older than the recorded base is used', 'if(meta&&Number.isInteger(meta.rev)&&meta.rev>rev&&(ch||meta.rev>r0))continue', ''),
     (SY, 'r4: the final meta overwrites a newer base', "if(m2&&Number.isInteger(m2.rev)&&m2.rev>newRev)return {fail:'conflict'}", ''),
     (SY, 'r5: a late answer for an older upload replaces a newer base', 'if(best&&!(meta&&Number.isInteger(meta.rev)&&meta.rev>best.rev)){', 'if(best){'),
     (SY, 'r5: an unreadable final meta read counts as unchanged', "catch(e){return {fail:'storage'}}if(mr!==metaRaw){const m2", 'catch(e){mr=metaRaw}if(mr!==metaRaw){const m2'),
@@ -54,6 +54,9 @@ MUTS = [
     (SY, 'r8: the poisoned meta counts as recorded without its high-water key', 'return h&&w};poisonNow=poison;', 'return w};poisonNow=poison;'),
     (SY, 'r8: the poisoned meta writes no high-water key', 'const h=hwPut(uid,topRev),w=', 'const h=true,w='),
     (SY, 'r8: landed uploads stay in the tab memory', 'for(const [o,x] of myOps)if(x.s===uid&&x.r<=clean)myOps.delete(o)', ''),
+    (SY, 'r9: an unchanged meta keeps its old base above a newer mark', 'if(ch){metaRaw=mr;meta=lift(pm(mr))}else meta=lift(meta);', 'if(ch){metaRaw=mr;meta=lift(pm(mr))}'),
+    (SY, 'r9: below the mark the pass asks again on every answer', 'meta.rev>rev&&(ch||meta.rev>r0))continue', 'meta.rev>rev)continue'),
+    (SY, 'r9: uploads that left storage and the asked list stay in memory', 'try{const live=new Set(shRead().map(e=>e.o).filter(Boolean));for(const [o] of myOps)if(!live.has(o)&&!pend.some(x=>x.op===o))myOps.delete(o)}catch(e){}', ''),
 ]
 
 EQUIV = {}
