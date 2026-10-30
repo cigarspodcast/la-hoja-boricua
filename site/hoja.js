@@ -251,11 +251,19 @@ async function wlOnly(f,onWait){const w=WLS;if(!w||!w.lm)return f();
  wlTake();return out}
 /* LHB-105 (Codex r6): el cambio de cuenta pide el exclusivo, como salir, para que ninguna pestaña esté a mitad de una escritura mientras la copia cambia de dueña.
    Avisa con su propia llave (lhb_mihoja_v1_cambiando), no con la valla: al terminar, todas vuelven a escribir sin esperar a que caduque. Con el exclusivo en la
-   mano esta pestaña sí escribe lo del cambio (w.sw). Sin Web Locks corre f sola */
+   mano esta pestaña sí escribe lo del cambio (w.sw). Sin Web Locks corre f sola.
+   Codex r7: el exclusivo se pide ANTES del aviso, como en wlOnly, así la pestaña que suelta vuelve a pedir su compartido detrás de él (r7-1); cada aviso
+   lleva su propio valor, porque un valor repetido no da aviso storage (r7-3); y si una pestaña no suelta en WL_WAIT (el aviso no se pudo escribir, o la
+   pestaña es de una versión que no lo oye) el cambio deja de pedirlo y devuelve false sin apartar nada: la próxima escritura o pasada lo vuelve a intentar (r7-2) */
 async function wlSwitch(f){const w=WLS;if(!w||!w.lm)return f();
- w.mine=true;wlDrop(w);try{localStorage.setItem('lhb_mihoja_v1_cambiando',String(Date.now()))}catch(e){}
- try{return await w.lm.request('lhb_mihoja',{mode:'exclusive'},async()=>{w.sw=true;try{return await f()}finally{w.sw=false}})}
- finally{w.mine=false;wlTake()}}
+ w.mine=true;wlDrop(w);
+ const ac=typeof AbortController==='function'?new AbortController():null;const t=ac?setTimeout(()=>ac.abort(),WL_WAIT):0;
+ let ran=false;
+ try{const p=w.lm.request('lhb_mihoja',ac?{mode:'exclusive',signal:ac.signal}:{mode:'exclusive'},async()=>{clearTimeout(t);ran=true;w.sw=true;try{return await f()}finally{w.sw=false}});
+  try{localStorage.setItem('lhb_mihoja_v1_cambiando',Date.now()+'.'+Math.random().toString(36).slice(2))}catch(e){}
+  return await p}
+ catch(e){if(ran)throw e;return false}
+ finally{clearTimeout(t);w.mine=false;wlTake()}}
 wlInit();
 const acMsg=t=>{const el=$('#acMsg');if(el){el.textContent=t;el.hidden=!t}};
 /* lo que queda de esta página después de salir o de borrar: el aviso para la página que abre después */

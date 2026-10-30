@@ -1,5 +1,6 @@
 """LHB-105 proof for the rebuild on the sync lock, on a scratch copy of the worktree: each mutant takes back one piece of the switch under
 the lock, and an LHB-105 test must turn red. The copy is restored after each. (The first design's runner, lhb-105-mutations.py, is kept as the record.)
+A mutant whose third field is a list applies each (old, new) pair in it. Round 7 re-located the r6 shared-lock mutant, whose text the r7 fix changed.
 usage: python evidence/lhb-105-lock-mutations.py WORKTREE SCRATCH"""
 import os, re, shutil, subprocess, sys
 
@@ -23,7 +24,10 @@ MUTS = [
     ('site/hoja.js', 'Codex r6: hoja.js gives sync.js no write lock for the switch', "switchLock:f=>wlSwitch(f),", ""),
     ('site/hoja.js', 'Codex r6: other tabs do not yield on a switch', "||e.key==='lhb_mihoja_v1_cambiando'&&e.newValue)wlYield();", ")wlYield();"),
     ('site/hoja.js', 'Codex r6: the switching tab cannot write while it holds the exclusive', "&&!w.have&&!w.sw}", "&&!w.have}"),
-    ('site/hoja.js', 'Codex r6: the switch takes the write lock shared, not exclusive', "w.lm.request('lhb_mihoja',{mode:'exclusive'},async()=>{w.sw=true;", "w.lm.request('lhb_mihoja',{mode:'shared'},async()=>{w.sw=true;"),
+    ('site/hoja.js', 'Codex r6: the switch takes the write lock shared, not exclusive', "ac?{mode:'exclusive',signal:ac.signal}:{mode:'exclusive'},async()=>{clearTimeout(t);ran=true;w.sw=true;", "ac?{mode:'shared',signal:ac.signal}:{mode:'shared'},async()=>{clearTimeout(t);ran=true;w.sw=true;"),
+    ('site/hoja.js', 'Codex r7-1: the switch notifies before it queues the exclusive', [(" w.mine=true;wlDrop(w);\n const ac=typeof AbortController==='function'?new AbortController():null;const t=ac?", " w.mine=true;wlDrop(w);try{localStorage.setItem('lhb_mihoja_v1_cambiando',Date.now()+'.'+Math.random())}catch(e){}\n const ac=typeof AbortController==='function'?new AbortController():null;const t=ac?"), ("  try{localStorage.setItem('lhb_mihoja_v1_cambiando',Date.now()+'.'+Math.random().toString(36).slice(2))}catch(e){}\n", "")], None),
+    ('site/hoja.js', 'Codex r7-2: the switch waits for the exclusive with no time limit', "const t=ac?setTimeout(()=>ac.abort(),WL_WAIT):0;", "const t=0;"),
+    ('site/hoja.js', 'Codex r7-3: every switch notice carries only the clock', "Date.now()+'.'+Math.random().toString(36).slice(2)", "String(Date.now())"),
     ('site/hoja.js', 'writing during the switch says storage is full', "toast(SYNC.switching&&SYNC.switching()?tt('h.cambiandoCuenta'):tt('h.noSePudoSeparar'))", "toast(tt('h.noSePudoSeparar'))"),
 ]
 
@@ -47,7 +51,8 @@ print('baseline (no mutation): pass %d fail %d' % (t['pass'], t['fail']))
 assert t['fail'] == 0 and t['pass'] > 0
 red = 0
 for rel, name, a, b in MUTS:
-    edit(rel, a, b)
+    for x, y in (a if isinstance(a, list) else [(a, b)]):
+        edit(rel, x, y)
     t = runp()
     ok = t['fail'] > 0
     red += ok

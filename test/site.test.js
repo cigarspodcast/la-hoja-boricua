@@ -7624,6 +7624,44 @@ test('LHB-105 (Codex r6): otra pestaña está a mitad de escribir cuando esta, c
   const b=srv28(a,'user_b');assert.ok(!b||!(b.doc.humidor||[]).some(x=>x.id==='old_A_edit'||x.id==='h1'),'nada de A en la cuenta de B');
   assert.ok(!L.held.some(h=>h.mode==='exclusive'),'el exclusivo se soltó');
  }finally{a.done()}});
+/* Codex r7: dos pestañas con el cambio de cuenta (sw), los avisos del cambio pasan por set98 (o.sync: llegan en el acto, sin esperar una tarea;
+   o.dedup: como el navegador, no hay aviso si el valor no cambió; o.fails: escribir el aviso falla) */
+const SW105=async o=>{o=o||{};const a=await ENG28();a.db.exec(a.mig('0008_mihoja_ops.sql'));const dev=DEV28(a,'user_a');
+ dev.seed(DOC28);await dev.sync();
+ const L=LOCKS98(),timers=[];const X=TAB98(dev,L,{sw:true,timers,clock:o.clock}),Y=TAB98(dev,L,{sw:true,clock:o.clock});
+ const set0=dev.ls.set.bind(dev.ls);const s={fails:!!o.fails,notes:0};
+ dev.ls.set=(k,v)=>{if(k==='lhb_mihoja_v1_cambiando'){if(s.fails)throw new Error('QuotaExceededError');const old=dev.ls.has(k)?dev.ls.get(k):null;set0(k,v);
+   if(o.dedup&&old===String(v))return dev.ls;s.notes++;const e={key:k,newValue:String(v)};if(o.sync)Y.hear(e);else Y.tell(e);return dev.ls}
+  set0(k,v);return dev.ls};
+ await tick98();
+ const owner=()=>dev.ls.has('lhb_mihoja_v1_owner')?dev.ls.get('lhb_mihoja_v1_owner'):null;
+ const to=async u=>{dev.st.acct=dev.st.user=u;X.eng.isolate();await until105(()=>!X.eng.switching());await tick98(20)};
+ return {a,dev,L,X,Y,timers,s,owner,to}};
+test('LHB-105 (Codex r7-1): la otra pestaña oye el aviso del cambio antes de que este pida el exclusivo: suelta y vuelve a pedir su compartido detrás del exclusivo, y el cambio termina',async()=>{
+ const t=await SW105({sync:true});try{
+  assert.ok(t.L.held.some(h=>h.mode==='shared'),'la otra pestaña tiene su compartido');
+  await t.to('user_b');
+  assert.equal(t.X.eng.switching(),false,'el cambio no se quedó esperando');assert.equal(t.owner(),'user_b','el cambio terminó');
+  assert.ok(!t.L.held.some(h=>h.mode==='exclusive')&&!t.L.queue.length,'el exclusivo se soltó y no queda nada en cola');
+ }finally{t.a.done()}});
+test('LHB-105 (Codex r7-2): si no se puede escribir el aviso del cambio y otra pestaña no suelta su compartido, el cambio se rinde a los WL_WAIT, no aparta nada, y se puede volver a intentar',async()=>{
+ const t=await SW105({fails:true});try{
+  t.dev.st.acct=t.dev.st.user='user_b';assert.equal(t.X.eng.isolate(),false);await tick98(20);
+  assert.equal(t.X.eng.switching(),true,'el cambio espera el exclusivo');
+  const fire=t.timers.filter(f=>f);assert.ok(fire.length>0,'el cambio puso su tiempo de espera');for(const f of fire)f();
+  await until105(()=>!t.X.eng.switching());await tick98(20);
+  assert.equal(t.X.eng.switching(),false,'el cambio no se queda colgado');assert.equal(t.owner(),'user_a','no cambió ni apartó nada');
+  assert.ok(!t.L.queue.some(r=>r.mode==='exclusive'),'el exclusivo dejó de pedirse');
+  t.s.fails=false;t.X.eng.isolate();await until105(()=>!t.X.eng.switching());await tick98(20);
+  assert.equal(t.owner(),'user_b','el segundo intento sí cambió');
+ }finally{t.a.done()}});
+test('LHB-105 (Codex r7-3): dos cambios en el mismo milisegundo: cada aviso lleva su propio valor, así la otra pestaña oye los dos y el segundo cambio no se queda esperando',async()=>{
+ const t=await SW105({dedup:true,clock:1761800000000});try{
+  await t.to('user_b');assert.equal(t.owner(),'user_b');
+  await t.to('user_c');
+  assert.equal(t.s.notes,2,'la otra pestaña oyó los dos avisos');
+  assert.equal(t.X.eng.switching(),false,'el segundo cambio no se quedó esperando');assert.equal(t.owner(),'user_c');
+ }finally{t.a.done()}});
 for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
                            ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
 test('LHB-80 (Codex r8): el cambio de cuenta falla antes de tocar la copia y volver a la época de antes también falla ('+como+'): se reintenta antes de sincronizar y el borrado sigue',async()=>{
@@ -8921,7 +8959,7 @@ function TAB98(dev,locks,o){o=o||{};const vm=require('vm');const src=read('hoja.
  const i=src.indexOf('var WLS=null'),j=src.indexOf('\nwlInit();',i);const gate=i>=0&&j>i?src.slice(i,j)+'\nwlInit();\n':'';
  const lst=(src.match(/^window\.addEventListener\('storage',e=>\{if\(e\.key==='lhb_mihoja_v1_saliendo'[\s\S]*?\}\}\);$/m)||[''])[0];
  const toasts=[],listeners=[];let eng=null;
- const ctx={...TT(),KEY:'lhb_mihoja_v1',PEND:[],toast:m=>toasts.push(m),navigator:{locks},AbortController,setTimeout:()=>0,clearTimeout:()=>{},location:{assign:()=>{}},
+ const ctx={...TT(),KEY:'lhb_mihoja_v1',PEND:[],toast:m=>toasts.push(m),navigator:{locks},AbortController,setTimeout:o.timers?(f=>o.timers.push(f)):()=>0,clearTimeout:o.timers?(i=>{if(i>0)o.timers[i-1]=null}):()=>{},...(o.clock?{Date:class extends Date{static now(){return o.clock}}}:{}),location:{assign:()=>{}},
   localStorage:{getItem:k=>dev.ls.has(k)?dev.ls.get(k):null,setItem:(k,v)=>dev.ls.set(k,String(v))},window:{addEventListener:(t,f)=>listeners.push([t,f])}};
  eng=SYNC28().LHB_SYNC({...dev.D,closed:()=>!!ctx.X.wlClosed&&ctx.X.wlClosed(),...(o.sw?{locks:true,lock:f=>locks.request('lhb_mihoja_sync',f),switchLock:f=>ctx.X.wlSwitch(f)}:{})});ctx.SYNC=eng;
  vm.createContext(ctx);vm.runInContext('let ST=null,STRAW=null;'+wline+';'+gate+lst+';this.X={write,wlClosed:typeof wlClosed==="function"?wlClosed:null,wlSwitch:typeof wlSwitch==="function"?wlSwitch:null}',ctx);
@@ -8929,7 +8967,7 @@ function TAB98(dev,locks,o){o=o||{};const vm=require('vm');const src=read('hoja.
  const deliver=e=>{for(const [t,f] of listeners)if(t==='storage')f(e)};
  /* la otra pestaña escribe la valla: el aviso le llega a esta como una tarea, o espera si está dormida */
  const tell=e=>{if(asleep)waiting.push(e);else setImmediate(()=>deliver(e))};
- return {X:ctx.X,toasts,eng,tell,resume:()=>{if(!asleep)return false;asleep=false;for(const e of waiting.splice(0))deliver(e);return true}}}
+ return {X:ctx.X,toasts,eng,tell,hear:deliver,resume:()=>{if(!asleep)return false;asleep=false;for(const e of waiting.splice(0))deliver(e);return true}}}
 /* la valla que pone la pestaña que sale le llega a la otra como un aviso storage */
 const FENCE98=(dev,tab)=>{const set=dev.D.ls.set;dev.D.ls.set=(k,v)=>{set(k,v);if(k==='lhb_mihoja_v1_saliendo')tab.tell({key:k,newValue:String(v)})}};
 const tick98=async(n)=>{for(let i=0;i<(n||30);i++)await new Promise(r=>setImmediate(r))};
