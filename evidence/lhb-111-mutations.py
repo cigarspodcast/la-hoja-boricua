@@ -51,6 +51,10 @@ MUTS = [
     ('site/lugares/l.css', 'Codex r9: an @import of another stylesheet', ':root', '@import url("/decoration.css");:root'),
     ('site/styles.css', 'Codex r9: an image drawn by image-set', '.lart{', '.hero::before{background:image-set("img/hero/banner.webp" 1x)}.lart{'),
     ('functions/u/[handle].js', 'Codex r9: a coloured SVG on the passport page made in functions', '<main>', '<main><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="red"/></svg>'),
+    ('site/u.css', 'Codex r10: an uppercase URL( with an SVG decoration', ':root{', 'main::after{content:"";display:block;width:200px;height:200px;background:URL("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 50 50\'%3E%3Ccircle cx=\'25\' cy=\'25\' r=\'20\' fill=\'red\'/%3E%3C/svg%3E")}:root{'),
+    ('site/404.html', 'Codex r10: an image-set() in an inline style block', '</head>', '<style>main::after{content:"";display:block;width:200px;height:200px;background:image-set("/img/hero/banner.webp" 1x)}</style></head>'),
+    ('site/404.html', 'Codex r10: an image in a single-quoted style attribute', '<body', '<body style=\'background:Url("/img/hero/banner.webp")\''),
+    ('site/styles.css', 'Codex r10: a CSS escape that spells url', '.lart{', '.hero::before{background:u\\72 l("img/hero/banner.webp")}.lart{'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

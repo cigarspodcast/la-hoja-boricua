@@ -41,6 +41,10 @@ Codex r9: a new linked stylesheet (the file is added by the next control) RED (c
 Codex r9: an @import of another stylesheet                               RED (caught) (fail 1)
 Codex r9: an image drawn by image-set                                    RED (caught) (fail 1)
 Codex r9: a coloured SVG on the passport page made in functions          RED (caught) (fail 1)
+Codex r10: an uppercase URL( with an SVG decoration                      RED (caught) (fail 1)
+Codex r10: an image-set() in an inline style block                       RED (caught) (fail 1)
+Codex r10: an image in a single-quoted style attribute                   RED (caught) (fail 1)
+Codex r10: a CSS escape that spells url                                  RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 44 of 44 red
+RESULT 48 of 48 red

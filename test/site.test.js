@@ -4055,13 +4055,16 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
    for(const m of MEDIA111(h,rel))assert.ok(/^(\.\.\/)*\/?(icons\/|img\/(cigarros|logos|hero|eventos)\/)/.test(m.u),rel+': una imagen que no es foto, marca ni ícono: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
    assert.equal([...h.matchAll(/<svg\b/gi)].length,[...h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi)].length,rel+': un <svg> sin cerrar');
    for(const m of h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi))assert.ok(/^<svg\b[^>]*viewBox="0 0 24 24"/.test(m[0])&&ICON111(m[0]),rel+': un SVG que no es ícono: '+m[0].slice(0,120));
-   assert.ok(!/url\((?!['"]?(\/?fonts\/))/.test(h.replace(/<script[\s\S]*?<\/script>/g,'')),rel+': una imagen por CSS')}}
+   /* Codex r10: el CSS de la página, sus bloques <style> y sus atributos style (en cualquier forma de comillas), con CSS111; y url( sin mirar mayúsculas */
+   for(const m of h.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi))CSS111(m[1],rel+' <style>',false);
+   for(const m of h.matchAll(/<[a-zA-Z][^>]*>/g))for(const [k,v] of ATTR111(m[0]))if(k==='style')CSS111(v,rel+' style=',false);
+   assert.ok(!/url\((?!['"]?(\/?fonts\/))/i.test(h.replace(/<script[\s\S]*?<\/script\s*>/gi,'')),rel+': una imagen por CSS')}}
  /* Codex r1: en las hojas de estilo, url() solo trae las fuentes y los dos SVG en data URI de arriba (la de Leaflet, sus propias imágenes del mapa) */
  /* Codex r2: un SVG en data URI solo en styles.css (los dos de arriba: la textura del papel y la máscara del estado vacío); u.css y l.css, solo fuentes */
  /* Codex r9: cada hoja que el recorrido encuentra, no tres; ni @import, ni las funciones que pintan sin url() (image-set, paint, element, cross-fade, -webkit-canvas) */
  {const cs=CSSFILES111();for(const f of ['styles.css','u.css','lugares/l.css'])assert.ok(cs.includes(f),f);
-  for(const f of cs){const c=read(f).replace(/\/\*[\s\S]*?\*\//g,'');assert.ok(!/@import\b|\b(image-set|paint|element|cross-fade|-webkit-canvas|-moz-element)\s*\(/i.test(c),f+': @import o una imagen pintada por CSS')}}
- for(const f of CSSFILES111()){const c=read(f).replace(/\/\*[\s\S]*?\*\//g,'');for(const m of c.matchAll(/url\(\s*['"]?([^'")]+)/g))assert.ok(/^\/?fonts\/[a-z0-9-]+\.woff2$/.test(m[1])||(f==='styles.css'&&m[1].startsWith('data:image/svg+xml')),f+': url('+m[1].slice(0,60))}
+  /* Codex r10: CSS111 en cada una (url() sin mirar mayúsculas, sin escapes) */
+  for(const f of cs)CSS111(read(f),f,f==='styles.css')}
  /* en styles.css, los SVG en data URI son la textura del papel y la caja del estado vacío, que es la misma CAJA de art.js */
  {const svgs=[...css.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/([^{}]+)\{[^{}]*data:image\/svg\+xml/g)].map(m=>m[1].trim());assert.deepEqual(svgs,['body::after','.empty::before']);
   const em=css.match(/\.empty::before\{[^}]*\}/)[0].replace(/%([0-9A-Fa-f]{2})/g,(m,h)=>String.fromCharCode(parseInt(h,16))),ds=s=>[...s.matchAll(/ d=["']([^"']+)["']/g)].map(m=>m[1]);assert.deepEqual(ds(em),[...ds(A.CAJA),...ds(A.CAJA)],'la caja del estado vacío es CAJA (en -webkit-mask y en mask)');
@@ -5573,6 +5576,8 @@ const SCRIPT111=(x,where,du,canvas=0)=>{
  assert.equal([...x.matchAll(/getContext\b/g)].length,canvas,where+': un lienzo');
  for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*[\w./-]+\.(?:webp|png|jpe?g|gif|avif|svg|bmp|ico))(?![\w])/gi))assert.ok(IMGOK111.test(m[1])||['_thumb.webp','_thumb-s.webp','perfil.jpg','https://lahojaboricua.com/og.jpg','/og.jpg','og.jpg'].includes(m[1]),where+': nombra una imagen de fuera: '+m[1]);
  assert.equal([...x.matchAll(/data:image\//gi)].length,du,where+': un data URI de imagen');
+ /* Codex r10: ninguna función de CSS que pinte una imagen, escrita en el texto (un script que arma estilos, una página) */
+ assert.ok(!/\b(image-set|cross-fade|-webkit-canvas|-moz-element)\s*\(/i.test(x),where+': una imagen pintada por CSS');
  const lit=v=>IMGOK111.test(v)||v==='data:image/svg+xml;charset=utf-8,';
  for(const m of x.matchAll(/\.(src|srcset|poster)\s*=\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g))assert.ok(IMGOK111.test(m[3])||(m[3]==='data:image/svg+xml;charset=utf-8,'&&x.startsWith('+encodeURIComponent(VBArt.silueta(',m.index+m[0].length)),where+': '+m[0].slice(0,90));
  for(const m of x.matchAll(/setAttribute\(\s*(['"])(src|srcset|poster|href|xlink:href)\1\s*,\s*(['"`])((?:(?!\3)[^\\]|\\.)*)\3/g))if(m[2]!=='href'||/\.(webp|png|jpe?g|gif|avif|svg)\b|^data:/i.test(m[4]))assert.ok(lit(m[4]),where+': '+m[0].slice(0,90))};
@@ -5586,6 +5591,13 @@ const CSSNAME111=(x,where)=>{const known=[...CSSFILES111(),'vendor-leaflet.css']
   assert.ok(known.includes(n)||(n==='l.css'&&/^lugares\//.test(where.replace(/\\/g,'/'))),where+': nombra una hoja de estilo que la prueba no revisa: '+m[1])}};
 /* functions/: la página pública del pasaporte (/u/<handle>) se arma en el servidor; sus scripts pasan por las mismas reglas */
 const FUNCJS111=()=>{const root=path.join(__dirname,'..','functions');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.js')?[path.join(d,x.name)]:[]);return walk(root).map(p=>['functions/'+path.relative(root,p).replace(/\\/g,'/'),fs.readFileSync(p,'utf8')])};
+/* LHB-111 (Codex r10): una sola regla de CSS, la misma para una hoja y para el CSS que trae una página (bloques <style> y atributos style), sin mirar
+   mayúsculas (CSS acepta URL( y Image-Set( ): url() solo trae fuentes (y un SVG en data URI donde se permite: styles.css); ni @import, ni las funciones
+   que pintan sin url() (image-set, paint, element, cross-fade, src, -webkit-canvas, -moz-element); y ninguna barra invertida, porque un escape de CSS
+   (u\72 l, \40 import) disfraza un nombre: hoy no hay ninguna en las hojas */
+const CSS111=(c,where,svgOK)=>{c=c.replace(/\/\*[\s\S]*?\*\//g,'');assert.ok(!c.includes('\\'),where+': un escape de CSS');
+ assert.ok(!/@import\b|\b(image-set|paint|element|cross-fade|src|-webkit-canvas|-moz-element)\s*\(/i.test(c),where+': @import o una imagen pintada por CSS');
+ for(const m of c.matchAll(/\burl\(\s*['"]?([^'")]*)/gi))assert.ok(/^\/?fonts\/[a-z0-9-]+\.woff2$/.test(m[1])||(svgOK&&m[1].startsWith('data:image/svg+xml')),where+': url('+m[1].slice(0,60))};
 const ICON111=svg=>{const root=(svg.match(/^<svg\b[^>]*>/i)||[''])[0],paint=['fill','stroke','stop-color','color','flood-color','lighting-color'];
  return !/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|<(image|foreignObject|style)\b/i.test(svg)
   &&ATTR111(svg).every(([k,v])=>k!=='style'&&(!paint.includes(k)||v==='none'||v==='currentColor'))
