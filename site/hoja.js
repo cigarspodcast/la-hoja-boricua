@@ -96,8 +96,8 @@ function wheel(sel,key){const N=WHEEL.length,R=150,r0=48,cx=160,cy=160;const pt=
  return `<div class="wheel-wrap"><svg class="wheel" viewBox="0 0 320 320" role="group" aria-label="${tt('h.ruedaDeSaboresToca')}">${segs}<circle cx="160" cy="160" r="42" class="whub"/><text x="160" y="157" text-anchor="middle" class="whub-n">${sel.length}</text><text x="160" y="176" text-anchor="middle" class="whub-t">${sel.length===1?tt('h.sabor'):tt('h.sabores')}</text></svg></div>`}
 function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{const k=g.dataset.wk,id=g.dataset.w;const cur=get(k);set(k,cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);rerender(k,id)};g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})})}
 /* inl: dentro de un botón (LHB-61) va en span, que un botón no puede llevar un div */
-const tagChips=(ts,inl)=>{if(!ts.length)return '';/* Codex r5 (LHB-110): una etiqueta fuera de la rueda no tiene color de sabor: va en la ficha neutra del tema (.tchip.other), no con la tinta fija */
- const ch=ts.map(t=>{const w=WHEEL.find(w=>w.id===t);return w?`<span class="tchip" style="--wc:${w.c}">${esc(WN(t))}</span>`:`<span class="tchip other">${esc(WN(t))}</span>`}).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
+/* Codex r5 (LHB-110): una etiqueta fuera de la rueda no tiene color de sabor: va en la ficha neutra del tema (.tchip.other), no con la tinta fija */
+const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>{const w=WHEEL.find(w=>w.id===t);return w?`<span class="tchip" style="--wc:${w.c}">${esc(WN(t))}</span>`:`<span class="tchip other">${esc(WN(t))}</span>`}).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
 /* ---------- hoja de acciones (sheet) ---------- */
 let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
 let owed=false; /* LHB-64: se abrió una hoja y el foco todavía no ha vuelto */
