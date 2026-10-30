@@ -1,0 +1,219 @@
+✔ v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua) (8.8986ms)
+✔ LHB-110: el tema oscuro: los dos bloques con los mismos valores, solo tokens, cada token de papel con su valor de noche, y cada par pasa el contraste (14.6738ms)
+ℹ de noche: 79 pares declarados, 0 no pasan
+ℹ de noche: 74 pares pintados, 0 no pasan
+✖ LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra (6.9788ms)
+✖ LHB-110 (Codex r2): la burbuja del mapa, las insignias del pasaporte y la palabra resaltada del pasaporte, de día y de noche (3.0467ms)
+✔ LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar (15.5817ms)
+✔ LHB-65: cada par de texto y fondo que los tokens declaran pasa el contraste (4.5; 3.0 el texto grande) (2.6031ms)
+ℹ contraste: 79 pares, 79 pasan, 0 no
+ℹ   on-surface sobre surface 11.26 (mínimo 4.5)
+ℹ   on-surface sobre surface-2 12.51 (mínimo 4.5)
+ℹ   on-surface sobre card 12.51 (mínimo 4.5)
+ℹ   on-surface sobre card-2 10.84 (mínimo 4.5)
+ℹ   on-surface sobre accent-soft 10.27 (mínimo 4.5)
+ℹ   on-surface sobre info-soft 10.64 (mínimo 4.5)
+ℹ   on-surface sobre warn-soft 11.17 (mínimo 4.5)
+ℹ   on-surface sobre danger-soft 9.91 (mínimo 4.5)
+ℹ   on-surface sobre warm-soft 10.14 (mínimo 4.5)
+ℹ   on-surface-2 sobre surface 7.50 (mínimo 4.5)
+ℹ   on-surface-2 sobre surface-2 8.33 (mínimo 4.5)
+ℹ   on-surface-2 sobre card 8.33 (mínimo 4.5)
+ℹ   on-surface-2 sobre card-2 7.22 (mínimo 4.5)
+ℹ   on-surface-2 sobre accent-soft 6.84 (mínimo 4.5)
+ℹ   on-surface-2 sobre info-soft 7.08 (mínimo 4.5)
+ℹ   on-surface-2 sobre warn-soft 7.44 (mínimo 4.5)
+ℹ   on-surface-2 sobre danger-soft 6.60 (mínimo 4.5)
+ℹ   on-surface-2 sobre warm-soft 6.75 (mínimo 4.5)
+ℹ   muted sobre surface 5.73 (mínimo 4.5)
+ℹ   muted sobre surface-2 6.37 (mínimo 4.5)
+ℹ   muted sobre card 6.37 (mínimo 4.5)
+ℹ   muted sobre card-2 5.52 (mínimo 4.5)
+ℹ   muted sobre accent-soft 5.23 (mínimo 4.5)
+ℹ   muted sobre info-soft 5.42 (mínimo 4.5)
+ℹ   muted sobre warn-soft 5.69 (mínimo 4.5)
+ℹ   muted sobre danger-soft 5.04 (mínimo 4.5)
+ℹ   muted sobre warm-soft 5.16 (mínimo 4.5)
+ℹ   on-accent sobre accent 8.37 (mínimo 4.5)
+ℹ   accent-ink sobre surface 8.37 (mínimo 4.5)
+ℹ   accent-ink sobre surface-2 9.30 (mínimo 4.5)
+ℹ   accent-ink sobre card 9.30 (mínimo 4.5)
+ℹ   accent-ink sobre card-2 8.06 (mínimo 4.5)
+ℹ   accent-ink sobre accent-soft 7.63 (mínimo 4.5)
+ℹ   accent-ink sobre info-soft 7.91 (mínimo 4.5)
+ℹ   accent-ink sobre warn-soft 8.30 (mínimo 4.5)
+ℹ   accent-ink sobre danger-soft 7.36 (mínimo 4.5)
+ℹ   accent-ink sobre warm-soft 7.54 (mínimo 4.5)
+ℹ   on-inverse sobre inverse 11.26 (mínimo 4.5)
+ℹ   on-danger sobre danger 5.17 (mínimo 4.5)
+ℹ   danger-ink sobre surface 6.55 (mínimo 4.5)
+ℹ   danger-ink sobre surface-2 7.28 (mínimo 4.5)
+ℹ   danger-ink sobre card 7.28 (mínimo 4.5)
+ℹ   danger-ink sobre card-2 6.30 (mínimo 4.5)
+ℹ   danger-ink sobre accent-soft 5.97 (mínimo 4.5)
+ℹ   danger-ink sobre info-soft 6.19 (mínimo 4.5)
+ℹ   danger-ink sobre warn-soft 6.50 (mínimo 4.5)
+ℹ   danger-ink sobre danger-soft 5.76 (mínimo 4.5)
+ℹ   danger-ink sobre warm-soft 5.90 (mínimo 4.5)
+ℹ   on-info sobre info 4.62 (mínimo 4.5)
+ℹ   info-ink sobre surface 5.67 (mínimo 4.5)
+ℹ   info-ink sobre surface-2 6.30 (mínimo 4.5)
+ℹ   info-ink sobre card 6.30 (mínimo 4.5)
+ℹ   info-ink sobre card-2 5.46 (mínimo 4.5)
+ℹ   info-ink sobre accent-soft 5.17 (mínimo 4.5)
+ℹ   info-ink sobre info-soft 5.36 (mínimo 4.5)
+ℹ   info-ink sobre warn-soft 5.63 (mínimo 4.5)
+ℹ   info-ink sobre danger-soft 4.99 (mínimo 4.5)
+ℹ   info-ink sobre warm-soft 5.11 (mínimo 4.5)
+ℹ   on-info-strong sobre info-strong 6.40 (mínimo 4.5)
+ℹ   on-warn sobre warn 6.93 (mínimo 4.5)
+ℹ   warn-ink sobre surface 5.54 (mínimo 4.5)
+ℹ   warn-ink sobre surface-2 6.16 (mínimo 4.5)
+ℹ   warn-ink sobre card 6.16 (mínimo 4.5)
+ℹ   warn-ink sobre card-2 5.33 (mínimo 4.5)
+ℹ   warn-ink sobre accent-soft 5.06 (mínimo 4.5)
+ℹ   warn-ink sobre info-soft 5.24 (mínimo 4.5)
+ℹ   warn-ink sobre warn-soft 5.50 (mínimo 4.5)
+ℹ   warn-ink sobre danger-soft 4.88 (mínimo 4.5)
+ℹ   warn-ink sobre warm-soft 4.99 (mínimo 4.5)
+ℹ   on-warm-lg sobre warm 3.78 (mínimo 3)
+ℹ   warm-ink sobre surface 5.88 (mínimo 4.5)
+ℹ   warm-ink sobre surface-2 6.54 (mínimo 4.5)
+ℹ   warm-ink sobre card 6.54 (mínimo 4.5)
+ℹ   warm-ink sobre card-2 5.66 (mínimo 4.5)
+ℹ   warm-ink sobre accent-soft 5.37 (mínimo 4.5)
+ℹ   warm-ink sobre info-soft 5.56 (mínimo 4.5)
+ℹ   warm-ink sobre warn-soft 5.84 (mínimo 4.5)
+ℹ   warm-ink sobre danger-soft 5.18 (mínimo 4.5)
+ℹ   warm-ink sobre warm-soft 5.30 (mínimo 4.5)
+✔ LHB-65: ningún token se llama por lo contrario de lo que es: los nombres viejos ya no existen ni se leen, y la paleta solo la leen los tokens (20.5048ms)
+✖ LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de token pasa 4.5, aunque otra regla del mismo selector lo cambie después o el fondo venga de la regla base (3.2579ms)
+ℹ pares pintados: 74, 73 pasan, 1 no
+✖ LHB-67: ningún color suelto en las pantallas de la app; lo que queda está en la lista con su razón (y un espejo vale lo que su token) (27.0205ms)
+ℹ colores fuera de la lista: 8; tramos de la lista: 17
+✔ LHB-67: lo que queda con color propio se lee: las marcas, la rueda de sabores y las iniciales sobre la bandera (8.1276ms)
+✖ LHB-74: el perfil público (/api/u/<handle> y /u/<handle>) es idéntico byte por byte al de antes: ningún campo nuevo (2.6283ms)
+✔ LHB-74: el sello recién puesto y la insignia que gana se celebran una vez, de corrido aunque la vista se repinte; con menos movimiento, al quitar un sello o tarde, no hay celebración (138.6615ms)
+✖ LHB-74: el pasaporte a color: cuatro colores de la paleta en ciclo, cada texto con su fondo pasa 4.5, y el color no es lo único que dice que está sellado (1.9148ms)
+ℹ pares medidos: 22, no pasan: 0
+ℹ tests 13
+ℹ suites 0
+ℹ pass 7
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 679.7775
+
+✖ failing tests:
+
+test at test\site.test.js:3904:1
+✖ LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra (6.9788ms)
+  AssertionError [ERR_ASSERTION]: hoja.js: solo la caja de error (Codex r2: las variables de la bandera también)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:3915:32)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ 'var(--danger)', 'var(--danger-soft)', 'var(--flag-red)', 'var(--flag-red)' ],
+    expected: [ 'var(--danger)', 'var(--danger-soft)' ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3935:1
+✖ LHB-110 (Codex r2): la burbuja del mapa, las insignias del pasaporte y la palabra resaltada del pasaporte, de día y de noche (3.0467ms)
+  AssertionError [ERR_ASSERTION]: la tinta de .lbtn.ig en la burbuja
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:3941:198)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:5449:1
+✖ LHB-65 (Codex ronda 1): cada texto que la app pinta sobre un fondo de token pasa 4.5, aunque otra regla del mismo selector lo cambie después o el fondo venga de la regla base (3.2579ms)
+  AssertionError [ERR_ASSERTION]: pares pintados que no pasan
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:5452:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ '.pass-hero h2 em: var(--on-accent) sobre linear-gradient(transparent 62%,var(--warm) 62% 92%,transparent 92%) 2.98' ],
+    expected: [],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:5536:1
+✖ LHB-67: ningún color suelto en las pantallas de la app; lo que queda está en la lista con su razón (y un espejo vale lo que su token) (27.0205ms)
+  AssertionError [ERR_ASSERTION]: un color suelto nuevo: cámbielo por un token o póngalo en ALLOW67 con su razón
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:5538:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ "hoja.js: #8fd162'} en «'h.tuPrimerSello'),k:'total',m:1,c:'#8fd162'}, »", "hoja.js: #ffd27a'} en «garrosCatados'),k:'cigarros',m:5,c:'#ffd27a'}, »", "hoja.js: #ff9a9a'} en «anosProbados'),k:'artesanos',m:5,c:'#ff9a9a'}, »", "hoja.js: #7fb0ff'} en «garesVisitados'),k:'lugares',m:5,c:'#7fb0ff'}, »", "hoja.js: #ff8a80'} en «arrosCatados'),k:'cigarros',m:15,c:'#ff8a80'}, »", "hoja.js: #8fb8ff'} en «aresVisitados'),k:'lugares',m:15,c:'#8fb8ff'}, »", "hoja.js: #c5cdf5'} en «itadDeTodos'),k:'total',m:'half',c:'#c5cdf5'}, »", "hoja.js: #a9c487'} en «TodosLos'),k:'artesanos',m:'all',c:'#a9c487'}]; »" ],
+    expected: [],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:5894:1
+✖ LHB-74: el perfil público (/api/u/<handle> y /u/<handle>) es idéntico byte por byte al de antes: ningún campo nuevo (2.6283ms)
+  Error: ENOENT: no such file or directory, open 'C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\migrations\0001_init.sql'
+      at Object.readFileSync (node:fs:483:20)
+      at mig (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:1227:18)
+      at API52 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:1227:88)
+      at API56 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:1905:16)
+      at API40 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:4565:16)
+      at API58 (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:4662:16)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:5895:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\Users\\Owner\\AppData\\Local\\Temp\\claude\\C--Users-Owner-la-hoja-boricua\\ddfa8e87-aefe-452e-8857-30bbd7a1c261\\scratchpad\\r110red2\\migrations\\0001_init.sql'
+  }
+
+test at test\site.test.js:6003:1
+✖ LHB-74: el pasaporte a color: cuatro colores de la paleta en ciclo, cada texto con su fondo pasa 4.5, y el color no es lo único que dice que está sellado (1.9148ms)
+  AssertionError [ERR_ASSERTION]: insignia 0
+      at C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:6014:10
+      at Array.forEach (<anonymous>)
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red2\test\site.test.js:6012:7)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

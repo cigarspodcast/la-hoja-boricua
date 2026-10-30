@@ -783,14 +783,14 @@ function vDiario(){const s=S(),q=dq(),all=s.diario.filter(isEntry),list=diaryFil
   if(foc){const x=$('#'+foc);if(x&&x.focus){x.focus({preventScroll:true});if(foc==='dqQ'&&x.setSelectionRange){const k=String(x.value||'').length;x.setSelectionRange(k,k)}}}}
  A.hydrate(view)}
 /* pasaporte */
-const BADGES=[{id:'primer',n:tt('h.primerSello'),d:tt('h.tuPrimerSello'),k:'total',m:1,c:'#8fd162'},
- {id:'catador',n:tt('h.catador'),d:tt('h.5CigarrosCatados'),k:'cigarros',m:5,c:'#ffd27a'},
- {id:'artesanos5',n:tt('h.amigoArtesano'),d:tt('h.5ArtesanosProbados'),k:'artesanos',m:5,c:'#ff9a9a'},
- {id:'lugares5',n:tt('h.deJangueo'),d:tt('h.5LugaresVisitados'),k:'lugares',m:5,c:'#7fb0ff'},
- {id:'catador15',n:tt('h.paladarBoricua'),d:tt('h.15CigarrosCatados'),k:'cigarros',m:15,c:'#ff8a80'},
- {id:'lugares15',n:tt('h.islaRecorrida'),d:tt('h.15LugaresVisitados'),k:'lugares',m:15,c:'#8fb8ff'},
- {id:'mitad',n:tt('h.medioPasaporte'),d:tt('h.laMitadDeTodos'),k:'total',m:'half',c:'#c5cdf5'},
- {id:'artesanosAll',n:tt('h.todosLosArtesanos'),d:tt('h.probasteATodosLos'),k:'artesanos',m:'all',c:'#a9c487'}];
+const BADGES=[{id:'primer',n:tt('h.primerSello'),d:tt('h.tuPrimerSello'),k:'total',m:1},
+ {id:'catador',n:tt('h.catador'),d:tt('h.5CigarrosCatados'),k:'cigarros',m:5},
+ {id:'artesanos5',n:tt('h.amigoArtesano'),d:tt('h.5ArtesanosProbados'),k:'artesanos',m:5},
+ {id:'lugares5',n:tt('h.deJangueo'),d:tt('h.5LugaresVisitados'),k:'lugares',m:5},
+ {id:'catador15',n:tt('h.paladarBoricua'),d:tt('h.15CigarrosCatados'),k:'cigarros',m:15},
+ {id:'lugares15',n:tt('h.islaRecorrida'),d:tt('h.15LugaresVisitados'),k:'lugares',m:15},
+ {id:'mitad',n:tt('h.medioPasaporte'),d:tt('h.laMitadDeTodos'),k:'total',m:'half'},
+ {id:'artesanosAll',n:tt('h.todosLosArtesanos'),d:tt('h.probasteATodosLos'),k:'artesanos',m:'all'}];
 function passCounts(){const s=S(),d=D();const valid={artesanos:new Set(d.artesanos.map(x=>x.id)),cigarros:new Set(d.cigarros.map(x=>x.id)),lugares:new Set(d.places.map(x=>x.id))};
  const c={};for(const k of ['artesanos','cigarros','lugares'])c[k]=Object.keys(s.pasaporte[k]).filter(id=>valid[k].has(id)).length;c.total=c.artesanos+c.cigarros+c.lugares;
  const all={artesanos:valid.artesanos.size,cigarros:valid.cigarros.size,lugares:valid.lugares.size};all.total=all.artesanos+all.cigarros+all.lugares;return{c,all}}
@@ -841,7 +841,7 @@ function vPasaporte(){const {c,all}=passCounts(),ru=ruta();const d=D();const got
  <section class="pass-hero"><div class="pass-ring" style="--p:${pct}" role="img" aria-label="${tt('h.delPasaporte',{a:pct})}"><b>${pct}%</b><span>${tt('h.de2',{a:c.total,b:all.total})}</span></div><div><h2>${tt('h.pasaporteBoricuaH')}</h2><p>${tt('h.marcaLosArtesanosQue')}</p></div></section>
  ${rutaCard()}
  <div class="section-title"><h2>${tt('h.insignias')}</h2><span class="count">${tt('h.de2',{a:got.length+ru.ok.length,b:BADGES.length+6})}</span></div>
- <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" data-badge="${b.id}" style="--bc:${b.c}"><div class="bico">${VBArt.leaf(on?b.c:'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}" style="--bc:var(--flag-red)"><div class="bico">${VBArt.leaf(on?'var(--flag-red)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
+ <div class="badges">${BADGES.map(b=>{const t=badgeTarget(b,all),on=got.includes(b.id);return `<div class="badge ${on?'on':''}" data-badge="${b.id}"><div class="bico">${VBArt.leaf(on?'var(--bc)':'var(--line)')}</div><b>${b.n}</b><small>${b.d}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:Math.min(c[b.k],t),b:t})}`}</span></div>`}).join('')}${Object.keys(ZN).map(k=>{const l=ru.z[k]||[],n=l.filter(t=>t.on).length,on=ru.ok.includes(k);return `<div class="badge zb ${on?'on':''}"><div class="bico">${VBArt.leaf(on?'var(--bc)':'var(--line)')}</div><b>${tt('h.zona',{a:ZN[k]})}</b><small>${tt('h.rutaDelTabacoTodos')}</small><span>${on?tt('h.lograda'):`${tt('h.de2',{a:n,b:l.length})}`}</span></div>`}).join('')}</div>
  ${sec('artesanos',tt('menu.artesanos'),d.artesanos,x=>x.nombre,x=>x.pueblo)}
  ${sec('cigarros',tt('h.cigarros2'),d.cigarros,x=>x.nombre,x=>A.artisanName(x))}
  ${sec('lugares',tt('menu.lugares'),d.places,x=>x.nombre,x=>x.pueblo)}
