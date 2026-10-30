@@ -27,6 +27,13 @@ MUTS = [
     ('site/404.html', 'Codex r3: a sized SVG with single-quoted colours and an icon viewBox on a static page', '</body>', '<svg width="200" height="200" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill=\'red\'/><circle cx="12" cy="12" r="5" fill=\'blue\'/></svg></body>'),
     ('site/hoja.js', 'Codex r3: an unquoted colour in an icon-shaped SVG in a template', 'const CAL_ICO=', 'const CAL_X=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill=red /></svg>`;const CAL_ICO='),
     ('site/app.js', 'Codex r3: an icon-shaped SVG with a size of its own in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art">${art}<svg width="240" height="240" viewBox="0 0 24 24"><path d="M2 2h20v20H2z"/></svg></div></header>`;'),
+    ('site/404.html', 'Codex r4: a single-quoted SVG data URI image on a static page', '</body>', '<img alt="" src=\'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"%3E%3Ccircle cx="50" cy="50" r="40" fill="red"/%3E%3C/svg%3E\'></body>'),
+    ('site/404.html', 'Codex r4: an unquoted decorative image on a static page', '</body>', '<img alt="" src=../img/guagua/campo.webp></body>'),
+    ('site/404.html', 'Codex r4: a decorative image through picture and source srcset', '</body>', '<picture><source srcset="img/guagua/campo.webp 1x"><img alt="" src="icons/icon.svg"></picture></body>'),
+    ('site/hoja.js', 'Codex r4: a single-quoted decorative image in a template', 'const CAL_ICO=', 'const CAL_X=`<img alt="" src=\'img/guagua/campo.webp\'>`;const CAL_ICO='),
+    ('site/app.js', 'Codex r4: a decorative bitmap set from script', 'const thumbS=', 'const LHB_X=()=>{const i=new Image();i.src=\'img/guagua/campo.webp\';return i};const thumbS='),
+    ('site/hoja.js', 'Codex r4: a decorative image inside an attribute that comes and goes', 'const CAL_ICO=', 'const CAL_X=x=>`<span ${x?\'data-bg="img/guagua/campo.webp"\':\'\'}></span>`;const CAL_ICO='),
+    ('site/app.js', 'Codex r4: a second image data URI in a script', 'const thumbS=', 'const LHB_X=\'data:image/png;base64,iVBORw0KGgo=\';const thumbS='),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

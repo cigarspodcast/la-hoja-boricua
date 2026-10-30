@@ -17,5 +17,12 @@ Codex r2: a coloured SVG with an icon viewBox in a template              RED (ca
 Codex r3: a sized SVG with single-quoted colours and an icon viewBox on a static page RED (caught) (fail 1)
 Codex r3: an unquoted colour in an icon-shaped SVG in a template         RED (caught) (fail 1)
 Codex r3: an icon-shaped SVG with a size of its own in the header helper RED (caught) (fail 1)
+Codex r4: a single-quoted SVG data URI image on a static page            RED (caught) (fail 1)
+Codex r4: an unquoted decorative image on a static page                  RED (caught) (fail 1)
+Codex r4: a decorative image through picture and source srcset           RED (caught) (fail 1)
+Codex r4: a single-quoted decorative image in a template                 RED (caught) (fail 1)
+Codex r4: a decorative bitmap set from script                            RED (caught) (fail 1)
+Codex r4: a decorative image inside an attribute that comes and goes     RED (caught) (fail 1)
+Codex r4: a second image data URI in a script                            RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
-RESULT 19 of 19 red
+RESULT 26 of 26 red
