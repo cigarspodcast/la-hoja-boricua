@@ -4000,6 +4000,8 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  /* el juego: cada dibujo es un SVG .lart sin colores propios (el color lo pone styles.css) y con un acento */
  for(const k of LINE){assert.equal(typeof A[k],'function',k);const h=k==='silueta'?A.silueta('x'):A[k]();
   assert.match(h,new RegExp('^<svg class="lart '+(k==='silueta'?'sil':k)+'[ "]'),k);assert.ok(!/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|\b(fill|stroke)="|style="|<image|url\(/.test(h),k+': sin colores ni imágenes propias');
+  /* Codex r8: leído con ATTR111 (comillas dobles, simples o ninguna): ningún atributo de pintura ni style, y ningún <style> dentro; lo pinta styles.css por clase */
+  assert.ok(!/<style\b/i.test(h)&&!ATTR111(h).some(([k])=>['style','fill','stroke','stop-color','color','flood-color','lighting-color'].includes(k)),k+': un atributo de pintura o style: '+ATTR111(h).filter(([k])=>/style|fill|stroke|color/.test(k)).map(x=>x.join('=')).join(' '));
   assert.ok(/class="(ac|acs[^"]*)"/.test(h),k+': su acento')}
  /* la silueta para la imagen para compartir, con los colores ya resueltos: solo esos dos */
  {const h=A.silueta('',{ink:'#263723',ac:'#C77943'});assert.deepEqual([...new Set(h.match(/#[0-9A-Fa-f]{6}/g))].sort(),['#263723','#C77943']);assert.match(h,/viewBox="0 0 600 300"/,'el marco 2:1 de las fotos')}
@@ -4023,7 +4025,9 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  {const FUNC=['viewBox="0 0 100 100" aria-hidden="true"','viewBox="0 -20 1000 370" role="img"','class="wheel" viewBox="0 0 320 320"','viewBox="-6-6 12 12" aria-hidden="true"'];
   /* Codex r6: todos los scripts del sitio menos art.js (el juego mismo, revisado dibujo por dibujo arriba) y Leaflet, no cinco */
   const SVGJS=SITEJS111().filter(f=>f!=='art.js');for(const f of ['app.js','hoja.js','sync.js','fotos.js','sw.js'])assert.ok(SVGJS.includes(f),f);
-  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*>/g)){const t=m[0];assert.ok(/viewBox="0 0 24 24"/.test(t)||FUNC.some(x=>t.includes(x)),f+': un SVG que no es ícono ni gráfico conocido: '+t.slice(0,90))}
+  /* Codex r8: sin mirar mayúsculas (HTML acepta <SVG>), y cada <svg que empieza tiene que cerrarse dentro del mismo texto: uno sin cerrar no se escapa */
+  for(const f of SVGJS){const x=read(f);assert.equal([...x.matchAll(/<svg\b/gi)].length,[...x.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi)].length,f+': un <svg> sin cerrar')}
+  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*>/gi)){const t=m[0];assert.ok(/viewBox="0 0 24 24"/.test(t)||FUNC.some(x=>t.includes(x)),f+': un SVG que no es ícono ni gráfico conocido: '+t.slice(0,90))}
   /* Codex r2: un ícono se juzga por lo que lleva, no por su viewBox: sin colores propios (solo none y currentColor) y sin tamaño propio (style). La única
      excepción es la marca de Spotify, un logo de marca (LHB-67 la lista) */
   /* Codex r3: el lector de atributos ve las tres formas de comillas, y el <svg> de un ícono no trae medida propia */
@@ -4038,14 +4042,15 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   for(const bad of ['<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
   assert.ok(ICON111('<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" fill="none"/><path stroke=\'currentColor\' d="M4 4"/></svg>'),'un ícono de verdad pasa (un rect con su width y height dentro está bien)');
   /* Codex r6 y r7: ni un SVG hecho por el DOM ni un lienzo de más: lo revisa SCRIPT111, en cada script y en cada página */
-  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg>/g))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
+  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg\s*>/gi))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
  /* Codex r1: las páginas estáticas: sus imágenes son íconos, fotos de cigarros y marcas; sus SVG, íconos */
  {const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.html')?[path.join(d,x.name)]:[]);const pages=walk(path.join(__dirname,'..','site'));assert.ok(pages.length>100,'páginas: '+pages.length);
   for(const p of pages){const h=fs.readFileSync(p,'utf8'),rel=path.relative(path.join(__dirname,'..','site'),p);
    /* Codex r5: el texto entero de la página (sus <script> y sus atributos onload y demás) con las mismas reglas que un script, sin ningún data URI de imagen */
    SCRIPT111(h,rel,0);
    for(const m of MEDIA111(h,rel))assert.ok(/^(\.\.\/)*\/?(icons\/|img\/(cigarros|logos|hero|eventos)\/)/.test(m.u),rel+': una imagen que no es foto, marca ni ícono: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
-   for(const m of h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg>/g))assert.ok(/^<svg\b[^>]*viewBox="0 0 24 24"/.test(m[0])&&ICON111(m[0]),rel+': un SVG que no es ícono: '+m[0].slice(0,120));
+   assert.equal([...h.matchAll(/<svg\b/gi)].length,[...h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi)].length,rel+': un <svg> sin cerrar');
+   for(const m of h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi))assert.ok(/^<svg\b[^>]*viewBox="0 0 24 24"/.test(m[0])&&ICON111(m[0]),rel+': un SVG que no es ícono: '+m[0].slice(0,120));
    assert.ok(!/url\((?!['"]?(\/?fonts\/))/.test(h.replace(/<script[\s\S]*?<\/script>/g,'')),rel+': una imagen por CSS')}}
  /* Codex r1: en las hojas de estilo, url() solo trae las fuentes y los dos SVG en data URI de arriba (la de Leaflet, sus propias imágenes del mapa) */
  /* Codex r2: un SVG en data URI solo en styles.css (los dos de arriba: la textura del papel y la máscara del estado vacío); u.css y l.css, solo fuentes */
@@ -5566,7 +5571,7 @@ const SCRIPT111=(x,where,du,canvas=0)=>{
  for(const m of x.matchAll(/setAttribute\(\s*(['"])(src|srcset|poster|href|xlink:href)\1\s*,\s*(['"`])((?:(?!\3)[^\\]|\\.)*)\3/g))if(m[2]!=='href'||/\.(webp|png|jpe?g|gif|avif|svg)\b|^data:/i.test(m[4]))assert.ok(lit(m[4]),where+': '+m[0].slice(0,90))};
 /* el sitio entero con script, menos vendor-leaflet.js (Leaflet de afuera; sus imágenes de marcador por omisión no se usan: los pines son los de la app) */
 const SITEJS111=()=>{const root=path.join(__dirname,'..','site');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.js')?[path.relative(root,path.join(d,x.name)).replace(/\\/g,'/')]:[]);return walk(root).filter(f=>f!=='vendor-leaflet.js')};
-const ICON111=svg=>{const root=(svg.match(/^<svg\b[^>]*>/)||[''])[0],paint=['fill','stroke','stop-color','color','flood-color','lighting-color'];
+const ICON111=svg=>{const root=(svg.match(/^<svg\b[^>]*>/i)||[''])[0],paint=['fill','stroke','stop-color','color','flood-color','lighting-color'];
  return !/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|<(image|foreignObject|style)\b/i.test(svg)
   &&ATTR111(svg).every(([k,v])=>k!=='style'&&(!paint.includes(k)||v==='none'||v==='currentColor'))
   &&!ATTR111(root).some(([k])=>k==='width'||k==='height'||k==='transform')};

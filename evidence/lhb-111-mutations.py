@@ -43,6 +43,10 @@ MUTS = [
     ('site/cuenta.js', 'Codex r6: a decorative canvas drawing', '/* La Hoja Boricua · cuenta (LHB-25)', "const LHB_X=()=>{const c=document.createElement('canvas').getContext('2d');c.fillStyle='red';c.fillRect(0,0,9,9)};/* La Hoja Boricua · cuenta (LHB-25)"),
     ('site/404.html', 'Codex r7: a canvas drawing in an inline script on a static page', '</body>', '<canvas id="decoration" width="200" height="200" aria-hidden="true"></canvas><script>const ink=document.getElementById(\'decoration\').getContext(\'2d\');ink.fillStyle=\'red\';ink.beginPath();ink.arc(100,100,80,0,Math.PI*2);ink.fill();</script></body>'),
     ('site/404.html', 'Codex r7: an SVG made through the DOM in an inline script on a static page', '</body>', '<script>const s=document.createElementNS(\'http://www.w3.org/2000/svg\',\'svg\');s.setAttribute(\'viewBox\',\'0 0 50 50\');s.innerHTML=\'<circle cx="25" cy="25" r="20" fill="red"/>\';document.body.append(s);</script></body>'),
+    ('site/art.js', 'Codex r8: a drawing of the set with an inline single-quoted style', '<circle class="ac" cx="98" cy="22" r="8"/>', '<circle class="ac" style=\'fill:red;stroke:blue\' cx="98" cy="22" r="8"/>'),
+    ('site/404.html', 'Codex r8: an uppercase SVG on a static page', '</body>', '<SVG width="200" height="200" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="20" fill="red"/></SVG></body>'),
+    ('site/404.html', 'Codex r8: an SVG left unclosed on a static page', '</body>', '<svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="red"/></body>'),
+    ('site/hoja.js', 'Codex r8: an uppercase SVG in a template', 'const CAL_ICO=', 'const CAL_X=`<SVG viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="red"/></SVG>`;const CAL_ICO='),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
