@@ -3933,6 +3933,14 @@ test('LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en
   const inCtx=c=>{const r=rules.filter(x=>x.sel==='.anchor '+c&&/background:/.test(x.body)).pop();return r?/background:var\(--accent\)/.test(r.body):fill.has(c)};
   const af=acls.filter(inCtx);assert.deepEqual(af,['.btn'],'en el evento ancla, una sola llena: '+af.join(' '));
   const go=rules.filter(x=>x.sel==='.anchor .lbtn.go-map').pop();assert.ok(go&&/color:var\(--accent-ink\)/.test(go.body)&&/background:var\(--card\)/.test(go.body));
+  /* Codex r6: lo que se repite por tarjeta o por fila no es la llena: Cómo llegar en los eventos y en la lista de lugares, Seguir en las listas de personas.
+     Cada uno va dentro de su contenedor que se repite, y la última regla de fondo de ese contexto no es el tabaco */
+  const bgOf=sel=>{const r=rules.filter(x=>x.sel===sel&&/background:/.test(x.body)).pop();return r&&r.body.match(/background:([^;]+)/)[1]};
+  for(const sel of ['.ev .lbtn.go-map','.list .lbtn.go-map','.fw-row .fw-b'])assert.ok(bgOf(sel)&&bgOf(sel)!=='var(--accent)','con borde en lo que se repite: '+sel+' '+bgOf(sel));
+  for(const sel of ['.fw-row .fw-b'])assert.ok(rules.some(x=>x.sel===sel&&/color:var\(--accent-ink\)/.test(x.body)&&/border:1px solid var\(--accent-ink\)/.test(x.body)),sel);
+  {const ev=hj.slice(hj.indexOf('function evCard('),hj.indexOf('\nfunction ',hj.indexOf('function evCard(')+10));assert.ok(ev.includes('return `<article class="ev ')&&ev.includes('<a class="lbtn go-map"'),'Cómo llegar va dentro de la tarjeta .ev');
+   const vl=ap.slice(ap.indexOf('function vLugares('),ap.indexOf('\nfunction ',ap.indexOf('function vLugares(')+10));const li=vl.indexOf('<div class="list" style="margin-top:12px">');assert.ok(li>0&&vl.indexOf('<a class="lbtn go-map"',li)>li,'Cómo llegar va dentro de la lista de lugares');
+   assert.ok(/<span class="fw-row" id="fwR-/.test(hj)&&hj.includes("fwMount('fwR-'+p.handle,p.handle,live)"),'Seguir de cada fila se monta en su .fw-row')}
   for(const T of [TOKENS65(raw),TOKENS65(DARK110.css(raw))])assert.ok(contrast65(T.val('accent-ink'),T.val('card'))>=4.5,'Cómo llegar con borde se lee');
   /* Codex r4: la regla que gana para el enlace de la fuente de un evento es la celeste (la última del mismo selector) */
   const src=rules.filter(x=>x.sel==='.ev .src a'&&/color:/.test(x.body)).pop();assert.ok(src&&/color:var\(--info-ink\)/.test(src.body),'la fuente del evento: '+(src&&src.body))}
@@ -4042,8 +4050,9 @@ test('LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noc
  assert.ok(contrast65(TOKENS65(raw).val('fixed-text'),TOKENS65(DARK110.css(raw)).val('card-2'))<3,'la prueba ve la tinta fija sobre la ficha de noche');
  /* las vistas: cada una con las piezas que pinta dentro, contadas juntas (aunque una esté plegada) */
  const body=(src,n)=>{const m=new RegExp('\\n(?:async )?function '+n+'\\(|\\n(?:const|let) '+n+'=').exec(src);assert.ok(m,n);const j=src.slice(m.index+1).search(/\n(?:async )?function |\n(?:const|let) [A-Za-z0-9_]+=(?:async )?\(?[A-Za-z0-9_,]*\)?=>/);return src.slice(m.index,j<0?undefined:m.index+1+j)};
- const FILLED=/class="(btn|btn cta|btn fw-b|lbtn spotify|pidelo)"/g;
- const views=[['perfil',[[ap,'vPerfil'],[hj,'pfCounts']]],['eventos',[[hj,'vEventos'],[hj,'anchorCard']]],['diario',[[hj,'vDiario']]],['humidor',[[hj,'vHumidor']]],['cata',[[hj,'vCata']]],['personas',[[hj,'vPersonas']]]];
+ /* Codex r6: Cómo llegar cuenta como llena salvo en su contexto que se repite (arriba) */
+ const FILLED=/class="(btn|btn cta|btn fw-b|lbtn spotify|lbtn go-map|pidelo)"/g;
+ const views=[['perfil',[[ap,'vPerfil'],[hj,'pfCounts']]],['eventos',[[hj,'vEventos']]],['diario',[[hj,'vDiario']]],['humidor',[[hj,'vHumidor']]],['cata',[[hj,'vCata']]],['personas',[[hj,'vPersonas']]]];
  for(const [v,parts] of views){const n=parts.map(([src,f])=>[...body(src,f).matchAll(FILLED)].length).reduce((a,b)=>a+b,0);assert.ok(n<=1,v+': '+n+' acciones llenas')}
  assert.ok(hj.includes('${own?`<a class="btn secondary" href="#/mihoja/editar" id="pfEdit"'),'Editar perfil con borde');assert.ok(hj.includes('<button class="btn secondary" type="submit">${tt(\'h.guardarSugerencia\')}'),'la sugerencia con borde');
 });
