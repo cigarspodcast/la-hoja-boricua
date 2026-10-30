@@ -135,6 +135,8 @@ h2{font-size:var(--fs-4)}
 .lbtn.web{color:var(--info-ink)}
 .lbtn.buy{color:var(--accent-ink)}
 .lbtn.go-map{background:var(--accent);border:0;color:var(--on-accent)}
+/* LHB-110 (Codex r4): en el evento ancla la llena es Confirmar (RSVP); Cómo llegar va con borde */
+.anchor .lbtn.go-map{background:var(--card);border:1px solid var(--line);color:var(--accent-ink)}
 .lbtn[aria-disabled="true"]{opacity:.45}
 .lbtn svg{width:17px;height:17px;fill:currentColor}
 .form{display:flex;flex-direction:column;gap:14px}
@@ -504,7 +506,6 @@ body.sheet-on{overflow:hidden}
 .ath small{display:block;font-size:var(--fs-1);color:var(--on-surface-2)}
 .ath b{font-size:var(--fs-4);letter-spacing:.3px}
 .ath .lbtn{padding:9px 14px}
-.ev .src a{color:var(--on-surface-2)}
 .ev.flash,.anchor.flash{animation:flash 1.6s ease}
 @keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent-ink)}100%{box-shadow:none}}
 .cal{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:12px;margin-bottom:12px}
