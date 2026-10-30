@@ -21,7 +21,7 @@
  /* LHB-67: fondos suaves de cada papel (superficies: la prueba de contraste les mide el texto), la barra y el velo translúcidos, sombras y el fondo de una hoja */
  --accent-soft:#E4E9DB; --info-soft:#DCEEF5; --warn-soft:#FBF0CF; --danger-soft:#F6DEDA; --warm-soft:#F3E3D6;
  --bar:rgba(244,241,234,.96); --veil:rgba(244,241,234,.94); --veil-soft:rgba(244,241,234,.55);
- --mark-bg:transparent; --fixed-text:#263723; --shadow:rgba(38,55,35,.16); --shadow-strong:rgba(38,55,35,.28); --scrim:rgba(38,55,35,.55);
+ --mark-bg:transparent;--mark-light:block;--mark-dark:none; --fixed-text:#263723; --shadow:rgba(38,55,35,.16); --shadow-strong:rgba(38,55,35,.28); --scrim:rgba(38,55,35,.55);
  /* la bandera: toda imagen de la bandera usa el azul celeste de la guagua */
  --flag-blue:var(--celeste); --flag-red:#ED0000; --flag-white:#FFFFFF;
  color-scheme:light;
@@ -30,8 +30,8 @@
  --serif:'Fraunces',Georgia,serif; --display:'Fraunces',Georgia,serif; --sans:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
 /* LHB-110: el tema oscuro (la tabaquería de noche): los mismos papeles, otros valores. Sigue al teléfono; el menú lo fija (data-theme en <html>, guardado en lhb_theme). Los dos bloques llevan los mismos valores */
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--photo:#EFEBE2;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--inverse:#EEE9DD;--on-inverse:#1A2218;--danger:var(--red);--on-danger:#FFFFFF;--danger-ink:#FF9585;--info:var(--celeste);--on-info:#0C1A1F;--info-ink:#7CD0EC;--info-strong:#7CD0EC;--on-info-strong:#0C1A1F;--warn:var(--sun);--on-warn:#1A1606;--warn-ink:#F0CC5A;--warm:var(--amber);--on-warm-lg:#141A13;--warm-ink:#E8A877;--focus:#7CD0EC;--accent-soft:#24331F;--info-soft:#123039;--warn-soft:#352D12;--danger-soft:#3B1C17;--warm-soft:#382518;--mark-bg:#EFEBE2;--fixed-text:#263723;--bar:rgba(20,26,19,.94);--veil:rgba(20,26,19,.9);--veil-soft:rgba(20,26,19,.5);--shadow:rgba(0,0,0,.4);--shadow-strong:rgba(0,0,0,.6);--scrim:rgba(0,0,0,.6);color-scheme:dark}}
-:root[data-theme="dark"]{--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--photo:#EFEBE2;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--inverse:#EEE9DD;--on-inverse:#1A2218;--danger:var(--red);--on-danger:#FFFFFF;--danger-ink:#FF9585;--info:var(--celeste);--on-info:#0C1A1F;--info-ink:#7CD0EC;--info-strong:#7CD0EC;--on-info-strong:#0C1A1F;--warn:var(--sun);--on-warn:#1A1606;--warn-ink:#F0CC5A;--warm:var(--amber);--on-warm-lg:#141A13;--warm-ink:#E8A877;--focus:#7CD0EC;--accent-soft:#24331F;--info-soft:#123039;--warn-soft:#352D12;--danger-soft:#3B1C17;--warm-soft:#382518;--mark-bg:#EFEBE2;--fixed-text:#263723;--bar:rgba(20,26,19,.94);--veil:rgba(20,26,19,.9);--veil-soft:rgba(20,26,19,.5);--shadow:rgba(0,0,0,.4);--shadow-strong:rgba(0,0,0,.6);--scrim:rgba(0,0,0,.6);color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--photo:#EFEBE2;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--inverse:#EEE9DD;--on-inverse:#1A2218;--danger:var(--red);--on-danger:#FFFFFF;--danger-ink:#FF9585;--info:var(--celeste);--on-info:#0C1A1F;--info-ink:#7CD0EC;--info-strong:#7CD0EC;--on-info-strong:#0C1A1F;--warn:var(--sun);--on-warn:#1A1606;--warn-ink:#F0CC5A;--warm:var(--amber);--on-warm-lg:#141A13;--warm-ink:#E8A877;--focus:#7CD0EC;--accent-soft:#24331F;--info-soft:#123039;--warn-soft:#352D12;--danger-soft:#3B1C17;--warm-soft:#382518;--mark-bg:transparent;--mark-light:none;--mark-dark:block;--fixed-text:#263723;--bar:rgba(20,26,19,.94);--veil:rgba(20,26,19,.9);--veil-soft:rgba(20,26,19,.5);--shadow:rgba(0,0,0,.4);--shadow-strong:rgba(0,0,0,.6);--scrim:rgba(0,0,0,.6);color-scheme:dark}}
+:root[data-theme="dark"]{--surface:#141A13;--surface-2:#1A2219;--card:#1D261C;--card-2:#253023;--line:#3A4636;--photo:#EFEBE2;--on-surface:#EEE9DD;--on-surface-2:#D3CDBD;--muted:#ADA997;--accent:#9DC08C;--on-accent:#142012;--accent-ink:#A9CC98;--inverse:#EEE9DD;--on-inverse:#1A2218;--danger:var(--red);--on-danger:#FFFFFF;--danger-ink:#FF9585;--info:var(--celeste);--on-info:#0C1A1F;--info-ink:#7CD0EC;--info-strong:#7CD0EC;--on-info-strong:#0C1A1F;--warn:var(--sun);--on-warn:#1A1606;--warn-ink:#F0CC5A;--warm:var(--amber);--on-warm-lg:#141A13;--warm-ink:#E8A877;--focus:#7CD0EC;--accent-soft:#24331F;--info-soft:#123039;--warn-soft:#352D12;--danger-soft:#3B1C17;--warm-soft:#382518;--mark-bg:transparent;--mark-light:none;--mark-dark:block;--fixed-text:#263723;--bar:rgba(20,26,19,.94);--veil:rgba(20,26,19,.9);--veil-soft:rgba(20,26,19,.5);--shadow:rgba(0,0,0,.4);--shadow-strong:rgba(0,0,0,.6);--scrim:rgba(0,0,0,.6);color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--surface);color:var(--on-surface);font-family:var(--sans);-webkit-text-size-adjust:100%;}
 body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
@@ -46,7 +46,7 @@ button,input,select,textarea{font:inherit;color:inherit}
  background:var(--bar);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 /* LHB-110: la hoja está pintada en tabaco oscuro; de noche va sobre su teja de papel */
-.brand img{border-radius:var(--r-s);background:var(--mark-bg)}
+.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)}.mark-d{display:var(--mark-dark)}
 .brand-text{display:flex;flex-direction:column;line-height:1.05}
 .brand-name{font-family:var(--serif);font-weight:600;font-size:var(--fs-4);letter-spacing:.2px}
 .brand-name em{font-style:italic;font-weight:500;color:var(--accent-ink)}
@@ -646,7 +646,7 @@ body.sheet-on{overflow:hidden}
 .intro{position:fixed;inset:0;z-index:120;background:var(--surface);color:var(--on-surface);overflow:hidden}
 .intro video{width:100%;height:100%;display:block;object-fit:contain;pointer-events:none}
 .intro-mark{position:absolute;top:calc(var(--sat) + 18px);left:18px;max-width:240px;padding:8px 14px 10px;border-radius:var(--r-m);background:var(--veil)}
-.intro-mark b{display:block;font-family:var(--display);font-weight:600;font-size:var(--fs-5);line-height:1.1}.intro-mark img{display:block;margin-bottom:6px;border-radius:var(--r-s);background:var(--mark-bg)}.intro-mark span{display:block;margin-top:4px;font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--on-surface-2)}
+.intro-mark b{display:block;font-family:var(--display);font-weight:600;font-size:var(--fs-5);line-height:1.1}.intro-mark img{margin-bottom:6px;border-radius:var(--r-s);background:var(--mark-bg)}.intro-mark span{display:block;margin-top:4px;font-size:var(--fs-1);letter-spacing:2px;text-transform:uppercase;color:var(--on-surface-2)}
 .intro-skip,.intro-sound{position:absolute;bottom:calc(var(--sab) + 64px);min-height:44px;padding:10px 16px;border-radius:var(--r-pill);font:700 var(--fs-2)/1.2 var(--sans);cursor:pointer}
 .intro-skip{right:18px;background:var(--accent);color:var(--on-accent);border:1px solid var(--accent)}
 .intro-sound{left:18px;background:var(--surface);color:var(--accent-ink);border:1px solid var(--accent-ink)}
