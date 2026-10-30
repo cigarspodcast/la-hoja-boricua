@@ -3905,7 +3905,7 @@ test('LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en
  const uses=re=>{const out=new Set();for(const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g))if(re.test(m[2]))for(const x of m[1].split(','))out.add(x.trim());return [...out].sort()};
  const RED=/var\(--(on-danger|danger(-ink|-soft)?|red|flag-red)\)/,CEL=/var\(--(on-info(-strong)?|info(-ink|-strong|-soft)?|celeste|flag-blue)\)/;
  /* rojo: el botón de añadir, la franja de la bandera, lo que no se deshace (borrar la cuenta, bloquear) y los errores */
- assert.deepEqual(uses(RED),['.btn.danger','.flag-band','.hint.hs-bad','.tab-plus .plus']);
+ assert.deepEqual(uses(RED),['.btn.danger','.flag-band','.hint.hs-bad','.tab-plus .plus','.tab-plus.active .plus']); /* Codex r8: el + marcado conserva su rojo (un contorno) */
  /* celeste: los enlaces y la bandera */
  assert.deepEqual(uses(CEL),['.ev .src a','.flag-band','.lbtn.web','.pod-more','.pop .lbtn.web','.sources a']);
  const js=f=>read(f).replace(/\/\*[\s\S]*?\*\//g,'');for(const f of ['cuenta.js','intro.js'])assert.ok(!RED.test(js(f))&&!CEL.test(js(f))&&!/tk\('(danger|info)/.test(js(f)),f+' no pinta rojo ni celeste');
@@ -3939,6 +3939,14 @@ test('LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en
   /* Codex r7: la burbuja de un grupo (varios placeCard en .pops) es otro contexto que se repite; la de un solo lugar sigue con su llena */
   assert.ok(/setContent\('<div class="pops">'\+g\.ms\.map\(m=>placeCard\(m\.p\)\)\.join\(''\)\+'<\/div>'\)/.test(ap),'la burbuja del grupo envuelve sus lugares en .pops');
   assert.ok(!/setContent\((?!'<div class="pops">')[^)]*\.map\([^)]*placeCard/.test(ap),'ninguna burbuja junta varios placeCard sin .pops');
+  /* Codex r8: el botón de añadir marcado (en #/subir) no es otra llena de tabaco; y el sello ganado de la ficha (class="stampbtn act" aria-pressed="true")
+     gana el tabaco frente a cada regla compuesta que le aplica, por especificidad y luego por orden */
+  for(const r of rules.filter(x=>/\.tab-plus\.active/.test(x.sel)))assert.ok(!/background:var\(--accent\)/.test(r.body),'el + marcado no se rellena de tabaco: '+r.sel+'{'+r.body+'}');
+  {const win=(el,prop)=>{let best=null;rules.forEach((r,i)=>{if(!/^(?:\.[\w-]+|\[[^\]]+\])+$/.test(r.sel))return;const cl=[...r.sel.matchAll(/\.([\w-]+)/g)].map(m=>m[1]),at=[...r.sel.matchAll(/\[([^\]]+)\]/g)].map(m=>m[1]);
+     if(!cl.every(c=>el.cls.includes(c))||!at.every(a=>el.attrs.includes(a)))return;const m=new RegExp('(?:^|;)(?:'+prop+(prop==='border-color'?'|border':'')+'):([^;]+)').exec(r.body);if(!m)return;const sp=cl.length+at.length;
+     if(!best||sp>best.sp||(sp===best.sp&&i>best.i))best={sp,i,v:m[1],sel:r.sel}});return best};
+   const el={cls:['stampbtn','act'],attrs:['aria-pressed="true"']};assert.ok(hj.includes('class="stampbtn ${cls}" data-stamp="${k}:${esc(id)}" aria-pressed="${on}"')&&hj.includes("stampBtn('cigarros',c.id,'act')"),'el sello de la ficha es stampbtn act, con aria-pressed');
+   for(const [p,v] of [['background','var(--accent)'],['border-color','var(--accent)'],['color','var(--on-accent)']]){const b=win(el,p);assert.ok(b&&(b.v===v||b.v.endsWith(' '+v)),'sello ganado '+p+': '+(b&&b.sel+' '+b.v))}}
   for(const sel of ['.ev .lbtn.go-map','.list .lbtn.go-map','.pops .lbtn.go-map','.fw-row .fw-b'])assert.ok(bgOf(sel)&&bgOf(sel)!=='var(--accent)','con borde en lo que se repite: '+sel+' '+bgOf(sel));
   for(const sel of ['.fw-row .fw-b'])assert.ok(rules.some(x=>x.sel===sel&&/color:var\(--accent-ink\)/.test(x.body)&&/border:1px solid var\(--accent-ink\)/.test(x.body)),sel);
   {const ev=hj.slice(hj.indexOf('function evCard('),hj.indexOf('\nfunction ',hj.indexOf('function evCard(')+10));assert.ok(ev.includes('return `<article class="ev ')&&ev.includes('<a class="lbtn go-map"'),'Cómo llegar va dentro de la tarjeta .ev');
@@ -4059,7 +4067,7 @@ test('LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noc
  const body=(src,n)=>{const m=new RegExp('\\n(?:async )?function '+n+'\\(|\\n(?:const|let) '+n+'=').exec(src);assert.ok(m,n);const j=src.slice(m.index+1).search(/\n(?:async )?function |\n(?:const|let) [A-Za-z0-9_]+=(?:async )?\(?[A-Za-z0-9_,]*\)?=>/);return src.slice(m.index,j<0?undefined:m.index+1+j)};
  /* Codex r6: Cómo llegar cuenta como llena salvo en su contexto que se repite (arriba) */
  const FILLED=/class="(btn|btn cta|btn fw-b|lbtn spotify|lbtn go-map|pidelo)"/g;
- const views=[['perfil',[[ap,'vPerfil'],[hj,'pfCounts']]],['eventos',[[hj,'vEventos']]],['diario',[[hj,'vDiario']]],['humidor',[[hj,'vHumidor']]],['cata',[[hj,'vCata']]],['personas',[[hj,'vPersonas']]]];
+ const views=[['perfil',[[ap,'vPerfil'],[hj,'pfCounts']]],['eventos',[[hj,'vEventos']]],['diario',[[hj,'vDiario']]],['humidor',[[hj,'vHumidor']]],['cata',[[hj,'vCata']]],['personas',[[hj,'vPersonas']]],['subir',[[ap,'vSubir']]]];
  for(const [v,parts] of views){const n=parts.map(([src,f])=>[...body(src,f).matchAll(FILLED)].length).reduce((a,b)=>a+b,0);assert.ok(n<=1,v+': '+n+' acciones llenas')}
  assert.ok(hj.includes('${own?`<a class="btn secondary" href="#/mihoja/editar" id="pfEdit"'),'Editar perfil con borde');assert.ok(hj.includes('<button class="btn secondary" type="submit">${tt(\'h.guardarSugerencia\')}'),'la sugerencia con borde');
 });

@@ -226,7 +226,8 @@ details.edit .form{padding:6px 0 14px}
 .tabbar a.active svg{stroke-width:2.3}
 .tab-plus{position:relative}
 .tab-plus .plus{width:50px;height:50px;border-radius:var(--r-m);background:var(--danger);color:var(--on-danger);display:grid;place-items:center;font-size:var(--fs-6);font-weight:400;line-height:1;margin-top:-18px;box-shadow:0 6px 18px var(--shadow-strong)}
-.tab-plus.active .plus{background:var(--accent);color:var(--on-accent)}
+/* LHB-110 (Codex r8): en #/subir el botón de añadir queda marcado sin el relleno de tabaco (Guardar es la llena de esa vista); conserva su rojo */
+.tab-plus.active .plus{outline:2px solid var(--danger);outline-offset:3px}
 .toast{position:fixed;left:50%;bottom:calc(var(--tab-h) + var(--sab) + 18px);transform:translateX(-50%) translateY(20px);background:var(--inverse);color:var(--on-inverse);padding:10px 16px;border-radius:var(--r-m);font-weight:600;font-size:var(--fs-2);opacity:0;pointer-events:none;transition:.25s;z-index:95;max-width:88vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .offline-badge{display:inline-block;font-size:var(--fs-1);background:var(--inverse);color:var(--on-inverse);border-radius:var(--r-pill);padding:2px 8px;margin-left:6px;vertical-align:2px}
@@ -430,6 +431,8 @@ body.sheet-on{overflow:hidden}
 .act-row{display:flex;gap:8px;justify-content:center;margin:4px 0 14px}
 .act-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0}
 .act,.stampbtn.act{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--card);color:var(--on-surface);font-size:var(--fs-1);font-weight:600;text-decoration:none;cursor:pointer;line-height:1.15;text-align:center}
+/* LHB-110 (Codex r8): el sello ganado en la cuadrícula de la ficha sigue en tabaco (la regla neutra de arriba tiene la misma especificidad) */
+.stampbtn.act[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .act .leafsvg{width:20px;height:26px}
 .stampbtn.act svg{width:24px;height:24px}
 .pairbox{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:12px 14px;margin:0 0 14px}
