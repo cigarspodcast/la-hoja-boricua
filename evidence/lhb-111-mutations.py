@@ -80,6 +80,10 @@ MUTS = [
     ('site/404.html', 'Codex r18: an icon tinted red through its color by a script on a static page', '</body>', '<svg viewBox="0 0 24 24"><circle id="deco" cx="12" cy="12" r="11" fill="currentColor"/></svg><script>document.getElementById("deco").style.setProperty("color","red");</script></body>'),
     ('site/hoja.js', 'Codex r18: a drawing tinted by a filter set by a script', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.filter="hue-rotate(140deg) saturate(4)"};const CAL_ICO='),
     ('site/app.js', 'Codex r18: the accent of the set rewritten in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art" style="--art-ac:#e33">${art}</div></header>`;'),
+    ('site/hoja.js', 'Codex r19: a filter set with a space in the member access', 'const CAL_ICO=', "const CAL_X=e=>{e.style .filter='hue-rotate(90deg)'};const CAL_ICO="),
+    ('site/hoja.js', 'Codex r19: a colour through a custom property the script makes', 'const CAL_ICO=', "const CAL_X=e=>{e.style.cssText='--deco:red;color:var(--deco)'};const CAL_ICO="),
+    ('site/hoja.js', 'Codex r19: a colour set on a style held in a variable', 'const CAL_ICO=', "const CAL_X=e=>{const s=e.style;s.color='red'};const CAL_ICO="),
+    ('site/app.js', 'Codex r19: a colour taken from data in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art" style="color:${tint}">${art}</div></header>`;'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

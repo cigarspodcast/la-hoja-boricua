@@ -70,6 +70,10 @@ Codex r17: a drawing painted through Object.assign on its style          RED (ca
 Codex r18: an icon tinted red through its color by a script on a static page RED (caught) (fail 1)
 Codex r18: a drawing tinted by a filter set by a script                  RED (caught) (fail 1)
 Codex r18: the accent of the set rewritten in the header helper          RED (caught) (fail 1)
+Codex r19: a filter set with a space in the member access                RED (caught) (fail 1)
+Codex r19: a colour through a custom property the script makes           RED (caught) (fail 1)
+Codex r19: a colour set on a style held in a variable                    RED (caught) (fail 1)
+Codex r19: a colour taken from data in the header helper                 RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 73 of 73 red
+RESULT 77 of 77 red
