@@ -6503,9 +6503,9 @@ test('LHB-54: privacidad cubre nombre, apellido, género, fecha de nacimiento, l
  /* (a) lo que guardamos */
  for(const w of ['Tu nombre, tu apellido, tu género y tu fecha de nacimiento','La guarda Clerk','el enlace a esa foto','A quién sigues, quién te sigue y a quién bloqueas'])assert.ok(t.includes(w),'(a) '+w);
  /* (b) lo que ven los demás; la fecha de nacimiento y el género nunca */
- for(const w of ['tu nombre con la inicial de tu apellido (por ejemplo, Ana M.)','tu nombre de usuario (@)','tu foto de perfil','tu descripción','las catas que tú marques como públicas','Tu fecha de nacimiento, tu género, tu apellido completo y tu correo nunca se muestran'])assert.ok(t.includes(w),'(b) '+w);
+ for(const w of ['tu nombre con la inicial de tu apellido (por ejemplo, Ana M.)','tu nombre de usuario (@)','tu foto de perfil','tu descripción','las catas que tú marques como públicas y cuántas son','cuántos sellos tienes en tu pasaporte','cuántas personas te siguen y a cuántas sigues, con esas listas','Tu fecha de nacimiento, tu género, tu apellido completo y tu correo nunca se muestran'])assert.ok(t.includes(w),'(b) '+w);
  /* (c) seguir es de una vía y sin aprobación; dejar de seguir, bloquear y reportar */
- for(const w of ['Seguir es de una sola vía y no necesita aprobación','Puedes dejar de seguir a alguien cuando quieras','Si bloqueas a alguien','La otra persona no se entera','Bloqueados','Reportar un perfil abre un correo'])assert.ok(t.includes(w),'(c) '+w);
+ for(const w of ['Seguir es de una sola vía y no necesita aprobación','Puedes dejar de seguir a alguien cuando quieras','Si bloqueas a alguien','mientras cada uno tenga su cuenta abierta','Tu perfil público sigue abierto en la web','La otra persona no se entera','Bloqueados','Reportar un perfil abre un correo'])assert.ok(t.includes(w),'(c) '+w);
  /* el formulario ya no es la casilla «Tengo 21 años o más» (LHB-52: la fecha de nacimiento) */
  assert.ok(!t.includes('tienes que marcar «Tengo 21 años o más»'));assert.ok(t.includes('Vigente desde el 30 de octubre de 2026.'));});
 /* LHB-68: las páginas estáticas (l.css: lugares, artesanos, cigarros, guías, privacidad, 404) y el pasaporte público (u.css) con la marca de la app */
