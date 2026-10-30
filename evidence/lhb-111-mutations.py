@@ -55,6 +55,9 @@ MUTS = [
     ('site/404.html', 'Codex r10: an image-set() in an inline style block', '</head>', '<style>main::after{content:"";display:block;width:200px;height:200px;background:image-set("/img/hero/banner.webp" 1x)}</style></head>'),
     ('site/404.html', 'Codex r10: an image in a single-quoted style attribute', '<body', '<body style=\'background:Url("/img/hero/banner.webp")\''),
     ('site/styles.css', 'Codex r10: a CSS escape that spells url', '.lart{', '.hero::before{background:u\\72 l("img/hero/banner.webp")}.lart{'),
+    ('site/app.js', 'Codex r11: a style block with a bitmap in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art">${art}<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style></div></header>`;'),
+    ('site/hoja.js', 'Codex r11: a bitmap set through element.style', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.backgroundImage="URL(img/hero/banner.webp)"};const CAL_ICO='),
+    ('site/app.js', 'Codex r11: an image-set in a style attribute of a template', 'const thumbS=', 'const LHB_X=x=>`<b style="background:Image-Set(${x} 1x)"></b>`;const thumbS='),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
