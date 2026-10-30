@@ -38,6 +38,9 @@ MUTS = [
     ('site/404.html', 'Codex r5: a decorative background set by a handler attribute', '<body', '<body onload="document.body.style.backgroundImage=\'url(img/adorno.webp)\'"'),
     ('site/sync.js', 'Codex r5: a decorative image named in a script outside the five', '/* La Hoja Boricua · Mi Hoja entre teléfonos', "const LHB_X='img/adorno.webp';/* La Hoja Boricua · Mi Hoja entre teléfonos"),
     ('site/app.js', 'Codex r5: a decorative image set with setAttribute', 'const thumbS=', 'const LHB_X=i=>i.setAttribute(\'src\',\'img/adorno.webp\');const thumbS='),
+    ('site/sync.js', 'Codex r6: a decorative SVG inserted by a script outside the five', '/* La Hoja Boricua · Mi Hoja entre teléfonos', "document.body&&document.body.insertAdjacentHTML('beforeend','<svg width=\"200\" height=\"200\" viewBox=\"0 0 50 50\" aria-hidden=\"true\"><circle cx=\"25\" cy=\"25\" r=\"20\" fill=\"red\"/></svg>');/* La Hoja Boricua · Mi Hoja entre teléfonos"),
+    ('site/sync.js', 'Codex r6: an SVG made through the DOM', '/* La Hoja Boricua · Mi Hoja entre teléfonos', "const LHB_X=()=>document.createElementNS('http://www.w3.org/2000/svg','svg');/* La Hoja Boricua · Mi Hoja entre teléfonos"),
+    ('site/cuenta.js', 'Codex r6: a decorative canvas drawing', '/* La Hoja Boricua · cuenta (LHB-25)', "const LHB_X=()=>{const c=document.createElement('canvas').getContext('2d');c.fillStyle='red';c.fillRect(0,0,9,9)};/* La Hoja Boricua · cuenta (LHB-25)"),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

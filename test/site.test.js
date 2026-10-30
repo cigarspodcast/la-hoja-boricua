@@ -4021,7 +4021,9 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  /* Codex r1: todo SVG escrito en los scripts es un ícono (24 x 24) o uno de los gráficos que dicen algo (no adornan): la hoja de agua de las iniciales,
     el mapa sin conexión, la rueda de sabores y el sello de zona. Uno nuevo no pasa sin ponerlo aquí */
  {const FUNC=['viewBox="0 0 100 100" aria-hidden="true"','viewBox="0 -20 1000 370" role="img"','class="wheel" viewBox="0 0 320 320"','viewBox="-6-6 12 12" aria-hidden="true"'];
-  for(const f of ['app.js','hoja.js','cuenta.js','intro.js','i18n.js'])for(const m of read(f).matchAll(/<svg\b[^>]*>/g)){const t=m[0];assert.ok(/viewBox="0 0 24 24"/.test(t)||FUNC.some(x=>t.includes(x)),f+': un SVG que no es ícono ni gráfico conocido: '+t.slice(0,90))}
+  /* Codex r6: todos los scripts del sitio menos art.js (el juego mismo, revisado dibujo por dibujo arriba) y Leaflet, no cinco */
+  const SVGJS=SITEJS111().filter(f=>f!=='art.js');for(const f of ['app.js','hoja.js','sync.js','fotos.js','sw.js'])assert.ok(SVGJS.includes(f),f);
+  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*>/g)){const t=m[0];assert.ok(/viewBox="0 0 24 24"/.test(t)||FUNC.some(x=>t.includes(x)),f+': un SVG que no es ícono ni gráfico conocido: '+t.slice(0,90))}
   /* Codex r2: un ícono se juzga por lo que lleva, no por su viewBox: sin colores propios (solo none y currentColor) y sin tamaño propio (style). La única
      excepción es la marca de Spotify, un logo de marca (LHB-67 la lista) */
   /* Codex r3: el lector de atributos ve las tres formas de comillas, y el <svg> de un ícono no trae medida propia */
@@ -4035,7 +4037,10 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   SCRIPT111('{"image":"https://lahojaboricua.com/img/cigarros/a.webp","logo":"../icons/icon-512.png"};i.src=\'icons/icon.svg\'','x',0);
   for(const bad of ['<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
   assert.ok(ICON111('<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" fill="none"/><path stroke=\'currentColor\' d="M4 4"/></svg>'),'un ícono de verdad pasa (un rect con su width y height dentro está bien)');
-  for(const f of ['app.js','hoja.js','cuenta.js','intro.js','i18n.js'])for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg>/g))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
+  /* Codex r6: ni un SVG hecho por el DOM (createElementNS), ni un lienzo que dibuje fuera de los dos que hay: achicar la foto que sube el lector (app.js) y la
+     imagen para compartir (hoja.js, que pinta la foto o la silueta) */
+  for(const f of SVGJS){const x=read(f);assert.ok(!/createElementNS\s*\(/.test(x),f+': un SVG hecho por el DOM');assert.equal([...x.matchAll(/getContext\s*\(/g)].length,['app.js','hoja.js'].includes(f)?1:0,f+': un lienzo')}
+  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg>/g))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
  /* Codex r1: las páginas estáticas: sus imágenes son íconos, fotos de cigarros y marcas; sus SVG, íconos */
  {const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.html')?[path.join(d,x.name)]:[]);const pages=walk(path.join(__dirname,'..','site'));assert.ok(pages.length>100,'páginas: '+pages.length);
   for(const p of pages){const h=fs.readFileSync(p,'utf8'),rel=path.relative(path.join(__dirname,'..','site'),p);
