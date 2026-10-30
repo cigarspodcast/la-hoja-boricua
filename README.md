@@ -4,6 +4,8 @@ App web (PWA) sobre el tabaco artesanal puertorriqueño: artesanos, cigarros hec
 
 **En vivo:** https://lahojaboricua.com
 
+**Para trabajar en el código** (a mano o con cualquier asistente de IA): lee primero `AGENTS.md`, que explica la arquitectura, los comandos, cómo publicar y las reglas que mantienen el sitio funcionando. El estado del proyecto, las cuentas y lo que falta están en `docs/HANDOFF.md`.
+
 ## Estructura
 
 - `data/`: los datos fuente en JSON (`artesanos.json`, `cigarros.json`, `places.json`, `events.json`). No se publican; aquí es donde se editan.
@@ -13,6 +15,8 @@ App web (PWA) sobre el tabaco artesanal puertorriqueño: artesanos, cigarros hec
   - `site/sw.js`: service worker (caché y modo offline).
   - `site/404.html`: página de "no encontrada".
   - `site/img/`, `site/icons/`, `site/fonts/`: imágenes, íconos y tipografías.
+- `functions/` y `migrations/`: la API (Cloudflare Pages Functions sobre la base D1) y el esquema de la base.
+- `docs/`: la entrega del proyecto (`HANDOFF.md`) y las revisiones de diseño.
 - `tools/`: los generadores (ver abajo). `tools/archive/` guarda scripts viejos de verificación que ya no se usan.
 - `test/site.test.js`: pruebas (`node --test test/site.test.js`).
 - `evidence/`: constancias de verificación de los cambios.

@@ -1,5 +1,5 @@
 """LHB-79: LHB's own client for three AI routes, called directly with keys the Windows user environment holds, never through
-the estate gateway. The rules travel with the code (CLAUDE.md, "AI routes"):
+the estate gateway. The rules travel with the code (docs/ai-routes.md):
 - A key is read from the environment at the moment of the call (process environment, then HKCU\\Environment) and is never
   printed, logged, written to a file, returned, or put in an exception message.
 - Jev takes data class none only: synthetic text or public site content, never ticket text, code, review notes or anyone's data.
