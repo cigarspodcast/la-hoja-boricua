@@ -1,0 +1,699 @@
+OpenAI Codex v0.162.1
+--------
+workdir: C:\LHB\lhb-121-wt
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a18dc3-1ac2-7ae3-a584-4aca8207a3ce
+--------
+user
+You are reviewing one change in this repository (La Hoja Boricua, a vanilla JS PWA in site/ on Cloudflare Pages). Review only; do not edit files. Do not load or run any skills. The worktree is C:/LHB/lhb-121-wt, branch lhb-121-install. This is a TIER 2 review: findings are fixed and the review repeats until no blocking finding remains. Read AGENTS.md for the repository rules.
+
+Ticket LHB-121. The owner's visitors (many over 50) found that "install the app" only showed instructions. The change:
+- site/index.html: an inline head script catches beforeinstallprompt (preventDefault, kept in window.__lhbBIP, event 'lhb-bip') and appinstalled, before any deferred script. An Install pill (#topInstall, data-install, hidden at first) in the top bar.
+- site/app.js: installEnv(window) and installHow(env) decide how this browser installs: 'prompt' (native prompt, one tap), 'ios'/'ipad' (Safari guide), 'inapp-android'/'inapp-ios' (Facebook/Instagram in-app browsers), 'qr' (desktop without the prompt), 'manual' (browser menu) or 'none' (installed). Every install entry point (top bar, home #btnAdd, menu entry, reminder bar) runs doInstall(). A reminder bar (#instBar) appears on the second page view of a visit or after 30 s, at most once per visit, never over the language screen (LHB_INTRO.afterPick) or an open sheet, and after each "Ahora no" waits 3, 7, 14 and then 30 days (remindDue, localStorage vb_instRemind, sessionStorage lhb_views and lhb_instShown). localStorage lhb_installed records an accepted install or "Ya la instalé". navigator.getInstalledRelatedApps hides it when Android reports the app installed.
+- site/hoja.js: the 'instalar' sheet has one guide per installHow value; Android in-app browsers get an intent:// link to Chrome.
+- site/manifest.webmanifest: related_applications (webapp). site/icons/qr-app.svg: a QR code for https://lahojaboricua.com/ (in the SW SHELL). site/sw.js VERSION lhb-v171. site/i18n.js: new ins.* keys in both tables; two unused keys removed.
+- site/styles.css: the pill, the bar and the guides. Header: under 520 px the header wraps and the pill takes a full-width row below the brand and icons (LHB-108 forbids hiding the brand name); 520 to 759 px drops the tagline; 900 to 1099 px (inside the 900 px block, as LHB-112 requires) drops the tagline and the pill icon and tightens the top menu.
+- test/site.test.js: a new LHB-121 test, the v21 test updated, the menu pin, and 30 new paint-table entries (only the new install styles).
+
+Round 3. Round 1 blocked on two P2 findings (reminder once per visit with sessionStorage blocked; the menu entry in the installed app), fixed in d814ffb. Round 2 (evidence/lhb-121-review-r2.txt) concurred on the first and kept the second open for a menu already open when getInstalledRelatedApps reports the app installed; commit 9f2e828 makes syncInstall hide every rendered menu entry. Check that fix and review the whole change again.
+
+What to look for:
+1. Correctness of the install decision on real browsers: Chrome/Edge/Samsung on Android and desktop, iPhone and iPad Safari (iPadOS presents as Mac), Chrome on iOS, Firefox, in-app browsers. A case where a visitor who could install in one tap is sent to instructions, or an installed user keeps being offered the install, is blocking.
+2. The beforeinstallprompt event can only be used once: after prompt() and a dismissal, does the UI degrade sensibly (Chrome may fire the event again later)?
+3. The reminder: can it show twice in a visit, on the first view, over the language screen, over a sheet, in the installed app, or never at all? Does a storage failure (private mode, blocked storage) throw?
+4. Accessibility: the bar is not a modal and must not steal focus; buttons have names; the sheet keeps the existing focus handling. Layout of the header at 320, 375, 520 to 899 and 900 to 1099 px wide.
+5. Anything that breaks existing behaviour (the menu, the home button, the sheet, sign-in, the intro) or a repository rule (translation tables, SHELL, version pins, no dependencies, Spanish comments).
+6. Secrets, private data or a specific preview address in any added file (the repository is public).
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and the concrete problem with what the code shows.
+
+===== git diff origin/main 9f2e828ad3582876cdddedfd48d8a001998eb79e -- site test =====
+diff --git a/site/app.js b/site/app.js
+index 757d487..11e70c4 100644
+--- a/site/app.js
++++ b/site/app.js
+@@ -358,14 +358,13 @@ const ROUTE_OF=Object.fromEntries(ROUTES.map(x=>[x.r,x]));
+ /* el menú: los grupos en su orden, cada destino con su ícono, y la página en la que está marcada (aria-current y «Aquí») */
+ function menuHTML(hash){const [r0,a0]=String(hash==null?location.hash:hash).replace(/^#\/?/,'').split('/');let arg0=a0||'';try{arg0=decodeURIComponent(arg0)}catch(e){}
+  const r=ROUTE_OF[r0]?r0:'catalogo',x=ROUTE_OF[r],home=x&&x.of?x.of:r;
+- const ipad=/ipad/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),ia=ipad?'ipad':/iphone|ipod/i.test(navigator.userAgent)?'ios':'';
+  const rows=g=>ROUTES.flatMap(x=>(x.menu||[]).filter(m=>m[0]===g).map(m=>{const sub=m[4]||'',href='#/'+x.r+(sub?'/'+sub:''),subs=(x.menu||[]).map(n=>n[4]).filter(Boolean);
+    const cur=home===x.r&&(sub?r===x.r&&arg0===sub:!(r===x.r&&subs.includes(arg0)));
+    return `<a class="menu-dest" href="${href}"${cur?' aria-current="page"':''}><span class="menu-ico">${brandIcon(m[1])}</span><span class="menu-copy"><b>${tt(m[2])}</b><small>${tt(m[3])}</small></span>${cur?`<span class="menu-here">${tt('menu.aqui')}</span>`:brandIcon('arrow','menu-go')}</a>`}));
+  /* LHB-109: lo que no es una ruta de la app: las guías (páginas fijas), el idioma (el nombre del otro, en el otro) y la privacidad */
+  const go=(href,i,k,ks)=>`<a class="menu-dest" href="${href}"><span class="menu-ico">${brandIcon(i)}</span><span class="menu-copy"><b>${tt(k)}</b><small>${tt(ks)}</small></span>${brandIcon('arrow','menu-go')}</a>`;
+  const I=typeof window!=='undefined'?window.LHB_I18N:null,other=I&&I.ENABLED?(I.lang==='en'?['es','Espa\u00f1ol']:['en','English']):null;
+- const extra={descubre:[go('guias/','book','menu.guias','menu.guiasSub')],app:[`<button type="button" class="menu-dest" data-sheet="instalar" data-arg="${ia}"><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`,
++ const extra={descubre:[go('guias/','book','menu.guias','menu.guiasSub')],app:[`<button type="button" class="menu-dest" data-install${installHidden(window)?' hidden':''}><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`,
+   `<button type="button" class="menu-dest" data-theme-next><span class="menu-ico">${brandIcon('moon')}</span><span class="menu-copy"><b>${tt('menu.tema')}</b><small>${tt(THEME_KEY[themeNow()])}</small></span>${brandIcon('arrow','menu-go')}</button>`,
+   ...(other?[`<button type="button" class="menu-dest" data-lang="${other[0]}"><span class="menu-ico">${brandIcon('lang')}</span><span class="menu-copy"><b lang="${other[0]}">${other[1]}</b><small>${tt('menu.idiomaSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`]:[]),go('privacidad.html','lock','menu.privacidad','menu.privacidadSub')]};
+  return `<header class="menu-welcome"><div class="eyebrow">${tt('menu.welcome')}</div><h2 class="sheet-h">${tt('menu.title')}</h2></header><nav class="menu-groups" aria-label="${tt('h.menu')}">${MENU_GROUPS.map(([g,label])=>`<section aria-labelledby="mg-${g}"><h3 id="mg-${g}">${label()}</h3>${rows(g).join('')}${(extra[g]||[]).join('')}</section>`).join('')}</nav>`}
+@@ -378,15 +377,55 @@ function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,
+  if(window.LHB_BOOT)window.LHB_BOOT.ok()}
+ window.addEventListener('hashchange',route);
+ window.addEventListener('online',()=>{if(location.hash.includes('lugares'))route()});window.addEventListener('offline',()=>{if(location.hash.includes('lugares'))route()});
+-/* ---------- install (v21: botón en el home) ---------- */
+-function installHidden(w){return !!(w.__lhbInstalled||(w.matchMedia&&w.matchMedia('(display-mode: standalone)').matches)||w.navigator.standalone===true)}
+-let deferred=null;const syncInstall=()=>{const b=$('#btnAdd');if(b)b.hidden=installHidden(window)};
+-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;window.__vbInstallReady=true});
+-window.addEventListener('appinstalled',()=>{window.__lhbInstalled=true;deferred=null;syncInstall()});
++/* ---------- install (v21: botón en el home; LHB-121: un toque donde el navegador lo deja, Instalar arriba en todas las páginas y un recordatorio) ---------- */
++/* LHB-121: lo que este navegador dice de sí. El aviso del navegador (__lhbBIP) lo guarda index.html antes que cualquier script con defer */
++function installEnv(w){const n=w.navigator||{},ua=n.userAgent||'',ipad=/ipad/i.test(ua)||(n.platform==='MacIntel'&&n.maxTouchPoints>1);let mem=false;try{mem=!!w.localStorage.getItem('lhb_installed')}catch(x){}
++ return {ua,ipad,ios:ipad||/iphone|ipod/i.test(ua),android:/android/i.test(ua),mobile:/Mobi|Android|iPhone|iPad|iPod/i.test(ua)||ipad,bip:!!w.__lhbBIP,installed:!!w.__lhbInstalled||mem,
++  standalone:!!((w.matchMedia&&w.matchMedia('(display-mode: standalone)').matches)||n.standalone===true)}}
++/* LHB-121: cómo se instala aquí. 'prompt': la ventana del navegador, de un toque. 'ios'/'ipad': Safari no deja que una página se instale sola; la guía
++   señala su botón Compartir. 'inapp-android'/'inapp-ios': el navegador de Facebook, Instagram y parecidos no instala; hay que abrirla en Chrome o Safari.
++   'qr': una computadora sin la ventana; el código lleva al teléfono. 'manual': el menú del navegador. 'none': ya está instalada (o se dijo que sí) */
++const IN_APP=/FBAN|FBAV|FB_IAB|FBIOS|Instagram|Messenger|Line\/|MicroMessenger|Snapchat|musical_ly|BytedanceWebview/i;
++function installHow(e){if(e.standalone)return 'none';if(e.bip)return 'prompt';if(e.installed)return 'none';
++ if(IN_APP.test(e.ua))return e.ios?'inapp-ios':e.android?'inapp-android':'manual';
++ if(e.ios)return e.ipad?'ipad':'ios';return e.mobile?'manual':'qr'}
++function installHidden(w){return installHow(installEnv(w))==='none'}
++/* LHB-121: el recordatorio. Nunca en la primera vista de la visita (salvo tras 30 s), a lo sumo una vez por visita, y tras «Ahora no» espera 3, 7, 14 y luego 30 días */
++const REMIND_GAP=[3,7,14,30];
++function remindDue(st,now,views,shown){if(shown||views<2)return false;if(!st||!st.n)return true;return now-st.at>=REMIND_GAP[Math.min(st.n,REMIND_GAP.length)-1]*864e5}
++const ss={get(k){try{return sessionStorage.getItem(k)}catch(x){return null}},set(k,v){try{sessionStorage.setItem(k,v)}catch(x){}}};
++const closeBar=()=>{const b=$('#instBar');if(b)b.remove()};
++const syncInstall=()=>{const how=installHow(installEnv(window)),off=how==='none',b=$('#btnAdd');if(b)b.hidden=off;
++ const t=$('#topInstall');if(t){t.hidden=off;const sp=t.querySelector('span'),k=how==='qr'?'ins.topQr':'ins.top';if(sp&&sp.dataset.i18n!==k){sp.dataset.i18n=k;sp.textContent=how==='qr'?tt('ins.topQr'):tt('ins.top')}}
++ $$('.menu-dest[data-install]').forEach(m=>{m.hidden=off});/* Codex r2: el menú abierto también, si se supo después que ya está instalada */
++ if(off)closeBar()};
++function installedNow(say){window.__lhbInstalled=true;try{localStorage.setItem('lhb_installed',String(Date.now()))}catch(x){}closeBar();syncInstall();if(say)toast(tt('inst.ok'))}
++function remindLater(){const st=LS.get('instRemind',null)||{n:0};try{LS.set('instRemind',{n:(st.n||0)+1,at:Date.now()})}catch(x){}closeBar()}
++function remindBar(how){if($('#instBar'))return;const qr=how==='qr',b=document.createElement('aside');b.id='instBar';b.className='inst-bar';b.setAttribute('aria-label',tt('ins.barLabel'));
++ b.innerHTML=`<img class="mark-l" src="icons/icon.svg" alt="" width="44" height="44"><img class="mark-d" src="icons/icon-dark.svg" alt="" width="44" height="44"><p class="inst-bar-t"><b>${tt('ins.barT')}</b><span>${qr?tt('ins.barQrS'):tt('ins.barS')}</span></p><div class="inst-bar-b"><button type="button" class="inst-bar-go" data-install>${qr?tt('ins.verQr'):tt('ins.instalar')}</button><button type="button" class="inst-bar-no" data-inst-later>${tt('ins.ahoraNo')}</button></div>`;
++ ($('#app')||document.body).appendChild(b)}
++/* no sale encima de la pantalla del idioma (espera a que se escoja) ni de una hoja abierta; si hay hoja, lo intenta en la próxima vista.
++   Salió en esta visita: se recuerda también en memoria, porque sin sessionStorage (bloqueado) volvería a salir (Codex r1) */
++let instShownMem=false;const instShown=()=>instShownMem||ss.get('lhb_instShown')==='1';
++function maybeRemind(views){if(!remindDue(LS.get('instRemind',null),Date.now(),views,instShown()))return;
++ const go=()=>{const how=installHow(installEnv(window));if(how==='none'||document.body.classList.contains('sheet-on')||instShown())return;instShownMem=true;ss.set('lhb_instShown','1');remindBar(how)};
++ const L=window.LHB_INTRO;if(L&&typeof L.picking==='function'&&L.picking())L.afterPick(go);else go()}
++async function doInstall(){const how=installHow(installEnv(window)),d=window.__lhbBIP;closeBar();
++ if(how==='prompt'&&d){window.__lhbBIP=null;EXT.closeSheet();d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted')installedNow(true);else remindLater();syncInstall();return}
++ if(how==='none'){EXT.closeSheet();toast(tt('ins.yaEsta'));return}
++ EXT.openSheet('instalar',how==='manual'?'':how)}
++document.addEventListener('lhb-bip',syncInstall);
++window.addEventListener('appinstalled',()=>installedNow(false));
+ matchMedia('(display-mode: standalone)').addEventListener?.('change',syncInstall);
+-document.addEventListener('click',async e=>{if(!e.target.closest('#btnAdd'))return;
+- if(deferred){const d=deferred;deferred=null;d.prompt();const r=await d.userChoice.catch(()=>null);if(r&&r.outcome==='accepted'){window.__lhbInstalled=true;syncInstall();toast(tt('inst.ok'))}return}
+- EXT.openSheet('instalar',isIOS?(/ipad/i.test(navigator.userAgent)||navigator.platform==='MacIntel'?'ipad':'ios'):'')});
++document.addEventListener('click',e=>{if(!(e.target.closest&&e.target.closest('[data-install],[data-inst-later],[data-inst-done],[data-inst-copy],#btnAdd')))return;
++ if(e.target.closest('[data-install],#btnAdd')){e.preventDefault();doInstall();return}
++ if(e.target.closest('[data-inst-later]')){remindLater();return}
++ if(e.target.closest('[data-inst-done]')){installedNow(false);return}
++ if(e.target.closest('[data-inst-copy]')){const u=location.origin+'/',ok=()=>toast(tt('ins.copiado'));try{navigator.clipboard.writeText(u).then(ok,()=>toast(u))}catch(x){toast(u)}}});
++/* Android sabe si la app de este sitio ya está en el teléfono (related_applications del manifest): entonces el navegador no la ofrece */
++if(navigator.getInstalledRelatedApps)navigator.getInstalledRelatedApps().then(a=>{if(a&&a.length){window.__lhbInstalled=true;syncInstall()}}).catch(()=>{});
++let views=+(ss.get('lhb_views')||0);const countView=()=>{views++;ss.set('lhb_views',String(views));maybeRemind(views)};
++window.addEventListener('hashchange',countView);setTimeout(()=>maybeRemind(Math.max(views,2)),30e3);
+ if('serviceWorker' in navigator){const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.update&&r.update()).catch(()=>{}))}
+-route();topAvatar();refreshData();
++route();topAvatar();refreshData();syncInstall();countView();
+ })();
+diff --git a/site/hoja.js b/site/hoja.js
+index fc2fca3..9a97d71 100644
+--- a/site/hoja.js
++++ b/site/hoja.js
+@@ -129,7 +129,17 @@ document.addEventListener('keydown',e=>{if(e.key!=='Escape'&&e.key!=='Tab')retur
+  if(!el.contains(at)){e.preventDefault();(e.shiftKey?last:first).focus()}else if(e.shiftKey&&at===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&at===last){e.preventDefault();first.focus()}});
+ window.addEventListener('hashchange',closeSheet);
+ function openSheet(kind,arg){
+- if(kind==='instalar'){const ios=arg==='ios'||arg==='ipad';sheet(`<h2 class="sheet-h">${tt('h.anadirATuPantalla')}</h2><p class="inst-p">${ios?`${tt('h.tocaElBoton')} <b>${tt('h.compartir')}</b> ${tt('h.subeYLuego',{a:arg==='ipad'?tt('h.arriba'):tt('h.abajo')})} <b>${tt('h.anadirAPantallaDe')}</b>.`:`${tt('h.abreElMenuDel')}<b>⋮</b> ${tt('h.o')} <b>⋯</b>${tt('h.yToca')} <b>${tt('h.instalarApp')}</b> ${tt('h.o')} <b>${tt('h.anadirAPantallaDe')}</b>.`}</p><button type="button" class="lbtn buy inst-ok" data-close>${tt('h.entendido')}</button>`,tt('h.anadirATuPantalla'));return}
++/* LHB-121: una guía por manera de instalar (la decide installHow en app.js). Safari no deja que una página se instale sola: la guía va en tres pasos con los
++    dibujos de sus botones y una flecha hacia ellos. El navegador de Facebook o Instagram no instala: en Android, un toque abre Chrome; en el iPhone, Safari */
++ if(kind==='instalar'){const ok=`<button type="button" class="lbtn buy inst-ok" data-close>${tt('h.entendido')}</button>`,
++  SHARE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M6 11H5v10h14V11h-1"/></svg>',ADD='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg>',
++  DONE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>',step=(ico,t)=>`<li><span class="inst-ico">${ico}</span><span>${t}</span></li>`;
++  if(arg==='ios'||arg==='ipad'){sheet(`<h2 class="sheet-h">${tt('ins.iosH')}</h2><ol class="inst-steps">${step(SHARE,tt('ins.ios1',{a:arg==='ipad'?tt('h.arriba'):tt('h.abajo')}))}${step(ADD,tt('ins.ios2'))}${step(DONE,tt('ins.ios3'))}</ol>${ok}<button type="button" class="lbtn ghost inst-done" data-inst-done data-close>${tt('ins.yaInstale')}</button>${arg==='ios'?'<div class="inst-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v15m-6-6 6 6 6-6"/></svg></div>':''}`,tt('ins.iosH'));return}
++  if(arg==='inapp-android'){const u=`intent://${location.host}${location.pathname}${location.search}#Intent;scheme=https;package=com.android.chrome;end`;
++   sheet(`<h2 class="sheet-h">${tt('ins.inappH')}</h2><p class="inst-p">${tt('ins.inappP')}</p><a class="lbtn go-map inst-ok" href="${esc(u)}">${tt('ins.abrirChrome')}</a>`,tt('ins.inappH'));return}
++  if(arg==='inapp-ios'){sheet(`<h2 class="sheet-h">${tt('ins.inappIosH')}</h2><p class="inst-p">${tt('ins.inappIosP')}</p><button type="button" class="lbtn go-map inst-ok" data-inst-copy>${tt('ins.copiar')}</button>`,tt('ins.inappIosH'));return}
++  if(arg==='qr'){sheet(`<h2 class="sheet-h">${tt('ins.qrH')}</h2><p class="inst-p">${tt('ins.qrP')}</p><img class="inst-qr" src="icons/qr-app.svg" width="220" height="220" alt="${tt('ins.qrAlt')}"><p class="inst-p">${tt('ins.qrO')}</p>${ok}`,tt('ins.qrH'));return}
++  sheet(`<h2 class="sheet-h">${tt('h.anadirATuPantalla')}</h2><p class="inst-p">${tt('h.abreElMenuDel')}<b>⋮</b> ${tt('h.o')} <b>⋯</b>${tt('h.yToca')} <b>${tt('h.instalarApp')}</b> ${tt('h.o')} <b>${tt('h.anadirAPantallaDe')}</b>.</p>${ok}`,tt('h.anadirATuPantalla'));return}
+  /* LHB-71: el menú sale de la tabla de rutas de app.js (agrupado, con íconos y la página actual marcada) */
+  if(kind==='menu'){sheet(A.menuHTML(),tt('h.menu'));return}
+  if(kind==='plus'){sheet(`<h2 class="sheet-h">${tt('h.queQuieresHacer')}</h2><div class="menu-list">
+diff --git a/site/i18n.js b/site/i18n.js
+index 10d7e27..8c7e9fe 100644
+--- a/site/i18n.js
++++ b/site/i18n.js
+@@ -247,13 +247,38 @@ const T={es:{
+  "h.miHoja": "Mi Hoja",
+  "h.escuchaEnCigarsPodcast": "Escucha en Cigars Podcast",
+  "h.anadirATuPantalla": "Añadir a tu pantalla",
+- "h.tocaElBoton": "Toca el botón",
+  "h.compartir": "Compartir",
+  "h.anadirAPantallaDe": "“Añadir a pantalla de inicio”",
+  "h.abreElMenuDel": "Abre el menú del navegador (",
+  "h.yToca": ") y toca",
+  "h.instalarApp": "“Instalar app”",
+  "h.entendido": "Entendido",
++ "ins.top": "Instalar",
++ "ins.topQr": "En tu teléfono",
++ "ins.barLabel": "Instalar la app",
++ "ins.barT": "Llévala en tu teléfono",
++ "ins.barS": "Instálala gratis: abre como una app y funciona sin conexión.",
++ "ins.barQrS": "Apunta la cámara del teléfono a un código y ábrela allí.",
++ "ins.instalar": "Instalar",
++ "ins.verQr": "Ver el código",
++ "ins.ahoraNo": "Ahora no",
++ "ins.yaEsta": "Ya la tienes instalada",
++ "ins.iosH": "Instálala en 3 pasos",
++ "ins.ios1": "Toca el botón Compartir, {a} en la pantalla. Si no lo ves, toca ⋯ y luego Compartir.",
++ "ins.ios2": "Baja en la lista y toca “Añadir a pantalla de inicio”.",
++ "ins.ios3": "Toca “Añadir”. La app queda en tu pantalla de inicio, con su ícono.",
++ "ins.yaInstale": "Ya la instalé",
++ "ins.inappH": "Ábrela en Chrome para instalarla",
++ "ins.inappP": "Estás en el navegador de otra app (Facebook, Instagram…), y desde ahí no se puede instalar. En Chrome sí, con un toque.",
++ "ins.abrirChrome": "Abrir en Chrome",
++ "ins.inappIosH": "Ábrela en Safari para instalarla",
++ "ins.inappIosP": "Estás en el navegador de otra app (Facebook, Instagram…), y desde ahí no se puede instalar. Toca ⋯ y escoge “Abrir en Safari” o “Abrir en el navegador”. Allí, toca “Instalar” otra vez.",
++ "ins.copiar": "Copiar el enlace",
++ "ins.copiado": "Enlace copiado: pégalo en Safari",
++ "ins.qrH": "Llévala en tu teléfono",
++ "ins.qrP": "Apunta la cámara del teléfono a este código y abre el enlace. Allí, toca “Instalar”.",
++ "ins.qrAlt": "Código QR que abre lahojaboricua.com",
++ "ins.qrO": "O escribe lahojaboricua.com en el navegador del teléfono.",
+  "h.menu": "Menú",
+  "h.queQuieresHacer": "¿Qué quieres hacer?",
+  "h.empezarUnaCataGuiada": "Empezar una cata guiada",
+@@ -696,7 +721,6 @@ const T={es:{
+  "h.guardarEnFavoritos": "Guardar en favoritos",
+  "h.sabor": "sabor",
+  "h.sabores": "sabores",
+- "h.subeYLuego": "⬆️ {a} y luego",
+  "h.arriba": "arriba",
+  "h.abajo": "abajo",
+  "h.loTuyo": "Lo <em>tuyo</em>",
+@@ -1071,13 +1095,38 @@ en:{
+  "h.miHoja": "Mi Hoja",
+  "h.escuchaEnCigarsPodcast": "Listen on Cigars Podcast",
+  "h.anadirATuPantalla": "Add to your home screen",
+- "h.tocaElBoton": "Tap the",
+  "h.compartir": "Share",
+  "h.anadirAPantallaDe": "“Add to Home Screen”",
+  "h.abreElMenuDel": "Open the browser menu (",
+  "h.yToca": ") and tap",
+  "h.instalarApp": "“Install app”",
+  "h.entendido": "Got it",
++ "ins.top": "Install",
++ "ins.topQr": "On your phone",
++ "ins.barLabel": "Install the app",
++ "ins.barT": "Keep it on your phone",
++ "ins.barS": "Install it free: it opens like an app and works offline.",
++ "ins.barQrS": "Point your phone camera at a code and open it there.",
++ "ins.instalar": "Install",
++ "ins.verQr": "Show the code",
++ "ins.ahoraNo": "Not now",
++ "ins.yaEsta": "It is already installed",
++ "ins.iosH": "Install it in 3 steps",
++ "ins.ios1": "Tap the Share button, {a} of the screen. If you do not see it, tap ⋯ and then Share.",
++ "ins.ios2": "Scroll down the list and tap “Add to Home Screen”.",
++ "ins.ios3": "Tap “Add”. The app is now on your home screen, with its icon.",
++ "ins.yaInstale": "I already installed it",
++ "ins.inappH": "Open it in Chrome to install it",
++ "ins.inappP": "You are in another app’s browser (Facebook, Instagram…), which cannot install apps. Chrome can, in one tap.",
++ "ins.abrirChrome": "Open in Chrome",
++ "ins.inappIosH": "Open it in Safari to install it",
++ "ins.inappIosP": "You are in another app’s browser (Facebook, Instagram…), which cannot install apps. Tap ⋯ and choose “Open in Safari” or “Open in browser”. There, tap “Install” again.",
++ "ins.copiar": "Copy the link",
++ "ins.copiado": "Link copied: paste it in Safari",
++ "ins.qrH": "Get it on your phone",
++ "ins.qrP": "Point your phone camera at this code and open the link. There, tap “Install”.",
++ "ins.qrAlt": "QR code that opens lahojaboricua.com",
++ "ins.qrO": "Or type lahojaboricua.com in your phone’s browser.",
+  "h.menu": "Menu",
+  "h.queQuieresHacer": "What would you like to do?",
+  "h.empezarUnaCataGuiada": "Start a guided tasting",
+@@ -1520,7 +1569,6 @@ en:{
+  "h.guardarEnFavoritos": "Save to favorites",
+  "h.sabor": "flavor",
+  "h.sabores": "flavors",
+- "h.subeYLuego": "⬆️ {a} and then",
+  "h.arriba": "at the top",
+  "h.abajo": "at the bottom",
+  "h.loTuyo": "Your <em>stuff</em>",
+diff --git a/site/icons/qr-app.svg b/site/icons/qr-app.svg
+new file mode 100644
+index 0000000..c178161
+--- /dev/null
++++ b/site/icons/qr-app.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><rect width="33" height="33" fill="#fff"/><path fill="#000" d="M4 4h7v1h-7zM12 4h2v1h-2zM18 4h1v1h-1zM22 4h7v1h-7zM4 5h1v1h-1zM10 5h1v1h-1zM13 5h2v1h-2zM22 5h1v1h-1zM28 5h1v1h-1zM4 6h1v1h-1zM6 6h3v1h-3zM10 6h1v1h-1zM12 6h2v1h-2zM17 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h3v1h-3zM28 6h1v1h-1zM4 7h1v1h-1zM6 7h3v1h-3zM10 7h1v1h-1zM13 7h2v1h-2zM17 7h2v1h-2zM20 7h1v1h-1zM22 7h1v1h-1zM24 7h3v1h-3zM28 7h1v1h-1zM4 8h1v1h-1zM6 8h3v1h-3zM10 8h1v1h-1zM14 8h5v1h-5zM22 8h1v1h-1zM24 8h3v1h-3zM28 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h2v1h-2zM17 9h1v1h-1zM20 9h1v1h-1zM22 9h1v1h-1zM28 9h1v1h-1zM4 10h7v1h-7zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h7v1h-7zM13 11h2v1h-2zM16 11h1v1h-1zM18 11h3v1h-3zM4 12h1v1h-1zM6 12h1v1h-1zM10 12h2v1h-2zM13 12h1v1h-1zM20 12h1v1h-1zM23 12h1v1h-1zM26 12h1v1h-1zM28 12h1v1h-1zM4 13h2v1h-2zM11 13h1v1h-1zM14 13h3v1h-3zM18 13h3v1h-3zM22 13h2v1h-2zM25 13h1v1h-1zM27 13h2v1h-2zM4 14h1v1h-1zM6 14h3v1h-3zM10 14h3v1h-3zM15 14h3v1h-3zM19 14h8v1h-8zM28 14h1v1h-1zM6 15h1v1h-1zM14 15h1v1h-1zM18 15h2v1h-2zM21 15h1v1h-1zM23 15h3v1h-3zM7 16h5v1h-5zM13 16h4v1h-4zM19 16h2v1h-2zM22 16h2v1h-2zM28 16h1v1h-1zM6 17h1v1h-1zM19 17h2v1h-2zM22 17h2v1h-2zM27 17h2v1h-2zM4 18h2v1h-2zM7 18h1v1h-1zM9 18h4v1h-4zM14 18h2v1h-2zM17 18h3v1h-3zM21 18h1v1h-1zM25 18h2v1h-2zM28 18h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM12 19h5v1h-5zM18 19h1v1h-1zM23 19h3v1h-3zM4 20h2v1h-2zM7 20h1v1h-1zM10 20h5v1h-5zM16 20h1v1h-1zM18 20h7v1h-7zM27 20h1v1h-1zM12 21h2v1h-2zM15 21h1v1h-1zM17 21h1v1h-1zM20 21h1v1h-1zM24 21h1v1h-1zM28 21h1v1h-1zM4 22h7v1h-7zM12 22h1v1h-1zM15 22h1v1h-1zM20 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM28 22h1v1h-1zM4 23h1v1h-1zM10 23h1v1h-1zM13 23h1v1h-1zM16 23h1v1h-1zM19 23h2v1h-2zM24 23h1v1h-1zM28 23h1v1h-1zM4 24h1v1h-1zM6 24h3v1h-3zM10 24h1v1h-1zM16 24h1v1h-1zM19 24h6v1h-6zM27 24h1v1h-1zM4 25h1v1h-1zM6 25h3v1h-3zM10 25h1v1h-1zM13 25h4v1h-4zM20 25h2v1h-2zM24 25h1v1h-1zM26 25h2v1h-2zM4 26h1v1h-1zM6 26h3v1h-3zM10 26h1v1h-1zM12 26h1v1h-1zM14 26h2v1h-2zM18 26h2v1h-2zM21 26h1v1h-1zM23 26h3v1h-3zM27 26h2v1h-2zM4 27h1v1h-1zM10 27h1v1h-1zM14 27h3v1h-3zM18 27h1v1h-1zM20 27h5v1h-5zM4 28h7v1h-7zM12 28h3v1h-3zM16 28h1v1h-1zM20 28h1v1h-1zM25 28h1v1h-1zM28 28h1v1h-1z"/></svg>
+diff --git a/site/index.html b/site/index.html
+index 664ffc6..c7bfd10 100644
+--- a/site/index.html
++++ b/site/index.html
+@@ -11,6 +11,7 @@
+ <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141A13">
+ <meta name="color-scheme" content="light dark">
+ <script>/* LHB-110: el tema que se eligió en el menú, antes de pintar (sin él, el del teléfono) */try{var t=localStorage.getItem('lhb_theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);var m=document.createElement('meta');m.name='theme-color';m.id='themeBar';m.content=t==='dark'?'#141A13':'#F4F1EA';document.head.prepend(m)}}catch(e){}</script>
++<script>/* LHB-121: el aviso de instalar del navegador (Chrome, Edge, Samsung) puede llegar antes que los scripts con defer: se guarda aquí para que cualquier botón de Instalar abra la instalación de un toque */window.__lhbBIP=null;addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__lhbBIP=e;document.dispatchEvent(new Event('lhb-bip'))});addEventListener('appinstalled',function(){window.__lhbBIP=null;window.__lhbInstalled=true;try{localStorage.setItem('lhb_installed',String(Date.now()))}catch(x){}});</script>
+ <link rel="manifest" href="manifest.webmanifest">
+ <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+ <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+@@ -46,6 +47,8 @@
+       <a href="#/mihoja" data-tab="mihoja"><span data-i18n="menu.mihoja">Mi Hoja</span></a>
+       <button type="button" data-sheet="plus" data-tab="subir" class="tab-plus" aria-label="Nueva cata, añadir al humidor o subir cigarro" data-i18n-attr="aria-label:ix.plus"><span class="plus" aria-hidden="true">+</span></button>
+     </nav>
++    <!-- LHB-121: Instalar arriba, en todas las páginas, mientras la app no esté instalada (el script de la app lo muestra); en el teléfono va en su propia fila, debajo de la firma -->
++    <button type="button" class="top-install" id="topInstall" data-install hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5"/></svg><span data-i18n="ins.top">Instalar</span></button>
+     <div class="top-actions">
+       <a class="icon-btn" href="#/buscar" aria-label="Buscar en toda la app" data-i18n-attr="aria-label:ix.searchAll"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></a>
+       <button class="icon-btn" type="button" data-sheet="menu" aria-label="Menú" data-i18n-attr="aria-label:h.menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+diff --git a/site/manifest.webmanifest b/site/manifest.webmanifest
+index ed30c00..3bad601 100644
+--- a/site/manifest.webmanifest
++++ b/site/manifest.webmanifest
+@@ -63,5 +63,11 @@
+     }
+    ]
+   }
++ ],
++ "related_applications": [
++  {
++   "platform": "webapp",
++   "url": "https://lahojaboricua.com/manifest.webmanifest"
++  }
+  ]
+ }
+\ No newline at end of file
+diff --git a/site/styles.css b/site/styles.css
+index f3ac06f..380b6b7 100644
+--- a/site/styles.css
++++ b/site/styles.css
+@@ -564,6 +564,32 @@ body.sheet-on{overflow:hidden}
+ .btn-add[hidden]{display:none}
+ .inst-p{font-size:var(--fs-3);line-height:1.5;color:var(--on-surface);margin:0 0 18px}
+ .inst-ok{width:100%;font-size:var(--fs-3)}
++/* LHB-121: Instalar arriba, en todas las páginas mientras la app no está instalada; el recordatorio de abajo (no tapa la pantalla: es una barra) y las guías */
++.top-install{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:0;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font:700 var(--fs-2)/1 var(--sans);white-space:nowrap;cursor:pointer}
++.top-install svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
++.top-install[hidden]{display:none}
++/* LHB-121: en el teléfono no caben la firma, Instalar y los tres botones, y la firma no se esconde (LHB-108): Instalar baja a su propia fila, a todo lo ancho */
++@media (max-width:519px){.topbar{flex-wrap:wrap;row-gap:8px}.brand{flex:1 1 0;min-width:0}.top-install{order:3;flex:1 1 100%;justify-content:center;min-height:42px}}
++/* entre 520 y 759 px, con Instalar en la misma fila, el lema no cabe */
++@media (min-width:520px) and (max-width:759px){.topbar:has(#topInstall:not([hidden])) .brand-sub{display:none}}
++.inst-bar{position:fixed;z-index:25;left:calc(var(--sal) + 10px);right:calc(var(--sar) + 10px);bottom:calc(var(--tab-h) + var(--sab) + 10px);max-width:560px;margin:0 auto;
++ display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:12px 14px;background:var(--surface-2);color:var(--on-surface);border:1px solid var(--line);border-radius:var(--r-m);box-shadow:var(--shadow-strong)}
++.inst-bar img{width:44px;height:44px;flex:none}
++.inst-bar-t{flex:1 1 180px;min-width:0;margin:0;display:flex;flex-direction:column;gap:2px;font-size:var(--fs-2);line-height:1.35}
++.inst-bar-t b{font-size:var(--fs-3)}
++.inst-bar-b{display:flex;gap:8px;flex:1 1 100%}
++.inst-bar-go{flex:1;min-height:46px;border:0;border-radius:var(--r-m);background:var(--accent);color:var(--on-accent);font:700 var(--fs-3)/1.2 var(--sans);cursor:pointer}
++.inst-bar-no{min-height:46px;padding:0 16px;border:1px solid var(--line);border-radius:var(--r-m);background:transparent;color:var(--on-surface);font:600 var(--fs-2)/1.2 var(--sans);cursor:pointer}
++.inst-steps{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:14px}
++.inst-steps li{display:flex;align-items:center;gap:12px;font-size:var(--fs-3);line-height:1.45;color:var(--on-surface)}
++.inst-ico{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:var(--r-s);background:var(--accent-soft);color:var(--accent-ink)}
++.inst-ico svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
++.inst-done{width:100%;margin-top:10px;font-size:var(--fs-3)}
++.inst-arrow{display:flex;justify-content:center;margin-top:12px;color:var(--accent-ink)}
++.inst-arrow svg{width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;animation:instBob 1.2s ease-in-out infinite}
++@keyframes instBob{50%{transform:translateY(6px)}}
++@media (prefers-reduced-motion:reduce){.inst-arrow svg{animation:none}}
++.inst-qr{display:block;width:220px;max-width:100%;height:auto;margin:0 auto 14px;border-radius:var(--r-s)}
+ .seo-foot{text-align:center;font-size:var(--fs-2);margin-top:calc(-1 * (var(--tab-h) + var(--sab) + 18px));padding:0 16px calc(var(--tab-h) + var(--sab) + 18px)}
+ /* LHB-90: until the app has drawn the first view, the footer would paint high on an empty page and be pushed down (CLS 0.12 to 0.21);
+    it stays invisible while the view is empty, so it appears already in place. Hidden, not removed: its links stay in the page for crawlers */
+@@ -739,5 +765,7 @@ body.sheet-on{overflow:hidden}
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  /* Codex r1: la grilla de una página de detalle (la de un artesano) queda a tres columnas en su medida de 820 px, también desde 1100 px */
+  .view:has(> .back) .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
++ /* LHB-121: hasta 1099 px el + pisaba Instalar: mientras se ofrece, sin el lema ni el dibujo de Instalar y con los destinos más juntos */
++ @media (max-width:1099px){.topbar:has(#topInstall:not([hidden])) .brand-sub{display:none}.topbar:has(#topInstall:not([hidden])) .topnav a{padding:0 8px}.topbar:has(#topInstall:not([hidden])) .topnav .tab-plus{padding-left:0}.top-install svg{display:none}}
+ }
+ @media (min-width:1100px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+diff --git a/site/sw.js b/site/sw.js
+index 5bbd4af..8251980 100644
+--- a/site/sw.js
++++ b/site/sw.js
+@@ -1,8 +1,8 @@
+ /* La Hoja Boricua service worker · v10: miniaturas de fotos precacheadas (LHB-85: las dos medidas, 320 y 600); fotos grandes se cachean al verlas */
+-const VERSION='lhb-v170';
++const VERSION='lhb-v171';
+ const SHELL=['./','styles.css','app.js','i18n.js','art.js','hoja.js','cuenta.js','sync.js','fotos.js','vendor-leaflet.js','vendor-leaflet.css','manifest.webmanifest',
+  'data/bundle.js',
+- 'icons/icon.svg','icons/icon-dark.svg','icons/icon-full.svg','icons/icon-full-dark.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-16.png','icons/favicon-32.png',
++ 'icons/icon.svg','icons/icon-dark.svg','icons/icon-full.svg','icons/icon-full-dark.svg','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png','icons/favicon-16.png','icons/favicon-32.png','icons/qr-app.svg',
+  'intro.js','fonts/figtree.woff2','fonts/fraunces-normal-600.woff2','fonts/fraunces-italic-500.woff2',
+  'img/hero/banner.webp','img/logos/jfc-hoja-boricua.webp','img/logos/don-rey-cigar.webp','img/logos/el-club-del-turro.webp','img/logos/don-collins.webp','img/logos/finca-neo-jibairo.webp','img/logos/willys-cigars.webp','img/logos/san-pedrito-cigars.webp','img/logos/yambo-cigars.webp','img/logos/el-chapu-pr.webp','img/logos/el-buho-ricamontes.webp','img/logos/cohoba-cigars.webp','img/logos/cigarros-caimito.webp','img/logos/tabacalera-la-trascendencia.webp','img/logos/pitirre-cigars.webp','img/logos/villareno-cigars.webp','img/cigarros/galiz-spirit_thumb.webp','img/cigarros/villareno-surtido_thumb.webp','img/cigarros/don-collins-corona-grande_thumb.webp','img/cigarros/don-collins-linea_thumb.webp','img/cigarros/hoja-boricua-gran-reserva_thumb.webp','img/cigarros/hoja-boricua_thumb.webp','img/cigarros/puerto-rico-965_thumb.webp','img/cigarros/turro-albizu-campos_thumb.webp','img/cigarros/turro-angel-david_thumb.webp','img/cigarros/turro-barber-pole_thumb.webp','img/cigarros/turro-cartucho_thumb.webp','img/cigarros/turro-deja-el-drama_thumb.webp','img/cigarros/turro-don-pepe_thumb.webp','img/cigarros/turro-el-turrito_thumb.webp','img/cigarros/turro-escopeta_thumb.webp','img/cigarros/turro-gallo-pinto_thumb.webp','img/cigarros/turro-hva-robusto_thumb.webp','img/cigarros/turro-lancero_thumb.webp','img/cigarros/turro-mamposteao_thumb.webp','img/cigarros/turro-naturola_thumb.webp','img/cigarros/turro-timber-blues_thumb.webp','img/cigarros/monte-mistica-connecticut_thumb.webp','img/cigarros/monte-mistica-corojo_thumb.webp','img/cigarros/monte-mistica-maduro_thumb.webp','img/cigarros/yambo-toro_thumb.webp','img/cigarros/yambo_a_oscuro_thumb.webp','img/cigarros/yambo_a_pareja_thumb.webp','img/cigarros/yambo_a_torpedo_thumb.webp','img/cigarros/willys-banda-negra-oro_thumb.webp','img/cigarros/willys-banda-azul-oro_thumb.webp','img/cigarros/willys-banda-azul-roja-oro_thumb.webp','img/cigarros/willys-banda-azul-coleta_thumb.webp','img/cigarros/willys-banda-azul-ovalada_thumb.webp','img/cigarros/willys-tripa-corta_thumb.webp','img/cigarros/san-pedrito-linea_thumb.webp','img/cigarros/san-pedrito-barber-pole_thumb.webp','img/cigarros/galiz-spirit_thumb-s.webp','img/cigarros/villareno-surtido_thumb-s.webp','img/cigarros/don-collins-corona-grande_thumb-s.webp','img/cigarros/don-collins-linea_thumb-s.webp','img/cigarros/hoja-boricua-gran-reserva_thumb-s.webp','img/cigarros/hoja-boricua_thumb-s.webp','img/cigarros/puerto-rico-965_thumb-s.webp','img/cigarros/turro-albizu-campos_thumb-s.webp','img/cigarros/turro-angel-david_thumb-s.webp','img/cigarros/turro-barber-pole_thumb-s.webp','img/cigarros/turro-cartucho_thumb-s.webp','img/cigarros/turro-deja-el-drama_thumb-s.webp','img/cigarros/turro-don-pepe_thumb-s.webp','img/cigarros/turro-el-turrito_thumb-s.webp','img/cigarros/turro-escopeta_thumb-s.webp','img/cigarros/turro-gallo-pinto_thumb-s.webp','img/cigarros/turro-hva-robusto_thumb-s.webp','img/cigarros/turro-lancero_thumb-s.webp','img/cigarros/turro-mamposteao_thumb-s.webp','img/cigarros/turro-naturola_thumb-s.webp','img/cigarros/turro-timber-blues_thumb-s.webp','img/cigarros/monte-mistica-connecticut_thumb-s.webp','img/cigarros/monte-mistica-corojo_thumb-s.webp','img/cigarros/monte-mistica-maduro_thumb-s.webp','img/cigarros/yambo-toro_thumb-s.webp','img/cigarros/yambo_a_oscuro_thumb-s.webp','img/cigarros/yambo_a_pareja_thumb-s.webp','img/cigarros/yambo_a_torpedo_thumb-s.webp','img/cigarros/willys-banda-negra-oro_thumb-s.webp','img/cigarros/willys-banda-azul-oro_thumb-s.webp','img/cigarros/willys-banda-azul-roja-oro_thumb-s.webp','img/cigarros/willys-banda-azul-coleta_thumb-s.webp','img/cigarros/willys-banda-azul-ovalada_thumb-s.webp','img/cigarros/willys-tripa-corta_thumb-s.webp','img/cigarros/san-pedrito-linea_thumb-s.webp','img/cigarros/san-pedrito-barber-pole_thumb-s.webp'];
+ self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
+diff --git a/test/site.test.js b/test/site.test.js
+index c72a2c8..5214cff 100644
+--- a/test/site.test.js
++++ b/test/site.test.js
+@@ -51,7 +51,7 @@ test('app wiring: upload uses camera capture and IndexedDB; offline fallback map
+  assert.ok(!/volkswagen|\bVW\b/i.test(h));});
+ 
+ test('v6: Mi Hoja, cata, eventos, maridajes, podcast, compartir',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js'),ix=read('index.html');
+- assert.match(sw,/const VERSION='lhb-v170'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
++ assert.match(sw,/const VERSION='lhb-v171'/);assert.ok(sw.includes("'hoja.js'"));assert.ok(ix.indexOf('hoja.js')<ix.indexOf('app.js'));
+  for(const w of ['Cata guiada','Aroma en frío','Encendido','Primer tercio','Segundo tercio','Tercer tercio','Fortaleza','Cuerpo','Final','Madera','Tierra','Especias','Dulce','Cacao','Frutos','Floral','Cuero','Nuez','Humidor','Diario','Pasaporte','Insignias','Exportar respaldo','Importar respaldo','Añadir a calendario','BEGIN:VCALENDAR','https://forms.gle/4iL5cgzun3LqdXBRA','/humoytambor','Maridajes','Pídelo directo','Escucha en Cigars Podcast','https://cigarspodcast.sites.tab.bot/','canShare','toBlob','La Hoja Boricua','lahojaboricua.com'])assert.ok(h.includes(w),w);
+  assert.ok(/lhb_mihoja_v1/.test(h)&&/vb_favs|legacy\('favs'\)/.test(h),'versioned key + migration');
+  const all=['index.html','app.js','hoja.js','art.js','data/bundle.js'].map(read).join('\n');
+@@ -71,24 +71,24 @@ test('v7: fotos reales de producto',()=>{const src=read('fotos.js');const F=JSON
+  assert.ok(ix.indexOf('fotos.js')<ix.indexOf('hoja.js'));assert.ok(js.includes('loading="lazy"')&&I18N().T.es['cig.lineFoto']==='Foto de la línea'&&js.includes("tt('cig.lineFoto')")&&h.includes('LHB_FOTOS'));
+  assert.ok(!/fuerza|bad bunny|don\s*q\b/i.test(src));});
+ test('v8: guagua B (recorte; LHB-72: la escena del splash se fue y sus fotos ya no se precachean)',()=>{const sw=read('sw.js'),a=read('art.js'),ix=read('index.html'),css=read('styles.css');
+- assert.match(sw,/const VERSION='lhb-v170'/);
++ assert.match(sw,/const VERSION='lhb-v171'/);
+  /* LHB-111: la guagua ya no es ilustración de la app: ni se precachea, ni la nombra art.js, ni queda el archivo */
+  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp']){assert.ok(!a.includes(g),g);assert.ok(!fs.existsSync(path.join(__dirname,'..','site',g)),g)}
+  for(const g of ['img/guagua/guagua_recorte.webp','img/guagua/campo.webp','img/guagua/hojas.webp'])assert.ok(!sw.includes("'"+g+"'"),'LHB-72: ya no se precachea '+g);
+  assert.ok(!ix.includes('splashCar')&&!ix.includes('campo-hojas')&&!css.includes('@keyframes rock'),'LHB-72: la escena del splash no está');});
+ test('v9: garita fuera del header (LHB-72: el splash por capas se fue entero: marcado, estilos y código)',()=>{const ix=read('index.html'),css=read('styles.css'),js=read('app.js'),sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v170'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
++ assert.match(sw,/const VERSION='lhb-v171'/);for(const c of ['l-hills','l-field','l-mid','l-fg','nube','id="dust"','id="wake"'])assert.ok(!ix.includes(c),c);
+  for(const c of ['.vsh{','.whl i{','@keyframes rock','@keyframes sway','.vb .van-i{','.campo{','.puff{','.wleaf{'])assert.ok(!css.includes(c),c);
+  assert.ok(!js.includes("className='puff'")&&!js.includes("className='wleaf'")&&!js.includes('function splash'));assert.ok(!js.includes('VBArt.garita("hero-garita")'));});
+ test('v10/v11: fotos Monte & Mística (Entre Humos), Maduro encendido (v11)',()=>{const src=read('fotos.js');const F=JSON.parse(src.slice(src.indexOf('=')+1).trim().replace(/;$/,''));const sw=read('sw.js');
+- assert.match(sw,/const VERSION='lhb-v170'/);
++ assert.match(sw,/const VERSION='lhb-v171'/);
+  assert.equal(F['monte-mistica-corojo'].match,'exacta');assert.equal(F['monte-mistica-connecticut'].match,'linea');
+  for(const id of ['monte-mistica-corojo','monte-mistica-connecticut']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}
+  assert.equal(F['monte-mistica-maduro'].match,'linea');
+  for(const id of ['monte-mistica-maduro']){assert.equal(F[id].credito,'Foto: Entre Humos');assert.ok(sw.includes("'"+F[id].thumb+"'"));assert.ok(fs.existsSync(path.join(S,F[id].img)));assert.ok(fs.statSync(path.join(S,F[id].img)).size<80000)}});
+ 
+ test('v12: bandera de PR (opción A, triángulo celeste) en vez de la silla + fotos Galiz y Villareño',()=>{const ix=read('index.html'),css=read('styles.css'),sw=read('sw.js'),js=read('app.js'),art=read('art.js');
+- assert.match(sw,/const VERSION='lhb-v170'/);
++ assert.match(sw,/const VERSION='lhb-v171'/);
+  for(const s of [ix,css,js,art])assert.ok(!/silla|chair|monobloc/i.test(s),'sin silla');
+  assert.ok(!ix.includes('splash-bandera'),'LHB-72: la bandera de la pantalla de entrada se fue con ella');assert.ok(!/#0050F0/i.test(ix)&&!/%230050F0/i.test(css));
+  /* LHB-111: el estado vacío lleva la caja de cigarros de línea (abajo), ya no la bandera en su asta */
+@@ -111,12 +111,12 @@ test('v13: icon files present with right sizes, new leaf-flag art; El Chalet in
+  assert.equal(p.filter(x=>x.categoria==='lounge').length,28);assert.equal(p.filter(x=>x.categoria==='venta').length,13);
+  assert.ok(read('app.js').includes('p.horario'));});
+ 
+-test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v170'/);});
++test('v14: botón de Spotify en Podcast',()=>{const hj=readR('hoja.js');assert.ok(hj.includes("const SPOTIFY='https://open.spotify.com/show/5DUCZkx89z9cTeBaczq6Gr'"));assert.match(hj,/class="lbtn spotify" href="\$\{SPOTIFY\}" target="_blank" rel="noopener">\$\{SPOT_SVG\}Escúchalo en Spotify/);assert.match(fs.readFileSync(path.join(S,'sw.js'),'utf8'),/const VERSION='lhb-v171'/);});
+ 
+ test('v15: banner de Sergio en el catálogo, sin guagua',()=>{const js=fs.readFileSync(path.join(S,'app.js'),'utf8'),css=fs.readFileSync(path.join(S,'styles.css'),'utf8'),sw=fs.readFileSync(path.join(S,'sw.js'),'utf8');
+  assert.ok(js.includes('<img class="hero-bg" src="img/hero/banner.webp"'));assert.ok(!js.includes('hero-volky')&&!js.includes('hero-art'));
+  assert.ok(!css.includes('hero-art')&&!css.includes('@keyframes park')&&!css.includes('@keyframes idle'));assert.match(css,/\.hero-bg\{[^}]*object-fit:cover/);
+- assert.match(sw,/const VERSION='lhb-v170'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
++ assert.match(sw,/const VERSION='lhb-v171'/);assert.ok(sw.includes("'img/hero/banner.webp'"));
+  assert.ok(fs.statSync(path.join(S,'img/hero/banner.webp')).size<=35000);
+  assert.ok(js.includes('VBArt.aqui()')&&!js.includes('VBArt.carro'),'LHB-111: el aquí del mapa es de línea');});
+ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la bandera, con el celeste de la guagua)',()=>{const c=fs.readFileSync(path.join(S,'styles.css'),'utf8'),a=fs.readFileSync(path.join(S,'app.js'),'utf8'),h=fs.readFileSync(path.join(S,'hoja.js'),'utf8');
+@@ -124,7 +124,7 @@ test('v16: paleta B Bandera (LHB-65: la paleta del tablero la reemplaza; la band
+  assert.ok(!c.includes('--flam:#c93f25'));assert.ok(a.includes("const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7']"),'LHB-67: la fachada con el celeste de la bandera');assert.ok(!/#0050f0/i.test(a),'LHB-67: ninguna bandera con el azul viejo');
+  for(const old of ['#e2a39a','#efc56f','#86c0c6','#c3a2cf','#9fcdea','#b5162b','#1d3f7a','#f3f1e2'])assert.ok(!a.includes(old)&&!h.includes(old),old);
+  assert.ok(!/5fb4e5/i.test(fs.readFileSync(path.join(S,'index.html'),'utf8')+c),'LHB-72: el celeste viejo de la bandera del splash ya no está');});
+-test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v170'/)});
++test('v17 (LHB-111): la flor de tabaco y el flamboyán dejaron las cabeceras por el juego de línea',()=>{const S2=path.join(__dirname,'..','site');const a=fs.readFileSync(path.join(S2,'art.js'),'utf8'),ap=fs.readFileSync(path.join(S2,'app.js'),'utf8'),hj=fs.readFileSync(path.join(S2,'hoja.js'),'utf8');assert.ok(!/function (flor|flamboyan)\b|garita/.test(a));for(const x of [ap,hj])assert.ok(!/VBArt\.(garita|flor|flamboyan)\(/.test(x));assert.ok(ap.includes('VBArt.ranchon()')&&ap.includes('VBArt.chaveta()')&&hj.includes('VBArt.lupa()'));assert.match(fs.readFileSync(path.join(S2,'sw.js'),'utf8'),/const VERSION='lhb-v171'/)});
+ 
+ test('v18: Ruta del Tabaco en Lugares (mapa Leaflet), 25 pueblos reales, 6 zonas, sin semilla',()=>{const h=readR('hoja.js'),js=read('app.js'),sw=read('sw.js');
+  const tw=h.match(/const TW='([^']+)'/)[1].split('|');assert.equal(tw.length,25);const z=new Set(tw.map(s=>s.split(',')[1]));assert.deepEqual([...z].sort(),['C','E','M','N','O','S']);
+@@ -141,32 +141,86 @@ test('v19: subtítulo del banner',()=>{const ap=fs.readFileSync(path.join(__dirn
+ test('artisan logos: every id in LOGOS maps to an existing webp and a real artisan',()=>{const js=read('app.js');const ids=JSON.parse(js.match(/const LOGOS=new Set\((\[[^\]]*\])\)/)[1]);
+  assert.equal(ids.length,15);const a=new Set(JSON.parse(readD('artesanos.json')).map(x=>x.id));
+  for(const id of ids){assert.ok(fs.existsSync(path.join(S,'img/logos',id+'.webp')),'missing logo '+id);assert.ok(a.has(id),'unknown artisan '+id)}
+- assert.match(read('sw.js'),/lhb-v170/);});
++ assert.match(read('sw.js'),/lhb-v171/);});
+ 
+-test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css');
++test('v21: botón "Añadir a mi pantalla" en el home, oculto en modo standalone',()=>{const ap=read('app.js'),hj=readR('hoja.js'),css=read('styles.css'),ix=read('index.html');
+  assert.match(ap,/<button type="button" class="btn-add" id="btnAdd"\$\{installHidden\(window\)\?' hidden':''\}>\$\{tt\('cat.install'\)\}<\/button>/);assert.equal(I18N().T.es['cat.install'],'📲 Instalar App');
+- assert.ok(ap.includes("addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e")&&ap.includes('d.prompt()')&&ap.includes("addEventListener('appinstalled'"));
+- assert.ok(hj.includes("kind==='instalar'")&&hj.includes('Toca el botón <b>Compartir</b> ⬆️')&&hj.includes('Añadir a pantalla de inicio')&&hj.includes('Instalar app'));
++ /* LHB-121: el aviso del navegador se guarda en index.html, antes de los scripts; app.js lo usa */
++ assert.ok(ix.includes("addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__lhbBIP=e;")&&ap.includes('d.prompt()')&&ap.includes("addEventListener('appinstalled'"));
++ assert.ok(!ap.includes("'beforeinstallprompt'"),'un solo lugar escucha el aviso');
++ assert.ok(hj.includes("kind==='instalar'")&&hj.includes('Toca el botón Compartir')&&hj.includes('Añadir a pantalla de inicio')&&hj.includes('Instalar app'));
+  assert.match(css,/\.btn-add\[hidden\]\{display:none\}/);
+- const fn=new Function('return '+ap.match(/function installHidden\(w\)\{.*?\}\r?\n/)[0])();
++ const fn=INST121().installHidden;
+  const W=(sa,ns,inst)=>({__lhbInstalled:inst,matchMedia:q=>({matches:sa&&q==='(display-mode: standalone)'}),navigator:{standalone:ns}});
+  assert.equal(fn(W(false,undefined,false)),false,'navegador: se ve');
+  assert.equal(fn(W(true,undefined,false)),true,'display-mode standalone: oculto');
+  assert.equal(fn(W(false,true,false)),true,'iOS navigator.standalone: oculto');
+  assert.equal(fn(W(false,false,true)),true,'después de appinstalled: oculto');
+- assert.match(read('sw.js'),/const VERSION='lhb-v170'/);});
++ assert.match(read('sw.js'),/const VERSION='lhb-v171'/);});
++/* LHB-121: las funciones de instalar de app.js, sacadas tal cual (de installEnv a remindDue) */
++function INST121(){const ap=read('app.js'),a=ap.indexOf('function installEnv(w)'),c=ap.indexOf('function remindDue('),d=ap.indexOf('\n',c);assert.ok(a>0&&c>a,'las funciones de instalar');
++ return new Function(ap.slice(a,d)+'\nreturn {installEnv,installHow,installHidden,remindDue,REMIND_GAP}')()}
++test('LHB-121: un toque donde el navegador lo deja, la guía justa donde no, y el recordatorio cada 3, 7, 14 y 30 días',()=>{const I=INST121();
++ const UA={
++  iphone:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
++  ipadMac:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
++  android:'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36',
++  win:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
++  firefoxMac:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:132.0) Gecko/20100101 Firefox/132.0'};
++ const W=(ua,o={})=>({__lhbBIP:o.bip?{}:null,__lhbInstalled:!!o.inst,matchMedia:q=>({matches:!!o.sa&&q==='(display-mode: standalone)'}),
++  localStorage:{getItem:k=>k==='lhb_installed'?(o.mem||null):null},navigator:{userAgent:ua,platform:o.platform||'',maxTouchPoints:o.touch||0,standalone:o.ns}});
++ const how=(ua,o)=>I.installHow(I.installEnv(W(ua,o)));
++ assert.equal(how(UA.android,{bip:true}),'prompt','Chrome en Android con el aviso: la ventana del navegador, de un toque');
++ assert.equal(how(UA.win,{bip:true}),'prompt','Chrome o Edge en la computadora, igual');
++ assert.equal(how(UA.android,{bip:true,mem:'1'}),'prompt','si el navegador vuelve a ofrecerla es que no está: el aviso gana sobre lo recordado');
++ assert.equal(how(UA.iphone),'ios','iPhone: la guía de Compartir, con la flecha abajo');
++ assert.equal(how(UA.ipadMac,{platform:'MacIntel',touch:5}),'ipad','iPad (se presenta como Mac): la guía, arriba');
++ assert.equal(how(UA.firefoxMac,{platform:'MacIntel',touch:0}),'qr','una Mac de verdad sin el aviso: el código para el teléfono');
++ assert.equal(how(UA.win),'qr','computadora sin el aviso: el código');
++ assert.equal(how(UA.android),'manual','Android sin el aviso: el menú del navegador');
++ assert.equal(how(UA.android+' [FB_IAB/FB4A;FBAV/480.0.0.0;]'),'inapp-android','Facebook en Android: abrir en Chrome');
++ assert.equal(how(UA.android+' Instagram 350.0.0.0 Android'),'inapp-android','Instagram en Android');
++ assert.equal(how(UA.iphone+' [FBAN/FBIOS;FBAV/480.0]'),'inapp-ios','Facebook en el iPhone: abrir en Safari');
++ assert.equal(how(UA.iphone+' Instagram 350.0.0'),'inapp-ios','Instagram en el iPhone');
++ assert.equal(how(UA.iphone,{ns:true}),'none','la app instalada en el iPhone');
++ assert.equal(how(UA.android,{sa:true,bip:true}),'none','la app instalada (standalone) nunca se ofrece');
++ assert.equal(how(UA.android,{inst:true}),'none','después de appinstalled');
++ assert.equal(how(UA.iphone,{mem:'1'}),'none','dijo Ya la instalé (o la instaló aquí): no se ofrece más en este navegador');
++ /* el recordatorio */
++ const D=864e5,T=Date.UTC(2026,9,30);assert.deepEqual(I.REMIND_GAP,[3,7,14,30]);
++ assert.equal(I.remindDue(null,T,1,false),false,'nunca en la primera vista');assert.equal(I.remindDue(null,T,2,false),true,'en la segunda, la primera vez');
++ assert.equal(I.remindDue(null,T,5,true),false,'una vez por visita');
++ for(const [n,g] of [[1,3],[2,7],[3,14],[4,30],[9,30]]){const st={n,at:T};
++  assert.equal(I.remindDue(st,T+g*D-1,2,false),false,'tras '+n+' «Ahora no», todavía no a los '+g+' días menos un instante');
++  assert.equal(I.remindDue(st,T+g*D,2,false),true,'tras '+n+' «Ahora no», sí a los '+g+' días')}
++ /* index.html: el aviso se guarda antes que cualquier script con src; Instalar arriba empieza escondido (app.js lo muestra) */
++ const ix=read('index.html'),cap=ix.indexOf("addEventListener('beforeinstallprompt'"),firstSrc=ix.search(/<script[^>]*\ssrc=/);assert.ok(cap>0&&firstSrc>cap,'el aviso se guarda antes de los scripts');
++ assert.match(ix,/<!--[^>]*-->\s*<button type="button" class="top-install" id="topInstall" data-install hidden>.*?<\/button>\s*<div class="top-actions">/s);
++ const ap=read('app.js'),hj=read('hoja.js');
++ assert.ok(ap.includes('class="inst-bar-go" data-install>')&&ap.includes('data-inst-later>'),'el recordatorio instala con el mismo botón');
++ assert.ok(!/data-sheet="instalar"/.test(ap+hj+ix),'ninguna entrada abre las instrucciones sin pasar por installHow');
++ assert.ok(ap.includes("L.afterPick(go)")&&ap.includes("document.body.classList.contains('sheet-on')"),'no sale encima de la pantalla del idioma ni de una hoja');
++ assert.ok(ap.includes("const instShown=()=>instShownMem||ss.get('lhb_instShown')==='1';")&&ap.includes('instShownMem=true;ss.set(')&&!/remindDue\([^)]*ss\.get\('lhb_instShown'\)/.test(ap),'Codex r1: una vez por visita aunque sessionStorage esté bloqueado');
++ {const sy=ap.slice(ap.indexOf('const syncInstall=()=>{'),ap.indexOf('if(off)closeBar()};'));assert.ok(sy.includes("$$('.menu-dest[data-install]').forEach(m=>{m.hidden=off});"),'Codex r2: syncInstall también esconde la entrada del menú abierto')}
++ for(const k of ["arg==='ios'||arg==='ipad'","arg==='inapp-android'","package=com.android.chrome","arg==='inapp-ios'","data-inst-copy","arg==='qr'",'src="icons/qr-app.svg"','data-inst-done'])assert.ok(hj.includes(k),'hoja.js: '+k);
++ /* el código lleva a la portada de producción; está en el shell; Android puede decir que ya está instalada */
++ const qr=read('icons/qr-app.svg');assert.match(qr,/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 33 33"/);assert.ok(qr.includes('fill="#fff"'),'fondo blanco en los dos temas');
++ assert.ok(read('sw.js').includes("'icons/qr-app.svg'"),'el código, en el shell');
++ assert.deepEqual(JSON.parse(read('manifest.webmanifest')).related_applications,[{platform:'webapp',url:'https://lahojaboricua.com/manifest.webmanifest'}]);
++ for(const k of ['ins.top','ins.barT','ins.iosH','ins.ios1','ins.inappH','ins.qrH','ins.ahoraNo','ins.yaInstale'])assert.ok(I18N().T.es[k]&&I18N().T.en[k],k);
++});
+ test('v23: 7 artesanos nuevos hechos en PR (28 total), sin teléfonos/emails, Adjuntas en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.ok(a.length>=28);assert.equal(new Set(a.map(x=>x.id)).size,a.length);
+  const ids=['la-hoja-del-chan','cigarros-j-velez','tabacos-el-roble','el-escondite-adjuntas','hr-handmade-cigars','fumita-pr','monte-mistica'];const b=read('data/bundle.js');
+  for(const id of ids){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v170'/);});
++ assert.ok(/\|Adjuntas,C,/.test(read('hoja.js')));assert.match(read('sw.js'),/const VERSION='lhb-v171'/);});
+ 
+ test('v24: 4 artesanos aprobados por Sergio (32 total), sin teléfonos/emails, Ponce y Juana Díaz en la Ruta',()=>{const a=JSON.parse(readD('artesanos.json'));assert.equal(a.length,32);assert.equal(new Set(a.map(x=>x.id)).size,32);const b=read('data/bundle.js');
+  for(const id of ['casa-robles-cigars','juana-diaz-cigars','el-bastion-cigars','don-chamorro-ponce']){const x=a.find(y=>y.id===id);assert.ok(x,id);assert.ok(x.iniciales&&x.historia&&x.fuentes.length,id);assert.ok(b.includes('"id":"'+id+'"'),id);const s=JSON.stringify(x);assert.ok(!/\d{3}[-. )]+\d{3}[-. ]\d{4}/.test(s),'tel '+id);assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(s.replace(/https?:\/\/[^"]+/g,'')),'email '+id)}
+- const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v170'/);});
++ const h=read('hoja.js');assert.ok(h.includes('|Ponce,S,')&&h.includes('|Juana Díaz,S,'));assert.match(read('sw.js'),/const VERSION='lhb-v171'/);});
+ 
+ test('v28 (LHB-72): la pantalla de entrada se fue; su nombre y su eslogan ya no son claves, y la intro trae los suyos',()=>{const ix=read('index.html');assert.ok(!/splash/i.test(ix),'sin splash en index.html');
+  const {T}=I18N();for(const k of ['ix.splashName','ix.splashSub','ix.flag'])assert.ok(!(k in T.es)&&!(k in T.en),'clave fuera: '+k);
+- for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v170'/);});
++ for(const k of ['intro.name'])assert.ok(T.es[k]&&T.en[k],k);assert.ok(!read('app.js').includes("VBArt.flor('sf')"));assert.match(read('sw.js'),/const VERSION='lhb-v171'/);});
+ test('v29: eventos sin marcadores ("no definido"/"por confirmar") y hora/lugar ocultos si faltan',()=>{const S3=path.join(__dirname,'..','site');const e=JSON.parse(fs.readFileSync(path.join(__dirname,'..','data','events.json'),'utf8'));const bad=/no definid|por confirmar|no publicad|sin confirmar/i;
+  const bun=fs.readFileSync(path.join(S3,'data','bundle.js'),'utf8');const ev=JSON.parse(bun.slice(bun.indexOf('{'),bun.lastIndexOf('}')+1)).events;
+  for(const x of [...e.actividades,...ev.actividades]){for(const k of ['titulo','hora','lugar','pueblo','precio','detalle'])assert.ok(!bad.test(x[k]||''),x.id+' '+k);assert.match(x.fecha,/^\d{4}-\d{2}-\d{2}$/,x.id);assert.ok(x.enlace||x.fuente_url,x.id+' fuente')}
+@@ -1229,7 +1283,7 @@ test('LHB-49: el formulario pide la foto antes de crear el perfil, achica la ima
+  assert.ok(css.includes('.ob-pic-img{'),'estilos de la foto');
+  assert.ok(cu.includes("const CLERK_IMG='https://img.clerk.com/';")&&cu.includes('avatar_url:pic'),'cuenta.js manda la URL de la foto');
+  assert.ok(pf.includes('avatar_key, first_name')&&pf.includes('p.avatar_key')&&!pf.includes('avatar_key: null'),'el servidor guarda la URL y la devuelve');
+- assert.match(read('sw.js'),/const VERSION='lhb-v170'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v171'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ /* ===================== LHB-52: identidad al crear el perfil (nombre, apellido, género, fecha de nacimiento) ===================== */
+ const T0='2026-10-26T15:00:00.000Z';/* "hoy" fijo (UTC) para las reglas de edad: 2026-10-26 */
+@@ -1476,7 +1530,7 @@ test('LHB-52: el formulario y el servidor aplican las mismas reglas de nombre, g
+  for(const e of ['first_name-required','first_name-long','first_name-invalid','last_name-required','last_name-long','last_name-invalid','gender-required','gender-invalid','birth_date-required','birth_date-invalid','birth_date-future','age-under-21','identity-exists'])assert.ok(f.OB[e],e+' tiene mensaje');
+ });
+ test('LHB-52: la versión del caché sube, y el shell nuevo no guarda ni toca los datos privados',async()=>{
+- const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v170'/);
++ const sw=read('sw.js');assert.match(sw,/const VERSION='lhb-v171'/);
+  /* el formulario y cuenta.js no escriben la fecha ni el género en ningún almacenamiento del navegador */
+  for(const f of ['hoja.js','cuenta.js']){const t=read(f).replace(/\r\n/g,'\n');for(const m of t.matchAll(/(localStorage|sessionStorage|indexedDB)[^\n]*/g))assert.ok(!/birth|gender|first_name|last_name/.test(m[0]),f+': '+m[0].slice(0,80))}
+  const cu=read('cuenta.js');assert.ok(!cu.includes('age_ok'),'cuenta.js ya no manda age_ok');assert.ok(!read('hoja.js').includes('obAge'),'la casilla de 21 se fue');
+@@ -1654,7 +1708,7 @@ test('LHB-55: lo que se comparte y por dónde se llega: un solo selector de foto
+  assert.ok(h.includes("if(sub==='editar'){location.hash='#/mihoja/perfil';return}"),'al guardar vuelve a Perfil');
+  assert.ok(h.includes('edit:(prof,submit,picture,check)=>onboardingForm(submit,picture,\'edit\',prof,check)'));
+  assert.ok(pf.includes("Object.prototype.hasOwnProperty.call(it.body, 'avatar_url')) return editProfile(it, env)"),'PUT con la foto es editar; sin ella es completar la identidad');
+- assert.match(read('sw.js'),/const VERSION='lhb-v170'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v171'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-55 (Codex ronda 1): una subida que sigue en curso de un formulario ya cerrado bloquea el guardado del formulario nuevo; terminada, se guarda',async()=>{
+  const g=defer();const u={id:'user_a',hasImage:true,imageUrl:AV,async setProfileImage(){await g.p},async reload(){u.imageUrl=AV55}};
+@@ -1901,7 +1955,7 @@ test('LHB-57: por dónde se llega y qué no cambia: la pestaña Personas en Mi H
+  assert.ok(h.includes('favoritos:vFavoritos,personas:vPersonas}[sub]||vHumidor)()'),'#/mihoja/personas abre la pantalla');
+  assert.ok(h.includes('setTimeout(()=>run(false),350)')&&h.includes("api(C,'GET','/api/people?q='"),'busca mientras se escribe, con una pausa, y por la API');
+  assert.ok(css.includes('.people{')&&css.includes('.person{'),'estilos de la lista');
+- assert.match(read('sw.js'),/const VERSION='lhb-v170'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v171'/,'el shell nuevo se publica con otra versión del caché');
+  const fn=fs.readFileSync(path.join(__dirname,'..','functions','api','people.js'),'utf8'),lib=fs.readFileSync(path.join(__dirname,'..','functions','_lib','people.js'),'utf8');
+  assert.ok(fn.includes('const g = await requireProfile(request, env);'),'buscar pide cuenta y perfil');
+  assert.ok(lib.includes('hidden = 0')&&lib.includes('user_id <> ?1'),'el filtro de ocultos y el de quien busca están en la consulta');
+@@ -2203,7 +2257,7 @@ test('LHB-51: la puerta de la cuenta guarda en el teléfono solo lo público (no
+  const hj=read('hoja.js').replace(/\r\n/g,'\n'),ap=read('app.js');
+  assert.ok(hj.includes("set:v=>{A.LS.set('cuenta2',v);if(A.topAvatar)A.topAvatar();acctTell()}")&&/clear:\(\)=>\{try\{localStorage\.removeItem\('vb_cuenta2'\);localStorage\.removeItem\('vb_cuenta'\)\}catch\(e\)\{\}if\(A\.topAvatar\)A\.topAvatar\(\);acctTell\(\)\}/.test(hj),'guardar y borrar repintan el encabezado (y avisan a los botones de seguir, LHB-60)');
+  assert.ok(ap.includes('window.LHB_EXT({topAvatar,'),'app.js le pasa topAvatar a Mi Hoja');
+- assert.match(read('sw.js'),/const VERSION='lhb-v170'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v171'/,'el shell nuevo se publica con otra versión del caché');
+ });
+ test('LHB-51: al salir o al cambiar de cuenta se borra lo guardado de la cuenta anterior, para que el encabezado nunca muestre a una persona con la sesión de otra',async()=>{
+  const h=CUENTA_HARNESS({api:async()=>({status:200,body:{profile:{handle:'ana',display_name:'Ana M.',avatar_key:'https://img.clerk.com/eyJ0eXBlIjoicHJveHkifQ'}}})});
+@@ -2486,7 +2540,7 @@ test('LHB-38: el diario: cada tarjeta muestra el día que se fumó, la foto y la
+  h.ctx.confirm=()=>true;h.lists['[data-ddel]']=[bd('c3')];h.API.vDiario();h.store.set('otra',1);await h.lists['[data-ddel]'][0].onclick();await tick();assert.equal(h.store.has('otra'),true,'una entrada sin foto no borra otras fotos');
+ });
+ test('LHB-38: el caché nuevo y la presentación de lo nuevo; sin raya larga en lo que se agregó',()=>{
+- assert.match(read('sw.js'),/const VERSION='lhb-v170'/,'el shell nuevo se publica con otra versión del caché');
++ assert.match(read('sw.js'),/const VERSION='lhb-v171'/,'el shell nuevo se publica con otra versión del caché');
+  const css=read('styles.css');assert.ok(css.includes('.dfoto{')&&css.includes('.dfoto img{')&&css.includes('.dfoto:empty{display:none}')&&css.includes('.dpub{'),'estilos de la foto y de la casilla');
+  const hj=read('hoja.js');assert.ok(!/\u2014/.test(hj.slice(hj.indexOf('const DAY='),hj.indexOf('function normalize'))));
+  assert.ok(hj.includes("const SCHEMA=1")||hj.includes(",SCHEMA=1;"),'el esquema sigue en 1: es aditivo');
+@@ -3455,7 +3509,7 @@ test('LHB-31 (Codex ronda 1): hoja.js lee Mi Hoja fresca para sincronizar, deja
+ });
+ test('LHB-83: Leaflet no se pide al cargar la app; el mapa lo pide una vez y dibuja cuando llega',async()=>{const ix=read('index.html'),js=read('app.js'),sw=read('sw.js');
+  assert.ok(!ix.includes('vendor-leaflet'),'la portada no pide vendor-leaflet.js ni vendor-leaflet.css');
+- assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v170'/);
++ assert.ok(sw.includes("'vendor-leaflet.js'")&&sw.includes("'vendor-leaflet.css'"),'los dos siguen en el shell, para abrir sin red');assert.match(sw,/const VERSION='lhb-v171'/);
+  const a=js.indexOf('let leafP=null'),b=js.indexOf('let rutaView=null;');assert.ok(a>0&&b>a,'el cargador vive antes de drawRuta');
+  const mk=()=>{const app={tag:'link',href:'styles.css'};const els=[app];const doc={head:{insertBefore(e,ref){if(ref)els.splice(els.indexOf(ref),0,e);else els.push(e)}},createElement(t){const e={tag:t,remove(){els.splice(els.indexOf(e),1)}};return e},querySelector(q){return els.find(e=>e.tag==='link'&&q.includes('"'+e.href+'"'))||null}};
+   const w={};const ctx={window:w,document:doc,Promise};require('vm').runInNewContext(js.slice(a,b)+';this.ready=()=>leafOK;',ctx);
+@@ -5544,7 +5598,7 @@ test('LHB-61: por dónde se llega: la pestaña Siguiendo en Mi Hoja, la ruta, lo
+  assert.ok(h.includes("['personas','Personas'],['siguiendo','Siguiendo'],['perfil','Perfil']];"),'la pestaña Siguiendo en el submenú de Mi Hoja');
+  assert.ok(h.includes('pasaporte:vPasaporte,siguiendo:vSiguiendo,favoritos:vFavoritos'),'#/mihoja/siguiendo abre la pantalla');
+  assert.ok(css.includes('.feed{')&&css.includes('.feed-c{')&&css.includes('.feed-b{'),'estilos de Siguiendo');
+- assert.match(read('sw.js'),/const VERSION='lhb-v170'/);
++ assert.match(read('sw.js'),/const VERSION='lhb-v171'/);
+ });
+ /* LHB-64: un DOM de mentira, lo justo para correr la hoja, el catálogo y el respaldo de verdad: etiquetas, atributos, foco, hidden, inert y los selectores que usan */
+ function DOM64(){
+@@ -6208,6 +6262,36 @@ const PAINT_PIN111=[
+  "styles.css .zcel .zs svg{height:26px}",
+  "styles.css [@keyframes sello] 0%{opacity:0}",
+  "styles.css .btn-add{background:var(--accent)}",
++ /* LHB-121: Instalar arriba, el recordatorio de abajo y las guías */
++ "styles.css .top-install{background:var(--accent)}",
++ "styles.css .top-install svg{width:17px}",
++ "styles.css .top-install svg{height:17px}",
++ "styles.css .top-install svg{flex:none}",
++ "styles.css .top-install svg{fill:none}",
++ "styles.css .top-install svg{stroke:currentColor}",
++ "styles.css .top-install svg{stroke-width:2.2}",
++ "styles.css .top-install svg{stroke-linecap:round}",
++ "styles.css .top-install svg{stroke-linejoin:round}",
++ "styles.css .inst-bar{background:var(--surface-2)}",
++ "styles.css .inst-bar-go{background:var(--accent)}",
++ "styles.css .inst-bar-no{background:transparent}",
++ "styles.css .inst-ico{background:var(--accent-soft)}",
++ "styles.css .inst-ico svg{width:24px}",
++ "styles.css .inst-ico svg{height:24px}",
++ "styles.css .inst-ico svg{fill:none}",
++ "styles.css .inst-ico svg{stroke:currentColor}",
++ "styles.css .inst-ico svg{stroke-width:2}",
++ "styles.css .inst-ico svg{stroke-linecap:round}",
++ "styles.css .inst-ico svg{stroke-linejoin:round}",
++ "styles.css .inst-arrow svg{width:36px}",
++ "styles.css .inst-arrow svg{height:36px}",
++ "styles.css .inst-arrow svg{fill:none}",
++ "styles.css .inst-arrow svg{stroke:currentColor}",
++ "styles.css .inst-arrow svg{stroke-width:2.4}",
++ "styles.css .inst-arrow svg{stroke-linecap:round}",
++ "styles.css .inst-arrow svg{stroke-linejoin:round}",
++ "styles.css .inst-arrow svg{animation:instBob 1.2s ease-in-out infinite}",
++ "styles.css [@media (prefers-reduced-motion:reduce)] .inst-arrow svg{animation:none}",
+  "styles.css .view:empty+.seo-foot{visibility:hidden}",
+  "styles.css .ob-pic-img{background:var(--card-2)}",
+  "styles.css .person{background:var(--card)}",
+@@ -6298,6 +6382,7 @@ const PAINT_PIN111=[
+ "styles.css [@media (min-width:900px)] .topnav a:hover{background:var(--card-2)}",
+ "styles.css [@media (min-width:900px)] .topnav a.active{background:var(--accent-soft)}",
+ "styles.css [@media (min-width:900px)] .topnav .tab-plus{background:none}",
++ "styles.css [@media (min-width:900px) / @media (max-width:1099px)] .top-install svg{display:none}",
+  "u.css :root{--surface:#F4F1EA}",
+  "u.css :root{--on-surface:#263723}",
+  "u.css [@media (prefers-color-scheme:dark)] :root:not([data-theme=\"light\"]){--surface:#141A13}",
+@@ -6582,7 +6667,7 @@ test('LHB-68 (Codex ronda 1): la política del pasaporte /u/ deja cargar lo que
+ function ROUTES71(extra){const vm=require('vm');const src=read('app.js').replace(/\r\n/g,'\n');
+  const ic=src.slice(src.indexOf('/* LHB-71: los íconos del menú'),src.indexOf('/* LHB-109: la portada sin atajos'));
+  let code=src.slice(src.indexOf('/* LHB-71: la tabla de rutas.'),src.indexOf('\nfunction route(){'));if(extra)code=code.replace('\n];\nconst ROUTE_OF',extra+'\n];\nconst ROUTE_OF');
+- const ctx={tt:k=>'<'+k+'>',location:{hash:''},navigator:{userAgent:'x',platform:'x',maxTouchPoints:0},themeNow:()=>'auto',THEME_KEY:{auto:'menu.tema.auto',dark:'menu.tema.dark',light:'menu.tema.light'}};vm.createContext(ctx);
++ const ctx={tt:k=>'<'+k+'>',location:{hash:''},navigator:{userAgent:'x',platform:'x',maxTouchPoints:0},window:{},installHidden:w=>!!w.__inst,themeNow:()=>'auto',THEME_KEY:{auto:'menu.tema.auto',dark:'menu.tema.dark',light:'menu.tema.light'}};vm.createContext(ctx);
+  vm.runInContext(ic+code+';this.ROUTES=ROUTES;this.ROUTE_OF=ROUTE_OF;this.menuHTML=menuHTML;this.MENU_GROUPS=MENU_GROUPS',ctx);return ctx}
+ /* cada ruta de la tabla sale en el menú, o es detalle o alias de una que sale; devuelve lo que falta */
+ function MISSING71(c){const out=[];const html=c.menuHTML('#/catalogo');
+@@ -6605,7 +6690,8 @@ test('LHB-71: el menú sale de la tabla de rutas: cada ruta sale en él o es det
+  assert.deepEqual(MISSING71(c),[]);assert.ok(n>=15&&dest>=8,'la tabla tiene las rutas de la app (15 rutas; 12 destinos al escribir LHB-71, 8 desde LHB-109: las pestañas no se repiten en el menú)');
+  for(const r of ['catalogo','c','lugares','artesanos','a','mihoja','perfil','u','cata','maridajes','subir','eventos','actividades','podcast','buscar'])assert.ok(c.ROUTE_OF[r],'ruta '+r);
+  const html=c.menuHTML('#/catalogo');for(const h of ['#/mihoja/personas','#/mihoja/editar'])assert.ok(html.includes('href="'+h+'"'),'el menú trae lo que main tiene y el paquete no: '+h);
+- assert.ok(html.includes('data-sheet="instalar"'),'Cómo instalar');assert.deepEqual(c.MENU_GROUPS.map(g=>g[0]),['descubre','experiencia','comunidad','app']);
++ assert.ok(html.includes('<button type="button" class="menu-dest" data-install>')&&!html.includes('data-sheet="instalar"'),'Cómo instalar (LHB-121: instala de un toque donde se puede)');
++ c.window.__inst=true;assert.ok(c.menuHTML('#/catalogo').includes('<button type="button" class="menu-dest" data-install hidden>'),'LHB-121 (Codex r1): en la app instalada el menú no ofrece instalarla');c.window.__inst=false;assert.deepEqual(c.MENU_GROUPS.map(g=>g[0]),['descubre','experiencia','comunidad','app']);
+  assert.deepEqual([...html.matchAll(/<h3 id="mg-[a-z]+">(.*?)<\/h3>/g)].map(m=>m[1]),['<menu.g.descubre>','<menu.g.experiencia>','<menu.g.comunidad>','<menu.g.app>'],'los cuatro grupos en su orden');
+  assert.equal((html.match(/class="brand-icon /g)||[]).length,2*(dest+4),'cada destino con su ícono y su flecha (y Guías, Cómo instalar, Tema y Privacidad); el catálogo es una pestaña, así que nada lleva Aquí');
+  /* una ruta nueva sin lugar en el menú no pasa */
+
+2026-10-30T17:02:22.256948Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer resource_metadata=\"https://api.fathom.ai/.well-known/oauth-protected-resource/mcp\"" })
+2026-10-30T17:02:23.662133Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 402: {\"code\":\"plan_suspended\",\"message\":\"This organization’s plan has ended — reactivate billing to use MCP.\"}")
+codex
+[Likely] The open-menu fix addresses the reported selector gap, but the install-state precedence still needs checking. I’ll read the repository rules, recheck both prior findings, and review the full diff without editing files or loading skills.
+
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command 'Get-Content AGENTS.md; git status --short; git branch --show-current; git rev-parse HEAD; Get-Content package.json; Get-Content evidence/lhb-121-review-r2.txt' in C:\LHB\lhb-121-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-30T17:02:28.976069Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+exec
+"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -NoProfile -Command "Get-Content -LiteralPath 'C:\\Users\\Owner\\Documents\\Codex\\PRE_TOOL_RECOVERY_RUNBOOK.md'; Get-Content -LiteralPath 'C:\\Users\\Owner\\Documents\\Codex\\PRE_TOOL_RECOVERY_LOG.jsonl' -Tail 15" in C:\LHB\lhb-121-wt
+ exited -1 in 0ms:
+Failed to create unified exec process: helper_unknown_error: setup refresh had errors
+2026-10-30T17:02:35.368281Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: "Rejected(\"Failed to create unified exec process: helper_unknown_error: setup refresh had errors\")" }
+mcp: cua_repl/js started
+mcp: cua_repl/js (completed)
+codex
+[Certain] The command runner failed before executing, so Git state, repository rules, and tests are still NOT VERIFIED. Browser automation is also unavailable. I’m trying a read-only native-app fallback; the supplied diff remains available for static review.
+
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+mcp: cua_repl/js started
+mcp: cua_repl/js (failed)
+codex
+[Certain] The supplied diff now hides rendered menu entries when `syncInstall()` computes `none`. A remaining branch needs attention: `installHow()` checks the saved prompt before the installed flag, so a positive related-app result leaves every install offer visible if that prompt is still retained. I’ll check that state transition directly; real-browser reproduction remains NOT VERIFIED.
+
+codex
+[Certain] The supplied diff still permits an install offer after a positive installed-app result.
+
+- **P2 | [site/app.js](C:/LHB/lhb-121-wt/site/app.js), `installHow()` and related-app callback.** Claim: confirmed installation can leave the top button, reminder and menu entry visible. Artifact: `if(e.bip)return 'prompt';if(e.installed)return 'none'`. The `getInstalledRelatedApps()` callback sets `__lhbInstalled=true` without clearing `__lhbBIP`, so `syncInstall()` still computes `off=false` when a prompt is retained.
+
+  Reproduction: `installHow({standalone:false,bip:true,installed:true})` returns `'prompt'`. Check confirmed live installation before the prompt, while preserving the prompt’s precedence over a potentially stale localStorage marker. Real-browser coexistence of these events is **NOT VERIFIED**.
+
+[Certain] Prior findings: **CONCUR** on the in-memory reminder guard. **CONCUR** on the rendered-menu selector correction when installation resolves to `none`; the precedence case above remains uncovered.
+
+[Certain] Verification was limited to the supplied diff and static reconstruction. The command runner failed before execution, so repository `AGENTS.md`, Git state, tests and rendered layouts are **NOT VERIFIED**. Native-app fallback was denied because Computer Use was not approved. No skills were loaded and no files were edited.
+
+VERDICT: BLOCK
+tokens used
+64,562
+[Certain] The supplied diff still permits an install offer after a positive installed-app result.
+
+- **P2 | [site/app.js](C:/LHB/lhb-121-wt/site/app.js), `installHow()` and related-app callback.** Claim: confirmed installation can leave the top button, reminder and menu entry visible. Artifact: `if(e.bip)return 'prompt';if(e.installed)return 'none'`. The `getInstalledRelatedApps()` callback sets `__lhbInstalled=true` without clearing `__lhbBIP`, so `syncInstall()` still computes `off=false` when a prompt is retained.
+
+  Reproduction: `installHow({standalone:false,bip:true,installed:true})` returns `'prompt'`. Check confirmed live installation before the prompt, while preserving the prompt’s precedence over a potentially stale localStorage marker. Real-browser coexistence of these events is **NOT VERIFIED**.
+
+[Certain] Prior findings: **CONCUR** on the in-memory reminder guard. **CONCUR** on the rendered-menu selector correction when installation resolves to `none`; the precedence case above remains uncovered.
+
+[Certain] Verification was limited to the supplied diff and static reconstruction. The command runner failed before execution, so repository `AGENTS.md`, Git state, tests and rendered layouts are **NOT VERIFIED**. Native-app fallback was denied because Computer Use was not approved. No skills were loaded and no files were edited.
+
+VERDICT: BLOCK

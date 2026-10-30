@@ -11,6 +11,7 @@
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141A13">
 <meta name="color-scheme" content="light dark">
 <script>/* LHB-110: el tema que se eligió en el menú, antes de pintar (sin él, el del teléfono) */try{var t=localStorage.getItem('lhb_theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);var m=document.createElement('meta');m.name='theme-color';m.id='themeBar';m.content=t==='dark'?'#141A13':'#F4F1EA';document.head.prepend(m)}}catch(e){}</script>
+<script>/* LHB-121: el aviso de instalar del navegador (Chrome, Edge, Samsung) puede llegar antes que los scripts con defer: se guarda aquí para que cualquier botón de Instalar abra la instalación de un toque. Si el navegador la ofrece es que no está: se olvida lo recordado (Codex r4) */window.__lhbBIP=null;addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__lhbBIP=e;try{localStorage.removeItem('lhb_installed')}catch(x){}document.dispatchEvent(new Event('lhb-bip'))});addEventListener('appinstalled',function(){window.__lhbBIP=null;window.__lhbInstalled=true;try{localStorage.setItem('lhb_installed',String(Date.now()))}catch(x){}});</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -46,6 +47,8 @@
       <a href="#/mihoja" data-tab="mihoja"><span data-i18n="menu.mihoja">Mi Hoja</span></a>
       <button type="button" data-sheet="plus" data-tab="subir" class="tab-plus" aria-label="Nueva cata, añadir al humidor o subir cigarro" data-i18n-attr="aria-label:ix.plus"><span class="plus" aria-hidden="true">+</span></button>
     </nav>
+    <!-- LHB-121: Instalar arriba, en todas las páginas, mientras la app no esté instalada (el script de la app lo muestra); en el teléfono va en su propia fila, debajo de la firma -->
+    <button type="button" class="top-install" id="topInstall" data-install hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5"/></svg><span data-i18n="ins.top">Instalar</span></button>
     <div class="top-actions">
       <a class="icon-btn" href="#/buscar" aria-label="Buscar en toda la app" data-i18n-attr="aria-label:ix.searchAll"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></a>
       <button class="icon-btn" type="button" data-sheet="menu" aria-label="Menú" data-i18n-attr="aria-label:h.menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>

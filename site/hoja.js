@@ -129,7 +129,17 @@ document.addEventListener('keydown',e=>{if(e.key!=='Escape'&&e.key!=='Tab')retur
  if(!el.contains(at)){e.preventDefault();(e.shiftKey?last:first).focus()}else if(e.shiftKey&&at===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&at===last){e.preventDefault();first.focus()}});
 window.addEventListener('hashchange',closeSheet);
 function openSheet(kind,arg){
- if(kind==='instalar'){const ios=arg==='ios'||arg==='ipad';sheet(`<h2 class="sheet-h">${tt('h.anadirATuPantalla')}</h2><p class="inst-p">${ios?`${tt('h.tocaElBoton')} <b>${tt('h.compartir')}</b> ${tt('h.subeYLuego',{a:arg==='ipad'?tt('h.arriba'):tt('h.abajo')})} <b>${tt('h.anadirAPantallaDe')}</b>.`:`${tt('h.abreElMenuDel')}<b>⋮</b> ${tt('h.o')} <b>⋯</b>${tt('h.yToca')} <b>${tt('h.instalarApp')}</b> ${tt('h.o')} <b>${tt('h.anadirAPantallaDe')}</b>.`}</p><button type="button" class="lbtn buy inst-ok" data-close>${tt('h.entendido')}</button>`,tt('h.anadirATuPantalla'));return}
+/* LHB-121: una guía por manera de instalar (la decide installHow en app.js). Safari no deja que una página se instale sola: la guía va en tres pasos con los
+    dibujos de sus botones y una flecha hacia ellos. El navegador de Facebook o Instagram no instala: en Android, un toque abre Chrome; en el iPhone, Safari */
+ if(kind==='instalar'){const ok=`<button type="button" class="lbtn buy inst-ok" data-close>${tt('h.entendido')}</button>`,
+  SHARE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m-4 4 4-4 4 4M6 11H5v10h14V11h-1"/></svg>',ADD='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg>',
+  DONE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>',step=(ico,t)=>`<li><span class="inst-ico">${ico}</span><span>${t}</span></li>`;
+  if(arg==='ios'||arg==='ipad'){sheet(`<h2 class="sheet-h">${tt('ins.iosH')}</h2><ol class="inst-steps">${step(SHARE,tt('ins.ios1',{a:arg==='ipad'?tt('h.arriba'):tt('h.abajo')}))}${step(ADD,tt('ins.ios2'))}${step(DONE,tt('ins.ios3'))}</ol>${ok}<button type="button" class="lbtn ghost inst-done" data-inst-done data-close>${tt('ins.yaInstale')}</button>${arg==='ios'?'<div class="inst-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v15m-6-6 6 6 6-6"/></svg></div>':''}`,tt('ins.iosH'));return}
+  if(arg==='inapp-android'){const u=`intent://${location.host}${location.pathname}${location.search}#Intent;scheme=https;package=com.android.chrome;end`;
+   sheet(`<h2 class="sheet-h">${tt('ins.inappH')}</h2><p class="inst-p">${tt('ins.inappP')}</p><a class="lbtn go-map inst-ok" href="${esc(u)}">${tt('ins.abrirChrome')}</a>`,tt('ins.inappH'));return}
+  if(arg==='inapp-ios'){sheet(`<h2 class="sheet-h">${tt('ins.inappIosH')}</h2><p class="inst-p">${tt('ins.inappIosP')}</p><button type="button" class="lbtn go-map inst-ok" data-inst-copy>${tt('ins.copiar')}</button>`,tt('ins.inappIosH'));return}
+  if(arg==='qr'){sheet(`<h2 class="sheet-h">${tt('ins.qrH')}</h2><p class="inst-p">${tt('ins.qrP')}</p><img class="inst-qr" src="icons/qr-app.svg" width="220" height="220" alt="${tt('ins.qrAlt')}"><p class="inst-p">${tt('ins.qrO')}</p>${ok}`,tt('ins.qrH'));return}
+  sheet(`<h2 class="sheet-h">${tt('h.anadirATuPantalla')}</h2><p class="inst-p">${tt('h.abreElMenuDel')}<b>⋮</b> ${tt('h.o')} <b>⋯</b>${tt('h.yToca')} <b>${tt('h.instalarApp')}</b> ${tt('h.o')} <b>${tt('h.anadirAPantallaDe')}</b>.</p>${ok}`,tt('h.anadirATuPantalla'));return}
  /* LHB-71: el menú sale de la tabla de rutas de app.js (agrupado, con íconos y la página actual marcada) */
  if(kind==='menu'){sheet(A.menuHTML(),tt('h.menu'));return}
  if(kind==='plus'){sheet(`<h2 class="sheet-h">${tt('h.queQuieresHacer')}</h2><div class="menu-list">
