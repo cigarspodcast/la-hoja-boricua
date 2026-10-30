@@ -1,0 +1,31 @@
+✖ LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noche; y cada vista, con lo que trae dentro, tiene una sola acción llena (4.7157ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 97.4249
+
+✖ failing tests:
+
+test at test\site.test.js:3979:1
+✖ LHB-110 (Codex r5): una etiqueta fuera de la rueda se lee de día y de noche; y cada vista, con lo que trae dentro, tiene una sola acción llena (4.7157ms)
+  AssertionError [ERR_ASSERTION]: <div class="tagchips"><span class="tchip" style="--wc:#ABCDEF">cacao</span><span class="tchip" style="--wc:var(--card-2)">sabor-viejo</span></div>
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red5\test\site.test.js:3984:137)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+===== with only the chip fix applied: the composed-view check =====
+ℹ pass 0
+ℹ fail 1
+  AssertionError [ERR_ASSERTION]: perfil: 2 acciones llenas
