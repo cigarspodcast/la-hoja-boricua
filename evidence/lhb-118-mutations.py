@@ -19,6 +19,13 @@ MUTANTS = [
     ('an all reset with !important', 'site/lugares/l.css', '.brand img{border-radius:var(--r-s);', '.brand img{all:initial!important;border-radius:var(--r-s);'),
     ('a bare img forces display with !important', 'site/styles.css', '.brand img{border-radius:var(--r-s);', 'img{display:block!important}.brand img{border-radius:var(--r-s);'),
     ('a mark carries an inline style', 'site/lugares/index.html', '<img class="mark-d" src="../icons/icon-dark.svg" alt=""', '<img class="mark-d" src="../icons/icon-dark.svg" style="display:block" alt=""'),
+    # Codex r3: the tokens themselves, CSS escapes, and hidden
+    ('a rule sets the night token on the brand', 'site/u.css', '.brand img{border-radius:var(--r-s);', '.brand{--mark-dark:block}.brand img{border-radius:var(--r-s);'),
+    ('a rule hides the day mark through its token', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand{--mark-light:none}.brand img{border-radius:var(--r-s);'),
+    ('a page sets the night token inline', 'site/index.html', '<header class="topbar">', '<header class="topbar" style="--mark-dark:block">'),
+    ('an escaped important display', 'site/lugares/l.css', '.brand img{border-radius:var(--r-s);', '.brand img{d\\69splay:block!\\69mportant;border-radius:var(--r-s);'),
+    ('an escaped important all', 'site/styles.css', '.brand img{border-radius:var(--r-s);', '.brand img{a\\6c l:initial!important;border-radius:var(--r-s);'),
+    ('a hidden mark shows', 'site/styles.css', '.mark-l[hidden],.mark-d[hidden]{display:none!important}', ''),
 ]
 
 

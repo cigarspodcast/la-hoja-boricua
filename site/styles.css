@@ -46,7 +46,7 @@ button,input,select,textarea{font:inherit;color:inherit}
  background:var(--bar);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 /* LHB-118: el Medallón trae su marca de noche (icon-dark.svg), así que no hay teja: --mark-bg es transparente en los dos temas y --mark-light y --mark-dark escogen la marca */
-.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}
+.brand img{border-radius:var(--r-s);background:var(--mark-bg)}.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}.mark-l[hidden],.mark-d[hidden]{display:none!important}
 .brand-text{display:flex;flex-direction:column;line-height:1.05}
 .brand-name{font-family:var(--serif);font-weight:600;font-size:var(--fs-4);letter-spacing:.2px}
 .brand-name em{font-style:italic;font-weight:500;color:var(--accent-ink)}

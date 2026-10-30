@@ -1,0 +1,27 @@
+LHB-118: Codex round 3 BLOCK, escapes decoded, swap tokens fenced, hidden wins
+
+Codex round 3 (evidence/lhb-118-review-r3.txt, on e7f391f) blocked on two
+P2s and a P3: a rule such as .brand{--mark-dark:block} changes the token
+the !important rule reads, so both marks show; CSS escapes such as
+d\69splay or !\69mportant slip past a literal match; and a mark with the
+hidden attribute stayed visible because .mark-l/.mark-d came after
+[hidden] at the same specificity.
+
+- site/styles.css, lugares/l.css, u.css: .mark-l[hidden],.mark-d[hidden]
+  {display:none!important} after the swap rules, so hidden wins.
+- test/site.test.js, LHB-118: CSS is read with comments stripped and
+  escapes decoded (a self-check pins the decoder); the pinned list of
+  important display/all declarations gains the hidden rule; --mark-light
+  and --mark-dark may be set only in :root and the two dark theme blocks,
+  and never in any page or script under site/ or functions/u.
+- evidence/lhb-118-mutations.py: six mutants for these (a token set on
+  .brand in two sheets, a page setting the token inline, an escaped
+  important display and all, the hidden rule removed); 20 of 20 killed,
+  green before and after (evidence/lhb-118/mutations-r4.txt).
+- Browser: with hidden on both marks, neither shows in either theme
+  (evidence/lhb-118/browser-r2-injection.txt, appended).
+- evidence/lhb-118-r3fix.py: the one-off edit script.
+- Full suite: 474 tests, 473 pass, 0 fail, 1 skipped
+  (evidence/lhb-118/suite-5.txt).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

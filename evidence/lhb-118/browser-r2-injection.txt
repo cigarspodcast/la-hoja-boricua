@@ -14,3 +14,6 @@ dark:  mark-l:none   mark-d:block
 
 So with !important on .mark-l and .mark-d, none of these normal rules shows both marks; the remaining overrides (another !important display or all,
 an inline style) are what the LHB-118 test now pins.
+
+Round 3 fix, same browser, after a cache-busting reload (loaded styles.css contains .mark-l[hidden]: true):
+with hidden set on both marks: light mark-l:none mark-d:none; dark mark-l:none mark-d:none (before: light mark-l:block mark-d:none; dark mark-l:none mark-d:block).

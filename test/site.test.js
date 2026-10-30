@@ -8987,16 +8987,28 @@ test('LHB-118: el Medallón en los íconos, la barra de día y de noche, la intr
   assert.deepEqual([night['mark-light'],night['mark-dark'],night['mark-bg']],['none','block','transparent'],f+': de noche, la de noche y sin teja');
   assert.ok(css.includes('.mark-l{display:var(--mark-light)!important}.mark-d{display:var(--mark-dark)!important}'),f+': las dos reglas, con !important')}
  const m=DARK110.ATTR.exec(read('styles.css'));assert.ok(m&&m[1].includes('--mark-light:none;--mark-dark:block;'),'el tema oscuro escogido también cambia la marca');
- /* Codex r1 y r2: que las reglas estén no basta, tienen que ganar. Leer selectores a mano dejó pasar :not(), :is(), atributos con espacio, + y
-    all:, así que la marca no depende de la especificidad: .mark-l y .mark-d llevan !important, y ninguna regla normal les gana. Lo único que les
-    podría ganar es otra declaración display o all con !important (en cualquier capa o @media), así que en las tres hojas, sin comentarios, esas son
-    exactamente las de la marca y estas dos, que ya estaban: [hidden] (esconde lo escondido, también una marca) y el botón de instalar en modo app.
-    Y ninguna marca lleva style en línea. */
- const IMP118={'styles.css':['[hidden]{display:none!important}','.mark-l{display:var(--mark-light)!important}','.mark-d{display:var(--mark-dark)!important}','.btn-install{display:none!important}'],
-  'lugares/l.css':['.mark-l{display:var(--mark-light)!important}','.mark-d{display:var(--mark-dark)!important}'],'u.css':['.mark-l{display:var(--mark-light)!important}','.mark-d{display:var(--mark-dark)!important}']};
- for(const [f,want] of Object.entries(IMP118)){const css=read(f).replace(/\/\*[\s\S]*?\*\//g,''),got=[];
-  for(const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g))for(const d of m[2].split(';'))if(/!\s*important/i.test(d)&&/^\s*(display|all)\s*:/i.test(d))got.push(m[1].trim()+'{'+d.trim()+'}');
-  assert.deepEqual(got,want,f+': las declaraciones display o all con !important')}
+ /* Codex r1, r2 y r3: que las reglas estén no basta, tienen que ganar. Leer selectores a mano dejó pasar :not(), :is(), atributos con espacio, + y
+    all:, así que la marca no depende de la especificidad: .mark-l y .mark-d llevan !important, y ninguna regla normal les gana. Lo que todavía les
+    podría ganar, y lo que esta prueba cierra:
+    - otra declaración display o all con !important (en cualquier capa o @media): en las tres hojas, sin comentarios y con los escapes de CSS ya
+      leídos (d\69splay es display), esas son exactamente las de la marca, la de .mark-l[hidden],.mark-d[hidden] (que va después para que hidden
+      gane) y dos que ya estaban: [hidden] y el botón de instalar en modo app;
+    - cambiar los tokens que leen: --mark-light y --mark-dark solo se ponen en los tres bloques de tema (:root, el oscuro del teléfono y el
+      oscuro escogido), nunca en otra regla, ni en un style de una página, ni desde un script;
+    - un style en línea en la marca. */
+ const unesc118=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\\([0-9a-fA-F]{1,6})[ \t\n\r\f]?/g,(x,h)=>{const c=parseInt(h,16);return c>0&&c<=0x10FFFF?String.fromCodePoint(c):'�'}).replace(/\\([^\n\r\f0-9a-fA-F])/g,'$1');
+ assert.equal(unesc118('.b img{d\\69splay:block!\\69mportant}.c{a\\6c l:x}.d{\\64 isplay:y}'),'.b img{display:block!important}.c{all:x}.d{display:y}','el lector de escapes');
+ const MK='.mark-l{display:var(--mark-light)!important}',MD='.mark-d{display:var(--mark-dark)!important}',MH='.mark-l[hidden],.mark-d[hidden]{display:none!important}';
+ const IMP118={'styles.css':['[hidden]{display:none!important}',MK,MD,MH,'.btn-install{display:none!important}'],'lugares/l.css':[MK,MD,MH],'u.css':[MK,MD,MH]};
+ const THEME118=[':root',':root:not([data-theme="light"])',':root[data-theme="dark"]'];
+ for(const [f,want] of Object.entries(IMP118)){const css=unesc118(read(f)),got=[];
+  for(const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)){const sel=m[1].trim();
+   for(const d of m[2].split(';'))if(/!\s*important/i.test(d)&&/^\s*(display|all)\s*:/i.test(d))got.push(sel+'{'+d.trim().replace(/\s*!\s*important\s*$/i,'!important')+'}');
+   if(/--mark-(light|dark)\s*:/i.test(m[2]))assert.ok(THEME118.includes(sel),f+': '+sel+' cambia los tokens de la marca fuera de los bloques de tema')}
+  assert.deepEqual(got,want,f+': las declaraciones display o all con !important');
+  assert.ok(css.indexOf(MH)>css.indexOf(MD),f+': hidden gana sobre la marca')}
+ for(const f of (function w(d){return fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?w(path.join(d,e.name)):[path.join(d,e.name)])})(S).concat([path.join(__dirname,'..','functions','u','[handle].js')]).filter(f=>/\.(html|js)$/.test(f)))
+  assert.ok(!/--mark-(light|dark)/i.test(unesc118(fs.readFileSync(f,'utf8'))),path.relative(S,f)+': los tokens de la marca no se cambian desde una página o un script');
  const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
  let n=0;for(const f of walk(S).filter(f=>/\.(html|js)$/.test(f))){const h=fs.readFileSync(f,'utf8');
   for(const x of h.matchAll(/<img [^>]*icons\/icon(-dark)?\.svg"[^>]*>/g)){n++;assert.ok(/^<img class="mark-[ld]" /.test(x[0])&&!/\sstyle=/i.test(x[0]),path.relative(S,f)+': '+x[0])}
