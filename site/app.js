@@ -31,22 +31,10 @@ const fx=(r,k)=>{const v=r?r[k]:undefined;if(window.LHB_I18N.lang!=='en')return 
 const fq=(r,k)=>window.LHB_I18N.lang==='en'?[r[k],r[k+'_en']].filter(Boolean).join(' '):r[k];
 const artisanName=c=>{const a=artisanById(c.artesano_id);return a?a.nombre:(c.artesano_texto||tt('art.noProfile'))};
 /* ---------- art ---------- */
-const CAPA_COLORS={claro:['#d8b47c','#b68a52'],connecticut:['#dcbd88','#b99256'],natural:['#b07a45','#8a5a30'],colorado:['#9b5a32','#74401f'],habano:['#a3683a','#7a4b25'],corojo:['#94532d','#6d3a1c'],sumatra:['#8a5634','#653c21'],criollo:['#9a6136','#704324'],maduro:['#5e3820','#3f2414'],oscuro:['#3e2416','#26150c'],'broadleaf':['#4a2b19','#2d190e']};
-const capaKey=c=>{const s=(c||'').toLowerCase();for(const k of Object.keys(CAPA_COLORS))if(s.includes(k))return k;if(s.includes('ecuador'))return'habano';return'colorado'};
-const BG=['#7fb0ff','#ffd27a','#ff9a9a','#a9c487','#c5cdf5','#8fb8ff'];
 function hash(s){let h=0;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))|0;return Math.abs(h)}
 function starPath(cx,cy,R){const r=R*.382;let p='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r:R;p+=(i?'L':'M')+(cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1)}return p+'Z'}
-function cigarSVG(c){const [w1,w2]=CAPA_COLORS[capaKey(c.capa)];const ix=allCigars().findIndex(x=>x.id===c.id);const bg=BG[(ix<0?hash(c.id):ix)%BG.length];const h=hash(c.nombre);const tilt=-8+(h%7);
- return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${tt('svg.alt',{n:esc(c.nombre)})}"><defs>
- <linearGradient id="w${c.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${w1}"/><stop offset=".55" stop-color="${w2}"/><stop offset="1" stop-color="${w2}" stop-opacity=".85"/></linearGradient>
- <pattern id="t${c.id}" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="${bg}"/><path d="M0 20h40M20 0v40" stroke="#fff" stroke-opacity=".18" stroke-width="2"/><circle cx="20" cy="20" r="6" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="2"/></pattern></defs>
- <rect width="400" height="300" fill="url(#t${c.id})"/><rect width="400" height="300" fill="#1d130d" opacity=".18"/>
- <g transform="rotate(${tilt} 200 150)"><ellipse cx="205" cy="196" rx="160" ry="14" fill="#000" opacity=".18"/>
- <rect x="40" y="128" width="320" height="46" rx="23" fill="url(#w${c.id})"/>
- <path d="M60 140 C 140 134 260 146 345 138 M70 160 C 160 166 250 154 340 162" stroke="#000" stroke-opacity=".14" stroke-width="2" fill="none"/>
- <circle cx="352" cy="151" r="20" fill="${w2}"/><circle cx="356" cy="151" r="15" fill="#3a2214" opacity=".35"/>
- <rect x="248" y="124" width="46" height="54" rx="5" fill="#ed0000"/><rect x="248" y="141" width="46" height="20" fill="#f4e9d6"/>
- <path d="${starPath(271,151,9)}" fill="#1EA8D7"/></g></svg>`}
+/* LHB-111: el cigarro sin foto lleva la silueta de línea neutra, en el mismo marco que las fotos */
+const cigarSVG=c=>VBArt.silueta(tt('sil.alt',{n:esc(c.nombre)}));
 const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7'];
 function initials(n){const ov=(D.artesanos||[]).find(x=>x.nombre===n&&x.iniciales);if(ov)return ov.iniciales;const f=String(n).trim().split(/\s+/)[0].replace(/[^A-Z]/g,'');if(f.length>=2&&f.length<=4&&f===String(n).trim().split(/\s+/)[0].replace(/[.,]/g,''))return f;return String(n).replace(/[^\p{L}\p{N} ]/gu,' ').split(/\s+/).filter(w=>w&&!/^(de|del|la|las|los|el|y|cigar|cigars|cigarros|tabacalera|corp)$/i.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'VB'}
 const LOGOS=new Set(["jfc-hoja-boricua", "don-rey-cigar", "el-club-del-turro", "don-collins", "finca-neo-jibairo", "willys-cigars", "san-pedrito-cigars", "yambo-cigars", "el-chapu-pr", "el-buho-ricamontes", "cohoba-cigars", "cigarros-caimito", "tabacalera-la-trascendencia", "pitirre-cigars", "villareno-cigars"]);
@@ -71,11 +59,11 @@ const FORT=['suave','media','fuerte'];
 const fortLabel=f=>f?tt('fort.'+f,null,f[0].toUpperCase()+f.slice(1)):'\u2014';
 const PROTO_NOTE=`<p class="note">${tt('proto.note')}</p>`;
 const head=(eyebrow,title,lead,art)=>`<header class="sec-head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${lead?`<p class="lead">${lead}</p>`:''}</div><div class="sec-art">${art}</div></header>`;
-const emptyCoqui=msg=>`<div class="empty">${VBArt.coqui('coqui-empty')}<div>${msg}</div></div>`;
+const emptyBox=msg=>`<div class="empty"><div>${msg}</div></div>`;
 /* ---------- cards ---------- */
 const fotoOf=c=>(!c||c.yours||!window.LHB_FOTOS)?null:(window.LHB_FOTOS[c.id]||null);
 async function hydratePhotos(root=view){for(const el of $$('[data-photo]',root)){const u=await photoURL(el.dataset.photo);if(u){el.innerHTML=`<img src="${u}" alt="">`}}}
-function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
  ${favs.includes(c.id)?'<span class="fav-dot" aria-label="'+tt('card.fav')+'">♥</span>':''}
  <div class="body"><div class="name">${esc(c.nombre)}</div><div class="meta">${esc(artisanName(c))}${c.pueblo?' · '+esc(c.pueblo):''}</div>
  <div class="pills">${c.capa?`<span class="pill">${esc(fx(c,'capa'))}</span>`:''}${c.fortaleza?`<span class="pill f-${c.fortaleza}">${fortLabel(c.fortaleza)}</span>`:''}${c.yours?'<span class="pill yours">'+tt('card.yours')+'</span>':''}</div></div></a>`}
@@ -126,7 +114,7 @@ function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.ca
  <div class="chips" role="group" aria-label="${tt('f.fortaleza')}"><button class="chip" data-fort="" aria-pressed="${!state.fort}">${tt('cat.allFort')}</button>${FORT.map(f=>`<button class="chip" data-fort="${f}" aria-pressed="${state.fort===f}">${fortLabel(f)}</button>`).join('')}</div>
  <div class="filter-row"><select id="fCapa" aria-label="${tt('f.capa')}"><option value="">${tt('cat.allCapa')}</option>${capas.map(x=>`<option value="${esc(x)}" ${state.capa===x?'selected':''}>${esc(capaLbl.get(x))}</option>`).join('')}</select>
  <select id="fArt" aria-label="${tt('f.artesano')}"><option value="">${tt('cat.allArt')}</option>${D.artesanos.map(a=>`<option value="${esc(a.id)}" ${state.art===a.id?'selected':''}>${esc(a.nombre)}</option>`).join('')}</select></div>
- ${list.length?`<div class="grid">${list.map(cigarCard).join('')}</div>`:emptyCoqui(tt('cat.empty'))}
+ ${list.length?`<div class="grid">${list.map(cigarCard).join('')}</div>`:emptyBox(tt('cat.empty'))}
  ${PROTO_NOTE}`;
  const qi=$('#q');qi.addEventListener('input',e=>{state.q=e.target.value;const pos=e.target.selectionStart;vCatalogo();const n=$('#q');n.focus();n.setSelectionRange(pos,pos)});
  /* LHB-64: pintar el catálogo otra vez reemplaza los filtros; el foco vuelve al mismo filtro y el número de resultados se anuncia */
@@ -136,7 +124,7 @@ function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.ca
 function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="empty">${tt('cig.notFound')}</div>`;return}
  const a=artisanById(c.artesano_id);const favs=EXT.S().favs.cigarros;const rat=EXT.S().ratings[c.id]||0;const isFav=favs.includes(c.id);
  view.innerHTML=`<button class="back" data-back>${tt('back')}</button>
- ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+ ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
  <div class="detail-head"><div><div class="eyebrow">${c.yours?tt('cig.byYou'):tt('cig.madePR')}</div><h1>${esc(c.nombre)}</h1></div>
  <button class="fav-btn" id="fav" aria-pressed="${isFav}">${isFav?tt('cig.saved'):tt('cig.save')}</button></div>
  <div class="specs"><div class="spec"><small>${tt('f.capa')}</small><span>${esc(fx(c,'capa')||tt('notPub'))}</span></div><div class="spec"><small>${tt('f.fortaleza')}</small><span>${c.fortaleza?fortLabel(c.fortaleza):tt('notPub')}</span></div>
@@ -155,7 +143,7 @@ function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="emp
  const del=$('#del');if(del)del.onclick=async()=>{if(!confirm(tt('cig.confirmDel')))return;LS.set('uploads',uploads().filter(u=>u.id!==c.id));if(c.foto)await idb.del(c.foto).catch(()=>{});toast(tt('cig.deleted'));location.hash='#/perfil'};
  hydratePhotos()}
 function artTags(a){const t=[];if(a.etiqueta)t.push(`<span class="atag rd">${esc(a.etiqueta)}</span>`);if(a.por_confirmar)t.push(`<span class="atag pend">${esc(a.por_confirmar)}</span>`);return t.length?`<div class="atags">${t.join('')}</div>`:''}
-function vArtesanos(){view.innerHTML=`${head(tt('menu.artesanos'),tt('arts.title'),tt('arts.lead'),VBArt.flamboyan())}
+function vArtesanos(){view.innerHTML=`${head(tt('menu.artesanos'),tt('arts.title'),tt('arts.lead'),VBArt.chaveta())}
  <div class="list">${D.artesanos.map(a=>{const n=allCigars().filter(c=>c.artesano_id===a.id).length;return `<a class="row" href="#/a/${encodeURIComponent(a.id)}">${mono(a.nombre,50)}<div><div class="t">${esc(a.nombre)}</div><div class="s">${esc(a.pueblo||'')}${a.tipo?(a.pueblo?' · ':'')+esc(fx(a,'tipo')):''}${n?` · ${tt(n>1?'arts.nVitolas':'arts.nVitola',{n})}`:''}</div>${artTags(a)}</div><span class="go">›</span></a>`}).join('')||'<div class="empty">'+tt('soon')+'</div>'}</div>${PROTO_NOTE}`}
 function vArtesano(id){const a=artisanById(id);if(!a){view.innerHTML='<div class="empty">'+tt('art.notFound')+'</div>';return}
  const cs=allCigars().filter(c=>c.artesano_id===a.id);const ig=a.instagram_label||igHandle(a.instagram);
@@ -173,7 +161,7 @@ function vArtesano(id){const a=artisanById(id);if(!a){view.innerHTML='<div class
 let pendingPhoto=null;
 function resizeImage(file,max=1100,q=.8){return new Promise((res,rej)=>{const img=new Image();const u=URL.createObjectURL(file);img.onload=()=>{const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*s);cv.height=Math.round(img.naturalHeight*s);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(u);cv.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',q)};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};img.src=u})}
 function vSubir(){pendingPhoto=null;let fort='';
- view.innerHTML=`${head(tt('up.eyebrow'),tt('up.title'),tt('up.lead'),VBArt.leaf('#d9a75a','sec-leaf'))}
+ view.innerHTML=`${head(tt('up.eyebrow'),tt('up.title'),tt('up.lead'),VBArt.caja())}
  <form class="form" id="upForm" novalidate>
  <div><div class="photo-drop" id="drop"><div class="ph-empty">📷<br>${tt('up.noFoto')}</div></div>
  <div class="photo-btns"><label>${tt('up.camera')}<input type="file" accept="image/*" capture="environment" id="fCam"></label><label>${tt('up.gallery')}<input type="file" accept="image/*" id="fGal"></label></div></div>
@@ -220,7 +208,7 @@ function placeCard(p){const ig=igHandle(p.instagram);return `<div class="pop"><d
 function filteredPlaces(){return D.places.filter(p=>(!state.lugCat||p.categoria===state.lugCat)&&(!state.lugTown||p.pueblo===state.lugTown))}
 function vLugares(arg){if(arg==='ruta')state.lugMode='ruta';else if(state.lugMode==='ruta')state.lugMode='mapa';const ru=state.lugMode==='ruta';const towns=[...new Set(D.places.map(p=>p.pueblo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));const ps=filteredPlaces();
  const nL=D.places.filter(p=>p.categoria==='lounge').length,nV=D.places.filter(p=>p.categoria==='venta').length;
- view.innerHTML=`${head(tt('menu.lugares'),tt('lug.title'),tt('lug.lead',{nL,nV}),VBArt.flor())}
+ view.innerHTML=`${head(tt('menu.lugares'),tt('lug.title'),tt('lug.lead',{nL,nV}),VBArt.ranchon())}
  <div class="toggle t3" role="group" aria-label="${tt('lug.view')}"><button data-mode="mapa" aria-pressed="${state.lugMode==='mapa'}">${tt('lug.map')}</button><button data-mode="lista" aria-pressed="${state.lugMode==='lista'}">${tt('lug.list')}</button><button data-mode="ruta" aria-pressed="${ru}">${tt('lug.ruta')}</button></div>
  ${ru?EXT.vRuta()+PROTO_NOTE:`<div class="chips"><button class="chip" data-cat="" aria-pressed="${!state.lugCat}">${tt('lug.all')}</button><button class="chip" data-cat="lounge" aria-pressed="${state.lugCat==='lounge'}">${tt('lug.lounges')}</button><button class="chip" data-cat="venta" aria-pressed="${state.lugCat==='venta'}">${tt('lug.venta')}</button></div>
  <div class="filter-row"><select id="fTown" aria-label="${tt('f.pueblo')}"><option value="">${tt('lug.allTowns')}</option>${towns.map(t=>`<option ${state.lugTown===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
@@ -268,7 +256,7 @@ function drawMap(ps){if(leafletMap){leafletMap.remove();leafletMap=null}
   const n=g.ms.length,at=map.layerPointToLatLng([g.x,g.y]),c=L.marker(at,{icon:L.divIcon({className:'pin-group',html:`<span>${n}</span>`,iconSize:[36,36],iconAnchor:[18,18]}),title:tt('map.group',{n}),keyboard:true});
   c.on('click',()=>{map.closePopup();const b=L.latLngBounds(g.ms.map(m=>m.ll));if(tapGroup(map.getZoom(),map.getBoundsZoom(b,false,L.point(96,96)),b.getNorthEast().equals(b.getSouthWest()))==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)}).setLatLng(at).setContent('<div class="pops">'+g.ms.map(m=>placeCard(m.p)).join('')+'</div>').openOn(map);else map.fitBounds(b,{padding:[48,48],maxZoom:17})});pins.addLayer(c)}};
  map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));
- const nb=$('#near');if(nb)nb.onclick=()=>{if(!navigator.geolocation){toast(tt('geo.none'));return}nb.textContent=tt('geo.searching');navigator.geolocation.getCurrentPosition(pos=>{nb.textContent=tt('lug.near');const ll=[pos.coords.latitude,pos.coords.longitude];const vi=L.divIcon({className:'volky-pin',html:VBArt.carro('mini'),iconSize:[66,43],iconAnchor:[33,40]});L.marker(ll,{icon:vi,title:tt('geo.here'),zIndexOffset:1000}).addTo(map).bindTooltip(tt('geo.here'));map.setView(ll,12)},()=>{nb.textContent=tt('lug.near');toast(tt('geo.err'))},{timeout:10000})};
+ const nb=$('#near');if(nb)nb.onclick=()=>{if(!navigator.geolocation){toast(tt('geo.none'));return}nb.textContent=tt('geo.searching');navigator.geolocation.getCurrentPosition(pos=>{nb.textContent=tt('lug.near');const ll=[pos.coords.latitude,pos.coords.longitude];const vi=L.divIcon({className:'aqui-pin',html:VBArt.aqui(),iconSize:[30,30],iconAnchor:[15,15]});L.marker(ll,{icon:vi,title:tt('geo.here'),zIndexOffset:1000}).addTo(map).bindTooltip(tt('geo.here'));map.setView(ll,12)},()=>{nb.textContent=tt('lug.near');toast(tt('geo.err'))},{timeout:10000})};
  if(pts.length>1)map.fitBounds(pts,{padding:[28,28],maxZoom:state.lugTown?14:11});else if(pts.length===1)map.setView(pts[0],14);layout()}
 /* ---------- actividades ---------- */
 const MES=tt('months').split(',');
@@ -301,7 +289,7 @@ async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=a
  <details class="edit"><summary>${tt('pf.favCapa')}</summary><form class="form" id="pForm">
  <div class="field"><label for="pC">${tt('pf.favCapa')}</label><select id="pC"><option value="">\u2014</option>${['Claro','Connecticut','Natural','Colorado','Habano','Corojo','Criollo','Maduro','Oscuro'].map(x=>`<option ${p.capa===x?'selected':''}>${x}</option>`).join('')}</select></div>
  <button class="btn" type="submit">${tt('pf.save')}</button></form></details>
- <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
+ <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyBox(tt('pf.noUploads'))}
  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--accent-ink);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
  ${EXT.accountPanel()}<p class="note">${tt('pf.note')}</p>`;
  if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));EXT.bindAccount();
@@ -325,13 +313,13 @@ const ext=(href,txt)=>`<a href="${href}" target="_blank" rel="noopener">${txt}</
 const keepFocus=()=>{const a=document.activeElement;if(!a||a===document.body||!a.isConnected)view.focus({preventScroll:true})};
 /* Ver intro: ?intro=1 la repite una vez aunque no hayan pasado los 14 días, y vuelve aquí; con menos movimiento o ahorro de datos la intro no sale, así que no se ofrece (se mira al pintar: el ajuste puede cambiar sin recargar) */
 function vAcerca(){const off=matchMedia('(prefers-reduced-motion: reduce)').matches||!!(navigator.connection&&navigator.connection.saveData);
- view.innerHTML=`${head(tt('about.eyebrow'),tt('about.title'),tt('about.lead'),VBArt.leaf('#ffd27a'))}
+ view.innerHTML=`${head(tt('about.eyebrow'),tt('about.title'),tt('about.lead'),VBArt.hoja())}
  <section class="about-sec" aria-labelledby="ab-intro"><h2 id="ab-intro">${tt('about.introH')}</h2>${off?`<p class="hint">${tt('about.introOff')}</p>`:`<p class="hint">${tt('about.replayNote')}</p><a class="lbtn about-replay" href="/?intro=1#/acerca" data-intro-replay>${brandIcon('play')}<span>${tt('about.replay')}</span></a>`}</section>
  <section class="about-sec" aria-labelledby="ab-more"><h2 id="ab-more">${tt('about.moreH')}</h2>
  <a class="menu-dest" href="#/creditos"><span class="menu-ico">${brandIcon('info')}</span><span class="menu-copy"><b>${tt('about.credits')}</b><small>${tt('about.creditsSub')}</small></span>${brandIcon('arrow','menu-go')}</a>
  <a class="menu-dest" href="/privacidad"><span class="menu-ico">${brandIcon('people')}</span><span class="menu-copy"><b>${tt('about.privacy')}</b><small>${tt('about.privacySub')}</small></span>${brandIcon('arrow','menu-go')}</a></section>`;keepFocus()}
 function vCreditos(){
- view.innerHTML=`<button class="back" type="button" data-back>${tt('cred.back')}</button>${head(tt('about.eyebrow'),tt('cred.title'),tt('cred.lead'),VBArt.leaf('#8fd162'))}
+ view.innerHTML=`<button class="back" type="button" data-back>${tt('cred.back')}</button>${head(tt('about.eyebrow'),tt('cred.title'),tt('cred.lead'),VBArt.hoja())}
  <section class="about-sec" aria-labelledby="cr-bus"><h2 id="cr-bus">${tt('cred.busH')}</h2><p class="cred-p">${tt('cred.bus')} ${ext('https://callepomarrosas.com/',tt('intro.creditName'))}.</p></section>
  <section class="about-sec" aria-labelledby="cr-sound"><h2 id="cr-sound">${tt('cred.soundH')}</h2><p class="hint">${tt('cred.soundLead')}</p>
  <ul class="cred-list">${CREDITS.audio.map(c=>`<li class="cred-item" data-credit="${c.id}"><b>${c.part()}</b><span>${ext(c.href,esc(c.title))} ${tt('cred.by')} ${esc(c.author)}</span><span>${tt('cred.license')}: ${ext(c.licenseHref,esc(c.license))}</span><span>${tt('cred.changes')}: ${c.changes()}</span></li>`).join('')}</ul>

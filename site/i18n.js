@@ -6,7 +6,7 @@ const ENABLED=true;
 const T={es:{
  "proto.note": "<b>Prototipo</b> \u2014 información pública, sujeta a verificación.",
  "pf.note": "<b>Prototipo</b> \u2014 información pública, sujeta a verificación. Tus datos se guardan solo en este teléfono.",
- "svg.alt": "Ilustración de {n}",
+ "sil.alt": "{n}, sin foto todavía",
  "card.photoAlt": "Foto del cigarro {n}",
  "card.fav": "Favorito",
  "card.yours": "Tuyo",
@@ -777,10 +777,6 @@ const T={es:{
  "val.Centro": "Centro",
  "val.Sur": "Sur",
  /* LHB-29: art.js e index.html */
- "a.guagua": "Guagua turquesa y crema",
- "a.coqui": "Coquí",
- "a.flor": "Flor de tabaco",
- "a.flamboyan": "Flamboyán",
  "ix.title": "La Hoja Boricua · Cigar lounges y cigarros boricuas en Puerto Rico",
  "ix.searchAll": "Buscar en toda la app",
  "ix.footLug": "Cigar lounges en Puerto Rico",
@@ -835,7 +831,7 @@ const T={es:{
 en:{
  "proto.note": "<b>Prototype</b> \u2014 public information, subject to verification.",
  "pf.note": "<b>Prototype</b> \u2014 public information, subject to verification. Your data is stored only on this phone.",
- "svg.alt": "Illustration of {n}",
+ "sil.alt": "{n}, no photo yet",
  "card.photoAlt": "Photo of the cigar {n}",
  "card.fav": "Favorite",
  "card.yours": "Yours",
@@ -1606,10 +1602,6 @@ en:{
  "val.Centro": "Central",
  "val.Sur": "South",
  /* LHB-29: art.js e index.html */
- "a.guagua": "Turquoise and cream guagua",
- "a.coqui": "Coquí",
- "a.flor": "Tobacco flower",
- "a.flamboyan": "Flamboyán",
  "ix.title": "La Hoja Boricua · Cigar lounges and Boricua cigars in Puerto Rico",
  "ix.searchAll": "Search the whole app",
  "ix.footLug": "Cigar lounges in Puerto Rico",

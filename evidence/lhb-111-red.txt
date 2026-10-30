@@ -1,0 +1,56 @@
+===== b8b2b89 (b8b2b89): the LHB-111 test on that tree =====
+✖ LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de tabaco con un solo acento; ningún arte fuera del juego, y el cigarro sin foto lleva la silueta (3.4599ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 87.9056
+
+✖ failing tests:
+
+test at test\site.test.js:3972:1
+✖ LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de tabaco con un solo acento; ningún arte fuera del juego, y el cigarro sin foto lleva la silueta (3.4599ms)
+  AssertionError [ERR_ASSERTION]: ranchon
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r111-b8b2b89\test\site.test.js:3976:30)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: '==',
+    diff: 'simple'
+  }
+===== marca-110 (800af2d): the LHB-111 test on that tree =====
+✖ LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de tabaco con un solo acento; ningún arte fuera del juego, y el cigarro sin foto lleva la silueta (3.5636ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 89.3055
+
+✖ failing tests:
+
+test at test\site.test.js:3972:1
+✖ LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de tabaco con un solo acento; ningún arte fuera del juego, y el cigarro sin foto lleva la silueta (3.5636ms)
+  AssertionError [ERR_ASSERTION]: ranchon
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r111-marca-110\test\site.test.js:3976:30)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: '==',
+    diff: 'simple'
+  }
