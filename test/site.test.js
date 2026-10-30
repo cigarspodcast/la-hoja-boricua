@@ -185,6 +185,7 @@ test('LHB-121: un toque donde el navegador lo deja, la guía justa donde no, y e
  assert.equal(how(UA.iphone,{ns:true}),'none','la app instalada en el iPhone');
  assert.equal(how(UA.android,{sa:true,bip:true}),'none','la app instalada (standalone) nunca se ofrece');
  assert.equal(how(UA.android,{inst:true}),'none','después de appinstalled');
+ assert.equal(how(UA.android,{inst:true,bip:true}),'none','Codex r3: Android dice que ya está instalada (getInstalledRelatedApps): gana sobre un aviso guardado');
  assert.equal(how(UA.iphone,{mem:'1'}),'none','dijo Ya la instalé (o la instaló aquí): no se ofrece más en este navegador');
  /* el recordatorio */
  const D=864e5,T=Date.UTC(2026,9,30);assert.deepEqual(I.REMIND_GAP,[3,7,14,30]);

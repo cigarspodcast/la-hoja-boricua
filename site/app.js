@@ -380,13 +380,14 @@ window.addEventListener('online',()=>{if(location.hash.includes('lugares'))route
 /* ---------- install (v21: botón en el home; LHB-121: un toque donde el navegador lo deja, Instalar arriba en todas las páginas y un recordatorio) ---------- */
 /* LHB-121: lo que este navegador dice de sí. El aviso del navegador (__lhbBIP) lo guarda index.html antes que cualquier script con defer */
 function installEnv(w){const n=w.navigator||{},ua=n.userAgent||'',ipad=/ipad/i.test(ua)||(n.platform==='MacIntel'&&n.maxTouchPoints>1);let mem=false;try{mem=!!w.localStorage.getItem('lhb_installed')}catch(x){}
- return {ua,ipad,ios:ipad||/iphone|ipod/i.test(ua),android:/android/i.test(ua),mobile:/Mobi|Android|iPhone|iPad|iPod/i.test(ua)||ipad,bip:!!w.__lhbBIP,installed:!!w.__lhbInstalled||mem,
+ return {ua,ipad,ios:ipad||/iphone|ipod/i.test(ua),android:/android/i.test(ua),mobile:/Mobi|Android|iPhone|iPad|iPod/i.test(ua)||ipad,bip:!!w.__lhbBIP,live:!!w.__lhbInstalled,installed:mem,
   standalone:!!((w.matchMedia&&w.matchMedia('(display-mode: standalone)').matches)||n.standalone===true)}}
 /* LHB-121: cómo se instala aquí. 'prompt': la ventana del navegador, de un toque. 'ios'/'ipad': Safari no deja que una página se instale sola; la guía
    señala su botón Compartir. 'inapp-android'/'inapp-ios': el navegador de Facebook, Instagram y parecidos no instala; hay que abrirla en Chrome o Safari.
    'qr': una computadora sin la ventana; el código lleva al teléfono. 'manual': el menú del navegador. 'none': ya está instalada (o se dijo que sí) */
 const IN_APP=/FBAN|FBAV|FB_IAB|FBIOS|Instagram|Messenger|Line\/|MicroMessenger|Snapchat|musical_ly|BytedanceWebview/i;
-function installHow(e){if(e.standalone)return 'none';if(e.bip)return 'prompt';if(e.installed)return 'none';
+/* lo que el navegador acaba de decir (appinstalled, getInstalledRelatedApps) gana sobre su aviso; lo recordado en localStorage, no: si vuelve a ofrecerla es que no está (Codex r3) */
+function installHow(e){if(e.standalone||e.live)return 'none';if(e.bip)return 'prompt';if(e.installed)return 'none';
  if(IN_APP.test(e.ua))return e.ios?'inapp-ios':e.android?'inapp-android':'manual';
  if(e.ios)return e.ipad?'ipad':'ios';return e.mobile?'manual':'qr'}
 function installHidden(w){return installHow(installEnv(w))==='none'}
