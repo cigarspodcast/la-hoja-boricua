@@ -121,6 +121,12 @@ MUTS = [
     ('site/art.js', 'Codex r36: the ranchon accent shrunk to nothing', '<circle class="ac" cx="98" cy="22" r="8"/>', '<circle class="ac" cx="98" cy="22" r="0"/>'),
     ('site/art.js', 'Codex r37: the ranchon export wrapped after the pinned drawings', 'leaf,star};', 'leaf,star};const oR=window.VBArt.ranchon;window.VBArt.ranchon=c=>oR(c).replace(\'r="8"\',\'r="0"\');'),
     ('site/app.js', 'Codex r37b: the ranchon drawing wrapped by app.js', 'const VBArt=window.VBArt;', 'const VBArt=window.VBArt;VBArt.ranchon=(o=>c=>o(c).replace(\'r="8"\',\'r="0"\'))(VBArt.ranchon);'),
+    ('site/app.js', 'Codex r38: head() changing the drawing it frames', '<div class="sec-art">${art}</div>', '<div class="sec-art">${art.replace(\'r="8"\',\'r="0"\')}</div>'),
+    ('site/app.js', 'Codex r38b: a drawing changed at its call', 'VBArt.ranchon())}', 'VBArt.ranchon().replace(/r="8"/,\'r="0"\'))}'),
+    ('site/hoja.js', 'Codex r38c: the cigar silhouette changed at its call', '${A.cigarSVG(c)}</a>', '${A.cigarSVG(c).replace(/rx="5"/,\'rx="0"\')}</a>'),
+    ('site/app.js', 'Codex r38d: a drawing changed on the page with setAttribute', 'const VBArt=window.VBArt;', 'const VBArt=window.VBArt;addEventListener(\'hashchange\',()=>setTimeout(()=>document.querySelectorAll(\'.lart .ac\').forEach(e=>e.setAttribute(\'r\',\'0\'))));'),
+    ('site/app.js', 'Codex r38e: a drawing changed on the page by rewriting innerHTML', 'const VBArt=window.VBArt;', 'const VBArt=window.VBArt;addEventListener(\'hashchange\',()=>setTimeout(()=>{const v=document.getElementById(\'view\');v.innerHTML=v.innerHTML.replace(/r="8"/g,\'r="0"\')}));'),
+    ('site/app.js', 'Codex r38f: a drawing changed on the page through baseVal', 'const VBArt=window.VBArt;', 'const VBArt=window.VBArt;addEventListener(\'hashchange\',()=>setTimeout(()=>document.querySelectorAll(\'.lart .ac\').forEach(e=>{if(e.r)e.r.baseVal.value=0})));'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

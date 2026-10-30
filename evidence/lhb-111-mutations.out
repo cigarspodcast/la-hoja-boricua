@@ -111,6 +111,12 @@ Codex r35b: the share-image silhouette with an uppercase attribute name  RED (ca
 Codex r36: the ranchon accent shrunk to nothing                          RED (caught) (fail 1)
 Codex r37: the ranchon export wrapped after the pinned drawings          RED (caught) (fail 1)
 Codex r37b: the ranchon drawing wrapped by app.js                        RED (caught) (fail 1)
+Codex r38: head() changing the drawing it frames                         RED (caught) (fail 1)
+Codex r38b: a drawing changed at its call                                RED (caught) (fail 1)
+Codex r38c: the cigar silhouette changed at its call                     RED (caught) (fail 1)
+Codex r38d: a drawing changed on the page with setAttribute              RED (caught) (fail 1)
+Codex r38e: a drawing changed on the page by rewriting innerHTML         RED (caught) (fail 1)
+Codex r38f: a drawing changed on the page through baseVal                RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 114 of 114 red
+RESULT 120 of 120 red

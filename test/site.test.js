@@ -4018,7 +4018,37 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   const files=fs.readdirSync(path.join(__dirname,'..','site'),{recursive:true}).map(String).map(f=>f.replace(/\\/g,'/')).filter(f=>/\.(js|html|mjs)$/.test(f)&&!f.startsWith('vendor-')&&f!=='art.js');
   assert.ok(files.includes('app.js')&&files.includes('hoja.js')&&files.some(f=>f.endsWith('.html')),'la lista de archivos del sitio');
   for(const f of files){let t=read(f);for(const x of ONCE[f]||[]){assert.equal(t.split(x).length-1,1,f+': '+x);t=t.replace(x,'')}
-   t=t.replace(new RegExp('\\bVBArt\\.(?:'+NAMES+')\\(','g'),'');assert.ok(!/VBArt/i.test(t),f+': VBArt se usa de otra manera: '+(t.match(/.{0,40}VBArt.{0,40}/i)||[''])[0])}}
+   t=t.replace(new RegExp('\\bVBArt\\.(?:'+NAMES+')\\(','g'),'');assert.ok(!/VBArt/i.test(t),f+': VBArt se usa de otra manera: '+(t.match(/.{0,40}VBArt.{0,40}/i)||[''])[0])}
+  /* Codex r38: y lo que devuelve un dibujo llega entero a la página. Cada llamada a VBArt está en uno de siete sitios conocidos, sin nada que la siga
+     (ni .replace ni [ ]): dentro de ${ }, como último argumento de un ${head(...)} o ${A.head(...)}, en el html: de un pin, tras '<i></i>'+ en el pin de la
+     ruta, en s.innerHTML=, en cigarSVG, y en el src del SVG para compartir. head() queda tal cual (con ${art} entero), y cigarSVG solo se usa como ${cigarSVG(c)} */
+  const close=(t,i)=>{let d=0;for(let j=i;j<t.length;j++){if(t[j]==='(')d++;else if(t[j]===')'&&--d===0)return j}return -1};
+  const opener=(t,i)=>{let d=0;for(let j=i-1;j>=0;j--){if(t[j]===')')d++;else if(t[j]==='('){if(d===0)return j;d--}}return -1};
+  const OK=[['${','}'],[',',')}'],['html:',','],["'<i></i>'+",':'],['s.innerHTML=',';'],['const cigarSVG=c=>',';'],["img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(",');']];
+  let calls=0;
+  for(const f of ['app.js','hoja.js']){const t=read(f);
+   for(const m of t.matchAll(new RegExp('\\bVBArt\\.(?:'+NAMES+')\\(','g'))){calls++;const a=m.index,b=close(t,a+m[0].length-1);assert.ok(b>0,f+': una llamada sin cerrar');
+    const pre=t.slice(Math.max(0,a-90),a),post=t.slice(b+1,b+4),ok=OK.find(([p,q])=>pre.endsWith(p)&&post.startsWith(q));
+    assert.ok(ok,f+': un dibujo que no llega entero a la página: '+t.slice(Math.max(0,a-40),b+12));
+    if(ok[0]===','){const o=opener(t,a);assert.ok(o>0&&/\$\{(A\.)?head$/.test(t.slice(Math.max(0,o-8),o)),f+': un dibujo como argumento de algo que no es ${head(...)}: '+t.slice(Math.max(0,o-20),b+4))}}}
+  assert.ok(calls>=30,'las llamadas a los dibujos: '+calls);
+  const app=read('app.js'),hj=read('hoja.js'),n=(t,x)=>t.split(x).length-1;
+  assert.equal(n(app,'const head=(eyebrow,title,lead,art)=>`<header class="sec-head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${lead?`<p class="lead">${lead}</p>`:\'\'}</div><div class="sec-art">${art}</div></header>`;'),1,'head() tal cual');
+  for(const [f,t] of [['app.js',app],['hoja.js',hj]])for(const m of t.matchAll(/(?<![\w$.-])(A\.)?head\b(?![-\w])/g)){const w=t.slice(Math.max(0,m.index-12),m.index+m[0].length+1);
+   assert.ok(/\$\{(A\.)?head\($/.test(w)||(f==='app.js'&&!m[1]&&(w.endsWith('const head=')||w.endsWith('PROTO_NOTE,head,'))),f+': head se usa de otra manera: '+w)}
+  assert.equal(n(app,'PROTO_NOTE,head,'),1,'head se exporta una vez');
+  assert.equal(n(app+hj,'cigarSVG'),n(app,'const cigarSVG=c=>VBArt.silueta(')+n(app,',cigarSVG,')+n(app,'${cigarSVG(c)}')+n(hj,'${A.cigarSVG(c)}'),'cigarSVG se usa de otra manera');
+  assert.equal(n(app,'const cigarSVG=c=>VBArt.silueta('),1);assert.equal(n(app,',cigarSVG,'),1);
+  /* y nada lo cambia después en la página: setAttribute solo con aria-*, role, tabindex o data-theme (y el de i18n con los nombres de data-i18n-attr, que son
+     aria-label o href); innerHTML y outerHTML solo se escriben; nada de baseVal, animVal, setAttributeNode, .attributes ni prototipos ajenos */
+  for(const f of fs.readdirSync(path.join(__dirname,'..','site')).filter(f=>/\.m?js$/.test(f)&&!f.startsWith('vendor-')&&f!=='art.js')){const t=read(f);
+   for(const m of t.matchAll(/setAttribute(NS)?\s*\(/g)){const r=t.slice(m.index+m[0].length,m.index+m[0].length+40);
+    assert.ok(/^'(aria-[a-z]+|role|tabindex|data-theme)',/.test(r)||(f==='i18n.js'&&t.slice(m.index-3).startsWith('el.setAttribute(p.slice(0,i),t(p.slice(i+1)))')),f+': un setAttribute que puede cambiar un dibujo: '+t.slice(m.index,m.index+60))}
+   for(const m of t.matchAll(/\.(inner|outer)HTML\b/g))assert.ok(/^\s*=(?!=)/.test(t.slice(m.index+m[0].length)),f+': se lee '+m[0]+': '+t.slice(m.index-30,m.index+50));
+   assert.ok(!/baseVal|animVal|setAttributeNode|\.attributes\b|i18nAttr/.test(t),f+': una manera de cambiar la geometría después de dibujada');
+   assert.equal(n(t,'.prototype'),n(t,'Object.prototype.hasOwnProperty.call(')+n(t,' in Object.prototype'),f+': un prototipo')}
+  for(const f of fs.readdirSync(path.join(__dirname,'..','site'),{recursive:true}).map(String).map(f=>f.replace(/\\/g,'/')).filter(f=>/\.(m?js|html)$/.test(f)&&!f.startsWith('vendor-')))
+   for(const m of read(f).matchAll(/data-i18n-attr=["']([^"']*)/g))for(const p of m[1].split(';'))assert.ok(['aria-label','href'].includes(p.split(':')[0]),f+': data-i18n-attr pone '+p)}
  /* la silueta para la imagen para compartir, con los colores ya resueltos: solo esos dos */
  {const h=A.silueta('',{ink:'#263723',ac:'#C77943'});assert.deepEqual([...new Set(h.match(/#[0-9A-Fa-f]{6}/g))].sort(),['#263723','#C77943']);assert.match(h,/viewBox="0 0 600 300"/,'el marco 2:1 de las fotos');
   /* Codex r30: la silueta resuelta lleva los mismos elementos y la misma geometría que la del juego, y de pintura solo la suya: fill y stroke en none o
