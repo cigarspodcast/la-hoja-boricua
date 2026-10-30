@@ -89,6 +89,8 @@ Codex r23: the empty-state mask drawing made nearly transparent inside its data 
 Codex r23: the grain texture changed inside its data URI                 RED (caught) (fail 1)
 Codex r24: a later background that hides the empty-state drawing         RED (caught) (fail 1)
 Codex r24: a later pseudo-element background reached by another selector RED (caught) (fail 1)
+Codex r25: the silhouette frame given the page ground, unreadable at night RED (caught) (fail 1)
+Codex r25: the header ground behind the drawing changed                  RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 92 of 92 red
+RESULT 94 of 94 red

@@ -99,6 +99,8 @@ MUTS = [
     ('site/styles.css', 'Codex r23: the grain texture changed inside its data URI', 'numOctaves=%22', 'numOctaves=%229%22 data-x=%22'),
     ('site/styles.css', 'Codex r24: a later background that hides the empty-state drawing', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.empty:before{background:var(--surface)}'),
     ('site/styles.css', 'Codex r24: a later pseudo-element background reached by another selector', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.view>div:last-child::before{background:var(--surface)}'),
+    ('site/styles.css', 'Codex r25: the silhouette frame given the page ground, unreadable at night', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.card .ph.sin-foto,.detail-ph.sin-foto{background:var(--surface)}'),
+    ('site/styles.css', 'Codex r25: the header ground behind the drawing changed', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.sec-head{background-color:var(--on-surface)}'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
