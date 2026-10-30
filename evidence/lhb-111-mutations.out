@@ -52,6 +52,10 @@ Codex r12: an unquoted style attribute with an escaped url in the header helper 
 Codex r12: an escaped url set through element.style                      RED (caught) (fail 1)
 Codex r12: a JavaScript escape that spells url through element.style     RED (caught) (fail 1)
 Codex r12: an image function in an escaped-quote style attribute of a string RED (caught) (fail 1)
+Codex r13: an HTML character reference that spells url in a style attribute of the header helper RED (caught) (fail 1)
+Codex r13: an HTML character reference that spells url in a style attribute of a static page RED (caught) (fail 1)
+Codex r13: a decorative bitmap reached by climbing out of an allowed folder RED (caught) (fail 1)
+Codex r13: a stylesheet in a data URI with an encoded url                RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 55 of 55 red
+RESULT 59 of 59 red

@@ -4015,12 +4015,12 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  {const js=SITEJS111();for(const f of ['app.js','hoja.js','cuenta.js','intro.js','i18n.js','sync.js','art.js','fotos.js','sw.js','data/bundle.js'])assert.ok(js.includes(f),'scripts: '+f)}
  for(const [f,x] of SITEJS111().map(f=>[f,read(f)])){for(const m of x.matchAll(/VBArt\.([a-zA-Z]+)/g))assert.ok(LINE.includes(m[1])||['leaf','star'].includes(m[1]),f+': VBArt.'+m[1]);
   /* Codex r4: cada fuente de imagen en cualquier forma de comillas; la que empieza con ${ es una foto de los datos o del lector */
-  for(const m of MEDIA111(x,f))assert.ok(m.u.startsWith('${')||/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m.u),f+': una imagen que no es foto ni marca: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
+  for(const m of MEDIA111(x,f))assert.ok(m.u.startsWith('${')||/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m.u)&&SRCOK111(m.u),f+': una imagen que no es foto ni marca: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
   assert.ok(!/img\/guagua|\.coqui|class="(volky|flor|flamboyan|coqui)/.test(x),f);
   /* Codex r4 y r5: lo que el script nombra, sus data URI y las fuentes que pone (SCRIPT111) */
   SCRIPT111(x,f,f==='hoja.js'?1:0,['app.js','hoja.js'].includes(f)?1:0);CSSNAME111(x,f)}
  /* Codex r9: y los scripts de functions/ (la página del pasaporte): las mismas reglas de fuentes, nombres, lienzos, hojas de estilo y SVG */
- for(const [f,x] of FUNCJS111()){SCRIPT111(x,f,0,0);CSSNAME111(x,f);for(const m of MEDIA111(x,f))assert.ok(m.u.startsWith('${')||/^'\s*\+/.test(m.u)||IMGOK111.test(m.u),f+': una imagen que no es foto ni marca: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
+ for(const [f,x] of FUNCJS111()){SCRIPT111(x,f,0,0);CSSNAME111(x,f);for(const m of MEDIA111(x,f))assert.ok(m.u.startsWith('${')||/^'\s*\+/.test(m.u)||SRCOK111(m.u),f+': una imagen que no es foto ni marca: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
   assert.equal([...x.matchAll(/<svg\b/gi)].length,[...x.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi)].length,f+': un <svg> sin cerrar');
   for(const m of x.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi))assert.ok(/^<svg\b[^>]*viewBox="0 0 24 24"/i.test(m[0])&&ICON111(m[0]),f+': un SVG que no es ícono: '+m[0].slice(0,120))}
  for(const f of ['index.html','sw.js','styles.css'])assert.ok(!/img\/guagua|\.coqui\b|\.volky|\.flamboyan|\.garita/.test(read(f)),f);
@@ -4041,8 +4041,10 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   assert.deepEqual(MEDIA111('<input type="checkbox" ${on?\'checked\':\'\'}><img src="${esc(u)}" alt="" ${c.mini?`a`:{b:1}.b}decoding="async">','x').map(m=>m.u),['${esc(u)}'],'una expresión ${...} es una pieza de la etiqueta');
   assert.throws(()=>MEDIA111('<img src="a.webp" alt="x>','x'),/no sabe leer/);
   /* Codex r5: SCRIPT111 sobre muestras: lo de afuera falla, lo del sitio pasa */
-  for(const bad of ['`<span style=background:u\\\\72l(/img/hero/banner.webp)></span>`','e.style.background="u\\\\72 l(img/hero/banner.webp)"','e.style.background="\\u0075rl(img/hero/banner.webp)"','e.style.background="Image-\\x53et(a.webp 1x)"','"<a style=\\"background:element(#hero)\\">"','`<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style>`','e.style.backgroundImage="URL(img/hero/banner.webp)"','`<b style="background:image-set(${x} 1x)">`','<canvas id="d"></canvas><script>document.getElementById("d").getContext("2d")</script>','<script>document.createElementNS("http://www.w3.org/2000/svg","svg")</script>','<script>new OffscreenCanvas(9,9)</script>','<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|lienzo|DOM|x:/,bad);
+  for(const bad of ['`<span style="background:u&#114;l(/img/hero/banner.webp)"></span>`','`<img src="img/hero/../guagua/guagua_recorte.webp" alt="">`','e.src="img/hero/%2e%2e/guagua/guagua_recorte.webp"','`<span style=background:u\\\\72l(/img/hero/banner.webp)></span>`','e.style.background="u\\\\72 l(img/hero/banner.webp)"','e.style.background="\\u0075rl(img/hero/banner.webp)"','e.style.background="Image-\\x53et(a.webp 1x)"','"<a style=\\"background:element(#hero)\\">"','`<style>.sec-art{background:url("/img/hero/banner.webp") center/cover}</style>`','e.style.backgroundImage="URL(img/hero/banner.webp)"','`<b style="background:image-set(${x} 1x)">`','<canvas id="d"></canvas><script>document.getElementById("d").getContext("2d")</script>','<script>document.createElementNS("http://www.w3.org/2000/svg","svg")</script>','<script>new OffscreenCanvas(9,9)</script>','<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|lienzo|DOM|x:/,bad);
   SCRIPT111('"x":"<a href=\\"#/subir\\" style=\\"color:var(--accent-ink)\\">y</a>",const r=/\\s+\\d\\b/g;','x',0);
+  for(const bad of ['<link rel="stylesheet" href="data:text/css,b%7Bc:d%7D">','<link href=x.css rel=Stylesheet>','<link rel="preload" as="style" href="/otra.css">'])assert.throws(()=>CSSNAME111(bad,'x'),bad);
+  CSSNAME111('<link rel="stylesheet" href="styles.css?v=1"><link rel="preconnect" href="https://x.y">','x');
   SCRIPT111('const u=new URL(location.href);`<span style="width:${size}px;background:${bg.replace(/\\s/g,\'\')}">`','x',0);
   SCRIPT111('{"image":"https://lahojaboricua.com/img/cigarros/a.webp","logo":"../icons/icon-512.png"};i.src=\'icons/icon.svg\'','x',0);
   for(const bad of ['<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
@@ -4054,12 +4056,12 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   for(const p of pages){const h=fs.readFileSync(p,'utf8'),rel=path.relative(path.join(__dirname,'..','site'),p);
    /* Codex r5: el texto entero de la página (sus <script> y sus atributos onload y demás) con las mismas reglas que un script, sin ningún data URI de imagen */
    SCRIPT111(h,rel,0);CSSNAME111(h,rel);
-   for(const m of MEDIA111(h,rel))assert.ok(/^(\.\.\/)*\/?(icons\/|img\/(cigarros|logos|hero|eventos)\/)/.test(m.u),rel+': una imagen que no es foto, marca ni ícono: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
+   for(const m of MEDIA111(h,rel))assert.ok(/^(\.\.\/)*\/?(icons\/|img\/(cigarros|logos|hero|eventos)\/)/.test(m.u)&&SRCOK111(m.u),rel+': una imagen que no es foto, marca ni ícono: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
    assert.equal([...h.matchAll(/<svg\b/gi)].length,[...h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi)].length,rel+': un <svg> sin cerrar');
    for(const m of h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi))assert.ok(/^<svg\b[^>]*viewBox="0 0 24 24"/.test(m[0])&&ICON111(m[0]),rel+': un SVG que no es ícono: '+m[0].slice(0,120));
    /* Codex r10: el CSS de la página, sus bloques <style> y sus atributos style (en cualquier forma de comillas), con CSS111; y url( sin mirar mayúsculas */
    for(const m of h.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi))CSS111(m[1],rel+' <style>',false);
-   for(const m of h.matchAll(/<[a-zA-Z][^>]*>/g))for(const [k,v] of ATTR111(m[0]))if(k==='style')CSS111(v,rel+' style=',false);
+   for(const m of h.matchAll(/<[a-zA-Z][^>]*>/g))for(const [k,v] of ATTR111(m[0]))if(k==='style')STYLE111(v,rel+' style=');
    assert.ok(!/url\((?!['"]?(\/?fonts\/))/i.test(h.replace(/<script[\s\S]*?<\/script\s*>/gi,'')),rel+': una imagen por CSS')}}
  /* Codex r1: en las hojas de estilo, url() solo trae las fuentes y los dos SVG en data URI de arriba (la de Leaflet, sus propias imágenes del mapa) */
  /* Codex r2: un SVG en data URI solo en styles.css (los dos de arriba: la textura del papel y la máscara del estado vacío); u.css y l.css, solo fuentes */
@@ -5573,10 +5575,12 @@ const MEDIA111=(h,where)=>{const out=[];for(const s of h.matchAll(/<(img|source|
    (createElementNS), ningún <canvas> ni OffscreenCanvas escrito, y getContext tantas veces como se le dice (en todo el sitio, dos: achicar la foto que
    sube el lector, en app.js, y la imagen para compartir, en hoja.js) */
 const IMGOK111=/^(https:\/\/lahojaboricua\.com\/)?(\.\.\/)*\/?(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/;
+/* Codex r13: después de su carpeta, una fuente no sube de carpeta (img/hero/../guagua) ni lleva referencias o escapes (&, %, \) que la disfracen */
+const SRCOK111=u=>IMGOK111.test(u)&&!/\.\.|[&%\\]/.test(u.replace(/^(https:\/\/lahojaboricua\.com\/)?(\.\.\/)*\/?/,''));
 const SCRIPT111=(x,where,du,canvas=0)=>{
  assert.ok(!/createElementNS\s*\(/.test(x),where+': un SVG hecho por el DOM');assert.ok(!/<canvas\b|OffscreenCanvas/i.test(x),where+': un lienzo escrito');
  assert.equal([...x.matchAll(/getContext\b/g)].length,canvas,where+': un lienzo');
- for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*[\w./-]+\.(?:webp|png|jpe?g|gif|avif|svg|bmp|ico))(?![\w])/gi))assert.ok(IMGOK111.test(m[1])||['_thumb.webp','_thumb-s.webp','perfil.jpg','https://lahojaboricua.com/og.jpg','/og.jpg','og.jpg'].includes(m[1]),where+': nombra una imagen de fuera: '+m[1]);
+ for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*[\w./-]+\.(?:webp|png|jpe?g|gif|avif|svg|bmp|ico))(?![\w])/gi))assert.ok(SRCOK111(m[1])||['_thumb.webp','_thumb-s.webp','perfil.jpg','https://lahojaboricua.com/og.jpg','/og.jpg','og.jpg'].includes(m[1]),where+': nombra una imagen de fuera: '+m[1]);
  assert.equal([...x.matchAll(/data:image\//gi)].length,du,where+': un data URI de imagen');
  /* Codex r12: los escapes se leen como el navegador antes de buscar url( o una función de imagen: los de JavaScript (\u0075, \u{75}, \x75) y los de CSS
     (u\72 l, \l); y el atributo style se lee en toda forma: comillas dobles o simples, comillas escapadas dentro de una cadena (style=\"...\") y sin comillas */
@@ -5585,12 +5589,12 @@ const SCRIPT111=(x,where,du,canvas=0)=>{
     es un valor de los datos), y todo url( de CSS que escribe (no el new URL( de JavaScript; sin los comentarios de bloque) trae solo una fuente */
  {const t=x.replace(/\/\* [\s\S]*?\*\//g,'');const T=v=>v.replace(new RegExp(TPL111,'g'),'T');
   for(const m of t.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi))CSS111(T(m[1]),where+' <style>',false);
-  for(const m of t.matchAll(/\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)'|\\(["'])([\s\S]*?)\\\3|([^\s"'`>]+))/gi))CSS111(T(m[1]??m[2]??m[4]??m[5]),where+' style=',false);
+  for(const m of t.matchAll(/\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)'|\\(["'])([\s\S]*?)\\\3|([^\s"'`>]+))/gi))STYLE111(T(m[1]??m[2]??m[4]??m[5]),where+' style=');
   for(const m of D(t).matchAll(/(?<![\w.$])(?<!\bnew\s{0,4})url\(\s*['"`]?([^'"`)]*)/gi))assert.ok(/^\/?fonts\/[a-z0-9-]+\.woff2$/.test(m[1]),where+': url('+m[1].slice(0,60))}
  /* Codex r10: ninguna función de CSS que pinte una imagen, escrita en el texto (un script que arma estilos, una página) */
  assert.ok(!/\b(image-set|cross-fade|-webkit-canvas|-moz-element)\s*\(/i.test(D(x)),where+': una imagen pintada por CSS');
- const lit=v=>IMGOK111.test(v)||v==='data:image/svg+xml;charset=utf-8,';
- for(const m of x.matchAll(/\.(src|srcset|poster)\s*=\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g))assert.ok(IMGOK111.test(m[3])||(m[3]==='data:image/svg+xml;charset=utf-8,'&&x.startsWith('+encodeURIComponent(VBArt.silueta(',m.index+m[0].length)),where+': '+m[0].slice(0,90));
+ const lit=v=>SRCOK111(v)||v==='data:image/svg+xml;charset=utf-8,';
+ for(const m of x.matchAll(/\.(src|srcset|poster)\s*=\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g))assert.ok(SRCOK111(m[3])||(m[3]==='data:image/svg+xml;charset=utf-8,'&&x.startsWith('+encodeURIComponent(VBArt.silueta(',m.index+m[0].length)),where+': '+m[0].slice(0,90));
  for(const m of x.matchAll(/setAttribute\(\s*(['"])(src|srcset|poster|href|xlink:href)\1\s*,\s*(['"`])((?:(?!\3)[^\\]|\\.)*)\3/g))if(m[2]!=='href'||/\.(webp|png|jpe?g|gif|avif|svg)\b|^data:/i.test(m[4]))assert.ok(lit(m[4]),where+': '+m[0].slice(0,90))};
 /* el sitio entero con script, menos vendor-leaflet.js (Leaflet de afuera; sus imágenes de marcador por omisión no se usan: los pines son los de la app) */
 const SITEJS111=()=>{const root=path.join(__dirname,'..','site');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.js')?[path.relative(root,path.join(d,x.name)).replace(/\\/g,'/')]:[]);return walk(root).filter(f=>f!=='vendor-leaflet.js')};
@@ -5598,6 +5602,11 @@ const SITEJS111=()=>{const root=path.join(__dirname,'..','site');const walk=d=>f
    y todo texto (script o página) que nombra una hoja de estilo nombra una de esas: una hoja nueva no entra sin pasar por las reglas de abajo */
 const CSSFILES111=()=>{const root=path.join(__dirname,'..','site');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.css')?[path.relative(root,path.join(d,x.name)).replace(/\\/g,'/')]:[]);return walk(root).filter(f=>f!=='vendor-leaflet.css')};
 const CSSNAME111=(x,where)=>{const known=[...CSSFILES111(),'vendor-leaflet.css'];assert.ok(!/@import\b/i.test(x),where+': un @import');
+ /* Codex r13: un <link> de hoja de estilo (o un preload as=style) nombra una hoja que la prueba revisa, en cualquier forma; ninguna hoja en data URI */
+ assert.ok(!/data:text\/css/i.test(x),where+': una hoja de estilo en data URI');
+ for(const m of x.matchAll(/<link\b[^>]*>/gi)){const a=new Map(ATTR111(m[0]));const rel=(a.get('rel')||'').toLowerCase();
+  if(/\bstylesheet\b/.test(rel)||(/\bpreload\b/.test(rel)&&(a.get('as')||'').toLowerCase()==='style')){const n=(a.get('href')||'').replace(/^https:\/\/lahojaboricua\.com\//,'').replace(/^(\.\.\/)+|^\//g,'').replace(/\?.*$/,'');
+   assert.ok(known.includes(n)||(n==='l.css'&&/^lugares\//.test(where.replace(/\\/g,'/'))),where+': un <link> a una hoja que la prueba no revisa: '+m[0].slice(0,90))}}
  for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*\/?[\w./-]+\.css)(?![\w])/gi)){const n=m[1].replace(/^https:\/\/lahojaboricua\.com\//,'').replace(/^(\.\.\/)+|^\//g,'');
   assert.ok(known.includes(n)||(n==='l.css'&&/^lugares\//.test(where.replace(/\\/g,'/'))),where+': nombra una hoja de estilo que la prueba no revisa: '+m[1])}};
 /* functions/: la página pública del pasaporte (/u/<handle>) se arma en el servidor; sus scripts pasan por las mismas reglas */
@@ -5606,6 +5615,8 @@ const FUNCJS111=()=>{const root=path.join(__dirname,'..','functions');const walk
    mayúsculas (CSS acepta URL( y Image-Set( ): url() solo trae fuentes (y un SVG en data URI donde se permite: styles.css); ni @import, ni las funciones
    que pintan sin url() (image-set, paint, element, cross-fade, src, -webkit-canvas, -moz-element); y ninguna barra invertida, porque un escape de CSS
    (u\72 l, \40 import) disfraza un nombre: hoy no hay ninguna en las hojas */
+/* LHB-111 (Codex r13): un atributo style no lleva referencias de carácter de HTML (u&#114;l es url para el navegador): hoy ninguno lleva un & */
+const STYLE111=(v,where)=>{assert.ok(!v.includes('&'),where+': una referencia de carácter de HTML en un atributo style');CSS111(v,where,false)};
 const CP111=n=>n>0&&n<=0x10ffff?String.fromCodePoint(n):'\ufffd';
 const CSS111=(c,where,svgOK)=>{c=c.replace(/\/\*[\s\S]*?\*\//g,'');assert.ok(!c.includes('\\'),where+': un escape de CSS');
  assert.ok(!/@import\b|\b(image-set|paint|element|cross-fade|src|-webkit-canvas|-moz-element)\s*\(/i.test(c),where+': @import o una imagen pintada por CSS');

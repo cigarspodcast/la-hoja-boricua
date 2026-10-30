@@ -62,6 +62,10 @@ MUTS = [
     ('site/hoja.js', 'Codex r12: an escaped url set through element.style', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.background="u\\\\72 l(img/hero/banner.webp)"};const CAL_ICO='),
     ('site/hoja.js', 'Codex r12: a JavaScript escape that spells url through element.style', 'const CAL_ICO=', 'const CAL_X=e=>{e.style.background="\\u0075rl(img/hero/banner.webp)"};const CAL_ICO='),
     ('site/i18n.js', 'Codex r12: an image function in an escaped-quote style attribute of a string', 'style=\\"color:var(--accent-ink)\\">Sube', 'style=\\"color:var(--accent-ink);background:element(#hero)\\">Sube'),
+    ('site/app.js', 'Codex r13: an HTML character reference that spells url in a style attribute of the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art">${art}<span style="background:u&#114;l(/img/hero/banner.webp);display:block;width:92px;height:92px"></span></div></header>`;'),
+    ('site/404.html', 'Codex r13: an HTML character reference that spells url in a style attribute of a static page', '<body', '<body style="background:u&#114;l(/img/hero/banner.webp)"'),
+    ('site/app.js', 'Codex r13: a decorative bitmap reached by climbing out of an allowed folder', "${cigarSVG(c)}</div>`)(fotoOf(c))}", "${cigarSVG(c)}<img src=\"img/hero/../guagua/guagua_recorte.webp\" alt=\"\"></div>`)(fotoOf(c))}"),
+    ('site/404.html', 'Codex r13: a stylesheet in a data URI with an encoded url', '</head>', '<link rel="stylesheet" href="data:text/css,body%7Bbackground:u%72l(/img/hero/banner.webp)%7D"></head>'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
