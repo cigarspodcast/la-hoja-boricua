@@ -93,6 +93,8 @@ Codex r25: the silhouette frame given the page ground, unreadable at night RED (
 Codex r25: the header ground behind the drawing changed                  RED (caught) (fail 1)
 Codex r26: the header given the photo ground inline, unreadable at night RED (caught) (fail 1)
 Codex r26: a ground set by a script                                      RED (caught) (fail 1)
+Codex r27: an inline ground hidden behind a comment before its colon     RED (caught) (fail 1)
+Codex r27: a page ground hidden behind a comment before its colon        RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 96 of 96 red
+RESULT 98 of 98 red
