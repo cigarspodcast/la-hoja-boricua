@@ -4017,21 +4017,21 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
  const heads=[...(ap+hj).matchAll(/\bhead\((?:[^()]|\([^()]*(?:\([^()]*\))*[^()]*\))*\)/g)].map(m=>m[0]).filter(x=>!x.startsWith('head=(')&&/VBArt\./.test(x));
  assert.ok(heads.length>=9,'cabeceras con arte: '+heads.length);for(const h of heads){const m=h.match(/VBArt\.([a-zA-Z]+)\(\)\)$/);assert.ok(m&&LINE.includes(m[1])&&m[1]!=='silueta','la cabecera lleva un dibujo del juego: '+h.slice(-60))}
  /* ningún arte de fuera del juego: ni los dibujos viejos, ni la guagua, ni otra imagen que no sea foto */
- for(const [f,x] of [['app.js',ap],['hoja.js',hj],['cuenta.js',read('cuenta.js')],['intro.js',read('intro.js')],['i18n.js',read('i18n.js')]]){for(const m of x.matchAll(/VBArt\.([a-zA-Z]+)/g))assert.ok(LINE.includes(m[1])||['leaf','star'].includes(m[1]),f+': VBArt.'+m[1]);
+ /* Codex r5: todos los scripts del sitio (menos Leaflet), no cinco */
+ {const js=SITEJS111();for(const f of ['app.js','hoja.js','cuenta.js','intro.js','i18n.js','sync.js','art.js','fotos.js','sw.js','data/bundle.js'])assert.ok(js.includes(f),'scripts: '+f)}
+ for(const [f,x] of SITEJS111().map(f=>[f,read(f)])){for(const m of x.matchAll(/VBArt\.([a-zA-Z]+)/g))assert.ok(LINE.includes(m[1])||['leaf','star'].includes(m[1]),f+': VBArt.'+m[1]);
   /* Codex r4: cada fuente de imagen en cualquier forma de comillas; la que empieza con ${ es una foto de los datos o del lector */
   for(const m of MEDIA111(x,f))assert.ok(m.u.startsWith('${')||/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m.u),f+': una imagen que no es foto ni marca: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
   assert.ok(!/img\/guagua|\.coqui|class="(volky|flor|flamboyan|coqui)/.test(x),f);
-  /* Codex r4: todo archivo de imagen que el script nombra, donde sea (también dentro de un atributo que va o no va), es foto, marca, ícono o la intro
-     (los sufijos de las miniaturas de LHB-85, _thumb.webp y _thumb-s.webp, son el nombre de una foto; perfil.jpg, el nombre con que sube la foto del propio lector) */
-  for(const m of x.matchAll(/(?<![\w./-])((?:\.\.\/)*[\w./-]+\.(?:webp|png|jpe?g|gif|avif|svg|bmp|ico))(?![\w])/gi))assert.ok(/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m[1])||['_thumb.webp','_thumb-s.webp','perfil.jpg'].includes(m[1]),f+': nombra una imagen de fuera: '+m[1]);
-  {const du=[...x.matchAll(/data:image\//g)].length;assert.equal(du,f==='hoja.js'?1:0,f+': un data URI de imagen')}
-  /* Codex r4: y la fuente puesta desde el script (img.src=...): una literal es foto, marca, ícono o la intro; un data URI solo el de la silueta (la imagen para compartir) */
-  for(const m of x.matchAll(/\.(src|srcset|poster)\s*=\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g))assert.ok(/^(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/.test(m[3])||(m[3]==='data:image/svg+xml;charset=utf-8,'&&x.startsWith('+encodeURIComponent(VBArt.silueta(',m.index+m[0].length)),f+': '+m[0].slice(0,90))}
+  /* Codex r4 y r5: lo que el script nombra, sus data URI y las fuentes que pone (SCRIPT111) */
+  SCRIPT111(x,f,f==='hoja.js'?1:0)}
  for(const f of ['index.html','sw.js','styles.css'])assert.ok(!/img\/guagua|\.coqui\b|\.volky|\.flamboyan|\.garita/.test(read(f)),f);
  /* Codex r1: todo SVG escrito en los scripts es un ícono (24 x 24) o uno de los gráficos que dicen algo (no adornan): la hoja de agua de las iniciales,
     el mapa sin conexión, la rueda de sabores y el sello de zona. Uno nuevo no pasa sin ponerlo aquí */
  {const FUNC=['viewBox="0 0 100 100" aria-hidden="true"','viewBox="0 -20 1000 370" role="img"','class="wheel" viewBox="0 0 320 320"','viewBox="-6-6 12 12" aria-hidden="true"'];
-  for(const f of ['app.js','hoja.js','cuenta.js','intro.js','i18n.js'])for(const m of read(f).matchAll(/<svg\b[^>]*>/g)){const t=m[0];assert.ok(/viewBox="0 0 24 24"/.test(t)||FUNC.some(x=>t.includes(x)),f+': un SVG que no es ícono ni gráfico conocido: '+t.slice(0,90))}
+  /* Codex r6: todos los scripts del sitio menos art.js (el juego mismo, revisado dibujo por dibujo arriba) y Leaflet, no cinco */
+  const SVGJS=SITEJS111().filter(f=>f!=='art.js');for(const f of ['app.js','hoja.js','sync.js','fotos.js','sw.js'])assert.ok(SVGJS.includes(f),f);
+  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*>/g)){const t=m[0];assert.ok(/viewBox="0 0 24 24"/.test(t)||FUNC.some(x=>t.includes(x)),f+': un SVG que no es ícono ni gráfico conocido: '+t.slice(0,90))}
   /* Codex r2: un ícono se juzga por lo que lleva, no por su viewBox: sin colores propios (solo none y currentColor) y sin tamaño propio (style). La única
      excepción es la marca de Spotify, un logo de marca (LHB-67 la lista) */
   /* Codex r3: el lector de atributos ve las tres formas de comillas, y el <svg> de un ícono no trae medida propia */
@@ -4040,12 +4040,20 @@ test('LHB-111: una sola manera de ilustrar fuera de la intro: línea en tinta de
   assert.deepEqual(MEDIA111('<p><img alt="" src=\'a.webp\'><img src=b.webp><picture><source srcset="c.webp 1x, d.webp 2x"></picture><video poster=\'e.webp\'></video><img alt="a>b" src="f.webp"></p>','x').map(m=>m.u),['a.webp','b.webp','c.webp','d.webp','e.webp','f.webp']);
   assert.deepEqual(MEDIA111('<input type="checkbox" ${on?\'checked\':\'\'}><img src="${esc(u)}" alt="" ${c.mini?`a`:{b:1}.b}decoding="async">','x').map(m=>m.u),['${esc(u)}'],'una expresión ${...} es una pieza de la etiqueta');
   assert.throws(()=>MEDIA111('<img src="a.webp" alt="x>','x'),/no sabe leer/);
+  /* Codex r5: SCRIPT111 sobre muestras: lo de afuera falla, lo del sitio pasa */
+  for(const bad of ['<script>const d=new Image();d.src=\'data:image/svg+xml,%3Csvg%3E\'</script>','x.setAttribute("src","img/adorno.webp")','<body onload="this.style.backgroundImage=\'url(img/adorno.webp)\'">','{"image":"https://otro.example/img/cigarros/a.webp"}'])assert.throws(()=>SCRIPT111(bad,'x',0),/AssertionError|imagen|data URI|x:/,bad);
+  SCRIPT111('{"image":"https://lahojaboricua.com/img/cigarros/a.webp","logo":"../icons/icon-512.png"};i.src=\'icons/icon.svg\'','x',0);
   for(const bad of ['<svg viewBox="0 0 24 24"><circle fill=\'red\'/></svg>','<svg viewBox="0 0 24 24"><circle stroke=blue /></svg>','<svg width="200" viewBox="0 0 24 24"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" height=\'90\'><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24" transform="scale(8)"><path d="M0 0"/></svg>','<svg viewBox="0 0 24 24"><style>path{fill:red}</style><path d="M0 0"/></svg>'])assert.ok(!ICON111(bad),'ICON111 deja pasar: '+bad);
   assert.ok(ICON111('<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" fill="none"/><path stroke=\'currentColor\' d="M4 4"/></svg>'),'un ícono de verdad pasa (un rect con su width y height dentro está bien)');
-  for(const f of ['app.js','hoja.js','cuenta.js','intro.js','i18n.js'])for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg>/g))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
+  /* Codex r6: ni un SVG hecho por el DOM (createElementNS), ni un lienzo que dibuje fuera de los dos que hay: achicar la foto que sube el lector (app.js) y la
+     imagen para compartir (hoja.js, que pinta la foto o la silueta) */
+  for(const f of SVGJS){const x=read(f);assert.ok(!/createElementNS\s*\(/.test(x),f+': un SVG hecho por el DOM');assert.equal([...x.matchAll(/getContext\s*\(/g)].length,['app.js','hoja.js'].includes(f)?1:0,f+': un lienzo')}
+  for(const f of SVGJS)for(const m of read(f).matchAll(/<svg\b[^>]*viewBox="0 0 24 24"[^>]*>[\s\S]*?<\/svg>/g))if(!m[0].includes('<circle cx="12" cy="12" r="11" fill="#0e2417"/>'))assert.ok(ICON111(m[0]),f+': un ícono con color o tamaño propio: '+m[0].slice(0,120))}
  /* Codex r1: las páginas estáticas: sus imágenes son íconos, fotos de cigarros y marcas; sus SVG, íconos */
  {const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.html')?[path.join(d,x.name)]:[]);const pages=walk(path.join(__dirname,'..','site'));assert.ok(pages.length>100,'páginas: '+pages.length);
   for(const p of pages){const h=fs.readFileSync(p,'utf8'),rel=path.relative(path.join(__dirname,'..','site'),p);
+   /* Codex r5: el texto entero de la página (sus <script> y sus atributos onload y demás) con las mismas reglas que un script, sin ningún data URI de imagen */
+   SCRIPT111(h,rel,0);
    for(const m of MEDIA111(h,rel))assert.ok(/^(\.\.\/)*\/?(icons\/|img\/(cigarros|logos|hero|eventos)\/)/.test(m.u),rel+': una imagen que no es foto, marca ni ícono: <'+m.tag+' '+m.k+'='+m.u.slice(0,70));
    for(const m of h.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg>/g))assert.ok(/^<svg\b[^>]*viewBox="0 0 24 24"/.test(m[0])&&ICON111(m[0]),rel+': un SVG que no es ícono: '+m[0].slice(0,120));
    assert.ok(!/url\((?!['"]?(\/?fonts\/))/.test(h.replace(/<script[\s\S]*?<\/script>/g,'')),rel+': una imagen por CSS')}}
@@ -5550,6 +5558,21 @@ const MEDIA_TAGS111={img:['src','srcset'],source:['src','srcset'],image:['href',
 const MEDIA111=(h,where)=>{const out=[];for(const s of h.matchAll(/<(img|source|image|input|video|object|embed|iframe)\b/gi)){TAG111.lastIndex=s.index;const m=TAG111.exec(h);
   assert.ok(m,where+': una etiqueta que la prueba no sabe leer: '+h.slice(s.index,s.index+90));const want=MEDIA_TAGS111[m[1].toLowerCase()];
   for(const [k,v] of ATTR111(m[2]))if(want.includes(k))for(const u of k==='srcset'?v.split(',').map(x=>x.trim().split(/\s+/)[0]).filter(Boolean):[v])out.push({tag:m[1].toLowerCase(),k,u})}return out};
+/* LHB-111 (Codex r5): las reglas de un texto con script, las mismas para un archivo .js, un <script> dentro de una página y la página entera (sus
+   atributos onload y demás): todo archivo de imagen que nombra es foto, marca, ícono o la intro (con o sin la dirección del sitio delante; los sufijos
+   de las miniaturas de LHB-85, perfil.jpg, el nombre con que sube la foto del propio lector, y og.jpg, la tarjeta que otros sitios muestran al compartir
+   un enlace, son las excepciones con nombre); trae tantos data URI
+   de imagen como se le dice (uno solo en todo el sitio: la silueta de la imagen para compartir, en hoja.js); y la fuente que pone (img.src=,
+   srcset, poster, o setAttribute) es literal de esas carpetas o ese data URI */
+const IMGOK111=/^(https:\/\/lahojaboricua\.com\/)?(\.\.\/)*\/?(img\/(hero|logos|cigarros|eventos)\/|icons\/|assets\/intro\/)/;
+const SCRIPT111=(x,where,du)=>{
+ for(const m of x.matchAll(/(?<![\w./-])((?:https?:)?(?:\/\/[^\s"'`)]+?)?(?:\.\.\/)*[\w./-]+\.(?:webp|png|jpe?g|gif|avif|svg|bmp|ico))(?![\w])/gi))assert.ok(IMGOK111.test(m[1])||['_thumb.webp','_thumb-s.webp','perfil.jpg','https://lahojaboricua.com/og.jpg'].includes(m[1]),where+': nombra una imagen de fuera: '+m[1]);
+ assert.equal([...x.matchAll(/data:image\//gi)].length,du,where+': un data URI de imagen');
+ const lit=v=>IMGOK111.test(v)||v==='data:image/svg+xml;charset=utf-8,';
+ for(const m of x.matchAll(/\.(src|srcset|poster)\s*=\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g))assert.ok(IMGOK111.test(m[3])||(m[3]==='data:image/svg+xml;charset=utf-8,'&&x.startsWith('+encodeURIComponent(VBArt.silueta(',m.index+m[0].length)),where+': '+m[0].slice(0,90));
+ for(const m of x.matchAll(/setAttribute\(\s*(['"])(src|srcset|poster|href|xlink:href)\1\s*,\s*(['"`])((?:(?!\3)[^\\]|\\.)*)\3/g))if(m[2]!=='href'||/\.(webp|png|jpe?g|gif|avif|svg)\b|^data:/i.test(m[4]))assert.ok(lit(m[4]),where+': '+m[0].slice(0,90))};
+/* el sitio entero con script, menos vendor-leaflet.js (Leaflet de afuera; sus imágenes de marcador por omisión no se usan: los pines son los de la app) */
+const SITEJS111=()=>{const root=path.join(__dirname,'..','site');const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):x.name.endsWith('.js')?[path.relative(root,path.join(d,x.name)).replace(/\\/g,'/')]:[]);return walk(root).filter(f=>f!=='vendor-leaflet.js')};
 const ICON111=svg=>{const root=(svg.match(/^<svg\b[^>]*>/)||[''])[0],paint=['fill','stroke','stop-color','color','flood-color','lighting-color'];
  return !/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|<(image|foreignObject|style)\b/i.test(svg)
   &&ATTR111(svg).every(([k,v])=>k!=='style'&&(!paint.includes(k)||v==='none'||v==='currentColor'))

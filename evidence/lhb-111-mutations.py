@@ -34,6 +34,13 @@ MUTS = [
     ('site/app.js', 'Codex r4: a decorative bitmap set from script', 'const thumbS=', 'const LHB_X=()=>{const i=new Image();i.src=\'img/guagua/campo.webp\';return i};const thumbS='),
     ('site/hoja.js', 'Codex r4: a decorative image inside an attribute that comes and goes', 'const CAL_ICO=', 'const CAL_X=x=>`<span ${x?\'data-bg="img/guagua/campo.webp"\':\'\'}></span>`;const CAL_ICO='),
     ('site/app.js', 'Codex r4: a second image data URI in a script', 'const thumbS=', 'const LHB_X=\'data:image/png;base64,iVBORw0KGgo=\';const thumbS='),
+    ('site/404.html', 'Codex r5: an inline script that draws a data URI image on a static page', '</body>', '<script>const decoration=new Image();decoration.alt=\'\';decoration.src=\'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ccircle cx="50" cy="50" r="40" fill="red"/%3E%3C/svg%3E\';document.body.append(decoration);</script></body>'),
+    ('site/404.html', 'Codex r5: a decorative background set by a handler attribute', '<body', '<body onload="document.body.style.backgroundImage=\'url(img/adorno.webp)\'"'),
+    ('site/sync.js', 'Codex r5: a decorative image named in a script outside the five', '/* La Hoja Boricua · Mi Hoja entre teléfonos', "const LHB_X='img/adorno.webp';/* La Hoja Boricua · Mi Hoja entre teléfonos"),
+    ('site/app.js', 'Codex r5: a decorative image set with setAttribute', 'const thumbS=', 'const LHB_X=i=>i.setAttribute(\'src\',\'img/adorno.webp\');const thumbS='),
+    ('site/sync.js', 'Codex r6: a decorative SVG inserted by a script outside the five', '/* La Hoja Boricua · Mi Hoja entre teléfonos', "document.body&&document.body.insertAdjacentHTML('beforeend','<svg width=\"200\" height=\"200\" viewBox=\"0 0 50 50\" aria-hidden=\"true\"><circle cx=\"25\" cy=\"25\" r=\"20\" fill=\"red\"/></svg>');/* La Hoja Boricua · Mi Hoja entre teléfonos"),
+    ('site/sync.js', 'Codex r6: an SVG made through the DOM', '/* La Hoja Boricua · Mi Hoja entre teléfonos', "const LHB_X=()=>document.createElementNS('http://www.w3.org/2000/svg','svg');/* La Hoja Boricua · Mi Hoja entre teléfonos"),
+    ('site/cuenta.js', 'Codex r6: a decorative canvas drawing', '/* La Hoja Boricua · cuenta (LHB-25)', "const LHB_X=()=>{const c=document.createElement('canvas').getContext('2d');c.fillStyle='red';c.fillRect(0,0,9,9)};/* La Hoja Boricua · cuenta (LHB-25)"),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
