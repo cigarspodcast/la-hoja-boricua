@@ -1,0 +1,94 @@
+✔ LHB-110: el tema oscuro: los dos bloques con los mismos valores, solo tokens, cada token de papel con su valor de noche, y cada par pasa el contraste (10.0498ms)
+ℹ de noche: 79 pares declarados, 0 no pasan
+ℹ de noche: 73 pares pintados, 0 no pasan
+✔ LHB-110: el rojo y el celeste solo en sus papeles; la acción principal en tabaco y las secundarias con borde; la fuerza en una rampa neutra (12.4628ms)
+✔ LHB-110 (Codex r2): la burbuja del mapa, las insignias del pasaporte y la palabra resaltada del pasaporte, de día y de noche (2.3855ms)
+✖ LHB-110 (Codex r3): la equis de la burbuja del mapa se lee de día y de noche, también al pasar o con el foco, y le gana a la de Leaflet (3.0218ms)
+✖ LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar (5.4754ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 3
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 125.7811
+
+✖ failing tests:
+
+test at test\site.test.js:3957:1
+✖ LHB-110 (Codex r3): la equis de la burbuja del mapa se lee de día y de noche, también al pasar o con el foco, y le gana a la de Leaflet (3.0218ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(raw.includes('.leaflet-container .leaflet-popup a.leaflet-popup-close-button{color:var(--muted)}'))
+  
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red3\test\site.test.js:3962:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:3969:1
+✖ LHB-110: el tema se elige en el menú (sigue al teléfono, oscuro, claro), se guarda en el teléfono y se pone antes de pintar (5.4754ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be loosely deep-equal:
+  
+  [
+    [
+      'dark',
+      'auto',
+      '<menu.tema.dark>'
+    ],
+    [
+      'dark',
+      'auto',
+      '<menu.tema.dark>'
+    ],
+    [
+      'dark',
+      'auto',
+      '<menu.tema.dark>'
+    ]
+  ]
+  
+  should loosely deep-equal
+  
+  [
+    [
+      'dark',
+      'dark',
+      '<menu.tema.dark>'
+    ],
+    [
+      'light',
+      'light',
+      '<menu.tema.light>'
+    ],
+    [
+      'auto',
+      'auto',
+      '<menu.tema.auto>'
+    ]
+  ]
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\r110red3\test\site.test.js:3989:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ [ 'dark', 'auto', '<menu.tema.dark>' ], [ 'dark', 'auto', '<menu.tema.dark>' ], [ 'dark', 'auto', '<menu.tema.dark>' ] ],
+    expected: [ [ 'dark', 'dark', '<menu.tema.dark>' ], [ 'light', 'light', '<menu.tema.light>' ], [ 'auto', 'auto', '<menu.tema.auto>' ] ],
+    operator: 'deepEqual',
+    diff: 'simple'
+  }

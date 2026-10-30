@@ -3,9 +3,17 @@
    - the drawn width of EVERY catalog card photo (.grid .card .ph.has-foto img) at the LHB-85 viewports, and of a card in a
      .mini-row at the same viewports, against the width SIZES_GRID / SIZES_MINI (site/app.js) declare there: never below it,
      at most 3 px over;
-   - #langSwitch for a Spanish and an English reader at 320, 360, 412 and 1024 px: the switch is drawn (displayed, visible, with
-     a size), the swap the English reader gets after load moves div.top-actions and each control in it (the switch, search,
-     menu, avatar) by under 1 px on every edge, and the page never scrolls sideways.
+   - LHB-112 (Codex r1): the same for every card photo on an artisan's page (#/a/jfc-hoja-boricua), whose grid sits in the 820 px detail
+     measure from 900 px and declares SIZES_DETAIL;
+   - LHB-112, the computer layout: at 390, 899, 900 and 1366 px the page never scrolls sideways, the bottom tab bar is drawn below
+     900 px and hidden from 900 px, the top navigation (nav.topnav) is the reverse and draws its five destinations and its plus
+     button without clipping, the view keeps a 1200 px measure and the catalogue grid has three columns from 900 px and four
+     from 1100 px; the LHB-112 widths (899 to 1366) are added to the photo widths above;
+   - the header for a Spanish and an English reader at 320, 360, 412 and 1024 px (LHB-109: the language left the header for the
+     menu): div.top-actions holds exactly its three controls (search, menu, account), each drawn (displayed, visible, with a
+     size); the swap the English reader gets after load moves div.top-actions and each control by under 1 px on every edge; the
+     page never scrolls sideways; no #langSwitch is left; and the menu's language row is drawn with the other language's name,
+     in that language.
    Every DevTools command has a deadline, a closed socket fails what is pending, and a watchdog ends the run before the test's
    own timeout, so the browser and its temporary profile are always removed.
    Prints a table and one PASS or FAIL line per check, and exits 1 on any FAIL (2 when the browser cannot run).
@@ -19,8 +27,9 @@ import { join, resolve, extname, normalize } from 'node:path';
 
 const SITE = resolve(process.argv[2] || join(import.meta.dirname, '..', 'site'));
 const CHROME = process.env.CHROME || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const GRID_W = [320, 360, 375, 390, 412, 430, 500, 619, 620, 700, 759, 760, 1024, 1440];
-const SWITCH_W = [320, 360, 412, 1024];
+const GRID_W = [320, 360, 375, 390, 412, 430, 500, 619, 620, 700, 759, 760, 899, 900, 1024, 1099, 1100, 1199, 1200, 1366, 1440];
+const LAYOUT_W = [390, 899, 900, 1366];
+const HEADER_W = [320, 360, 412, 1024];
 const CMD_MS = 15000, WATCHDOG_MS = 90000; // one DevTools command; the whole run (the test gives the tool 120 s)
 // what a mini-row card declares (the grid card's sizes is read from each rendered image)
 const MINI = (readFileSync(join(SITE, 'app.js'), 'utf8').match(/SIZES_MINI='([^']*)'/) || [])[1];
@@ -127,6 +136,22 @@ try {
     // every photo: the declared width at or above the drawn width, by at most 3 px
     check(m.a.length >= 2 && off.length === 0 && overs.every(over => over >= 0 && over <= 3), `grid ${w}: all ${m.a.length} photos declare at or above their drawn width by at most 3 px` + (off.length ? ` (off: ${off.map(i => 'photo ' + (i.k + 1) + ' drawn ' + r1(i.drawn) + ' declared ' + r1(i.decl)).join('; ')})` : ''));
   }
+  // LHB-112 (Codex r1): an artisan's page, whose grid is in the detail measure; then back to the catalogue for the mini row
+  out.push('');
+  out.push('card photos on an artisan page (#/a/jfc-hoja-boricua: .grid .card .ph.has-foto img), against the sizes each declares');
+  out.push('viewport  photos  drawn min-max   least over  most over');
+  await open(GRID_W[0], 'es-PR', '#/a/jfc-hoja-boricua');
+  await until(`document.querySelectorAll('.grid .card .ph.has-foto img').length>=2`, 'an artisan page with two card photos');
+  for (const w of GRID_W) {
+    await size(w);
+    const m = await js(`(()=>{const a=[...document.querySelectorAll('.grid .card .ph.has-foto img')].map((i,k)=>({k,drawn:i.getBoundingClientRect().width,decl:${DECL}(i.getAttribute('sizes'))}));return {a,cw:document.documentElement.clientWidth}})()`);
+    const overs = m.a.map(i => i.decl - i.drawn), drawn = m.a.map(i => i.drawn);
+    const off = m.a.filter((i, k) => !(overs[k] >= 0 && overs[k] <= 3));
+    out.push(String(w).padStart(8) + String(m.a.length).padStart(8) + ('  ' + r1(Math.min(...drawn)) + '-' + r1(Math.max(...drawn))).padEnd(16) + String(r1(Math.min(...overs))).padStart(11) + String(r1(Math.max(...overs))).padStart(11));
+    check(m.a.length >= 2 && off.length === 0 && overs.every(over => over >= 0 && over <= 3), `artisan ${w}: all ${m.a.length} photos declare at or above their drawn width by at most 3 px` + (off.length ? ` (off: ${off.map(i => 'photo ' + (i.k + 1) + ' drawn ' + r1(i.drawn) + ' declared ' + r1(i.decl)).join('; ')})` : ''));
+  }
+  await open(GRID_W[0], 'es-PR', '#/catalogo');
+  await until(`!!document.querySelector('.grid .card .ph.has-foto img')`, 'a catalog card with a photo');
   // the mini row (Mi Hoja: my uploads, my favorites): a catalog card cloned into a .mini-row at the top of #view, as LHB-85 measured it
   await js(`(()=>{const c=document.querySelector('.grid .card').cloneNode(true);c.querySelector('.ph.has-foto img').id='lhb95mini';const r=document.createElement('div');r.className='mini-row';r.appendChild(c);document.getElementById('view').prepend(r);return true})()`);
   out.push('');
@@ -140,33 +165,58 @@ try {
     check(over >= 0 && over <= 3, `mini row ${w}: SIZES_MINI ${r1(m.decl)} is at or above drawn ${r1(m.drawn)} by at most 3 px (over ${r1(over)})`);
   }
   out.push('');
-  out.push('language switch (#langSwitch) and its neighbours (div.top-actions and every control in it), Spanish reader (as shipped) and English reader (swapped after load)');
-  out.push('viewport  reader   text      width  height  switch.left  top-actions.left  controls  scrollWidth');
-  const got = {};
   // drawn: displayed, visible, with a size; the attribute hidden alone says nothing about CSS
   const SHOWN = `(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility==='visible'&&r.width>0&&r.height>0})`;
-  for (const [lang, name] of [['es-PR', 'Spanish'], ['en-US', 'English']]) {
-    await open(SWITCH_W[0], lang, '');
-    await until(`(()=>{const b=document.getElementById('langSwitch');return !!b&&!b.hidden&&${SHOWN}(b)})()`, 'the switch drawn for ' + name);
-    for (const w of SWITCH_W) {
-      await size(w);
-      const m = await js(`(()=>{const b=document.getElementById('langSwitch'),t=document.querySelector('.top-actions');const rb=b.getBoundingClientRect(),rt=t.getBoundingClientRect();const vis=[...b.children].filter(e=>getComputedStyle(e).display!=='none').map(e=>e.textContent).join('');const box=r=>({l:r.left,t:r.top,r:r.right,b:r.bottom});const kids=[...t.children].map(e=>({id:e.id||e.className,box:box(e.getBoundingClientRect()),shown:${SHOWN}(e)}));return {text:vis,width:rb.width,height:rb.height,shown:${SHOWN}(b),left:rb.left,tl:rt.left,tbox:box(rt),kids,sw:document.documentElement.scrollWidth}})()`);
-      (got[w] = got[w] || {})[name] = m;
-      out.push(String(w).padStart(8) + '  ' + name.padEnd(8) + ' ' + m.text.padEnd(9) + String(r1(m.width)).padStart(6) + String(r1(m.height)).padStart(8) + String(r1(m.left)).padStart(13) + String(r1(m.tl)).padStart(18) + String(m.kids.length).padStart(10) + String(m.sw).padStart(13));
-      check(m.sw === w, `switch ${w} ${name}: no sideways scroll (scrollWidth ${m.sw})`);
-      check(m.shown && m.kids.length >= 4 && m.kids.every(k => k.shown), `switch ${w} ${name}: the switch and all ${m.kids.length} controls in top-actions are drawn (switch ${r1(m.width)} x ${r1(m.height)} px)`);
-    }
+  out.push('LHB-112 layout: the tab bar below 900 px, the top navigation from 900 px, the view measure and the grid columns');
+  out.push('viewport  scrollWidth  tabbar  topnav  links  view.width  columns');
+  await open(LAYOUT_W[0], 'es-PR', '#/catalogo');
+  await until(`!!document.querySelector('.grid .card')&&!!document.querySelector('nav.topnav')`, 'the catalogue and the top navigation');
+  for (const w of LAYOUT_W) {
+    await size(w);
+    const m = await js(`(()=>{const tb=document.querySelector('nav.tabbar'),tn=document.querySelector('nav.topnav'),v=document.getElementById('view'),g=document.querySelector('.grid');
+      const items=[...tn.querySelectorAll('a[data-tab],button.tab-plus')];const r=tn.getBoundingClientRect();
+      return {sw:document.documentElement.scrollWidth,tab:${SHOWN}(tb),top:${SHOWN}(tn),n:items.length,drawn:items.filter(${SHOWN}).length,
+        inside:items.every(i=>{const b=i.getBoundingClientRect();return b.left>=r.left-0.5&&b.right<=r.right+0.5}),clip:tn.scrollWidth>tn.clientWidth+0.5,
+        active:(tn.querySelector('a.active')||{}).dataset?.tab||null,vw:v.getBoundingClientRect().width,cols:getComputedStyle(g).gridTemplateColumns.split(' ').length}})()`);
+    out.push(String(w).padStart(8) + String(m.sw).padStart(13) + String(m.tab ? 'drawn' : 'hidden').padStart(8) + String(m.top ? 'drawn' : 'hidden').padStart(8) + String(m.drawn + '/' + m.n).padStart(7) + String(r1(m.vw)).padStart(12) + String(m.cols).padStart(9));
+    const wide = w >= 900;
+    check(m.sw === w, `layout ${w}: no sideways scroll (scrollWidth ${m.sw})`);
+    check(m.tab === !wide, `layout ${w}: the bottom tab bar is ${wide ? 'hidden' : 'drawn'} (${m.tab ? 'drawn' : 'hidden'})`);
+    check(m.top === wide, `layout ${w}: the top navigation is ${wide ? 'drawn' : 'hidden'} (${m.top ? 'drawn' : 'hidden'})`);
+    if (wide) check(m.n === 6 && m.drawn === 6 && m.inside && !m.clip && m.active === 'catalogo', `layout ${w}: the top navigation draws its 5 destinations and the plus, unclipped, with Cigarros current (${m.drawn}/${m.n}, active ${m.active})`);
+    if (wide) check(m.vw <= 1200 && m.cols === (w >= 1100 ? 4 : 3), `layout ${w}: the view is at most 1200 px (${r1(m.vw)}) and the grid has ${w >= 1100 ? 4 : 3} columns (${m.cols})`);
   }
+  out.push('');
+  out.push('header controls (div.top-actions: search, menu, account) and the menu language row, Spanish reader (as shipped) and English reader (swapped after load)');
+  out.push('viewport  reader   controls  top-actions.left  scrollWidth');
+  const got = {}, rows = {};
+  for (const [lang, name, html] of [['es-PR', 'Spanish', 'es-PR'], ['en-US', 'English', 'en']]) {
+    await open(HEADER_W[0], lang, '');
+    await until(`(()=>{const t=document.querySelector('.top-actions');return !!t&&document.documentElement.lang===${JSON.stringify(html)}&&[...t.children].every(${SHOWN})})()`, 'the header drawn for ' + name);
+    for (const w of HEADER_W) {
+      await size(w);
+      const m = await js(`(()=>{const t=document.querySelector('.top-actions'),rt=t.getBoundingClientRect();const box=r=>({l:r.left,t:r.top,r:r.right,b:r.bottom});const kids=[...t.children].map(e=>({id:e.id||e.className,box:box(e.getBoundingClientRect()),shown:${SHOWN}(e)}));return {tl:rt.left,tbox:box(rt),kids,sw:document.documentElement.scrollWidth,old:!!document.getElementById('langSwitch')}})()`);
+      (got[w] = got[w] || {})[name] = m;
+      out.push(String(w).padStart(8) + '  ' + name.padEnd(8) + String(m.kids.length).padStart(10) + String(r1(m.tl)).padStart(18) + String(m.sw).padStart(13));
+      check(m.sw === w, `header ${w} ${name}: no sideways scroll (scrollWidth ${m.sw})`);
+      check(!m.old && m.kids.length === 3 && m.kids.every(k => k.shown), `header ${w} ${name}: top-actions holds its 3 controls, all drawn, and no #langSwitch (${m.kids.map(k => k.id).join(', ')})`);
+    }
+    // the menu: its language row names the other language, in that language
+    await js(`document.querySelector('[data-sheet="menu"]').click()`);
+    await until(`(()=>{const b=document.querySelector('.menu-dest[data-lang]');return !!b&&${SHOWN}(b)})()`, 'the language row drawn for ' + name);
+    rows[name] = await js(`(()=>{const b=document.querySelector('.menu-dest[data-lang]'),n=b.querySelector('b');return {to:b.dataset.lang,text:n.textContent,lang:n.getAttribute('lang')}})()`);
+    out.push('  menu row for ' + name + ': ' + rows[name].text + ' (lang ' + rows[name].lang + ', switches to ' + rows[name].to + ')');
+  }
+  check(rows.Spanish.to === 'en' && rows.Spanish.text === 'English' && rows.Spanish.lang === 'en', `menu row, Spanish reader: English, marked lang="en" (${rows.Spanish.text})`);
+  check(rows.English.to === 'es' && rows.English.text === 'Espa\u00f1ol' && rows.English.lang === 'es', `menu row, English reader: Espa\u00f1ol, marked lang="es" (${rows.English.text})`);
   const moved = (a, b) => Math.max(Math.abs(a.l - b.l), Math.abs(a.t - b.t), Math.abs(a.r - b.r), Math.abs(a.b - b.b));
-  for (const w of SWITCH_W) {
-    const g = got[w], ds = Math.abs(g.Spanish.left - g.English.left), dt = Math.abs(g.Spanish.tl - g.English.tl);
-    check(ds < 1 && dt < 1, `switch ${w}: the English swap moves the switch by ${r1(ds)} px and top-actions by ${r1(dt)} px (under 1 px)`);
-    // each neighbour on every edge, and the container's own box: a control can move without the switch or the container moving
+  for (const w of HEADER_W) {
+    const g = got[w], dt = Math.abs(g.Spanish.tl - g.English.tl);
+    // each control on every edge, and the container's own box: a control can move without the container moving
     const same = g.Spanish.kids.length === g.English.kids.length;
     const mv = same ? g.Spanish.kids.map((k, i) => ({ id: k.id, d: moved(k.box, g.English.kids[i].box) })) : [];
     const worst = mv.reduce((a, b) => (b.d > a.d ? b : a), { id: '-', d: 0 }), dbox = moved(g.Spanish.tbox, g.English.tbox);
-    check(same && mv.every(x => x.d < 1) && dbox < 1, `switch ${w}: every control in top-actions moves under 1 px on every edge (most: ${worst.id} ${r1(worst.d)} px; container ${r1(dbox)} px)`);
-    check(g.Spanish.text !== g.English.text, `switch ${w}: the label differs by reader (${g.Spanish.text} / ${g.English.text})`);
+    check(dt < 1 && same && mv.every(x => x.d < 1) && dbox < 1, `header ${w}: the English swap moves every control in top-actions under 1 px on every edge (most: ${worst.id} ${r1(worst.d)} px; container ${r1(dbox)} px)`);
   }
 } catch (e) {
   if (e !== null) { out.push('FAIL the run itself: ' + (e && e.message)); bad.push('run'); }

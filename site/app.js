@@ -6,7 +6,10 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 /* LHB-85: the 320 x 160 twin of a 600 x 300 thumbnail (tools/build_thumbs.py) */
 const thumbS=t=>String(t).replace(/_thumb\.webp$/,'_thumb-s.webp');
 // ancho dibujado de la imagen de la tarjeta, medido (evidence/lhb-85-slot-widths.txt); la fila mini (Mi Hoja) es de 140 px fijos
-const SIZES_GRID='(min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)',SIZES_MINI='116px';
+const SIZES_PHONE='(min-width:760px) 211px, (min-width:620px) calc(33vw - 40px), calc(50vw - 45px)';
+// LHB-112: desde 900 px la grilla del catálogo se abre (tres columnas, cuatro desde 1100, en 1200 px); la de la página de un artesano queda en la medida de
+// lectura de 820 px, a tres columnas (SIZES_DETAIL). Medidos en Chrome (evidence/lhb-112-widths.txt)
+const SIZES_GRID='(min-width:1200px) 260px, (min-width:1100px) calc(25vw - 41px), (min-width:900px) calc(33.33vw - 42px), '+SIZES_PHONE,SIZES_DETAIL='(min-width:900px) 231px, '+SIZES_PHONE,SIZES_MINI='116px';
 const view=$('#view');const REDUCED_ALL=matchMedia('(prefers-reduced-motion: reduce)').matches;const VBArt=window.VBArt;const tt=window.LHB_I18N.t;
 const LS={get(k,d){try{const v=localStorage.getItem('vb_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){localStorage.setItem('vb_'+k,JSON.stringify(v))}};
 /* ---------- IndexedDB for photos ---------- */
@@ -31,27 +34,15 @@ const fx=(r,k)=>{const v=r?r[k]:undefined;if(window.LHB_I18N.lang!=='en')return 
 const fq=(r,k)=>window.LHB_I18N.lang==='en'?[r[k],r[k+'_en']].filter(Boolean).join(' '):r[k];
 const artisanName=c=>{const a=artisanById(c.artesano_id);return a?a.nombre:(c.artesano_texto||tt('art.noProfile'))};
 /* ---------- art ---------- */
-const CAPA_COLORS={claro:['#d8b47c','#b68a52'],connecticut:['#dcbd88','#b99256'],natural:['#b07a45','#8a5a30'],colorado:['#9b5a32','#74401f'],habano:['#a3683a','#7a4b25'],corojo:['#94532d','#6d3a1c'],sumatra:['#8a5634','#653c21'],criollo:['#9a6136','#704324'],maduro:['#5e3820','#3f2414'],oscuro:['#3e2416','#26150c'],'broadleaf':['#4a2b19','#2d190e']};
-const capaKey=c=>{const s=(c||'').toLowerCase();for(const k of Object.keys(CAPA_COLORS))if(s.includes(k))return k;if(s.includes('ecuador'))return'habano';return'colorado'};
-const BG=['#7fb0ff','#ffd27a','#ff9a9a','#a9c487','#c5cdf5','#8fb8ff'];
 function hash(s){let h=0;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))|0;return Math.abs(h)}
 function starPath(cx,cy,R){const r=R*.382;let p='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r:R;p+=(i?'L':'M')+(cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1)}return p+'Z'}
-function cigarSVG(c){const [w1,w2]=CAPA_COLORS[capaKey(c.capa)];const ix=allCigars().findIndex(x=>x.id===c.id);const bg=BG[(ix<0?hash(c.id):ix)%BG.length];const h=hash(c.nombre);const tilt=-8+(h%7);
- return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${tt('svg.alt',{n:esc(c.nombre)})}"><defs>
- <linearGradient id="w${c.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${w1}"/><stop offset=".55" stop-color="${w2}"/><stop offset="1" stop-color="${w2}" stop-opacity=".85"/></linearGradient>
- <pattern id="t${c.id}" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="${bg}"/><path d="M0 20h40M20 0v40" stroke="#fff" stroke-opacity=".18" stroke-width="2"/><circle cx="20" cy="20" r="6" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="2"/></pattern></defs>
- <rect width="400" height="300" fill="url(#t${c.id})"/><rect width="400" height="300" fill="#1d130d" opacity=".18"/>
- <g transform="rotate(${tilt} 200 150)"><ellipse cx="205" cy="196" rx="160" ry="14" fill="#000" opacity=".18"/>
- <rect x="40" y="128" width="320" height="46" rx="23" fill="url(#w${c.id})"/>
- <path d="M60 140 C 140 134 260 146 345 138 M70 160 C 160 166 250 154 340 162" stroke="#000" stroke-opacity=".14" stroke-width="2" fill="none"/>
- <circle cx="352" cy="151" r="20" fill="${w2}"/><circle cx="356" cy="151" r="15" fill="#3a2214" opacity=".35"/>
- <rect x="248" y="124" width="46" height="54" rx="5" fill="#ed0000"/><rect x="248" y="141" width="46" height="20" fill="#f4e9d6"/>
- <path d="${starPath(271,151,9)}" fill="#1EA8D7"/></g></svg>`}
+/* LHB-111: el cigarro sin foto lleva la silueta de línea neutra, en el mismo marco que las fotos */
+const cigarSVG=c=>VBArt.silueta(tt('sil.alt',{n:esc(c.nombre)}));
 const FACADE=['#1EA8D7','#ed0000','#f8f8f4','#ed0000','#f8f8f4','#1EA8D7'];
 function initials(n){const ov=(D.artesanos||[]).find(x=>x.nombre===n&&x.iniciales);if(ov)return ov.iniciales;const f=String(n).trim().split(/\s+/)[0].replace(/[^A-Z]/g,'');if(f.length>=2&&f.length<=4&&f===String(n).trim().split(/\s+/)[0].replace(/[.,]/g,''))return f;return String(n).replace(/[^\p{L}\p{N} ]/gu,' ').split(/\s+/).filter(w=>w&&!/^(de|del|la|las|los|el|y|cigar|cigars|cigarros|tabacalera|corp)$/i.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'VB'}
 const LOGOS=new Set(["jfc-hoja-boricua", "don-rey-cigar", "el-club-del-turro", "don-collins", "finca-neo-jibairo", "willys-cigars", "san-pedrito-cigars", "yambo-cigars", "el-chapu-pr", "el-buho-ricamontes", "cohoba-cigars", "cigarros-caimito", "tabacalera-la-trascendencia", "pitirre-cigars", "villareno-cigars"]);
 function logoId(n){const a=(D.artesanos||[]).find(x=>x.nombre===n);return a&&LOGOS.has(a.id)?a.id:null}
-function mono(name,size){const lid=logoId(name);if(lid)return `<span class="mono has-logo" style="width:${size}px;height:${size}px"><img src="img/logos/${lid}.webp" width="${size}" height="${size}" alt="" ${size>80?'':'loading="lazy" '}decoding="async"></span>`;const bg=FACADE[hash(name)%FACADE.length],red=/^#ed0000$/i.test(bg);return `<span class="mono" style="width:${size}px;height:${size}px;background:${bg};color:${red?'var(--on-danger)':'var(--on-surface)'};font-size:${Math.round(size*.38)}px"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8 C 72 22 78 46 70 66 C 64 80 56 88 50 90 C 44 88 36 80 30 66 C 22 46 28 22 50 8Z" fill="${red?'#000':'#fff'}" opacity="${red?'.12':'.22'}"/></svg><b>${esc(initials(name))}</b></span>`}
+function mono(name,size){const lid=logoId(name);if(lid)return `<span class="mono has-logo" style="width:${size}px;height:${size}px"><img src="img/logos/${lid}.webp" width="${size}" height="${size}" alt="" ${size>80?'':'loading="lazy" '}decoding="async"></span>`;const bg=FACADE[hash(name)%FACADE.length],red=/^#ed0000$/i.test(bg);return `<span class="mono" style="width:${size}px;height:${size}px;background:${bg};color:${red?'var(--on-danger)':'var(--fixed-text)'};font-size:${Math.round(size*.38)}px"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8 C 72 22 78 46 70 66 C 64 80 56 88 50 90 C 44 88 36 80 30 66 C 22 46 28 22 50 8Z" fill="${red?'#000':'#fff'}" opacity="${red?'.12':'.22'}"/></svg><b>${esc(initials(name))}</b></span>`}
 const FACADES_BAR=`<div class="facades" aria-hidden="true">${FACADE.map(c=>`<i style="background:${c}"></i>`).join('')}</div>`;
 const ICON={yt:'<svg viewBox="0 0 24 24"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg>',ig:'<svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zM17.3 5.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM12 2c-2.7 0-3 0-4.1.1C4.3 2.3 2.3 4.3 2.1 7.9 2 9 2 9.3 2 12s0 3 .1 4.1c.2 3.6 2.2 5.6 5.8 5.8 1.1.1 1.4.1 4.1.1s3 0 4.1-.1c3.6-.2 5.6-2.2 5.8-5.8.1-1.1.1-1.4.1-4.1s0-3-.1-4.1c-.2-3.6-2.2-5.6-5.8-5.8C15 2 14.7 2 12 2z"/></svg>',
  wa:'<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 2 1.1 1 2 1.3 2.3 1.4.3.2.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.1z"/></svg>',
@@ -71,11 +62,11 @@ const FORT=['suave','media','fuerte'];
 const fortLabel=f=>f?tt('fort.'+f,null,f[0].toUpperCase()+f.slice(1)):'\u2014';
 const PROTO_NOTE=`<p class="note">${tt('proto.note')}</p>`;
 const head=(eyebrow,title,lead,art)=>`<header class="sec-head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${lead?`<p class="lead">${lead}</p>`:''}</div><div class="sec-art">${art}</div></header>`;
-const emptyCoqui=msg=>`<div class="empty">${VBArt.coqui('coqui-empty')}<div>${msg}</div></div>`;
+const emptyBox=msg=>`<div class="empty"><div>${msg}</div></div>`;
 /* ---------- cards ---------- */
 const fotoOf=c=>(!c||c.yours||!window.LHB_FOTOS)?null:(window.LHB_FOTOS[c.id]||null);
 async function hydratePhotos(root=view){for(const el of $$('[data-photo]',root)){const u=await photoURL(el.dataset.photo);if(u){el.innerHTML=`<img src="${u}" alt="">`}}}
-function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+function cigarCard(c){const favs=EXT.S().favs.cigarros;return `<a class="card" href="#/c/${encodeURIComponent(c.id)}">${(f=>f?`<div class="ph has-foto"><img src="${esc(thumbS(f.thumb))}" srcset="${esc(thumbS(f.thumb))} 320w, ${esc(f.thumb)} 600w" sizes="${c.mini?SIZES_MINI:c.detail?SIZES_DETAIL:SIZES_GRID}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="600" height="300" decoding="async"></div>`:`<div class="ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
  ${favs.includes(c.id)?'<span class="fav-dot" aria-label="'+tt('card.fav')+'">♥</span>':''}
  <div class="body"><div class="name">${esc(c.nombre)}</div><div class="meta">${esc(artisanName(c))}${c.pueblo?' · '+esc(c.pueblo):''}</div>
  <div class="pills">${c.capa?`<span class="pill">${esc(fx(c,'capa'))}</span>`:''}${c.fortaleza?`<span class="pill f-${c.fortaleza}">${fortLabel(c.fortaleza)}</span>`:''}${c.yours?'<span class="pill yours">'+tt('card.yours')+'</span>':''}</div></div></a>`}
@@ -85,7 +76,7 @@ const RS=(()=>{let e=$('#resultStatus');if(!e){e=document.createElement('div');e
 const resultStatus=t=>{if(RS.textContent!==t)RS.textContent=t};
 const state={q:'',capa:'',fort:'',art:'',lugMode:'mapa',lugCat:'',lugTown:''};
 /* LHB-71: los íconos del menú y de la portada, uno por destino (trazo, toman el color del texto) */
-const BRAND_ICONS={cigar:'<path d="m4 16 12-9 4 5-12 9zM13 9l4 5M5 4c0 2 3 2 3 4M11 2c0 2 3 2 3 4"/>',
+const BRAND_ICONS={moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',book:'<path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1zM12 6v14"/>',lang:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',cigar:'<path d="m4 16 12-9 4 5-12 9zM13 9l4 5M5 4c0 2 3 2 3 4M11 2c0 2 3 2 3 4"/>',
  maker:'<path d="M5 21v-7l3-4 3 1 3-3 4 2 1 4v7M7 16l4 2 5-4M11 18v3"/><circle cx="9" cy="4" r="3"/>',
  place:'<path d="M19 10c0 6-7 11-7 11S5 16 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/>',
  leaf:'<path d="M5 19C0 8 9 3 21 3c1 11-4 18-14 17M3 22 17 7M8 17l-2-5M12 12l5 1"/>',
@@ -102,24 +93,31 @@ const BRAND_ICONS={cigar:'<path d="m4 16 12-9 4 5-12 9zM13 9l4 5M5 4c0 2 3 2 3 4
  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
  play:'<path d="M8 5v14l11-7Z"/>'};
 const brandIcon=(n,cls='')=>`<svg class="brand-icon ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${BRAND_ICONS[n]||BRAND_ICONS.leaf}</svg>`;
-/* LHB-71: los tres caminos de la portada; Cigarros baja hasta la lista sin mover el foco (no abre el teclado) */
-const homePaths=()=>`<nav class="home-paths" aria-label="${tt('home.paths')}">${[['#/catalogo','cigar','menu.cigarros','menu.cigarrosSub',' data-catalog-start'],['#/artesanos','maker','menu.artesanos','menu.artesanosSub',''],['#/lugares','place','menu.lugares','menu.lugaresSub','']].map(([h,i,t,s,x])=>`<a href="${h}"${x}><span class="path-ico">${brandIcon(i)}</span><span class="path-copy"><b>${tt(t)}</b><small>${tt(s)}</small></span></a>`).join('')}</nav>`;
-function catalogStart(e){if(e.defaultPrevented||e.button>0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;const a=e.target&&e.target.closest&&e.target.closest('[data-catalog-start]');if(!a)return;const h=$('#catalogStart');if(!h)return;e.preventDefault();h.scrollIntoView({block:'start',behavior:REDUCED_ALL?'auto':'smooth'})}
-document.addEventListener('click',catalogStart);
+/* LHB-109: la portada sin atajos: las pestañas son la navegación; el menú cambia el idioma */
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-lang]');if(!b)return;const I=window.LHB_I18N;if(I&&I.set)I.set(b.dataset.lang)});
+/* LHB-110: el tema. Sin elegir, sigue al teléfono; el menú lo fija (oscuro, claro) o lo devuelve al teléfono. Se guarda en este teléfono (lhb_theme), no en la cuenta */
+const THEMES=['auto','dark','light'],THEME_BAR={light:'#F4F1EA',dark:'#141A13'},THEME_KEY={auto:'menu.tema.auto',dark:'menu.tema.dark',light:'menu.tema.light'};
+/* Codex r3: lo elegido en esta visita también queda en memoria (themeMem): si el teléfono no lo puede guardar, el ciclo sigue y el menú dice el de ahora */
+let themeMem=null;
+function themeNow(){if(themeMem)return themeMem;try{const t=localStorage.getItem('lhb_theme');return t==='dark'||t==='light'?t:'auto'}catch(e){return 'auto'}}
+function applyTheme(t){const r=document.documentElement;if(!r||!document.head)return;if(t==='dark'||t==='light')r.setAttribute('data-theme',t);else r.removeAttribute('data-theme');
+ let m=document.getElementById('themeBar');if(t==='dark'||t==='light'){if(!m){m=document.createElement('meta');m.name='theme-color';m.id='themeBar';document.head.prepend(m)}m.content=THEME_BAR[t]}else if(m)m.remove()}
+applyTheme(themeNow());
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-theme-next]');if(!b)return;const t=THEMES[(THEMES.indexOf(themeNow())+1)%THEMES.length];themeMem=t;
+ try{if(t==='auto')localStorage.removeItem('lhb_theme');else localStorage.setItem('lhb_theme',t)}catch(x){}applyTheme(t);const sm=b.querySelector('small');if(sm)sm.textContent=tt(THEME_KEY[t])});
 /* LHB-71: la portada se decide una vez por carga: escribir en el buscador o tocar un filtro repinta, y no puede cambiar la portada a mitad de la visita */
 let homeCompact=null;
 function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.capa).filter(Boolean))].sort();const capaLbl=new Map();for(const c of cs)if(c.capa&&(!capaLbl.has(c.capa)||capaLbl.get(c.capa)===c.capa))capaLbl.set(c.capa,fx(c,'capa'));
  const q=state.q.toLowerCase();const list=cs.filter(c=>(!q||[c.nombre,artisanName(c),c.pueblo,fq(c,'capa'),fq(c,'notas')].join(' ').toLowerCase().includes(q))&&(!state.capa||c.capa===state.capa)&&(!state.fort||c.fortaleza===state.fort)&&(!state.art||c.artesano_id===state.art));
  /* LHB-71: quien ya vino ve la portada compacta: la presentación sin foto ni párrafo y sin los cuadros, para llegar a la lista */
  if(homeCompact===null){homeCompact=!!LS.get('homeSeen',false);try{LS.set('homeSeen',true)}catch(e){}}const compact=homeCompact;
- view.innerHTML=`<section class="hero${compact?' compact':''}">${FACADES_BAR}<img class="hero-bg" src="img/hero/banner.webp" alt="" width="760" height="422" decoding="async"><div class="eyebrow">${tt('cat.eyebrow')}</div><h1>${tt('cat.title')}</h1><p>${tt('cat.lead')}</p></section><button type="button" class="btn-add" id="btnAdd"${installHidden(window)?' hidden':''}>${tt('cat.install')}</button>
- ${homePaths()}${compact?'':`<nav class="tiles" aria-label="${tt('cat.explore')}"><a href="#/cata">${VBArt.leaf('#8fd162')}<b>${tt('tile.cata')}</b><small>${tt('tile.cataSub')}</small></a><a href="#/maridajes">${VBArt.leaf('#ffd27a')}<b>${tt('tile.mar')}</b><small>${tt('tile.marSub')}</small></a><a href="#/eventos">${VBArt.leaf('#ff8a80')}<b>${tt('tile.ev')}</b><small>${tt('tile.evSub')}</small></a><a href="#/podcast">${VBArt.leaf('#8fb8ff')}<b>Podcast</b><small>Cigars Podcast</small></a></nav>`}
+ view.innerHTML=`<section class="hero${compact?' compact':''}">${FACADES_BAR}<img class="hero-bg" src="img/hero/banner.webp" alt="" width="760" height="422" decoding="async"><div class="eyebrow">${tt('menu.cigarros')}</div><h1>${tt('cat.title')}</h1><p>${tt('cat.lead')}</p><a class="hero-cta" href="#/lugares/ruta">${tt('cat.toRoute')}${brandIcon('arrow')}</a></section><button type="button" class="btn-add" id="btnAdd"${installHidden(window)?' hidden':''}>${tt('cat.install')}</button>
  <h2 class="cat-h" id="catalogStart">${tt('menu.cigarros')}</h2>
  <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="sr">${tt('cat.search')}</span><input id="q" type="search" placeholder="${tt('cat.searchPh')}" value="${esc(state.q)}" autocomplete="off"></label>
  <div class="chips" role="group" aria-label="${tt('f.fortaleza')}"><button class="chip" data-fort="" aria-pressed="${!state.fort}">${tt('cat.allFort')}</button>${FORT.map(f=>`<button class="chip" data-fort="${f}" aria-pressed="${state.fort===f}">${fortLabel(f)}</button>`).join('')}</div>
  <div class="filter-row"><select id="fCapa" aria-label="${tt('f.capa')}"><option value="">${tt('cat.allCapa')}</option>${capas.map(x=>`<option value="${esc(x)}" ${state.capa===x?'selected':''}>${esc(capaLbl.get(x))}</option>`).join('')}</select>
  <select id="fArt" aria-label="${tt('f.artesano')}"><option value="">${tt('cat.allArt')}</option>${D.artesanos.map(a=>`<option value="${esc(a.id)}" ${state.art===a.id?'selected':''}>${esc(a.nombre)}</option>`).join('')}</select></div>
- ${list.length?`<div class="grid">${list.map(cigarCard).join('')}</div>`:emptyCoqui(tt('cat.empty'))}
+ ${list.length?`<div class="grid">${list.map(cigarCard).join('')}</div>`:emptyBox(tt('cat.empty'))}
  ${PROTO_NOTE}`;
  const qi=$('#q');qi.addEventListener('input',e=>{state.q=e.target.value;const pos=e.target.selectionStart;vCatalogo();const n=$('#q');n.focus();n.setSelectionRange(pos,pos)});
  /* LHB-64: pintar el catálogo otra vez reemplaza los filtros; el foco vuelve al mismo filtro y el número de resultados se anuncia */
@@ -129,7 +127,7 @@ function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.ca
 function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="empty">${tt('cig.notFound')}</div>`;return}
  const a=artisanById(c.artesano_id);const favs=EXT.S().favs.cigarros;const rat=EXT.S().ratings[c.id]||0;const isFav=favs.includes(c.id);
  view.innerHTML=`<button class="back" data-back>${tt('back')}</button>
- ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
+ ${(f=>f?`<figure class="detail-foto"><div class="detail-ph has-foto"><img id="fotoMain" src="${esc(f.img)}" alt="${tt('card.photoAlt',{n:esc(c.nombre)})}" width="1000" height="500" loading="lazy" decoding="async"></div><figcaption class="foto-cred">${esc(f.credito)}${f.match==='linea'?' · <span class="foto-linea">'+tt('cig.lineFoto')+'</span>':''}</figcaption>${f.galeria?`<div class="foto-gal" role="group" aria-label="${tt('cig.moreFotos')}">${f.galeria.map((g,i)=>`<button type="button" class="foto-th" data-full="${esc(g.img)}" aria-pressed="${i===0}" aria-label="${tt('cig.seeFoto',{t:esc(g.t)})}"><img src="${esc(thumbS(g.thumb))}" alt="" width="600" height="300" loading="lazy"><span>${esc(g.t)}</span></button>`).join('')}</div>`:''}</figure>`:`<div class="detail-ph sin-foto" ${c.foto?`data-photo="${esc(c.foto)}"`:''}>${cigarSVG(c)}</div>`)(fotoOf(c))}
  <div class="detail-head"><div><div class="eyebrow">${c.yours?tt('cig.byYou'):tt('cig.madePR')}</div><h1>${esc(c.nombre)}</h1></div>
  <button class="fav-btn" id="fav" aria-pressed="${isFav}">${isFav?tt('cig.saved'):tt('cig.save')}</button></div>
  <div class="specs"><div class="spec"><small>${tt('f.capa')}</small><span>${esc(fx(c,'capa')||tt('notPub'))}</span></div><div class="spec"><small>${tt('f.fortaleza')}</small><span>${c.fortaleza?fortLabel(c.fortaleza):tt('notPub')}</span></div>
@@ -148,7 +146,7 @@ function vCigar(id){const c=cigarById(id);if(!c){view.innerHTML=`<div class="emp
  const del=$('#del');if(del)del.onclick=async()=>{if(!confirm(tt('cig.confirmDel')))return;LS.set('uploads',uploads().filter(u=>u.id!==c.id));if(c.foto)await idb.del(c.foto).catch(()=>{});toast(tt('cig.deleted'));location.hash='#/perfil'};
  hydratePhotos()}
 function artTags(a){const t=[];if(a.etiqueta)t.push(`<span class="atag rd">${esc(a.etiqueta)}</span>`);if(a.por_confirmar)t.push(`<span class="atag pend">${esc(a.por_confirmar)}</span>`);return t.length?`<div class="atags">${t.join('')}</div>`:''}
-function vArtesanos(){view.innerHTML=`${head(tt('arts.eyebrow'),tt('arts.title'),tt('arts.lead'),VBArt.flamboyan())}
+function vArtesanos(){view.innerHTML=`${head(tt('menu.artesanos'),tt('arts.title'),tt('arts.lead'),VBArt.chaveta())}
  <div class="list">${D.artesanos.map(a=>{const n=allCigars().filter(c=>c.artesano_id===a.id).length;return `<a class="row" href="#/a/${encodeURIComponent(a.id)}">${mono(a.nombre,50)}<div><div class="t">${esc(a.nombre)}</div><div class="s">${esc(a.pueblo||'')}${a.tipo?(a.pueblo?' · ':'')+esc(fx(a,'tipo')):''}${n?` · ${tt(n>1?'arts.nVitolas':'arts.nVitola',{n})}`:''}</div>${artTags(a)}</div><span class="go">›</span></a>`}).join('')||'<div class="empty">'+tt('soon')+'</div>'}</div>${PROTO_NOTE}`}
 function vArtesano(id){const a=artisanById(id);if(!a){view.innerHTML='<div class="empty">'+tt('art.notFound')+'</div>';return}
  const cs=allCigars().filter(c=>c.artesano_id===a.id);const ig=a.instagram_label||igHandle(a.instagram);
@@ -159,14 +157,14 @@ function vArtesano(id){const a=artisanById(id);if(!a){view.innerHTML='<div class
  ${a.historia?`<p class="story">${esc(fx(a,'historia'))}</p>`:''}
  <div class="links">${linkBtn('ig',a.instagram,ig||'Instagram')}${linkBtn('wa',a.whatsapp,'WhatsApp')}${linkBtn('web',a.web,tt('link.web'))}${linkBtn('fb',a.facebook,'Facebook')}${linkBtn('yt',a.youtube,'YouTube')}${EXT.firstURL(a.donde_comprar)?linkBtn('buy',EXT.firstURL(a.donde_comprar),tt('link.buy')):''}</div>
  ${a.donde_comprar?`<p class="notes"><b>${tt('link.buyLbl')}</b> ${esc(EXT.scrub(fx(a,'donde_comprar')))}</p>`:''}
- ${cs.length?`<div class="section-title"><h2>${tt('art.vitolas')}</h2></div><div class="grid">${cs.map(cigarCard).join('')}</div>`:''}
+ ${cs.length?`<div class="section-title"><h2>${tt('art.vitolas')}</h2></div><div class="grid">${cs.map(c=>cigarCard({...c,detail:true})).join('')}</div>`:''}
  ${(a.fuentes&&a.fuentes.length)?`<div class="sources">${tt('sources')} ${a.fuentes.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\/(www\.)?/,'').slice(0,48))}</a>`).join(' · ')}</div>`:''}${PROTO_NOTE}`;
  $('[data-back]').onclick=()=>history.length>1?history.back():(location.hash='#/artesanos');hydratePhotos()}
 /* ---------- subir ---------- */
 let pendingPhoto=null;
 function resizeImage(file,max=1100,q=.8){return new Promise((res,rej)=>{const img=new Image();const u=URL.createObjectURL(file);img.onload=()=>{const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*s);cv.height=Math.round(img.naturalHeight*s);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(u);cv.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',q)};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};img.src=u})}
 function vSubir(){pendingPhoto=null;let fort='';
- view.innerHTML=`${head(tt('up.eyebrow'),tt('up.title'),tt('up.lead'),VBArt.leaf('#d9a75a','sec-leaf'))}
+ view.innerHTML=`${head(tt('up.eyebrow'),tt('up.title'),tt('up.lead'),VBArt.caja())}
  <form class="form" id="upForm" novalidate>
  <div><div class="photo-drop" id="drop"><div class="ph-empty">📷<br>${tt('up.noFoto')}</div></div>
  <div class="photo-btns"><label>${tt('up.camera')}<input type="file" accept="image/*" capture="environment" id="fCam"></label><label>${tt('up.gallery')}<input type="file" accept="image/*" id="fGal"></label></div></div>
@@ -188,7 +186,7 @@ function vSubir(){pendingPhoto=null;let fort='';
   const artSel=$('#uArt').value;const item={id,nombre:name,artesano_id:artSel&&artSel!=='__otro'?artSel:'',artesano_texto:artSel==='__otro'?$('#uArtTxt').value.trim():'',capa:$('#uCapa').value.trim(),fortaleza:fort||null,pueblo:$('#uPueblo').value.trim(),vitolas:$('#uVit').value.trim()?[$('#uVit').value.trim()]:[],notas:$('#uNotes').value.trim(),foto,creado:new Date().toISOString()};
   LS.set('uploads',[item,...uploads()]);toast(tt('up.saved'));location.hash='#/c/'+id}}
 /* ---------- lugares ---------- */
-let leafletMap=null;const LEAFC={lounge:'var(--danger)',venta:'var(--info)'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let leafletMap=null;const LEAFC={lounge:'var(--accent)',venta:'var(--warm)'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* LHB-87: pines que se tapan se juntan en un grupo (axe target-size). Entra [{x,y,m}] en píxeles del mapa; sale [{x,y,ms}].
    Un pin solo ocupa 26 x 34 con la punta abajo; un grupo, un círculo de 36; dos cajas a menos de 2 px se juntan, hasta que ninguna toca a otra. */
 const pinBox=(x,y,n)=>n>1?[x-18,y-18,x+18,y+18]:[x-13,y-32,x+13,y+2];
@@ -213,7 +211,7 @@ function placeCard(p){const ig=igHandle(p.instagram);return `<div class="pop"><d
 function filteredPlaces(){return D.places.filter(p=>(!state.lugCat||p.categoria===state.lugCat)&&(!state.lugTown||p.pueblo===state.lugTown))}
 function vLugares(arg){if(arg==='ruta')state.lugMode='ruta';else if(state.lugMode==='ruta')state.lugMode='mapa';const ru=state.lugMode==='ruta';const towns=[...new Set(D.places.map(p=>p.pueblo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));const ps=filteredPlaces();
  const nL=D.places.filter(p=>p.categoria==='lounge').length,nV=D.places.filter(p=>p.categoria==='venta').length;
- view.innerHTML=`${head(tt('lug.eyebrow'),tt('lug.title'),tt('lug.lead',{nL,nV}),VBArt.flor())}
+ view.innerHTML=`${head(tt('menu.lugares'),tt('lug.title'),tt('lug.lead',{nL,nV}),VBArt.ranchon())}
  <div class="toggle t3" role="group" aria-label="${tt('lug.view')}"><button data-mode="mapa" aria-pressed="${state.lugMode==='mapa'}">${tt('lug.map')}</button><button data-mode="lista" aria-pressed="${state.lugMode==='lista'}">${tt('lug.list')}</button><button data-mode="ruta" aria-pressed="${ru}">${tt('lug.ruta')}</button></div>
  ${ru?EXT.vRuta()+PROTO_NOTE:`<div class="chips"><button class="chip" data-cat="" aria-pressed="${!state.lugCat}">${tt('lug.all')}</button><button class="chip" data-cat="lounge" aria-pressed="${state.lugCat==='lounge'}">${tt('lug.lounges')}</button><button class="chip" data-cat="venta" aria-pressed="${state.lugCat==='venta'}">${tt('lug.venta')}</button></div>
  <div class="filter-row"><select id="fTown" aria-label="${tt('f.pueblo')}"><option value="">${tt('lug.allTowns')}</option>${towns.map(t=>`<option ${state.lugTown===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
@@ -259,9 +257,9 @@ function drawMap(ps){if(leafletMap){leafletMap.remove();leafletMap=null}
  /* LHB-87: en cada zoom, los pines que se taparían van en un grupo con su número; tocarlo acerca el mapa, y si ya no se separan, muestra la lista */
  const layout=()=>{pins.clearLayers();for(const g of groupPins(mks.map(m=>{const q=map.latLngToLayerPoint(m.ll);return {x:q.x,y:q.y,m}}))){if(g.ms.length===1){pins.addLayer(g.ms[0].mk);continue}
   const n=g.ms.length,at=map.layerPointToLatLng([g.x,g.y]),c=L.marker(at,{icon:L.divIcon({className:'pin-group',html:`<span>${n}</span>`,iconSize:[36,36],iconAnchor:[18,18]}),title:tt('map.group',{n}),keyboard:true});
-  c.on('click',()=>{map.closePopup();const b=L.latLngBounds(g.ms.map(m=>m.ll));if(tapGroup(map.getZoom(),map.getBoundsZoom(b,false,L.point(96,96)),b.getNorthEast().equals(b.getSouthWest()))==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)}).setLatLng(at).setContent(g.ms.map(m=>placeCard(m.p)).join('')).openOn(map);else map.fitBounds(b,{padding:[48,48],maxZoom:17})});pins.addLayer(c)}};
+  c.on('click',()=>{map.closePopup();const b=L.latLngBounds(g.ms.map(m=>m.ll));if(tapGroup(map.getZoom(),map.getBoundsZoom(b,false,L.point(96,96)),b.getNorthEast().equals(b.getSouthWest()))==='list')listPop=L.popup({autoPanPadding:[16,16],maxWidth:250,minWidth:210,maxHeight:popMaxH(map.getSize().y)}).setLatLng(at).setContent('<div class="pops">'+g.ms.map(m=>placeCard(m.p)).join('')+'</div>').openOn(map);else map.fitBounds(b,{padding:[48,48],maxZoom:17})});pins.addLayer(c)}};
  map.on('zoomend',layout);let listPop=null;map.on('resize',()=>fitPop(map,listPop));
- const nb=$('#near');if(nb)nb.onclick=()=>{if(!navigator.geolocation){toast(tt('geo.none'));return}nb.textContent=tt('geo.searching');navigator.geolocation.getCurrentPosition(pos=>{nb.textContent=tt('lug.near');const ll=[pos.coords.latitude,pos.coords.longitude];const vi=L.divIcon({className:'volky-pin',html:VBArt.carro('mini'),iconSize:[66,43],iconAnchor:[33,40]});L.marker(ll,{icon:vi,title:tt('geo.here'),zIndexOffset:1000}).addTo(map).bindTooltip(tt('geo.here'));map.setView(ll,12)},()=>{nb.textContent=tt('lug.near');toast(tt('geo.err'))},{timeout:10000})};
+ const nb=$('#near');if(nb)nb.onclick=()=>{if(!navigator.geolocation){toast(tt('geo.none'));return}nb.textContent=tt('geo.searching');navigator.geolocation.getCurrentPosition(pos=>{nb.textContent=tt('lug.near');const ll=[pos.coords.latitude,pos.coords.longitude];const vi=L.divIcon({className:'aqui-pin',html:VBArt.aqui(),iconSize:[30,30],iconAnchor:[15,15]});L.marker(ll,{icon:vi,title:tt('geo.here'),zIndexOffset:1000}).addTo(map).bindTooltip(tt('geo.here'));map.setView(ll,12)},()=>{nb.textContent=tt('lug.near');toast(tt('geo.err'))},{timeout:10000})};
  if(pts.length>1)map.fitBounds(pts,{padding:[28,28],maxZoom:state.lugTown?14:11});else if(pts.length===1)map.setView(pts[0],14);layout()}
 /* ---------- actividades ---------- */
 const MES=tt('months').split(',');
@@ -289,20 +287,22 @@ function paintAvatar(el,a,alt){const src=acctAvatar(a),ini=`<span>${esc(acctInit
 async function vPerfil(){const p=LS.get('perfil',{nombre:'',capa:''});const ac=acctNow();const ups=uploads();const rat=EXT.S().ratings;
  const ratC=Object.keys(rat).map(cigarById).filter(Boolean);
  view.innerHTML=`${EXT.subnav('perfil')}<div class="section-title"><h2>${tt('pf.title')}</h2></div>
- <div class="me"><div class="pic" id="mePic">${ac?esc(acctInitial(ac)):'\u2606'}</div><div><div class="n">${esc(ac?acctName(ac):tt('pf.yourName'))}</div><div class="c">${ac?'@'+esc(ac.handle)+(p.capa?' \u00b7 '+tt('pf.favCapa')+': '+esc(p.capa):''):p.capa?tt('pf.favCapa')+': '+esc(p.capa):tt('pf.pickCapa')}</div></div></div>
+ <div class="me"><div class="pic" id="mePic">${ac?esc(acctInitial(ac)):PERSON}</div><div><div class="n">${esc(ac?acctName(ac):tt('pf.yourName'))}</div><div class="c">${ac?'@'+esc(ac.handle)+(p.capa?' \u00b7 '+tt('pf.favCapa')+': '+esc(p.capa):''):p.capa?tt('pf.favCapa')+': '+esc(p.capa):tt('pf.pickCapa')}</div></div></div>
  <div class="pf-own" id="pfOwn"></div>
  <details class="edit"><summary>${tt('pf.favCapa')}</summary><form class="form" id="pForm">
  <div class="field"><label for="pC">${tt('pf.favCapa')}</label><select id="pC"><option value="">\u2014</option>${['Claro','Connecticut','Natural','Colorado','Habano','Corojo','Criollo','Maduro','Oscuro'].map(x=>`<option ${p.capa===x?'selected':''}>${x}</option>`).join('')}</select></div>
  <button class="btn" type="submit">${tt('pf.save')}</button></form></details>
- <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyCoqui(tt('pf.noUploads'))}
+ <div class="section-title"><h2>${tt('pf.myUploads')}</h2><a href="#/subir">${tt('pf.add')}</a></div>${ups.length?`<div class="mini-row">${ups.map(c=>cigarCard({...c,yours:true,mini:true})).join('')}</div>`:emptyBox(tt('pf.noUploads'))}
  <div class="section-title"><h2>${tt('pf.myRatings')}</h2></div>${ratC.length?`<div class="list">${ratC.map(c=>`<a class="row" href="#/c/${encodeURIComponent(c.id)}"><div><div class="t">${esc(c.nombre)}</div><div class="s">${esc(artisanName(c))}</div></div><span class="go" style="color:var(--accent-ink);font-size:15px">${'★'.repeat(rat[c.id])}${'☆'.repeat(5-rat[c.id])}</span></a>`).join('')}</div>`:'<div class="empty">'+tt('pf.noRatings')+'</div>'}
  ${EXT.accountPanel()}<p class="note">${tt('pf.note')}</p>`;
  if(ac)paintAvatar($('#mePic'),ac,tt('pf.fotoAlt'));EXT.bindAccount();
  /* LHB-58: el perfil pasaporte primero (bio, marca, conteos, Editar perfil y las pestañas) lo pone hoja.js en #pfOwn */
  if(ac)EXT.profileOwn(ac);
  $('#pForm').onsubmit=e=>{e.preventDefault();LS.set('perfil',{nombre:p.nombre,capa:$('#pC').value});toast(tt('pf.saved'));vPerfil();topAvatar()};hydratePhotos()}
-/* sin una cuenta guardada el círculo es la estrella: la foto y el nombre locales son de todo el teléfono, y a quien acaba de entrar con otra cuenta no se le muestra la foto de otra persona */
-function topAvatar(){const el=$('#topAvatar');if(!el)return;const a=acctNow();if(a)paintAvatar(el,a,'');else el.innerHTML='<span>\u2606</span>'}
+/* sin una cuenta guardada el círculo es la silueta (LHB-109): la foto y el nombre locales son de todo el teléfono, y a quien acaba de entrar con otra cuenta no se le muestra la foto de otra persona */
+/* LHB-109: sin cuenta, la silueta de una persona (la estrella no decía cuenta) */
+const PERSON='<svg class="person-glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="4"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/></svg>';
+function topAvatar(){const el=$('#topAvatar');if(!el)return;const a=acctNow();if(a)paintAvatar(el,a,'');else el.innerHTML=PERSON}
 /* ---------- v6: Mi Hoja y demás (hoja.js) ---------- */
 const EXT=window.LHB_EXT({topAvatar,$,$$,esc,toast,view,VBArt,LS,D:()=>D,allCigars,artisanById,cigarById,artisanName,fx,fq,cigarSVG,mono,linkBtn,ICON,FORT,fortLabel,PROTO_NOTE,head,cigarCard,goLink,evDate,route:()=>route(),menuHTML:h=>menuHTML(h),vPerfil,resizeImage,hydrate:r=>hydratePhotos(r||view)});
 /* LHB-73: Acerca de y los créditos de la intro. CREDITS dice qué sonido con licencia lleva cada archivo de site/assets; la prueba
@@ -316,13 +316,13 @@ const ext=(href,txt)=>`<a href="${href}" target="_blank" rel="noopener">${txt}</
 const keepFocus=()=>{const a=document.activeElement;if(!a||a===document.body||!a.isConnected)view.focus({preventScroll:true})};
 /* Ver intro: ?intro=1 la repite una vez aunque no hayan pasado los 14 días, y vuelve aquí; con menos movimiento o ahorro de datos la intro no sale, así que no se ofrece (se mira al pintar: el ajuste puede cambiar sin recargar) */
 function vAcerca(){const off=matchMedia('(prefers-reduced-motion: reduce)').matches||!!(navigator.connection&&navigator.connection.saveData);
- view.innerHTML=`${head(tt('about.eyebrow'),tt('about.title'),tt('about.lead'),VBArt.leaf('#ffd27a'))}
+ view.innerHTML=`${head(tt('about.eyebrow'),tt('about.title'),tt('about.lead'),VBArt.hoja())}
  <section class="about-sec" aria-labelledby="ab-intro"><h2 id="ab-intro">${tt('about.introH')}</h2>${off?`<p class="hint">${tt('about.introOff')}</p>`:`<p class="hint">${tt('about.replayNote')}</p><a class="lbtn about-replay" href="/?intro=1#/acerca" data-intro-replay>${brandIcon('play')}<span>${tt('about.replay')}</span></a>`}</section>
  <section class="about-sec" aria-labelledby="ab-more"><h2 id="ab-more">${tt('about.moreH')}</h2>
  <a class="menu-dest" href="#/creditos"><span class="menu-ico">${brandIcon('info')}</span><span class="menu-copy"><b>${tt('about.credits')}</b><small>${tt('about.creditsSub')}</small></span>${brandIcon('arrow','menu-go')}</a>
  <a class="menu-dest" href="/privacidad"><span class="menu-ico">${brandIcon('people')}</span><span class="menu-copy"><b>${tt('about.privacy')}</b><small>${tt('about.privacySub')}</small></span>${brandIcon('arrow','menu-go')}</a></section>`;keepFocus()}
 function vCreditos(){
- view.innerHTML=`<button class="back" type="button" data-back>${tt('cred.back')}</button>${head(tt('about.eyebrow'),tt('cred.title'),tt('cred.lead'),VBArt.leaf('#8fd162'))}
+ view.innerHTML=`<button class="back" type="button" data-back>${tt('cred.back')}</button>${head(tt('about.eyebrow'),tt('cred.title'),tt('cred.lead'),VBArt.hoja())}
  <section class="about-sec" aria-labelledby="cr-bus"><h2 id="cr-bus">${tt('cred.busH')}</h2><p class="cred-p">${tt('cred.bus')} ${ext('https://callepomarrosas.com/',tt('intro.creditName'))}.</p></section>
  <section class="about-sec" aria-labelledby="cr-sound"><h2 id="cr-sound">${tt('cred.soundH')}</h2><p class="hint">${tt('cred.soundLead')}</p>
  <ul class="cred-list">${CREDITS.audio.map(c=>`<li class="cred-item" data-credit="${c.id}"><b>${c.part()}</b><span>${ext(c.href,esc(c.title))} ${tt('cred.by')} ${esc(c.author)}</span><span>${tt('cred.license')}: ${ext(c.licenseHref,esc(c.license))}</span><span>${tt('cred.changes')}: ${c.changes()}</span></li>`).join('')}</ul>
@@ -331,24 +331,25 @@ function vCreditos(){
 /* LHB-73: fin */
 /* ---------- router ---------- */
 /* LHB-71: la tabla de rutas. El enrutador y el menú salen de aquí, así que una ruta nueva no se queda fuera del menú.
-   menu: [grupo, ícono, clave del nombre, clave de la línea, subruta]; of: la ruta de la que es detalle o alias (sale en el menú por ella) */
+   menu: [grupo, ícono, clave del nombre, clave de la línea, subruta]; of: la ruta de la que es detalle o alias (sale en el menú por ella)
+   LHB-109: tab: la clave del nombre de una pestaña (las pestañas son la navegación; el menú lleva solo lo que ellas no); bar: la lleva la barra de arriba (la lupa) */
 const MENU_GROUPS=[['descubre',()=>tt('menu.g.descubre')],['experiencia',()=>tt('menu.g.experiencia')],['comunidad',()=>tt('menu.g.comunidad')],['app',()=>tt('menu.g.app')]];
 const ROUTES=[
- {r:'catalogo',go:()=>vCatalogo(),menu:[['descubre','cigar','menu.cigarros','menu.cigarrosSub']]},
+ {r:'catalogo',go:()=>vCatalogo(),tab:'menu.cigarros'},
  {r:'c',go:id=>vCigar(id),of:'catalogo'},
- {r:'lugares',go:id=>vLugares(id),menu:[['descubre','place','menu.lugares','menu.lugaresSub']]},
- {r:'artesanos',go:()=>vArtesanos(),menu:[['descubre','maker','menu.artesanos','menu.artesanosSub']]},
+ {r:'lugares',go:id=>vLugares(id),tab:'menu.lugares',menu:[['descubre','place','menu.ruta','menu.rutaSub','ruta']]},
+ {r:'artesanos',go:()=>vArtesanos(),tab:'menu.artesanos'},
  {r:'a',go:id=>vArtesano(id),of:'artesanos'},
- {r:'mihoja',go:id=>EXT.routes.mihoja(id),menu:[['experiencia','leaf','menu.mihoja','menu.mihojaSub'],['experiencia','pen','menu.editar','menu.editarSub','editar'],['comunidad','people','menu.personas','menu.personasSub','personas']]},
+ {r:'mihoja',go:id=>EXT.routes.mihoja(id),tab:'menu.mihoja',menu:[['experiencia','pen','menu.editar','menu.editarSub','editar'],['comunidad','people','menu.personas','menu.personasSub','personas']]},
  {r:'perfil',go:()=>EXT.routes.mihoja('perfil'),of:'mihoja'},
  {r:'u',go:id=>EXT.routes.persona(id),of:'mihoja'},
  {r:'cata',go:id=>EXT.routes.cata(id),menu:[['experiencia','taste','menu.cata','menu.cataSub']]},
  {r:'maridajes',go:()=>EXT.routes.maridajes(),menu:[['experiencia','coffee','menu.maridajes','menu.maridajesSub']]},
  {r:'subir',go:()=>EXT.requireAccount(vSubir,{fast:true}),menu:[['experiencia','upload','menu.subir','menu.subirSub']]},
- {r:'eventos',go:id=>EXT.routes.eventos(id),menu:[['comunidad','event','menu.eventos','menu.eventosSub']]},
+ {r:'eventos',go:id=>EXT.routes.eventos(id),tab:'menu.eventos'},
  {r:'actividades',go:id=>EXT.routes.eventos(id),of:'eventos'},
  {r:'podcast',go:()=>EXT.routes.podcast(),menu:[['comunidad','podcast','menu.podcast','menu.podcastSub']]},
- {r:'buscar',go:()=>EXT.routes.buscar(),menu:[['app','search','menu.buscar','menu.buscarSub']]},
+ {r:'buscar',go:()=>EXT.routes.buscar(),bar:true},
  {r:'acerca',go:()=>vAcerca(),menu:[['app','info','menu.acerca','menu.acercaSub']]},
  {r:'creditos',go:()=>vCreditos(),of:'acerca'},
 ];
@@ -360,10 +361,15 @@ function menuHTML(hash){const [r0,a0]=String(hash==null?location.hash:hash).repl
  const rows=g=>ROUTES.flatMap(x=>(x.menu||[]).filter(m=>m[0]===g).map(m=>{const sub=m[4]||'',href='#/'+x.r+(sub?'/'+sub:''),subs=(x.menu||[]).map(n=>n[4]).filter(Boolean);
    const cur=home===x.r&&(sub?r===x.r&&arg0===sub:!(r===x.r&&subs.includes(arg0)));
    return `<a class="menu-dest" href="${href}"${cur?' aria-current="page"':''}><span class="menu-ico">${brandIcon(m[1])}</span><span class="menu-copy"><b>${tt(m[2])}</b><small>${tt(m[3])}</small></span>${cur?`<span class="menu-here">${tt('menu.aqui')}</span>`:brandIcon('arrow','menu-go')}</a>`}));
- const extra={app:[`<button type="button" class="menu-dest" data-sheet="instalar" data-arg="${ia}"><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`]};
+ /* LHB-109: lo que no es una ruta de la app: las guías (páginas fijas), el idioma (el nombre del otro, en el otro) y la privacidad */
+ const go=(href,i,k,ks)=>`<a class="menu-dest" href="${href}"><span class="menu-ico">${brandIcon(i)}</span><span class="menu-copy"><b>${tt(k)}</b><small>${tt(ks)}</small></span>${brandIcon('arrow','menu-go')}</a>`;
+ const I=typeof window!=='undefined'?window.LHB_I18N:null,other=I&&I.ENABLED?(I.lang==='en'?['es','Espa\u00f1ol']:['en','English']):null;
+ const extra={descubre:[go('guias/','book','menu.guias','menu.guiasSub')],app:[`<button type="button" class="menu-dest" data-sheet="instalar" data-arg="${ia}"><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`,
+  `<button type="button" class="menu-dest" data-theme-next><span class="menu-ico">${brandIcon('moon')}</span><span class="menu-copy"><b>${tt('menu.tema')}</b><small>${tt(THEME_KEY[themeNow()])}</small></span>${brandIcon('arrow','menu-go')}</button>`,
+  ...(other?[`<button type="button" class="menu-dest" data-lang="${other[0]}"><span class="menu-ico">${brandIcon('lang')}</span><span class="menu-copy"><b lang="${other[0]}">${other[1]}</b><small>${tt('menu.idiomaSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`]:[]),go('privacidad.html','lock','menu.privacidad','menu.privacidadSub')]};
  return `<header class="menu-welcome"><div class="eyebrow">${tt('menu.welcome')}</div><h2 class="sheet-h">${tt('menu.title')}</h2></header><nav class="menu-groups" aria-label="${tt('h.menu')}">${MENU_GROUPS.map(([g,label])=>`<section aria-labelledby="mg-${g}"><h3 id="mg-${g}">${label()}</h3>${rows(g).join('')}${(extra[g]||[]).join('')}</section>`).join('')}</nav>`}
 function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');let id='';if(arg){try{id=decodeURIComponent(arg)}catch(e){id=arg}}
- const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',u:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});
+ const tab={c:'catalogo',a:'artesanos',perfil:'mihoja',u:'mihoja',mihoja:'mihoja',actividades:'eventos',eventos:'eventos'}[r]||r;$$('.tabbar [data-tab],.topnav [data-tab]').forEach(a=>{const on=a.dataset.tab===tab;a.classList.toggle('active',on);if(a.tagName==='A'){if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}});
  if(leafletMap&&r!=='lugares'){leafletMap.remove();leafletMap=null}
  (ROUTE_OF[r]||ROUTE_OF.catalogo).go(id);
  if(r!==route._last){window.scrollTo(0,0)}route._last=h;
