@@ -361,7 +361,7 @@ body.sheet-on{overflow:hidden}
 .stars-ro{color:var(--accent-ink);font-size:var(--fs-3);letter-spacing:1px;white-space:nowrap}
 .stars-ro span{color:var(--muted)}
 .tagchips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
-.tchip{background:var(--wc);color:var(--fixed-text);border-radius:var(--r-pill);padding:4px 10px;font-size:var(--fs-1);font-weight:700}
+.tchip{background:var(--wc);color:var(--fixed-text);border-radius:var(--r-pill);padding:4px 10px;font-size:var(--fs-1);font-weight:700}.tchip.other{background:var(--card-2);color:var(--on-surface)}
 .dnote{margin:10px 0 2px;color:var(--on-surface-2);line-height:1.5;font-size:var(--fs-2)}
 .dentry details{margin-top:8px}
 .dfoto{margin:8px 0}

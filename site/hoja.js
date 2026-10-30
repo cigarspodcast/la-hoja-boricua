@@ -96,7 +96,8 @@ function wheel(sel,key){const N=WHEEL.length,R=150,r0=48,cx=160,cy=160;const pt=
  return `<div class="wheel-wrap"><svg class="wheel" viewBox="0 0 320 320" role="group" aria-label="${tt('h.ruedaDeSaboresToca')}">${segs}<circle cx="160" cy="160" r="42" class="whub"/><text x="160" y="157" text-anchor="middle" class="whub-n">${sel.length}</text><text x="160" y="176" text-anchor="middle" class="whub-t">${sel.length===1?tt('h.sabor'):tt('h.sabores')}</text></svg></div>`}
 function bindWheel(get,set,rerender){$$('.wseg').forEach(g=>{const act=()=>{const k=g.dataset.wk,id=g.dataset.w;const cur=get(k);set(k,cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);rerender(k,id)};g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})})}
 /* inl: dentro de un botón (LHB-61) va en span, que un botón no puede llevar un div */
-const tagChips=(ts,inl)=>{if(!ts.length)return '';const ch=ts.map(t=>`<span class="tchip" style="--wc:${(WHEEL.find(w=>w.id===t)||{}).c||'var(--card-2)'}">${esc(WN(t))}</span>`).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
+const tagChips=(ts,inl)=>{if(!ts.length)return '';/* Codex r5 (LHB-110): una etiqueta fuera de la rueda no tiene color de sabor: va en la ficha neutra del tema (.tchip.other), no con la tinta fija */
+ const ch=ts.map(t=>{const w=WHEEL.find(w=>w.id===t);return w?`<span class="tchip" style="--wc:${w.c}">${esc(WN(t))}</span>`:`<span class="tchip other">${esc(WN(t))}</span>`}).join('');return inl?`<span class="tagchips">${ch}</span>`:`<div class="tagchips">${ch}</div>`};
 /* ---------- hoja de acciones (sheet) ---------- */
 let lastFocus=null,closeT=null; /* closeT: el cierre con animación; se cancela al abrir otra hoja o al cerrar al instante, para que no borre la nueva */
 let owed=false; /* LHB-64: se abrió una hoja y el foco todavía no ha vuelto */
@@ -520,7 +521,7 @@ const pfIni=p=>{const w=String(p.display_name||'').split(/\s+/).filter(Boolean);
    LHB-60: seguidores y siguiendo llevan a sus listas */
 const pfCounts=(c,own,h)=>{const n=k=>c&&c[k]!=null?pfNum(c[k]):'·';const to=s=>'#/u/'+encodeURIComponent(h)+'/'+s;
  return `<ul class="pf-counts" id="pfCounts"><li><b>${n('resenas')}</b><span>${tt('h.pfResenas')}</span></li><li><a href="${to('seguidores')}"><b id="pfNFollowers">${n('followers')}</b><span>${tt('h.pfSeguidores')}</span></a></li><li><a href="${to('siguiendo')}"><b>${n('following')}</b><span>${tt('h.pfSiguiendo')}</span></a></li></ul>
- <div class="pf-act">${own?`<a class="btn" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div><div class="pf-more" id="pfMore"></div>`}</div>`};
+ <div class="pf-act">${own?`<a class="btn secondary" href="#/mihoja/editar" id="pfEdit">${tt('h.editarPerfil2')}</a>`:`<div class="pf-follow" id="pfFollow" data-handle="${esc(h)}"></div><div class="pf-more" id="pfMore"></div>`}</div>`};
 const pfAbout=p=>`${p.bio?`<p class="pf-bio">${esc(p.bio)}</p>`:''}${p.favorite_brand?`<p class="pf-fav">${tt('h.pfMarcaFav')}: <b>${esc(p.favorite_brand)}</b></p>`:''}`;
 /* el encabezado de otra persona: su foto de Clerk o sus iniciales */
 function pfHead(p,c){const pic=typeof p.avatar_key==='string'&&p.avatar_key.startsWith(PF_IMG)?`<img src="${esc(p.avatar_key)}" alt="${tt('h.pfFotoDe',{a:'@'+esc(p.handle)})}" width="88" height="88">`:`<span aria-hidden="true">${esc(pfIni(p))}</span>`;
@@ -1085,7 +1086,7 @@ function vEventos(focus){const LS=A.LS;const today=new Date();today.setHours(0,0
  <details class="edit"><summary>${tt('h.sugerirActividad')}</summary><form class="form" id="sugForm"><div class="field"><label for="sT">${tt('h.actividad')}</label><input id="sT" required maxlength="80" placeholder="${tt('h.ejNocheDeCata')}"></div>
  <div class="field"><label for="sF">${tt('h.fecha')}</label><input id="sF" type="date" required></div><div class="field"><label for="sH">${tt('h.hora2')}</label><input id="sH" maxlength="20" placeholder="${tt('h.ej700Pm')}"></div>
  <div class="field"><label for="sL">${tt('h.lugar')}</label><input id="sL" maxlength="60"></div><div class="field"><label for="sP">${tt('f.pueblo')}</label><input id="sP" maxlength="40"></div>
- <div class="field"><label for="sE">${tt('h.enlaceIgOWeb')}</label><input id="sE" type="url" maxlength="200" placeholder="https://"></div><button class="btn" type="submit">${tt('h.guardarSugerencia')}</button></form></details>
+ <div class="field"><label for="sE">${tt('h.enlaceIgOWeb')}</label><input id="sE" type="url" maxlength="200" placeholder="https://"></div><button class="btn secondary" type="submit">${tt('h.guardarSugerencia')}</button></form></details>
  <div class="section-title"><h2>${tt('h.fuentes')}</h2></div><p class="lead" style="margin-top:-4px">${tt('h.lasCuentasQueEsta')}</p>
  <div class="list">${(D().events.fuentes||[]).map(f=>`<a class="row" href="${esc(f.url)}" target="_blank" rel="noopener">${A.mono(f.handle.replace('@',''),38)}<div><div class="t">${esc(f.handle)}</div>${f.nombre?`<div class="s">${esc(f.nombre)}</div>`:''}</div><span class="go">›</span></a>`).join('')}</div>${A.PROTO_NOTE}`;
  $$('[data-evm]').forEach(b=>b.onclick=()=>{evst.mode=b.dataset.evm;vEventos()});
