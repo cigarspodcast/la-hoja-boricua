@@ -1,0 +1,49 @@
+✔ LHB-108: cada página del sitio lleva la misma firma, una vez, con el lema en español (37.3369ms)
+✖ LHB-108 (Codex r1): bajo 360 px la firma se achica pero el nombre no se esconde (1.7075ms)
+✖ LHB-108: el lema no se traduce, y la intro usa la misma firma (7.9458ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 1
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 200.184
+
+✖ failing tests:
+
+test at test\site.test.js:7288:1
+✖ LHB-108 (Codex r1): bajo 360 px la firma se achica pero el nombre no se esconde (1.7075ms)
+  AssertionError [ERR_ASSERTION]: la firma compacta
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red108b\test\site.test.js:7289:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\site.test.js:7292:1
+✖ LHB-108: el lema no se traduce, y la intro usa la misma firma (7.9458ms)
+  AssertionError [ERR_ASSERTION]: la imagen para compartir
+      at TestContext.<anonymous> (C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner-la-hoja-boricua\ddfa8e87-aefe-452e-8857-30bbd7a1c261\scratchpad\red108b\test\site.test.js:7296:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

@@ -3664,8 +3664,8 @@ test('LHB-36: el selector tiene su estilo en la barra de arriba y el pie de la a
  /* Codex r1: a 320 y 375 px el selector con el nombre entero empujaba la barra fuera de la pantalla (medido en el navegador, evidence/lhb-36-topbar-widths.txt) */
  assert.ok(css.includes('.lang-switch .ls-short{display:none}'),'la sigla escondida donde cabe el nombre');
  assert.ok(css.includes('@media (max-width:399px){.lang-switch{min-width:42px;padding:0 10px}.lang-switch .ls-long{display:none}.lang-switch .ls-short{display:inline}}'),'bajo 400 px, la sigla (LHB-93: con su ancho reservado)');
- const nar=css.match(/@media \(max-width:359px\)\{\.brand-text\{([^}]*)\}\}/);assert.ok(nar,'bajo 360 px, la marca sin el texto');
- assert.ok(nar[1].includes('position:absolute')&&nar[1].includes('clip:rect(0 0 0 0)')&&!nar[1].includes('display:none'),'escondido a la vista, no al lector de pantalla: el enlace sigue con nombre (LHB-88)');
+ /* LHB-108 (Codex r1): bajo 360 px el nombre se ve (la firma compacta); solo el lema sale de la vista, y el nombre del enlace sigue siendo lo que se ve (LHB-88) */
+ const nar=css.match(/@media \(max-width:359px\)\{\.brand\{gap:6px;min-width:0\}\.brand img\{width:28px;height:28px\}\.brand-name\{font-size:var\(--fs-3\)\}\.brand-sub\{display:none\}\}/);assert.ok(nar,'bajo 360 px, la firma compacta');
  const ix=read('index.html');const {T}=I18N();
  for(const [sec,k] of [['lugares','ix.footLug'],['artesanos','ix.footArt']]){assert.ok(ix.includes('<a href="'+sec+'/" data-i18n="'+k+'" data-i18n-attr="href:'+k+'Href">'),'pie '+sec);assert.equal(T.es[k+'Href'],sec+'/');assert.equal(T.en[k+'Href'],'en/'+sec+'/');
   assert.ok(fs.existsSync(path.join(S,'en',sec,'index.html')),'la página en inglés existe '+sec)}
