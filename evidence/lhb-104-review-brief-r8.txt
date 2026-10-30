@@ -64,6 +64,10 @@ Plus three LHB-104 (Codex r3) tests, each failing on e070f81's sync.js and hoja.
 24. Tab 1 holds the rev 2 base in memory (its META write failed); tab 2 removes a1 (lands at rev 3), cannot write the rev 3 META and poisons it, and its restorative upload loses its answer: tab 1 does not use its in-memory base, and a1 stays.
 25. Tab T's GET (rev 1) is held; meanwhile tab 1 removes a1 (lands at rev 2), records the rev 2 base, removes its entry and sends a restorative upload that loses its answer. Tab 1's storage writes are replayed right before T writes its rev 1 META (between its final check and its write). T's older META stays, but it is not trusted: a1 stays locally and in the account, and tab 1's late PUT answers 409.
 26. After three uploads exactly one high-water key remains (the current rev), and sign-out removes it.
+27. Neither the new base nor its high-water key can be written when a tab learns its removal landed: it keeps its entry, and after a reload a1 stays.
+28. A 200 arrives while the person re-adds a1, and neither the final meta nor its high-water key can be written: the entry stays, and after a reload a1 stays.
+29. The person removed a1 and tab 1 uploaded it (rev 2) while tab 2's GET answer (rev 1, with a1) was on its way: tab 2 does not bring a1 back.
+(27 to 29 guard the staleBase poisoning, the deferred 200 cleanup and the post-GET re-ask, which the high-water mark shadows in the earlier tests; each was seen red under its mutant.)
 (24 to 26 fail on 5acd5dd's sync.js: evidence/lhb-104-r7-red.txt, 3 of 3.)
 (20 to 23 fail on c019040's sync.js: evidence/lhb-104-r6-red.txt, 4 of 4.)
 (18 and 19 fail on d5d0bbe's sync.js: evidence/lhb-104-r5-red.txt, 2 of 2.)
