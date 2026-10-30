@@ -7071,6 +7071,36 @@ test('LHB-104 (Codex r7): la persona quitó a1 y la pestaña 1 ya lo subió (rev
   open();await p2;await T2.run('y');
   assert.deepEqual(A.doc().favs.artesanos,[],'a1 no vuelve al teléfono');assert.deepEqual(srv28(a,'user_a').doc.favs.artesanos,[],'ni a la cuenta');
  }finally{a.done()}});
+test('LHB-104 (Codex r8): la marca de agua de la meta tachada no se puede escribir: la anotación se queda, y una meta vieja escrita tarde no hace perder a1',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const api=A.D.api;let once=true;
+  A.D.api=async(C,m,...r)=>{if(m==='PUT'&&once){once=false;await api(C,m,...r);throw new TypeError('sin respuesta')}return api(C,m,...r)};
+  A.edit(d=>{d.ratings.c2=3});await A.sync();assert.equal(srv28(a,'user_a').rev,2,'la nota de la 1 llegó sin respuesta');
+  let n=0,late=null;
+  const D2={...A.D,api:async(C,m,path,...r)=>{if(m==='PUT'){n++;if(n===1){await api(C,m,path,...r);throw new TypeError('sin respuesta')}if(n===2){late=()=>api(C,m,path,...r);throw new TypeError('sin red')}}return api(C,m,path,...r)}};
+  const B=SYNC28().LHB_SYNC(D2);assert.equal((await B.run('ve')).ok,true);
+  /* la 1 quita a1; su changed() escribe la meta del rev 2 tarde (se guarda y se escribe al final) */
+  const s0=A.D.ls.set;let hold=true,held=null,hw3=0;
+  A.D.ls.set=(k,v)=>{if(hold&&k==='lhb_mihoja_v1_sync'){held=v;hold=false;return}if(k==='lhb_mihoja_v1_hw.user_a.3'){hw3++;throw new Error('QuotaExceededError')}return s0(k,v)};
+  A.edit(d=>{d.favs.artesanos=[]});assert.ok(held,'la escritura de la 1 quedó para después');
+  await B.run('quita');assert.equal(srv28(a,'user_a').rev,3,'la quita llegó');
+  {const prev=A.ls.get(A.KEY);const d=A.doc();d.favs.artesanos=['a1'];A.ls.set(A.KEY,JSON.stringify(d));B.changed(prev)}
+  await B.run('aprende');assert.ok(hw3>0,'la marca del rev 3 no se pudo escribir');assert.ok(late,'la que repone a1 quedó sin respuesta');
+  s0('lhb_mihoja_v1_sync',held);A.D.ls.set=s0;
+  A.D.wait=async()=>{};await A.eng.settled({});
+  assert.ok(A.doc().favs.artesanos.includes('a1'),'en el teléfono');assert.ok(srv28(a,'user_a').doc.favs.artesanos.includes('a1'),'y en la cuenta');
+ }finally{a.done()}});
+test('LHB-104 (Codex r8): las subidas que llegaron se olvidan de la memoria de la pestaña',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  for(let i=0;i<12;i++){A.edit(d=>{d.ratings['c'+(i+2)]=3});assert.equal((await A.sync()).ok,true)}
+  assert.equal(srv28(a,'user_a').rev,13);assert.equal([...A.ls.keys()].filter(isP104).length,0,'nada anotado');assert.equal(A.eng._myOps(),0,'y nada en memoria');
+ }finally{a.done()}});
 test('LHB-80 (Codex r2): salir con una subida que todavía puede llegar: la pasada de salir pone la valla; sin respuesta tampoco a esa, no está a salvo',async()=>{
  for(const lose of [false,true]){const a=await ENG28();
   try{

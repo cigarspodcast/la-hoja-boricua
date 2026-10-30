@@ -179,7 +179,8 @@ window.LHB_SYNC=function(D){
   if(fenceOn()){if(!full){try{D.ls.remove(k)}catch(e){}}throw new Error('fenced')}
   return k};
  /* las que mandó esta pestaña (aunque ya no las pregunte): de esas se encarga la memoria de esta pestaña (pend, evict); las demás de la lista son de otra */
- const myOps=new Set();
+ /* Codex r8: con su cuenta y su If-Match, para soltarlas cuando una subida de esa cuenta llega */
+ const myOps=new Map();
  let unrecorded=false,poisonNow=null;
  async function once(){unrecorded=false;poisonNow=null;let r;
   try{r=await once0()}catch(e){r={fail:'storage'}}
@@ -213,7 +214,8 @@ window.LHB_SYNC=function(D){
   /* Codex r6: la meta tachada guarda el rev más alto que se conoce (el de la cuenta, el de la meta leída o la guardada): sin base, pero una subida o una respuesta
      más vieja no vuelve a valer contra ella */
   let topRev=0;const top=n=>{if(Number.isInteger(n)&&n>topRev)topRev=n};
-  const poison=()=>{top(meta&&meta.rev);try{top(hwMax(uid))}catch(e){}try{const x=pm(D.ls.get(META));top(x&&x.rev)}catch(e){}return writeMeta({sub:uid,rev:topRev,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0})};poisonNow=poison;
+  const poison=()=>{top(meta&&meta.rev);try{top(hwMax(uid))}catch(e){}try{const x=pm(D.ls.get(META));top(x&&x.rev)}catch(e){}/* Codex r8: la tachada también pone su marca de agua; si la marca no queda, la meta tachada se escribe igual pero no cuenta como anotada (las anotaciones se quedan) */
+   const h=hwPut(uid,topRev),w=writeMeta({sub:uid,rev:topRev,base:null,at:(meta&&meta.at)||null,dirty:true,ep:ep0});return h&&w};poisonNow=poison;
   for(let i=0;i<TRIES;i++){
    const e0=edits,s0=readSeq(),local0=D.getDoc(),L=std(local0);
    /* LHB-80: con subidas sin respuesta, se pregunta por ellas (Codex r1: por todas las que siguen sin saberse, no solo la última) */
@@ -296,7 +298,7 @@ window.LHB_SYNC=function(D){
     /* Codex r1: se suma a las que siguen sin saberse (no las reemplaza); si son demasiadas, la más vieja deja de preguntarse.
        Codex r2: pero queda anotado su If-Match (evict) hasta que la cuenta pase de él, y mientras tanto cada pasada pone la valla */
     /* Codex r3: el límite es por cuenta (se preguntan solo las de esta), y la que se deja de preguntar es de esta cuenta */
-    const op=newOp(),sk=shAdd(uid,rev,op);myOps.add(op);pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
+    const op=newOp(),sk=shAdd(uid,rev,op);myOps.set(op,{s:uid,r:rev});pend.push({sub:uid,rev,op,sent:merged,ep:ep0});const mine=pend.filter(x=>x.sub===uid);
     if(mine.length>OPS_ASK){const x=mine[0];pend=pend.filter(y=>y!==x);if(!evict.has(uid)||x.rev>evict.get(uid))evict.set(uid,x.rev)}
     let p;try{p=await D.api(C,'PUT','/api/mihoja',{schema:1,doc:merged},uid,{'If-Match':String(rev),'X-Op':op})}catch(e){return {skip:'offline'}}
     /* una respuesta clara de que esta no llegó: solo esta se olvida (Codex r1: una de antes que sigue sin saberse puede ser la que ganó el 409) */
@@ -331,7 +333,7 @@ window.LHB_SYNC=function(D){
    /* Codex r1: con la columna, una subida que todavía puede llegar se sigue preguntando aunque esta pasada termine; sin ella, como antes, se olvida */
    staleBase=false;voided=false;if(!opsSeen)pend=pend.filter(x=>x.sub!==uid);if(!edited)dirty=false;
    /* si no se pueden quitar, se quedan: la próxima pasada las quita (ya pasaron su If-Match) */
-   if(clean>=0)try{for(const e of shRead())if(e.s===uid&&e.r<=clean)shDel(e)}catch(e){}
+   if(clean>=0){try{for(const e of shRead())if(e.s===uid&&e.r<=clean)shDel(e)}catch(e){}for(const [o,x] of myOps)if(x.s===uid&&x.r<=clean)myOps.delete(o)}
    /* las marcas de más abajo ya no hacen falta (la más alta sigue) */
    try{for(const x of hwKeys(uid))if(x.r<newRev)D.ls.remove(x.k)}catch(e){}
    if(!quiet&&canon(final)!==canon(merged))again=true;
@@ -417,5 +419,5 @@ window.LHB_SYNC=function(D){
   D.listen('online',()=>run('en-linea'));
   D.listen('visible',()=>run('visible',{minAge:30e3}));
   if(D.acct())D.setTimer(()=>run('abrir'),1500)}
- return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy}};
+ return {run,changed,start,isolate,ensureOwner,settled,hold,forget,fenced,fenceUp,status:()=>({...state,at:(readMeta()||{}).at||null}),once,_busy:()=>!!busy,_myOps:()=>myOps.size}};
 })();

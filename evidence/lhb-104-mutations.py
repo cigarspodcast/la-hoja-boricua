@@ -51,6 +51,9 @@ MUTS = [
     (SY, 'r7: older high-water keys are kept', '   try{for(const x of hwKeys(uid))if(x.r<newRev)D.ls.remove(x.k)}catch(e){}', ''),
     (SY, 'r7: sign-out leaves the high-water keys', 'for(const u of subs){try{for(const x of hwKeys(u))D.ls.remove(x.k)}catch(e){ok=false}}', ''),
     (SY, 'r7: the lost-copy check ignores the base set aside', 'const wb=meta&&(meta.base||meta.was)', 'const wb=meta&&meta.base'),
+    (SY, 'r8: the poisoned meta counts as recorded without its high-water key', 'return h&&w};poisonNow=poison;', 'return w};poisonNow=poison;'),
+    (SY, 'r8: the poisoned meta writes no high-water key', 'const h=hwPut(uid,topRev),w=', 'const h=true,w='),
+    (SY, 'r8: landed uploads stay in the tab memory', 'for(const [o,x] of myOps)if(x.s===uid&&x.r<=clean)myOps.delete(o)', ''),
 ]
 
 EQUIV = {}
