@@ -61,6 +61,10 @@ Codex r14: a stylesheet link made by a script with an escaped name       RED (ca
 Codex r15: a coloured drawing in a frame document (srcdoc) on a static page RED (caught) (fail 1)
 Codex r15: a coloured drawing whose tag is written through a JavaScript escape RED (caught) (fail 1)
 Codex r15: a frame document set by a script                              RED (caught) (fail 1)
+Codex r16: an icon-shaped SVG coloured by an animation on a static page  RED (caught) (fail 1)
+Codex r16: a drawing whose accent is coloured by an animation            RED (caught) (fail 1)
+Codex r16: a script that paints an SVG                                   RED (caught) (fail 1)
+Codex r16: an animation inside the empty-state SVG data URI              RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
 Codex r9: a new stylesheet with an SVG decoration, found by the walk     RED (caught) (fail 1)
-RESULT 64 of 64 red
+RESULT 68 of 68 red

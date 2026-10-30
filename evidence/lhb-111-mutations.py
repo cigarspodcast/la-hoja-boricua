@@ -71,6 +71,10 @@ MUTS = [
     ('site/404.html', 'Codex r15: a coloured drawing in a frame document (srcdoc) on a static page', '</body>', '<iframe title="Decoration" srcdoc="&lt;svg width=\'200\' height=\'200\' viewBox=\'0 0 100 100\'&gt;&lt;circle cx=\'50\' cy=\'50\' r=\'45\' fill=\'red\'/&gt;&lt;/svg&gt;"></iframe></body>'),
     ('site/hoja.js', 'Codex r15: a coloured drawing whose tag is written through a JavaScript escape', 'const CAL_ICO=', 'const CAL_X=`\\x3csvg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#e33"/></svg>`;const CAL_ICO='),
     ('site/hoja.js', 'Codex r15: a frame document set by a script', 'const CAL_ICO=', "const CAL_X=f=>{f.srcdoc='<svg viewBox=\"0 0 50 50\"></svg>'};const CAL_ICO="),
+    ('site/404.html', 'Codex r16: an icon-shaped SVG coloured by an animation on a static page', '</body>', '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11"><set attributeName="fill" to="red"/></circle></svg></body>'),
+    ('site/art.js', 'Codex r16: a drawing whose accent is coloured by an animation', '<circle class="ac" cx="98" cy="22" r="8"/>', '<circle class="ac" cx="98" cy="22" r="8"><set attributeName="fill" to="red"/></circle>'),
+    ('site/hoja.js', 'Codex r16: a script that paints an SVG', 'const CAL_ICO=', "const CAL_X=e=>{e.setAttribute('fill','red')};const CAL_ICO="),
+    ('site/styles.css', 'Codex r16: an animation inside the empty-state SVG data URI', "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'", "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Canimate attributeName='opacity' values='0;1' dur='1s'/%3E%3Cg"),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
