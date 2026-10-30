@@ -1,4 +1,4 @@
-LHB-95 rendered widths, site C:\LHB\lhb-marca112-wt\site, measured 2026-10-30T05:52Z in headless Chrome (Chrome/156.0.8078.74).
+LHB-95 rendered widths, site C:\LHB\lhb-marca112-wt\site, measured 2026-10-30T06:01Z in headless Chrome (Chrome/156.0.8078.74).
 Counting basis: getBoundingClientRect() in CSS px, device scale 1, classic scrollbars hidden (clientWidth = viewport).
 
 card photos (.grid .card .ph.has-foto img), every one on the catalog page, against the sizes each declares
