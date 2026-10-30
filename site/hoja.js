@@ -1103,7 +1103,7 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
  try{await Promise.all(['600 64px Fraunces','600 36px Figtree','700 30px Figtree'].map(f=>document.fonts.load(f)))}catch(e){}
  const g=x.createLinearGradient(0,0,W*.4,H);g.addColorStop(0,tk('surface-2'));g.addColorStop(.55,tk('surface'));g.addColorStop(1,tk('card-2'));x.fillStyle=g;x.fillRect(0,0,W,H);
  const mk=new Image();mk.src='icons/icon.svg';await new Promise(r=>{mk.onload=r;mk.onerror=r});
- const fb=[[tk('flag-blue'),.18],[tk('flag-red'),.27],[tk('flag-white'),.1],[tk('flag-red'),.27],[tk('flag-white'),.04],[tk('flag-red'),.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});try{x.drawImage(mk,W/2-32,32,64,64)}catch(e){}
+ const fb=[[tk('flag-blue'),.18],[tk('flag-red'),.27],[tk('flag-white'),.1],[tk('flag-red'),.27],[tk('flag-white'),.04],[tk('flag-red'),.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});try{const mb=tk('mark-bg');if(mb&&mb!=='transparent'){x.fillStyle=mb;rr(x,W/2-36,28,72,72,12);x.fill()}x.drawImage(mk,W/2-32,32,64,64)}catch(e){}
  x.textBaseline='alphabetic';x.font='600 64px Fraunces';x.fillStyle=tk('on-surface');const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,158);x.fillStyle=tk('accent-ink');x.fillText('Boricua',sx+w1,158);
  x.font='600 22px Figtree';x.fillStyle=tk('warm-ink');x.textAlign='center';x.letterSpacing='4px';x.fillText(tt('brand.tagline').toUpperCase(),W/2,198);x.letterSpacing='0px';x.textAlign='left';
  const foto=(!c.yours&&window.LHB_FOTOS)?window.LHB_FOTOS[c.id]:null;let fimg=null;

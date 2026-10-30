@@ -3888,6 +3888,11 @@ test('LHB-110: el tema oscuro: los dos bloques con los mismos valores, solo toke
  const {val}=TOKENS65(D),lum=h=>contrast65(h,'#000000');assert.ok(lum(val('surface'))<lum(val('on-surface')),'de noche: superficie oscura, texto claro');assert.ok(lum(val('accent'))>lum(val('on-accent')),'el tabaco de noche es claro, su texto oscuro');
  /* el pasaporte de noche: cada tinta con su fondo */
  for(const [ink,soft] of [['accent-ink','accent-soft'],['warm-ink','warm-soft'],['on-surface-2','card-2'],['warn-ink','warn-soft']])for(const [f,b] of [[ink,soft],['card',ink],['on-surface',soft]])assert.ok(contrast65(val(f),val(b))>=4.5,'de noche '+f+' sobre '+b);
+ /* la hoja (tabaco oscuro, en icons/icon.svg) se lee de noche: va sobre su teja, en la barra, la intro, l.css, u.css y la imagen para compartir */
+ const leaf=(read('icons/icon.svg').match(/fill="(#[0-9A-Fa-f]{6})"/)||[])[1];assert.ok(leaf);assert.equal(val('mark-bg').toUpperCase(),'#EFEBE2');assert.ok(contrast65(leaf,val('mark-bg'))>=3,'la hoja sobre su teja');assert.ok(contrast65(leaf,val('surface'))<3,'sin la teja no se vería');
+ assert.match(css,/\.brand img\{border-radius:var\(--r-s\);background:var\(--mark-bg\)\}/);assert.match(css,/\.intro-mark img\{[^}]*background:var\(--mark-bg\)\}/);
+ for(const f of STATIC68){assert.ok(read(f).includes('.brand img{border-radius:var(--r-s);background:var(--mark-bg)}'),f);assert.equal(TOKENS65(DARK110.css(read(f))).val('mark-bg'),val('mark-bg'),f)}
+ assert.ok(read('hoja.js').includes("const mb=tk('mark-bg');if(mb&&mb!=='transparent'){x.fillStyle=mb;rr(x,W/2-36,28,72,72,12);x.fill()}x.drawImage(mk,"),'la imagen para compartir');
  /* la prueba ve un par de noche que no pasa */
  assert.ok(pairs65(DARK110.css(css.replace(DARK110.MEDIA,x=>x.replace('--muted:#ADA997','--muted:#3A4636')))).some(p=>p.f==='muted'&&p.r<4.5),'la prueba ve un gris que no se lee');
 });
