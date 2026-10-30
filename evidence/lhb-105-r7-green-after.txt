@@ -1,0 +1,28 @@
+✔ LHB-105: el cambio de cuenta espera el candado: la pasada de otra pestaña termina con la copia de A, y luego el cambio la aparta y deja la de B vacía (325.2025ms)
+✔ LHB-105: una pasada que pide el candado después del cambio ya ve la copia de B: no sube nada de A a ninguna cuenta (232.5347ms)
+✔ LHB-105: dos pestañas piden el cambio a la vez: uno cambia y aparta, el otro ya encuentra la copia de B (171.9108ms)
+✔ LHB-105: una pestaña que abre Mi Hoja varias veces mientras el cambio espera pide un solo cambio (193.67ms)
+✔ LHB-105 (Codex r6): una pasada que encuentra la copia de otra cuenta no cambia en medio: termina, y el cambio corre después con los candados (sin esperarse a sí misma) (239.7822ms)
+✔ LHB-105: sin Web Locks el cambio es como antes, en el momento (279.1502ms)
+✔ LHB-105: si el cambio falla (sin espacio) no se vuelve a pintar la pantalla sola; la vez siguiente que se abre Mi Hoja se intenta otra vez (179.6308ms)
+✔ LHB-105: hoja.js le dice a sync.js si hay Web Locks, y mientras el cambio espera, escribir avisa que se está cambiando de cuenta (en los dos idiomas) (9.5532ms)
+✔ LHB-105 (Codex r6): otra pestaña está a mitad de escribir cuando esta, con una pasada en curso, pide el cambio de cuenta: la escritura termina con la copia de A, el cambio espera el exclusivo y la aparta, y nada de A llega a B (481.4589ms)
+✔ LHB-105 (Codex r7-1): la otra pestaña oye el aviso del cambio antes de que este pida el exclusivo: suelta y vuelve a pedir su compartido detrás del exclusivo, y el cambio termina (175.4252ms)
+✔ LHB-105 (Codex r7-2): si no se puede escribir el aviso del cambio y otra pestaña no suelta su compartido, el cambio se rinde a los WL_WAIT, no aparta nada, y se puede volver a intentar (171.5789ms)
+✔ LHB-105 (Codex r7-3): dos cambios en el mismo milisegundo: cada aviso lleva su propio valor, así la otra pestaña oye los dos y el segundo cambio no se queda esperando (317.2821ms)
+✔ LHB-98 (reproducción 2): la salida reintentada con la copia ya borrada y Clerk tardando: aunque el reloj salte 11 s, otra pestaña que abre Mi Hoja no escribe nada que se quede (270.2217ms)
+✔ LHB-98 (reproducción 1): una pestaña dormida a mitad de una escritura cuando otra sale: la salida la espera, su cambio cambia la marca, no se borra nada ni se cierra la sesión (312.607ms)
+✔ LHB-98: sin el candado compartido en la mano, lo que escribe la persona no se guarda (ni la meta, el contador o la dueña del motor); lo que la app escribe sola al abrir tampoco hasta tenerlo (Codex r1) (59.7336ms)
+✔ LHB-98: al ver la valla de otra pestaña, esta suelta el compartido y vuelve a la fila detrás de la salida; cuando la salida termina lo tiene otra vez (97.5223ms)
+✔ LHB-98: salir pide el exclusivo antes de poner la valla y lo tiene hasta que Clerk termina; si otra pestaña no lo suelta en WL_WAIT no sale ni borra nada (Codex r1) y otro intento sale cuando la suelta; si Clerk falla, la página vuelve a tener el compartido (215.276ms)
+✔ LHB-98: borrar la cuenta también borra este teléfono y cierra la sesión con el exclusivo en la mano (143.6292ms)
+✔ LHB-98 (Codex r1): la cuenta ya se borró y otra pestaña no suelta su compartido: a los WL_WAIT se avisa y se sigue esperando; nada se borra de este teléfono sin el exclusivo; cuando lo suelta se termina (132.3933ms)
+✔ LHB-98 (Codex r1): mientras la salida tiene el exclusivo, otra pestaña que abre Mi Hoja sin copia (lo que la app escribe sola, quiet) no guarda nada aunque la valla con tiempo ya caducó; con el candado, sí (241.2897ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4781.5031
