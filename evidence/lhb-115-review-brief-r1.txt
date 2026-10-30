@@ -1,0 +1,44 @@
+Code review, LHB-115, TIER 2, round 1. Repository cigarspodcast/la-hoja-boricua, branch lhb-115-lang. You are reviewing; do not edit files.
+
+The ticket (owner, 2026-10-30): the app defaults to Spanish, with the choice of changing languages. On the first visit a full-screen choice comes before anything else, including the intro video. The choice is remembered in a cookie for later sessions, and when the person is signed in their language is saved to the account.
+
+Pinned decisions:
+- With no saved choice, the browser language is not read; the app is in Spanish.
+- On the first visit with no saved choice, a full-screen choice ("Español" or "English", each in its own language) comes before anything else, the intro video included. It is saved to the cookie and localStorage and applied at once.
+- Signed in: the choice is saved to the account. On sign-in, a language saved on the account wins over the device's and is written to the cookie. A change from the menu also updates the account.
+- The menu's language switch stays. The privacy page says a cookie remembers the language.
+
+What changed:
+- site/i18n.js:
+  - pick(saved) is 'en' only for a saved 'en'.
+  - The cookie lhb_lang (Max-Age one year, Path=/, SameSite=Lax, Secure on https) is read first, then localStorage lhb_lang. A choice found only in localStorage is copied into the cookie.
+  - remember(l) writes both and returns whether a read-back finds l.
+  - set(l,o) remembers, then reloads. If cuenta.js has set api.onSet and o.local is not set, it calls onSet(l) and waits for its promise (at most 3 s) before reloading.
+  - If nothing could be saved, set returns false and does not reload.
+  - LHB_I18N gains remember, saved(), chosen and onSet.
+- site/intro.js:
+  - decide() returns 'lang' first when LHB_I18N.ENABLED and chosen === false, unless storage is blocked (a choice that cannot be remembered is not asked).
+  - boot() then shows choose(): a role=dialog aria-modal section with two buttons. The app behind it is inert, and Tab cycles between the two buttons.
+  - Español: remember('es'), close, then recompute inputs and decide the intro as usual.
+  - English: set('en'), which reloads in English; if set returns false, close and continue in Spanish.
+- This screen was planned for app.js. It lives in intro.js because intro.js runs before app.js and already decides what shows first; that is a scope move this round should judge.
+- site/cuenta.js:
+  - syncLang(C,uid,profile) runs on the signed-in success path of go().
+  - If the account has a language: when it differs from the page's, set(acc,{local:true}) (save and reload, without sending it back); otherwise remember it if the device differs.
+  - If the account has none and the device has one: PUT /api/profile {lang}, fire and forget.
+  - The factory sets LHB_I18N.onSet: with a cached profile whose sub matches Clerk's current user, it PUTs {lang}; otherwise it returns null.
+- functions/api/profile.js: a PUT body with exactly one key, lang, is the language change. 'es' or 'en', else 400 bad-lang. UPDATE profiles SET lang; 403 no-profile if no row; 503 no-lang if the column does not exist ("no such column").
+- functions/api/me.js: SELECT with lang; on "no such column", the old SELECT without it.
+- migrations/0009_profile_lang.sql: ALTER TABLE profiles ADD COLUMN lang TEXT CHECK (lang IS NULL OR lang IN ('es', 'en')). The owner already ran this statement by hand on both D1 databases (LHB-116); migrations here are applied by hand, not by CI.
+- site/index.html: the LHB-100 boot fallback picks its copy from LHB_I18N.lang, else the cookie, else localStorage, never navigator.language.
+- site/privacidad.html: the cookie sentence. site/styles.css: the .lang-pick screen (not hidden under reduced motion).
+- Tests: the old navigator-based tests are rewritten. Ten tests fail on main (evidence/lhb-115-red.txt). Full suite after merging main: 493 tests, 492 pass, 0 fail, 1 skipped (evidence/lhb-115-tests.txt).
+
+What to look for:
+- Reload loops: storage that half works (cookie blocked but localStorage not, or the reverse), an account language that cannot be saved on this device, and set() racing a second set().
+- The account and device disagreeing: whether a menu change can be undone by the account's old value on the next load (onSet is awaited at most 3 s), and two devices.
+- The first-visit screen: shown when it should not be (an old cached i18n.js or intro.js, deep links, the installed app); never shown; focus and inertness; whether the intro still plays afterwards.
+- Server: the lang-only PUT shape colliding with the identity or full-profile PUT, the guarded queries hiding a real error, and anything exposing lang beyond its owner.
+- Privacy and cookie attributes.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing sequence.

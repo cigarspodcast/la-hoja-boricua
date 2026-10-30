@@ -1673,8 +1673,13 @@ function t(k,v,fb){let s=T[lang][k];if(s==null)s=T.es[k];if(s==null)return fb!=n
 function remember(l){if(l!=='es'&&l!=='en')return false;writeCookie(l);try{w.localStorage.setItem('lhb_lang',l)}catch(e){}return readSaved()===l}
 /* cambiar de idioma: se guarda y se recarga. Con la sesión abierta, cuenta.js pone onSet, que lo manda a la cuenta, y la recarga lo espera (hasta 3 s):
    al recargar, el idioma de la cuenta gana. o.local: viene de la cuenta, no se manda de vuelta. Si no se pudo guardar no recarga (volvería igual) */
+/* Codex r1-2: un cambio que se manda a la cuenta queda anotado (lhb_lang_pend) hasta que la cuenta contesta 200 (cuenta.js llama a settle): si la recarga
+   llega antes, o la cuenta no lo guardó, al entrar otra vez el teléfono gana y se vuelve a mandar, en vez de que el idioma viejo de la cuenta lo deshaga */
+function pending(){try{const v=w.localStorage.getItem('lhb_lang_pend');return v==='es'||v==='en'?v:null}catch(e){return null}}
+function settle(){try{w.localStorage.removeItem('lhb_lang_pend')}catch(e){}}
 function set(l,o){if(!remember(l))return false;const go=()=>w.location.reload();let p=null;
- if(!(o&&o.local)&&typeof api.onSet==='function'){try{p=api.onSet(l)}catch(e){p=null}}
+ if(o&&o.local)settle();
+ else if(typeof api.onSet==='function'){try{p=api.onSet(l)}catch(e){p=null}if(p&&typeof p.then==='function'){try{w.localStorage.setItem('lhb_lang_pend',l)}catch(e){}}}
  if(!p||typeof p.then!=='function'){go();return true}
  let done=false;const once=()=>{if(!done){done=true;go()}};Promise.resolve(p).then(once,once);setTimeout(once,3000);return true}
 /* LHB-29: index.html trae el español; en inglés se cambia cada [data-i18n] (su HTML) y cada [data-i18n-attr] ("atributo:clave") */
@@ -1682,5 +1687,5 @@ function apply(d){if(lang==='es')return;d.querySelectorAll('[data-i18n]').forEac
 /* LHB-109: el idioma se cambia desde el menú (app.js llama a set); aquí solo se ponen los textos */
 function wire(){apply(w.document)}
 if(w.document){if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',wire);else wire()}
-const api={t,lang,set,pick,ENABLED,T,apply,remember,saved:readSaved,chosen:!!saved,onSet:null};w.LHB_I18N=api;
+const api={t,lang,set,pick,ENABLED,T,apply,remember,saved:readSaved,chosen:!!saved,pending,settle,onSet:null};w.LHB_I18N=api;
 })(window);
