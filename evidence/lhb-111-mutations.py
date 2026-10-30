@@ -24,6 +24,9 @@ MUTS = [
     ('site/404.html', 'Codex r2: a coloured SVG with an icon viewBox on a static page', '</body>', '<svg style="width:200px;height:200px" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="red"/><circle cx="12" cy="12" r="5" fill="blue"/></svg></body>'),
     ('site/u.css', 'Codex r2: an SVG background through u.css', ':root{', 'body{background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22%3E%3Ccircle r=%2250%22 fill=%22red%22/%3E%3C/svg%3E")}:root{'),
     ('site/hoja.js', 'Codex r2: a coloured SVG with an icon viewBox in a template', 'const CAL_ICO=', 'const CAL_X=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#e33"/></svg>`;const CAL_ICO='),
+    ('site/404.html', 'Codex r3: a sized SVG with single-quoted colours and an icon viewBox on a static page', '</body>', '<svg width="200" height="200" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill=\'red\'/><circle cx="12" cy="12" r="5" fill=\'blue\'/></svg></body>'),
+    ('site/hoja.js', 'Codex r3: an unquoted colour in an icon-shaped SVG in a template', 'const CAL_ICO=', 'const CAL_X=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill=red /></svg>`;const CAL_ICO='),
+    ('site/app.js', 'Codex r3: an icon-shaped SVG with a size of its own in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art">${art}<svg width="240" height="240" viewBox="0 0 24 24"><path d="M2 2h20v20H2z"/></svg></div></header>`;'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

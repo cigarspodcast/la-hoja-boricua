@@ -14,5 +14,8 @@ Codex r1: the empty state without its accent                             RED (ca
 Codex r2: a coloured SVG with an icon viewBox on a static page           RED (caught) (fail 1)
 Codex r2: an SVG background through u.css                                RED (caught) (fail 1)
 Codex r2: a coloured SVG with an icon viewBox in a template              RED (caught) (fail 1)
+Codex r3: a sized SVG with single-quoted colours and an icon viewBox on a static page RED (caught) (fail 1)
+Codex r3: an unquoted colour in an icon-shaped SVG in a template         RED (caught) (fail 1)
+Codex r3: an icon-shaped SVG with a size of its own in the header helper RED (caught) (fail 1)
 the silhouette ink that follows the theme on the fixed light frame       RED (caught) (fail 1)
-RESULT 16 of 16 red
+RESULT 19 of 19 red
