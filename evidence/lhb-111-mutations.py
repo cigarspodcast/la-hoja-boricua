@@ -97,6 +97,8 @@ MUTS = [
     ('site/404.html', 'Codex r22: an icon with a stroke too thin to see on a static page', '</body>', '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width=".01" d="M4 12h16"/></svg></body>'),
     ('site/styles.css', 'Codex r23: the empty-state mask drawing made nearly transparent inside its data URI', "stroke-linejoin='round'%3E", "stroke-linejoin='round' opacity='.01'%3E"),
     ('site/styles.css', 'Codex r23: the grain texture changed inside its data URI', 'numOctaves=%22', 'numOctaves=%229%22 data-x=%22'),
+    ('site/styles.css', 'Codex r24: a later background that hides the empty-state drawing', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.empty:before{background:var(--surface)}'),
+    ('site/styles.css', 'Codex r24: a later pseudo-element background reached by another selector', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{fill:var(--art-ac)}.view>div:last-child::before{background:var(--surface)}'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 

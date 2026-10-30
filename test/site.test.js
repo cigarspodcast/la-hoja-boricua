@@ -5689,7 +5689,9 @@ const TOKENS111=()=>new Set([...read('styles.css').replace(/\/\*[\s\S]*?\*\//g,'
    lista lleva toda propiedad de pintura o de alfa (fill-*, stroke-*, opacity, visibility, mask-*, paint-order, animation...) en cualquier regla, y toda
    declaración de una regla que puede alcanzar un dibujo (.lart, .sec-art, svg y sus elementos, *, [class...]) .
    Codex r23: una declaración larga lleva el sha256 de su texto entero (un atributo cambiado dentro de un SVG en data URI, como la máscara del estado
-   vacío, cambia la lista), y toda declaración con un SVG en data URI está en la lista, sea cual sea su propiedad */
+   vacío, cambia la lista), y toda declaración con un SVG en data URI está en la lista, sea cual sea su propiedad.
+   Codex r24: el dibujo del estado vacío es el fondo de .empty::before visto por su máscara, así que toda regla de .empty y toda regla de un ::before o un
+   ::after (o :before, :after) entra entera: un fondo puesto después (.empty:before{background:...}) cambia la lista */
 const RULES111=c=>{const out=[],st=[],acc=[''];let buf='',q=null,par=0;
  for(const ch of c){
   if(q){buf+=ch;if(ch===q)q=null;continue}
@@ -5701,7 +5703,7 @@ const RULES111=c=>{const out=[],st=[],acc=[''];let buf='',q=null,par=0;
   else buf+=ch}
  return out};
 const PAINT111=()=>{const P=/^((fill|stroke)[\w-]*|filter|-webkit-filter|backdrop-filter|mix-blend-mode|isolation|opacity|visibility|clip-path|paint-order|vector-effect|(-webkit-)?mask[\w-]*|forced-color-adjust|animation|animation-name|--art-[\w-]+|--on-surface|--warm|--amber|--surface|--paper|--fixed-text|--photo|--shadow-strong)\s*:/i;
- const ART=/lart|sec-art|\*|\[class|(^|[\s>+~(,])(svg|g|path|circle|ellipse|rect|line|polyline|polygon|text|tspan)(?=$|[\s:.\[>+~),])/i,out=[];
+ const ART=/lart|sec-art|\bempty\b|::?(before|after)\b|\*|\[class|(^|[\s>+~(,])(svg|g|path|circle|ellipse|rect|line|polyline|polygon|text|tspan)(?=$|[\s:.\[>+~),])/i,out=[];
  for(const f of CSSFILES111())for(const r of RULES111(read(f).replace(/\/\*[\s\S]*?\*\//g,''))){const all=ART.test(r.sel);
   for(const d of r.body.split(/;(?![^(]*\))/).map(d=>d.trim()).filter(Boolean))if(all||P.test(d)||/data:image\/svg\+xml/i.test(d))out.push(f+' '+(r.ctx?'['+r.ctx+'] ':'')+r.sel+'{'+(d.length>140?d.slice(0,140)+'... sha256:'+require('crypto').createHash('sha256').update(d).digest('hex').slice(0,16):d)+'}')}
  return out};
@@ -5743,6 +5745,11 @@ const PAINT_PIN111=[
  "styles.css .card .ph img,.card .ph svg{height:100%}",
  "styles.css .card .ph img,.card .ph svg{object-fit:cover}",
  "styles.css .card .ph img,.card .ph svg{display:block}",
+ "styles.css .empty{text-align:center}",
+ "styles.css .empty{color:var(--muted)}",
+ "styles.css .empty{padding:30px 10px}",
+ "styles.css .empty{border:1px dashed var(--line)}",
+ "styles.css .empty{border-radius:var(--r-m)}",
  "styles.css .detail-ph img,.detail-ph svg{width:100%}",
  "styles.css .detail-ph img,.detail-ph svg{height:100%}",
  "styles.css .detail-ph img,.detail-ph svg{object-fit:cover}",
@@ -5754,6 +5761,10 @@ const PAINT_PIN111=[
  "styles.css .lbtn svg{width:17px}",
  "styles.css .lbtn svg{height:17px}",
  "styles.css .lbtn svg{fill:currentColor}",
+ "styles.css .photo-drop .ph-empty{text-align:center}",
+ "styles.css .photo-drop .ph-empty{color:var(--muted)}",
+ "styles.css .photo-drop .ph-empty{font-size:var(--fs-2)}",
+ "styles.css .photo-drop .ph-empty{padding:10px}",
  "styles.css .photo-btns input{opacity:0}",
  "styles.css .btn:disabled{opacity:.5}",
  "styles.css .map-wrap{isolation:isolate}",
@@ -5804,10 +5815,28 @@ const PAINT_PIN111=[
  "styles.css .map-offline .offline-pin path{transition:transform .2s}",
  "styles.css [@media (prefers-reduced-motion:reduce)] *,*::before,*::after{animation:none!important}",
  "styles.css [@media (prefers-reduced-motion:reduce)] *,*::before,*::after{transition:none!important}",
+ "styles.css body::after{content:\"\"}",
+ "styles.css body::after{position:fixed}",
+ "styles.css body::after{inset:0}",
+ "styles.css body::after{pointer-events:none}",
+ "styles.css body::after{z-index:300}",
  "styles.css body::after{background-image:url(\"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%... sha256:856a7d7e7d96b86d}",
+ "styles.css body::after{background-size:160px}",
  "styles.css body::after{opacity:.07}",
  "styles.css body::after{mix-blend-mode:overlay}",
+ "styles.css .hero::before{content:\"\"}",
+ "styles.css .hero::before{position:absolute}",
+ "styles.css .hero::before{inset:0}",
+ "styles.css .hero::before{z-index:1}",
+ "styles.css .hero::before{pointer-events:none}",
+ "styles.css .hero::before{background:linear-gradient(90deg,var(--veil) 0%,var(--veil) 40%,var(--veil-soft) 66%,transparent 100%),linear-gradient(0deg,var(--veil) 0%,t... sha256:c742e38a7fbb826f}",
  "styles.css .card .ph{filter:sepia(.14) saturate(1.06) contrast(1.02)}",
+ "styles.css .empty::before{content:\"\"}",
+ "styles.css .empty::before{display:block}",
+ "styles.css .empty::before{width:84px}",
+ "styles.css .empty::before{height:70px}",
+ "styles.css .empty::before{margin:0 auto 10px}",
+ "styles.css .empty::before{background:radial-gradient(7px 4.9px at 50.4px 22.4px,var(--warm) 100%,var(--on-surface) 100%)}",
  "styles.css .empty::before{-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-widt... sha256:d2fe5d5d49635d48}",
  "styles.css .empty::before{mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23000' stroke-width='2.4' ... sha256:b55855cf0297447e}",
  "styles.css .icon-btn svg{width:19px}",
@@ -5826,6 +5855,21 @@ const PAINT_PIN111=[
  "styles.css .hum-ph svg{width:100%}",
  "styles.css .hum-ph svg{height:100%}",
  "styles.css .hum-ph svg{display:block}",
+ "styles.css .dfoto:empty{display:none}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{content:\"✓\"}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{position:absolute}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{top:6px}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{right:8px}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{width:22px}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{height:22px}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{border-radius:50%}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{background:var(--accent)}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{color:var(--on-accent)}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{font-weight:800}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{font-size:var(--fs-2)}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{display:grid}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{place-items:center}",
+ "styles.css .stamp[aria-pressed=\"true\"]::after{transform:rotate(-12deg)}",
  "styles.css .stampbtn svg{width:18px}",
  "styles.css .stampbtn svg{height:18px}",
  "styles.css .stampbtn.act svg{width:24px}",
@@ -5874,13 +5918,26 @@ const PAINT_PIN111=[
  "styles.css .zcel .zs svg{height:26px}",
  "styles.css [@keyframes sello] 0%{opacity:0}",
  "styles.css .view:empty+.seo-foot{visibility:hidden}",
+ "styles.css #pfAbout:empty{display:none}",
+ "styles.css .pf-follow:empty{display:none}",
+ "styles.css .pf-more:empty{display:none}",
+ "styles.css .fw-row:empty{display:none}",
  "styles.css .brand-icon{fill:none}",
  "styles.css .brand-icon{stroke:currentColor}",
  "styles.css .brand-icon{stroke-width:1.8}",
  "styles.css .brand-icon{stroke-linecap:round}",
  "styles.css .brand-icon{stroke-linejoin:round}",
+ "styles.css .hero.compact::before{display:none}",
  "styles.css .about-replay .brand-icon{fill:currentColor}",
  "styles.css .about-replay .brand-icon{stroke:none}",
+ "styles.css .stamps .stamp[aria-pressed=\"true\"]::after{background:var(--accent-ink)}",
+ "styles.css .stamps .stamp[aria-pressed=\"true\"]::after{color:var(--card)}",
+ "styles.css .stamps .stamp:nth-child(4n+2)[aria-pressed=\"true\"]::after{background:var(--warm-ink)}",
+ "styles.css .stamps .stamp:nth-child(4n+2)[aria-pressed=\"true\"]::after{color:var(--card)}",
+ "styles.css .stamps .stamp:nth-child(4n+3)[aria-pressed=\"true\"]::after{background:var(--on-surface-2)}",
+ "styles.css .stamps .stamp:nth-child(4n+3)[aria-pressed=\"true\"]::after{color:var(--card)}",
+ "styles.css .stamps .stamp:nth-child(4n)[aria-pressed=\"true\"]::after{background:var(--warn-ink)}",
+ "styles.css .stamps .stamp:nth-child(4n)[aria-pressed=\"true\"]::after{color:var(--card)}",
  "styles.css [@keyframes lhb-stamp] 0%{opacity:0}",
  "styles.css [@keyframes lhb-stamp] 65%{opacity:1}",
  "styles.css [@keyframes lhb-stamp] 100%{opacity:1}",
@@ -5910,7 +5967,8 @@ const PAINT_PIN111=[
  "u.css :root{--on-surface:#263723}",
  "u.css [@media (prefers-color-scheme:dark)] :root:not([data-theme=\"light\"]){--surface:#141A13}",
  "u.css [@media (prefers-color-scheme:dark)] :root:not([data-theme=\"light\"]){--on-surface:#EEE9DD}",
- "u.css *{box-sizing:border-box}"];
+ "u.css *{box-sizing:border-box}",
+ "u.css .tag,.pp-h,.pp-sub,.pp-empty,footer{color:var(--muted)}"];
 const SVGEL_OK111=new Set(['svg','g','path','circle','ellipse','rect','line','polyline','polygon','text','tspan','title','desc']);
 /* LHB-111 (Codex r22): los atributos también son una lista de los que hay, no de los que se niegan (stroke-opacity, opacity, un trazo casi nulo...):
    un dibujo del juego lleva solo geometría y accesibilidad; un ícono, además, fill o stroke en none o currentColor, la forma del trazo un grosor de 1 a 3 y, si es a trazos, trazos y huecos de al menos 1 (el sello sin marcar) */
