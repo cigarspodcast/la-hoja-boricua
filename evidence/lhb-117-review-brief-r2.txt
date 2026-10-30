@@ -1,0 +1,7 @@
+Code review, LHB-117, TIER 1, round 2 (confirmation of the round 1 fix). Repository cigarspodcast/la-hoja-boricua, branch lhb-117-sin-prototipo. You are reviewing; do not edit files.
+
+Round 1 (evidence/lhb-117-review-r1.txt) blocked on one P2: the LABEL regex in the LHB-117 test held two literal backspace characters (U+0008) after Prototipo and Prototype instead of word boundaries, so a bare label passed. The fix replaces both with a regex word boundary (the two characters backslash and b). Proof on a scratch copy (evidence/lhb-117-r1-label-proof.txt): the clean tree passes; appending a bare Prototipo paragraph or a bare Prototype paragraph to site/index.html, or Prototipo to README.md, each turns the test red.
+
+Check that the fix is right and complete, that no other control character is in the diff, and that nothing else changed. The diff below is against origin/main.
+
+End with a line VERDICT: PASS or VERDICT: BLOCK, and list each finding with a severity (P1, P2, P3), the file, and a concrete failing case.

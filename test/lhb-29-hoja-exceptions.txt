@@ -75,7 +75,6 @@ str: 600 34px Figtree
 str: 700 20px Figtree
 str: 700 30px Figtree
 str: 700 30px Figtree
-str: 600 20px Figtree
 tpl: la-hoja-boricua-respaldo-.json
 tpl: https:///npm/@clerk/clerk-js@6/dist/clerk.browser.js
 tpl: https:///npm/@clerk/ui@1/dist/ui.browser.js
