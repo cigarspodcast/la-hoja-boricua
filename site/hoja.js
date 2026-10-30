@@ -269,7 +269,7 @@ function accountPanel(){const a=acct.get();if(!a||!a.handle)return '';
  <p class="hint" id="acMsg" role="status" aria-live="polite" hidden></p>
  <details class="edit"><summary>${tt('ac.del.s')}</summary><p>${tt('ac.del.p')}</p>
  <div class="field"><label for="acDelI">${tt('ac.del.l',{a:'@'+esc(a.handle)})}</label><input id="acDelI" autocapitalize="none" autocomplete="off" spellcheck="false"></div>
- <button class="btn" type="button" id="acDel" disabled>${tt('ac.del.b')}</button></details>
+ <button class="btn danger" type="button" id="acDel" disabled>${tt('ac.del.b')}</button></details>
  <p class="hint">${tt('h.leeQueGuardamosY')} <a href="/privacidad">${tt('h.privacidadYCuenta')}</a>.</p></section>`}
 function bindAccount(){const a=acct.get();const out=$('#acOut'),del=$('#acDel'),inp=$('#acDelI');if(!a||!out)return;
  out.onclick=salir;$$('#acctP [data-exp]').forEach(b=>b.onclick=exportar);
@@ -677,7 +677,7 @@ const blkErr=e=>e==='blocks-off'?tt('h.blkOff'):e==='block-cap'?tt('h.blkCap'):e
 function blkMount(id,h,live){const box=$('#'+id);if(!box)return;const a=meAcct();
  box.innerHTML=`<a class="lbtn" id="pfReport" href="${esc(reportHref(h))}">${tt('h.blkReportar')}</a>${a&&a.handle!==h?`<button class="lbtn" type="button" id="pfBlock">${tt('h.blkBloquear')}</button>`:''}`;
  const b=$('#pfBlock');if(!b)return;
- b.onclick=()=>{sheet(`<h2 class="sheet-h">${tt('h.blkPregunta',{a:'@'+esc(h)})}</h2><p>${tt('h.blkExplica')}</p><p><button class="btn" type="button" id="blkGo">${tt('h.blkBloquear')}</button> <button class="lbtn" type="button" data-close>${tt('h.cancelar')}</button></p>`,tt('h.blkPregunta',{a:'@'+h}));
+ b.onclick=()=>{sheet(`<h2 class="sheet-h">${tt('h.blkPregunta',{a:'@'+esc(h)})}</h2><p>${tt('h.blkExplica')}</p><p><button class="btn danger" type="button" id="blkGo">${tt('h.blkBloquear')}</button> <button class="lbtn" type="button" data-close>${tt('h.cancelar')}</button></p>`,tt('h.blkPregunta',{a:'@'+h}));
   const go=$('#blkGo');go.onclick=async()=>{go.disabled=true;const ok=()=>fwSame(a.sub);let r;
    try{const C=await clerk();r=await api(C,'POST','/api/block',{handle:h},a.sub,undefined,ok)}catch(e){r={status:0,body:{}}}
    /* Codex r1: la hoja se cierra solo si sigue siendo esta (no otra que se abrió después); el aviso es para la cuenta que bloqueó, y volver a tu Perfil, solo desde esta página */
@@ -1105,7 +1105,7 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
  const mk=new Image();mk.src='icons/icon.svg';await new Promise(r=>{mk.onload=r;mk.onerror=r});
  const fb=[[tk('flag-blue'),.18],[tk('flag-red'),.27],[tk('flag-white'),.1],[tk('flag-red'),.27],[tk('flag-white'),.04],[tk('flag-red'),.14]];let fx=0;fb.forEach(([col,w])=>{x.fillStyle=col;x.fillRect(fx,0,W*w,10);fx+=W*w});try{x.drawImage(mk,W/2-32,32,64,64)}catch(e){}
  x.textBaseline='alphabetic';x.font='600 64px Fraunces';x.fillStyle=tk('on-surface');const t1='La Hoja ';const w1=x.measureText(t1).width;const w2=x.measureText('Boricua').width;const sx=(W-w1-w2)/2;x.fillText(t1,sx,158);x.fillStyle=tk('accent-ink');x.fillText('Boricua',sx+w1,158);
- x.font='600 22px Figtree';x.fillStyle=tk('info-ink');x.textAlign='center';x.letterSpacing='4px';x.fillText(tt('brand.tagline').toUpperCase(),W/2,198);x.letterSpacing='0px';x.textAlign='left';
+ x.font='600 22px Figtree';x.fillStyle=tk('warm-ink');x.textAlign='center';x.letterSpacing='4px';x.fillText(tt('brand.tagline').toUpperCase(),W/2,198);x.letterSpacing='0px';x.textAlign='left';
  const foto=(!c.yours&&window.LHB_FOTOS)?window.LHB_FOTOS[c.id]:null;let fimg=null;
  if(foto){fimg=new Image();fimg.src=foto.img;await new Promise(r=>{fimg.onload=r;fimg.onerror=()=>{fimg=null;r()}})}
  const img=new Image();if(!fimg){img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(A.cigarSVG(c));await new Promise(r=>{img.onload=r;img.onerror=r})}
@@ -1116,7 +1116,7 @@ async function cardBlob(c){const W=1080,H=1350;const cv=document.createElement('
  x.font='600 34px Figtree';x.fillStyle=tk('on-surface-2');x.fillText([A.artisanName(c),c.pueblo].filter(Boolean).join(' · '),W/2,y+56);x.textAlign='left';
  const vs=c.vitolas||[];const specs=[[tt('h.cardCapa'),(A.fx(c,'capa')||tt('notPub')).replace(/\s*\(.*?\)/g,'')],[tt('h.cardFortaleza'),c.fortaleza?A.fortLabel(c.fortaleza):tt('notPub')],[tt('h.cardVitola'),vs.length?vs[0]+(vs.length>1?' +'+(vs.length-1):''):tt('h.enVerificacion')]];
  const bw=300,gap=24,bx=(W-bw*3-gap*2)/2,by=y+96;specs.forEach(([k,v],i)=>{const X=bx+i*(bw+gap);x.fillStyle=tk('card');rr(x,X,by,bw,110,18);x.fill();x.strokeStyle=tk('line');x.lineWidth=2;x.stroke();
-  x.fillStyle=tk('info-ink');x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle=tk('on-surface');x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
+  x.fillStyle=tk('warm-ink');x.font='700 20px Figtree';x.fillText(k,X+22,by+38);x.fillStyle=tk('on-surface');x.font='700 30px Figtree';let vv=String(v);while(x.measureText(vv).width>bw-44&&vv.length>3)vv=vv.slice(0,-2)+'…';x.fillText(vv.replace('……','…'),X+22,by+82)});
  x.textAlign='center';x.fillStyle=tk('accent-ink');x.font='700 30px Figtree';x.fillText('lahojaboricua.com',W/2,H-62);x.fillStyle=tk('muted');x.font='600 20px Figtree';x.fillText(tt('h.prototipoInformacionPublicaSujeta'),W/2,H-28);
  return new Promise(r=>cv.toBlob(b=>r(b),'image/png'))}
 async function shareCard(id){const c=A.cigarById(id);if(!c)return;

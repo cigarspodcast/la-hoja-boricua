@@ -85,7 +85,7 @@ const RS=(()=>{let e=$('#resultStatus');if(!e){e=document.createElement('div');e
 const resultStatus=t=>{if(RS.textContent!==t)RS.textContent=t};
 const state={q:'',capa:'',fort:'',art:'',lugMode:'mapa',lugCat:'',lugTown:''};
 /* LHB-71: los íconos del menú y de la portada, uno por destino (trazo, toman el color del texto) */
-const BRAND_ICONS={book:'<path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1zM12 6v14"/>',lang:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',cigar:'<path d="m4 16 12-9 4 5-12 9zM13 9l4 5M5 4c0 2 3 2 3 4M11 2c0 2 3 2 3 4"/>',
+const BRAND_ICONS={moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',book:'<path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1zM12 6v14"/>',lang:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',cigar:'<path d="m4 16 12-9 4 5-12 9zM13 9l4 5M5 4c0 2 3 2 3 4M11 2c0 2 3 2 3 4"/>',
  maker:'<path d="M5 21v-7l3-4 3 1 3-3 4 2 1 4v7M7 16l4 2 5-4M11 18v3"/><circle cx="9" cy="4" r="3"/>',
  place:'<path d="M19 10c0 6-7 11-7 11S5 16 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/>',
  leaf:'<path d="M5 19C0 8 9 3 21 3c1 11-4 18-14 17M3 22 17 7M8 17l-2-5M12 12l5 1"/>',
@@ -104,6 +104,14 @@ const BRAND_ICONS={book:'<path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2
 const brandIcon=(n,cls='')=>`<svg class="brand-icon ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${BRAND_ICONS[n]||BRAND_ICONS.leaf}</svg>`;
 /* LHB-109: la portada sin atajos: las pestañas son la navegación; el menú cambia el idioma */
 document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-lang]');if(!b)return;const I=window.LHB_I18N;if(I&&I.set)I.set(b.dataset.lang)});
+/* LHB-110: el tema. Sin elegir, sigue al teléfono; el menú lo fija (oscuro, claro) o lo devuelve al teléfono. Se guarda en este teléfono (lhb_theme), no en la cuenta */
+const THEMES=['auto','dark','light'],THEME_BAR={light:'#F4F1EA',dark:'#141A13'},THEME_KEY={auto:'menu.tema.auto',dark:'menu.tema.dark',light:'menu.tema.light'};
+function themeNow(){try{const t=localStorage.getItem('lhb_theme');return t==='dark'||t==='light'?t:'auto'}catch(e){return 'auto'}}
+function applyTheme(t){const r=document.documentElement;if(!r||!document.head)return;if(t==='dark'||t==='light')r.setAttribute('data-theme',t);else r.removeAttribute('data-theme');
+ let m=document.getElementById('themeBar');if(t==='dark'||t==='light'){if(!m){m=document.createElement('meta');m.name='theme-color';m.id='themeBar';document.head.prepend(m)}m.content=THEME_BAR[t]}else if(m)m.remove()}
+applyTheme(themeNow());
+document.addEventListener('click',e=>{const b=e.target&&e.target.closest&&e.target.closest('[data-theme-next]');if(!b)return;const t=THEMES[(THEMES.indexOf(themeNow())+1)%THEMES.length];
+ try{if(t==='auto')localStorage.removeItem('lhb_theme');else localStorage.setItem('lhb_theme',t)}catch(x){}applyTheme(t);const sm=b.querySelector('small');if(sm)sm.textContent=tt(THEME_KEY[t])});
 /* LHB-71: la portada se decide una vez por carga: escribir en el buscador o tocar un filtro repinta, y no puede cambiar la portada a mitad de la visita */
 let homeCompact=null;
 function vCatalogo(){const cs=allCigars();const capas=[...new Set(cs.map(c=>c.capa).filter(Boolean))].sort();const capaLbl=new Map();for(const c of cs)if(c.capa&&(!capaLbl.has(c.capa)||capaLbl.get(c.capa)===c.capa))capaLbl.set(c.capa,fx(c,'capa'));
@@ -185,7 +193,7 @@ function vSubir(){pendingPhoto=null;let fort='';
   const artSel=$('#uArt').value;const item={id,nombre:name,artesano_id:artSel&&artSel!=='__otro'?artSel:'',artesano_texto:artSel==='__otro'?$('#uArtTxt').value.trim():'',capa:$('#uCapa').value.trim(),fortaleza:fort||null,pueblo:$('#uPueblo').value.trim(),vitolas:$('#uVit').value.trim()?[$('#uVit').value.trim()]:[],notas:$('#uNotes').value.trim(),foto,creado:new Date().toISOString()};
   LS.set('uploads',[item,...uploads()]);toast(tt('up.saved'));location.hash='#/c/'+id}}
 /* ---------- lugares ---------- */
-let leafletMap=null;const LEAFC={lounge:'var(--danger)',venta:'var(--info)'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let leafletMap=null;const LEAFC={lounge:'var(--accent)',venta:'var(--warm)'};const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* LHB-87: pines que se tapan se juntan en un grupo (axe target-size). Entra [{x,y,m}] en píxeles del mapa; sale [{x,y,ms}].
    Un pin solo ocupa 26 x 34 con la punta abajo; un grupo, un círculo de 36; dos cajas a menos de 2 px se juntan, hasta que ninguna toca a otra. */
 const pinBox=(x,y,n)=>n>1?[x-18,y-18,x+18,y+18]:[x-13,y-32,x+13,y+2];
@@ -364,6 +372,7 @@ function menuHTML(hash){const [r0,a0]=String(hash==null?location.hash:hash).repl
  const go=(href,i,k,ks)=>`<a class="menu-dest" href="${href}"><span class="menu-ico">${brandIcon(i)}</span><span class="menu-copy"><b>${tt(k)}</b><small>${tt(ks)}</small></span>${brandIcon('arrow','menu-go')}</a>`;
  const I=typeof window!=='undefined'?window.LHB_I18N:null,other=I&&I.ENABLED?(I.lang==='en'?['es','Espa\u00f1ol']:['en','English']):null;
  const extra={descubre:[go('guias/','book','menu.guias','menu.guiasSub')],app:[`<button type="button" class="menu-dest" data-sheet="instalar" data-arg="${ia}"><span class="menu-ico">${brandIcon('install')}</span><span class="menu-copy"><b>${tt('menu.instalar')}</b><small>${tt('menu.instalarSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`,
+  `<button type="button" class="menu-dest" data-theme-next><span class="menu-ico">${brandIcon('moon')}</span><span class="menu-copy"><b>${tt('menu.tema')}</b><small>${tt(THEME_KEY[themeNow()])}</small></span>${brandIcon('arrow','menu-go')}</button>`,
   ...(other?[`<button type="button" class="menu-dest" data-lang="${other[0]}"><span class="menu-ico">${brandIcon('lang')}</span><span class="menu-copy"><b lang="${other[0]}">${other[1]}</b><small>${tt('menu.idiomaSub')}</small></span>${brandIcon('arrow','menu-go')}</button>`]:[]),go('privacidad.html','lock','menu.privacidad','menu.privacidadSub')]};
  return `<header class="menu-welcome"><div class="eyebrow">${tt('menu.welcome')}</div><h2 class="sheet-h">${tt('menu.title')}</h2></header><nav class="menu-groups" aria-label="${tt('h.menu')}">${MENU_GROUPS.map(([g,label])=>`<section aria-labelledby="mg-${g}"><h3 id="mg-${g}">${label()}</h3>${rows(g).join('')}${(extra[g]||[]).join('')}</section>`).join('')}</nav>`}
 function route(){const h=location.hash.replace(/^#\/?/,'')||'catalogo';const [r,arg]=h.split('/');let id='';if(arg){try{id=decodeURIComponent(arg)}catch(e){id=arg}}
