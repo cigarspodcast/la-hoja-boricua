@@ -16,6 +16,11 @@ MUTS = [
     ('site/art.js', 'a drawing with its own colour', '<circle class="ac" cx="98" cy="22" r="8"/>', '<circle fill="#ffd25a" cx="98" cy="22" r="8"/>'),
     ('site/art.js', 'a drawing without its accent', '<rect class="ac" x="42" y="54" width="36" height="6" rx="3"/>', '<rect x="42" y="54" width="36" height="6" rx="3"/>'),
     ('site/styles.css', 'the empty state with a different drawing', "M36 68H64V80H36Z", "M36 68H64V82H36Z"),
+    ('site/app.js', 'Codex r1: a coloured SVG in the header helper', '<div class="sec-art">${art}</div></header>`;', '<div class="sec-art">${art}<svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#e33"/></svg></div></header>`;'),
+    ('site/404.html', 'Codex r1: a decorative SVG on a static page', '</body>', '<svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="#e33"/></svg></body>'),
+    ('site/styles.css', 'Codex r1: a bitmap through CSS', '.lart{', '.hero::after{background:url(img/hero/banner.webp)}.lart{'),
+    ('site/styles.css', 'Codex r1: the accent not painted', '.lart .ac{fill:var(--art-ac)}', '.lart .ac{}'),
+    ('site/styles.css', 'Codex r1: the empty state without its accent', 'background:radial-gradient(7px 4.9px at 50.4px 22.4px,var(--warm) 100%,var(--on-surface) 100%);', 'background:var(--on-surface);'),
     ('site/styles.css', 'the silhouette ink that follows the theme on the fixed light frame', '.lart.sil,.lart.aqui{--art-ink:var(--fixed-text)}', '.lart.aqui{--art-ink:var(--fixed-text)}'),
 ]
 
