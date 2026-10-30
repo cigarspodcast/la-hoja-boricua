@@ -1,13 +1,17 @@
-baseline (no mutation): pass 9 fail 0
+baseline (no mutation): pass 12 fail 0
 a pass starts during a switch (no check after the epoch read)            RED (caught) (fail 1)
-the switch is not marked                                                 RED (caught) (fail 7)
+the switch is not marked                                                 RED (caught) (fail 9)
 a switch that cannot be marked goes ahead unmarked                       RED (caught) (fail 1)
-the mark stays after the switch ends                                     RED (caught) (fail 3)
-the mark of a tab that closed mid-switch never lapses                    RED (caught) (fail 3)
+the mark stays after the switch ends                                     RED (caught) (fail 4)
+the mark of a tab that closed mid-switch never lapses                    RED (caught) (fail 5)
 Codex r1: a live tab asleep past the lapse no longer counts              RED (caught) (fail 2)
-Codex r1: the pass switches the copy before it checks for another tab mid-switch RED (caught) (fail 1)
-Codex r1: isolate starts while another tab is mid-switch                 RED (caught) (fail 1)
+Codex r1: the pass switches the copy before it checks for another tab mid-switch RED (caught) (fail 2)
+Codex r1: isolate starts while another tab is mid-switch                 RED (caught) (fail 2)
 Codex r1: a mark that could not be removed is not retried                RED (caught) (fail 1)
 Codex r1: a switch that wakes after another tab switched still clears the copy RED (caught) (fail 1)
-Codex r1: the mark of a closed tab is left behind                        RED (caught) (fail 1)
-RESULT 11 of 11 red
+Codex r1: the mark of a closed tab is left behind                        RED (caught) (fail 3)
+Codex r2: without Web Locks, an expired mark is removed without moving the epoch RED (caught) (fail 1)
+Codex r2: isolate goes by recent marks only, not by live tabs            RED (caught) (fail 1)
+Codex r2: before the first lock query, an old mark counts as dead        RED (caught) (fail 1)
+Codex r2: a switch that throws leaves its mark                           RED (caught) (fail 1)
+RESULT 15 of 15 red

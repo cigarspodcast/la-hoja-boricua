@@ -6439,10 +6439,12 @@ const SWITCH105=async(o)=>{const a=await ENG28();a.db.exec(a.mig('0008_mihoja_op
  /* con o.locks, los candados de Web Locks: cada motor nuevo toma el suyo; held.clear() es la otra pestaña que se cerró */
  const held=new Set();if(o&&o.locks){A.D.tabLock=n=>held.add(n);A.D.tabsHeld=async()=>new Set(held)}
  const Y=SYNC28().LHB_SYNC(A.D),sd=A.D.setDoc,PAUSE=new Error('pausa');
- A.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length)throw PAUSE;return sd(d,...r)};
+ /* la pestaña dormida no llega al final de isolate: aquí el vaciado lanza, y su anotación se vuelve a poner como estaba en ese momento */
+ let mk=null;A.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length){mk=[...A.ls.entries()].find(([k])=>k.startsWith(A.KEY+'_cambio.'));throw PAUSE}return sd(d,...r)};
  A.st.acct=A.st.user='user_b';assert.throws(()=>Y.isolate(),e=>e===PAUSE,'la otra pestaña se queda a mitad del cambio');A.D.setDoc=sd;
+ assert.ok(mk,'su anotación estaba');A.ls.set(mk[0],mk[1]);const ep=A.ls.get(A.KEY+'_epoca');
  A.st.acct=A.st.user='user_a';if(o&&o.advance)A.advance(o.advance);
- return {a,A,Y,held,puts:()=>A.net.log.filter(m=>m==='PUT').length,marks:()=>[...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_cambio.'))}};
+ return {a,A,Y,held,ep,puts:()=>A.net.log.filter(m=>m==='PUT').length,marks:()=>[...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_cambio.'))}};
 test('LHB-105: una pasada que empieza en otra pestaña mientras esta cambia de cuenta no escribe la copia ni sube nada, y el cambio termina',async()=>{
  const {a,A,Y,puts}=await SWITCH105();
  try{
@@ -6534,8 +6536,9 @@ test('LHB-105 (Codex r1): el cambio de otra pestaña empieza justo cuando esta p
   const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
   const Y=SYNC28().LHB_SYNC(A.D),sd=A.D.setDoc,get=A.D.ls.get,E=A.KEY+'_epoca',PAUSE=new Error('pausa');let armed=true;
   /* la pasada ya miró que no hubiera cambios a mitad; al leer su época, la otra pestaña empieza el suyo a B y se queda antes de vaciar */
-  A.D.ls.get=k=>{if(armed&&k===E){armed=false;A.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length)throw PAUSE;return sd(d,...r)};
-    A.st.acct=A.st.user='user_b';assert.throws(()=>Y.isolate(),e=>e===PAUSE);A.D.setDoc=sd;A.st.acct=A.st.user='user_a'}return get(k)};
+  A.D.ls.get=k=>{if(armed&&k===E){armed=false;
+    let mk=null;A.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length){mk=[...A.ls.entries()].find(([x])=>x.startsWith(A.KEY+'_cambio.'));throw PAUSE}return sd(d,...r)};
+    A.st.acct=A.st.user='user_b';assert.throws(()=>Y.isolate(),e=>e===PAUSE);A.D.setDoc=sd;A.ls.set(mk[0],mk[1]);A.st.acct=A.st.user='user_a'}return get(k)};
   const p0=A.net.log.filter(m=>m==='PUT').length,d0=A.st.setDocs;
   A.net.beforeGet=async()=>{A.ls.set(A.KEY,'{}')};
   const r=await A.eng.run('prueba');A.D.ls.get=get;A.net.beforeGet=null;
@@ -6549,6 +6552,42 @@ test('LHB-105 (Codex r1): con una pestaña viva dormida a mitad del cambio pasad
   A.st.acct=A.st.user='user_b';const d0=A.st.setDocs,copy=A.ls.get(A.KEY);
   assert.notEqual((await A.sync()).ok,true);
   assert.equal(A.st.setDocs,d0,'no escribió la copia');assert.equal(A.ls.get(A.KEY),copy);assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_a','la dueña sigue');
+ }finally{a.done()}});
+test('LHB-105 (Codex r2): sin Web Locks, una pestaña dormida a mitad del cambio que vuelve pasado el plazo no vacía la copia: la pasada que quitó su anotación cambió la época',async()=>{
+ const {a,A,ep,puts,marks}=await SWITCH105({advance:31e3});
+ try{
+  const p0=puts();let woke=null;
+  /* la pasada empieza pasado el plazo; mientras espera su GET, la otra pestaña vuelve. Lo que le queda de su cambio es mirar que la época sigue siendo la suya
+     y vaciar la copia (iso1); en un solo hilo no se puede reanudar su llamada, así que aquí se hace lo mismo que haría */
+  A.net.beforeGet=async()=>{woke=A.ls.get(A.KEY+'_epoca')===ep;if(woke)A.ls.set(A.KEY,'{}')};
+  const r=await A.sync();A.net.beforeGet=null;
+  assert.equal(woke,false,'al volver ve otra época y no vacía');assert.equal(puts(),p0,'nada que subir');assert.equal(r.ok,true);
+  const s=srv28(a,'user_a');assert.equal(s.rev,1);assert.equal(s.doc.humidor.length,1,'la cuenta de A sigue entera');assert.equal(A.doc().humidor.length,1,'y la copia también');
+  assert.deepEqual(marks(),[],'ninguna anotación queda');
+ }finally{a.done()}});
+test('LHB-105 (Codex r2): con Web Locks, abrir Mi Hoja en otra cuenta no cambia la copia mientras una pestaña viva duerme a mitad de su cambio, aunque pasó el plazo',async()=>{
+ const {a,A,held}=await SWITCH105({locks:true,advance:31e3});
+ try{
+  const Z=SYNC28().LHB_SYNC(A.D);await new Promise(r=>setTimeout(r,5));
+  A.st.acct=A.st.user='user_c';const copy=A.ls.get(A.KEY);
+  assert.equal(Z.isolate(),false,'la otra pestaña sigue viva');assert.equal(A.ls.get(A.KEY),copy);assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_a');
+  /* recién abierta, antes de saber qué candados hay, tampoco */
+  const Z2=SYNC28().LHB_SYNC({...A.D,tabsHeld:()=>new Promise(()=>{})});assert.equal(Z2.isolate(),false,'sin saber si vive, no se cambia');
+  /* la pestaña dormida se cerró: después de una consulta, sí */
+  held.clear();A.st.acct=A.st.user='user_a';await A.sync();A.st.acct=A.st.user='user_c';
+  const Z3=SYNC28().LHB_SYNC(A.D);await new Promise(r=>setTimeout(r,5));assert.equal(Z3.isolate(),true);assert.equal(A.ls.get('lhb_mihoja_v1_owner'),'user_c');
+ }finally{a.done()}});
+test('LHB-105 (Codex r2): un cambio de cuenta que lanza a mitad quita su anotación, y las demás pestañas siguen',async()=>{
+ const a=await ENG28();
+ try{
+  a.db.exec(a.mig('0008_mihoja_ops.sql'));
+  const A=DEV28(a,'user_a');A.seed(DOC28);await A.sync();
+  const held=new Set();A.D.tabLock=n=>held.add(n);A.D.tabsHeld=async()=>new Set(held);
+  const Y=SYNC28().LHB_SYNC(A.D),sd=A.D.setDoc,BOOM=new Error('SecurityError');
+  A.D.setDoc=(d,...r)=>{if(d&&!Object.keys(d).length)throw BOOM;return sd(d,...r)};
+  A.st.acct=A.st.user='user_b';assert.throws(()=>Y.isolate(),e=>e===BOOM);A.D.setDoc=sd;
+  assert.deepEqual([...A.ls.keys()].filter(k=>k.startsWith(A.KEY+'_cambio.')),[],'la anotación se quitó');
+  A.st.acct=A.st.user='user_a';A.advance(31e3);assert.equal((await A.sync()).ok,true,'la otra pestaña sigue viva y esta igual sincroniza');
  }finally{a.done()}});
 for(const [como,rompe] of [['no se puede quitar la llave',(A,E)=>{const rm=A.D.ls.remove;let n=0;A.D.ls.remove=k=>{if(k===E&&!n++)throw new Error('SecurityError');return rm(k)}}],
                            ['no se puede escribir la de antes',(A,E)=>{const set=A.D.ls.set;let n=0;A.D.ls.set=(k,v)=>{if(k===E&&n++===1)throw new Error('QuotaExceededError');return set(k,v)}}]])
